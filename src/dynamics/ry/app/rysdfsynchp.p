@@ -119,7 +119,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Procedure 
 /* ************************* Included-Libraries *********************** */
 
-{src/adm/method/attribut.i}
+ 
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

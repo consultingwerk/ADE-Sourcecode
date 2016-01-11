@@ -400,9 +400,9 @@ Define sub-menu mnu_Admin
 /*== Pop-up menus for "protoxxx" tools -  MS-SQL ==*/
 /* OE00195067 */
 Define sub-menu mnu_mss_srv_attr  
-   menu-item mi_mss_viw_mnt_cnst         label "View/Maintain Foreign Constraints..."
-   menu-item mi_mss_active_all_cnst      label "Active/Deactivate Constraints..."
-   menu-item mi_mss_delete_all_cns       label "Delete Constraints..."
+   menu-item mi_mss_viw_mnt_cnst         label "View/Maintain Foreign Constraint Definitions..."
+   menu-item mi_mss_active_all_cnst      label "Activate/Deactivate Constraint Definitions..."
+   menu-item mi_mss_delete_all_cns       label "Delete Constraint Definitions..."
    menu-item mi_mss_gen_cnst_frm_rowid   label "Generate Constraints from ROWID..."
    .
 /* OE00195067 */
@@ -423,9 +423,9 @@ Define sub-menu mnu_odb_tools
 
 /* OE00195067 */
 Define sub-menu mnu_ora_srv_attr  
-   menu-item mi_ora_viw_mnt_cnst         label "View/Maintain Foreign Constraints..."
-   menu-item mi_ora_active_all_cnst      label "Active/Deactivate Constraints..."
-   menu-item mi_ora_delete_all_cns       label "Delete Constraints..."
+   menu-item mi_ora_viw_mnt_cnst         label "View/Maintain Foreign Constraint Definitions..."
+   menu-item mi_ora_active_all_cnst      label "Activate/Deactivate Constraint Definitions..."
+   menu-item mi_ora_delete_all_cns       label "Delete Constraint Definitions..."
    .
 
 Define sub-menu mnu_ora_tools

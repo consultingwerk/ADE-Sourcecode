@@ -114,7 +114,7 @@ FUNCTION setToggleEnable RETURNS LOGICAL
 DEFINE VARIABLE h_fclasnewbasic AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_fclasnewcustom AS HANDLE NO-UNDO.
 DEFINE VARIABLE h_folder AS HANDLE NO-UNDO.
-
+define variable wintitle as character no-undo init "New ADM Class".
 /* Definitions of the field level widgets                               */
 DEFINE VARIABLE lReplace AS LOGICAL INITIAL no 
      LABEL "Replace e&xisting files if exist" 
@@ -127,10 +127,19 @@ DEFINE VARIABLE lReplace AS LOGICAL INITIAL no
 DEFINE FRAME gDialog
      lReplace AT ROW 17.48 COL 7.6
      SPACE(27.39) SKIP(0.00)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "New ADM Class".
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+          NO-BOX
+    &endif 
+    KEEP-TAB-ORDER 
+         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE.
 
+{adeuib/ide/dialoginit.i "FRAME gDialog:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 
 /* *********************** Procedure Settings ************************ */
 
@@ -283,9 +292,31 @@ END.
 /* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
 {adecomm/okbar.i &TOOL = "AB"
                  &CONTEXT = {&New_ADM_2_Class_Dialog_Box} }
+.
+&Scoped-define IDE-CODE-FOR-DIALOG 
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_Ok btn_cancel winTitle}
+
+RUN createObjects.
+
+/* Now enable the interface and wait for the exit condition.            */
+/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+  RUN initializeObject.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then 
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} {&FOCUS-Phrase}.
+  &else
+  
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure {&FOCUS-Phrase}.
+  
+  &endif 
+  
+END.
 
 
-{src/adm2/dialogmn.i}
+RUN destroyObject.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -468,9 +499,14 @@ PROCEDURE isABRunning :
     ASSIGN iLevel = iLevel + 1.
   END.
   IF NOT lABRunning THEN DO:
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+       ShowMessageInIDE("The AppBuilder is not running. You must start the AppBuilder before running the New ADM Class tool.",
+                         "Error",?,"OK",YES).   
+   &else                           
     MESSAGE
       "The AppBuilder is not running. You must start the AppBuilder before running the New ADM Class tool."
       VIEW-AS ALERT-BOX ERROR.
+   &endif   
     RETURN "ERROR":U.
   END.
 

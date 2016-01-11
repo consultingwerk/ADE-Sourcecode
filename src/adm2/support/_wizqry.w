@@ -5,12 +5,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000-2012 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _wizqry.w
@@ -43,7 +43,7 @@
 
 /* ***************************  Definitions  ************************** */
 { src/adm2/support/admhlp.i } /* ADM Help File Defs */
-
+{ adecomm/oeideservice.i}
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER hWizard   AS WIDGET-HANDLE NO-UNDO.
 
@@ -234,20 +234,17 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Addq C-Win
 ON CHOOSE OF b_Addq IN FRAME DEFAULT-FRAME /* Define Query */
 DO:
-  DEFINE VARIABLE arg AS CHARACTER NO-UNDO.
-  
   IF obj-recid = "":U THEN
   DO:
-    RUN adeuib/_drwqry.p.            
-    RUN adeuib/_uibinfo.p (INT(Proc-Recid), "PROCEDURE ?":U, 
-         "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT obj-recid).
+      RUN adeuib/_drwqry.p.            
+      RUN adeuib/_uibinfo.p (INT(Proc-Recid), "PROCEDURE ?":U, 
+           "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT obj-recid).
+  
+      RUN Display-Query.
   END.
   ELSE DO:
-      ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
-      RUN adeuib/_uib_dlg.p (INT(obj-recid), "QUERY BUILDER":U, INPUT-OUTPUT arg).
+      run queryBuilderHandler.  
   END. 
-  
-  RUN Display-Query.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -258,7 +255,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_deftt C-Win
 ON CHOOSE OF b_deftt IN FRAME DEFAULT-FRAME /* Define Temp-Tables */
 DO:
-    RUN adeuib/_ttmaint.w.
+    RUN tempTableHandler.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -421,6 +418,80 @@ PROCEDURE enable_UI :
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE queryBuilderHandler C-Win 
+PROCEDURE queryBuilderHandler :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDE_CanLaunchDialog()  then
+   do:
+       ideevent = new adeuib._ideeventservice().
+       ideevent:SetCurrentEvent(this-procedure,"openQueryBuilder").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run openQueryBuilder.
+   end.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE tempTableHandler C-Win 
+PROCEDURE tempTableHandler :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDE_CanLaunchDialog() then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"ideOpenTempTableDialog").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       RUN adeuib/_ttmaint.w.
+   end.    
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ideOpenTempTableDialog C-Win 
+PROCEDURE ideOpenTempTableDialog :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   RUN adeuib/ide/_dialog_ttmaint.p.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openQueryBuilder C-Win 
+PROCEDURE openQueryBuilder :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define variable arg as character no-undo. 
+    ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
+    RUN adeuib/_uib_dlg.p (INT(obj-recid), "QUERY BUILDER":U, INPUT-OUTPUT arg).
+    RUN Display-Query.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

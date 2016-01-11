@@ -1776,8 +1776,8 @@ FUNCTION targetPage RETURNS INTEGER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 20.43
-         WIDTH              = 55.8.
+         HEIGHT             = 20.42
+         WIDTH              = 55.86.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -3176,11 +3176,14 @@ Parameters: <none>
   DEFINE VARIABLE iPage           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER    NO-UNDO.
- 
   {get CurrentPage iPage}.
   IF iPage = 0 THEN
+  do:
     {get ObjectsCreated lObjectsCreated}.
-  
+    if OEIDEIsRunning and lObjectsCreated = false then
+        run hookIDE in target-procedure.
+  end.
+      
   IF iPage <> 0 OR NOT lObjectsCreated THEN
   DO:
     RUN adm-create-objects IN TARGET-PROCEDURE NO-ERROR.
@@ -4292,6 +4295,39 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-hookOEIDE) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE hookIDE Procedure 
+PROCEDURE hookIDE PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+        
+    define variable hContainer as handle no-undo.
+    define variable cObjectName               as character no-undo.
+    {get ContainerHandle hContainer}.   
+      /* Code to enable Dynamics / ADM2 windows to run embedded in the IDE.
+         Any window container (no class type check) */ 
+    if valid-handle(hContainer) 
+    and hContainer:type = "window":U  /* only for windows (not frames) */
+    and OEIDEIsRunning
+    and valid-handle(hOEIDEService) then
+    do:
+        /* we're passing the procdure handle, but deal with the name here */
+        {get ObjectName cObjectName}.
+        IF cObjectName = '':U OR cObjectName = ? THEN
+             {get LogicalObjectName cObjectName}.
+        RUN displayContainer IN hOEIDEService(target-procedure,cObjectName, hContainer).
+    END.  /* End of IDE docking code */
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-initializeDataObjects) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeDataObjects Procedure 
@@ -4770,28 +4806,24 @@ PROCEDURE initializeVisualContainer :
   DEFINE VARIABLE lTranslate                AS LOGICAL    NO-UNDO.
   define variable cPageTokens               as character no-undo.
   define variable cToken                    as character no-undo.
-  
-  /* oeide vars */
-  DEFINE VARIABLE cViewId                   AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE cSecondId                 AS CHARACTER   NO-UNDO.
-  
-  {get ContainerHandle hContainer}.   
-  /* Code to enable Dynamics / ADM2 windows to run docked in the IDE.
-     Any window continer (no class type check) */
-  if hContainer:type = "window":U  /* only for windows (not frames) */
-  and OEIDEIsRunning 
-  and valid-handle(hOEIDEService) then 
-  do:
-    assign  
-      /* use existing Appbuilder view */
-      cViewId = "com.openedge.pdt.oestudio.views.OEAppBuilderView":U 
-      /* linked to specific project   */
-      cSecondId = "DesignView_":U
-                + DYNAMIC-FUNCTION('getProjectName':U IN hOEIDEService)
-      .
-    RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hContainer).      
-  END.  /* End of IDE docking code */
-                  
+/*  /* oeide vars */                                                                    */
+/*  define variable cObjectName               as character no-undo.                     */
+/*                                                                                      */
+/*  {get ContainerHandle hContainer}.                                                   */
+/*  /* Code to enable Dynamics / ADM2 windows to run docked in the IDE.                 */
+/*     Any window continer (no class type check) */                                     */
+/*                                                                                      */
+/*  if hContainer:type = "window":U  /* only for windows (not frames) */                */
+/*  and OEIDEIsRunning                                                                  */
+/*  and valid-handle(hOEIDEService) then                                                */
+/*  do:                                                                                 */
+/*      /* we're passing the procdure handle, but deal with the name here */            */
+/*      {get ObjectName cObjectName}.                                                   */
+/*      IF cObjectName = '':U OR cObjectName = ? THEN                                   */
+/*           {get LogicalObjectName cObjectName}.                                       */
+/*      RUN displayContainer IN hOEIDEService(target-procedure,cObjectName, hContainer).*/
+/*  END.  /* End of IDE docking code */                                                 */
+/*                                                                                      */
   /* This method is not called for ContainerType virtual while 
      DataVisual (datavis.p) doesn't support windowname and page source (folder)
      TVController gets windowname from child containers and has no folder */

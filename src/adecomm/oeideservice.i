@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2012 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -25,15 +25,27 @@
 &GLOBAL-DEFINE OEIDESERVICE_I
 
 /* ***************************  Definitions  ************************** */
+&IF DEFINED(IN-CLASS) <> 0 &THEN 
+&SCOPED-DEFINE METHOD method public static final void Init(): 
+&SCOPED-DEFINE METHOD-END end. 
+&SCOPED-DEFINE NO-NEW 
+&ENDIF
 
+&IF DEFINED(NO-NEW) = 0 &THEN 
+&SCOPED-DEFINE NEW new global shared
+&ELSE 
+&SCOPED-DEFINE STAT static
+&SCOPED-DEFINE NEW static
+
+&ENDIF
 /* 
- * OEIDEIsRunning	Flag indicating that the OpenEdge IDE is running
- * hOEIDEService	Handle to the oeideservice.p persistent procedure
+ * OEIDEIsRunning   Flag indicating that the OpenEdge IDE is running
+ * hOEIDEService    Handle to the oeideservice.p persistent procedure
  */
-DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
-DEFINE NEW GLOBAL SHARED VAR hOEIDEService  AS HANDLE     NO-UNDO.
+define {&NEW} var OEIDEIsRunning as logical    no-undo.
+define {&NEW} var hOEIDEService  as handle     no-undo.
 
-DEFINE VARIABLE cProcName                   AS CHARACTER  NO-UNDO INITIAL "adecomm/oeideservice.p":U.
+define {&STAT} variable cProcName                   as character  no-undo initial "adecomm/oeideservice.p":U.
 
 
 /* ********************  Preprocessor Definitions  ******************** */
@@ -47,86 +59,219 @@ DEFINE VARIABLE cProcName                   AS CHARACTER  NO-UNDO INITIAL "adeco
 
 &IF DEFINED(OEIDE-EXCLUDE-PROTOTYPES) = 0 &THEN
 
-FUNCTION showView RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          mode        AS INTEGER)
-         IN hOEIDEService.
-
-FUNCTION hideView RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER)
-         IN hOEIDEService.
+function activateWindow returns logical 
+         (phWindow as handle) in hOEIDEService.
          
-FUNCTION setViewTitle RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          viewTitle   AS CHARACTER)
-         IN hOEIDEService.         
+function runUIBCommand returns logical 
+    ( phWindow as handle, 
+      pcCommand as char)       
+      in hOEIDEService.
 
-FUNCTION displayEmbeddedWindow RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          hWindow     AS HANDLE)
-         IN hOEIDEService.
+function runDialog returns logical 
+    ( phWindow as handle, 
+      pcDialogCommand as char)       
+      in hOEIDEService.
 
-FUNCTION setEmbeddedWindow RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          hWindow     AS HANDLE)
-         IN hOEIDEService.
+function checkHelp returns logical
+         (pcContextId as character )  
+         in hOEIDEService.
+
+function showHelp returns logical
+         (pcContextId as character )  
+         in hOEIDEService.
+ 
+function showView returns logical 
+         (viewId      as character,
+          secondaryId as character,
+          mode        as integer)
+         in hOEIDEService.
+
+function hideView returns logical 
+         (viewId      as character,
+          secondaryId as character)
+         in hOEIDEService.
          
-FUNCTION getProjectName RETURNS CHARACTER 
+function setViewTitle returns logical 
+         (viewId      as character,
+          secondaryId as character,
+          viewTitle   as character)
+         in hOEIDEService.         
+
+function displayEmbeddedWindow returns logical 
+         (viewId      as character,
+          secondaryId as character,
+          hWindow     as handle)
+         in hOEIDEService.
+
+function setEmbeddedWindow returns logical 
+         (viewId      as character,
+          secondaryId as character,
+          hWindow     as handle)
+         in hOEIDEService.
+         
+function getProjectName returns character 
          ()
-         IN hOEIDEService.
+         in hOEIDEService.
+
+function gotoPage returns logical
+         (phWindow as handle,
+          piPage as int) 
+          in hOEIDEService.
+ 
+function openEditor returns logical
+         (cProjectName  as character,
+          cFileName     as character,
+          cLinkedFile   as character,
+          hWindowHandle as handle)
+         in hOEIDEService.
+
+function openDesignEditor returns logical 
+         (projectName  as character,
+          fileName     as character)
+          in hOEIDEService.        
+               
+function openTextEditor returns logical 
+          (cProjectName  as character,
+           cFileName     as character )  
+           in hOEIDEService.             
+              
+function openDynamicsEditor returns logical 
+          (cProjectName  as character,
+           cFileName     as character)  
+           in hOEIDEService.      
+
+function openPropertySheet returns logical 
+          (windowHandle  as handle)  
+           in hOEIDEService.     
+               
+function viewSource returns logical 
+    ( phWindow as handle,
+      wName AS CHARACTER,
+      wType AS CHARACTER,
+      wSection AS CHARACTER,
+      wTrigger AS CHARACTER) in hOEIDEService.
+
+function saveEditor returns logical 
+         (projectName   as character,
+          fileName      as character,
+          ask_file_name as logical)
+         in hOEIDEService.         
+
+function closeEditor returns logical 
+         (projectName  as character,
+          fileName     as character,
+          saveChanges  as logical)
+         in hOEIDEService.         
+
+function findAndSelect returns logical 
+         (projectName  as character,
+          fileName     as character,
+          cText        as character,
+          activateEditor as logical)
+         in hOEIDEService.         
+
+function createLinkedFile returns character 
+         (user_chars   as character,
+          extension    as character)
+         in hOEIDEService. 
+
+function ShowMessageInIDE returns logical
+         (msgText      as character,
+          MsgType      as character,
+          MsgTitle     as character, 
+          MsgButtons   as character,
+          ButtonValue  as logical) 
+          in hOEIDEService. 
+          
+ 
+function ShowOkMessageInIDE returns logical
+         (msgText      as character,
+          MsgType      as character,
+          MsgTitle     as character ) 
+          in hOEIDEService.      
+                 
+function SetWindowSize return logical
+         (phwin as handle )
+          in hOEIDEService.   
+
+function WidgetEvent return logical
+         (phwindow   as handle,
+          WidgetName as character,
+          WidgetText as character,
+          WidgetType as character,
+          WidgetParent as character,
+          WidgetAction as character ) in hOEIDEService. 
+              
+function AddCodeSection return logical
+         (phwindow   as handle,
+          AddSection as character) in hOEIDEService.  
+          
+function AddTrigger return logical
+         (phwindow   as handle,
+          WidgetName as character,
+          WidgetType as character) in hOEIDEService.    
+          
+function RunDesign return logical
+         (phwindow   as handle) in hOEIDEService.    
          
-FUNCTION openEditor RETURNS LOGICAL 
-         (projectName  AS CHARACTER,
-          fileName     AS CHARACTER,
-          tempFileName AS CHARACTER,
-          windowHandle AS HANDLE)
-         IN hOEIDEService.         
+function CompileDesign return logical
+         (phwindow   as handle) in hOEIDEService.  
+         
+function RenameWidget return logical
+         (phwindow   as handle,
+          WidgetOldName as character,
+          WidgetNewName as character,
+          WidgetText as character,
+          WidgetType as character,
+          WidgetParent as character,
+          WidgetAction as character ) in hOEIDEService.   
 
-FUNCTION saveEditor RETURNS LOGICAL 
-         (projectName   AS CHARACTER,
-          fileName      AS CHARACTER,
-          ask_file_name AS LOGICAL)
-         IN hOEIDEService.         
+function ShowCueCard return logical
+         (CueCardTitle as character,
+          CueCardMessage as character) in hOEIDEService.   
 
-FUNCTION closeEditor RETURNS LOGICAL 
-         (projectName  AS CHARACTER,
-          fileName     AS CHARACTER,
-          saveChanges  AS LOGICAL)
-         IN hOEIDEService.         
-
-FUNCTION findAndSelect RETURNS LOGICAL 
-         (projectName  AS CHARACTER,
-          fileName     AS CHARACTER,
-          cText        AS CHARACTER,
-          activateEditor AS LOGICAL)
-         IN hOEIDEService.         
-
-FUNCTION createLinkedFile RETURNS CHARACTER 
-         (user_chars   AS CHARACTER,
-          extension    AS CHARACTER)
-         IN hOEIDEService. 
+function OpenDBConnectionDialog return logical
+         (ProjectName as character) in hOEIDEService.          
                            
 &ENDIF
-                           
-/* ***************************  Main Block  *************************** */
 
-OEIDEIsRunning = IF OS-GETENV("OEA_PORT":U) > "" THEN TRUE ELSE FALSE.
-IF OEIDEIsRunning AND NOT VALID-HANDLE(hOEIDEService) THEN
-DO:
+&IF DEFINED(OEIDE-EXCLUDE-UTILITIES) = 0 &THEN
+    
+function OEIDE_CanLaunchDialog returns logical
+         ( ):         
+    define variable plOk as logical no-undo.
+    if valid-handle(hOEIDEService) then 
+        run CanLaunchDialog in hOEIDEService(output plOk).
+    return plOk.
+end function.
+
+function OEIDE_CanShowMessage returns logical
+         ( ):         
+    define variable plOk as logical no-undo.
+    if valid-handle(hOEIDEService) then 
+        run CanShowMessage in hOEIDEService(output plOk).
+    return plOk.
+end function.
+
+
+&ENDIF
+                           
+ 
+/* ***************************  Main Block  *************************** */
+{&METHOD}
+OEIDEIsRunning = if OS-GETENV("OEA_PORT":U) > "" then true else false.
+if OEIDEIsRunning and not VALID-HANDLE(hOEIDEService) then
+do:
     /* Check to see if OEIDEService is already running */
-    hOEIDEService = SESSION:FIRST-PROCEDURE.
-    DO WHILE VALID-HANDLE(hOEIDEService) 
-         AND hOEIDEService:FILE-NAME <> cProcName:
+    hOEIDEService = session:first-procedure.
+    do while VALID-HANDLE(hOEIDEService) 
+         and hOEIDEService:FILE-NAME <> cProcName:
        hOEIDEService = hOEIDEService:NEXT-SIBLING.
-    END.
-    IF NOT VALID-HANDLE(hOEIDEService) THEN
-        RUN VALUE(cProcName) PERSISTENT SET hOEIDEService.
-END.
+    end.
+    if not VALID-HANDLE(hOEIDEService) then
+        run VALUE(cProcName) persistent set hOEIDEService.
+end.
+{&METHOD-END}
 
 &ENDIF
 

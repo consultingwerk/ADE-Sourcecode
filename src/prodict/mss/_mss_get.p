@@ -414,6 +414,10 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
    IF fromProto AND UPPER(TRIM(DICTDBG.SQLTables_buffer.owner)) = "SYS" THEN
       NEXT.
 
+   /* if from migration utility, don't need to pull INFORMATION_SCHEMA objects */
+   IF fromProto AND UPPER(TRIM(DICTDBG.SQLTables_buffer.owner)) = "INFORMATION_SCHEMA" THEN
+      NEXT.
+
    /* if object is _SEQT_REV_SEQTMGR (management table for new MSS sequences)
       we dont pull it into the schema, so ignoring it- OE157473 */
    IF DICTDBG.SQLTables_buffer.name BEGINS "_SEQT_REV_SEQTMGR" THEN NEXT.
@@ -586,6 +590,10 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
         NEXT.
     /* if from migration utility, don't need to pull system objects */
     IF fromProto AND UPPER(TRIM(DICTDBG.SQLProcs_Buffer.owner)) = "SYS" THEN
+        NEXT.
+
+    /* if from migration utility, don't need to pull INFORMATION_SCHEMA objects */
+    IF fromProto AND UPPER(TRIM(DICTDBG.SQLProcs_Buffer.owner)) = "INFORMATION_SCHEMA" THEN
         NEXT.
 
     /* skip table valued functions */

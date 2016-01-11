@@ -53,6 +53,7 @@ Test Code: -----------------------------------------------------------------
 &GLOBAL-DEFINE WIN95-BTN YES
 { adecomm/adestds.i }
 { adecomm/commeng.i }
+{ adecomm/oeideservice.i}
 
 DEFINE INPUT        PARAMETER iipType    AS INTEGER   NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER ciopFormat AS CHARACTER NO-UNDO.
@@ -85,6 +86,7 @@ DEFINE VARIABLE lError     AS LOGICAL NO-UNDO.
 DEFINE VARIABLE isInt64    AS LOGICAL NO-UNDO INITIAL FALSE.
 
 DEFINE VARIABLE notAmerican  AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE frameHandle as handle   NO-UNDO.
 
 IF iipType = 7 THEN iipType = 4. /*  7 is recid */
 
@@ -124,9 +126,15 @@ FORM
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
 
-  WITH FRAME qbf%char NO-LABELS THREE-D
-  TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
+  WITH FRAME qbf%char 
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     TITLE caption
+     VIEW-AS DIALOG-BOX
+  &else
+     no-box
+  &endif 
+     NO-LABELS THREE-D
+     DEFAULT-BUTTON bOk  .
 
   {adecomm/okrun.i  
      &FRAME  = "frame qbf%char" 
@@ -134,8 +142,6 @@ FORM
      &OK     = "bOK" 
      &OTHER  = "qbf-df"
      &HELP   = "bHelp" }
-
-ASSIGN qbf-i:WIDTH IN FRAME qbf%char = qbf-i:WIDTH IN FRAME qbf%char + .5.
 
 ON "Alt-F" OF FRAME qbf%char ANYWHERE
   APPLY "ENTRY" TO NEW_FORMAT IN FRAME qbf%char.
@@ -227,6 +233,7 @@ ON GO OF FRAME qbf%char OR CHOOSE OF bOk IN FRAME qbf%char DO:
   ciopFormat = new_Format:SCREEN-VALUE IN FRAME qbf%char.
 END.
 
+
 /*--------------------------------------------------------------------------*/
 /* date */
 
@@ -258,10 +265,14 @@ FORM
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
 
-  WITH FRAME qbf%date NO-LABELS THREE-D
-  TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
-
+  WITH FRAME qbf%date 
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     TITLE caption
+     VIEW-AS DIALOG-BOX
+  &else
+     no-box
+  &endif 
+     NO-LABELS THREE-D DEFAULT-BUTTON bOk.
   {adecomm/okrun.i  
     &FRAME  = "frame qbf%date" 
     &BOX    = "rect-1"
@@ -356,10 +367,16 @@ FORM
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
 
-  WITH FRAME qbf%datetime NO-LABELS THREE-D
+  WITH FRAME qbf%datetime 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+  VIEW-AS DIALOG-BOX
   TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
-
+&else
+  no-box 
+&endif
+  NO-LABELS THREE-D
+  DEFAULT-BUTTON bOk. 
+  
   {adecomm/okrun.i  
     &FRAME  = "frame qbf%datetime" 
     &BOX    = "rect-1"
@@ -458,9 +475,16 @@ FORM
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
 
-  WITH FRAME qbf%datetimetz NO-LABELS THREE-D
+  WITH FRAME qbf%datetimetz 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+  VIEW-AS DIALOG-BOX
   TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
+&else
+  no-box 
+&endif
+  NO-LABELS 
+  THREE-D
+  DEFAULT-BUTTON bOk .
 
   {adecomm/okrun.i  
     &FRAME  = "frame qbf%datetimetz" 
@@ -543,9 +567,15 @@ FORM
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
 
-  WITH FRAME qbf%logi NO-LABELS THREE-D
+  WITH FRAME qbf%logi 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+  VIEW-AS DIALOG-BOX
   TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
+&else
+  no-box 
+&endif
+  NO-LABELS THREE-D
+  DEFAULT-BUTTON bOk. 
 
   {adecomm/okrun.i  
     &FRAME  = "frame qbf%logi" 
@@ -694,9 +724,15 @@ FORM
       AT ROW-OF new_Format - .5 COLUMN 40
     &ENDIF
 
-  WITH FRAME qbf%numb NO-LABELS SCROLLABLE THREE-D
+  WITH FRAME qbf%numb 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+  VIEW-AS DIALOG-BOX
   TITLE caption
-  DEFAULT-BUTTON bOk VIEW-AS DIALOG-BOX.
+&else
+  no-box 
+&endif
+  NO-LABELS SCROLLABLE THREE-D
+  DEFAULT-BUTTON bOk. 
 
 ASSIGN qbf-t5:HEIGHT IN FRAME qbf%numb = qbf-nn:HEIGHT
        qbf-t6:HEIGHT IN FRAME qbf%numb = qbf-nd:HEIGHT.
@@ -708,8 +744,6 @@ ASSIGN qbf-t5:HEIGHT IN FRAME qbf%numb = qbf-nn:HEIGHT
     &OK     = "bOK" 
     &OTHER  = "qbf-df"
     &HELP   = "bHelp" }
-
-
 
 ON ALT-F OF FRAME qbf%numb
    APPLY "ENTRY":u TO new_Format IN FRAME qbf%numb.
@@ -734,47 +768,6 @@ ON HELP OF FRAME qbf%numb OR CHOOSE OF bHelp IN FRAME qbf%numb
       	       	     	  {&Numeric_Format_Number_Dlg_Box}, ?).
 
 /*--------------------------------------------------------------------------*/
-
-PROCEDURE check_numb_format:
-  DEFINE VAR h_fmt AS WIDGET-HANDLE.
-
-  h_fmt = new_Format:HANDLE IN FRAME qbf%numb.
-  IF LAST-EVENT:WIDGET-ENTER = bHelp:HANDLE IN FRAME qbf%numb THEN RETURN. 
-
-  IF h_fmt:MODIFIED THEN DO:
-    /*
-    ** First, make sure if you are checking the format against the compiler
-    ** that the format is back in American notation.
-    */
-    IF notAmerican THEN 
-      RUN adecomm/_convert.p ("N-TO-A", h_fmt:SCREEN-VALUE, tho_separator, dec_separator, 
-        OUTPUT conv_fmt).
-    ELSE
-      conv_fmt = h_fmt:SCREEN-VALUE.
-      
-    RUN adecomm/_chkfmt.p (4, "", "", conv_fmt, 
-                           OUTPUT counter, OUTPUT lError).
-    IF (lError) THEN DO:
-      APPLY "ENTRY" TO new_Format.
-      h_fmt:AUTO-ZAP = True.
-      RETURN "error".
-    END.
-
-    new_Format = h_fmt:SCREEN-VALUE.
-    RUN explore_format (new_Format).
-  
-    ASSIGN
-      qbf-nn:SCREEN-VALUE IN FRAME qbf%numb = STRING(qbf-nn,">>>9":u)
-      qbf-nd:SCREEN-VALUE IN FRAME qbf%numb = STRING(qbf-nd,">>>9":u) 
-      .
-
-    DISPLAY
-      qbf-nc qbf-zr qbf-nl qbf-nt qbf-np 
-      WITH FRAME qbf%numb.
-  END.
-
-  RETURN "".
-END.
 
 ON LEAVE OF new_Format IN FRAME qbf%numb DO: 
   RUN check_numb_format.
@@ -981,26 +974,6 @@ DO:
     RETURN.
 END.
 
-PROCEDURE setNewFormat4DateTime:
-    DO WITH FRAME qbf%datetime:
-        ASSIGN
-            qbf-inc-tm
-            qbf-tm
-            qbf-dec-pl-sec
-            qbf-12-hr.
-        IF qbf-inc-tm THEN DO:
-            new_Format = qbf-h:SCREEN-VALUE + " " + qbf-tm.
-            IF qbf-tm = "HH:MM:SS" AND qbf-dec-pl-sec > 0 THEN
-                new_Format = new_Format + "." + FILL("S",qbf-dec-pl-sec).
-            IF qbf-12-hr THEN
-                new_Format = new_Format + " AM".
-        END.
-        ELSE
-            new_Format = qbf-h:SCREEN-VALUE.
-        DISPLAY new_Format.
-    END.
-END PROCEDURE.
-
 ON VALUE-CHANGED OF qbf-inc-tm IN FRAME qbf%datetimetz
 DO:
     ASSIGN
@@ -1041,40 +1014,31 @@ DO:
     RETURN.
 END.
 
-PROCEDURE setNewFormat4DateTimeTZ:
-    DO WITH FRAME qbf%datetimetz:
-        ASSIGN
-            qbf-inc-tm
-            qbf-tm
-            qbf-dec-pl-sec
-            qbf-12-hr
-            qbf-inc-tz.
-        IF qbf-inc-tm THEN DO:
-            new_Format = qbf-h:SCREEN-VALUE + " " + qbf-tm.
-            IF qbf-tm = "HH:MM:SS" AND qbf-dec-pl-sec > 0 THEN
-                new_Format = new_Format + "." + FILL("S",qbf-dec-pl-sec).
-            IF qbf-12-hr THEN
-                new_Format = new_Format + " AM ".
-            IF qbf-inc-tz THEN
-                new_Format = new_Format + "+HH:MM".
-        END.
-        ELSE
-            new_Format = qbf-h:SCREEN-VALUE.
-        DISPLAY new_Format.
-    END.
-END PROCEDURE.
+/*-- main ----------------------------*/
 
-/*--------------------------------------------------------------------------*/
+ASSIGN qbf-i:WIDTH IN FRAME qbf%char = qbf-i:WIDTH IN FRAME qbf%char + .5.
+
+/* used to define on choose of cancel and apply in dialoginit.i */
+&SCOPED-DEFINE CANCEL-EVENT U2
+
 new_Format = ciopFormat. /* Copy INPUT-OUTPUT parameter into local variable */
 CASE iipType:
   WHEN 1 THEN DO: /* character ---------------------------------------------*/
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%char:handle"}
+     dialogService:View().
+     &endif
+    
+    
     IF new_Format = ? OR new_Format = "" THEN new_Format = "x(8)":u.
     ASSIGN
       qbf-i = LENGTH(STRING("",new_Format),"RAW":u)
       qbf-i:SCREEN-VALUE IN FRAME qbf%char = STRING(qbf-i,">>>>9":u)
+    &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%char:THREE-D = SESSION:THREE-D
+    &ENDIF  
       .
-
+     
     IF INDEX("xna!9":u,SUBSTRING(new_Format,1,1,"CHARACTER":u)) > 0 THEN
       qbf-s:SCREEN-VALUE IN FRAME qbf%char = SUBSTRING(new_Format,1,1,
                                                        "CHARACTER":u).
@@ -1082,13 +1046,23 @@ CASE iipType:
     ENABLE new_Format qbf-i qbf-s bOk bCancel qbf-df bHelp WITH FRAME qbf%char.
     APPLY "ENTRY" TO qbf-i IN FRAME qbf%char.
     new_Format:SCREEN-VALUE IN FRAME qbf%char = new_Format.
-
+    
+    {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%char}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%char.
+        &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%char.
+        &ELSE
+        WAIT-FOR GO OF FRAME qbf%char or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+        &endif      
     END.
     HIDE FRAME qbf%char NO-PAUSE.
   END.
   WHEN 2 THEN DO: /* date --------------------------------------------------*/
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%date:handle"}
+     dialogService:View().
+     &endif
     IF new_Format = ? OR new_Format = "" THEN new_Format = "99/99/99":u.
     RUN date_settings (OUTPUT qbf-d,OUTPUT qbf-i).
 
@@ -1102,7 +1076,11 @@ CASE iipType:
                 "99/9999/99,99-9999-99,99.9999.99":u)
             + ",999999,99999999":u
       qbf-t9 = "&Date Format:":t13
+
+      &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%date:THREE-D = SESSION:THREE-D
+      &endif
+
       qbf-h  = qbf-d:HANDLE IN FRAME qbf%date
       qbf-c  = ""
       .
@@ -1125,12 +1103,22 @@ CASE iipType:
       qbf-d:SCREEN-VALUE IN FRAME qbf%date = new_Format.
 
     new_Format:SCREEN-VALUE IN FRAME qbf%date = new_Format.
+    {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%date}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%date.
+        &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%date.
+        &ELSE
+        WAIT-FOR GO OF FRAME qbf%date or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+        &endif      
     END.
     HIDE FRAME qbf%date NO-PAUSE.
   END.
   WHEN 34 THEN DO: /* datetime ---------------------------------------------*/
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%datetime:handle"}
+     dialogService:View().
+     &endif
     IF new_Format = ? OR new_Format = "" THEN new_Format = "99/99/99 HH:MM:SS":u.
     RUN date_settings (OUTPUT qbf-d,OUTPUT qbf-i).
 
@@ -1144,7 +1132,9 @@ CASE iipType:
                 "99/9999/99,99-9999-99,99.9999.99":u)
             + ",999999,99999999":u
       qbf-t9 = "&DateTime Format:":t20
+        &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%datetime:THREE-D = SESSION:THREE-D
+        &endif
       qbf-h  = qbf-d:HANDLE IN FRAME qbf%datetime
       qbf-c  = ""
       .
@@ -1189,12 +1179,23 @@ CASE iipType:
     RUN setNewFormat4DateTime.
     APPLY "VALUE-CHANGED":U TO qbf-inc-tm IN FRAME qbf%datetime.
 
+    {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%datetime}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%datetime.
+        &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%datetime.
+        &ELSE
+        WAIT-FOR GO OF FRAME qbf%datetime or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+        &endif
     END.
     HIDE FRAME qbf%datetime NO-PAUSE.
   END.
   WHEN 40 THEN DO: /* datetimetz -------------------------------------------*/
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%datetimetz:handle"}
+     dialogService:View().
+     &endif
+   
     IF new_Format = ? OR new_Format = "" THEN new_Format = "99/99/99 HH:MM:SS":u.
     RUN date_settings (OUTPUT qbf-d,OUTPUT qbf-i).
 
@@ -1208,7 +1209,9 @@ CASE iipType:
                 "99/9999/99,99-9999-99,99.9999.99":u)
             + ",999999,99999999":u
       qbf-t9 = "&DateTime-TZ Format:":t20
+        &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%datetimetz:THREE-D = SESSION:THREE-D
+        &endif
       qbf-h  = qbf-d:HANDLE IN FRAME qbf%datetimetz
       qbf-c  = ""
       .
@@ -1253,13 +1256,22 @@ CASE iipType:
 
     RUN setNewFormat4DateTimeTZ.
     APPLY "VALUE-CHANGED":U TO qbf-inc-tm.
-
+    {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%datetimetz}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%datetimetz.
+           &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%datetimetz.
+            &ELSE
+        WAIT-FOR GO OF FRAME qbf%datetimetz  or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+            &endif
     END.
     HIDE FRAME qbf%datetimetz NO-PAUSE.
   END.
   WHEN 3 THEN DO: /* logical -----------------------------------------------*/
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%logi:handle"}
+     dialogService:View().
+     &endif
     IF new_Format = ? OR new_Format = "" OR
     NUM-ENTRIES(new_Format,"/":U) NE 2 THEN
        new_Format = "yes/no":u.
@@ -1268,7 +1280,9 @@ CASE iipType:
       qbf-t1 = "&Logical Format:":t18
       qbf-t2 = "Display This When &TRUE:":t32
       qbf-t3 = "Display This When &FALSE:":t32
+        &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%logi:THREE-D = SESSION:THREE-D
+        &endif
       .
     
     DISPLAY qbf-t1 qbf-t2 qbf-t3
@@ -1286,13 +1300,24 @@ CASE iipType:
         new_Format:SCREEN-VALUE IN FRAME qbf%logi = new_Format
       .
 
+     {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%logi}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%logi.
+           &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%logi.
+           &ELSE
+        WAIT-FOR GO OF FRAME qbf%logi or "u2" of this-procedure.       
+             
+        if cancelDialog THEN UNDO, LEAVE.  
+            &endif 
     END.
     HIDE FRAME qbf%logi NO-PAUSE.
   END.
   WHEN 4 OR WHEN 5 THEN DO: /* integer/decimal -----------------------------*/
-    IF new_Format = ? OR new_Format = "" THEN DO:
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    {adeuib/ide/dialoginit.i "frame qbf%numb:handle"}
+     dialogService:View().
+     &endif
+   IF new_Format = ? OR new_Format = "" THEN DO:
       IF iipType = 4 THEN  /* integer */
         new_Format = IF notAmerican THEN "->":U + tho_separator + ">>>":U + tho_separator + ">>9":U
                      ELSE "->,>>>,>>9":U.
@@ -1312,7 +1337,9 @@ CASE iipType:
       qbf-t6 = "Number of &Decimal Places:":t30
       qbf-t7 = "&Leading Text String:":t24
       qbf-t8 = "&Trailing Text String:":t24
+        &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%numb:THREE-D = SESSION:THREE-D
+        &endif
       .
        
      IF qbf-i > 0 THEN
@@ -1327,7 +1354,9 @@ CASE iipType:
       qbf-nd:SCREEN-VALUE IN FRAME qbf%numb     = STRING(qbf-nd,">>>9":u)
       qbf-nd:WIDTH IN FRAME qbf%numb            = qbf-nd:WIDTH IN FRAME qbf%numb + .5
       new_Format:SCREEN-VALUE IN FRAME qbf%numb = new_Format
+        &if defined(IDE-IS-RUNNING) = 0 &THEN
       FRAME qbf%numb:THREE-D = SESSION:THREE-D
+        &endif
       .
 
     DISPLAY qbf-nc qbf-zr qbf-nl qbf-nt qbf-np 
@@ -1347,8 +1376,14 @@ CASE iipType:
 
      APPLY "ENTRY":U TO qbf-nn IN FRAME qbf%numb.
 
+    {adeuib/ide/dialogstart.i bok bcancel caption "in frame qbf%numb}.
     DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-      WAIT-FOR GO OF FRAME qbf%numb.
+           &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME qbf%numb.
+           &ELSE
+        WAIT-FOR GO OF FRAME qbf%numb or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+           &endif 
     END.                                
     
     HIDE FRAME qbf%numb NO-PAUSE.
@@ -1356,7 +1391,92 @@ CASE iipType:
 END CASE.
 
 RETURN.
-/*--------------------------------------------------------------------------*/
+/*--- Procedures --------------------------------------------------------------*/
+
+PROCEDURE check_numb_format:
+  DEFINE VAR h_fmt AS WIDGET-HANDLE.
+
+  h_fmt = new_Format:HANDLE IN FRAME qbf%numb.
+  IF LAST-EVENT:WIDGET-ENTER = bHelp:HANDLE IN FRAME qbf%numb THEN RETURN. 
+
+  IF h_fmt:MODIFIED THEN DO:
+    /*
+    ** First, make sure if you are checking the format against the compiler
+    ** that the format is back in American notation.
+    */
+    IF notAmerican THEN 
+      RUN adecomm/_convert.p ("N-TO-A", h_fmt:SCREEN-VALUE, tho_separator, dec_separator, 
+        OUTPUT conv_fmt).
+    ELSE
+      conv_fmt = h_fmt:SCREEN-VALUE.
+      
+    RUN adecomm/_chkfmt.p (4, "", "", conv_fmt, 
+                           OUTPUT counter, OUTPUT lError).
+    IF (lError) THEN DO:
+      APPLY "ENTRY" TO new_Format.
+      h_fmt:AUTO-ZAP = True.
+      RETURN "error".
+    END.
+
+    new_Format = h_fmt:SCREEN-VALUE.
+    RUN explore_format (new_Format).
+  
+    ASSIGN
+      qbf-nn:SCREEN-VALUE IN FRAME qbf%numb = STRING(qbf-nn,">>>9":u)
+      qbf-nd:SCREEN-VALUE IN FRAME qbf%numb = STRING(qbf-nd,">>>9":u) 
+      .
+
+    DISPLAY
+      qbf-nc qbf-zr qbf-nl qbf-nt qbf-np 
+      WITH FRAME qbf%numb.
+  END.
+
+  RETURN "".
+END.
+
+PROCEDURE setNewFormat4DateTime:
+    DO WITH FRAME qbf%datetime:
+        ASSIGN
+            qbf-inc-tm
+            qbf-tm
+            qbf-dec-pl-sec
+            qbf-12-hr.
+        IF qbf-inc-tm THEN DO:
+            new_Format = qbf-h:SCREEN-VALUE + " " + qbf-tm.
+            IF qbf-tm = "HH:MM:SS" AND qbf-dec-pl-sec > 0 THEN
+                new_Format = new_Format + "." + FILL("S",qbf-dec-pl-sec).
+            IF qbf-12-hr THEN
+                new_Format = new_Format + " AM".
+        END.
+        ELSE
+            new_Format = qbf-h:SCREEN-VALUE.
+        DISPLAY new_Format.
+    END.
+END PROCEDURE.
+
+PROCEDURE setNewFormat4DateTimeTZ:
+    DO WITH FRAME qbf%datetimetz:
+        ASSIGN
+            qbf-inc-tm
+            qbf-tm
+            qbf-dec-pl-sec
+            qbf-12-hr
+            qbf-inc-tz.
+        IF qbf-inc-tm THEN DO:
+            new_Format = qbf-h:SCREEN-VALUE + " " + qbf-tm.
+            IF qbf-tm = "HH:MM:SS" AND qbf-dec-pl-sec > 0 THEN
+                new_Format = new_Format + "." + FILL("S",qbf-dec-pl-sec).
+            IF qbf-12-hr THEN
+                new_Format = new_Format + " AM ".
+            IF qbf-inc-tz THEN
+                new_Format = new_Format + "+HH:MM".
+        END.
+        ELSE
+            new_Format = qbf-h:SCREEN-VALUE.
+        DISPLAY new_Format.
+    END.
+END PROCEDURE.
+
 
 PROCEDURE explore_charformat: 
   DO WITH FRAME qbf%char:

@@ -11,7 +11,7 @@
 File: prodict/mss/genrowid.i
 
 Description:
-    wrapper to adedict/KEY/genrowid.p, which fix-up an original PROGRESS-DB
+    wrapper to prodict/mss/genrowid.p, which fix-up an original PROGRESS-DB
     to add _constraints based on ROWID's selected in MSS SI
     
 
@@ -170,7 +170,7 @@ assign
 
 ASSIGN l_overwrite      = (l_overwrite:SCREEN-VALUE IN FRAME l_frm_beauty = "yes").
 
-RUN adedict/KEY/genrowid.p (l_db-type, l_overwrite ).
+RUN prodict/mss/genrowid.p (l_db-type, l_overwrite ).
 
 /* in order to get the schema-chache recreated we switch the alias */
 create alias DICTDB for database value(l_pro-db).

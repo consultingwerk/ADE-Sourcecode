@@ -103,7 +103,7 @@ FIELD cCurrentDescValue     AS CHARACTER        /* If specified cCurrentKeyValue
     INDEX key2 cWidgetName.
 
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
-
+define variable wintitle                  as character  no-undo init "Register in Repository".
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -231,12 +231,21 @@ DEFINE FRAME gDialog
      Btn_Cancel AT ROW 9.1 COL 41.2
      buHelp AT ROW 9.1 COL 84
      SPACE(3.39) SKIP(0.37)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if defined(IDE-IS-RUNNING) = 0 &then  
+    VIEW-AS dialog-box TITLE wintitle
+    &else
+    no-box
+    &endif 
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Register in Repository"
+         
          DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel.
 
-
+{adeuib/ide/dialoginit.i "FRAME gDialog:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -250,7 +259,8 @@ DEFINE FRAME gDialog
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB gDialog 
 /* ************************* Included-Libraries *********************** */
-
+&scoped-define CANCEL-EVENT U2
+  
 {src/adm2/containr.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -400,8 +410,23 @@ END.
 
 
 /* ***************************  Main Block  *************************** */
+ &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i Btn_Ok Btn_Cancel wintitle}
+RUN createObjects.
 
-{src/adm2/dialogmn.i}
+/* Now enable the interface and wait for the exit condition.            */
+/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+  RUN initializeObject.
+  
+  &if defined(IDE-IS-RUNNING) = 0 &then 
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} {&FOCUS-Phrase}.
+  &else
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure {&FOCUS-Phrase}.
+  &endif
+END.
 
 /* If testing in the UIB, initialize the SmartObject. */
 &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN
@@ -499,12 +524,19 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fiFileName coProductModule coObjectType fcObjectPath toWeb toClient 
+
+  DISPLAY fiFileName
+  &if defined(IDE-IS-RUNNING) = 0 &then
+  coProductModule coObjectType 
+  &endif
+   fcObjectPath toWeb toClient 
           toServer toDesign 
       WITH FRAME gDialog.
+   
   ENABLE coProductModule coObjectType toWeb toClient toServer toDesign Btn_OK 
          Btn_Cancel buHelp 
       WITH FRAME gDialog.
+      
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
 END PROCEDURE.
 
@@ -569,17 +601,21 @@ PROCEDURE initializeObject :
                gcOpenObjectTypes = REPLACE(gcOpenObjectTypes, CHR(3), ",":U).
 
     /* Parent the dialog-box to the specified window. */
+    &if defined(IDE-IS-RUNNING) = 0 &then  
     IF VALID-HANDLE(phWindow) THEN
         ASSIGN FRAME {&FRAME-NAME}:PARENT = phWindow.
-
+    &endif
     {set Hideoninit YES}.
     RUN SUPER.
-
+    &if defined(IDE-IS-RUNNING) = 0 &then  
     getRDMHandle().
+    &endif
     /* Determine the relative path as best we can. */
     RUN getRelativePath (INPUT gcFileName, OUTPUT fcObjectPath).
+    &if defined(IDE-IS-RUNNING) = 0 &then 
     ASSIGN fcObjectPath:SCREEN-VALUE = REPLACE(LC(RIGHT-TRIM(fcObjectPath, '~\/')), "~\", "/").
               .
+     &endif         
     /* Determine just the base filename for object filename. */
     RUN adecomm/_osprefx.p (INPUT gcFileName, OUTPUT cSavedPath, OUTPUT gcFileName).
     DISPLAY fcObjectPath WITH FRAME {&FRAME-NAME}.
@@ -767,8 +803,8 @@ DO WITH FRAME {&FRAME-NAME}:
       cEntry = coProductModule:ENTRY(1) NO-ERROR.
       IF cEntry <> ? AND NOT ERROR-STATUS:ERROR THEN
       DO:
-        coProductModule:SCREEN-VALUE = cEntry NO-ERROR.
-        ASSIGN coProductModule.
+          coProductModule:SCREEN-VALUE = cEntry NO-ERROR.
+          ASSIGN coProductModule.
       END.
       ELSE
       DO:

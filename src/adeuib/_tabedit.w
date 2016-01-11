@@ -72,6 +72,7 @@ DEFINE VARIABLE lShowLabels   AS LOGICAL NO-UNDO.
 DEFINE VARIABLE num-objs      AS INTEGER NO-UNDO.
 DEFINE VARIABLE temp-taborder AS INTEGER NO-UNDO.
 DEFINE VARIABLE dummy         AS LOGICAL NO-UNDO.
+def var frmTitle as char.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -177,10 +178,19 @@ DEFINE FRAME Dialog-Frame
      btn-movelast AT ROW 10.67 COL 44
      tab-label AT ROW 3.67 COL 3 NO-LABEL
      SPACE(1.00) SKIP(9.78)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Tab Editor -".
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    VIEW-AS DIALOG-BOX TITLE "Tab Editor -" 
+    &else
+     NO-BOX 
+    &endif  
+    KEEP-TAB-ORDER 
+    SIDE-LABELS NO-UNDERLINE THREE-D SCROLLABLE.
 
+{adeuib/ide/dialoginit.i "FRAME Dialog-Frame:handle"}
+&IF DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+dialogService:View().  
+&ENDIF 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -230,10 +240,6 @@ OPEN QUERY tab-browse FOR EACH _TAB BY _TAB._objTABORDER.
      _Query            is OPENED
 */  /* BROWSE tab-browse */
 &ANALYZE-RESUME
-
- 
-
-
 
 /* ************************  Control Triggers  ************************ */
 
@@ -551,9 +557,11 @@ ASSIGN tab_options_cb.
 
 RUN load-tab-table.
 RUN init-record-vars.
-  
+
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+
+ 
 MAIN-BLOCK:
 DO TRANSACTION ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
              ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
@@ -566,10 +574,20 @@ DO TRANSACTION ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 
   /* Set the separator (above the browse) with the name */
   /* of the selected frame.                             */
-  ASSIGN tab-label:SCREEN-VALUE = "  Tabbable Objects in " + _U._NAME
+  ASSIGN tab-label:SCREEN-VALUE = "  Tabbable Objects in " + _U._NAME.
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
          FRAME {&FRAME-NAME}:TITLE  = "Tab Editor - " + _U._NAME.
-
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &endif
+  frmTitle = "Tab Editor - " + _U._NAME.
+  &scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i btn_Ok btn_Cancel frmTitle}   
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &ELSE
+    WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
+    if cancelDialog THEN UNDO, LEAVE.  
+  &endif
+  
   RUN adeuib/_winsave.p (_U._WINDOW-HANDLE, FALSE).
 END.
 

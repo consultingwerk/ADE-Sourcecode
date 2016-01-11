@@ -70,7 +70,7 @@ DEFINE OUTPUT PARAMETER pressedOK       AS LOGICAL      NO-UNDO.
     external caller. */
 {adeuib/sharvars.i}.
 {adeuib/uniwidg.i}.
-
+{adecomm/oeideservice.i}
 DEFINE VARIABLE gcFilename    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcSavedPath   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcError       AS CHARACTER  NO-UNDO.
@@ -126,6 +126,14 @@ DEFINE VARIABLE gcError       AS CHARACTER  NO-UNDO.
 
 DO ON STOP UNDO, LEAVE:
     /* Call the Add to Repository dialog. Passes data back in an _RyObject record. */
+    IF OEIDEIsRunning then 
+    RUN adeuib/ide/_dialog_addreposfile.p 
+        (INPUT phWindow,                /* Parent Window    */
+         INPUT pcProductModule,         /* Product Module   */
+         INPUT pcFileName,              /* Object to add    */
+         INPUT pcType,                  /* File type        */
+         OUTPUT pressedOK).
+    else     
     RUN adeuib/_addreposfile.w 
         (INPUT phWindow,                /* Parent Window    */
          INPUT pcProductModule,         /* Product Module   */
@@ -169,6 +177,10 @@ DO ON STOP UNDO, LEAVE:
         END. */
         IF (gcError = "") THEN
         DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
+            if OEIDEIsRunning then
+             ShowMessageInIDE("Object was registered in the repository.",
+                             "Information","?","OK",yes).
+            else
             MESSAGE "Object was registered in the repository."
               VIEW-AS ALERT-BOX INFORMATION.
         END.
@@ -241,6 +253,10 @@ DO ON ERROR UNDO, LEAVE:
     
     /* Prompt for Product Module if for some reason we don't have it. */
     IF (_RyObject.product_module_code = "":u) THEN DO:
+      if OEIDEIsRunning then
+             ShowMessageInIDE("No product module has been specified.",
+                             "Error","?","OK",yes).
+      else                         
       MESSAGE "No product module has been specified."
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
       RETURN.
@@ -260,6 +276,10 @@ DO ON ERROR UNDO, LEAVE:
    
     IF cCalcError > "" THEN
     DO:
+      if OEIDEIsRunning then
+             ShowMessageInIDE(cCalcError,
+                             "Error","?","OK",yes).
+      else                         
       MESSAGE cCalcError VIEW-AS ALERT-BOX.
       DELETE _RYObject.
       RETURN.
@@ -277,6 +297,15 @@ DO ON ERROR UNDO, LEAVE:
                   + (IF cCalcRelativePath > "" THEN "~/":U ELSE "") 
                   + cObjectFileName ) = ? THEN 
     DO:
+       if OEIDEIsRunning then
+             ShowMessageInIDE(cObjectFileName +  " is not located in the '" 
+                              + IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
+                                THEN cCalcRelativePath
+                                ELSE "default"
+                              + "' directory." + CHR(10) + 
+                                "The file must be located in the same directory as the product module's relative path.":U,
+                                "Error","?","OK",yes).
+       else  
        MESSAGE cObjectFileName +  " is not located in the '" 
                       + IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
                         THEN cCalcRelativePath
@@ -308,8 +337,13 @@ DO ON ERROR UNDO, LEAVE:
 
 
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
+        do:
+          if OEIDEIsRunning then
+             ShowMessageInIDE(RETURN-VALUE,
+                             "Error","?","OK",yes).
+          else   
           MESSAGE RETURN-VALUE VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
+        end.
         IF dDlObj NE 0 AND _RyObject.deployment_type NE "" THEN DO:
           RUN updateDeploymentType IN hRepDesignManager (INPUT dDlObj, 
                                                         INPUT _RyObject.deployment_type)

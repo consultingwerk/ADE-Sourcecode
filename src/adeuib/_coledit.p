@@ -344,7 +344,8 @@ DEFINE VAR bcformat    AS CHARACTER VIEW-AS FILL-IN NATIVE
 DEFINE VAR convformat  AS CHARACTER                                    NO-UNDO.             
 
 DEFINE VAR nonAmerican AS LOGICAL                                      NO-UNDO.                               
-
+define variable frameTitle as character no-undo init "Column Editor".
+define variable frameTitleAdvanced as character no-undo init "Advanced".
 /* Query definitions                                                    */
 DEFINE QUERY brw-flds FOR _BC SCROLLING.
 define variable ghQuery            as handle                no-undo.
@@ -450,9 +451,15 @@ DEFINE FRAME bc-editor
       &CANCEL = "btn_cancel"
       &HELP   = "btn_help"}
      empty-msg AT ROW 5  COL 9 NO-LABEL
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D SCROLLABLE
-         TITLE "Column Editor".
+    WITH 
+     &if defined(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX 
+     TITLE frameTitle
+    &else
+    no-box
+    &endif
+    KEEP-TAB-ORDER 
+    SIDE-LABELS NO-UNDERLINE THREE-D SCROLLABLE.
 
 /* Using _numeric_separator and _numeric_decimal to determine if user is 
    using an Intl Numeric format other than American.  Can't use 
@@ -461,6 +468,7 @@ DEFINE FRAME bc-editor
 IF _numeric_separator <> "," OR _numeric_decimal <> "." THEN nonAmerican = TRUE.
 ELSE nonAmerican = FALSE.
 
+{adeuib/ide/dialoginit.i "Frame bc-editor:handle"}
 
 /* Help Trigger */
 ON CHOOSE OF btn_help IN FRAME bc-editor OR HELP OF FRAME bc-editor
@@ -540,8 +548,14 @@ DEFINE FRAME sdoadv-dlg
       &OK     = "btn_ok"
       &CANCEL = "btn_cancel"
       &HELP   = "btn_help"}
-     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
-        SIDE-LABELS NO-UNDERLINE THREE-D SCROLLABLE TITLE "Advanced".
+     WITH
+     &if defined(IDE-IS-RUNNING) = 0 &then        
+     VIEW-AS DIALOG-BOX TITLE frameTitleAdvanced
+     &else
+     NO-BOX
+     &endif
+     KEEP-TAB-ORDER
+     SIDE-LABELS NO-UNDERLINE THREE-D SCROLLABLE .
 
 DO WITH FRAME sdoadv-dlg:
 
@@ -608,8 +622,7 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 ON CHOOSE OF b_add DO:
-  RUN add-fields.ip.
-  RUN enable_UI.
+  RUN chooseAdd.
 END.
 
 ON VALUE-CHANGED OF tog_enabled DO:
@@ -890,438 +903,41 @@ ON CHOOSE OF b_enable, b_disable DO:
 END.
 
 ON CHOOSE OF b_clr DO:
-  FIND _U WHERE RECID(_U) = _query-u-rec.
-  FIND _L WHERE RECID(_L) = _U._lo-recid.
-  
-  RUN adecomm/_chscolr.p
-       (INPUT "Choose Color",
-        INPUT (""),
-        INPUT FALSE,       /* separators */
-        INPUT _L._BGCOLOR, /* parent_bgcolor */
-        INPUT _L._FGCOLOR, /* parent_fgcolor */
-        INPUT ?,           /* separators */
-        INPUT-OUTPUT _BC._BGCOLOR,
-        INPUT-OUTPUT _BC._FGCOLOR,
-        INPUT-OUTPUT sep_fgc,
-        OUTPUT dummy).
-        
+    run ChooseColor.
 END.
 
 ON CHOOSE OF b_calc-fld DO:
-  DEFINE VARIABLE i                 AS INTEGER          NO-UNDO. 
-  DEFINE VARIABLE pCurrentDB        AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pTbl              AS CHAR             NO-UNDO. 
-  DEFINE VARIABLE pSelectedTables   AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pInputExpression  AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pOutputExpression AS CHAR             NO-UNDO.
-  DEFINE VARIABLE TestValue         AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pOk               AS LOGICAL          NO-UNDO.
-  DEFINE VARIABLE pDB-RECID         AS RECID            NO-UNDO.
-  DEFINE VARIABLE pErrorStatus      AS LOGICAL          NO-UNDO.
-  DEFINE VARIABLE EditFlag          AS LOGICAL          NO-UNDO.
-  DEFINE VARIABLE iNumTable         AS INTEGER          NO-UNDO.
-  DEFINE VARIABLE cTableList        AS CHARACTER        NO-UNDO.
-
-  IF AVAILABLE _BC THEN  
-    ASSIGN pCurrentDB        = IF isSmartData THEN STRING(_query-u-rec)
-                               ELSE IF _BC._DBNAME NE "_<CALC>":U
-                                 THEN _BC._DBNAME ELSE ldbname("DICTDB")
-           pTbl              = IF isSmartData THEN "RowObject"
-                               ELSE IF _BC._DBNAME NE "_<CALC>":U
-                                 THEN (IF NUM-ENTRIES(ENTRY(1,Tbl-List),".":U) = 2 THEN
-                                   pCurrentDB + "." + _BC._TABLE ELSE _BC._TABLE)
-                                 ELSE ENTRY(1,Tbl-List)
-           pSelectedTables   = IF isSmartData THEN "RowObject" ELSE Tbl-List
-           TestValue         = IF isSmartData THEN TRIM(_BC._NAME) 
-                                              ELSE TRIM(_BC._DISP-NAME)
-           pInputExpression  = ""
-           EditFlag          = FALSE. 
-  ELSE
-    ASSIGN pCurrentDB       = IF isSmartData THEN STRING(_query-u-rec)
-                              ELSE IF _BC._DBNAME NE "_<CALC>":U
-                                   THEN _BC._DBNAME ELSE ldbname("DICTDB")
-           pTbl             = ""
-           pSelectedTables  = Tbl-List
-           TestValue        = ""
-           pInputExpression = ""
-           EditFlag         = FALSE.
-       
-  /* Invoke the calculated field selector for dynamic SDOs and gets data 
-     from the calculated field selector (or from a new calculated field).
-     _BC._NAME stores the master calculated field name
-     _BC._DISP-NAME stores the instance name
-     For static SDOs _NAME stores the field expression and _DISP-NAME stores 
-     the name. */
-  IF isDynSDO THEN
-  DO:
-    lNewCalc = FALSE.
-    DO iNumTable = 1 TO NUM-ENTRIES(Tbl-List):
-      IF ENTRY(1, ENTRY(iNumTable, Tbl-List), ".":U) = "Temp-Tables":U THEN
-      DO:
-        FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
-            _TT._name = ENTRY(2, ENTRY(iNumTable, Tbl-List), ".":U) AND
-            _TT._table-type = "B":U NO-ERROR.
-        IF AVAILABLE _TT THEN
-          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
-                       "Temp-Tables":U + ".":U + _TT._like-table.
-        ELSE 
-          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
-                       ENTRY(iNumTable, Tbl-List).  
-      END.
-      ELSE 
-        cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
-                     ENTRY(iNumTable, Tbl-List).
-    END.
-    RUN adeuib/_calcselg.w 
-        (INPUT  cTableList,
-         OUTPUT pOutputExpression,
-         OUTPUT UniqueName,
-         OUTPUT cCalcDataType,
-         OUTPUT cCalcLabel,
-         OUTPUT cCalcColLabel,
-         OUTPUT cCalcFormat,
-         OUTPUT cCalcHelp,
-         OUTPUT lNewCalc,
-         OUTPUT cCalcClass,
-         OUTPUT cCalcModule,
-         OUTPUT pOK).
-    IF NOT pOK THEN RETURN.    
-  END.
-  ELSE DO:
-    RUN adeshar/_calcfld.p (pCurrentDB,
-                            pTbl,
-                            p_hSmartData,
-                            pSelectedTables, 
-                            pInputExpression,
-                            "{&UIB_SHORT_NAME}":U,
-                            this-is-a-SB,
-                            isSmartData,
-                            tt-info,
-                            OUTPUT pOutputExpression,
-                            OUTPUT pErrorStatus, 
-                            OUTPUT pOk).
-  
-    /* After Ok or Cancel button have been pressed do the following */      
-    IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
-
-    IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
-  END.
-
-  IF empty-flg THEN
-    ASSIGN empty-flg                              = FALSE
-           empty-msg:VISIBLE   IN FRAME bc-editor = FALSE 
-           empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
-
-  FIND LAST _BC WHERE _BC._x-recid = _query-u-rec NO-LOCK NO-ERROR.
-  IF NOT AVAILABLE(_BC) THEN
-      ASSIGN cur-seq = 1.
-  ELSE
-      ASSIGN cur-seq = _BC._SEQUENCE + 1.
-
-  /* Find unique name */
-  IF isSmartData AND NOT isDynSDO THEN
-    RUN adeshar/_bstfnam.p (INPUT _query-u-rec, INPUT "CALC", INPUT ?, INPUT ?,
-                            OUTPUT UniqueName).
-
-  CREATE _BC.
-  ASSIGN _BC._x-recid   = _query-u-rec
-         _BC._SEQUENCE  = cur-seq
-         _BC._DBNAME    = "_<CALC>":U
-         _BC._TABLE     = ?
-         _BC._DISP-NAME = IF isSmartData THEN UniqueName 
-                                         ELSE pOutputExpression
-         _BC._NAME      = IF isSmartData THEN pOutputExpression 
-                                         ELSE _BC._NAME
-         _BC._DATA-TYPE = IF isSmartData AND NOT isDynSDO THEN "character":U
-                          ELSE IF isDynSDO THEN cCalcDataType
-                          ELSE _BC._DATA-TYPE
-         _BC._FORMAT    = IF isSmartData AND NOT isDynSDO THEN "x(8)":U
-                          ELSE IF isDynSDO THEN cCalcFormat
-                          ELSE _BC._FORMAT
-         _BC._HAS-DATAFIELD-MASTER = IF isSmartData AND lNewCalc THEN TRUE ELSE FALSE
-         _BC._HELP      = IF isDynSDO THEN cCalcHelp 
-                                      ELSE "":U
-         _BC._LABEL     = IF isDynSDO THEN cCalcLabel
-                                      ELSE "":U
-         _BC._COL-LABEL = IF isDynSDO THEN cCalcColLabel
-                                      ELSE "":U
-         cur-record     = RECID(_BC).
-
-  /* The _STATUS field is used when saving the SDO for two purposes:
-     1) To determine whether a calculated field is a new calculated field
-        created by the calculated field selector.  It also stores the
-        class, module and column label for the new calculated field, 
-        its other info (label, datatype, format and help) is stored in
-        their appropriate _BC fields.
-     2) For static SDOs it is set to 'STATIC' so that saving a static SDO
-        as dynamic saves the calculated field properly */
-  IF isDynSDO AND lNewCalc THEN
-    _BC._STATUS = 'NEWCALC':U + CHR(3) + 
-                   cCalcClass + CHR(3) +
-                   cCalcModule + CHR(3) +
-                   IF cCalcColLabel = ? THEN '?':U ELSE cCalcColLabel.
-  ELSE IF isSmartData AND NOT isDynSDO THEN
-    _BC._STATUS = 'STATIC':U.
-  
-  IF isSmartData AND NOT isDynSDO THEN DO:
-    RUN adecomm/_chkfmt.p (1,"","",_BC._FORMAT, 
-                                OUTPUT counter, OUTPUT lError).
-    ASSIGN _BC._WIDTH = IF NOT lError THEN MIN(650,counter) ELSE ?.
-
-    FIND FIRST xx_U WHERE xx_U._WINDOW-HANDLE = _U._WINDOW-HANDLE
-                      AND xx_U._TYPE = "WINDOW":U
-                      AND xx_U._STATUS = "NORMAL":U.
-    FIND FIRST _TRG WHERE _TRG._tSection = "_PROCEDURE":U 
-                      AND _TRG._wRECID = RECID(xx_U)
-                      AND _TRG._tSPECIAL = "DATA.CALCULATE":U
-                      AND _TRG._tCODE    = ?  NO-ERROR.
-    IF NOT AVAILABLE _TRG THEN 
-    DO:
-       CREATE _TRG.
-       ASSIGN _TRG._pRECID   = (IF AVAIL(_P) THEN RECID(_P) ELSE ?)
-              _TRG._tSection = "_PROCEDURE":U
-              _TRG._wRECID   = RECID(xx_U) 
-              _TRG._tCODE    = ?
-              _TRG._STATUS   = "NORMAL":U
-              _TRG._tSPECIAL = "DATA.CALCULATE":U
-              _TRG._tEVENT   = "DATA.CALCULATE":U
-       .
-    END. /* Create _TRG */
-    ELSE ASSIGN _TRG._STATUS = "NORMAL":U.
-  END.
-  
-  IF brw-flds:FOCUSED-ROW NE ? THEN                      
-    ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW,                                                  "CONDITIONAL").
-  
-  {&OPEN-QUERY-brw-flds}
-  REPOSITION brw-flds TO RECID cur-record.
-  RUN enable_UI.
-END.
+    run ChooseCalcField.
+end.    
 
 ON CHOOSE OF b_edit DO:
-  DEFINE VARIABLE i                 AS INTEGER          NO-UNDO. 
-  DEFINE VARIABLE pCurrentDB        AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pTbl              AS CHAR             NO-UNDO. 
-  DEFINE VARIABLE pSelectedTables   AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pInputExpression  AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pOutputExpression AS CHAR             NO-UNDO.
-  DEFINE VARIABLE TestValue         AS CHAR             NO-UNDO.
-  DEFINE VARIABLE pOk               AS LOGICAL          NO-UNDO.
-  DEFINE VARIABLE pDB-RECID         AS RECID            NO-UNDO.
-  DEFINE VARIABLE pErrorStatus      AS LOGICAL          NO-UNDO.
-  DEFINE VARIABLE EditFlag          AS LOGICAL          NO-UNDO.
-  
-  IF AVAILABLE _BC THEN  
-    ASSIGN pCurrentDB        = IF isSmartData THEN STRING(_query-u-rec)
-                                              ELSE ldbname("DICTDB")
-           pTbl              = IF isSmartData THEN "RowObject"
-                                              ELSE ENTRY(1,Tbl-List)
-           pSelectedTables   = IF isSmartData THEN "RowObject"
-                                              ELSE Tbl-List
-           TestValue         = IF isSmartData THEN TRIM(_BC._NAME) 
-                                              ELSE TRIM(_BC._DISP-NAME)
-           pInputExpression  = TestValue
-           EditFlag          = IF pInputExpression <> "" THEN True ELSE False. 
-  ELSE DO:
-    /* This shouls never happen */
-    MESSAGE "You may not edit database fields." VIEW-AS ALERT-BOX ERROR.
-    RETURN NO-APPLY.
-  END.
-         
-  RUN adeshar/_calcfld.p (pCurrentDB,
-                          pTbl,
-                          p_hSmartData,
-                          pSelectedTables, 
-                          pInputExpression,
-                          "{&UIB_SHORT_NAME}":U,
-                          this-is-a-SB,
-                          isSmartData,
-                          tt-info,
-                          OUTPUT pOutputExpression,
-                          OUTPUT pErrorStatus, 
-                          OUTPUT pOk).
-                          
-  /* After Ok or Cancel button have been pressed do the following */      
-  IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
-  
-  IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
-
-  IF empty-flg THEN
-    ASSIGN empty-flg                              = FALSE
-           empty-msg:VISIBLE   IN FRAME bc-editor = FALSE 
-           empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
-
-  IF EditFlag THEN  /* This is an modify not an add */
-  ASSIGN
-    _BC._DISP-NAME         = IF isSmartData THEN _BC._DISP-NAME 
-                                            ELSE pOutputExpression
-    _BC._NAME              = IF isSmartData THEN pOutputExpression 
-                                            ELSE _BC._NAME.
-  
-  IF brw-flds:FOCUSED-ROW NE ? THEN                      
-    ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW,
-                                                  "CONDITIONAL").
-  
-  {&OPEN-QUERY-brw-flds}
-  REPOSITION brw-flds TO RECID cur-record.
-  RUN enable_UI.
+   run chooseEdit.
 END.
 
 ON CHOOSE OF b_lbl-clr DO:
-  FIND _U WHERE RECID(_U) = _query-u-rec.
-  FIND _L WHERE RECID(_L) = _U._lo-recid.
-  
-  RUN adecomm/_chscolr.p
-       (INPUT "Choose Color",
-        INPUT (""),
-        INPUT FALSE,       /* separators */
-        INPUT _L._BGCOLOR, /* parent_bgcolor */
-        INPUT _L._FGCOLOR, /* parent_fgcolor */
-        INPUT ?,           /* separators */
-        INPUT-OUTPUT _BC._LABEL-BGCOLOR,
-        INPUT-OUTPUT _BC._LABEL-FGCOLOR,
-        INPUT-OUTPUT sep_fgc,
-        OUTPUT dummy).
-        
+   run ChooseLabelColor.
 END.
 
 ON CHOOSE OF b_fnt DO:
-  FIND _U WHERE RECID(_U) = _query-u-rec.
-  FIND _L WHERE RECID(_L) = _U._lo-recid.
-  
-  IF _U._LAYOUT-NAME NE "Master Layout" THEN DO:
-    MESSAGE "The font of a browse may not be changed between layouts."
-            VIEW-AS ALERT-BOX INFORMATION.
-    RETURN.
-  END.  
-
-  RUN adecomm/_chsfont.p  (INPUT "Choose Font",
-                           INPUT _L._FONT,
-                           INPUT-OUTPUT _BC._FONT,
-                           OUTPUT dummy).
+    run ChooseFont.
 END.
 
 ON CHOOSE OF b_attr DO:
-   RUN adeuib/_attredt.w (INPUT _U._HANDLE, INPUT RECID(_BC)).
+    run ChooseTranslationAttributes.
 END. /* Choose of b_attr */
 
 ON CHOOSE OF b_view-as DO:
-DEFINE VARIABLE cColumnType           AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnDelimiter      AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnItems          AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnItemPairs      AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnInnerLines     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnMaxChars       AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnSort           AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnAutoCompletion AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cColumnUniqueMatch    AS CHARACTER NO-UNDO.
-
-DEFINE VARIABLE cCancel AS LOGICAL     NO-UNDO.
-
-DEFINE VARIABLE isSourceDataView AS LOGICAL     NO-UNDO.
-
-ASSIGN isSourceDataView = VALID-HANDLE(p_hSmartData) AND DYNAMIC-FUNCTION('getObjectType':U IN p_hSmartData) = "SmartDataObject":U AND
-                                                         NOT DYNAMIC-FUNCTION('getDBAware':U IN p_hSmartData)
-       cColumnDelimiter      = IF _BC._VIEW-AS-DELIMITER = "," THEN "?" ELSE _BC._VIEW-AS-DELIMITER
-       cColumnItems          = IF _BC._VIEW-AS-ITEMS = ? THEN "" ELSE _BC._VIEW-AS-ITEMS
-       cColumnItemPairs      = IF _BC._VIEW-AS-ITEM-PAIRS = ? THEN "" ELSE _BC._VIEW-AS-ITEM-PAIRS
-       cColumnInnerLines     = STRING(IF _BC._VIEW-AS-INNER-LINES = 0 THEN 5 ELSE _BC._VIEW-AS-INNER-LINES)
-       cColumnMaxChars       = STRING(_BC._VIEW-AS-MAX-CHARS)
-       cColumnSort           = IF _BC._VIEW-AS-SORT THEN "Y":U ELSE "?"
-       cColumnAutoCompletion = IF _BC._VIEW-AS-AUTO-COMPLETION THEN "Y":U ELSE "?"
-       cColumnUniqueMatch    = IF _BC._VIEW-AS-UNIQUE-MATCH THEN "Y":U ELSE "?".
-
-CASE _BC._VIEW-AS-TYPE:
-    WHEN "Toggle-box":U     THEN ASSIGN cColumnType = "TB":U.
-    WHEN "DROP-DOWN":U      THEN ASSIGN cColumnType = "DD":U.
-    WHEN "DROP-DOWN-LIST":U THEN ASSIGN cColumnType = "DDL":U.
-    OTHERWISE ASSIGN cColumnType = "Fill-in":U.
-END CASE.
-
-RUN adecomm/_viewasd.w (INPUT IF isSourceDataView THEN _BC._DISP-NAME ELSE _BC._NAME,
-                        INPUT _BC._DATA-TYPE,
-                        INPUT IF _BC._FORMAT = ? OR _BC._FORMAT = "" THEN _BC._DEF-FORMAT ELSE _BC._FORMAT,
-                        INPUT IF _P.static_object THEN "STATIC":U ELSE "SmartDataBrowser":U,
-                        INPUT-OUTPUT cColumnType,
-                        INPUT-OUTPUT cColumnDelimiter,
-                        INPUT-OUTPUT cColumnItems,
-                        INPUT-OUTPUT cColumnItemPairs,
-                        INPUT-OUTPUT cColumnInnerLines,
-                        INPUT-OUTPUT cColumnMaxChars,
-                        INPUT-OUTPUT cColumnSort,
-                        INPUT-OUTPUT cColumnAutoCompletion,
-                        INPUT-OUTPUT cColumnUniqueMatch,
-                        OUTPUT cCancel).
-
-IF cCancel = TRUE THEN
-    RETURN NO-APPLY.
-
-CASE cColumnType:
-    WHEN "DD":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN":U.
-    WHEN "DDL":U THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN-LIST":U.
-    WHEN "TB":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "TOGGLE-BOX":U.
-    OTHERWISE ASSIGN _BC._VIEW-AS-TYPE = "FILL-IN".
-END CASE.
-
-ASSIGN _BC._VIEW-AS-DELIMITER       = IF cColumnDelimiter = ? OR cColumnDelimiter = "" THEN "," ELSE cColumnDelimiter
-       _BC._VIEW-AS-ITEMS           = IF cColumnItems = "" THEN ? ELSE cColumnItems
-       _BC._VIEW-AS-ITEM-PAIRS      = IF cColumnItemPairs = "" THEN ? ELSE cColumnItemPairs
-       _BC._VIEW-AS-INNER-LINES     = INT(cColumnInnerLines)
-       _BC._VIEW-AS-MAX-CHARS       = INT(cColumnMaxChars)
-       _BC._VIEW-AS-SORT            = IF cColumnSort = "Y":U THEN TRUE ELSE FALSE
-       _BC._VIEW-AS-AUTO-COMPLETION = IF cColumnAutoCompletion = "Y":U THEN TRUE ELSE FALSE
-       _BC._VIEW-AS-UNIQUE-MATCH    = IF cColumnUniqueMatch = "Y":U THEN TRUE ELSE FALSE.
+    run ChooseViewAs.
 END. /* Choose of b_view-as */
 
 ON CHOOSE OF b_lbl-fnt DO:
-  FIND _U WHERE RECID(_U) = _query-u-rec.
-  FIND _L WHERE RECID(_L) = _U._lo-recid.
-  
-  IF _U._LAYOUT-NAME NE "Master Layout" THEN DO:
-    MESSAGE "The font of a browse may not be changed between layouts."
-            VIEW-AS ALERT-BOX INFORMATION.
-    RETURN.
-  END.  
-
-  RUN adecomm/_chsfont.p  (INPUT "Choose Font",
-                           INPUT _L._FONT,
-                           INPUT-OUTPUT _BC._LABEL-FONT,
-                           OUTPUT dummy).
+    run ChooseLabelFont.
 END.
 
 
 ON CHOOSE OF b_frm-hlp DO:
-  DEF VAR fmt      AS CHAR CASE-SENSITIVE NO-UNDO.
-  
-  fmt = bcformat:SCREEN-VALUE.
-
-  CASE _BC._DATA-TYPE:
-    WHEN "CHARACTER":U   THEN RUN adecomm/_y-build.p ( 1, INPUT-OUTPUT fmt).
-    WHEN "DATE":U        THEN RUN adecomm/_y-build.p ( 2, INPUT-OUTPUT fmt).
-    WHEN "DATETIME":U    THEN RUN adecomm/_y-build.p (34, INPUT-OUTPUT fmt).
-    WHEN "DATETIME-TZ":U THEN RUN adecomm/_y-build.p (40, INPUT-OUTPUT fmt).
-    WHEN "LOGICAL":U     THEN RUN adecomm/_y-build.p ( 3, INPUT-OUTPUT fmt).
-    WHEN "DECIMAL":U     THEN RUN adecomm/_y-build.p ( 5, INPUT-OUTPUT fmt). 
-    WHEN "RECID":U       THEN RUN adecomm/_y-build.p ( 7, INPUT-OUTPUT fmt).
-    OTHERWISE                 RUN adecomm/_y-build.p ( 4, INPUT-OUTPUT fmt).
-  END CASE.
-  
-  /* Update value */
-  IF bcformat:SCREEN-VALUE NE fmt THEN DO:
-    ASSIGN bcformat:SCREEN-VALUE = fmt.
-    IF nonAmerican THEN DO:
-      RUN adecomm/_convert.p (INPUT "N-TO-A",
-                              INPUT fmt,
-                              INPUT _numeric_separator,
-                              INPUT _numeric_decimal,
-                              OUTPUT convformat).
-      _BC._FORMAT = convformat.
-    END.  /* if numeric-format not American */
-    ELSE _BC._FORMAT = fmt.
-    APPLY "VALUE-CHANGED" TO bcformat IN FRAME bc-editor.
-  END.
+  run ChooseFormatHelp.
 END.
-
 
 ON VALUE-CHANGED OF brw-flds DO:
   DEFINE BUFFER x_BC FOR _BC.
@@ -1448,9 +1064,7 @@ ON CHOOSE OF b_remove DO:
 END.
 
 ON CHOOSE OF b_advanced DO:
-  RUN advanced.ip.
-  HIDE FRAME sdoadv-dlg.
-  RUN enable_UI.
+   run ChooseAdvanced.
 END.
 
 /* ***************************  Main Block  *************************** */
@@ -1706,8 +1320,16 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   END.
   ELSE ASSIGN empty-msg:VISIBLE   = FALSE
               empty-msg:SENSITIVE = FALSE.
-  
+  &SCOPED-DEFINE CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i btn_ok btn_cancel frametitle}
+     
+    &if defined(IDE-IS-RUNNING) = 0 &then
   WAIT-FOR GO OF FRAME bc-editor.
+    &else
+  dialogService:SizeToFit().
+  WAIT-FOR GO OF FRAME bc-editor or "{&CANCEL-EVENT}" of this-procedure.
+  if cancelDialog then undo, leave. 
+    &endif
   
   IF AVAILABLE _BC THEN /* All _BC records may have been deleted */
   DO:
@@ -1770,12 +1392,306 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 END. /* Main-BLOCK */
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI bc-editor _DEFAULT-DISABLE
+procedure ChooseEdit:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseEdit.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseEdit").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end procedure.
+
+procedure DoChooseEdit:
+
+ DEFINE VARIABLE i                 AS INTEGER          NO-UNDO. 
+  DEFINE VARIABLE pCurrentDB        AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pTbl              AS CHAR             NO-UNDO. 
+  DEFINE VARIABLE pSelectedTables   AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pInputExpression  AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pOutputExpression AS CHAR             NO-UNDO.
+  DEFINE VARIABLE TestValue         AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pOk               AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE pDB-RECID         AS RECID            NO-UNDO.
+  DEFINE VARIABLE pErrorStatus      AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE EditFlag          AS LOGICAL          NO-UNDO.
+  
+  IF AVAILABLE _BC THEN  
+    ASSIGN pCurrentDB        = IF isSmartData THEN STRING(_query-u-rec)
+                                              ELSE ldbname("DICTDB")
+           pTbl              = IF isSmartData THEN "RowObject"
+                                              ELSE ENTRY(1,Tbl-List)
+           pSelectedTables   = IF isSmartData THEN "RowObject"
+                                              ELSE Tbl-List
+           TestValue         = IF isSmartData THEN TRIM(_BC._NAME) 
+                                              ELSE TRIM(_BC._DISP-NAME)
+           pInputExpression  = TestValue
+           EditFlag          = IF pInputExpression <> "" THEN True ELSE False. 
+  ELSE DO:
+    /* This shouls never happen */
+    MESSAGE "You may not edit database fields." VIEW-AS ALERT-BOX ERROR.
+    RETURN NO-APPLY.
+  END.
+  RUN 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    adeshar/_calcfld.p  
+    &else
+    adeuib/ide/_dialog_calcfld.p 
+    &endif
+                         (pCurrentDB,
+                          pTbl,
+                          p_hSmartData,
+                          pSelectedTables, 
+                          pInputExpression,
+                          "{&UIB_SHORT_NAME}":U,
+                          this-is-a-SB,
+                          isSmartData,
+                          tt-info,
+                          OUTPUT pOutputExpression,
+                          OUTPUT pErrorStatus, 
+                          OUTPUT pOk).
+                          
+  /* After Ok or Cancel button have been pressed do the following */      
+  IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
+  
+  IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
+
+  IF empty-flg THEN
+    ASSIGN empty-flg                              = FALSE
+           empty-msg:VISIBLE   IN FRAME bc-editor = FALSE 
+           empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
+
+  IF EditFlag THEN  /* This is an modify not an add */
+  ASSIGN
+    _BC._DISP-NAME         = IF isSmartData THEN _BC._DISP-NAME 
+                                            ELSE pOutputExpression
+    _BC._NAME              = IF isSmartData THEN pOutputExpression 
+                                            ELSE _BC._NAME.
+  
+  IF brw-flds:FOCUSED-ROW NE ? THEN                      
+    ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW,
+                                                  "CONDITIONAL").
+  
+  {&OPEN-QUERY-brw-flds}
+  REPOSITION brw-flds TO RECID cur-record.
+  RUN enable_UI.
+end procedure.
+
+procedure ChooseCalcField:    
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseCalcField.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseCalcField").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseCalcField:    
+  DEFINE VARIABLE i                 AS INTEGER          NO-UNDO. 
+  DEFINE VARIABLE pCurrentDB        AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pTbl              AS CHAR             NO-UNDO. 
+  DEFINE VARIABLE pSelectedTables   AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pInputExpression  AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pOutputExpression AS CHAR             NO-UNDO.
+  DEFINE VARIABLE TestValue         AS CHAR             NO-UNDO.
+  DEFINE VARIABLE pOk               AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE pDB-RECID         AS RECID            NO-UNDO.
+  DEFINE VARIABLE pErrorStatus      AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE EditFlag          AS LOGICAL          NO-UNDO.
+  DEFINE VARIABLE iNumTable         AS INTEGER          NO-UNDO.
+  DEFINE VARIABLE cTableList        AS CHARACTER        NO-UNDO.
+
+  IF AVAILABLE _BC THEN  
+    ASSIGN pCurrentDB        = IF isSmartData THEN STRING(_query-u-rec)
+                               ELSE IF _BC._DBNAME NE "_<CALC>":U
+                                 THEN _BC._DBNAME ELSE ldbname("DICTDB")
+           pTbl              = IF isSmartData THEN "RowObject"
+                               ELSE IF _BC._DBNAME NE "_<CALC>":U
+                                 THEN (IF NUM-ENTRIES(ENTRY(1,Tbl-List),".":U) = 2 THEN
+                                   pCurrentDB + "." + _BC._TABLE ELSE _BC._TABLE)
+                                 ELSE ENTRY(1,Tbl-List)
+           pSelectedTables   = IF isSmartData THEN "RowObject" ELSE Tbl-List
+           TestValue         = IF isSmartData THEN TRIM(_BC._NAME) 
+                                              ELSE TRIM(_BC._DISP-NAME)
+           pInputExpression  = ""
+           EditFlag          = FALSE. 
+  ELSE
+    ASSIGN pCurrentDB       = IF isSmartData THEN STRING(_query-u-rec)
+                              ELSE IF _BC._DBNAME NE "_<CALC>":U
+                                   THEN _BC._DBNAME ELSE ldbname("DICTDB")
+           pTbl             = ""
+           pSelectedTables  = Tbl-List
+           TestValue        = ""
+           pInputExpression = ""
+           EditFlag         = FALSE.
+       
+  /* Invoke the calculated field selector for dynamic SDOs and gets data 
+     from the calculated field selector (or from a new calculated field).
+     _BC._NAME stores the master calculated field name
+     _BC._DISP-NAME stores the instance name
+     For static SDOs _NAME stores the field expression and _DISP-NAME stores 
+     the name. */
+  IF isDynSDO THEN
+  DO:
+    lNewCalc = FALSE.
+    DO iNumTable = 1 TO NUM-ENTRIES(Tbl-List):
+      IF ENTRY(1, ENTRY(iNumTable, Tbl-List), ".":U) = "Temp-Tables":U THEN
+      DO:
+        FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
+            _TT._name = ENTRY(2, ENTRY(iNumTable, Tbl-List), ".":U) AND
+            _TT._table-type = "B":U NO-ERROR.
+        IF AVAILABLE _TT THEN
+          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                       "Temp-Tables":U + ".":U + _TT._like-table.
+        ELSE 
+          cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                       ENTRY(iNumTable, Tbl-List).  
+      END.
+      ELSE 
+        cTableList = cTableList + (IF NUM-ENTRIES(cTableList) > 0 THEN ",":U ELSE '':U) + 
+                     ENTRY(iNumTable, Tbl-List).
+    END.
+    RUN 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    adeuib/_calcselg.w 
+    &else
+    adeuib/ide/_dialog_calcselg.w 
+    &endif
+        (INPUT  cTableList,
+         OUTPUT pOutputExpression,
+         OUTPUT UniqueName,
+         OUTPUT cCalcDataType,
+         OUTPUT cCalcLabel,
+         OUTPUT cCalcColLabel,
+         OUTPUT cCalcFormat,
+         OUTPUT cCalcHelp,
+         OUTPUT lNewCalc,
+         OUTPUT cCalcClass,
+         OUTPUT cCalcModule,
+         OUTPUT pOK).
+    IF NOT pOK THEN RETURN.    
+  END.
+  ELSE DO:
+    RUN 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    adeshar/_calcfld.p  
+    &else
+    adeuib/ide/_dialog_calcfld.p 
+    &endif
+                           (pCurrentDB,
+                            pTbl,
+                            p_hSmartData,
+                            pSelectedTables, 
+                            pInputExpression,
+                            "{&UIB_SHORT_NAME}":U,
+                            this-is-a-SB,
+                            isSmartData,
+                            tt-info,
+                            OUTPUT pOutputExpression,
+                            OUTPUT pErrorStatus, 
+                            OUTPUT pOk).
+  
+    /* After Ok or Cancel button have been pressed do the following */      
+    IF NOT pOk THEN RETURN.   /* if NOT pErrorStatus then return. */
+
+    IF pOutputExpression = "()":U OR pOutputExpression = "" THEN RETURN.
+  END.
+
+  IF empty-flg THEN
+    ASSIGN empty-flg                              = FALSE
+           empty-msg:VISIBLE   IN FRAME bc-editor = FALSE 
+           empty-msg:SENSITIVE IN FRAME bc-editor = FALSE.  
+
+  FIND LAST _BC WHERE _BC._x-recid = _query-u-rec NO-LOCK NO-ERROR.
+  IF NOT AVAILABLE(_BC) THEN
+      ASSIGN cur-seq = 1.
+  ELSE
+      ASSIGN cur-seq = _BC._SEQUENCE + 1.
+
+  /* Find unique name */
+  IF isSmartData AND NOT isDynSDO THEN
+    RUN adeshar/_bstfnam.p (INPUT _query-u-rec, INPUT "CALC", INPUT ?, INPUT ?,
+                            OUTPUT UniqueName).
+
+  CREATE _BC.
+  ASSIGN _BC._x-recid   = _query-u-rec
+         _BC._SEQUENCE  = cur-seq
+         _BC._DBNAME    = "_<CALC>":U
+         _BC._TABLE     = ?
+         _BC._DISP-NAME = IF isSmartData THEN UniqueName 
+                                         ELSE pOutputExpression
+         _BC._NAME      = IF isSmartData THEN pOutputExpression 
+                                         ELSE _BC._NAME
+         _BC._DATA-TYPE = IF isSmartData AND NOT isDynSDO THEN "character":U
+                          ELSE IF isDynSDO THEN cCalcDataType
+                          ELSE _BC._DATA-TYPE
+         _BC._FORMAT    = IF isSmartData AND NOT isDynSDO THEN "x(8)":U
+                          ELSE IF isDynSDO THEN cCalcFormat
+                          ELSE _BC._FORMAT
+         _BC._HAS-DATAFIELD-MASTER = IF isSmartData AND lNewCalc THEN TRUE ELSE FALSE
+         _BC._HELP      = IF isDynSDO THEN cCalcHelp 
+                                      ELSE "":U
+         _BC._LABEL     = IF isDynSDO THEN cCalcLabel
+                                      ELSE "":U
+         _BC._COL-LABEL = IF isDynSDO THEN cCalcColLabel
+                                      ELSE "":U
+         cur-record     = RECID(_BC).
+
+  /* The _STATUS field is used when saving the SDO for two purposes:
+     1) To determine whether a calculated field is a new calculated field
+        created by the calculated field selector.  It also stores the
+        class, module and column label for the new calculated field, 
+        its other info (label, datatype, format and help) is stored in
+        their appropriate _BC fields.
+     2) For static SDOs it is set to 'STATIC' so that saving a static SDO
+        as dynamic saves the calculated field properly */
+  IF isDynSDO AND lNewCalc THEN
+    _BC._STATUS = 'NEWCALC':U + CHR(3) + 
+                   cCalcClass + CHR(3) +
+                   cCalcModule + CHR(3) +
+                   IF cCalcColLabel = ? THEN '?':U ELSE cCalcColLabel.
+  ELSE IF isSmartData AND NOT isDynSDO THEN
+    _BC._STATUS = 'STATIC':U.
+  
+  IF isSmartData AND NOT isDynSDO THEN DO:
+    RUN adecomm/_chkfmt.p (1,"","",_BC._FORMAT, 
+                                OUTPUT counter, OUTPUT lError).
+    ASSIGN _BC._WIDTH = IF NOT lError THEN MIN(650,counter) ELSE ?.
+
+    FIND FIRST xx_U WHERE xx_U._WINDOW-HANDLE = _U._WINDOW-HANDLE
+                      AND xx_U._TYPE = "WINDOW":U
+                      AND xx_U._STATUS = "NORMAL":U.
+    FIND FIRST _TRG WHERE _TRG._tSection = "_PROCEDURE":U 
+                      AND _TRG._wRECID = RECID(xx_U)
+                      AND _TRG._tSPECIAL = "DATA.CALCULATE":U
+                      AND _TRG._tCODE    = ?  NO-ERROR.
+    IF NOT AVAILABLE _TRG THEN 
+    DO:
+       CREATE _TRG.
+       ASSIGN _TRG._pRECID   = (IF AVAIL(_P) THEN RECID(_P) ELSE ?)
+              _TRG._tSection = "_PROCEDURE":U
+              _TRG._wRECID   = RECID(xx_U) 
+              _TRG._tCODE    = ?
+              _TRG._STATUS   = "NORMAL":U
+              _TRG._tSPECIAL = "DATA.CALCULATE":U
+              _TRG._tEVENT   = "DATA.CALCULATE":U
+       .
+    END. /* Create _TRG */
+    ELSE ASSIGN _TRG._STATUS = "NORMAL":U.
+  END.
+  
+  IF brw-flds:FOCUSED-ROW NE ? THEN                      
+    ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW,                                                  "CONDITIONAL").
+  
+  {&OPEN-QUERY-brw-flds}
+  REPOSITION brw-flds TO RECID cur-record.
+  RUN enable_UI.
+END.
+
+
 PROCEDURE disable_UI :
 /* --------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -1789,10 +1705,7 @@ PROCEDURE disable_UI :
   HIDE FRAME bc-editor.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI bc-editor _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /* --------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -2118,8 +2031,309 @@ PROCEDURE enable_UI :
   RUN set-first-last.ip.
 END PROCEDURE. /* enable_ui */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure ChooseAdd:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseAdd.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseAdd").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end procedure.    
+
+procedure DoChooseAdd:
+    RUN add-fields.ip.
+    RUN enable_UI.
+end procedure.    
+
+procedure ChooseAdvanced:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseAdvanced.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseAdvanced").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end procedure.    
+
+procedure DoChooseAdvanced:
+  RUN advanced.ip.
+  HIDE FRAME sdoadv-dlg.
+  RUN enable_UI.
+end.
+
+procedure ChooseColor:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseColor.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseColor").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseColor:
+  FIND _U WHERE RECID(_U) = _query-u-rec.
+  FIND _L WHERE RECID(_L) = _U._lo-recid.
+  
+  RUN
+    &if defined(IDE-IS-RUNNING) = 0 &then
+   adecomm/_chscolr.p
+    &else
+   adeuib/ide/_dialog_chscolr.p
+     &endif
+       (INPUT "Choose Color",
+        INPUT (""),
+        INPUT FALSE,       /* separators */
+        INPUT _L._BGCOLOR, /* parent_bgcolor */
+        INPUT _L._FGCOLOR, /* parent_fgcolor */
+        INPUT ?,           /* separators */
+        INPUT-OUTPUT _BC._BGCOLOR,
+        INPUT-OUTPUT _BC._FGCOLOR,
+        INPUT-OUTPUT sep_fgc,
+        OUTPUT dummy).
+end procedure.
+
+procedure ChooseFont:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseFont.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseFont").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseFont:
+  FIND _U WHERE RECID(_U) = _query-u-rec.
+  FIND _L WHERE RECID(_L) = _U._lo-recid.
+  
+  IF _U._LAYOUT-NAME NE "Master Layout" THEN DO:
+    MESSAGE "The font of a browse may not be changed between layouts."
+            VIEW-AS ALERT-BOX INFORMATION.
+    RETURN.
+  END.  
+     &if defined(IDE-IS-RUNNING) = 0 &then
+  RUN adecomm/_chsfont.p  (INPUT "Choose Font",
+                           INPUT _L._FONT,
+                           INPUT-OUTPUT _BC._FONT,
+                           OUTPUT dummy).
+     &else    
+  RUN adeuib/ide/_dialog_chsfont.p  (INPUT "Choose Font",
+                           INPUT _L._FONT,
+                           INPUT-OUTPUT _BC._FONT,
+                           OUTPUT dummy).
+     &endif
+end.
+
+procedure ChooseFormatHelp:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseFormatHelp.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseFormatHelp").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseFormatHelp:
+    define variable  fmt  as char case-sensitive no-undo.
+    define variable iType as integer no-undo.
+
+    fmt = bcformat:screen-value in frame bc-editor.
+
+    case _BC._DATA-TYPE:
+        when "CHARACTER":U   then iType =  1.
+        when "DATE":U        then iType =  2.
+        when "DATETIME":U    then iType = 34.
+        when "DATETIME-TZ":U then iType = 40.
+        when "LOGICAL":U     then iType =  3.
+        when "DECIMAL":U     then iType =  5. 
+        when "RECID":U       then iType =  7.
+        otherwise                 iType =  4.
+    end case.
+    
+        &if defined(IDE-IS-RUNNING) = 0 &then
+    run adecomm/_y-build.p ( iType, input-output fmt).
+        &else    
+    run adeuib/ide/_dialog_y-build.p ( iType, input-output fmt).
+        &endif
+    
+    /* Update value */
+    if bcformat:screen-value ne fmt then 
+    do:
+        assign bcformat:screen-value = fmt.
+        if nonAmerican then 
+        do:
+            run adecomm/_convert.p (input "N-TO-A",
+                                    input fmt,
+                                    input _numeric_separator,
+                                    input _numeric_decimal,
+                                    output convformat).
+            _BC._FORMAT = convformat.
+        end.  /* if numeric-format not American */
+        else _BC._FORMAT = fmt.
+        apply "VALUE-CHANGED" to bcformat in frame bc-editor.
+    end.
+end procedure.
+
+procedure ChooseLabelColor:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseLabelColor.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseLabelColor").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseLabelColor:
+  FIND _U WHERE RECID(_U) = _query-u-rec.
+  FIND _L WHERE RECID(_L) = _U._lo-recid.
+  
+  RUN
+    &if defined(IDE-IS-RUNNING) = 0 &then
+   adecomm/_chscolr.p
+    &else
+   adeuib/ide/_dialog_chscolr.p
+     &endif
+       (INPUT "Choose Label Color",
+        INPUT (""),
+        INPUT FALSE,       /* separators */
+        INPUT _L._BGCOLOR, /* parent_bgcolor */
+        INPUT _L._FGCOLOR, /* parent_fgcolor */
+        INPUT ?,           /* separators */
+        INPUT-OUTPUT _BC._LABEL-BGCOLOR,
+        INPUT-OUTPUT _BC._LABEL-FGCOLOR,
+        INPUT-OUTPUT sep_fgc,
+        OUTPUT dummy).
+end procedure.
+
+procedure ChooseLabelFont:
+     &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseLabelFont.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseLabelFont").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end procedure.
+
+procedure DoChooseLabelFont:
+    FIND _U WHERE RECID(_U) = _query-u-rec.
+    FIND _L WHERE RECID(_L) = _U._lo-recid.
+  
+    IF _U._LAYOUT-NAME NE "Master Layout" THEN 
+    DO:
+        MESSAGE "The font of a browse may not be changed between layouts."
+            VIEW-AS ALERT-BOX INFORMATION.
+        RETURN.
+    END.  
+   
+        &if defined(IDE-IS-RUNNING) = 0 &then
+    RUN adecomm/_chsfont.p  (INPUT "Choose Label Font",
+                           INPUT _L._FONT,
+                           INPUT-OUTPUT _BC._LABEL-FONT,
+                           OUTPUT dummy).
+        &else    
+    RUN adeuib/ide/_dialog_chsfont.p  (INPUT "Choose Label Font",
+                           INPUT _L._FONT,
+                           INPUT-OUTPUT _BC._LABEL-FONT,
+                           OUTPUT dummy).
+        &endif
+end procedure.
+
+procedure ChooseTranslationAttributes:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseTranslationAttributes.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseTranslationAttributes").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseTranslationAttributes:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+         RUN adeuib/_attredt.w (INPUT _U._HANDLE, INPUT RECID(_BC)).
+    &else
+         RUN adeuib/ide/_dialog_attredt.w (INPUT _U._HANDLE, INPUT RECID(_BC)).
+    &endif
+end.
+
+procedure ChooseViewAs:
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run DoChooseViewAs.
+    &else    
+        dialogService:SetCurrentEvent(this-procedure,"DoChooseViewAs").
+        run runChildDialog in hOEIDEService (dialogService).
+    &endif
+end.
+
+procedure DoChooseViewAs:
+    DEFINE VARIABLE cColumnType           AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnDelimiter      AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnItems          AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnItemPairs      AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnInnerLines     AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnMaxChars       AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnSort           AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnAutoCompletion AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE cColumnUniqueMatch    AS CHARACTER NO-UNDO.
+    
+    DEFINE VARIABLE cCancel AS LOGICAL     NO-UNDO.
+    
+    DEFINE VARIABLE isSourceDataView AS LOGICAL     NO-UNDO.
+    
+    ASSIGN isSourceDataView = VALID-HANDLE(p_hSmartData) AND DYNAMIC-FUNCTION('getObjectType':U IN p_hSmartData) = "SmartDataObject":U AND
+                                                             NOT DYNAMIC-FUNCTION('getDBAware':U IN p_hSmartData)
+           cColumnDelimiter      = IF _BC._VIEW-AS-DELIMITER = "," THEN "?" ELSE _BC._VIEW-AS-DELIMITER
+           cColumnItems          = IF _BC._VIEW-AS-ITEMS = ? THEN "" ELSE _BC._VIEW-AS-ITEMS
+           cColumnItemPairs      = IF _BC._VIEW-AS-ITEM-PAIRS = ? THEN "" ELSE _BC._VIEW-AS-ITEM-PAIRS
+           cColumnInnerLines     = STRING(IF _BC._VIEW-AS-INNER-LINES = 0 THEN 5 ELSE _BC._VIEW-AS-INNER-LINES)
+           cColumnMaxChars       = STRING(_BC._VIEW-AS-MAX-CHARS)
+           cColumnSort           = IF _BC._VIEW-AS-SORT THEN "Y":U ELSE "?"
+           cColumnAutoCompletion = IF _BC._VIEW-AS-AUTO-COMPLETION THEN "Y":U ELSE "?"
+           cColumnUniqueMatch    = IF _BC._VIEW-AS-UNIQUE-MATCH THEN "Y":U ELSE "?".
+    
+    CASE _BC._VIEW-AS-TYPE:
+        WHEN "Toggle-box":U     THEN ASSIGN cColumnType = "TB":U.
+        WHEN "DROP-DOWN":U      THEN ASSIGN cColumnType = "DD":U.
+        WHEN "DROP-DOWN-LIST":U THEN ASSIGN cColumnType = "DDL":U.
+        OTHERWISE ASSIGN cColumnType = "Fill-in":U.
+    END CASE.
+    RUN
+    &if defined(IDE-IS-RUNNING) = 0 &then
+       adecomm/_viewasd.w
+    &else
+       adeuib/ide/_dialog_viewasd.p
+    &endif
+                   (INPUT IF isSourceDataView THEN _BC._DISP-NAME ELSE _BC._NAME,
+                    INPUT _BC._DATA-TYPE,
+                    INPUT IF _BC._FORMAT = ? OR _BC._FORMAT = "" THEN _BC._DEF-FORMAT ELSE _BC._FORMAT,
+                    INPUT IF _P.static_object THEN "STATIC":U ELSE "SmartDataBrowser":U,
+                    INPUT-OUTPUT cColumnType,
+                    INPUT-OUTPUT cColumnDelimiter,
+                    INPUT-OUTPUT cColumnItems,
+                    INPUT-OUTPUT cColumnItemPairs,
+                    INPUT-OUTPUT cColumnInnerLines,
+                    INPUT-OUTPUT cColumnMaxChars,
+                    INPUT-OUTPUT cColumnSort,
+                    INPUT-OUTPUT cColumnAutoCompletion,
+                    INPUT-OUTPUT cColumnUniqueMatch,
+                    OUTPUT cCancel).
+
+    IF cCancel = TRUE THEN
+        RETURN NO-APPLY.
+    
+    CASE cColumnType:
+        WHEN "DD":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN":U.
+        WHEN "DDL":U THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN-LIST":U.
+        WHEN "TB":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "TOGGLE-BOX":U.
+        OTHERWISE ASSIGN _BC._VIEW-AS-TYPE = "FILL-IN".
+    END CASE.
+    
+    ASSIGN _BC._VIEW-AS-DELIMITER       = IF cColumnDelimiter = ? OR cColumnDelimiter = "" THEN "," ELSE cColumnDelimiter
+           _BC._VIEW-AS-ITEMS           = IF cColumnItems = "" THEN ? ELSE cColumnItems
+           _BC._VIEW-AS-ITEM-PAIRS      = IF cColumnItemPairs = "" THEN ? ELSE cColumnItemPairs
+           _BC._VIEW-AS-INNER-LINES     = INT(cColumnInnerLines)
+           _BC._VIEW-AS-MAX-CHARS       = INT(cColumnMaxChars)
+           _BC._VIEW-AS-SORT            = IF cColumnSort = "Y":U THEN TRUE ELSE FALSE
+           _BC._VIEW-AS-AUTO-COMPLETION = IF cColumnAutoCompletion = "Y":U THEN TRUE ELSE FALSE
+           _BC._VIEW-AS-UNIQUE-MATCH    = IF cColumnUniqueMatch = "Y":U THEN TRUE ELSE FALSE.
+end procedure.
 
 
 PROCEDURE add-fields.ip:
@@ -2188,16 +2402,26 @@ PROCEDURE add-fields.ip:
                      ELSE _BC._DISP-NAME.
     END.
   END.  /* for eac _BC */
-
+  
+  &if defined(IDE-IS-RUNNING) = 0 &then        
+      &SCOPED-DEFINE PROCEDURE-NAME adecomm/_mfldsel.p 
+  &else
+      &SCOPED-DEFINE PROCEDURE-NAME adeuib/ide/_dialog_mfldsel.p
+  &endif 
+   
   ASSIGN cNewFieldList = "".
   IF srcSmartData THEN 
-       RUN adecomm/_mfldsel.p (INPUT ?, INPUT p_hSmartData,
-                               INPUT tt-info, INPUT imode,
-                               INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
+       RUN {&PROCEDURE-NAME} 
+               (INPUT ?, INPUT p_hSmartData,
+                INPUT tt-info, INPUT imode,
+                INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
   ELSE
-       RUN adecomm/_mfldsel.p (INPUT Tbl-List, INPUT ?,
-                               INPUT tt-info, INPUT imode,
-                               INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
+       RUN {&PROCEDURE-NAME} 
+              (INPUT Tbl-List, INPUT ?,
+               INPUT tt-info, INPUT imode,
+               INPUT CHR(10), INPUT Fld-List, INPUT-OUTPUT cNewFieldList).
+  
+  &UNDEFINE PROCEDURE-NAME
 
   IF cNewFieldList NE "":U THEN
       ASSIGN cNewFieldList = TRIM(cNewFieldList, CHR(10))
@@ -2532,7 +2756,14 @@ PROCEDURE advanced.ip.
   DEFINE VARIABLE tmp-db      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE tmp-tbl     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE tmp-name    AS CHARACTER NO-UNDO.
-
+  
+  &if defined(IDE-IS-RUNNING) <> 0 &then        
+ 
+  define variable advancedDialog as adeuib.idialogservice no-undo.
+  run CreateDialogService in hOEIDEService (FRAME sdoadv-dlg:handle,output advancedDialog). 
+  advancedDialog:View().  
+  &endif
+  
   /* Procedure to display and enable the Advanced dialog box. */
   DO WITH FRAME sdoadv-dlg:
     ASSIGN tmp-db   = _BC._DBNAME
@@ -2546,9 +2777,9 @@ PROCEDURE advanced.ip.
 
         /* Get dictionary info */
 
-tmp-name = IF INDEX(tmp-name, '[') > 0 
-           THEN SUBSTRING(tmp-name, 1, INDEX(tmp-name, '[') - 1)
-           ELSE tmp-name.
+    tmp-name = IF INDEX(tmp-name, '[') > 0 
+               THEN SUBSTRING(tmp-name, 1, INDEX(tmp-name, '[') - 1)
+               ELSE tmp-name.
 
         RUN adeuib/_fldinfo.p (INPUT tmp-db,
                                INPUT tmp-tbl,
@@ -2593,10 +2824,25 @@ tmp-name = IF INDEX(tmp-name, '[') > 0
     DISPLAY fldBCDBNameLbl _BC._DBNAME fldBCTableLbl _BC._TABLE fldBCDataTypeLbl
             _BC._DATA-TYPE fldBCLABELLbl _BC._LABEL _BC._DEF-VALEXP _BC._HELP
          WITH FRAME sdoadv-dlg.
+    &if defined(IDE-IS-RUNNING) <> 0 &then        
+ 
+    advancedDialog:SetOkButton(btn_ok:handle in FRAME sdoadv-dlg).
+    advancedDialog:SetCancelButton(btn_cancel:handle in FRAME sdoadv-dlg).
+    advancedDialog:Title = frameTitleAdvanced.
+    on choose of btn_cancel  in FRAME sdoadv-dlg do:
+        apply "u3" to this-procedure.
+    end.    
+    &endif
     IF LOOKUP(_BC._DBNAME,"_<CALC>,Temp-Tables":U) = 0 THEN
+
        ENABLE tog_inherit_validation WITH FRAME sdoadv-dlg.
+
     ENABLE btn_OK btn_CANCEL btn_HELP WITH FRAME sdoadv-dlg.
+     &if defined(IDE-IS-RUNNING) <> 0 &then 
+    WAIT-FOR GO OF FRAME sdoadv-dlg or "u3" of this-procedure.
+     &else
     WAIT-FOR GO OF FRAME sdoadv-dlg.
+     &endif
   END. /* DO WITH FRAME sdoadv-dlg */
 END. /* Procedure advanced.ip. */
 

@@ -35,7 +35,7 @@ Modified:
 {adeuib/layout.i}
 {adeuib/sharvars.i}  
 {adeuib/property.i}  /* Contains definiton of Property Temp Table */
-
+{adecomm/oeideservice.i}
 /* ===================================================================== */
 /*                       Local Variable Definitions                      */
 /* ===================================================================== */
@@ -53,6 +53,7 @@ DEFINE VAR test_bg              AS INTEGER                           NO-UNDO.
 DEFINE VAR test_fg              AS INTEGER                           NO-UNDO.
 DEFINE VAR tmp_hdl              AS WIDGET-HANDLE                     NO-UNDO.
 DEFINE VAR tty_selectedib       AS LOGICAL         INITIAL FALSE     NO-UNDO.
+define variable cMsg as character no-undo.
 
 DEFINE BUFFER x_U FOR _U.
 DEFINE BUFFER sync_L FOR _L.
@@ -91,9 +92,13 @@ GET FIRST selected_U.
 
 /* Degenerate case: nothing to change. */
 IF NOT AVAILABLE _U THEN DO:
-  MESSAGE "There are no selected objects where color can be changed." {&SKP}
-          "Please select an object with the pointer and try again."
-      VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+   cmsg =  "There are no selected objects where color can be changed." + "~n" 
+        +  "Please select an object with the pointer and try again.".
+        
+  if OEIDE_CanShowMessage() then
+       ShowOkMessageInIDE(cmsg,"INFORMATION",?).
+  else     
+       MESSAGE cmsg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
   RETURN.
 END.
 
@@ -154,6 +159,19 @@ IF notice ne "" THEN
 &ENDIF
 
 /* Choose the color. */
+IF OEIDEIsRunning THEN
+RUN adeuib/ide/_dialog_chscolr.p 
+    (INPUT "Choose Color",  
+     INPUT notice,
+     INPUT FALSE,          /* separators */
+     INPUT dflt_bg,
+     INPUT dflt_fg,
+     INPUT ?,              /* separators */
+     INPUT-OUTPUT cur_bg, 
+     INPUT-OUTPUT cur_fg, 
+     INPUT-OUTPUT sep_fg,  /* separators */
+     OUTPUT ans).
+ELSE
 RUN adecomm/_chscolr.p 
     (INPUT "Choose Color",  
      INPUT notice,
@@ -225,8 +243,14 @@ END. /* FOR EACH ... */
 /* If some of the selected widgets were TTY then ask if the user wants to
    change the color of all TTY widgets. */
 IF tty_selectedib THEN DO:
+  if OEIDE_CanShowMessage() then
+     ans =  ShowMessageInIDE("Some selected objects were in a Character Simulator window. ~n
+                              Do you want to change the Character Simulator Colors everywhere?",
+                              "Question",?,"YES-NO",ans). 
+  else      
   MESSAGE "Some selected objects were in a Character Simulator window." {&SKP}
           "Do you want to change the Character Simulator Colors everywhere?"
     VIEW-AS alert-box QUESTION BUTTONS YES-NO UPDATE ans.
+    
   IF ans THEN RUN adeuib/_updtclr.p (cur_fg, cur_bg).
 END.

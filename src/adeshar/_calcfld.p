@@ -66,6 +66,8 @@ DEF VAR TempLen         AS INTEGER NO-UNDO.
 DEF VAR CurrentDB       AS CHAR    NO-UNDO.
 DEF VAR CurrentDBDir    AS CHAR    NO-UNDO.
 DEF VAR TempDB          AS CHAR    NO-UNDO.
+define variable frameTitle as character no-undo init "Calculated Field Editor":C30.
+
 DEF NEW SHARED STREAM P_4GL.
 
 &IF LOOKUP(OPSYS, "MSDOS,WIN32":u) = 0
@@ -257,16 +259,29 @@ DEFINE FRAME DIALOG-1
      LogicalOR AT ROW 11.31 COL 71.33 NO-LABEL
      LogicalNOT AT ROW 11.31 COL 79.33 NO-LABEL
      PasteArgs AT ROW {&PASTE-ARGS} COL 32.67
-    WITH VIEW-AS DIALOG-BOX SIDE-LABELS 
-         SIZE 89.83 BY 11.52 THREE-D
-         TITLE "Calculated Field Editor":C30.
-      
+    WITH 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX
+    TITLE frameTitle
+    &else 
+    no-box
+    &endif
+    SIDE-LABELS 
+    SIZE 89.83 BY 11.52 THREE-D.
+{adeuib/ide/dialoginit.i "FRAME DIALOG-1:handle"}      
     /*
     ** Make certain that <CR> is treated like a return and not the default key
     */   
     EditorBox:RETURN-INSERTED = True.
+ 
+ &if defined(IDE-IS-RUNNING) <> 0 &then
+   dialogService:View().
+ &endif  
+    
 IF application = "{&UIB_SHORT_NAME}":U THEN stat = FunctionBox:DELETE(2).
 
+
+  
 &Scoped-define FIELDS-IN-QUERY-DIALOG-1 
  
 /* Custom List Definitions                                              */
@@ -287,9 +302,16 @@ ON CHOOSE OF btn_OK IN FRAME DIALOG-1
   pOK = True.
 
 ON CHOOSE OF BtnSyntax IN FRAME DIALOG-1 DO: /* Syntax check */
-  IF EditorBox:SCREEN-VALUE = "" THEN 
+  IF EditorBox:SCREEN-VALUE = "" THEN
+  do:
+     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE("You must create an expression before checking syntax.",
+                                     "Warning",?,"OK",yes).
+     &else
      MESSAGE "You must create an expression before checking syntax." 
        VIEW-AS ALERT-BOX WARNING.
+    &endif
+   end.    
    ELSE 
      RUN CheckSyntax (INPUT True).
 END.
@@ -400,15 +422,36 @@ RUN PopulateTables.
 RUN PopulateFields.
 RUN enable_UI.
 
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel frametitle}
+
 RETRY-BLOCK:
 DO ON ERROR UNDO, RETRY:
+  &if defined(IDE-IS-RUNNING) = 0 &then
   WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS EditorBox.
+  &else
+   /*  dialogService:SizeToFit().*/
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure  FOCUS EditorBox.
+  if cancelDialog then undo, leave. 
+  &endif
+
 
   IF pOK THEN DO:
     ASSIGN pOutputExpression = TRIM(EditorBox:SCREEN-VALUE).
     IF this-is-a-SB THEN DO:  /* Make sure calculated fields have @ */
       TempString = TRIM(REPLACE(pOutputExpression,CHR(10)," ":U)).
       IF LOOKUP("@":U,TempString," ":U) = 0 THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        ShowMessageInIDE('Calculated fields in SmartBrowsers must be named fields.' +
+                         ' This is achieved by specifying "@ <field-name>" after the' +
+                         ' calculated field expression. "<field-name>" is a variable' +
+                         ' of the correct data-type defined elsewhere (usually in the' +
+                         ' Definition Section) in the same SmartBrowser.' +
+                         ' If you haven~'t already defined a field-name, you will' +
+                         ' receive an unknown field message when you "OK" this' +
+                         ' dialog, but your calculated field will be preserved.',
+                         "Error",?,"OK",yes).
+        &else  
         MESSAGE 'Calculated fields in SmartBrowsers must be named fields.'
                 'This is achieved by specifying "@ <field-name>" after the'
                 'calculated field expression. "<field-name>" is a variable'
@@ -418,6 +461,7 @@ DO ON ERROR UNDO, RETRY:
                 'receive an unknown field message when you "OK" this'
                 'dialog, but your calculated field will be preserved.'
               VIEW-AS ALERT-BOX ERROR.
+        &endif      
         pOK = FALSE.
         UNDO RETRY-BLOCK, RETRY RETRY-BLOCK.
       END. /* IF NO @ for SB */    
@@ -427,10 +471,17 @@ DO ON ERROR UNDO, RETRY:
       TempString = TRIM(REPLACE(pOutputExpression,CHR(10)," ":U)).
       IF LOOKUP("@":U,TempString," ":U) <> 0 THEN
       DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE('Calculated fields in SmartDataObjects are named automatically.' +
+                        ' You can not specify " @ <field-name>" after the' +
+                        ' calculated field expression.',
+                        "Error",?,"OK",yes).
+        &else  
         MESSAGE 'Calculated fields in SmartDataObjects are named automatically.'                SKIP
                 'You can not specify " @ <field-name>" after the'
                 'calculated field expression.'
               VIEW-AS ALERT-BOX ERROR.
+        &endif      
         pOK = FALSE.
         UNDO RETRY-BLOCK, RETRY RETRY-BLOCK.
       END. /* IF @ for SmartDataObject */
@@ -501,12 +552,25 @@ PROCEDURE CheckSyntax :
       /*
       ** Only report a valid syntax message if pCheck is True 
       */
-      IF pCheck THEN MESSAGE "Syntax is correct." VIEW-AS ALERT-BOX INFORMATION.
+      IF pCheck THEN
+      do: 
+         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         ShowMessageInIDE("Syntax is correct.",
+                          "Information",?,"OK",yes).
+         &else 
+         MESSAGE "Syntax is correct." VIEW-AS ALERT-BOX INFORMATION.
+         &endif
+      end.   
       pErrorStatus = True.
     END.
     ELSE DO:
       StreamDiff = StreamLength - INTEGER(COMPILER:FILE-OFFSET).
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         ShowMessageInIDE(string(error-status:get-message(1)) + " in column " + string(StreamDiff) + ".",
+                          "ERROR",?,"OK",yes).
+      &else
       MESSAGE error-status:get-message(1) SKIP "in column" StreamDiff "." VIEW-AS ALERT-BOX ERROR.
+      &endif
       ASSIGN pErrorStatus = FALSE.
     END.
   
@@ -644,8 +708,15 @@ PROCEDURE PopulateFields:
     IF Stat THEN 
        FieldsList:SCREEN-VALUE = FieldsList:ENTRY(1).
     ELSE
+    do:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         ShowMessageInIDE("Schema Error: Fields cannot be read from " + TRIM(TablesCombo:SCREEN-VALUE) + ".",
+                          "Information",?,"OK",yes).
+      &else 
        MESSAGE "Schema Error: Fields cannot be read from " TRIM(TablesCombo:SCREEN-VALUE) "." 
          VIEW-AS ALERT-BOX ERROR.
+       &endif  
+    end.     
   END.
 END PROCEDURE.
 

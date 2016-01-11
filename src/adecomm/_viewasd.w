@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
 /******************************************************************
 * Copyright (C) 2006 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions     *
@@ -67,12 +64,9 @@ DEFINE       OUTPUT PARAMETER pcCancel AS LOGICAL     NO-UNDO.
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE gcCurrentField   AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE gcDataType       AS CHARACTER   NO-UNDO.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+define variable frameTitle       as character no-undo init "View-as attributes". 
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -97,78 +91,49 @@ fiMaxChars toSort toAutoCompletion toUniqueMatch
 &Scoped-define comboObjects raItems edItems coType fiDelimiter raDelimiter ~
 fiInnerLines fiMaxChars toSort toAutoCompletion toUniqueMatch 
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* ************************  Function Prototypes ********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildPropertyList Dialog-Frame 
 FUNCTION buildPropertyList RETURNS CHARACTER
   (INPUT pcPropertyValue AS CHARACTER,
    INPUT pcFieldName     AS CHARACTER,
    INPUT pcFieldValue    AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formatListItemPairs Dialog-Frame 
 FUNCTION formatListItemPairs RETURNS CHARACTER
   (INPUT pcItems     AS CHARACTER,
    INPUT pcDelimiter AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataType Dialog-Frame 
 FUNCTION getDataType RETURNS CHARACTER
   (INPUT pcField AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDelimiter Dialog-Frame 
 FUNCTION getDelimiter RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getWidgetNames Dialog-Frame 
 FUNCTION getWidgetNames RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD returnListItemPairs Dialog-Frame 
 FUNCTION returnListItemPairs RETURNS CHARACTER
   (INPUT pcItems     AS CHARACTER,
    INPUT pcDelimiter AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setDelimiter Dialog-Frame 
 FUNCTION setDelimiter RETURNS LOGICAL
   (INPUT pcDelimiter AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setType Dialog-Frame 
 FUNCTION setType RETURNS LOGICAL
   (INPUT pcDataType AS CHARACTER)  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD validateValues Dialog-Frame 
 FUNCTION validateValues RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* ***********************  Control Definitions  ********************** */
@@ -191,7 +156,7 @@ DEFINE BUTTON Btn_OK AUTO-GO
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
-DEFINE VARIABLE coFields AS CHARACTER FORMAT "X(90)":U INITIAL "custnum" 
+DEFINE VARIABLE coFields AS CHARACTER FORMAT "X(90)":U  
      LABEL "Field" 
      CONTEXT-HELP-ID 0
      VIEW-AS COMBO-BOX INNER-LINES 5
@@ -306,28 +271,21 @@ DEFINE FRAME Dialog-Frame
      fiClose AT ROW 10.71 COL 51 COLON-ALIGNED NO-LABEL WIDGET-ID 50
      RECT-5 AT ROW 3.71 COL 4 WIDGET-ID 30
      SPACE(2.19) SKIP(11.94)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         FONT 1
-         TITLE "View-as attributes"
-         DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel WIDGET-ID 100.
-
-
-/* *********************** Procedure Settings ************************ */
-
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: Dialog-Box
-   Allow: Basic,Browse,DB-Fields,Query
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
-
-
-
+    WITH 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        VIEW-AS DIALOG-BOX 
+        TITLE frameTitle
+    &else
+        no-box    
+    &endif
+        KEEP-TAB-ORDER 
+        SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
+        FONT 1
+        DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel WIDGET-ID 100.
+ 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+{adeuib/ide/dialoginit.i "frame Dialog-Frame:handle"}
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dialog-Frame
    FRAME-NAME                                                           */
 ASSIGN 
@@ -363,7 +321,6 @@ ASSIGN
 /* SETTINGS FOR TOGGLE-BOX toUniqueMatch IN FRAME Dialog-Frame
    1 2                                                                  */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
  
 
@@ -372,43 +329,33 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME Dialog-Frame
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dialog-Frame Dialog-Frame
 ON WINDOW-CLOSE OF FRAME Dialog-Frame /* View-as attributes */
 DO:
 ASSIGN pcCancel = TRUE.
 APPLY "END-ERROR":U TO SELF.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME Btn_Cancel
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Cancel Dialog-Frame
 ON CHOOSE OF Btn_Cancel IN FRAME Dialog-Frame /* Cancel */
 DO:
 ASSIGN pcCancel = TRUE.
 APPLY "WINDOW-CLOSE" TO FRAME {&FRAME-NAME}.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME Btn_Help
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Help Dialog-Frame
 ON CHOOSE OF Btn_Help IN FRAME Dialog-Frame /* Help */
 OR HELP OF FRAME {&FRAME-NAME}
 DO: /* Call Help Function (or a simple message). */
    RUN adecomm/_adehelp.p ("COMM", "CONTEXT", {&Viewas_Attribute_Dialog_Box}, ?).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME Btn_OK
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_OK Dialog-Frame
 ON CHOOSE OF Btn_OK IN FRAME Dialog-Frame /* OK */
 DO:
 IF getWidgetNames() NE "" THEN
@@ -423,12 +370,9 @@ END.
     ASSIGN pcCancel = FALSE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME coFields
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coFields Dialog-Frame
 ON VALUE-CHANGED OF coFields IN FRAME Dialog-Frame /* Field */
 DO:
 SESSION:SET-WAIT-STATE("GENERAL":U).
@@ -452,12 +396,9 @@ END.
 SESSION:SET-WAIT-STATE("":U).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME coType
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coType Dialog-Frame
 ON VALUE-CHANGED OF coType IN FRAME Dialog-Frame /* Type */
 DO:
 IF SELF:SCREEN-VALUE = "DROP-DOWN-LIST":U THEN
@@ -473,12 +414,9 @@ ELSE
            toUniqueMatch:SENSITIVE    = toAutoCompletion:CHECKED.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME coViewAs
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coViewAs Dialog-Frame
 ON VALUE-CHANGED OF coViewAs IN FRAME Dialog-Frame /* View-as */
 DO:
 IF SELF:SCREEN-VALUE = 'Combo-box':U THEN
@@ -505,12 +443,9 @@ APPLY 'VALUE-CHANGED':U TO coType.
 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME raDelimiter
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL raDelimiter Dialog-Frame
 ON VALUE-CHANGED OF raDelimiter IN FRAME Dialog-Frame
 DO:
 
@@ -531,12 +466,9 @@ ASSIGN fiChr:SCREEN-VALUE = "CHR(":U
 ASSIGN fiDelimiter:MODIFIED = TRUE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME raItems
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL raItems Dialog-Frame
 ON VALUE-CHANGED OF raItems IN FRAME Dialog-Frame
 DO:
   DEFINE VARIABLE i          AS INTEGER     NO-UNDO.
@@ -580,25 +512,19 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME toAutoCompletion
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toAutoCompletion Dialog-Frame
 ON VALUE-CHANGED OF toAutoCompletion IN FRAME Dialog-Frame /* Auto-Completion */
 DO:
   ASSIGN toUniqueMatch:SENSITIVE = SELF:CHECKED
          toUniqueMatch:MODIFIED  = TRUE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Dialog-Frame 
 
 
 /* ***************************  Main Block  *************************** */
@@ -607,7 +533,6 @@ END.
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 
-
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -615,22 +540,26 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
 
 RUN enable_UI.
-
 RUN fillFieldCombo.
 RUN newFieldSelected.
-
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+    &else
+    &scoped-define CANCEL-EVENT U2
+    {adeuib/ide/dialogstart.i btn_ok btn_cancel frametitle}
+    dialogService:SizeToFit().
+    WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+    if canceldialog then 
+        undo, leave.
+    &endif
 END.
 
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Dialog-Frame  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -644,10 +573,7 @@ PROCEDURE disable_UI :
   HIDE FRAME Dialog-Frame.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Dialog-Frame  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -670,10 +596,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-Dialog-Frame}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fillFieldCombo Dialog-Frame 
 PROCEDURE fillFieldCombo :
 /*------------------------------------------------------------------------------
   Purpose: Fills the 'Field' combo-box using the pcFields parameters. Only valid
@@ -684,7 +607,7 @@ PROCEDURE fillFieldCombo :
   Notes:       
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE iField AS INTEGER     NO-UNDO.
-
+ 
 /*If there is one entry in pcFields is because the window was called*/
 IF NUM-ENTRIES(pcFields) = 1 THEN
 DO:
@@ -704,10 +627,7 @@ coFields:SCREEN-VALUE = coFields:ENTRY(1).
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE loadValues Dialog-Frame 
 PROCEDURE loadValues :
 /*------------------------------------------------------------------------------
   Purpose: Load the values received as parameters in the widgets.
@@ -779,10 +699,7 @@ ASSIGN toUniqueMatch:CHECKED = IF NOT ERROR-STATUS:ERROR AND cPropertyValue = "Y
 END. /*DO WITH FRAME {&FRAME-NAME}*/
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE newFieldSelected Dialog-Frame 
 PROCEDURE newFieldSelected :
 /*------------------------------------------------------------------------------
   Purpose: Sets variables and widgets according to the new field selected.
@@ -810,10 +727,7 @@ APPLY 'VALUE-CHANGED':U TO toAutoCompletion.
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveValues Dialog-Frame 
 PROCEDURE saveValues :
 /*------------------------------------------------------------------------------
   Purpose: Stores the new values in the input-output parameter lists
@@ -899,12 +813,9 @@ END. /*DO WITH FRAME {&FRAME-NAME}:*/
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildPropertyList Dialog-Frame 
 FUNCTION buildPropertyList RETURNS CHARACTER
   (INPUT pcPropertyValue AS CHARACTER,
    INPUT pcFieldName     AS CHARACTER,
@@ -946,10 +857,7 @@ RETURN pcPropertyValue.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formatListItemPairs Dialog-Frame 
 FUNCTION formatListItemPairs RETURNS CHARACTER
   (INPUT pcItems     AS CHARACTER,
    INPUT pcDelimiter AS CHARACTER) :
@@ -976,10 +884,7 @@ RETURN cListItemPairs.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataType Dialog-Frame 
 FUNCTION getDataType RETURNS CHARACTER
   (INPUT pcField AS CHARACTER) :
 /*------------------------------------------------------------------------------
@@ -994,10 +899,7 @@ RETURN IF iFieldPosition EQ 0 THEN "" ELSE ENTRY(iFieldPosition, pcDataTypes).  
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDelimiter Dialog-Frame 
 FUNCTION getDelimiter RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
@@ -1017,10 +919,7 @@ RETURN ?.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getWidgetNames Dialog-Frame 
 FUNCTION getWidgetNames RETURNS CHARACTER
   ( /* parameter-definitions */ ) :
 /*-------------------------------------------------------------------------------
@@ -1050,10 +949,7 @@ RETURN IF cModifiedFields = ? THEN "" ELSE cModifiedFields.   /* Function return
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION returnListItemPairs Dialog-Frame 
 FUNCTION returnListItemPairs RETURNS CHARACTER
   (INPUT pcItems     AS CHARACTER,
    INPUT pcDelimiter AS CHARACTER) :
@@ -1076,10 +972,7 @@ RETURN cTempItems.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setDelimiter Dialog-Frame 
 FUNCTION setDelimiter RETURNS LOGICAL
   (INPUT pcDelimiter AS CHARACTER) :
 /*------------------------------------------------------------------------------
@@ -1106,10 +999,7 @@ RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setType Dialog-Frame 
 FUNCTION setType RETURNS LOGICAL
   (INPUT pcDataType AS CHARACTER) :
 /*------------------------------------------------------------------------------
@@ -1129,10 +1019,7 @@ RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION validateValues Dialog-Frame 
 FUNCTION validateValues RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
 /*------------------------------------------------------------------------------
@@ -1179,6 +1066,4 @@ RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

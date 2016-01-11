@@ -107,7 +107,7 @@ DEFINE VARIABLE gcWindowState   AS CHARACTER  NO-UNDO.
 &SCOPED-DEFINE MIN-HEIGHT 10
 &SCOPED-DEFINE MIN-WIDTH  50
 
-
+{adecomm/oeideservice.i}
 {src/adm2/globals.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -360,8 +360,10 @@ END.
 ON WINDOW-CLOSE OF wiWin /* <insert SmartWindow title> */
 DO:
   /* This ADM code must be left here in order for the SmartWindow
-     and its descendents to terminate properly on exit. */
-  RUN setModal IN THIS-PROCEDURE (SESSION,NO).
+     and its descendents to terminate properly on exit. 
+     don't do this if embedded in ide (this is probably not called, but..)*/
+  if not OEIDEIsRunning  then
+    RUN setModal IN THIS-PROCEDURE (SESSION,NO).
   APPLY "CLOSE":U TO THIS-PROCEDURE.
   RETURN NO-APPLY.
 END.
@@ -526,7 +528,8 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buCancel wiWin
 ON CHOOSE OF buCancel IN FRAME frMain /* Cancel */
 DO:
-   RUN setModal IN THIS-PROCEDURE (SESSION,NO).
+   if not OEIDEIsRunning then
+       RUN setModal IN THIS-PROCEDURE (SESSION,NO).
    APPLY "CLOSE":U TO THIS-PROCEDURE.
 END.
 
@@ -608,8 +611,8 @@ DO:
                             THEN "" 
                             ELSE pgcSelectedList
           plOK            = YES.
-
-   RUN setModal IN THIS-PROCEDURE (SESSION,NO).
+   if not OEIDEIsRunning then
+      RUN setModal IN THIS-PROCEDURE (SESSION,NO).
    APPLY "CLOSE":U TO THIS-PROCEDURE.
    
 END.
@@ -1170,7 +1173,8 @@ PROCEDURE initializeObject :
   APPLY "VALUE-CHANGED":U to seAvailable.
 
   RUN resizeWidgets IN THIS-PROCEDURE ({&WINDOW-NAME}:WIDTH-P,{&WINDOW-NAME}:HEIGHT-P).
-  RUN setModal IN THIS-PROCEDURE (SESSION,YES).
+  if not OEIDEIsRunning then
+      RUN setModal IN THIS-PROCEDURE (SESSION,YES).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

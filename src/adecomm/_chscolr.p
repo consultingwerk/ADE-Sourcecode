@@ -48,6 +48,7 @@ MESSAGE ibgc ifgc pressed_OK.
 ---------------------------------------------------------------------------- */
 
 &GLOBAL-DEFINE WIN95-BTN YES
+
 {adecomm/commeng.i}   /* Help pre-processor directives                       */
 {adecomm/adestds.i}
 
@@ -107,7 +108,9 @@ DEFINE VARIABLE iSpColor AS INTEGER NO-UNDO.
 DEFINE VARIABLE tSample AS CHARACTER FORMAT "X(7)" NO-UNDO.
 DEFINE RECTANGLE rSample SIZE-CHAR 20 BY 1 EDGE-PIXELS 2 BGCOLOR 0.
 DEFINE VARIABLE tMessage AS CHARACTER FORMAT "X(65)" VIEW-AS TEXT.
-
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+define variable CallResult as logical no-undo.
+ &endif     
 /* standard button rectangle */
 &IF {&OKBOX} &THEN
 DEFINE RECTANGLE rHeavyRule {&STDPH_OKBOX}.
@@ -290,7 +293,15 @@ DEFINE FRAME frColorEdit
       &CANCEL = "bCancel"
       &OTHER  = "space({&HM_DBTNG}) bSave"
       &HELP   = "bHelp"}
-WITH NO-LABELS TITLE ipTitle VIEW-AS DIALOG-BOX DEFAULT-BUTTON bOK WIDTH 90.
+WITH NO-LABELS 
+&if DEFINED(IDE-IS-RUNNING) = 0 &then
+  TITLE ipTitle 
+  VIEW-AS DIALOG-BOX  
+&else
+  no-box
+&endif
+DEFAULT-BUTTON bOK WIDTH 90.
+
 
 DEFINE FRAME frSepColorEdit
   tScTitle VIEW-AS TEXT NO-LABEL AT 2 SKIP(0.4)
@@ -383,9 +394,20 @@ PROCEDURE EditColor.
                 highest-color = MAX(highest-color, iipColorNumber).
   END.
   ELSE
+  do:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      define variable colnum as character no-undo.
+      colnum = if iipColorNumber = ? then "?" else string(iipColorNumber).
+      ShowMessageInIDE("Color number" + colnum + "is not valid. ~n
+                        Valid color numbers are from 0 - 255.",
+                        "Information","?","OK",yes).
+      
+    &else   
     MESSAGE "Color number" iipColorNumber "is not valid." SKIP
 	    "Valid color numbers are from 0 - 255."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+	&endif
+  end.	
 END PROCEDURE.
 
 PROCEDURE GetStartingColorNumber.
@@ -539,7 +561,16 @@ PROCEDURE SelectForegroundRectangle.
       WHEN 15 THEN
         ASSIGN whRectangle = rfc15:HANDLE.
       OTHERWISE
+      do:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Unknown color number.",
+                         "Error","?","OK",yes).
+      
+        &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        &endif
+      end.  
     END CASE.
     IF whRectangle <> ? AND rFgHilite:HANDLE <> ? THEN DO:
       RUN BoxRectangle( whRectangle, rFgHilite:HANDLE, iipColorNumber ).
@@ -588,7 +619,16 @@ PROCEDURE SelectBackgroundRectangle.
       WHEN 15 THEN
         ASSIGN whRectangle = rbc15:HANDLE.
       OTHERWISE
+        do:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Unknown color number.",
+                         "Error","?","OK",yes).
+      
+        &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        &endif
+      end.
     END CASE.
     IF whRectangle <> ? AND rBgHilite:HANDLE <> ? 
     THEN RUN BoxRectangle( whRectangle, rBgHilite:HANDLE, iipColorNumber ).
@@ -636,7 +676,16 @@ PROCEDURE SelectSeparatorRectangle.
       WHEN 15 THEN
         ASSIGN whRectangle = rsc15:HANDLE.
       OTHERWISE
+        do:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+         ShowMessageInIDE("Unknown color number.",
+                          "Error","?","OK",yes).
+      
+        &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        &endif
+        end.
     END CASE.
     IF whRectangle <> ? AND rScHilite:HANDLE <> ? THEN DO:
       RUN BoxRectangle( whRectangle, rScHilite:HANDLE, iipColorNumber ).
@@ -865,11 +914,20 @@ ON GO OF FRAME frColorEdit DO:
   DEF VAR lOK AS LOGICAL NO-UNDO.
   /* Tell the user if they changed any colors, but did not save. */
   IF lChanged AND NOT lSaved THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+      lOK = ShowMessageInIDE("Color settings were edited, but they have ~n
+                             not been saved.  These changes will be lost when ~n
+                             you leave the PROGRESS session. ~n
+                             Would you like to save settings?",
+                            "Warning","?","YES-NO-CANCEL",yes).
+      &else  
     MESSAGE "Color settings were edited, but they have" {&SKP}
             "not been saved.  These changes will be lost when" {&SKP}
             "you leave the PROGRESS session." SKIP(1)
             "Would you like to save settings?"
             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL UPDATE lOK.
+    &endif        
     IF lOK eq ? THEN RETURN NO-APPLY.
     ELSE IF lOK THEN RUN SaveSettings.
   END.
@@ -879,10 +937,18 @@ ON ENDKEY OF FRAME frColorEdit DO:
   /* Tell the user that changes make to the SYSTEM-DIALOG will not
      be undone. */
   IF lChanged OR lSaved THEN DO:
-    MESSAGE "Changes make editing colors or saving" {&SKP}
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+      CallResult = ShowMessageInIDE("Changes make editing colors or saving ~n color settings cannot be undone. ~n
+                            Cancelling this dialog will not undo those changes.",
+                            "Warning","?","OK",yes).
+      if not CallResult then return.                 
+      &else 
+      MESSAGE "Changes make editing colors or saving" {&SKP}
             "color settings cannot be undone." SKIP(1)
             "Cancelling this dialog will not undo those changes."
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+      &endif      
   END.
 END.
 
@@ -1017,15 +1083,32 @@ ON MOUSE-SELECT-DBLCLICK OF rfc0, rfc1, rfc2, rfc3, rfc4, rfc5, rfc6, rfc7,
   rsc10, rsc11, rsc12, rsc13, rsc14, rsc15, rfcDefault, rbcDefault, rscDefault
 DO:
   IF SELF:BGCOLOR = ? THEN
+  do:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+      ShowMessageInIDE("The default color is not customizable.",
+                       "Information","?","OK",yes).
+    &else                                  
     MESSAGE "The default color is not customizable."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS Ok.
+	&endif
+  end.	
   ELSE DO:
     RUN EditColor( SELF:BGCOLOR ).
   END.
 END.
 
 /****************************** Main Loop ******************************/
+ 
 DO WITH FRAME frColorEdit:
+  /* if IDE then */
+  {adeuib/ide/dialoginit.i "FRAME frColorEdit:handle"}
+/*                                                                       */
+/*  &if DEFINED(IDE-IS-RUNNING) <> 0 &then                               */
+/*      define variable dialogService as adeuib.idialogservice no-undo.  */
+/*      Run CreateDialogService in hOEIDEService (,output dialogService).*/
+/*  &endif                                                               */
+/*                                                                       */
   IF lipSeparator THEN DO:
     ASSIGN FRAME frColorEdit:HEIGHT = 17
            bOK:ROW     IN FRAME frColorEdit = 15
@@ -1033,7 +1116,7 @@ DO WITH FRAME frColorEdit:
            bHelp:ROW   IN FRAME frColorEdit = 15
            bSave:ROW   IN FRAME frColorEdit = 15.
   END.  /* if lipSeparator */
-
+ 
   /* Run time layout for button area. */
   {adecomm/okrun.i  
      &FRAME = "FRAME frColorEdit" 
@@ -1057,7 +1140,7 @@ DO WITH FRAME frColorEdit:
            ifcRightArrow:X = ifcLeftArrow:X + ifcLeftArrow:WIDTH-PIXELS
            ibcRightArrow:X = ifcRightArrow:X
            iscRightArrow:X = ifcRightArrow:X.
-           
+
   ASSIGN iFgColor = iiopFgColor  /* Make local copy of input-output parameters */
          iBgColor = iiopBgColor  /* ...in case user cancels changes            */
          iSpColor = iiopSpColor
@@ -1082,23 +1165,50 @@ DO WITH FRAME frColorEdit:
 	 iscLeftArrow:Y = (rscDefault:Y + (rscDefault:HEIGHT-PIXELS / 2))
 	                     - (iscLeftArrow:HEIGHT-PIXELS / 2)
 	 iscRightArrow:Y = (rsc15:Y + (rsc15:HEIGHT-PIXELS / 2))
-	                     - (iscRightArrow:HEIGHT-PIXELS / 2)
-				.
-
-  RUN InitializeColors. 
+	                     - (iscRightArrow:HEIGHT-PIXELS / 2).
+/*  &if DEFINED(IDE-IS-RUNNING) <> 0  &then                   */
+/*     define variable lCancel as logical no-undo.            */
+/*     dialogService:View().                                  */
+/*     dialogService:SetOkButton(bOk:handle).                 */
+/*     dialogService:SetCancelButton(bCancel:handle).         */
+/*     dialogService:Title = iptitle.                         */
+/*                                                            */
+/*     /* endkey does not work it seems when we are a child of*/
+/*        another dialog running from ide,*/                  */
+/*     ON CHOOSE OF bCancel DO:                               */
+/*         lCancel = true.                                    */
+/*         apply "u2" to this-procedure.                      */
+/*     END.                                                   */
+/*  &endif                                                    */
+  &scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i bOk bCancel iptitle}  
+  RUN InitializeColors.
 
   DO TRANSACTION ON ENDKEY UNDO, LEAVE:
     ENABLE ALL EXCEPT bfcEdit bbcEdit ifcRightArrow ifcLeftArrow
       ibcRightArrow ibcLeftArrow WITH FRAME frColorEdit .
-    IF lipSeparator THEN ENABLE ALL EXCEPT bScEdit iscRightArrow iscLeftArrow
-      WITH FRAME frSepColorEdit.
+    IF lipSeparator THEN 
+        ENABLE ALL EXCEPT bScEdit iscRightArrow iscLeftArrow
+        WITH FRAME frSepColorEdit.
     ASSIGN pressed_OK = no. 
-    IF NOT RETRY THEN UPDATE bOk bCancel bHelp WITH FRAME frColorEdit.
+   
+    ENABLE bOk bCancel bHelp WITH FRAME frColorEdit.
+    IF NOT RETRY then
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR "choose" of bok in frame frColorEdit. 
+    &ELSE
+        WAIT-FOR "choose" of bok in frame frColorEdit or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
     /* Return Changes made by user */
     ASSIGN iiopFgColor = iFgColor
            iiopBgColor = iBgColor
            iiopSpColor = iSpColor
            pressed_OK  = yes.
+           
   END.
+ 
   HIDE FRAME frColorEdit.
+  
 END.
+

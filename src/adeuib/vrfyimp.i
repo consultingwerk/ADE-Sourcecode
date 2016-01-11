@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2012 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -11,11 +11,17 @@
  * Updated: 5-07-99 tsm    Added support for MRU Filelist
  * Update:  6-24-99 tsm    When remote file being opened from MRU File list, use broker url
  *                         to analyze the file rather than the current broker url
+ * 
  *
  * I've modified the behavior of the following code block because it was
  * possible to open an xcoded file in the UIB. The block will not allow the
  * Opening or Importing of a file which is xcoded (First char ASC 17) - (gfs)
+ *
+ * NOTE: This .i is included in _dynsckr.p, _qssuckr.p.
  */
+ 
+DEF VARIABLE SwitchEnvironment AS LOGICAL NO-UNDO. /* if integrated environment, this variable will be no always. */
+ 
 IF AbortImport NE yes THEN DO:
        
   INPUT STREAM _P_QS FROM VALUE(IF web_file THEN web_temp_file ELSE dot-w-file) {&NO-MAP}.
@@ -120,10 +126,7 @@ IF AbortImport NE yes THEN DO:
             IF lOpenInOEIDE THEN
             DO:
               /* Open File in OEIDE Editor */
-              openEditor(getProjectName(), dot-w-file, 
-                  IF import_mode = "UNTITLED":U OR
-                     import_mode = "WINDOW UNTITLED":U
-                  THEN "UNTITLED":U ELSE "", ?).
+               openDesignEditor(getProjectName(), dot-w-file).
             END.            
             ELSE
               RUN adecomm/_pwmain.p (INPUT "_ab.p":U  /* PW Parent ID */,
@@ -250,10 +253,19 @@ IF AbortImport NE yes THEN DO:
     IF _LAYOUT._GUI-BASED NE _cur_win_type THEN DO:
       /* Previously opened .w had different type */
       DEFINE VARIABLE close-them AS LOGICAL NO-UNDO.
-      IF CAN-FIND(FIRST _U WHERE CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE)
-                             AND CAN-FIND (_P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE
-                                                AND _P._FILE-TYPE eq "w":U)) 
-      THEN DO:
+      IF OEIDEIsRunning THEN
+         SwitchEnvironment = NO.
+      ELSE 
+      DO:   
+            IF CAN-FIND(FIRST _U WHERE CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE)
+                                 AND CAN-FIND (_P WHERE _P._WINDOW-HANDLE eq _U._WINDOW-HANDLE
+                                                AND _P._FILE-TYPE eq "w":U))
+            THEN  SwitchEnvironment = YES.
+            ELSE SwitchEnvironment = NO.
+      END.
+                                                
+      IF SwitchEnvironment THEN 
+      DO:
         MESSAGE "Existing windows have"
                 (IF _LAYOUT._GUI-BASED THEN "GUI" ELSE "CHARACTER") 
                 "based layouts." SKIP

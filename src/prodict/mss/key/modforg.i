@@ -274,12 +274,21 @@ PROCEDURE foreign :
      END.   
      IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_foreign ="yes".
      ASSIGN DESC_EDIT:SCREEN-VALUE IN FRAME frame_foreign = descrip.
-     ENABLE  BROWSE-PAR  BROWSE-PAR1   BROWSE-CHILD BROWSE-CHILD1 Active DESC_EDIT
+   
+     IF user_dbtype    NE "MSS" then
+         ENABLE  BROWSE-PAR  BROWSE-PAR1   BROWSE-CHILD BROWSE-CHILD1 Active DESC_EDIT
                   OK_BUT CREATE_BUT CANCEL_BUT 
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  
                  &ENDIF 
-     WITH FRAME frame_foreign.
+         WITH FRAME frame_foreign.
+     ELSE
+         ENABLE  BROWSE-PAR  BROWSE-PAR1   BROWSE-CHILD BROWSE-CHILD1 DESC_EDIT
+                  OK_BUT CREATE_BUT CANCEL_BUT 
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF 
+         WITH FRAME frame_foreign.
     {&OPEN-BROWSERS-IN-QUERY-frame_foreign}
 
   RUN Fill_Par_Table_Index.

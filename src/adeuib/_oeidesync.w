@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME h_sewin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS h_sewin 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2013 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -37,7 +37,6 @@
 
 CREATE WIDGET-POOL "IDE_EDITOR_POOL" PERSISTENT NO-ERROR.
 DEFINE NEW GLOBAL SHARED VARIABLE _comp_temp_file AS CHARACTER  NO-UNDO.
-
 
 /* ***************************  Definitions  ************************** */
 
@@ -89,8 +88,6 @@ DEFINE VAR Disable_UI           AS CHARACTER INIT "disable_UI"          NO-UNDO.
 
 DEFINE VARIABLE g_dtIDEModDateTime  AS DATETIME   NO-UNDO.
 
-DEFINE VARIABLE iParentWindow AS INTEGER    NO-UNDO.
-RUN getViewHwnd IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), OUTPUT iParentWindow).
 
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
@@ -310,9 +307,9 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   RETURN.
-  /*ENABLE BUTTON-1 
-      WITH FRAME DEFAULT-FRAME IN WINDOW h_sewin.
-  {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}*/
+/*  ENABLE BUTTON-1                                */
+/*      WITH FRAME DEFAULT-FRAME IN WINDOW h_sewin.*/
+  {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -331,41 +328,104 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+ 
+&IF DEFINED(EXCLUDE-saveABUntitled) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveABUntitled h_sewin 
+PROCEDURE saveABUntitled:
+    DEFINE INPUT  PARAMETER pcSaveAsfile AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAMETER pcCancel AS LOGICAL NO-UNDO.
+	/*------------------------------------------------------------------------------
+			Purpose:  																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cancel AS LOGICAL NO-UNDO.
+ 
+    IF _h_win = ? THEN  RUN report-no-win.
+    ELSE DO:
+       FIND _U WHERE _U._HANDLE = _h_win. 
+       FIND _P WHERE _P._u-recid eq RECID(_U).       
+      _P._save-as-file = pcSaveAsFile.
+          /* SEW call to store current trigger code for specific window. */
+       RUN call_sew in _h_uib("SE_STORE_WIN":U).
+       run changewidg in _h_uib (_h_win, no) . 
+       RUN setAppBuilder_UBuffer IN _h_uib (RECID(_U)).
+       RUN save_window in _h_uib(NO, OUTPUT pcCancel).
+    END.
+    
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-syncFromIDE) = 0 &THEN
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE syncFromAB h_sewin 
+
 PROCEDURE syncFromAB :
+/*------------------------------------------------------------------------------
+  Purpose:     Write .w file to linked file if file is out of sync.
+  Parameters:  pcLinkedFile - Full path name to the linked file.
+  Notes:       Deprecated 
+               This procedure is called from the OEIDE Editor when it gets focus,
+               specifically, it is called from sanityCheckState.
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER pcLinkedFile AS CHARACTER    NO-UNDO.
+DEFINE VARIABLE hWindow        AS HANDLE     NO-UNDO.
+    RUN getWindowOfFile IN hOEIDEService (pcLinkedFile, OUTPUT hWindow).
+    run syncFromAppbuilder(hWindow,pcLinkedFile) .
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
+&IF DEFINED(EXCLUDE-syncFromIDE) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE syncFromAB h_sewin 
+
+PROCEDURE syncFromAppbuilder :
 /*------------------------------------------------------------------------------
   Purpose:     Write .w file to linked file if file is out of sync.
   Parameters:  pcLinkedFile - Full path name to the linked file.
   Notes:       This procedure is called from the OEIDE Editor when it gets focus,
                specifically, it is called from sanityCheckState.
 ------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER phWindow AS HANDLE    NO-UNDO.
 DEFINE INPUT PARAMETER pcLinkedFile AS CHARACTER    NO-UNDO.
 
-DEFINE VARIABLE hWindow        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE orig_temp_file AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE orig_save_file AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE dtSyncTime     AS DATETIME   NO-UNDO.
 
 DEFINE VARIABLE hWin           AS WIDGET     NO-UNDO.
 DEFINE VARIABLE hCurWidg       AS WIDGET     NO-UNDO.
-
+/*
 RUN getSyncTimeStamp IN hOEIDEService (pcLinkedFile, OUTPUT dtSyncTime).
 IF dtSyncTime <> ? THEN RETURN.
-
-RUN getWindowOfFile IN hOEIDEService (pcLinkedFile, OUTPUT hWindow).
-FIND b_P WHERE b_P._WINDOW-HANDLE = hWindow NO-LOCK NO-ERROR.
+*/
+FIND b_P WHERE b_P._WINDOW-HANDLE = phWindow NO-ERROR.
+if not avail b_P then
+do:
+    if phWindow:type = "WINDOW":U then
+         phWindow = phWindow:first-child.
+    FIND b_P WHERE b_P._WINDOW-HANDLE = phWindow NO-ERROR.   
+end.
 IF NOT AVAILABLE b_P THEN RETURN.
-
 /* Save value of _h_win */       
 ASSIGN hWin     = _h_win
-       hCurWidg = _h_cur_widg.
-ASSIGN _h_win = hWindow.
-
-/* Gen4GL code */
-ASSIGN orig_temp_file  = _comp_temp_file
+       hCurWidg = _h_cur_widg
+       _h_win = phWindow
+   /* Gen4GL code */
+       orig_temp_file  = _comp_temp_file
        _comp_temp_file = pcLinkedFile
-       orig_save_file  = _save_file.
-ASSIGN _save_file = b_P._save-as-file.              
+       orig_save_file  = _save_file
+       _save_file = b_P._save-as-file.
+                     
 RUN adecomm/_setcurs.p ("WAIT":U).
 RUN adeshar/_gen4gl.p ("PRINT":U).
 RUN setstatus IN _h_uib ("":U, "":U).
@@ -380,16 +440,22 @@ DO:
     ASSIGN _h_win = hWin.
     RUN changewidg IN _h_uib (hCurWidg, FALSE).           
 END.
-
+/*
 FILE-INFO:FILE-NAME = pcLinkedFile.
 RUN setSyncTimeStamp IN hOEIDEService
     (pcLinkedFile, DATETIME(FILE-INFO:FILE-MOD-DATE, FILE-INFO:FILE-MOD-TIME)).
+*/    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ENDIF
+
+&IF DEFINED(EXCLUDE-syncFromIDE) = 0 &THEN
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE syncFromIDE h_sewin 
+
 PROCEDURE syncFromIDE :
 /*------------------------------------------------------------------------------
   Purpose:     Synchronize AppBuilder with OEIDE using linked file.
@@ -397,137 +463,105 @@ PROCEDURE syncFromIDE :
   Notes:       This procedure is called from the OEIDE Editor when losing focus.
                Content of .w file is read only if it is out of sync.
 ------------------------------------------------------------------------------*/
+define input  parameter phOldWindow as handle no-undo.
 DEFINE INPUT PARAMETER pcLinkedFile AS CHARACTER    NO-UNDO.
 
-DEFINE VARIABLE hOldWindow   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hNewWindow   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cWidgetName  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFileName    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE dtModTime    AS DATETIME   NO-UNDO.
-DEFINE VARIABLE dtSyncTime   AS DATETIME   NO-UNDO.
 DEFINE VARIABLE lMRUFileList AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE ocxFileName AS CHARACTER NO-UNDO.
+define variable hFrame      as handle no-undo.
 DEFINE BUFFER buf_P FOR _P.
 
-IF pcLinkedFile = ? OR pcLinkedFile = "" THEN RETURN.
-
-FILE-INFO:FILE-NAME = pcLinkedFile.
-IF FILE-INFO:FULL-PATHNAME = ? THEN RETURN. /* Linked file does not exist */
-        
-dtModTime = DATETIME(FILE-INFO:FILE-MOD-DATE, FILE-INFO:FILE-MOD-TIME).
-RUN getSyncTimeStamp IN hOEIDEService (pcLinkedFile, OUTPUT dtSyncTime).
-
-/* If dtSyncTime is unknown, it means that the AppBuilder content has changed
-   if the contents are loaded then the changes from the AppBuilder would be lost
-   syncFromIDE is called from SecEdWindow when ensuring that the content of the editor is 
-   synchronized */
-IF dtSyncTime = ? THEN RETURN.
-
-IF dtSyncTime <> ? AND dtSyncTime = dtModTime THEN RETURN.
-
-RUN getWindowOfFile IN hOEIDEService (pcLinkedFile, OUTPUT hOldWindow).
-IF VALID-HANDLE(hOldWindow) THEN
-    FIND buf_P WHERE buf_P._WINDOW-HANDLE = hOldWindow EXCLUSIVE-LOCK NO-ERROR.
-IF AVAILABLE buf_P THEN
-    cFileName = buf_P._save-as-file.
-ELSE
-DO:
-    RUN getFileNameOfFile IN hOEIDEService (pcLinkedFile, OUTPUT cFileName).
-END.
-IF cFileName = ? OR cFileName = "" THEN RETURN.
-
-RUN setstatus IN _h_uib ("WAIT":U, "":U).
-
-/** TODO - TEST - Test widget selection code with multiple windows */    
-IF VALID-HANDLE(_h_cur_widg) THEN
-DO:
-    FIND _SEW_U WHERE _SEW_U._HANDLE = _h_cur_widg NO-ERROR.
-    IF AVAILABLE _SEW_U AND _SEW_U._WINDOW-HANDLE = hOldWindow THEN
-        cWidgetName = _SEW_U._NAME.        
-END.    
-/* buf_P._save-as-file pclinkedFile */
-/* Read 4GL code */
-ASSIGN lMRUFileList  = _mru_filelist
-       _mru_filelist = NO.
-       
-/* Save in-memory OCX properties to a temporary OCX file at the location of the linked file. */
-RUN saveOCXFile(hOldWindow, pcLinkedFile).       
-
-/* Load .w file. Use OCX properties from temporary location if file is available. */
-RUN adeuib/_qssuckr.p (pcLinkedFile, "", "WINDOW-SILENT":U, FALSE).
-
-/* Delete temporary OCX file */
-DEFINE VARIABLE ocxFileName AS CHARACTER NO-UNDO.
-ocxFileName = substr(pcLinkedFile, 1, r-index(pcLinkedFile, ".":u) - 1) + ".wrx".
-OS-DELETE VALUE(ocxFileName).
-
-ASSIGN _mru_filelist = lMRUFileList
-       hNewWindow    = _h_win.
-
-IF RETURN-VALUE <> "" THEN
-DO:
-    ASSIGN hNewWindow = ?
-           dtModTime  = ?.
-END.    
-
-RUN setWindowOfFile IN hOEIDEService (pcLinkedFile, hNewWindow).
-/* If dtModTime is ?, it means that load of into the AppBuilder failed,
-   the SyncTimeStamp is not updated so a following syncFromIDE would 
-   read the update
- */
-IF dtModTime <> ? THEN
-    RUN setSyncTimeStamp IN hOEIDEService (pcLinkedFile, dtModTime).
-
-IF VALID-HANDLE(hNewWindow) THEN
-DO:
-    FIND b_P WHERE b_P._WINDOW-HANDLE = hNewWindow EXCLUSIVE-LOCK NO-ERROR.
-    IF NOT AVAILABLE b_P THEN RETURN.
-    ASSIGN b_P._save-as-file     = cFileName
-           b_P._file-saved       = FALSE                /* File was modified in IDE */
-           b_P._hSecEd           = OEIDE_ABSecEd.
-           
-    IF VALID-HANDLE(hOldWindow) THEN
-    DO:
-        /* Position new window at same location as old one */
-        ASSIGN hNewWindow:X          = hOldWindow:X
-               hNewWindow:Y          = hOldWindow:Y NO-ERROR.          
-
-    END.            
-
-    FIND _SEW_U WHERE _SEW_U._HANDLE = hNewWindow NO-LOCK NO-ERROR.
-    IF hNewWindow:TYPE = "FRAME":U THEN
-        hNewWindow = hNewWindow:PARENT.
-    IF AVAILABLE _SEW_U THEN
-        RUN adeuib/_wintitl.p (hNewWindow, _SEW_U._LABEL, ? , cFileName).
+    IF pcLinkedFile = ? OR pcLinkedFile = "" THEN RETURN.
     
-    /* View new window */           
-    hNewWindow:VISIBLE = TRUE.
-END.    
-                     
-IF VALID-HANDLE(hOldWindow) THEN
-DO:
-    buf_P._file-saved = TRUE. /* Prevents a save prompt when closing the window */    
-    hOldWindow:PRIVATE-DATA = "_RELOAD". /* Reload mode avoids the closing of the editor in the IDE */    
-    RUN wind-close IN _h_uib (hOldWindow) NO-ERROR.
-END.    
-RUN WinMenuRebuild IN _h_uib NO-ERROR.
-IF cWidgetName > "" THEN
-DO:
-    FIND _SEW_U WHERE _SEW_U._WINDOW-HANDLE = hNewWindow 
-              AND _SEW_U._NAME          = cWidgetName NO-ERROR.
-    IF AVAILABLE _SEW_U THEN
-        RUN changewidg IN _h_uib (_SEW_U._HANDLE, TRUE).
-END.    
-RUN setstatus IN _h_uib ("":U, "":U).
+    FILE-INFO:FILE-NAME = pcLinkedFile.
+    IF FILE-INFO:FULL-PATHNAME = ? THEN RETURN. /* Linked file does not exist */
+    
+    FIND buf_P WHERE buf_P._WINDOW-HANDLE = phOldWindow EXCLUSIVE-LOCK NO-ERROR.
+    if not avail buf_P then
+    do:
+         if phOldWindow:type = "WINDOW":U then
+             hFrame = phOldWindow:first-child.
+         FIND buf_P WHERE buf_P._WINDOW-HANDLE = hFrame EXCLUSIVE-LOCK NO-ERROR.
+    end.
+    IF NOT AVAILABLE buf_P THEN RETURN.
+    cFileName = buf_P._save-as-file.
+ 
+    IF cFileName = ? OR cFileName = "" THEN RETURN.
 
-/* Sets _U buffer to point to the current window after syncFromIDE */
-FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
-IF AVAILABLE _U THEN
-    RUN setAppBuilder_UBuffer IN _h_uib (RECID(_U)).
+    RUN setstatus IN _h_uib ("WAIT":U, "":U).
+
+    /** TODO - TEST - Test widget selection code with multiple windows */    
+    IF VALID-HANDLE(_h_cur_widg) THEN
+    DO:
+        FIND _SEW_U WHERE _SEW_U._HANDLE = _h_cur_widg NO-ERROR.
+        IF AVAILABLE _SEW_U AND _SEW_U._WINDOW-HANDLE = phOldWindow THEN
+            cWidgetName = _SEW_U._NAME.        
+    END.    
+    /* buf_P._save-as-file pclinkedFile */
+    /* Read 4GL code */
+    ASSIGN lMRUFileList  = _mru_filelist
+           _mru_filelist = NO.
            
+    /* Save in-memory OCX properties to a temporary OCX file at the location of the linked file. */
+    RUN saveOCXFile(phOldWindow, pcLinkedFile).       
+    /* Load .w file. Use OCX properties from temporary location if file is available. */
+    RUN adeuib/_qssuckr.p (pcLinkedFile, "", "WINDOW-SILENT":U, FALSE).
+
+    /* Delete temporary OCX file */
+    ocxFileName = substr(pcLinkedFile, 1, r-index(pcLinkedFile, ".":u) - 1) + ".wrx".
+    OS-DELETE VALUE(ocxFileName).
+
+    ASSIGN _mru_filelist = lMRUFileList
+           hNewWindow    = _h_win.
+    
+    IF VALID-HANDLE(hNewWindow) THEN
+    DO:
+        FIND b_P WHERE b_P._WINDOW-HANDLE = hNewWindow EXCLUSIVE-LOCK NO-ERROR.
+        IF NOT AVAILABLE b_P THEN RETURN.
+        ASSIGN b_P._save-as-file     = cFileName
+               b_P._file-saved       = FALSE                /* File was modified in IDE */
+               b_P._hSecEd           = OEIDE_ABSecEd.
+               
+        FIND _SEW_U WHERE _SEW_U._HANDLE = hNewWindow NO-LOCK NO-ERROR.
+        IF hNewWindow:TYPE = "FRAME":U THEN
+            hNewWindow = hNewWindow:PARENT.
+        IF AVAILABLE _SEW_U THEN
+            RUN adeuib/_wintitl.p (hNewWindow, _SEW_U._LABEL, ? , cFileName).
+        
+        /* View new window */           
+        hNewWindow:VISIBLE = TRUE.
+    END.    
+                     
+    IF VALID-HANDLE(phOldWindow) THEN
+    DO:
+        buf_P._file-saved = TRUE. /* Prevents a save prompt when closing the window */    
+        phOldWindow:PRIVATE-DATA = "_RELOAD". /* Reload mode avoids the closing of the editor in the IDE */    
+        RUN wind-close IN _h_uib (phOldWindow) NO-ERROR.
+    END.    
+    RUN WinMenuRebuild IN _h_uib NO-ERROR.
+    IF cWidgetName > "" THEN
+    DO:
+        FIND _SEW_U WHERE _SEW_U._WINDOW-HANDLE = hNewWindow 
+                  AND _SEW_U._NAME          = cWidgetName NO-ERROR.
+        IF AVAILABLE _SEW_U THEN
+            RUN changewidg IN _h_uib (_SEW_U._HANDLE, TRUE).
+    END.    
+    RUN setstatus IN _h_uib ("":U, "":U).
+    
+    /* Sets _U buffer to point to the current window after syncFromIDE */
+    FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
+    IF AVAILABLE _U THEN
+        RUN setAppBuilder_UBuffer IN _h_uib (RECID(_U)).
+               
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refreshSmartObjects h_sewin 
 PROCEDURE refreshSmartObjects :
@@ -689,12 +723,41 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openABFile h_sewin 
+procedure saveFileEvent:
+    define input parameter phWindow as handle no-undo.
+    define variable cContext  as character no-undo.
+    define variable cfilename as character no-undo.
+    define variable lEventResult as logical no-undo.
+    
+    find _SEW_U where _SEW_U._HANDLE = phWindow no-error.
+    find b_P where b_P._WINDOW-HANDLE = phWindow no-error.
+    if available _SEW_U and available b_P then
+    do:
+        assign cContext = string(recid(_SEW_U))
+               cFileName = b_P._SAVE-AS-FILE.
+               
+        run adecomm/_adeevnt.p
+              ("UIB", "SAVE", cContext, cFileName, output lEventResult).
+        if b_P._TYPE begins "Smart":U then
+        do:
+            file-info:file-name = cFileName.
+            cFileName = file-info:full-pathname.        
+            if cFileName > "" then
+                run refreshSmartObjects (cFileName).
+        end.
+        run saveOCXFile(phWindow, cFileName).
+    end.          
 
+end procedure.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openABFile h_sewin 
-PROCEDURE openABFile :
+PROCEDURE openABUntitled :
 /*------------------------------------------------------------------------------
-  Purpose:     Open the specified .w file in the AppBuilder.
+  Purpose:     Open the specified template in the AppBuilder.
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
@@ -713,9 +776,7 @@ DO:
       FIND FIRST b_P WHERE b_P._save-as-file = open_file NO-LOCK NO-ERROR.
       IF AVAILABLE b_P THEN NEXT.
       open_file = REPLACE(open_file, "~\", "/").
-      FIND FIRST b_P WHERE b_P._save-as-file = open_file NO-LOCK NO-ERROR.
-      IF NOT AVAILABLE b_P THEN
-          RUN adeuib/_open-w.p (open_file, "", "Window":U).
+       RUN adeuib/_open-w.p (open_file, "", "UNTITLED":U).
     END.                      
 END.    
 END PROCEDURE.
@@ -728,7 +789,8 @@ PROCEDURE sendABFileEvent :
 /*------------------------------------------------------------------------------
   Purpose:     Perform actions for events associated with the specified file.
   Parameters:  
-  Notes:       
+  Notes:       Deprecated - not used by integrated appbuilder or oe text editor .
+               saveFileEvent is called directly
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcCmd AS CHARACTER    NO-UNDO.
 
@@ -751,25 +813,7 @@ ASSIGN
 CASE cEvent:
     WHEN "SAVE":U THEN DO:
         RUN getWindowOfFile IN hOEIDEService (cLinkedFile, OUTPUT hWindow).
-        FIND _SEW_U WHERE _SEW_U._HANDLE = hWindow NO-ERROR.
-        FIND b_P WHERE b_P._WINDOW-HANDLE = hWindow NO-ERROR.
-        IF AVAILABLE _SEW_U AND AVAILABLE b_P THEN
-        DO:
-            ASSIGN cContext = STRING(RECID(_SEW_U))
-                   cFileName = b_P._SAVE-AS-FILE.
-                   
-            RUN adecomm/_adeevnt.p
-                  ("UIB", cEvent, cContext, cFileName, OUTPUT lEventResult).
-            IF b_P._TYPE BEGINS "Smart":U THEN
-            DO:
-                FILE-INFO:FILE-NAME = cFileName.
-                cFileName = FILE-INFO:FULL-PATHNAME.        
-                IF cFileName > "" THEN
-                    RUN refreshSmartObjects (cFileName).
-            END.
-            
-            RUN saveOCXFile(hWindow, cFileName).
-        END.          
+        run saveFileEvent(hWindow) .
     END. /* SAVE event */
 END.
 
@@ -832,83 +876,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE renameABFile h_sewin 
-PROCEDURE renameABFile :
-/*------------------------------------------------------------------------------
-  Purpose:     Open the specified .w file in the AppBuilder.
-  Parameters:  
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcFileList AS CHARACTER    NO-UNDO.
-
-DEFINE VARIABLE cLinkedFile AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFileName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE hWindow     AS HANDLE     NO-UNDO.
-
-IF NUM-ENTRIES(pcFileList, "|") = 2 THEN
-DO:
-    ASSIGN cLinkedFile = ENTRY(1, pcFileList, "|")
-           cFileName   = ENTRY(2, pcFileList, "|").
-           
-    FILE-INFO:FILE-NAME = cFileName.
-    IF FILE-INFO:FULL-PATHNAME = ? THEN RETURN.
-    cFileName = REPLACE(FILE-INFO:FULL-PATHNAME, "~\", "/").
-        
-    RUN getWindowOfFile IN hOEIDEService (cLinkedFile, OUTPUT hWindow).
-    IF NOT VALID-HANDLE(hWindow) THEN RETURN.
-    FIND b_P WHERE b_P._WINDOW-HANDLE = hWindow NO-ERROR.
-    IF NOT AVAILABLE b_P THEN RETURN.
-    b_P._SAVE-AS-FILE = cFileName.
-    RUN setFileOfWindow IN hOEIDEService (hWindow, cFileName).
-    FIND _SEW_U WHERE _SEW_U._HANDLE = hWindow NO-LOCK NO-ERROR.
-    IF AVAILABLE _SEW_U THEN
-        RUN adeuib/_wintitl.p (hWindow, _SEW_U._LABEL, ? , cFileName).    
-END.    
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE closeABFile h_sewin 
-PROCEDURE closeABFile :
-/*------------------------------------------------------------------------------
-  Purpose:     Close the file .w file in the AppBuilder.
-  Parameters:  pcLinkedFile - Full path name to the linked file.
-  Notes:       
-------------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER pcLinkedFile AS CHARACTER    NO-UNDO.
-
-DEFINE VARIABLE hWindow      AS HANDLE     NO-UNDO.
-
-RUN setstatus IN _h_uib ("WAIT":U, "":U).
-
-RUN getWindowOfFile IN hOEIDEService (pcLinkedFile, OUTPUT hWindow).
-IF VALID-HANDLE(hWindow) THEN
-DO:
-    FIND b_P WHERE b_P._WINDOW-HANDLE = hWindow EXCLUSIVE-LOCK NO-ERROR.
-    /* For dialog-boxes, the _P._WINDOW-HANDLE points to the frame, try first-child. */
-    IF NOT AVAILABLE b_P THEN
-    DO:
-        hWindow = hWindow:FIRST-CHILD.
-        FIND b_P WHERE b_P._WINDOW-HANDLE = hWindow EXCLUSIVE-LOCK NO-ERROR.
-    END.
-    IF AVAILABLE b_P THEN
-    DO:
-        b_P._file-saved = TRUE. /* Prevents a save prompt when closing the window */
-        hWindow:PRIVATE-DATA = "_OEIDE". /* OEIDE mode avoids calling back to the IDE */    
-        RUN wind-close IN _h_uib (hWindow) NO-ERROR.
-        RUN WinMenuRebuild IN _h_uib NO-ERROR.
-        RUN unlinkEditor IN hOEIDEService (pcLinkedFile).
-    END.
-END.
-
-RUN setstatus IN _h_uib ("":U, "":U).
-                      
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE winsave h_sewin 
 PROCEDURE winsave :
 /*------------------------------------------------------------------------------
@@ -918,7 +885,7 @@ PROCEDURE winsave :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER phWindow AS HANDLE     NO-UNDO.
 DEFINE INPUT PARAMETER lipValue AS LOGICAL    NO-UNDO.
-
+ 
 RUN setEditorModified IN hOEIDEService (phWindow).
 
 END PROCEDURE.

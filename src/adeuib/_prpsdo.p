@@ -77,6 +77,7 @@ DEFINE VARIABLE iEnd                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cLine                    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lContainsLOB             AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lDynamic                 AS LOGICAL    NO-UNDO.
+define variable frameTitle               as character no-undo.
 
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
@@ -120,8 +121,18 @@ IF NOT RETRY THEN DO:
   DEFINE FRAME prop_sht
          name         AT ROW 1.13  COL 11 COLON-ALIGNED {&STDPH_FILL}
          btn_adv      AT ROW 19    COL 50         
-       WITH VIEW-AS DIALOG-BOX SIDE-LABELS SIZE 95 BY 22 THREE-D.
+       WITH 
+       &if defined(IDE-IS-RUNNING) = 0 &then
+       VIEW-AS DIALOG-BOX 
+       &else
+       no-box
+       &endif
+       SIDE-LABELS SIZE 95 BY 22 THREE-D.
 
+  {adeuib/ide/dialoginit.i "frame prop_sht:handle"}
+  &if defined(IDE-IS-RUNNING) <> 0 &then
+  dialogService:View().
+  &endif
   RUN adjust_frame.
   
   /* *************************** Generate Needed Widgets ************************** */
@@ -147,21 +158,24 @@ END.
 /* Make sure names are valid */
 ON LEAVE OF name IN FRAME prop_sht DO:
   DEFINE VARIABLE valid_name AS LOGICAL NO-UNDO.
-
+    
     IF SELF:SCREEN-VALUE <> _U._NAME THEN DO:
       RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
+      
       IF valid_name THEN DO:
         ASSIGN _U._NAME = INPUT FRAME prop_sht name
-               FRAME prop_sht:TITLE = "Property Sheet - " + 
-      IF isSmartData THEN _P._TYPE ELSE "" + " " + _U._NAME.
+         &if defined(IDE-IS-RUNNING) = 0 &then
+               FRAME prop_sht:TITLE = "Property Sheet - " 
+                                    + IF isSmartData THEN _P._TYPE ELSE "" + " " + _U._NAME
+         &endif
+               .
       END.
       ELSE RETURN NO-APPLY.
     END.
 END.
 
 ON CHOOSE OF btn_adv DO:
-  RUN adeuib/_advdprp.w (RECID(_U), lbl_wdth).
-  APPLY "ENTRY" TO btn_OK IN FRAME prop_sht.
+   run choose_advanced.
 END.
 
 IF SESSION:WIDTH-PIXELS = 640 AND SESSION:PIXELS-PER-COLUMN = 8 THEN
@@ -171,7 +185,8 @@ ASSIGN FRAME prop_sht:X = 0 - CURRENT-WINDOW:X
 RUN sensitize.
 
 RUN adecomm/_setcurs.p ("").
-
+{adeuib/ide/dialogstart.i  btn_ok btn_cancel frameTitle}
+ 
 WAIT-FOR "GO" OF FRAME prop_sht.
 
 /* Turn status messages back on. (They were turned off at the top of the block */
@@ -221,7 +236,38 @@ PROCEDURE complete_the_transaction:
   END.  /* DO WITH FRAME prop_sht */
 END.  /* Complete the transaction */
 
+procedure choose_advanced:
+   &if defined(IDE-IS-RUNNING) <> 0 &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_advanced").
+      run runChildDialog in hOEIDEService (dialogService).
+   &else
+      run do_choose_advanced.
+   &endif 
+end procedure.
+
+procedure do_choose_advanced:
+    &if defined(IDE-IS-RUNNING) <> 0 &then
+    
+        RUN adeuib/ide/_dialog_advdprp.p (RECID(_U), lbl_wdth).
+    &else
+        RUN adeuib/_advdprp.w (RECID(_U), lbl_wdth).
+    
+    &endif 
+    APPLY "ENTRY" TO btn_OK IN FRAME prop_sht.
+
+end procedure.
+
 procedure field_edit.
+  &if defined(IDE-IS-RUNNING) <> 0 &then
+      dialogService:SetCurrentEvent(this-procedure,"do_field_edit").
+      run runChildDialog in hOEIDEService (dialogService).
+  &else
+      run do_field_edit.      
+  &endif
+
+end procedure.
+
+procedure do_field_edit.
   DEFINE VARIABLE i           AS INTEGER           NO-UNDO.
   DEFINE VARIABLE table-list  AS CHARACTER         NO-UNDO.
   DEFINE VARIABLE tmp-name    AS CHARACTER         NO-UNDO.
@@ -289,10 +335,12 @@ procedure field_edit.
         ENTRY(i,table-list) = (IF AVAILABLE _TT THEN "Temp-Tables":U ELSE ldbname(1)) + "." + tmp-name.
     END. /* Entry has only a table name */
   END.
-
-  /* Send over the table list or a handle to the SmartData */
-  RUN adeuib/_coledit.p (INPUT table-list,INPUT ?).
-
+  &if defined(IDE-IS-RUNNING) <> 0 &then
+      RUN adeuib/ide/_dialog_coledit.p (INPUT table-list,INPUT ?).
+  &else
+      /* Send over the table list or a handle to the SmartData */
+      RUN adeuib/_coledit.p (INPUT table-list,INPUT ?).
+  &endif 
   RUN checkLOBs.
   
 END.
@@ -311,6 +359,15 @@ procedure query_modify.
     if dbconnected eq no THEN RETURN.
   END.
 
+  &if defined(IDE-IS-RUNNING) <> 0 &then
+      dialogService:SetCurrentEvent(this-procedure,"do_query_modify").
+      run runChildDialog in hOEIDEService (dialogService).
+  &else
+      run do_query_modify.      
+  &endif
+END.
+
+procedure do_query_modify:
   DO ON QUIT, LEAVE:
       
     /* iz 7535 Get rid of the freeform query button for dynamic sdos */
@@ -327,12 +384,17 @@ procedure query_modify.
     IF VALID-HANDLE(h_btn_flds) THEN
       h_btn_flds:SENSITIVE = yes.
   END.
-END.
+end.    
+
 
 procedure adjust_frame.
   ASSIGN FRAME prop_sht:HIDDEN     = TRUE 
+     &if defined(IDE-IS-RUNNING) = 0 &then
          FRAME prop_sht:PARENT     = ACTIVE-WINDOW
          FRAME prop_sht:TITLE      = "Property Sheet - " + _U._NAME
+     &else
+         frameTitle                = "Property Sheet - " + _U._NAME    
+     &endif    
          last-tab                  = name:HANDLE IN FRAME prop_sht
          name:SENSITIVE IN FRAME prop_sht = TRUE
          name:SCREEN-VALUE         = _U._NAME

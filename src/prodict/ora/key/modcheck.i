@@ -162,12 +162,22 @@ PROCEDURE check :
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_check ="yes".
            IF chek <> "" THEN EXPRESSION:SCREEN-VALUE IN FRAME frame_check = chek.
            ASSIGN DESC_EDIT:SCREEN-VALUE IN FRAME frame_check = descrip.
+
+           IF user_dbtype    NE "oracle" then 
            ENABLE BROWSE-CHECK Active DESC_EDIT EXPRESSION
                     OK_BUT CREATE_BUT CANCEL_BUT  
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  
                  &ENDIF 
                     WITH FRAME frame_check.
+           ELSE
+           ENABLE BROWSE-CHECK DESC_EDIT 
+                    OK_BUT CREATE_BUT CANCEL_BUT  
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF 
+                    WITH FRAME frame_check.
+
            {&OPEN-BROWSERS-IN-QUERY-frame_check}
         FIND FIRST  _constraint where _con-name = constr_name AND DICTDB._Constraint._Db-Recid = DbRecid NO-LOCK NO-ERROR.
         FOR EACH temp2 WHERE rec = _constraint._field-recid NO-LOCK:

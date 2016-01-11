@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 /* Procedure Description
 "Query Wizard"
 */
@@ -78,6 +78,9 @@ DON'T CREATE WIDGET-POOL BECAUSE WIDGETS WILL DIE WITH IT
 
 /* ***************************  Definitions  ************************** */
 { adeuib/uniwidg.i }
+
+{adecomm/oeideservice.i}
+
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE gObjtype     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE gQueryId     AS INTEGER   NO-UNDO.
@@ -91,7 +94,6 @@ DEFINE VARIABLE gWeb         AS LOG       NO-UNDO.
 DEFINE Variable gInitSDO    AS CHARACTER NO-UNDO.
 DEFINE Variable gInitTables AS CHARACTER NO-UNDO.
 DEFINE Variable gInitMode   AS CHARACTER NO-UNDO.
-
 
 /* 
 .cst entry to use when browsing for SmartDataObject.  
@@ -111,12 +113,12 @@ DEFINE VARIABLE xSmartDataObject AS CHAR NO-UNDO INIT "SmartDataObject":U.
 &Scoped-define PROCEDURE-TYPE WINDOW
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME DEFAULT-FRAME
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS rsDataSource fDataObject btnBrws btnDefqry ~
-e4GLQuery fiDataSourceLabel rectDataSrc 
+&Scoped-Define ENABLED-OBJECTS rectDataSrc rsDataSource fDataObject btnBrws ~
+btnDefqry e4GLQuery fiDataSourceLabel 
 &Scoped-Define DISPLAYED-OBJECTS rsDataSource fDataObject fiDataSourceLabel 
 
 /* Custom List Definitions                                              */
@@ -198,7 +200,7 @@ DEFINE VARIABLE rsDataSource AS CHARACTER
      SIZE 22 BY 5.91 NO-UNDO.
 
 DEFINE RECTANGLE rectDataSrc
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 54 BY 9.67.
 
 
@@ -211,9 +213,9 @@ DEFINE FRAME DEFAULT-FRAME
      btnDefqry AT ROW 5.19 COL 38
      e4GLQuery AT ROW 6.57 COL 3 NO-LABEL
      fiDataSourceLabel AT ROW 1.24 COL 1 COLON-ALIGNED NO-LABEL
-     rectDataSrc AT ROW 1.52 COL 2
      "SmartDataObject filename:" VIEW-AS TEXT
           SIZE 26 BY .62 AT ROW 2.95 COL 3
+     rectDataSrc AT ROW 1.52 COL 2
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -267,7 +269,7 @@ ASSIGN C-Win = CURRENT-WINDOW.
 /* SETTINGS FOR WINDOW C-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME DEFAULT-FRAME
-                                                                        */
+   FRAME-NAME                                                           */
 /* SETTINGS FOR EDITOR e4GLQuery IN FRAME DEFAULT-FRAME
    NO-DISPLAY                                                           */
 ASSIGN 
@@ -329,26 +331,24 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btnDefqry C-Win
 ON CHOOSE OF btnDefqry IN FRAME DEFAULT-FRAME /* Define Query... */
 DO:
-  DEFINE VARIABLE arg AS CHARACTER NO-UNDO.
   DEFINE VARIABLE ok  AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cId AS CHAR   NO-UNDO.
-    
+  
   RUN DBPrompt("to define a query", OUTPUT ok). 
   
   IF ok THEN
   DO:
     IF gQueryId = 0 THEN 
     DO:
-      RUN adeuib/_drwqry.p.            
-      RUN adeuib/_uibinfo.p (INT(gProcRecStr), "PROCEDURE ?":U, 
-         "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT cId).
-      gQueryId = INT(cId).
+        RUN adeuib/_drwqry.p.            
+        RUN adeuib/_uibinfo.p (INT(gProcRecStr), "PROCEDURE ?":U, 
+           "CONTAINS QUERY RETURN CONTEXT":U, OUTPUT cId).
+        gQueryId = INT(cId).
+        RUN DisplayObject.
     END.
     ELSE DO:
-      ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
-      RUN adeuib/_uib_dlg.p (gQueryId, "QUERY BUILDER":U, INPUT-OUTPUT arg).
+        run queryBuilderHandler.  
     END. 
-    RUN DisplayObject.
   END.  
 END.
 
@@ -512,11 +512,27 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY rsDataSource fDataObject fiDataSourceLabel 
       WITH FRAME DEFAULT-FRAME.
-  ENABLE rsDataSource fDataObject btnBrws btnDefqry e4GLQuery fiDataSourceLabel 
-         rectDataSrc 
+  ENABLE rectDataSrc rsDataSource fDataObject btnBrws btnDefqry e4GLQuery 
+         fiDataSourceLabel 
       WITH FRAME DEFAULT-FRAME.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
   VIEW C-Win.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE openQueryBuilder C-Win 
+PROCEDURE openQueryBuilder :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define variable arg as character no-undo. 
+    ASSIGN arg = "QUERY-ONLY":U. /* Run QB on query only (no fields) */
+    RUN adeuib/_uib_dlg.p (gQueryId, "QUERY BUILDER":U, INPUT-OUTPUT arg).
+    RUN DisplayObject.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -559,6 +575,28 @@ RUN DisplayObject.
 FRAME {&FRAME-NAME}:HIDDEN   = NO.
 
   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE queryBuilderHandler C-Win 
+PROCEDURE queryBuilderHandler :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDEIsRunning then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"openQueryBuilder").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run openQueryBuilder.
+   end.    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

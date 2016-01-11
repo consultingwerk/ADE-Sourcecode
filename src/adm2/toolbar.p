@@ -41,7 +41,8 @@
 
 /**** action definitions ****/
 {src/adm2/ttaction.i}
-  
+/* PDS integration code */
+{adecomm/oeideservice.i}  
 /* delimiter used between action names in unique menukey  */                              
 &SCOPED-DEFINE pathdlm CHR(1) 
 
@@ -6276,7 +6277,7 @@ DEFINE VARIABLE hHandle                         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lEnabled                        AS LOGICAL INITIAL YES NO-UNDO.    
 DEFINE VARIABLE istartAlpha                     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cLabel                          AS CHARACTER  NO-UNDO.
-
+define variable isShowMenuRecord                as logical    no-undo.
 FIND btParent WHERE btParent.Name    = pcParent 
               AND   btParent.hTarget = TARGET-PROCEDURE NO-ERROR. 
 
@@ -6292,33 +6293,46 @@ DO WHILE VALID-HANDLE(hHandle):
      LENGTH(TRIM(hHandle:TITLE)) > 1 AND
      hHandle <> phContainer:CURRENT-WINDOW THEN
   DO:
-    ASSIGN piCount = piCount + 1.
-    RUN WindowEnabled IN TARGET-PROCEDURE (INPUT hHandle, OUTPUT lEnabled).
-    
-    IF piCount > 9 THEN
-      ASSIGN
-        iStartAlpha =  ASC("a":U)
-        iStartAlpha = iStartAlpha + piCount - 10
-        cLabel = "&":U + CHR(iStartAlpha) + " ":U + hHandle:TITLE
-        .
-    ELSE cLabel = "&":U + TRIM(STRING(piCount)) + " ":U + hHandle:TITLE.
+    IF OEIDEIsRunning then /* this code added to fix OE00223652*/
+    do: 
+        if index(hHandle:TITLE,"Appbuilder") = 0 and index(hHandle:TITLE,"pro*tool") = 0 then
+           isShowMenuRecord = yes.
+        else
+           isShowMenuRecord = no.               
+    end.  
+    else
+    isShowMenuRecord = yes.
+   
+    if isShowMenuRecord then
+    do:  
+        ASSIGN piCount = piCount + 1.
+        RUN WindowEnabled IN TARGET-PROCEDURE (INPUT hHandle, OUTPUT lEnabled).
+        
+        IF piCount > 9 THEN
+          ASSIGN
+            iStartAlpha =  ASC("a":U)
+            iStartAlpha = iStartAlpha + piCount - 10
+            cLabel = "&":U + CHR(iStartAlpha) + " ":U + hHandle:TITLE.
+        ELSE cLabel = "&":U + TRIM(STRING(piCount)) + " ":U + hHandle:TITLE.
+        
           
-    CREATE btMenu.
-    ASSIGN
-      btMenu.hTarget = TARGET-PROCEDURE
-      btMenu.NAME    = pcParent + ":":U + STRING(hHandle)
-      btMenu.PARENT  = pcParent
-      btMenu.seq     = piCount
-      btMenu.REFRESH = NO
-      btMenu.Sensitive = lEnabled.         
-    CREATE MENU-ITEM btMenu.hdl
-    ASSIGN  
-      LABEL = cLabel
-      PARENT = btParent.hdl
-      SENSITIVE = lEnabled
-    TRIGGERS:
-      ON "CHOOSE":U PERSISTENT RUN WindowFocus IN TARGET-PROCEDURE (INPUT hHandle).
-    END.                
+            CREATE btMenu.
+            ASSIGN
+              btMenu.hTarget = TARGET-PROCEDURE
+              btMenu.NAME    = pcParent + ":":U + STRING(hHandle)
+              btMenu.PARENT  = pcParent
+              btMenu.seq     = piCount
+              btMenu.REFRESH = NO
+              btMenu.Sensitive = lEnabled.         
+            CREATE MENU-ITEM btMenu.hdl
+            ASSIGN  
+              LABEL = cLabel
+              PARENT = btParent.hdl
+              SENSITIVE = lEnabled
+            TRIGGERS:
+              ON "CHOOSE":U PERSISTENT RUN WindowFocus IN TARGET-PROCEDURE (INPUT hHandle).
+            END. 
+    end.
   END.
   IF hHandle:TYPE = "WINDOW":U THEN 
   DO:

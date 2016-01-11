@@ -58,6 +58,9 @@ DEFINE BUTTON qbf-ch   LABEL "&Change" {&STDPH_OKBTN}.
 DEFINE BUTTON qbf-rm   LABEL "&Remove" {&STDPH_OKBTN}.
 
 DEFINE RECTANGLE rect_btns {&STDPH_OKBOX}.
+define variable WtitleConstant as character initial "Enter Constant":t32.
+define variable WtitleConstantRange as character initial "Enter Constant":t32.
+define variable WtitleListConstant as character initial "Enter List of Constants":t32.
 
 FORM
   SKIP({&TFM_WID})
@@ -73,7 +76,12 @@ FORM
 
   WITH FRAME qbf%one NO-LABELS NO-ATTR-SPACE THREE-D WIDTH 55
   DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-ee
-  TITLE "Enter Constant":t32  VIEW-AS DIALOG-BOX.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
+  TITLE WtitleConstant  VIEW-AS DIALOG-BOX
+   &else
+        NO-BOX
+   &endif 
+  .
 
 FORM
   SKIP({&TFM_WID})
@@ -92,7 +100,12 @@ FORM
 
   WITH FRAME qbf%two NO-LABELS NO-ATTR-SPACE THREE-D WIDTH 55
   DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-ee
-  TITLE "Enter Constant Range":t32 VIEW-AS DIALOG-BOX.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
+  TITLE WtitleConstantRange VIEW-AS DIALOG-BOX
+   &else
+        NO-BOX
+   &endif
+  .
 
 /*
 Enter a value:
@@ -133,7 +146,12 @@ FORM
 
   WITH FRAME qbf%thr NO-LABELS NO-ATTR-SPACE THREE-D WIDTH 55
   DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-ee
-  TITLE "Enter List of Constants":t32 VIEW-AS DIALOG-BOX.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
+  TITLE WtitleListConstant VIEW-AS DIALOG-BOX
+   &else
+        NO-BOX
+   &endif
+  .
 
 ON GO OF FRAME qbf%thr OR CHOOSE OF qbf-ok IN FRAME qbf%thr DO:
   IF qbf-s:LOOKUP(INPUT FRAME qbf%thr v_one) = 0 AND
@@ -211,7 +229,7 @@ ON VALUE-CHANGED OF qbf-s IN FRAME qbf%thr DO:
 END.
 
 /*---------------------------------------------------------------------------*/
-   
+ 
 IF pi_fmt <> ? THEN DO:
   ASSIGN
     pi_fmt = REPLACE(REPLACE(pi_fmt,"%":u,"":u),",":u,"":u) 
@@ -289,6 +307,11 @@ IF pi_mode = 1 OR pi_mode = 5 THEN DO: /*-------------*/
       FRAME qbf%one:TITLE = "Ask At Run Time Prompt":t32
       qbf-h               = {&Ask_At_Run_Time_Prompt_Dlg_Box}.    
 
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then    
+  ASSIGN FRAME qbf%thr:PARENT = ACTIVE-WINDOW.
+  &else  
+  {adeuib/ide/dialoginit.i "FRAME qbf%one:handle}
+   &endif
   /* Run time layout for button area.  This defines eff_frame_width */
   {adecomm/okrun.i  
      &FRAME = "FRAME qbf%one" 
@@ -305,9 +328,24 @@ IF pi_mode = 1 OR pi_mode = 5 THEN DO: /*-------------*/
 
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     v_one:WIDTH IN FRAME qbf%one = v_one:WIDTH IN FRAME qbf%one + 1.
+    
+     &if DEFINED(IDE-IS-RUNNING) <> 0 &then   
+     &scoped-define CANCEL-EVENT U3
+     {adeuib/ide/dialogstart.i qbf-ok qbf-ee WtitleConstant}
+     display v_one
+               WITH FRAME qbf%one.
+     enable v_one qbf-ok qbf-ee qbf-help   
+               WITH FRAME qbf%one.
+     WAIT-FOR GO OF FRAME qbf%one or choose of qbf-ok or "{&CANCEL-EVENT}" of this-procedure focus v_one.   
+     if cancelDialog then undo, leave.  
+     assign FRAME qbf%one v_one.
+     &undefine CANCEL-EVENT
+
+     &else
     UPDATE
       v_one qbf-ok qbf-ee qbf-help 
       WITH FRAME qbf%one.
+    &endif   
     &IF "{&DataType}" EQ "CHARACTER" &THEN
     IF v_one = ? THEN v_one = "".
     &ENDIF
@@ -349,7 +387,11 @@ ELSE IF pi_mode = 2 THEN DO: /*----------------------------------------*/
                  + (qbf-help:HEIGHT-PIXELS * {&VM_OKBOX} * 2)).
 /*
     FRAME qbf%two:WIDTH-PIXELS     = qbf-i. */
-
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then    
+  ASSIGN FRAME qbf%two:PARENT = ACTIVE-WINDOW.
+  &else  
+  {adeuib/ide/dialoginit.i "FRAME qbf%two:handle}
+   &endif
   /* Run time layout for button area.  This defines eff_frame_width */
   {adecomm/okrun.i  
     &FRAME = "FRAME qbf%two" 
@@ -372,10 +414,20 @@ ELSE IF pi_mode = 2 THEN DO: /*----------------------------------------*/
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     ASSIGN v_one:WIDTH IN FRAME qbf%two = v_one:WIDTH IN FRAME qbf%two + 1
            v_two:WIDTH IN FRAME qbf%two = v_two:WIDTH IN FRAME qbf%two + 1.
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then   
+     &scoped-define CANCEL-EVENT U5
+     {adeuib/ide/dialogstart.i  qbf-ok qbf-ee  WtitleConstantRange}
+     display v_one v_two po_Inclusive WITH FRAME qbf%two.
+     enable v_one v_two po_Inclusive qbf-ok qbf-ee qbf-help WITH FRAME qbf%two.
+     WAIT-FOR GO OF FRAME qbf%two or choose of qbf-ok or "{&CANCEL-EVENT}" of this-procedure focus v_one.   
+     if cancelDialog then undo, leave.  
+     assign FRAME qbf%two v_one  FRAME qbf%two v_two FRAME qbf%two po_Inclusive.
+     &undefine CANCEL-EVENT
+     &else       
     UPDATE
       v_one v_two po_Inclusive qbf-ok qbf-ee qbf-help 
       WITH FRAME qbf%two.
-
+    &endif
     &IF "{&DataType}" EQ "CHARACTER" &THEN
     IF v_one = ? THEN v_one = "?":U.
     IF v_two = ? THEN v_two = "?":U.
@@ -419,6 +471,11 @@ ELSE DO: /*-----------------------------------------------------------------*/
     v_one:FORMAT IN FRAME qbf%thr = REPLACE(v_one:FORMAT IN FRAME qbf%thr,"!":U,
                                             "X":U).
 
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then    
+  ASSIGN FRAME qbf%thr:PARENT = ACTIVE-WINDOW.
+  &else  
+  {adeuib/ide/dialoginit.i "FRAME qbf%thr:handle}
+   &endif
   /* Run time layout for button area.  This defines eff_frame_width */
   {adecomm/okrun.i  
      &FRAME = "FRAME qbf%thr" 
@@ -449,11 +506,29 @@ ELSE DO: /*-----------------------------------------------------------------*/
   po_out = ?.
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
     ASSIGN v_one:WIDTH IN FRAME qbf%thr = v_one:WIDTH IN FRAME qbf%thr + 1.
+    
+     &if DEFINED(IDE-IS-RUNNING) <> 0 &then   
+      &scoped-define CANCEL-EVENT U5
+     {adeuib/ide/dialogstart.i  qbf-ok qbf-ee WtitleListConstant}
+     display  v_one qbf-ad qbf-ch WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ?
+              qbf-rm WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ?  
+              
+               WITH FRAME qbf%thr.
+     enable  v_one qbf-ad qbf-ch WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ?
+              qbf-rm WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ?  
+              qbf-s qbf-ok qbf-ee qbf-help po_Inclusive
+               WITH FRAME qbf%thr.
+     WAIT-FOR GO OF FRAME qbf%thr or choose of qbf-ok or "{&CANCEL-EVENT}" of this-procedure focus v_one.   
+     if cancelDialog then undo, leave.  
+     assign FRAME qbf%thr v_one. 
+     &undefine CANCEL-EVENT
+    &else
     UPDATE
       v_one qbf-ad qbf-ch WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ?
                    qbf-rm WHEN qbf-s:SCREEN-VALUE IN FRAME qbf%thr NE ? 
                    qbf-s qbf-ok qbf-ee qbf-help po_Inclusive
       WITH FRAME qbf%thr.
+    &endif  
     po_out = REPLACE(po_out,",":u,CHR(10)).
   END.
 

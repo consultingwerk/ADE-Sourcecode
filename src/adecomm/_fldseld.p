@@ -50,7 +50,7 @@ DEFINE INPUT-OUTPUT PARAMETER p_Result AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE stat          AS LOGICAL NO-UNDO. /* For status of widget methods */
 DEFINE VARIABLE useDataObject AS LOGICAL NO-UNDO.
-
+define variable xWinTitle as character no-undo init "Field Selector":t32. 
 /*--------------------------------------------------------------------------*/
 
 DEFINE VARIABLE v_SrcLst AS CHARACTER  NO-UNDO
@@ -93,8 +93,14 @@ FORM
   }
   SKIP ({&VM_WID})
   WITH FRAME FldPicker NO-LABELS
-   DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-cn
-   TITLE "Field Selector":t32 VIEW-AS DIALOG-BOX.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &THEN
+   TITLE xWinTitle
+   VIEW-AS DIALOG-BOX
+  &else
+       no-box three-d  
+  &endif  
+   DEFAULT-BUTTON qbf-ok 
+   CANCEL-BUTTON qbf-cn.
    
 ASSIGN v_SrcLst:DELIMITER  = p_Dlmtr.
 
@@ -139,6 +145,10 @@ ON HELP of FRAME FldPicker OR CHOOSE OF qbf-hlp IN FRAME FldPicker
 
 
 /*--------------------------------------------------------------------------*/
+&if defined(IDE-IS-RUNNING) &then
+{adeuib/ide/dialoginit.i "frame FldPicker:handle"} 
+dialogService:View().
+&endif
 
 { adecomm/okrun.i
     &FRAME  = "FRAME FldPicker"
@@ -227,13 +237,23 @@ ENABLE v_SrcLst qbf-ok qbf-cn qbf-hlp
 /* Select the first item in the source list */
 IF v_SrcLst:NUM-ITEMS > 0 THEN v_SrcLst:SCREEN-VALUE = v_SrcLst:ENTRY(1).
 
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i qbf-ok qbf-cn xWinTitle}
+
 /* Assume a cancel until the user hits OK. */
 l_Cancel = yes.
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   APPLY "ENTRY"  TO v_SrcLst IN FRAME FldPicker.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &THEN    
   WAIT-FOR GO OF FRAME FldPicker
            OR DEFAULT-ACTION OF v_SrcLst  IN FRAME FldPicker.
   /* No Cancel. */
+  &ELSE 
+  WAIT-FOR GO OF FRAME FldPicker
+           OR DEFAULT-ACTION OF v_SrcLst  IN FRAME FldPicker
+           OR "{&CANCEL-EVENT}":U of this-procedure.
+  if cancelDialog then undo, leave.        
+  &ENDIF
   l_cancel = NO.
 END.
 

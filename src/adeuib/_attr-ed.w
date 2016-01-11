@@ -1983,6 +1983,7 @@ PROCEDURE popup-action :
     CASE tt.type:
       WHEN "FONT":U THEN DO:
         ASSIGN fi-integer.
+        /* TODO IDE callback */
         RUN adecomm/_chsfont.p (INPUT "Choose Font", 
                                 INPUT ?, 
                                 INPUT-OUTPUT fi-integer,
@@ -1990,6 +1991,7 @@ PROCEDURE popup-action :
         DISPLAY fi-integer WITH FRAME {&FRAME-NAME}.
       END.
       WHEN "PROPERTIES":U THEN DO:
+        /* TODO IDE callback  */
         RUN adeuib/_proprty.p (INPUT first_U._HANDLE).
         ASSIGN pOK = TRUE.
       END.

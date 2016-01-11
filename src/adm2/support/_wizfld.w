@@ -5,12 +5,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000-2012 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _wizfld.w
@@ -41,7 +41,7 @@ CREATE WIDGET-POOL.
 
 /* ***************************  Definitions  ************************** */
 { src/adm2/support/admhlp.i} /* ADM Help File Defs */
-
+{adecomm/oeideservice.i {&OEIDE-EXCLUDE-PROTOTYPES}}
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER hWizard AS WIDGET-HANDLE NO-UNDO.
 
@@ -217,25 +217,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Addf C-Win
 ON CHOOSE OF b_Addf IN FRAME DEFAULT-FRAME /* Add fields */
 DO:
-  DEFINE VARIABLE tbllist AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE xtbls   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
-
-  /* Get external tables of the procedure */
-  RUN adeuib/_uibinfo.p(?, "PROCEDURE ?":U, "EXTERNAL-TABLES":U, OUTPUT xtbls).
-  
-  ASSIGN tbllist = (IF xtbls NE ? AND xtbls NE "" THEN xtbls ELSE "":U) + 
-                   (IF xtbls NE "":U AND xtbls NE ? AND qtbls NE "":U THEN ",":U 
-                    ELSE "":U) + qtbls.
-
-  /* Strip out any 'OF <tbl>' from string */
-  DO i = 1 TO NUM-ENTRIES(tbllist):
-    ENTRY(i,tbllist) = ENTRY(1,ENTRY(i,tbllist)," ":U).
-  END.
-
-  /* Run the column editor to maintain the field list */
-  RUN adeuib/_uib_dlg.p (INT(br-recid), "COLUMN EDITOR":U, INPUT-OUTPUT tbllist).
-  RUN Get-Fields.
+    run AddFieldsHandler.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -367,7 +349,55 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE AddFieldsHandler C-Win
+PROCEDURE AddFieldsHandler :
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   
+   if OEIDE_CanLaunchDialog() then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"OpenColumnEditor").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run OpenColumnEditor.
+   end.    
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OpenColumnEditor C-Win 
+PROCEDURE OpenColumnEditor :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE tbllist AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE xtbls   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
+
+  /* Get external tables of the procedure */
+  RUN adeuib/_uibinfo.p(?, "PROCEDURE ?":U, "EXTERNAL-TABLES":U, OUTPUT xtbls).
+  
+  ASSIGN tbllist = (IF xtbls NE ? AND xtbls NE "" THEN xtbls ELSE "":U) + 
+                   (IF xtbls NE "":U AND xtbls NE ? AND qtbls NE "":U THEN ",":U 
+                    ELSE "":U) + qtbls.
+
+  /* Strip out any 'OF <tbl>' from string */
+  DO i = 1 TO NUM-ENTRIES(tbllist):
+    ENTRY(i,tbllist) = ENTRY(1,ENTRY(i,tbllist)," ":U).
+  END.
+
+  /* Run the column editor to maintain the field list */
+  RUN adeuib/_uib_dlg.p (INT(br-recid), "COLUMN EDITOR":U, INPUT-OUTPUT tbllist).
+  RUN Get-Fields.
+END PROCEDURE.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Get-Fields C-Win 
+
 PROCEDURE Get-Fields :
 /*------------------------------------------------------------------------------
   Purpose:     Get field names.

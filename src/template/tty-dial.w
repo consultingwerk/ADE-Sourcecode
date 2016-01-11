@@ -6,8 +6,8 @@ Use this template to create a new dialog-box specifically for Character Mode. Al
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
-&Scoped-define FRAME-NAME DIALOG-FRAME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS DIALOG-FRAME 
+&Scoped-define FRAME-NAME ttyDialog
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS ttyDialog 
 /*------------------------------------------------------------------------
 
   File: 
@@ -45,7 +45,7 @@ Use this template to create a new dialog-box specifically for Character Mode. Al
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 
 /* Name of first Frame and/or Browse and/or first Query                 */
-&Scoped-define FRAME-NAME DIALOG-FRAME
+&Scoped-define FRAME-NAME ttyDialog
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS Btn_OK Btn_Cancel Btn_Help 
@@ -81,7 +81,7 @@ DEFINE BUTTON Btn_OK AUTO-GO DEFAULT
 
 /* ************************  Frame Definitions  *********************** */
 
-DEFINE FRAME DIALOG-FRAME
+DEFINE FRAME ttyDialog
      Btn_OK
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 14 COL 2
           &ELSE AT ROW 14 COL 2 &ENDIF
@@ -110,10 +110,10 @@ DEFINE FRAME DIALOG-FRAME
 /* ***************  Runtime Attributes and UIB Settings  ************** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
-/* SETTINGS FOR DIALOG-BOX DIALOG-FRAME
+/* SETTINGS FOR DIALOG-BOX ttyDialog
                                                                         */
 ASSIGN 
-       FRAME DIALOG-FRAME:SCROLLABLE       = FALSE.
+       FRAME ttyDialog:SCROLLABLE       = FALSE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -125,9 +125,9 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define SELF-NAME DIALOG-FRAME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL DIALOG-FRAME DIALOG-FRAME
-ON WINDOW-CLOSE OF FRAME DIALOG-FRAME /* <insert dialog title> */
+&Scoped-define SELF-NAME ttyDialog
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ttyDialog ttyDialog
+ON WINDOW-CLOSE OF FRAME ttyDialog /* <insert dialog title> */
 DO:  
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
@@ -138,8 +138,8 @@ END.
 
 
 &Scoped-define SELF-NAME Btn_Help
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Help DIALOG-FRAME
-ON CHOOSE OF Btn_Help IN FRAME DIALOG-FRAME /* Help */
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_Help ttyDialog
+ON CHOOSE OF Btn_Help IN FRAME ttyDialog /* Help */
 OR HELP OF FRAME {&FRAME-NAME}
 DO: /* Call Help Function (or a simple message). */
   MESSAGE "Help for File: {&FILE-NAME}" VIEW-AS ALERT-BOX INFORMATION.
@@ -151,7 +151,7 @@ END.
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK DIALOG-FRAME 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK ttyDialog 
 
 
 /* ***************************  Main Block  *************************** */
@@ -176,7 +176,7 @@ RUN disable_UI.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI DIALOG-FRAME _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI ttyDialog _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -187,14 +187,14 @@ PROCEDURE disable_UI :
                we are ready to "clean-up" after running.
 ------------------------------------------------------------------------------*/
   /* Hide all frames. */
-  HIDE FRAME DIALOG-FRAME.
+  HIDE FRAME ttyDialog.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI DIALOG-FRAME _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI ttyDialog _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -206,8 +206,8 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   ENABLE Btn_OK Btn_Cancel Btn_Help 
-      WITH FRAME DIALOG-FRAME.
-  {&OPEN-BROWSERS-IN-QUERY-DIALOG-FRAME}
+      WITH FRAME ttyDialog.
+  {&OPEN-BROWSERS-IN-QUERY-ttyDialog}
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

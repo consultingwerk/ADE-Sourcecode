@@ -1,10 +1,7 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 /* Connected Databases 
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f_dlg
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f_dlg 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -46,17 +43,14 @@ DEFINE VARIABLE l_master  AS LOGICAL NO-UNDO. /* True, if Master Layout */
 DEFINE VARIABLE page-A    AS INTEGER NO-UNDO. /* Page-A and -B are...   */
 DEFINE VARIABLE page-B    AS INTEGER NO-UNDO. /* ...used to swap pages  */
 DEFINE VARIABLE this-page AS INTEGER NO-UNDO.
-
+define variable xTitle as character no-undo init "Pages".
 /* Preprocessor Definitions ---                                         */  
 &Scope Main 0 [Main]
 &Scope Base-Pages 16
 &Scope fmt  >,>>>,>>9
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -91,8 +85,6 @@ br_sos fi_current fi_select
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -162,21 +154,16 @@ DEFINE VARIABLE s_page AS CHARACTER
      SIZE 13 BY 10 NO-UNDO.
 
 /* Query definitions                                                    */
-&ANALYZE-SUSPEND
 DEFINE QUERY br_sos FOR 
       _U, 
       _S SCROLLING.
-&ANALYZE-RESUME
 
 /* Browse definitions                                                   */
 DEFINE BROWSE br_sos
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_sos f_dlg _FREEFORM
   QUERY br_sos DISPLAY
       _U._NAME LABEL "Name"                 FORMAT "X(20)"
      _U._SUBTYPE LABEL "Type"              FORMAT "X(32)"
      _S._FILE-NAME LABEL "Master File"     FORMAT "X(64)"
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
     WITH NO-ROW-MARKERS SEPARATORS MULTIPLE SIZE 46 BY 10.
 
 
@@ -206,25 +193,25 @@ DEFINE FRAME f_dlg
      RECT-4 AT ROW 1.29 COL 28
      RECT-3 AT ROW 1.29 COL 2
      SPACE(49.06) SKIP(0.00)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D  SCROLLABLE 
-         TITLE "Pages".
-
+    WITH 
+    &if defined(IDE-Is-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX 
+    TITLE xTitle
+    &else
+    no-box
+    &endif
+    KEEP-TAB-ORDER 
+    SIDE-LABELS NO-UNDERLINE NO-VALIDATE THREE-D  SCROLLABLE .
+         
 
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f_dlg
                                                                         */
 /* BROWSE-TAB br_sos b_goto f_dlg */
@@ -251,12 +238,10 @@ ASSIGN
 /* SETTINGS FOR FILL-IN fi_select IN FRAME f_dlg
    ALIGN-L                                                              */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
 
 /* Setting information for Queries and Browse Widgets fields            */
 
-&ANALYZE-SUSPEND _QUERY-BLOCK BROWSE br_sos
 /* Query rebuild information for BROWSE br_sos
      _START_FREEFORM
 OPEN QUERY br_sos FOR
@@ -268,7 +253,6 @@ OPEN QUERY br_sos FOR
      _END_FREEFORM
      _Query            is NOT OPENED
 */  /* BROWSE br_sos */
-&ANALYZE-RESUME
 
  
 
@@ -278,18 +262,14 @@ OPEN QUERY br_sos FOR
 
 &Scoped-define BROWSE-NAME br_sos
 &Scoped-define SELF-NAME br_sos
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_sos f_dlg
 ON DEFAULT-ACTION OF br_sos IN FRAME f_dlg
 DO:
   /* Move the selected objects in the browse to a new page.*/
   RUN Move_Selected_to_Page.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_sos f_dlg
 ON VALUE-CHANGED OF br_sos IN FRAME f_dlg
 DO:
   /* Enable and disable buttons, as appropriate */
@@ -298,12 +278,9 @@ DO:
          . 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_del-obj
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_del-obj f_dlg
 ON CHOOSE OF b_del-obj IN FRAME f_dlg /* Delete SmartObject */
 DO:
   DEFINE VARIABLE i        AS INTEGER NO-UNDO.
@@ -324,12 +301,9 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_del-page
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_del-page f_dlg
 ON CHOOSE OF b_del-page IN FRAME f_dlg /* Delete... */
 DO:
   DEFINE VARIABLE ans AS LOGICAL NO-UNDO.
@@ -373,77 +347,39 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_design
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_design f_dlg
 ON CHOOSE OF b_design IN FRAME f_dlg /* Design... */
 DO:
-  /* Set the page the UIB will show at design time */
-  RUN ask4page ("Design Page", INPUT-OUTPUT _P._page-current).
-  DISPLAY _P._page-current @ fi_current WITH FRAME {&FRAME-NAME}.
+    run chooseDesignPage.  
 END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 &Scoped-define SELF-NAME b_goto
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_goto f_dlg
 ON CHOOSE OF b_goto IN FRAME f_dlg /* Page... */
 DO:
-  DEFINE VARIABLE new-page AS INTEGER NO-UNDO.
-  
-  new-page = this-page.
-  RUN ask4page ("Goto Page", INPUT-OUTPUT new-page).
-  IF new-page ne this-page THEN DO:
-    RUN Add_Page (new-page).
-    ASSIGN this-page           = new-page
-           s_page              = IF this-page eq 0 THEN "{&Main}"
-                                 ELSE LEFT-TRIM(STRING(this-page, "{&fmt}" ))
-           /* Setting SCREEN-VALUE of multi-select list does not deselect the
-              old values (unless you explicitly set the value to ? first.) */
-           s_page:SCREEN-VALUE = ?
-           s_page:SCREEN-VALUE = s_page.
-    /* Reset the interface */
-    RUN Set_Sensitivity.
-    RUN Reopen_Query.
-  END.
+    run chooseGoToPage.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Move-obj
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Move-obj f_dlg
 ON CHOOSE OF b_Move-obj IN FRAME f_dlg /* Move to Page... */
 DO:
   /* Move the selected objects in the browse to a new page. */
   RUN Move_Selected_to_Page.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_select
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_select f_dlg
 ON CHOOSE OF b_select IN FRAME f_dlg /* Start... */
 DO:
   /* Set the UIB's Startup page (i.e. the page to startup on at run-time) */
-  RUN ask4page ("Startup on Page", INPUT-OUTPUT _P._page-select).
-  DISPLAY _P._page-select @ fi_select WITH FRAME {&FRAME-NAME}.
+  run chooseStartupPage.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_swap
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_swap f_dlg
 ON CHOOSE OF b_swap IN FRAME f_dlg /* Swap Pages */
 DO:
   /* Swap everything on page-A to page-B (using "?" as an intermediate). */
@@ -454,12 +390,9 @@ DO:
   RUN Reopen_Query.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME s_page
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_page f_dlg
 ON DEFAULT-ACTION OF s_page IN FRAME f_dlg
 DO:
   /* Set the UIB's current page */
@@ -467,11 +400,8 @@ DO:
   DISPLAY this-page @ fi_current WITH FRAME {&FRAME-NAME}. 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_page f_dlg
 ON VALUE-CHANGED OF s_page IN FRAME f_dlg
 DO:
   
@@ -485,13 +415,10 @@ DO:
   RUN Reopen_Query.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK f_dlg 
 
 
 /* *************************  Standard Buttons ************************ */
@@ -503,9 +430,11 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
+ &if defined(IDE-IS-RUNNING) = 0 &then
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+&endif
 
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
@@ -530,7 +459,10 @@ DO WITH FRAME {&FRAME-NAME}:
          /* {&BROWSE-NAME}:MULTIPLE = YES -- I don't know why this doesn't work */
          {&BROWSE-NAME}:NUM-LOCKED-COLUMNS = 1.
 END.
-       .
+{adeuib/ide/dialoginit.i "frame ~{&FRAME-NAME~}:handle}
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i  btn_ok btn_cancel xtitle}
+       
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
@@ -540,17 +472,19 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN Set_Sensitivity.
   ENABLE {&BROWSE-NAME} WITH FRAME {&FRAME-NAME}.
   RUN Reopen_Query.
+  &if defined(IDE-IS-RUNNING) = 0 &then
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &else
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+  if cancelDialog then undo, leave.
+  &endif
 END.
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Add_Page f_dlg 
 PROCEDURE Add_Page :
 /*------------------------------------------------------------------------------
   Purpose:     Make sure that the new-page is in the selection list.  If not
@@ -588,10 +522,34 @@ PROCEDURE Add_Page :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure chooseGoToPage:
+      &if DEFINED(IDE-IS-RUNNING) = 0 &then
+      Run RunGoToPage. 
+      &else
+      dialogService:SetCurrentEvent(this-procedure,"RunGoToPage").
+      run runChildDialog in hOEIDEService (dialogService) .
+      &endif
+end procedure.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ask4page f_dlg 
+Procedure RunGoToPage:
+  DEFINE VARIABLE new-page AS INTEGER NO-UNDO.
+  
+  new-page = this-page.
+  RUN ask4page ("Goto Page", INPUT-OUTPUT new-page).
+  IF new-page ne this-page THEN DO:
+    RUN Add_Page (new-page).
+    ASSIGN this-page           = new-page
+           s_page              = IF this-page eq 0 THEN "{&Main}"
+                                 ELSE LEFT-TRIM(STRING(this-page, "{&fmt}" ))
+           /* Setting SCREEN-VALUE of multi-select list does not deselect the
+              old values (unless you explicitly set the value to ? first.) */
+           s_page:SCREEN-VALUE in frame {&FRAME-NAME} = ?
+           s_page:SCREEN-VALUE in frame {&FRAME-NAME} = s_page.
+    /* Reset the interface */
+    RUN Set_Sensitivity.
+    RUN Reopen_Query.
+  END.
+End procedure.
 PROCEDURE ask4page :
 /*------------------------------------------------------------------------------
   Purpose:  Puts up a small dialog-box that a user can enter a page-number into.  
@@ -603,6 +561,7 @@ PROCEDURE ask4page :
 
   /* Define a simple dialog-box (NOTE that the Btn_OK and Btn_Cancel were defined
      in adecomm/okform.i */
+    
   DEFINE FRAME f_page
      ppage-no   LABEL "Page Number" FORMAT "{&fmt}" VIEW-AS FILL-IN {&STDPH_FILL}
                 AT ROW 1.4 COL 20 COLON-ALIGNED
@@ -612,20 +571,46 @@ PROCEDURE ask4page :
      SPACE({&HFM_WID})  
      SKIP ({&IVM_OKBOX})  SPACE(12)
      Btn_OK space({&HM_DBTN}) Btn_Cancel SPACE({&HFM_WID})
+     &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+     btn_help SPACE({&HFM_WID}) 
+     &endif
      SKIP({&TFM_WID})
      WITH THREE-D SIDE-LABELS
-          VIEW-AS DIALOG-BOX DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel.
+      &if DEFINED(IDE-IS-RUNNING) = 0 &then 
+          VIEW-AS DIALOG-BOX
+      &else
+      No-BOX 
+      &endif     
+      DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel.
      
-  FRAME f_page:TITLE = pcTitle.
-  
-  UPDATE ppage-no Btn_OK Btn_Cancel WITH FRAME f_page.
-  
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then 
+    FRAME f_page:TITLE = pcTitle.
+    UPDATE ppage-no Btn_OK Btn_Cancel WITH FRAME f_page.
+  &else
+      ppage-no:screen-value in frame f_page = string(ppage-no).
+      define variable defaultsService as adeuib.idialogservice no-undo.
+    
+      run CreateDialogService in hOEIDEService(frame f_page:HANDLE,output defaultsService).
+      defaultsService:View().
+      define variable lCancelDialog as logical no-undo. 
+      defaultsService:SetOkButton(btn_OK:handle in frame f_page).
+      defaultsService:SetCancelButton(btn_Cancel:handle in frame f_page).
+      defaultsService:Title = pcTitle.
+      on "choose" of btn_cancel in frame f_page  
+      do:
+          lCancelDialog = true.
+          apply "u3" to this-procedure.
+       end.    
+       enable ppage-no btn_OK btn_cancel btn_help WITH FRAME f_page.
+       defaultsService:View().
+       wait-for "CHOOSE"  of btn_OK in FRAME f_page or "u3" of this-procedure.
+       Assign ppage-no = integer(ppage-no:screen-value in frame f_page).
+       if lcancelDialog then undo, leave.
+  &endif
+ 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -639,10 +624,7 @@ PROCEDURE disable_UI :
   HIDE FRAME f_dlg.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -661,10 +643,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-f_dlg}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Find_Pages f_dlg 
 PROCEDURE Find_Pages :
 /* -----------------------------------------------------------
   Purpose:     Find the Pages used in the current _P record.
@@ -703,10 +682,7 @@ PROCEDURE Find_Pages :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Move_Page f_dlg 
 PROCEDURE Move_Page :
 /*------------------------------------------------------------------------------
   Purpose:     Move everything on the old-page to the new-page.
@@ -730,44 +706,12 @@ PROCEDURE Move_Page :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Move_Selected_to_Page f_dlg 
 PROCEDURE Move_Selected_to_Page :
-/*------------------------------------------------------------------------------
-  Purpose:     Move the selected objects in the browse to a new page. 
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE new-page AS INTEGER NO-UNDO.
-  DEFINE VARIABLE i        AS INTEGER NO-UNDO.
-  
-  /* This button should not be enabled if there is no current SmartObject */
-  IF NOT AVAILABLE _S THEN SELF:SENSITIVE = no.
-  ELSE DO WITH FRAME {&FRAME-NAME}:
-    new-page = _S._Page-Number.
-    RUN ask4page ("Move to Page", INPUT-OUTPUT new-page).
-    /* Move it */
-    IF new-page ne _S._Page-Number THEN DO:
-      /* Make sure the page is displayed */
-      RUN Add_Page (new-page).
-
-      /* Move all the selected objects */
-      DO i = 1 TO {&BROWSE-NAME}:NUM-SELECTED-ROWS:
-        IF {&BROWSE-NAME}:FETCH-SELECTED-ROW (i)
-        THEN _S._Page-Number = new-page.
-      END.
-    
-      RUN Reopen_Query.
-    END.
-  END.
+    RUN chooseMoveToSelectedPage.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Reopen_Query f_dlg 
 PROCEDURE Reopen_Query :
 /* -----------------------------------------------------------
   Purpose:     Reopen the query
@@ -793,10 +737,7 @@ PROCEDURE Reopen_Query :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Set_Sensitivity f_dlg 
 PROCEDURE Set_Sensitivity :
 /*------------------------------------------------------------------------------
   Purpose:     Set the sensitivity of various buttons in the dialog-box  
@@ -854,7 +795,72 @@ PROCEDURE Set_Sensitivity :
                 b_swap:LABEL     = "S&wap Pages" .
   END.
 END PROCEDURE.
+procedure chooseMoveToSelectedPage:
+      &if DEFINED(IDE-IS-RUNNING) = 0 &then
+      Run RunMoveToSelectedPage. 
+      &else
+      dialogService:SetCurrentEvent(this-procedure,"RunMoveToSelectedPage").
+      run runChildDialog in hOEIDEService (dialogService) .
+      &endif
+end procedure.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure RunMoveToSelectedPage: 
+/*------------------------------------------------------------------------------
+  Purpose:     Move the selected objects in the browse to a new page. 
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE new-page AS INTEGER NO-UNDO.
+  DEFINE VARIABLE i        AS INTEGER NO-UNDO.
+  
+  /* This button should not be enabled if there is no current SmartObject */
+  IF NOT AVAILABLE _S THEN SELF:SENSITIVE = no.
+  ELSE DO WITH FRAME {&FRAME-NAME}:
+    new-page = _S._Page-Number.
+    RUN ask4page ("Move to Page", INPUT-OUTPUT new-page).
+    /* Move it */
+    IF new-page ne _S._Page-Number THEN DO:
+      /* Make sure the page is displayed */
+      RUN Add_Page (new-page).
 
+      /* Move all the selected objects */
+      DO i = 1 TO {&BROWSE-NAME}:NUM-SELECTED-ROWS:
+        IF {&BROWSE-NAME}:FETCH-SELECTED-ROW (i)
+        THEN _S._Page-Number = new-page.
+      END.
+    
+      RUN Reopen_Query.
+    END.
+  END.
+end procedure.
+
+procedure chooseDesignPage:
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+      Run runDesignPage. 
+      &else
+      dialogService:SetCurrentEvent(this-procedure,"runDesignPage").
+      run runChildDialog in hOEIDEService (dialogService) .
+      &endif
+end procedure.
+
+procedure runDesignPage: 
+
+/* Set the page the UIB will show at design time */
+  RUN ask4page ("Design Page", INPUT-OUTPUT _P._page-current).
+  DISPLAY _P._page-current @ fi_current WITH FRAME {&FRAME-NAME}.
+end procedure.
+
+procedure chooseStartupPage:
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+      Run runStartupPage. 
+      &else
+      dialogService:SetCurrentEvent(this-procedure,"runStartupPage").
+      run runChildDialog in hOEIDEService (dialogService) .
+      &endif
+end procedure.
+
+procedure runStartupPage:
+
+RUN ask4page ("Startup on Page", INPUT-OUTPUT _P._page-select).
+  DISPLAY _P._page-select @ fi_select WITH FRAME {&FRAME-NAME}.
+end procedure.

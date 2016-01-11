@@ -71,6 +71,7 @@ History:
     knavneet    08/19/08 Quoting object names if it has special chars - OE00170417
     fernando    05/29/09 MSS support for blob
     kmayur      06/21/11 Support for constraint migration- OE00190567
+    sdash       10/11/12 _File-Label added to left Table Label intact - OE00225208
 --------------------------------------------------------------------*/
 
 
@@ -112,6 +113,7 @@ DEFINE VARIABLE for_name         AS CHARACTER NO-UNDO. /* OE00170417 */
 DEFINE VARIABLE other-seq-name   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE is_as400db       AS LOGICAL NO-UNDO.
 DEFINE VARIABLE num              AS INTEGER NO-UNDO.
+DEFINE VARIABLE const_name1   AS CHARACTER NO-UNDO.
 
 /*------------------------------------------------------------------*/
 /* These variables/workfile are so we can save the Progress-only
@@ -135,6 +137,7 @@ define variable tab_RILevel      as integer   no-undo. /*_Recid-Index */
 define variable tab_RImsc23      as character no-undo. /*_Recid-Index */
 define variable tab_Valexp       as character no-undo. /*_Valexp */
 define variable tab_Valmsg       as character no-undo. /*_Valmsg */
+define variable tab_File-Label   as character no-undo. /*_File-Label */
 
 define TEMP-TABLE w_field no-undo
             field ds_name             as character case-sensitive
@@ -798,7 +801,8 @@ for each gate-work
         tab_Dump-nam = DICTDB._File._Dump-name
         tab_Hidden   = DICTDB._File._Hidden
         tab_Valexp   = DICTDB._File._Valexp
-        tab_Valmsg   = DICTDB._File._Valmsg.
+        tab_Valmsg   = DICTDB._File._Valmsg
+        tab_File-Label = DICTDB._File._File-Label.
       RUN delete-file.
 
       end.     /* retain all file, index and field-information */
@@ -861,7 +865,8 @@ for each gate-work
       DICTDB._File._Valexp       = tab_Valexp
       DICTDB._File._Valmsg       = tab_Valmsg
       DICTDB._File._Hidden       = tab_Hidden
-      DICTDB._File._Dump-name    = tab_Dump-nam.
+      DICTDB._File._Dump-name    = tab_Dump-nam
+      DICTDB._File._File-Label   = tab_File-Label.
 
 
 /*---------------------------- FIELDS ------------------------------*/
@@ -1700,19 +1705,33 @@ END.
       END.
       ELSE IF cons_type = "PRIMARY KEY"
       THEN DO:
+        IF oldf THEN DO:
+             FIND FIRST DICTDB._Index OF DICTDB._File
+                     WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+             IF NOT AVAILABLE (DICTDB._Index) THEN DO:
+                 const_name1  =  replace(const_name,"_","-") .
+             END.
+             ELSE DO:
+               const_name1  = const_name.
+             END.
+         END.
+         ELSE DO:
+           const_name1  = const_name.
+         END.
+      
         IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._Con-Type = "P")
         THEN DO:
           FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = index_name NO-LOCK NO-ERROR.
           IF NOT AVAILABLE (DICTDB._Index) THEN
-          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name1 NO-LOCK NO-ERROR.
           IF NOT AVAILABLE (DICTDB._Index) THEN 
-          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = const_name1 NO-LOCK NO-ERROR.
           
           CREATE DICTDB._constraint.
           ASSIGN        
           DICTDB._constraint._db-recid    = drec_db       
-          DICTDB._constraint._con-name    = const_name
-          DICTDB._constraint._for-name    = const_name
+          DICTDB._constraint._con-name    = const_name1
+          DICTDB._constraint._for-name    = const_name1
           DICTDB._constraint._Index-Recid = RECID(DICTDB._Index)
           DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle)
           DICTDB._constraint._con-num     = num
@@ -1721,16 +1740,30 @@ END.
       END.
       ELSE IF cons_type = "CLUSTERED"
       THEN DO:
+        IF oldf THEN DO:
+             FIND FIRST DICTDB._Index OF DICTDB._File
+                     WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+             IF NOT AVAILABLE (DICTDB._Index) THEN DO:
+                 const_name1  =  replace(const_name,"_","-") .
+             END.
+             ELSE DO:
+               const_name1  = const_name.
+             END.
+         END.
+         ELSE DO:
+           const_name1  = const_name.
+         END.
+      
         IF NOT CAN-FIND (FIRST DICTDB._constraint OF DICTDB._File WHERE DICTDB._constraint._Con-Type = "M")
         THEN DO:
-          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name NO-LOCK NO-ERROR.
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name1 NO-LOCK NO-ERROR.
           IF NOT AVAILABLE (DICTDB._Index) then FIND FIRST DICTDB._Index OF DICTDB._File
-                                                         WHERE DICTDB._Index._Index-Name = const_name NO-LOCK NO-ERROR.
+                                                         WHERE DICTDB._Index._Index-Name = const_name1 NO-LOCK NO-ERROR.
           CREATE DICTDB._constraint.
           ASSIGN        
           DICTDB._constraint._db-recid    = drec_db       
-          DICTDB._constraint._con-name    = const_name
-          DICTDB._constraint._for-name    = const_name
+          DICTDB._constraint._con-name    = const_name1
+          DICTDB._constraint._for-name    = const_name1
           DICTDB._constraint._Index-Recid = RECID(DICTDB._Index)
           DICTDB._constraint._File-Recid  = RECID(DICTDB._FIle)
           DICTDB._constraint._con-num     = num

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 /* Procedure Description
 "UIB's NEW dialog-box"
 */
@@ -101,7 +101,7 @@ DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME d_newobj
 
 /* Standard List Definitions                                            */
@@ -134,34 +134,34 @@ FUNCTION getRDMHandle RETURNS LOGICAL
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON b_Cancel AUTO-END-KEY 
      LABEL "Cancel" 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.15.
 
 DEFINE BUTTON b_Help 
      LABEL "&Help" 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.15.
 
 DEFINE BUTTON b_Ok AUTO-GO 
      LABEL "OK" 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.15.
 
 DEFINE BUTTON b_Template 
      LABEL "&Template..." 
-     SIZE 15 BY 1.14.
+     SIZE 15 BY 1.15.
 
 DEFINE VARIABLE cb_productModule AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS COMBO-BOX SORT INNER-LINES 15
      LIST-ITEM-PAIRS "item","item"
      DROP-DOWN-LIST
-     SIZE 49.2 BY 1 TOOLTIP "Product module in which you want to create a new object." NO-UNDO.
+     SIZE 49.14 BY 1 TOOLTIP "Product module in which you want to create a new object." NO-UNDO.
 
 DEFINE VARIABLE e_descr1 AS CHARACTER 
      VIEW-AS EDITOR NO-WORD-WRAP SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL
-     SIZE 70 BY 4.52
+     SIZE 70 BY 4.54
      FONT 4 NO-UNDO.
 
 DEFINE VARIABLE e_descr2 AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL
-     SIZE 70 BY 4.52
+     SIZE 70 BY 4.54
      FONT 4 NO-UNDO.
 
 DEFINE VARIABLE descr-text AS CHARACTER FORMAT "X(256)":U INITIAL " Description" 
@@ -170,31 +170,31 @@ DEFINE VARIABLE descr-text AS CHARACTER FORMAT "X(256)":U INITIAL " Description"
 
 DEFINE VARIABLE Objects-text AS CHARACTER FORMAT "X(256)":U INITIAL " Objects" 
       VIEW-AS TEXT 
-     SIZE 8 BY .76 NO-UNDO.
+     SIZE 8 BY .77 NO-UNDO.
 
 DEFINE VARIABLE Show-text AS CHARACTER FORMAT "X(256)":U INITIAL " Show" 
       VIEW-AS TEXT 
-     SIZE 6.4 BY .62 NO-UNDO.
+     SIZE 6.43 BY .62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 72.2 BY 5.29.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 72.14 BY 5.31.
 
 DEFINE RECTANGLE RECT-4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 19 BY 6.38.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 52 BY 12.19.
 
 DEFINE RECTANGLE RECT-6
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 52 BY 2.86.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 52 BY 2.85.
 
 DEFINE RECTANGLE RECT-7
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 19 BY 2.1.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 19 BY 2.12.
 
 DEFINE VARIABLE s_objects AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE 
@@ -204,68 +204,68 @@ DEFINE VARIABLE s_objects AS CHARACTER
 DEFINE VARIABLE productModule-Create AS LOGICAL INITIAL yes 
      LABEL "&Create in Product Module:" 
      VIEW-AS TOGGLE-BOX
-     SIZE 31.6 BY .81 TOOLTIP "When selected, indicates the new object will be created in a product module." NO-UNDO.
+     SIZE 31.57 BY .81 TOOLTIP "When selected, indicates the new object will be created in a product module." NO-UNDO.
 
 DEFINE VARIABLE togContainer AS LOGICAL INITIAL no 
      LABEL "&Containers" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16.6 BY .81 NO-UNDO.
+     SIZE 16.57 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togDynamic AS LOGICAL INITIAL no 
      LABEL "Dynamic" 
      VIEW-AS TOGGLE-BOX
-     SIZE 13.4 BY .81 NO-UNDO.
+     SIZE 13.43 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togProc AS LOGICAL INITIAL no 
      LABEL "&Procedures" 
      VIEW-AS TOGGLE-BOX
-     SIZE 15.6 BY .81 NO-UNDO.
+     SIZE 15.57 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togSO AS LOGICAL INITIAL no 
      LABEL "&SmartObjects" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16.6 BY .81 NO-UNDO.
+     SIZE 16.57 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togStatic AS LOGICAL INITIAL no 
      LABEL "Static" 
      VIEW-AS TOGGLE-BOX
-     SIZE 13.4 BY .81 NO-UNDO.
+     SIZE 13.43 BY .81 NO-UNDO.
 
 DEFINE VARIABLE togWO AS LOGICAL INITIAL no 
      LABEL "&WebObjects" 
      VIEW-AS TOGGLE-BOX
-     SIZE 16.2 BY .81 NO-UNDO.
+     SIZE 16.14 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME d_newobj
-     togDynamic AT ROW 11.71 COL 56.2
-     togStatic AT ROW 12.67 COL 56.2
-     productModule-Create AT ROW 1.76 COL 3.2
-     cb_productModule AT ROW 2.76 COL 3 NO-LABEL
-     s_objects AT ROW 1.76 COL 3 NO-LABEL
-     e_descr2 AT ROW 14.52 COL 3 HELP
+     togDynamic AT ROW 11.69 COL 56.14
+     togStatic AT ROW 12.65 COL 56.14
+     productModule-Create AT ROW 1.77 COL 3.14
+     cb_productModule AT ROW 2.77 COL 3 NO-LABEL
+     s_objects AT ROW 1.77 COL 3 NO-LABEL
+     e_descr2 AT ROW 14.54 COL 3 HELP
           "Description of object" NO-LABEL
-     e_descr1 AT ROW 14.52 COL 3 HELP
+     e_descr1 AT ROW 14.54 COL 3 HELP
           "Description of object" NO-LABEL
-     togContainer AT ROW 7.71 COL 56.2
-     togSO AT ROW 8.67 COL 56.2
-     togProc AT ROW 9.62 COL 56.2
-     togWO AT ROW 10.57 COL 56.2
-     b_Ok AT ROW 1.48 COL 58.6
-     b_Cancel AT ROW 2.76 COL 58.6
-     b_Template AT ROW 4.05 COL 58.6
-     b_Help AT ROW 5.33 COL 58.6
+     togContainer AT ROW 7.69 COL 56.14
+     togSO AT ROW 8.65 COL 56.14
+     togProc AT ROW 9.62 COL 56.14
+     togWO AT ROW 10.58 COL 56.14
+     b_Ok AT ROW 1.46 COL 58.57
+     b_Cancel AT ROW 2.77 COL 58.57
+     b_Template AT ROW 4.04 COL 58.57
+     b_Help AT ROW 5.35 COL 58.57
      Objects-text AT ROW 1 COL 1 COLON-ALIGNED NO-LABEL
-     descr-text AT ROW 13.86 COL 1 COLON-ALIGNED NO-LABEL
-     Show-text AT ROW 6.95 COL 54.4 COLON-ALIGNED NO-LABEL
-     RECT-6 AT ROW 1.48 COL 2
-     RECT-3 AT ROW 14.14 COL 2
-     RECT-4 AT ROW 7.24 COL 55
-     RECT-5 AT ROW 1.43 COL 2
-     RECT-7 AT ROW 11.52 COL 55
-     SPACE(0.99) SKIP(5.81)
+     descr-text AT ROW 13.85 COL 1 COLON-ALIGNED NO-LABEL
+     Show-text AT ROW 6.96 COL 54.43 COLON-ALIGNED NO-LABEL
+     RECT-6 AT ROW 1.46 COL 2
+     RECT-3 AT ROW 14.12 COL 2
+     RECT-4 AT ROW 7.23 COL 55
+     RECT-5 AT ROW 1.42 COL 2
+     RECT-7 AT ROW 11.54 COL 55
+     SPACE(0.99) SKIP(5.83)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "New"
@@ -287,7 +287,7 @@ DEFINE FRAME d_newobj
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_newobj
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME d_newobj:SCROLLABLE       = FALSE.
 
@@ -1237,8 +1237,9 @@ PROCEDURE showProductModule :
     productModule-Create:HIDDEN = FALSE
     productModule-Create:SENSITIVE = TRUE
     cb_productModule:HIDDEN     = FALSE
-    RECT-6:HIDDEN               = FALSE.
+    RECT-6:HIDDEN               = FALSE .
   DISPLAY RECT-6 productModule-Create cb_productModule WITH FRAME d_newobj.
+   
 
   /* IZ 3191 Set the checked state of the Create in PM option based on the PM 
      list being empty or not. */
@@ -1246,7 +1247,7 @@ PROCEDURE showProductModule :
 
   /* Change UI and PM enable state based on "Create in PM" check box. */
   RUN changeProductModuleState (INPUT productModule-Create:CHECKED).
-
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

@@ -60,7 +60,8 @@ DEFINE {1} SHARED TEMP-TABLE _action
    /* The field _widget-handle added March 12,2003-DB.  Used for dynamics only
       to store the handle of deleted widgets  */
    FIELD _widget-handle AS WIDGET-HANDLE LABEL "Widget Handle" 
-INDEX _seq-num IS PRIMARY UNIQUE _seq-num.
+INDEX _seq-num IS PRIMARY UNIQUE  _seq-num
+index _window-handle _window-handle. 
 
 /* This variable behaves like a sequence number, since temp-table do not
    support it.  The number generated is unique for a session and is currently

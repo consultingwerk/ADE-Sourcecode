@@ -47,7 +47,7 @@ DEFINE INPUT PARAMETER lbl_wdth AS DECIMAL NO-UNDO.
 {adeuib/sharvars.i}
 
 DEFINE VARIABLE i                 AS INTEGER                       NO-UNDO.
-
+define variable frameTitle as character no-undo init "Advanced Properties":L.
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 /* New-line character */
@@ -63,13 +63,20 @@ DEFINE VARIABLE i                 AS INTEGER                       NO-UNDO.
 DEFINE FRAME adv-dial
      _U._PRIVATE-DATA VIEW-AS EDITOR SIZE 63 BY 4 SCROLLBAR-VERTICAL 
               {&STDPH_ED4GL_SMALL}  AT ROW 1.13 COL 16 COLON-ALIGN SKIP ({&VM_WID})
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
-         SIDE-LABELS THREE-D
-         SIZE 82.01 BY 16.94
-         TITLE "Advanced Properties":L.
+    WITH 
+     &if defined(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX 
+      TITLE frameTitle
+     &else
+     no-box
+     &endif
+    KEEP-TAB-ORDER
+    SIDE-LABELS THREE-D
+    SIZE 82.01 BY 16.94.
 
 ASSIGN FRAME adv-dial:HIDDEN = TRUE
        .
+{adeuib/ide/dialoginit.i "Frame adv-dial:handle"}
 
 FIND _U WHERE RECID(_U) = u-recid.
 FIND _P WHERE _U._WINDOW-HANDLE = _P._WINDOW-HANDLE.
@@ -121,15 +128,24 @@ ON CHOOSE OF btn_help IN FRAME adv-dial OR HELP OF FRAME adv-dial DO:
   RUN adecomm/_adehelp.p ( "ab", "CONTEXT", {&Advanced_Property_Sheet_for_SmartDataObjects}, ? ).
 END.
 
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel frametitle}
+     
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will slways fire.    */
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
- RUN enable_UI.
+    RUN enable_UI.
   
-  VIEW FRAME {&FRAME-NAME}.            
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  
+    VIEW FRAME {&FRAME-NAME}.      
+        
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+    &else
+    WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+    &endif.
   
   /* Remove trailing whitespace on the PRIVATE-DATA. (Users often hit an
      extra <cr> at the end of this field.  Also, stripping trailing blanks

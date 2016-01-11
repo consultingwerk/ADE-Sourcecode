@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008-2010 by Progress Software Corporation. All rights    *
-* reserved.                                                          *
+* Copyright (C) 2008-2009,2012 by Progress Software Corporation. All *
+* rights reserved.                                                   *
 *                                                                    *
 *********************************************************************/
 
@@ -14,7 +14,7 @@ Description:
         
 History:
     07/01/08  fernando   created
-
+    08/09/12  rkumar     fixed issue with alternate buffer pool settings
                             
 --------------------------------------------------------------------*/
 
@@ -59,6 +59,23 @@ DEFINE PRIVATE PROPERTY nextSeqNum AS INTEGER
          ASSIGN seq = seq + 1.
          RETURN seq.
     END GET.
+
+DEFINE PROTECTED PROPERTY DbRecid AS RECID 
+    GET():
+         /* if the first time, create the dynamic buffer object */
+         IF DbRecid = ? then 
+	 do on error undo, throw : 
+	     CREATE BUFFER hDb FOR TABLE myDBConfig:LogicalDBName + "._Db".
+             IF VALID-HANDLE(hDB) THEN hDB:FIND-FIRST("").
+             DbRecid = hDb:recid. 
+	     finally:
+                 hDB:BUFFER-RELEASE().
+	         delete object hDb.  
+	     end.
+	end.
+	return DbRecid. 
+    END.
+    private set.
 
 CONSTRUCTOR _obj-attrib-util():
     getDBConfigObj("DICTDB").
@@ -891,7 +908,6 @@ DEFINE VARIABLE myStorage AS Storage NO-UNDO.
          /* for lobs and _aud- tables, we have to always find the area through the
              _Storageobject table.
          */
-         IF objectType = {&CLOB_TYPE} OR objectType = {&BLOB_TYPE} OR objArea = ? THEN DO:
               IF objectType = {&TABLE_TYPE} THEN
                   cType = "1".
               ELSE IF objectType = {&INDEX_TYPE} THEN
@@ -901,17 +917,14 @@ DEFINE VARIABLE myStorage AS Storage NO-UNDO.
                   
               ASSIGN cTmp= myDBConfig:LogicalDBName  + "._Storageobject".
               CREATE BUFFER hStorage FOR TABLE cTmp NO-ERROR.
-              IF VALID-HANDLE(hStorage) THEN DO:
-                  hStorage:FIND-FIRST("where _Object-type = " + cType + " AND _Object-number = "
-                                      + STRING(objNum), NO-LOCK) NO-ERROR.
-                  IF hStorage:AVAILABLE THEN DO:
+              hStorage:FIND-FIRST("where _Db-recid = " + string(DbRecid) + " AND _Object-type = " + cType + " AND _Object-number = "
+                                  + STRING(objNum), NO-LOCK) NO-ERROR.
+	      IF hStorage:AVAILABLE THEN DO:
                      objArea = hStorage::_Area-number.
                      hStorage:BUFFER-RELEASE().
                   END.
                   DELETE OBJECT hStorage NO-ERROR.
               END.
-         END.
-      END.
 
       addObject(INPUT objNum,
                 INPUT fullName,

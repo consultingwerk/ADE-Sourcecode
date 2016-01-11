@@ -51,6 +51,8 @@ DEFINE VARIABLE objtype    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE h          AS HANDLE    NO-UNDO.
 DEFINE VARIABLE l          AS LOGICAL   NO-UNDO.
 
+
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -270,29 +272,35 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
+gWizardHdl = SOURCE-PROCEDURE.
+/*
 ASSIGN
   h          = hwizard:FIRST-CHILD /* field-group */
-  gWizardHdl = SOURCE-PROCEDURE.  
+  gWizardHdl = SOURCE-PROCEDURE.
 
 h = h:FIRST-CHILD. /* first widget */
+
 DO WHILE h <> ?:
-  IF h:NAME = "b_Finish":U THEN LEAVE. /* find finish button */
+    
+ IF h:NAME = "b_Finish":U THEN LEAVE. /* find finish button */
   h = h:NEXT-SIBLING.
 END.
-
+*/    
 /* Get procedure type (Web-Object, SmartBrowser) */
 RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U, OUTPUT ObjType).
-
-IF h:SENSITIVE = NO THEN
+       
+IF not DYNAMIC-FUNCTION('getOkToFinish':U in gWizardHdl) THEN
+do:
   ASSIGN msg = "You have not completed this"
          msg1 = objtype + "!"
          msg2 = "Go Back or press Cancel."
-         l = IMAGE-4:LOAD-IMAGE("adeicon/wizndone":U)
+
          IMAGE-4:HIDDEN = no
          btnPreview:HIDDEN = TRUE
          fifileName:HIDDEN = TRUE
-         msg-3:HIDDEN      = TRUE
-         .
+         msg-3:HIDDEN      = TRUE.
+   IMAGE-4:LOAD-IMAGE("adeicon/wizndone":U).       
+end.               
 ELSE DO:
   ASSIGN
     fiFileName  = DYNAMIC-FUNCTION('getPreviewName' in gWizardHdl).
@@ -304,7 +312,7 @@ ELSE DO:
          msg1 = "You completed this " + objtype + "!"
          IMAGE-4:HIDDEN    = no
          btnPreview:HIDDEN = DYNAMIC-FUNCTION('getPreview' in gWizardHdl) = FALSE        
-         btnPreview:SENSITIVE = h:SENSITIVE 
+         btnPreview:SENSITIVE = true 
          fiFilename:HIDDEN       = btnPreview:HIDDEN
          msg-3:HIDDEN            = btnPreview:HIDDEN 
          fiFileName:SENSITIVE    = TRUE

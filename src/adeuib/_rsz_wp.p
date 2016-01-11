@@ -32,7 +32,10 @@ Modified by: GFS on 11/95 - Add width adjustment for Win95.
                     10/96 - Make minimum size adjustments for WIN95 Shell
 ----------------------------------------------------------------------------*/
 {adeuib/sharvars.i}
-{adecomm/adefext.i}        
+{adecomm/adefext.i}   
+&SCOPED-DEFINE OEIDE-EXCLUDE-PROTOTYPES     
+{adecomm/oeideservice.i}
+&UNDEFINE OEIDE-EXCLUDE-PROTOTYPES     
 
 DEFINE INPUT PARAMETER pl_pal_init       
                            AS LOGICAL NO-UNDO.
@@ -53,7 +56,7 @@ DEFINE VARIABLE v          AS CHAR    NO-UNDO.
 DEFINE VARIABLE sctn       AS CHAR    NO-UNDO INITIAL "Pro{&UIB_SHORT_NAME}".
 DEFINE VARIABLE winver     AS DECIMAL NO-UNDO.
 DEFINE VARIABLE fudgefact  AS INTEGER NO-UNDO.
-
+define variable IDEIntegrated as logical no-undo.
 ASSIGN fudgefact = 3.
 IF SESSION:WINDOW-SYSTEM = "MS-WIN95" THEN
     ASSIGN fudgefact = 3.
@@ -189,4 +192,9 @@ IF _h_object_win:WINDOW-STATE = WINDOW-MAXIMIZED THEN DO:
    _h_object_win:MAX-HEIGHT   = _h_object_win:HEIGHT. 
 END. 
 
-IF _h_object_win:HIDDEN EQ yes AND _AB_License NE 2 THEN _h_object_win:HIDDEN = no.
+if valid-handle(hOEIDEService) then    
+    run getIsIDEIntegrated in hOEIDEService (output IDEIntegrated).
+if not IDEIntegrated then
+do:      
+    IF _h_object_win:HIDDEN EQ yes AND _AB_License NE 2 THEN _h_object_win:HIDDEN = no.
+end.     

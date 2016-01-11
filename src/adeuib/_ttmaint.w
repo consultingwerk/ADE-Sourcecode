@@ -69,7 +69,10 @@ DEFINE VARIABLE tblsToAvoid AS CHARACTER                          NO-UNDO.
 DEFINE VARIABLE inpLine     AS CHARACTER EXTENT 4                 NO-UNDO.
 DEFINE VARIABLE i           AS INTEGER                            NO-UNDO.
 DEFINE VARIABLE tblList     AS CHARACTER                          NO-UNDO.
-
+define variable wintitle    as character NO-UNDO init "Temp-Table Maintenance".
+DEFINE VARIABLE pressed_ok   AS LOGICAL                      NO-UNDO.
+DEFINE VARIABLE tmp-dbname   AS CHARACTER                    NO-UNDO.
+DEFINE VARIABLE tmp-tblname  AS CHARACTER                    NO-UNDO.
 DEFINE STREAM test.         /* Used for syntax checking                 */
 
 DEFINE BUFFER x_TT FOR _TT.
@@ -242,11 +245,20 @@ DEFINE FRAME Dialog-Frame
      RECT-4 AT ROW 8.91 COL 38
      RECT-5 AT ROW 6.91 COL 5
      SPACE(2.00) SKIP(4.62)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+     WITH
+     &if DEFINED(IDE-IS-RUNNING) = 0  &then  
+     VIEW-AS DIALOG-BOX TITLE wintitle
+     &else
+     NO-BOX
+     &endif
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Temp-Table Maintenance".
+         .
 
-
+{adeuib/ide/dialoginit.i "FRAME Dialog-Frame:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -268,10 +280,10 @@ DEFINE FRAME Dialog-Frame
 ASSIGN 
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
-
+&if DEFINED(IDE-IS-RUNNING) = 0  &then  
 ASSIGN 
        additnl-fields:RETURN-INSERTED IN FRAME Dialog-Frame  = TRUE.
-
+&endif
 /* SETTINGS FOR FILL-IN af-label IN FRAME Dialog-Frame
    NO-ENABLE ALIGN-R                                                    */
 /* SETTINGS FOR FILL-IN prp-label IN FRAME Dialog-Frame
@@ -362,45 +374,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btn_add Dialog-Frame
 ON CHOOSE OF btn_add IN FRAME Dialog-Frame /* Add... */
 DO:
-  DEFINE VARIABLE pressed_ok   AS LOGICAL                      NO-UNDO.
-  DEFINE VARIABLE tmp-dbname   AS CHARACTER                    NO-UNDO.
-  DEFINE VARIABLE tmp-tblname  AS CHARACTER                    NO-UNDO.
-
-  IF row-recid NE ? THEN DO:
-    RUN assign-record.
-  END.
-  IF BROWSE-1:NUM-SELECTED-ROWS > 0 THEN
-    stupid = BROWSE-1:SET-REPOSITIONED-ROW(
-                      MIN(MAX(1, BROWSE-1:FOCUSED-ROW + 1),
-                          BROWSE-1:NUM-ITERATIONS),
-                      "CONDITIONAL":U).
-
-  CREATE _TT.
-  ASSIGN _TT._p-recid = RECID(_P).
-  RUN adecomm/_tblsel.p (FALSE, "_ttmaint.w":U ,
-                         INPUT-OUTPUT tmp-dbname,
-                         INPUT-OUTPUT tmp-tblname,
-                         OUTPUT pressed_ok).
-  IF NOT pressed_ok THEN DELETE _TT.
-
-  ELSE DO:
-    ASSIGN _TT._LIKE-DB                = tmp-dbname
-           _TT._LIKE-TABLE             = tmp-tblname
-           additnl-fields:SENSITIVE    = TRUE
-           BROWSE-1:SENSITIVE          = TRUE
-           btn_remove:SENSITIVE        = TRUE
-           chk-syntax:SENSITIVE        = TRUE
-           RADIO-SET-1:SENSITIVE       = TRUE
-           RADIO-SET-2:SENSITIVE       = TRUE
-           tbl-name:SENSITIVE          = TRUE
-           tog-no-undo:SENSITIVE       = TRUE
-           row-recid                   = RECID(_TT)
-           _TT._NAME                   = _TT._LIKE-TABLE.
-    RUN display-record.
-    
-    {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
-    APPLY "ENTRY" TO tbl-name IN FRAME {&FRAME-NAME}.
-  END.
+    run chooseAddHandler.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -680,8 +654,16 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     IF AVAILABLE _TT THEN RUN display-record.
     ELSE RUN clear-screen.
     /* Whole thing is a transaction to handle cancel action               */
+    &scoped-define CANCEL-EVENT U2
+    {adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
     DO TRANSACTION:
-      WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}. 
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif  
+      
     END.  /* Transaction */
   END.  /* DO WITH FRAME {&FRAME-NAME} */
 END.
@@ -868,6 +850,69 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseAddHandler Dialog-Frame 
+PROCEDURE chooseAddHandler :
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"OpenTableDialog").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+         run OpenTableDialog. 
+    &endif  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OpenTableDialog Dialog-Frame 
+PROCEDURE OpenTableDialog  :
+
+  IF row-recid NE ? THEN DO:
+    RUN assign-record.
+  END.
+  IF BROWSE-1:NUM-SELECTED-ROWS in frame {&frame-name} > 0 THEN
+     BROWSE-1:SET-REPOSITIONED-ROW(
+                      MIN(MAX(1, BROWSE-1:FOCUSED-ROW + 1),
+                          BROWSE-1:NUM-ITERATIONS),
+                      "CONDITIONAL":U).
+
+  CREATE _TT.
+  ASSIGN _TT._p-recid = RECID(_P).
+  RUN
+       &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+       adeuib/ide/_dialog_tblsel.p 
+       &else  
+       adecomm/_tblsel.p 
+       &endif                
+           (FALSE, "_ttmaint.w":U ,
+            INPUT-OUTPUT tmp-dbname,
+            INPUT-OUTPUT tmp-tblname,
+            OUTPUT pressed_ok).       
+  IF NOT pressed_ok THEN DELETE _TT.
+
+  ELSE DO:
+    ASSIGN _TT._LIKE-DB                = tmp-dbname
+           _TT._LIKE-TABLE             = tmp-tblname
+           additnl-fields:SENSITIVE    = TRUE
+           BROWSE-1:SENSITIVE          = TRUE
+           btn_remove:SENSITIVE        = TRUE
+           chk-syntax:SENSITIVE        = TRUE
+           RADIO-SET-1:SENSITIVE       = TRUE
+           RADIO-SET-2:SENSITIVE       = TRUE
+           tbl-name:SENSITIVE          = TRUE
+           tog-no-undo:SENSITIVE       = TRUE
+           row-recid                   = RECID(_TT)
+           _TT._NAME                   = _TT._LIKE-TABLE.
+    RUN display-record.
+    
+    {&OPEN-BROWSERS-IN-QUERY-{&FRAME-NAME}}
+    APPLY "ENTRY" TO tbl-name IN FRAME {&FRAME-NAME}.
+  END.
+END PROCEDURE.
+  
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE sensitize Dialog-Frame 
 PROCEDURE sensitize :
 /*------------------------------------------------------------------------------
@@ -889,3 +934,4 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+ 

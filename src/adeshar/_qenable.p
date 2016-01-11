@@ -93,7 +93,7 @@ DO WITH FRAME dialog-1:
      &OTHER  = "SPACE({&HM_BTNG}) b_freeformq"
      &HELP   = "bHelp"
   }
-     
+   
   ASSIGN
     /* Always VISIBLE and enabled */
     rsMain:SENSITIVE             = TRUE 
@@ -113,7 +113,9 @@ DO WITH FRAME dialog-1:
     lqrytune:VISIBLE             = FALSE     
     _TuneOptions:VISIBLE         = FALSE
     _TuneOptions:SCREEN-VALUE    = _TuneOptions
+    &IF DEFINED(IDE-IS-RUNNING) = 0 &THEN
     _TuneOptions:RETURN-INSERTED = TRUE
+    &endif
     _TuneOptions:SENSITIVE       = FALSE
     lPhraseLabel:VISIBLE         = FALSE
     lPhraseLabel:SCREEN-VALUE    = lPhraseLabel    
@@ -129,12 +131,16 @@ DO WITH FRAME dialog-1:
     /* Other VISIBLE and enabled  */
     lBrowseLabel:SENSITIVE       = TRUE
     eDisplayCode:SENSITIVE       = TRUE 
+    &IF DEFINED(IDE-IS-RUNNING) = 0 &THEN
     eDisplayCode:RETURN-INSERTED = TRUE 
     eDisplayCode:SCROLLBAR-H     = TRUE
+    &endif
     l_label-2:SENSITIVE          = TRUE
     bTableSwitch:SENSITIVE       = TRUE
     eFieldLabel:SENSITIVE        = TRUE 
+     &IF DEFINED(IDE-IS-RUNNING) = 0 &THEN
     eFieldLabel:RETURN-INSERTED  = TRUE
+    &endif
     eFieldFormat:SENSITIVE       = TRUE
     rsSortDirection:SENSITIVE    = TRUE
     bUndo:SENSITIVE              = TRUE
@@ -203,8 +209,10 @@ DO WITH FRAME dialog-1:
 
     /* things that are always VISIBLE go here ?? */
     /* Misc things */
-    rect-1:WIDTH-CHARS           = eff_frame_width   
+    rect-1:WIDTH-CHARS           = eff_frame_width 
+     &IF DEFINED(IDE-IS-RUNNING) = 0 &THEN  
     eDisplayCode:RETURN-INSERTED = TRUE
+    &endif
     cShareType:VISIBLE           = FALSE 
     cShareType                   = IF _Optionlist = "":U THEN "NO-LOCK":U
 				                   ELSE ENTRY(1, _Optionlist," ":U)

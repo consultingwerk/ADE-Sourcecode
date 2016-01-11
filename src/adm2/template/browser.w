@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
-"ADM SmartDataBrowser Object Template with Wizard.
+"ADM2 SmartDataBrowser Object Template with Wizard.
 
 Use this template to create a new SmartDataBrowser object with the assistance of the SmartDataBrowser Wizard. When completed, this object can then be drawn onto any 'smart' container such as a SmartWindow, SmartDialog or SmartFrame."
 */
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTable 
 /*------------------------------------------------------------------------
 
   File: adm2\src\browser.w
@@ -76,7 +76,7 @@ CREATE WIDGET-POOL.
 
 /* Browse definitions                                                   */
 DEFINE BROWSE br_table
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTableWin _STRUCTURED
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTable _STRUCTURED
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -117,14 +117,14 @@ END.
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
-  CREATE WINDOW bTableWin ASSIGN
+  CREATE WINDOW bTable ASSIGN
          HEIGHT             = 6.86
          WIDTH              = 66.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB bTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB bTable 
 /* ************************* Included-Libraries *********************** */
 
 {src/adm2/browser.i}
@@ -138,7 +138,7 @@ END.
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
-/* SETTINGS FOR WINDOW bTableWin
+/* SETTINGS FOR WINDOW bTable
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME F-Main
    NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
@@ -169,7 +169,7 @@ ASSIGN
 
  
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartDataBrowserWizard" bTableWin _INLINE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartDataBrowserWizard" bTable _INLINE
 /* Actions: adm2/support/_wizard.w ? ? ? adm2/support/_wizdel.p */
 /* SmartDataBrowser Wizard
 Welcome to the SmartDataBrowser Wizard! During the next few steps, the wizard will lead you through creating a SmartDataBrowser object. First you will choose a DataSource to supply data to the SmartDataBrowser, then you can specify the columns that will be displayed in the SmartDataBrowser. Press Next to proceed.
@@ -184,7 +184,7 @@ adm2/support/_wizntro.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,adm2/suppo
 
 &Scoped-define BROWSE-NAME br_table
 &Scoped-define SELF-NAME br_table
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON CTRL-END OF br_table IN FRAME F-Main
 DO:
   APPLY "END":U TO BROWSE {&BROWSE-NAME}.
@@ -194,7 +194,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON CTRL-HOME OF br_table IN FRAME F-Main
 DO:
   APPLY "HOME":U TO BROWSE {&BROWSE-NAME}.
@@ -204,7 +204,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON DEFAULT-ACTION OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsdefault.i}
@@ -214,7 +214,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON END OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsend.i}
@@ -224,7 +224,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON HOME OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brshome.i}
@@ -234,7 +234,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON OFF-END OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsoffnd.i}
@@ -244,7 +244,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON OFF-HOME OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsoffhm.i}
@@ -254,7 +254,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON ROW-ENTRY OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsentry.i}
@@ -264,7 +264,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON ROW-LEAVE OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsleave.i}
@@ -274,7 +274,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON SCROLL-NOTIFY OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brsscrol.i}
@@ -284,7 +284,7 @@ END.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTable
 ON VALUE-CHANGED OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brschnge.i}
@@ -296,7 +296,7 @@ END.
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK bTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK bTable 
 
 
 /* ***************************  Main Block  *************************** */
@@ -311,7 +311,7 @@ RUN initializeObject.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI bTableWin  _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI bTable  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface

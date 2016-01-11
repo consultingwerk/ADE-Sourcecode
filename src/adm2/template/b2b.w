@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
-"ADM SmartB2BObject Template. 
+"ADM2 SmartB2BObject Template. 
 Use this template to create a new SmartB2BObject. When completed, this object will be able to transform XML business messages to and from SmartDataObjects and SmartBusinessObjects. "
 */
 &ANALYZE-RESUME

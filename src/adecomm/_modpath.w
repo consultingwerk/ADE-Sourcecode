@@ -41,7 +41,10 @@ DEFINE OUTPUT PARAMETER       pNewList     AS CHAR NO-UNDO.
 
 DEFINE VARIABLE i                AS INTEGER NO-UNDO. 
 DEFINE VARIABLE DirectoryPresent AS LOGICAL NO-UNDO. 
-
+define variable wintitle as char no-undo init "Edit Path":L.
+DEFINE VAR l_ok     AS LOGICAL NO-UNDO.
+DEFINE VAR new_dir  AS CHAR NO-UNDO.
+DEFINE VAR test_dir AS CHAR NO-UNDO.
 &GLOBAL-DEFINE WIN95-BTN YES
 &IF LOOKUP(OPSYS, "MSDOS,WIN32":u) > 0 &THEN
   &Scoped-define DIR-SLASH ~~~\
@@ -120,9 +123,13 @@ DEFINE FRAME f
      b_move_down AT ROW 6.38 COL 39
      RECT-6 AT ROW 4.38 COL 39.8
      SPACE(2.99) SKIP(3.28)
-    WITH VIEW-AS DIALOG-BOX 
-         SIDE-LABELS THREE-D  SCROLLABLE 
-         TITLE "Edit Path":L.
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle 
+    &else
+    NO-BOX
+    &endif
+    SIDE-LABELS THREE-D  SCROLLABLE.
 
  
 
@@ -168,7 +175,10 @@ ASSIGN
 */  /* DIALOG-BOX f */
 &ANALYZE-RESUME
 
- 
+ {adeuib/ide/dialoginit.i "FRAME f:handle"}
+&IF DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+dialogService:View().  
+&ENDIF 
 
 
 
@@ -191,10 +201,10 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_add f
 ON CHOOSE OF b_add IN FRAME f /* Add... */
 DO:    
-  DEFINE VAR l_ok     AS LOGICAL NO-UNDO.
-  DEFINE VAR new_dir  AS CHAR NO-UNDO.
-  DEFINE VAR test_dir AS CHAR NO-UNDO.
-  
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_dirname").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else
   /* Get a new directory name. */
   RUN adeshar/_dirname.p
          ( INPUT        "Add Directory to Path", /* Dialog Title Bar */
@@ -205,6 +215,7 @@ DO:
            INPUT-OUTPUT new_dir ,                /* File Spec entered */
            OUTPUT       l_ok                     /* YES if user hits OK */
          ) .
+   &endif      
   /* Make sure the user hit "OK".  Check the new directory to make sure
      it really is new. */
   IF l_ok THEN DO:    
@@ -372,8 +383,9 @@ IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 
 /* Make the Frame 3D. */
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
 ASSIGN FRAME {&frame-name}:THREE-D = pShow3D.
-
+&endif
 { adecomm/commeng.i }
 { adecomm/okbar.i &TOOL = "COMM"
                  &CONTEXT = {&Edit_Path_Dlg_Box} }
@@ -389,7 +401,17 @@ RUN get_path.
 
 /* Now enable the interface and wait for the exit condition.            */
 RUN enable_UI.
+
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
+
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then
 WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+   &ELSE
+WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
+if cancelDialog THEN UNDO, LEAVE.  
+   &endif
+
 RUN SetNewPath.
 RUN disable_UI.
 
@@ -540,4 +562,14 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
+PROCEDURE ide_choose_dirname:
+    RUN adeuib/ide/_dialog_dirname.p
+         ( INPUT        "Add Directory to Path", /* Dialog Title Bar */
+           INPUT        NO,                      /* YES is \'s converted to /'s */
+           INPUT        YES,                     /* YES if directory must exist */
+           INPUT        "comm",                  /* ADE Tool (used for help call) */
+           INPUT        {&Add_Dir_Path_Dlg_Box}, /* Context ID for HELP call */
+           INPUT-OUTPUT new_dir ,                /* File Spec entered */
+           OUTPUT       l_ok                     /* YES if user hits OK */
+         ) .
+END PROCEDURE.    

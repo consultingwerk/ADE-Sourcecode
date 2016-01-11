@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_advprocset
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_advprocset 
 /***********************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
@@ -43,17 +40,17 @@ DEFINE INPUT PARAMETER p_Precid AS RECID NO-UNDO.
 DEFINE VARIABLE l        AS LOGICAL NO-UNDO.
 DEFINE VARIABLE i        AS INTEGER NO-UNDO.
 DEFINE VARIABLE isdialog AS LOGICAL NO-UNDO. /* yes = dialog, no = window */
+DEFINE VARIABLE wintitle AS CHARACTER NO-UNDO INIT "Advanced Procedure Settings".
+define variable xAddTitle   as char     no-undo init "Add Supported Link".
+define variable xNewTitle   as char     no-undo init "New Procedure Type".
 
 &Scoped-define NONE <None>
 
 /* Find the correct record */
 FIND _P WHERE RECID(_P) eq p_Precid.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -73,8 +70,6 @@ cb_filetype
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -217,25 +212,28 @@ DEFINE FRAME d_advprocset
      RECT-5 AT ROW 2.91 COL 47.6
      RECT-4 AT ROW 10.71 COL 2
      SPACE(36.99) SKIP(0.05)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+    NO-BOX
+    &endif
+     KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Advanced Procedure Settings".
+         .
 
-
+{adeuib/ide/dialoginit.i "FRAME d_advprocset:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: Dialog-Box
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_advprocset
    FRAME-NAME                                                           */
 ASSIGN 
@@ -262,17 +260,14 @@ ASSIGN
 /* SETTINGS FOR TOGGLE-BOX tg_template IN FRAME d_advprocset
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
 
 /* Setting information for Queries and Browse Widgets fields            */
 
-&ANALYZE-SUSPEND _QUERY-BLOCK DIALOG-BOX d_advprocset
 /* Query rebuild information for DIALOG-BOX d_advprocset
      _Options          = "SHARE-LOCK"
      _Query            is NOT OPENED
 */  /* DIALOG-BOX d_advprocset */
-&ANALYZE-RESUME
 
  
 
@@ -281,7 +276,6 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME d_advprocset
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_advprocset d_advprocset
 ON GO OF FRAME d_advprocset /* Advanced Procedure Settings */
 DO: 
   DEFINE VAR old-subtype AS CHAR NO-UNDO.
@@ -386,61 +380,21 @@ DO:
 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_Add
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Add d_advprocset
 ON CHOOSE OF b_Add IN FRAME d_advprocset /* Add... */
 DO:
-  DEFINE VARIABLE l        AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE linktype AS CHARACTER NO-UNDO.
-  
-  RUN Add_Link (OUTPUT linktype).
-  IF linktype NE "" THEN DO:
-    IF s_Links:LOOKUP(linktype) > 0 THEN DO:
-      MESSAGE CAPS(linktype) "already exists." VIEW-AS ALERT-BOX ERROR.
-      RETURN NO-APPLY.
-    END.
-    IF s_Links:LIST-ITEMS = "{&NONE}":U 
-    THEN ASSIGN s_Links:LIST-ITEMS = linktype
-                b_Remove:SENSITIVE = yes. /* Something to remove, finally. */
-    ELSE l = s_Links:ADD-LAST(linktype).
-  END.
+   run Choose_Add.
 END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 
 &Scoped-define SELF-NAME b_New
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_New d_advprocset
 ON CHOOSE OF b_New IN FRAME d_advprocset /* New... */
 DO:  
-  RUN Get_New_Proctype(OUTPUT cb_proctype).
-  IF cb_proctype <> "" THEN DO:
-    i = cb_proctype:LOOKUP(cb_proctype).
-    IF i = 0 THEN ASSIGN
-        l = cb_proctype:ADD-FIRST(cb_proctype).
-    cb_proctype:SCREEN-VALUE = cb_proctype.   
-  END.
-  /*If the 'New' button is pressed and then the 'Cancel' button is pressed, cb_proctype will be "", therefore
-    the TYPE has to be checked again. If TYPE = "SmartDataObject" and not db-aware is because the
-    SmartObject is a DataView*/
-  ELSE cb_proctype:SCREEN-VALUE = IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE.
-
-  ASSIGN _P._TYPE = cb_proctype:SCREEN-VALUE.
-  RUN adeuib/_admpset.p (INPUT RECID(_P)).
-  RUN Update_Screen. 
+   run choose_new.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Remove
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Remove d_advprocset
 ON CHOOSE OF b_Remove IN FRAME d_advprocset /* Remove */
 DO:
   IF s_Links:DELETE(s_Links:SCREEN-VALUE) THEN DO:
@@ -452,12 +406,9 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_filetype
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_filetype d_advprocset
 ON VALUE-CHANGED OF cb_filetype IN FRAME d_advprocset /* File Type */
 DO:
   ASSIGN _P._FILE-TYPE = SELF:SCREEN-VALUE.
@@ -465,12 +416,9 @@ DO:
   RUN Update_Screen.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_proctype
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_proctype d_advprocset
 ON VALUE-CHANGED OF cb_proctype IN FRAME d_advprocset /* Procedure Type */
 DO:
   ASSIGN _P._TYPE = cb_proctype:SCREEN-VALUE.
@@ -478,25 +426,19 @@ DO:
   RUN Update_Screen.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME tg_frames
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tg_frames d_advprocset
 ON VALUE-CHANGED OF tg_frames IN FRAME d_advprocset /* Frames */
 DO:
   /* If no frames are allowed, disable the "One vs. Multiple" radio-set. */
   rs_frames:SENSITIVE = SELF:CHECKED.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK d_advprocset 
 
 
 /* ***************************  Main Block  *************************** */
@@ -511,6 +453,8 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -518,17 +462,74 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
   RUN Init.
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  IF NOT RETRY THEN
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}. 
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+  
 END.
+&undefine CANCEL-EVENT 
+
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 /* **********************  Internal Procedures  *********************** */
+PROCEDURE Choose_New :
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run run_new_type.
+    &else
+       dialogService:SetCurrentEvent(this-procedure,"run_new_type").
+       run runChildDialog in hOEIDEService (dialogService) .
+    &endif 
+end.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Add_Link d_advprocset 
+PROCEDURE run_new_type:
+  RUN Get_New_Proctype(OUTPUT cb_proctype).
+  IF cb_proctype <> "" THEN DO:
+    i = cb_proctype:LOOKUP(cb_proctype) in frame d_advprocset.
+    IF i = 0 THEN ASSIGN
+        l = cb_proctype:ADD-FIRST(cb_proctype) in frame d_advprocset.
+    cb_proctype:SCREEN-VALUE in frame d_advprocset = cb_proctype.   
+  END.
+  /*If the 'New' button is pressed and then the 'Cancel' button is pressed, cb_proctype will be "", therefore
+    the TYPE has to be checked again. If TYPE = "SmartDataObject" and not db-aware is because the
+    SmartObject is a DataView*/
+  ELSE cb_proctype:SCREEN-VALUE in frame d_advprocset = IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE.
+
+  ASSIGN _P._TYPE = cb_proctype:SCREEN-VALUE in frame d_advprocset.
+  RUN adeuib/_admpset.p (INPUT RECID(_P)).
+  RUN Update_Screen. 
+END.
+
+PROCEDURE Choose_Add :
+    &if defined(IDE-IS-RUNNING) = 0 &then
+        run run_add_link.
+    &else
+       dialogService:SetCurrentEvent(this-procedure,"run_add_link").
+       run runChildDialog in hOEIDEService (dialogService) .
+    &endif 
+end.
+ 
+PROCEDURE run_add_link:
+
+  DEFINE VARIABLE l        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE linktype AS CHARACTER NO-UNDO.
+  
+  RUN Add_Link (OUTPUT linktype).
+  IF linktype NE "" THEN DO:
+    IF s_Links:LOOKUP (linktype) in frame d_advprocset > 0 THEN DO:
+      MESSAGE CAPS(linktype) "already exists." VIEW-AS ALERT-BOX ERROR.
+      RETURN NO-APPLY.
+    END.
+    IF s_Links:LIST-ITEMS = "{&NONE}":U 
+    THEN ASSIGN s_Links:LIST-ITEMS in frame d_advprocset = linktype
+                b_Remove:SENSITIVE in frame d_advprocset = yes. /* Something to remove, finally. */
+    ELSE l = s_Links:ADD-LAST(linktype) in frame d_advprocset .
+  END.
+END.
+
 PROCEDURE Add_Link :
 /*------------------------------------------------------------------------------
   Purpose:     Add a link type to the selection list.
@@ -538,6 +539,7 @@ PROCEDURE Add_Link :
   DEFINE OUTPUT PARAMETER linktype AS CHARACTER FORMAT "X(30)" NO-UNDO.
   DEFINE BUTTON b_OK     LABEL "OK"     SIZE 15 BY 1.125 AUTO-GO.
   DEFINE BUTTON b_Cancel LABEL "Cancel" SIZE 15 BY 1.125 AUTO-ENDKEY.
+
   DEFINE VARIABLE rs_link AS CHARACTER
     VIEW-AS RADIO-SET HORIZONTAL
     RADIO-BUTTONS "Source","-Source":U,"Target","-Target":U.
@@ -548,16 +550,25 @@ PROCEDURE Add_Link :
        b_ok         AT ROW 1.5 COL 36 
        b_cancel     AT ROW 2.8 COL 36
     WITH FRAME pt SIDE-LABELS 
-    TITLE "Add Supported Link" THREE-D NO-LABELS
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    TITLE xAddTitle VIEW-AS DIALOG-BOX
+    &else
+    NO-BOX
+    &endif
+    THREE-D NO-LABELS
       SIZE 52 BY 5
-    VIEW-AS DIALOG-BOX DEFAULT-BUTTON b_OK.
-
+     DEFAULT-BUTTON b_OK.
+{adeuib/ide/dialoginit.i "FRAME pt:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
   ON " " OF linktype DO:
     MESSAGE "Spaces are not allowed in the Link Type." VIEW-AS ALERT-BOX
       ERROR BUTTONS OK.
     RETURN NO-APPLY.
   END.
   
+
   ON GO OF FRAME pt DO:
       IF linktype:SCREEN-VALUE = "" THEN DO:
         MESSAGE "Please enter a link type." VIEW-AS ALERT-BOX ERROR.
@@ -579,16 +590,20 @@ PROCEDURE Add_Link :
   ON ENDKEY,END-ERROR OF FRAME pt DO:
       ASSIGN linktype = "".
   END.
-  
+  &scoped-define CANCEL-EVENT U3
+  {adeuib/ide/dialogstart.i b_ok b_cancel xAddTitle}
   ENABLE ALL WITH FRAME pt.
-  WAIT-FOR GO OF FRAME pt.    
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME pt. 
+    &ELSE
+        WAIT-FOR "choose" of b_ok in frame pt or "{&CANCEL-EVENT}" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+  &undefine CANCEL-EVENT     
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI d_advprocset  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -602,10 +617,7 @@ PROCEDURE disable_UI :
   HIDE FRAME d_advprocset.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI d_advprocset  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -624,10 +636,6 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-d_advprocset}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Get_New_Proctype d_advprocset 
 PROCEDURE Get_New_Proctype :
 /* -----------------------------------------------------------
   Purpose:     Prompts for New Proctype
@@ -643,13 +651,18 @@ PROCEDURE Get_New_Proctype :
        b_ok     AT ROW 1.5 COL 36 
        b_cancel AT ROW 2.8 COL 36
     WITH FRAME pt SIDE-LABELS 
-    TITLE "New Procedure Type" THREE-D NO-LABELS
-    &IF "{&WINDOW-SYSTEM}" EQ "OSF/MOTIF" &THEN
-      SIZE 52 BY 3.5
-    &ELSE
-      SIZE 52 BY 4.5
-    &ENDIF
-    VIEW-AS DIALOG-BOX DEFAULT-BUTTON b_OK.
+    THREE-D NO-LABELS
+/*    &IF "{&WINDOW-SYSTEM}" EQ "OSF/MOTIF" &THEN*/
+/*      SIZE 52 BY 3.5                           */
+/*    &ELSE                                      */
+/*      SIZE 52 BY 4.5                           */
+/*    &ENDIF             */
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    TITLE xNewTitle  VIEW-AS DIALOG-BOX
+    &else
+    NO-BOX
+    &endif
+    DEFAULT-BUTTON b_OK.
 
   ON " " OF proctype DO:
     MESSAGE "Spaces are not allowed in the Procedure Type." VIEW-AS ALERT-BOX
@@ -681,14 +694,25 @@ PROCEDURE Get_New_Proctype :
       ASSIGN proctype = "".
   END.
   
+  {adeuib/ide/dialoginit.i "FRAME pt:handle"}
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+  dialogService:View(). 
+  &endif
+  
+  &SCOPED-DEFINE CANCEL-EVENT U4
+  {adeuib/ide/dialogstart.i b_ok b_cancel xNewTitle}
+  
   ENABLE ALL WITH FRAME pt.
+  
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
   WAIT-FOR GO OF FRAME pt.    
+  &else
+  WAIT-FOR GO OF FRAME pt or "{&CANCEL-EVENT}" of this-procedure.    
+   &endif
+ &undefine CANCEL-EVENT
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Init d_advprocset 
 PROCEDURE Init :
 /* -----------------------------------------------------------
   Purpose:     Initialize dialog.
@@ -743,10 +767,7 @@ ASSIGN c_type = IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "Dat
   RUN Update_Screen.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Sensitize d_advprocset 
 PROCEDURE Sensitize :
 /* -----------------------------------------------------------
   Purpose:     Turns most fields sensitivity on or off.
@@ -787,10 +808,7 @@ PROCEDURE Sensitize :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Set_PI_Mode d_advprocset 
 PROCEDURE Set_PI_Mode :
 /* -----------------------------------------------------------
   Purpose:     Turns off everything for P and I file types.
@@ -811,10 +829,7 @@ PROCEDURE Set_PI_Mode :
   END. 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Update_Screen d_advprocset 
 PROCEDURE Update_Screen :
 /* -----------------------------------------------------------
   Purpose:     Updates screen fields.
@@ -883,6 +898,4 @@ PROCEDURE Update_Screen :
   END. /* DO WITH FRAME {&FRAME-NAME} */    
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

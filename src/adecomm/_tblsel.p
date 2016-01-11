@@ -68,7 +68,7 @@ DEFINE VAR t_char       AS CHAR    NO-UNDO.
 DEFINE BUTTON b_ok      LABEL "OK"      {&STDPH_OKBTN} AUTO-GO.
 DEFINE BUTTON b_cancel  LABEL "Cancel"  {&STDPH_OKBTN} AUTO-ENDKEY.
 DEFINE BUTTON b_Help    LABEL "&Help"   {&STDPH_OKBTN}.
-
+DEFINE VARIABLE wintitle AS CHARACTER NO-UNDO INIT "Table Selector".
 DEFINE QUERY  db-browse FOR s_ttb_db.
 DEFINE BROWSE db-browse QUERY db-browse NO-LOCK
        DISPLAY s_ttb_db.ldbnm FORMAT "X(40)"
@@ -95,11 +95,20 @@ FORM
       &HELP   ="b_Help" 
   }
   with frame schemapk 
-      view-as dialog-box no-labels title "Table Selector"
-      default-button b_OK cancel-button b_Cancel WIDTH {&FWidth}.
+      
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+       view-as dialog-box title wintitle
+      &else
+      no-box three-d 
+      &endif 
+      no-labels  default-button b_OK cancel-button b_Cancel WIDTH {&FWidth}.
 
 FRAME schemapk:HIDDEN = TRUE.
 
+{adeuib/ide/dialoginit.i "FRAME schemapk:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View().
+&endif
 /*-------------------------------Triggers------------------------------------*/
 
 /*-----WINDOW-CLOSE-----*/
@@ -218,14 +227,23 @@ ENABLE db-browse
   with frame schemapk.
 
 FRAME schemapk:HIDDEN = FALSE.
-
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i b_ok b_cancel wintitle}
 /* Select initial db */
 IF repos NE ? THEN REPOSITION db-browse TO RECID repos.
 ELSE t_log = db-browse:SELECT-ROW(1).
 
 DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
-   WAIT-FOR CHOOSE OF b_ok IN FRAME schemapk OR
-            GO     OF FRAME schemapk.
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR CHOOSE OF b_ok IN FRAME schemapk 
+              OR GO OF FRAME schemapk.
+    &ELSE
+        WAIT-FOR "choose" of b_ok in frame schemapk 
+              or "u2" of this-procedure
+              or GO OF FRAME schemapk.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+   
 END.
 
 HIDE FRAME schemapk.

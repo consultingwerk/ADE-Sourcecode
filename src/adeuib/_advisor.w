@@ -103,7 +103,7 @@ IF NOT initialized_adestds
 DEFINE VARIABLE adjust      AS INTEGER          NO-UNDO.
 DEFINE VARIABLE h_options   AS WIDGET-HANDLE    NO-UNDO.
 DEFINE VARIABLE h_parent    AS WIDGET-HANDLE    NO-UNDO.
-
+DEFINE VARIABLE winTitle    AS CHARACTER        NO-UNDO INITIAL "PROGRESS Advisor".
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -167,12 +167,22 @@ DEFINE FRAME f_dlg
      tg_never_again AT ROW 8.19 COL 2
      IMAGE-1 AT Y 0 X 0
      SPACE(51.99) SKIP(2.75)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if defined(IDE-IS-RUNNING) = 0 &then 
+       VIEW-AS DIALOG-BOX TITLE winTitle
+    &else
+    no-box
+    &endif 
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          BGCOLOR 8 
-         TITLE "PROGRESS Advisor"
+         
          DEFAULT-BUTTON Btn_OK.
 
+{adeuib/ide/dialoginit.i "FRAME f_dlg:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 
 /* *********************** Procedure Settings ************************ */
 
@@ -234,13 +244,15 @@ END.
 /* ***************************  Main Block  *************************** */
 
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 h_parent = FRAME {&FRAME-NAME}:PARENT.
+
 /* The cursor of the parent may have been set to WAIT state. Make sure it
    is not. */
 IF NOT h_parent:LOAD-MOUSE-POINTER ("") THEN RUN adecomm/_setcurs.p ("":U).
-     
+
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
@@ -253,15 +265,26 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN setup-ui.
 
   DYNAMIC-FUNCTION("center-frame":U IN _h_func_lib, FRAME {&FRAME-NAME}:HANDLE).
-
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   define variable cancelDialog as logical no-undo.
+   dialogService:View().
+   dialogService:SetOkButton(btn_ok:handle).
+   dialogService:CancelEventNum=2.
+   dialogService:Title= winTitle.
+   on "u2" of frame {&FRAME-NAME} do:
+       cancelDialog = true.
+   end.    
+  &ENDIF
   RUN show-toggle.
   RUN enable_UI.
-  
-  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS btn_OK.
-   
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS btn_OK.
+  &ELSE
+     WAIT-FOR GO OF FRAME {&FRAME-NAME} or "u2" of this-procedure FOCUS btn_OK.   
+     if cancelDialog THEN UNDO, LEAVE.  
+  &endif 
   /* Return the value of the "never again" toggle if it was asked for. */
   pl_never_again = IF pl_never_toggle THEN tg_never_again:CHECKED ELSE TRUE.
-
   /* Get the value of the options radio-set, if it exists */
   IF VALID-HANDLE(h_options) THEN 
     pc_choice = h_options:SCREEN-VALUE.

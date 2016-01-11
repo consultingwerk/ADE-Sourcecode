@@ -38,10 +38,12 @@ DEF INPUT-OUTPUT PARAMETER ok-cancel AS CHARACTER                      NO-UNDO.
 {adeuib/triggers.i}
 {adeuib/sharvars.i}
 {adeuib/uibhlp.i}
+{adecomm/oeideservice.i}
 
 DEF VAR never-again          AS LOGICAL                                NO-UNDO.
-    
-RUN adeuib/_advisor.w (
+
+if OEIDE_CanLaunchDialog() then
+   RUN adeuib/ide/_dialog_advisor.p (
   /* TEXT */    INPUT "Freeform queries are edited using the Section Editor." +
                       "  This is an advanced feature, press 'Help' for details.",
   /* OPTIONS */ INPUT "Freeform.  Allow freeform editing of query.,Freeform," +
@@ -51,6 +53,17 @@ RUN adeuib/_advisor.w (
                 INPUT {&Free_Form_Query_Dlg_Box},
                 INPUT-OUTPUT ok-cancel,
                 OUTPUT never-again).
+else
+     RUN adeuib/_advisor.w (
+     /* TEXT */    INPUT "Freeform queries are edited using the Section Editor." +
+                      "  This is an advanced feature, press 'Help' for details.",
+     /* OPTIONS */ INPUT "Freeform.  Allow freeform editing of query.,Freeform," +
+                      "Cancel.  Use Query Builder.,Cancel",
+                   INPUT FALSE,
+                   INPUT "AB",
+                   INPUT {&Free_Form_Query_Dlg_Box},
+                   INPUT-OUTPUT ok-cancel,
+                   OUTPUT never-again).
 
 IF ok-cancel = "Freeform":U THEN DO:
   FIND _U WHERE RECID(_U) = _query-u-rec.

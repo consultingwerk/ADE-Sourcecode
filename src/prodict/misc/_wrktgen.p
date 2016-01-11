@@ -239,6 +239,8 @@ DEFINE VARIABLE msschoiceSchema     AS INTEGER    NO-UNDO.
 DEFINE VARIABLE mssOptRowid         AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE mandatory           AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE NonUnikCC           AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE NoCC                AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE uniqCompat          AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE keyCreated          AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE uniqueness          AS CHARACTER  NO-UNDO INITIAL "".
@@ -1652,20 +1654,40 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   IF (dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" ) THEN DO: 
     keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
                                (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR 
-                                DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M")). 
+                                DICTDB._Constraint._Con-Type = "MP" )). 
+
+    FIND FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
+         DICTDB._Constraint._Con-Type = "M" NO-ERROR. 
+    IF AVAILABLE DICTDB._CONSTRAINT THEN DO:
+       FIND FIRST DICTDB._Index OF DICTDB._File 
+                  WHERE RECID (DICTDB._Index) = DICTDB._CONSTRAINT._Index-recid AND 
+                        DICTDB._Index._Unique <> TRUE NO-ERROR.
+       IF AVAILABLE DICTDB._Index THEN ASSIGN NonUnikCC = TRUE.
+       ELSE IF keyExist = FALSE THEN  keyExist = TRUE.
+    END.
+    ELSE ASSIGN NoCC = TRUE.
     IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index
                     AND DICTDB._Index._Unique = TRUE ) THEN 
        ASSIGN pk_unique = TRUE.
 
     IF ( migConstraint AND keyExist) THEN ASSIGN uniqCompat = FALSE.
-    ELSE  IF (msstryp) THEN DO:
+    ELSE IF (migConstraint AND NonUnikCC) THEN DO:
+            IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN 
+               ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE" 
+                      keyExist = TRUE.
+    END.
+    ELSE IF (msstryp) THEN DO:
        IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) THEN DO:
           ASSIGN prowid_col = "PROGRESS_RECID_UNIQUE".
           IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index 
-                         AND DICTDB._Index._Index-name = "default" ) THEN
+                      AND DICTDB._Index._Index-name = "default" ) THEN
              ASSIGN uniqCompat = FALSE.
        END.
        IF pk_unique THEN ASSIGN uniqCompat = FALSE. else ASSIGN uniqueness = " UNIQUE ".
+    END.
+    ELSE IF (migConstraint AND NoCC) THEN DO:
+       IF ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U")) AND 
+            NOT keyExist THEN ASSIGN uniqCompat = FALSE.
     END.
   END.
   
@@ -1787,7 +1809,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       comment_chars "    begin" SKIP
       comment_chars "        update t set " prowid_col " = i.IDENTITYCOL " SKIP
       comment_chars "         from " n1 " t  JOIN inserted i ON " skip
-      comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
+      comment_chars "         t." prowid_col "_IDENT_ = i." prowid_col "_IDENT_" SKIP
       comment_chars "        select convert (bigint, @@identity)" SKIP
       comment_chars "    end" SKIP    
       comment_chars " SET XACT_ABORT OFF " SKIP    
@@ -2107,21 +2129,26 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       
       IF (uniqueindx eq "1") 
       THEN DO:
-       IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
-              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7"
-       THEN          
-        PUT STREAM code UNFORMATTED
-           comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
-           " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
-      ELSE       
-      PUT STREAM code UNFORMATTED
-        comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
-        " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+               AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7" 
+        THEN DO:
+          Assign uniqueness = "".
+          IF DICTDB._Index._Unique THEN 
+             uniqueness = " UNIQUE ". 
+          ELSE IF (NonUnikCC AND ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U"))) THEN 
+                      uniqueness = " UNIQUE ".
+          PUT STREAM code UNFORMATTED
+              comment_chars "CREATE " uniqueness
+              " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+        END. 
+        ELSE       
+          PUT STREAM code UNFORMATTED
+              comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
+              " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
       END.
       ELSE DO:
-        IF DICTDB._Index._Unique 
-        THEN DO:
-         FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
+        IF DICTDB._Index._Unique THEN DO:
+           FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
               AND DICTDB._Constraint._Con-Active = TRUE AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
               DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "U" )NO-LOCK NO-ERROR.
            IF AVAILABLE (DICTDB._Constraint) 
@@ -2156,14 +2183,17 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         END.
         ELSE DO:
         IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
-              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7"
-        THEN          
-        PUT STREAM code UNFORMATTED
-           comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
-           " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+             AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7" THEN DO:         
+             Assign uniqueness = "".
+             IF (NonUnikCC AND ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U"))) THEN 
+                      uniqueness = " UNIQUE ".
+             PUT STREAM code UNFORMATTED
+               comment_chars "CREATE" uniqueness
+               "CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+        END.
         ELSE     
-        PUT STREAM code UNFORMATTED
-          comment_chars "CREATE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+          PUT STREAM code UNFORMATTED
+              comment_chars "CREATE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
         END.
       END.      
       FOR EACH DICTDB._Index-field OF DICTDB._Index,
@@ -2293,6 +2323,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          keyCreated = FALSE
          FieldList  = ""
          keyExist   = FALSE
+         NonUnikCC  = FALSE
+         NoCC       = FALSE
          uniqCompat = TRUE.
 
 
@@ -3079,6 +3111,7 @@ PROCEDURE createKey:
      ELSE DO: /* not unique */
        IF compatible AND (mssOptRowid EQ "U") THEN DO: /* For ROWID uniqueness */
           ASSIGN FieldList = FieldList + ", " + prowid_col.
+          IF entry(2,user_env[27]) EQ "1" THEN mandatory = FALSE. 
           IF mandatory THEN DO:
             IF NOT mssclus_explct THEN RUN  createPrimaryKey (INPUT pindex2).
             ELSE DO:

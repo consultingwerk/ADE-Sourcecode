@@ -37,7 +37,7 @@ Modified on 01/30/97 gfs Added _U._SCROLLBAR-V which defaults to TRUE
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
-
+{adecomm/oeideservice.i}
 DEFINE VAR l_dummy      AS LOGICAL                                    NO-UNDO.
 DEFINE VAR cur-lo       AS CHARACTER                                  NO-UNDO.
 DEFINE VAR i            AS INTEGER                                    NO-UNDO.
@@ -128,7 +128,6 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
     END.
   END.
   RUN adeuib/_callqry.p ("_U":U, RECID(_U), "CHECK-FIELDS":U).
-
   /* Browse widgets are treated like frames to default their widget id */
   IF _widgetid_assign THEN
     _U._WIDGET-ID = DYNAMIC-FUNCTION("nextFrameWidgetID":U IN _h_func_lib,
@@ -141,7 +140,8 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
   /* Create the widget based on the Universal widget record. */
   RUN adeuib/_undbrow.p (RECID(_U)).
 END.  /* TRANSACTION */
-
+if OEIDEIsRunning and avail _U then
+        run CallWidgetEvent in _h_uib(input recid(_U),"Add").
 /* FOR EACH layout other than the current layout, populate _L records for them */
 {adeuib/multi_l.i}
 

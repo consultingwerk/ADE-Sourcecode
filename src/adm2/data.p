@@ -2,9 +2,9 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /**********************************************************************************/
-/* Copyright (C) 2005-2006 by Progress Software Corporation. All rights reserved. */
-/* Prior versions of this work may contain portions contributed by            */
-/* participants of Possenet.                                                  */             
+/* Copyright (C) 2005-2006,2012 by Progress Software Corporation. All rights      */
+/* reserved. Prior versions of this work may contain portions contributed by      */
+/* participants of Possenet.                                                      */             
 /**********************************************************************************/
 
 /*--------------------------------------------------------------------------
@@ -3132,9 +3132,7 @@ PROCEDURE initializeObject :
       {get HideOnInit lHideOnInit}.
       IF NOT lHideOnInit THEN 
       DO:
-        /* The Objecthidden is set and used also for non-visual objects */
-        {set ObjectHidden NO}.
-        PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('active':U).  
+        run viewObject in target-procedure. 
       END.
       ELSE DO:
         /* The Objecthidden is set and used also for non-visual objects */

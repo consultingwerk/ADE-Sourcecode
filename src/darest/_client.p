@@ -196,25 +196,21 @@ procedure WriteToSocket:
                    any attribute then by default the length is returned in Characters which
                    may result in loss of some characters at the end of the stream resulting 
                    in error on the Java side.
+                   
+                   HD - changed to always use utf-8 cpinternal is irrelevant
+                   OE00221236 Issues displaying UTF-8 data in IE and chrom
+                   
                 */    
                 
-                if string(SESSION:CPINTERNAL) <> "utf-8" then do:
-                    define variable mpacket as memptr no-undo.
-                    set-byte-order(mpacket) = 3.
-                    COPY-LOB packet TO mpacket CONVERT TARGET CODEPAGE "utf-8".
-                    packetLength = GET-SIZE(mpacket).
-                    SET-SIZE(packetBuffer) = packetLength + {&PACKET_HEADER_SIZE} + 1.
-                    PUT-BYTE(packetBuffer, 1) = {&PACKET_BEGIN}.
-                    PUT-LONG(packetBuffer, 2) = packetLength.
-                    PUT-BYTES(packetBuffer, 6) = mpacket.
-                end.
-                else do:
-                    packetLength = LENGTH(packet, "RAW").
-                    SET-SIZE(packetBuffer) = packetLength + {&PACKET_HEADER_SIZE} + 1.
-                    PUT-BYTE(packetBuffer, 1) = {&PACKET_BEGIN}.
-                    PUT-LONG(packetBuffer, 2) = packetLength.
-                    PUT-STRING(packetBuffer, 6, LENGTH(packet, "RAW")) = packet.
-                end. 
+                define variable mpacket as memptr no-undo.
+                set-byte-order(mpacket) = 3.
+                COPY-LOB packet TO mpacket CONVERT TARGET CODEPAGE "utf-8".
+                packetLength = GET-SIZE(mpacket).
+                SET-SIZE(packetBuffer) = packetLength + {&PACKET_HEADER_SIZE} + 1.
+                PUT-BYTE(packetBuffer, 1) = {&PACKET_BEGIN}.
+                PUT-LONG(packetBuffer, 2) = packetLength.
+                PUT-BYTES(packetBuffer, 6) = mpacket.
+
                 PUT-BYTE(packetBuffer, {&PACKET_HEADER_SIZE} + packetLength + 1) = {&PACKET_END}.
                 
                 ok = fSocketHandle:WRITE (packetBuffer,1, {&PACKET_HEADER_SIZE} + packetLength + 1) no-error.

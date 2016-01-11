@@ -121,7 +121,8 @@ DEFINE VARIABLE ExtensionFlag     AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE ByteSize          AS DECIMAL   NO-UNDO.
 DEFINE VARIABLE FileContents      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE LeaveFlag         AS LOGICAL   NO-UNDO.
-
+define var wintitle as char no-undo.
+ 
 /*
 ** Patrick Tullmann's Dir DLL
 */
@@ -133,7 +134,7 @@ DEFINE VARIABLE missed-file AS INTEGER.
 DEFINE VARIABLE DirError    AS INTEGER.
 
 /*
-** Pre-processor Definitions
+** Pre-processor DefinitionsFRAME {&FRAME-NAME}:title
 */
 &SCOPED-DEFINE WINDOW-NAME {&FRAME-NAME}
 &SCOPED-DEFINE FRAME-NAME  {&FRAME-NAME}
@@ -260,10 +261,18 @@ DEFINE FRAME f_findfile
      "&Directory:" VIEW-AS TEXT
           SIZE 9 BY .67 AT ROW 12.62 COL 2.4
      SPACE(75.59) SKIP(1.23)
-    WITH VIEW-AS DIALOG-BOX 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "":C.
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    VIEW-AS DIALOG-BOX TITLE "":C  
+    &else
+    NO-BOX
+    &endif
+    SIDE-LABELS  NO-UNDERLINE THREE-D SCROLLABLE .
+{adeuib/ide/dialoginit.i "FRAME f_findfile:handle"}
 
+&IF DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+dialogService:View().  
+&ENDIF 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -296,7 +305,6 @@ ASSIGN
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
- 
 
 
 
@@ -343,8 +351,14 @@ DO:
 
   /* Make sure the file name is valid. */
   IF SEARCH(pAbsoluteFileName) EQ ? AND pfilename NE "" THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("The file does not exist or cannot be located.",
+                           "Warning",?,"OK",yes).
+      
+    &else  
     MESSAGE pFileName SKIP
       "The file does not exist or cannot be located." VIEW-AS ALERT-BOX WARNING.
+    &endif  
     RETURN NO-APPLY.
   END.
   
@@ -389,8 +403,14 @@ DO:
   InitFilter = 1.
   DO i = 1 TO ItemCnt:
     IF i > 10 THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("Only first ten file types will be used as filters.",
+                           "Information",?,"OK",yes).
+      
+      &else   
       MESSAGE "Only first ten file types will be used as filters." 
         VIEW-AS ALERT-BOX INFORMATION.
+      &endif  
       LEAVE.
     END.
 
@@ -465,28 +485,7 @@ END.
 ON CHOOSE OF EditPathButton IN FRAME f_findfile /* Edit Path... */
 DO:
   DO WITH FRAME {&FRAME-NAME}:
-    DEFINE VARIABLE pNewList AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE OrigPath AS CHARACTER NO-UNDO.
-
-    ASSIGN
-      pCurrentPath = TRIM(DirList:SCREEN-VALUE)
-      OrigPath     = pCurrentPath
-      .
-
-    RUN adecomm/_modpath.w (DirList:LIST-ITEMS, SESSION:THREE-D, 
-                            INPUT-OUTPUT pCurrentPath, OUTPUT pNewList).
-      
-    /* NewList will be blank if the user cancelled. */
-    IF pNewList ne "" THEN DO:
-      ASSIGN
-        DirList:LIST-ITEMS   = ""
-        DirList:LIST-ITEMS   = pNewList
-        DirList:SCREEN-VALUE = TRIM(pCurrentPath).
-        
-      /* Was the current item changed? */
-      IF pCurrentPath ne OrigPath
-      THEN APPLY "VALUE-CHANGED" TO DirList IN FRAME {&FRAME-NAME}.
-    END.
+     run choose_modpath(DirList:SCREEN-VALUE) .
   END.
 END.
 
@@ -566,10 +565,17 @@ DO:
         FILE-INFO:FILE-NAME = TestValue.
         IF FILE-INFO:FULL-PATHNAME EQ ? THEN DO:
             IF VALID-HANDLE(h) AND (h:NAME NE "btn_OK" OR h:NAME NE "btn_Help") THEN LEAVE.
+             &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+                ShowMessageInIDE(TestValue + "~n Cannot find this file.~n
+                                 Please verify that the correct path and filename are given.",
+                                 "Error",?,"OK",yes).
+      
+           &else 
             MESSAGE TestValue SKIP 
                 "Cannot find this file." SKIP(1)
                 "Please verify that the correct path and filename are given."
                 VIEW-AS ALERT-BOX ERROR.
+           &endif     
           RETURN NO-APPLY.
         END.
         /* If it's a directory, add a filter */
@@ -696,6 +702,7 @@ hlp_context = IF pMode eq "TEMPLATE" THEN {&Find_Template_Dlg_Box}
    2) Make sure image/rectangle is wide enough to hold 320 pixels
    3) Make sure the Text and Image displays just fit inside the Container 
       rectangle. */
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
 DO WITH FRAME {&FRAME-NAME}:
   ASSIGN FileList:INNER-LINES  = INTEGER(FileList:INNER-LINES).
   /* Check that the rectangle can hold a 320 pixel image. */
@@ -722,8 +729,9 @@ DO WITH FRAME {&FRAME-NAME}:
          ImageDisplay:X        = TextDisplay:X 
          ImageDisplay:Y        = TextDisplay:Y       
          .
-END. /* DO WITH FRAME... */
 
+END. /* DO WITH FRAME... */
+ &endif
 /* ***************************** Main Code Block ****************************** */
 
 /* These trigger on the ALT keys serve to make the accelerators work as expected.
@@ -744,7 +752,17 @@ DO ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   ** procedure also handles the enabling.
   */
   RUN InitFindFile.
-  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS FileList.
+ wintitle = (IF NOT pTitle BEGINS "Choose" THEN "Choose ":U ELSE "") + pTitle.   
+  &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS FileList. 
+&ELSE
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
+  
+  if cancelDialog THEN UNDO, LEAVE.  
+&endif
+   
 END.
 
 /*
@@ -755,9 +773,57 @@ HIDE FRAME {&FRAME-NAME}.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-
 /* **********************  Internal Procedures  *********************** */
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_modpath f_findfile
 
+PROCEDURE choose_modpath:
+     define input  parameter pCurrentPath as character no-undo.
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_modpath",pCurrentPath).
+      run runChildDialog in hOEIDEService (dialogService) .
+     &else 
+      run do_choose_modpath(pCurrentPath).
+     &endif
+end procedure.
+
+ /* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+ 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE do_choose_modpath f_findfile
+PROCEDURE do_choose_modpath:
+     define input  parameter pCurrentPath as character no-undo.
+     define variable cNewList as character no-undo.
+     define variable OrigPath as character no-undo.
+     DO WITH FRAME {&FRAME-NAME}:
+         OrigPath     = pCurrentPath.
+    
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         RUN adeuib/ide/_dialog_modpath.p (DirList:LIST-ITEMS, SESSION:THREE-D, 
+                            INPUT-OUTPUT pCurrentPath, OUTPUT cNewList).
+    &else 
+         RUN adecomm/_modpath.w (DirList:LIST-ITEMS, SESSION:THREE-D, 
+                            INPUT-OUTPUT pCurrentPath, OUTPUT cNewList).
+    &endif                        
+      
+      /* NewList will be blank if the user cancelled. */
+         IF cNewList ne "" THEN DO:
+             ASSIGN
+                DirList:LIST-ITEMS   = ""
+                DirList:LIST-ITEMS   = cNewList
+                DirList:SCREEN-VALUE = TRIM(pCurrentPath).
+            
+             /* Was the current item changed? */
+             IF pCurrentPath ne OrigPath THEN 
+                APPLY "VALUE-CHANGED" TO DirList IN FRAME {&FRAME-NAME}.
+         END.
+     END.
+                       
+END PROCEDURE.   
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+ 
+ 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE AddDirName f_findfile 
 PROCEDURE AddDirName :
 DO WITH FRAME {&FRAME-NAME}:
@@ -804,8 +870,14 @@ DO WITH FRAME {&FRAME-NAME}:
     IF OPSYS = "MSDOS":u THEN
     DO:
       IF LENGTH(ENTRY(2,FileName,".":U),"raw") > 3 THEN DO:
+         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+                ShowMessageInIDE(ENTRY(2,FileName,".":U) + " file filter is too long for DOS.",
+                                 "Error",?,"OK",yes).
+      
+        &else   
         MESSAGE ENTRY(2,FileName,".":U) "file filter is too long for DOS."
           VIEW-AS ALERT-BOX.
+        &endif  
         RETURN.
       END.
     END.
@@ -1051,8 +1123,10 @@ PROCEDURE InitFindFile :
     */
     ASSIGN
       pFileName                       = REPLACE(pFileName,"/","{&DIR-SLASH}")
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then 
       FRAME {&FRAME-NAME}:title       = (IF NOT pTitle BEGINS "Choose" THEN
                                           "Choose ":U ELSE "") + pTitle
+      &endif                                          
       ImageDisplay:auto-resize        = FALSE
       TextDisplay:read-only           = TRUE
       pOK                             = FALSE
@@ -1082,6 +1156,7 @@ PROCEDURE InitFindFile :
         ImageDisplay
         TextDisplay
       WITH FRAME {&FRAME-NAME}.
+      
     RUN InitDirList.
     ASSIGN
       /* Don't show the radio-set unless we support two modes of Preview. */
@@ -1162,8 +1237,14 @@ PROCEDURE LoadTextError :
 DO WITH FRAME {&FRAME-NAME}:
     RUN ClearContents.
     BELL.
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        ShowMessageInIDE(TRIM(FullFileName) + " could not be loaded successfully.",
+                         "Error",?,"OK",yes).
+      
+    &else
     MESSAGE TRIM(FullFileName) "could not be loaded successfully."
       VIEW-AS ALERT-BOX ERROR.
+    &endif  
   END.
 END PROCEDURE.
 
@@ -1285,15 +1366,28 @@ PROCEDURE PopulateFileList :
       IF DirError <> 0 THEN DO:
         RUN adecomm/_setcurs.p ("":U).
         SET-SIZE(list-mem) = 0.
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        ShowMessageInIDE("Error in directory search.",
+                         "Error",?,"OK",yes).
+      
+        &else
         MESSAGE "Error in directory search." 
           VIEW-AS ALERT-BOX ERROR.
+        &endif  
         RETURN "False".
       END.
       
       IF missed-file > 0 THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        ShowMessageInIDE("Too many files in your directory.~n
+                          The file list may not be inclusive.",
+                         "Information",?,"OK",yes).
+      
+        &else  
         MESSAGE "Too many files in your directory." SKIP
           "The file list may not be inclusive."
           VIEW-AS ALERT-BOX INFORMATION.
+        &endif  
       END.
       
       ASSIGN

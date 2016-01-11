@@ -42,9 +42,6 @@ History:
 DEFINE NEW SHARED STREAM WebStream.
 
 PROCEDURE ADEPersistent:
-    MESSAGE 'DEBUG ADEPersistent'
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    RUN ADEPersistent IN hProc NO-ERROR.
 END PROCEDURE.
 
 
@@ -355,87 +352,11 @@ PROCEDURE SecEdWindow:
     DEFINE INPUT PARAMETER pi_event AS CHARACTER NO-UNDO.
     DEFINE INPUT PARAMETER p_command AS CHARACTER NO-UNDO.
     
-    DEFINE VARIABLE cWidgetName   AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE cWindowName   AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE hWindowHandle AS HANDLE     NO-UNDO.
-    
-    DEFINE VARIABLE lActivateEditor AS LOGICAL    NO-UNDO INITIAL TRUE.
-
-    
-    IF p_command = "SE_OEOPEN" THEN
-        ASSIGN p_command = "" lActivateEditor = FALSE.
-
-    CASE p_command:
-        WHEN "SE_ERROR" THEN
-        DO:        
-            FIND FIRST _SEW_TRG WHERE RECID(_SEW_TRG) = _err_recid NO-LOCK NO-ERROR.
-            IF AVAILABLE _SEW_TRG AND 
-               (_SEW_TRG._tSECTION = "_PROCEDURE":U OR _SEW_TRG._tSECTION = "_FUNCTION":U OR _SEW_TRG._tSECTION = "_CUSTOM":U) THEN
-            DO:
-                FIND FIRST _SEW_U WHERE RECID(_SEW_U) = _SEW_TRG._wRECID NO-LOCK NO-ERROR.
-                FIND b_P WHERE b_P._WINDOW-HANDLE = _SEW_U._handle NO-LOCK NO-ERROR.
-                IF AVAILABLE _SEW_U AND AVAILABLE b_P THEN
-                DO:
-                    findAndSelect(getProjectName(),
-                                b_P._save-as-file,
-                                '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK ":U + 
-                                _SEW_TRG._tSECTION + " " + _tEVENT + " " + _SEW_U._name + '"', TRUE).                    
-                END.
-            END.
-        END.    
-        WHEN "" THEN
-        DO WITH FRAME {&FRAME-NAME}:
-            IF pi_section = "_CONTROL":U THEN DO:
-                FIND FIRST _SEW_TRG WHERE _SEW_TRG._wrecid = pi_recid NO-LOCK NO-ERROR.
-                FIND FIRST _SEW_U WHERE RECID(_SEW_U) = pi_recid NO-LOCK NO-ERROR.
-    
-                ASSIGN cWidgetName = ? hWindowHandle = ?.
-                cWidgetName = IF AVAILABLE _SEW_U THEN _SEW_U._name ELSE ?.
-                hWindowHandle = IF AVAILABLE _SEW_U THEN _SEW_U._window-handle ELSE ?.
-                IF hWindowHandle <> ? THEN
-                DO:
-                    FIND FIRST _SEW_U WHERE _SEW_U._handle = hWindowHandle NO-LOCK NO-ERROR.
-                    cWindowName = IF AVAILABLE _SEW_U THEN _SEW_U._name ELSE ?.
-                END.
-
-                IF cWidgetName > "" AND cWindowName > "" THEN
-                DO:
-                    FIND b_P WHERE b_P._WINDOW-HANDLE = _h_win NO-LOCK NO-ERROR.
-                    IF AVAILABLE b_P THEN
-                    DO:                        
-                        findAndSelect(getProjectName(),
-                                b_P._save-as-file,
-                                '"' + "&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL ":U + cWidgetName + " " + cWindowName + '"', lActivateEditor).
-                    END.
-                END.                        
-            END.
-        END.
-        WHEN "SE_STORE_WIN" THEN
-        DO WITH FRAME {&FRAME-NAME}:
-            DEFINE VARIABLE cLinkedFile AS CHARACTER  NO-UNDO.
-
-            IF VALID-HANDLE(_h_win) AND _h_win:PRIVATE-DATA <> "_OEIDE" THEN
-            DO:
-                FIND b_P WHERE b_P._WINDOW-HANDLE = _h_win NO-LOCK NO-ERROR.
-                IF NOT AVAILABLE b_P THEN RETURN.           
-                RUN getLinkedFileName IN hOEIDEService (_h_win, OUTPUT cLinkedFile).
-                RUN SyncFromIDE (cLinkedFile).
-            END.    
-        END.
-        OTHERWISE
-        DO: 
-            /* DEBUG
-            MESSAGE 'DEBUG SecEdWindow' SKIP
-                    'pi_section' pi_section SKIP
-                    'pi_recid' pi_recid SKIP
-                    'pi_event' pi_event SKIP
-                    'p_command' p_command
-              VIEW-AS ALERT-BOX INFO BUTTONS OK.
-             */
-        END.
-    END CASE.
+    /** During dev for 11.2 the various case statements here became dead ends
+        We currently need the api since it is called from many places when the handle is valid
+        So really...do nothing */
+     
 END PROCEDURE.
-
 
 PROCEDURE AssignSEW:
     DEFINE INPUT PARAMETER se_section AS CHARACTER NO-UNDO.
@@ -895,8 +816,8 @@ PROCEDURE NewTriggerBlock.
        END.
 
         RUN getLinkedFileName IN hOEIDEService (b_P._WINDOW-HANDLE, OUTPUT cLinkedFile).
-        IF cLinkedFile > "" THEN
-          RUN syncFromAB (cLinkedFile).
+        /* IF cLinkedFile > "" THEN
+          RUN syncFromAB (cLinkedFile). */ 
       END.      
   END.
 
@@ -939,6 +860,157 @@ DO:
 END.              
                
 END PROCEDURE.
+
+PROCEDURE GetOverrides.
+  /*-------------------------------------------------------------------------
+    Purpose:        Called from IDE to get list of overrides for Add Procedure and
+                    Add Function wizards 
+    Run Syntax:     RUN NewProcedureBlock.
+    Parameters:     
+  ---------------------------------------------------------------------------*/
+    define input  parameter pwin as handle  no-undo.
+    define input parameter p_se_section as character no-undo.
+    define output parameter Smart_List as longchar no-undo.
+    define variable Super_Procs       as character no-undo.
+    define variable Super_Handles     as character no-undo .
+    define variable Invalid_List      as character no-undo.
+    define variable hFrame as handle no-undo.
+    
+    find b_P where b_P._WINDOW-HANDLE = pwin no-lock no-error.
+    if not avail b_p then 
+    do:
+        hFrame = pwin:first-child.
+        find b_P where b_P._WINDOW-HANDLE = hFrame no-lock no-error.
+    end.
+    if not avail b_p then 
+        return.
+        
+    run Get_Proc_Lists
+          (input no , output Invalid_List , output Smart_List).
+    
+    case p_se_section:
+         when Type_Procedure then
+         do:
+             /* Build list of the object's Super Procedure internal procedures. */
+             run get-super-procedures in _h_mlmgr ( input string(b_P._WINDOW-HANDLE) ,
+                                                    input-output Super_Procs ,
+                                                    input-output Super_Handles).
+                                                    
+             run get-super-procs in _h_mlmgr (input Super_Handles ,
+                                              input-output Smart_List).
+        end.
+        when Type_Function then
+        do:
+            /* Build list of the object's Super Procedure user functions. */
+            run get-super-procedures in _h_mlmgr ( input string(b_P._WINDOW-HANDLE) ,
+                                                   input-output Super_Procs ,
+                                                   input-output Super_Handles).
+            run get-super-funcs in _h_mlmgr (input Super_Handles ,
+                                             input-output Smart_List).
+        end.                                   
+    end.    
+end procedure.
+
+PROCEDURE GetOverrideBody.
+  /*-------------------------------------------------------------------------
+    Purpose:        Called from IDE to override body
+                    Add Function wizards 
+    Run Syntax:     RUN NewProcedureBlock.
+    Parameters:     
+  ---------------------------------------------------------------------------*/
+    define input  parameter pwin as handle  no-undo.
+    define input parameter p_se_section as character no-undo.
+    define input  parameter pcName as character no-undo.
+    define output parameter pcode  as longchar no-undo.
+    
+    define variable Smart_List        as character no-undo.
+    define variable Super_Procs       as character no-undo.
+    define variable Super_Handles     as character no-undo .
+    define variable Invalid_List      as character no-undo.
+    define variable hProc             as handle no-undo.
+    define variable cDummy            as character no-undo.
+    define variable lDummy            as logical no-undo.
+    define variable cCode             as character no-undo.
+    define variable i1                as integer no-undo.
+    define variable i2                as integer no-undo.
+    define variable cReturn           as character no-undo.
+    define variable hFrame            as handle no-undo.
+    find b_P where b_P._WINDOW-HANDLE = pwin no-lock no-error.
+    if not avail b_p then 
+    do:
+        hFrame = pwin:first-child.
+        find b_P where b_P._WINDOW-HANDLE = hFrame no-lock no-error.
+    end.
+    if not avail b_p then 
+        return.
+    
+    run Get_Proc_Lists
+          (input no , output Invalid_List , output Smart_List).
+    
+    case p_se_section:
+         when Type_Procedure then
+         do:
+             /* Build list of the object's Super Procedure internal procedures. */
+             run get-super-procedures in _h_mlmgr ( input string(b_P._WINDOW-HANDLE) ,
+                                                    input-output Super_Procs ,
+                                                    input-output Super_Handles).
+                                                    
+             run get-super-procs in _h_mlmgr (input Super_Handles ,
+                                              input-output Smart_List).
+             
+
+             RUN adeuib/_newproc.w persistent set hProc( INPUT Super_Handles   ,
+                                     INPUT "OVERRIDE"     ,
+                                     INPUT Smart_List      ,
+                                     INPUT Invalid_List    ,
+                                     INPUT-OUTPUT cDummy ,
+                                     OUTPUT cDummy           ,
+                                     OUTPUT cDummy     ,
+                                     OUTPUT lDummy           ) .
+             
+             run getCode in hProc (pcName,"_LOCAL",output ccode).
+             if cCode = "" then 
+             do:
+                  RUN get-local-template IN _h_mlmgr (pcName, OUTPUT ccode).
+                  /* return body - ide adds comments and end procedure */
+                  i1 = index(ccode,"*/") + 2. 
+                  i2 = index (ccode,"END PROCEDURE.").
+                  if(i1 > 2 and i2 > i1) then 
+                     cCode =  substr(ccode,i1,i2 - i1).
+                  else if i2 > 0 then
+                     cCode =  substr(ccode,1,i2).
+                 
+             end.
+             pcode = ccode.    
+        end.
+        when Type_Function then
+        do:
+            /* Build list of the object's Super Procedure user functions. */
+            run get-super-procedures in _h_mlmgr ( input string(b_P._WINDOW-HANDLE) ,
+                                                   input-output Super_Procs ,
+                                                   input-output Super_Handles).
+            run get-super-funcs in _h_mlmgr (input Super_Handles ,
+                                             input-output Smart_List).
+            run adeuib/_newfunc.w persistent set hProc ( input Super_Handles   ,
+                                    input "OVERRIDE"     ,
+                                    input Smart_List      ,
+                                    input Invalid_List    ,
+                                    input-output cDummy ,
+                                    output cDummy,
+                                    output cDummy,
+                                    output cDummy,
+                                    output cDummy,
+                                    output lDummy).
+             run getCode in hProc (pcName,"_LOCAL",output ccode,output cReturn). 
+             pcode = ccode.                          
+        end.                                   
+    end.
+    finally:
+        if valid-handle(hProc) then
+            delete procedure hProc.		
+    end finally.    
+end procedure.
+
 
 PROCEDURE NewCodeBlock.
   /*-------------------------------------------------------------------------
@@ -1043,7 +1115,8 @@ PROCEDURE NewCodeBlock.
       END CASE.
       IF a_OK = FALSE THEN RETURN "_CANCEL":u.
     END.
-
+    
+    
     IF Type = "_DEFAULT":U THEN
     CASE new_name :
         WHEN Adm_Create_Obj THEN
@@ -1293,8 +1366,6 @@ PROCEDURE Get_Proc_Lists.
   DEFINE VARIABLE window-handle AS HANDLE    NO-UNDO.
   DEFINE VARIABLE adm-version   AS CHARACTER NO-UNDO.
   
-  DEFINE BUFFER b_U FOR _U.
-
   DEFINE VAR Smart_Prefix         AS CHARACTER INIT "adm-"                NO-UNDO.
 
   IF se_section = Type_Procedure THEN
@@ -1318,7 +1389,7 @@ PROCEDURE Get_Proc_Lists.
                                             INPUT-OUTPUT p_All_List   ,
                                             INPUT-OUTPUT p_Smart_List ).
     END.
-
+  
     /* Add to the All List any user defined procedures and add to the
        Smart List any user defined ADM Methods for the current design
        window. Smart List of "adm-" procs is for ADM1 objects only. - jep
@@ -1345,23 +1416,13 @@ PROCEDURE Get_Proc_Lists.
     /* Add to the p_All_List the names of the Procedure Object's Reserved
        Procedure Names (see Procedure Settings dialog).
     */                                                               
-    IF AVAILABLE _SEW_U THEN
-      ASSIGN window-handle = _SEW_U._WINDOW-HANDLE.
-    /*
-    ELSE DO:
-      FIND b_U WHERE RECID(b_U) = _SEW_BC._x-recid.
-      ASSIGN window-handle = b_U._WINDOW-HANDLE.
-    END.
-    */
-    FIND _P WHERE _P._WINDOW-HANDLE = window-handle NO-ERROR .
-    IF AVAILABLE _P AND _P._RESERVED-PROCS <> "" THEN
-        ASSIGN p_All_List = p_All_List + "," + _P._RESERVED-PROCS.
+    IF AVAILABLE b_P AND b_P._RESERVED-PROCS <> "" THEN
+        ASSIGN p_All_List = p_All_List + "," + b_P._RESERVED-PROCS.
 
     /* Ensure there are no leading or trailing commas. */
     ASSIGN p_All_List = TRIM(p_All_List, ",":U).
             
   END. /* DO WITH FRAME */
-  
   /* romiller add end */             
 END PROCEDURE.
 

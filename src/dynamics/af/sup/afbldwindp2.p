@@ -104,6 +104,9 @@ DEFINE VARIABLE lv_hdl AS HANDLE NO-UNDO.
 DEFINE VARIABLE lv_next_hdl AS HANDLE NO-UNDO.
 DEFINE VARIABLE lv_loop AS INTEGER NO-UNDO INITIAL 0.
 
+/* PDS integration code */
+{adecomm/oeideservice.i}  
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -185,7 +188,7 @@ PROCEDURE build-window-list-menu :
   DEFINE VARIABLE lv_handle AS HANDLE NO-UNDO.
   DEFINE VARIABLE lv_menu_item_hdl AS HANDLE NO-UNDO.
   DEFINE VARIABLE lv_enabled AS LOGICAL INITIAL yes.    
-
+  define variable isShowMenuRecord   as logical no-undo.
   ASSIGN
     lv_handle = ip_handle:FIRST-CHILD.
   DO WHILE VALID-HANDLE(lv_handle):
@@ -193,17 +196,30 @@ PROCEDURE build-window-list-menu :
        lv_handle:VISIBLE AND
        LENGTH(TRIM(lv_handle:TITLE)) > 1 AND
        lv_handle <> ip_parent_window_hdl THEN DO:
-      RUN is-window-enabled(INPUT lv_handle, OUTPUT lv_enabled).
-      ASSIGN lv_loop = lv_loop + 1.
-      CREATE MENU-ITEM lv_menu_item_hdl
-      ASSIGN  
-        LABEL = "&":U + TRIM(STRING(lv_loop)) + " ":U + lv_handle:TITLE
-        PARENT = ip_parent_menu_hdl
-        PRIVATE-DATA = STRING(lv_handle)
-        SENSITIVE = lv_enabled
-      TRIGGERS:
-        ON "CHOOSE" PERSISTENT RUN give-window-focus IN ip_calling_procedure_hdl (lv_handle).
-      END.                
+           
+      if OEIDEIsRunning then /* this code added to fix OE00223652*/
+      do: 
+        if index(lv_handle:TITLE,"Appbuilder") = 0 and index(lv_handle:TITLE,"pro*tool") = 0 then
+           isShowMenuRecord = yes.
+        else
+           isShowMenuRecord = no.               
+      end.  
+      else
+         isShowMenuRecord = yes.     
+      if isShowMenuRecord then
+      do:   
+          RUN is-window-enabled(INPUT lv_handle, OUTPUT lv_enabled).
+          ASSIGN lv_loop = lv_loop + 1.
+          CREATE MENU-ITEM lv_menu_item_hdl
+          ASSIGN  
+            LABEL = "&":U + TRIM(STRING(lv_loop)) + " ":U + lv_handle:TITLE
+            PARENT = ip_parent_menu_hdl
+            PRIVATE-DATA = STRING(lv_handle)
+            SENSITIVE = lv_enabled
+          TRIGGERS:
+            ON "CHOOSE" PERSISTENT RUN give-window-focus IN ip_calling_procedure_hdl (lv_handle).
+          END.
+      end.                   
     END.
     IF lv_handle:TYPE = "WINDOW":U THEN RUN build-window-list-menu (INPUT lv_handle).
     ASSIGN lv_handle = lv_handle:NEXT-SIBLING.

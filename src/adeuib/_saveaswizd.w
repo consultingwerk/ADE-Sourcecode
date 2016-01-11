@@ -120,7 +120,7 @@ DEFINE VARIABLE gcDynBrowPrefix   AS CHARACTER  NO-UNDO INIT "fullb":U.
 DEFINE VARIABLE gcDataLogicSuffix AS CHARACTER  NO-UNDO INIT "logcp.p":U.
 DEFINE VARIABLE gcCustomProcSuffix AS CHARACTER  NO-UNDO INIT "supr.p":U.
 DEFINE VARIABLE glStaticObject     AS LOGICAL    NO-UNDO. /* Added by Neil to simplify deployment option (which only apply to static objects) */
-
+define variable wintitle           as character no-undo initial "Save As". 
 &SCOPED-DEFINE MAX-SAVEIN  15
 
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
@@ -425,12 +425,21 @@ DEFINE FRAME diDialog
      RECTprc AT ROW 14.48 COL 37
      RECTRepo AT ROW 5.05 COL 3
      SPACE(2.39) SKIP(3.51)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if defined(IDE-IS-RUNNING) = 0 &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+    no-box
+    &endif 
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Save As"
+    
          DEFAULT-BUTTON buOk CANCEL-BUTTON buCancel.
 
-
+{adeuib/ide/dialoginit.i "FRAME diDialog:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -1114,7 +1123,24 @@ END.
   ELSE
     ASSIGN glStaticObject = YES.
               
-{src/adm2/dialogmn.i}
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i Buok Bucancel wintitle}
+RUN createObjects.
+
+/* Now enable the interface and wait for the exit condition.            */
+/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+  RUN initializeObject.
+  
+  &if defined(IDE-IS-RUNNING) = 0 &then 
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} {&FOCUS-Phrase}.
+  &else
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure {&FOCUS-Phrase}.
+  &endif
+END.
+
 
 PROCEDURE SendMessageA EXTERNAL "user32" :
   DEFINE INPUT  PARAMETER hwnd        AS LONG.
@@ -1475,14 +1501,16 @@ PROCEDURE initializeObject :
 
   /* Display the fullpath information */
   RUN displayFullPathName IN THIS-PROCEDURE.
-  
-  FRAME {&FRAME-NAME}:TITLE =  (IF plSaveAS = TRUE
-                               THEN "Save as"
-                               ELSE "Save")
-                              + IF BUFF_P.object_type_code <> "" 
-                                 THEN " (" + BUFF_P.object_type_code + ")"
-                                 ELSE " (" + BUFF_P._TYPE + ")".
-  
+  wintitle = (IF plSaveAS = TRUE
+              THEN "Save as"
+              ELSE "Save")
+              + IF BUFF_P.object_type_code <> "" 
+              THEN " (" + BUFF_P.object_type_code + ")"
+              ELSE " (" + BUFF_P._TYPE + ")".
+  if wintitle = ? then "Save as".          
+  &if defined(IDE-IS-RUNNING) = 0 &then               
+  FRAME {&FRAME-NAME}:TITLE = wintitle .
+  &endif
   RUN viewObject.
   APPLY "ENTRY":U to fiFileName IN FRAME {&FRAME-NAME}.
 END PROCEDURE.
@@ -2122,6 +2150,13 @@ END.
           RETURN "ERROR":U.
        
     END.
+    &if defined(IDE-IS-RUNNING) <> 0 &then 
+      
+/* TODO add command to check if open in PDS already 
+      if lReplace then
+      ShowOkMessageInIDE ("The is iops","OK",?).
+  */
+    &endif  
  END.
 
 /* IF registering the object, check whether the object already exists in the rep */

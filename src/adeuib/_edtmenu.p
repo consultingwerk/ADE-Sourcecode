@@ -121,6 +121,7 @@ DEFINE BUTTON b_mi_down    LABEL "D&own":C5   SIZE 8 BY 1.125  {&STDPH_BTN} .
 DEFINE BUTTON b_mi_left    LABEL " &<< ":C5   SIZE 6 BY 1.125  {&STDPH_BTN} .
 DEFINE BUTTON b_mi_right   LABEL " &>> ":C5   SIZE 6 BY 1.125  {&STDPH_BTN} .
 
+DEFINE VAR menu_item AS CHAR no-undo.
 &IF {&OKBOX} &THEN
 DEF RECTANGLE bar2  {&STDPH_OKBOX}.
 &ENDIF
@@ -158,9 +159,14 @@ DEFINE FRAME menu_edit
             &CANCEL = b_cancel
             &OTHER  = "SPACE({&HM_BTNG}) b_auto_insert"
             &HELP   = b_Help }
-   WITH TITLE "Menu Editor" 
-        VIEW-AS DIALOG-BOX SIDE-LABELS
-        DEFAULT-BUTTON b_ok.
+   WITH SIDE-LABELS
+       &if DEFINED(IDE-IS-RUNNING) = 0  &then
+       TITLE "Menu Editor" 
+        VIEW-AS DIALOG-BOX
+       &else
+         no-box
+       &endif
+       DEFAULT-BUTTON b_ok.
 
 /* WTW - 7.1C workaround: Use Hidden */
 FRAME menu_edit:HIDDEN = yes.
@@ -191,11 +197,14 @@ END.
               
 ASSIGN txt:WIDTH = eff_frame_width - txt:COL - {&HFM_WID} + 1.
 
+{adeuib/ide/dialoginit.i "FRAME menu_edit:handle"}
 
 /* -------------------------------------------------------------*/
 /*				Procedures			*/
 /* -------------------------------------------------------------*/
-
+PROCEDURE ide_choose_dlgrecm:
+     RUN adeuib/ide/_dialog_dlgrecm.p (INPUT menu_item, INPUT-OUTPUT mi.accel).
+end procedure.
 /* make an extra mi so the user can insert a line at the end of the menu */
 procedure make-extra-mi.
   DEFINE VAR next_order AS INTEGER NO-UNDO.
@@ -766,11 +775,15 @@ END.
 
 /* Choose a new accelerator key */
 ON CHOOSE OF b_accel IN FRAME menu_edit DO:
-  DEFINE VAR menu_item AS CHAR.
-
+  
   menu_item = mi.lbl:SCREEN-VALUE in frame menu_edit.
   IF mi.lbl = "" THEN menu_item = "[Unlabelled]".
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_dlgrecm").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else 
   RUN adecomm/_dlgrecm.p (INPUT menu_item, INPUT-OUTPUT mi.accel).
+  &endif
   DISPLAY mi.accel with frame menu_edit.
   IF mi.accel ne "" THEN b_clear:SENSITIVE = yes.
   RUN update-selection.
@@ -1151,11 +1164,16 @@ ELSE ASSIGN menu-title = ""
 RUN make-extra-mi.
 
 enable all except mi.accel with frame menu_edit.
-
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i b_ok b_cancel caption} 
 DO ON ERROR UNDO, LEAVE  
    ON ENDKEY UNDO, LEAVE:
 
-  DISPLAY menu-name txt tree WITH FRAME menu_edit TITLE caption.
+  DISPLAY menu-name txt tree WITH FRAME menu_edit
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then  
+  TITLE caption
+  &endif 
+  .
   IF menu_type <> "MENUBAR" 
   THEN DISPLAY menu-title WITH FRAME menu_edit.
   ELSE ASSIGN menu-title:HIDDEN IN FRAME menu_edit    = yes.
@@ -1168,13 +1186,24 @@ DO ON ERROR UNDO, LEAVE
     RUN set-selection-number (mi.order) .
     /* Wait for exit condition (initial focus on menu-element label) */
     RUN adecomm/_setcurs.p ("").
-    WAIT-FOR "U2":U OF FRAME menu_edit FOCUS mi.lbl. 
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     WAIT-FOR "U2":U OF FRAME menu_edit FOCUS mi.lbl.
+    &ELSE
+        WAIT-FOR GO OF FRAME menu_edit or "U2" of this-procedure.       
+    if cancelDialog THEN UNDO, LEAVE.  
+   &endif
+     
   END.
   ELSE DO:
     RUN set-selection-number (1).
     /* Wait for exit condition (initial focus in menu name) */
     RUN adecomm/_setcurs.p ("").
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
     WAIT-FOR "U2":U OF FRAME menu_edit FOCUS mi.lbl. 
+    &ELSE
+        WAIT-FOR GO OF FRAME menu_edit or "U2" of this-procedure.          
+    if cancelDialog THEN UNDO, LEAVE.  
+   &endif
   END.
   
 END.

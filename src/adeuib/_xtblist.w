@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f_dlg
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f_dlg 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -46,12 +43,15 @@ DEFINE SHARED VARIABLE _h_win AS WIDGET-HANDLE                    NO-UNDO.
 
 /* Local Variable Definitions --                                        */
 DEFINE VAR db_name AS CHAR NO-UNDO.
+define var wintitle as char no-undo init "External Tables":L.
+DEFINE VAR l_ok        AS LOGICAL     NO-UNDO.
+  DEFINE VAR new-item    AS CHARACTER   NO-UNDO.
+  DEFINE VAR i           AS INTEGER     NO-UNDO.
+  DEFINE VAR fl_name     AS CHARACTER   NO-UNDO.
+  DEFINE VAR tt-info     AS CHARACTER   NO-UNDO.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -67,8 +67,6 @@ DEFINE VAR db_name AS CHAR NO-UNDO.
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 &Scoped-define List-1 b_delete b_move_up b_move_down 
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -107,25 +105,24 @@ DEFINE FRAME f_dlg
      b_move_up AT ROW 4.52 COL 43
      b_move_down AT ROW 6 COL 43
      SPACE(1.00) SKIP(0.49)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER NO-HELP 
-         SIDE-LABELS THREE-D  SCROLLABLE 
-         TITLE "External Tables":L.
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+    NO-BOX
+    &endif
+    KEEP-TAB-ORDER NO-HELP 
+         SIDE-LABELS THREE-D  SCROLLABLE.
 
- 
+
 
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 /* ***************  Runtime Attributes and UIB Settings  ************** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f_dlg
    UNDERLINE Default                                                    */
 ASSIGN 
@@ -143,28 +140,16 @@ ASSIGN
 /* SETTINGS FOR SELECTION-LIST tbl-list IN FRAME f_dlg
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
-
- 
-
-
-
 
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME b_add
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_add f_dlg
 ON CHOOSE OF b_add IN FRAME f_dlg /* Add... */
 DO:
-  RUN add-tables.
+  RUN choose-add-tables.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_delete
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_delete f_dlg
 ON CHOOSE OF b_delete IN FRAME f_dlg /* Delete */
 DO:
   DEFINE VAR i      AS INTEGER NO-UNDO.
@@ -181,12 +166,7 @@ DO:
   ELSE tbl-list:SCREEN-VALUE = tbl-list:ENTRY(1).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_move_down
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_move_down f_dlg
 ON CHOOSE OF b_move_down IN FRAME f_dlg /* Move Down */
 DO:
   DEFINE VAR i           AS INTEGER NO-UNDO.
@@ -220,12 +200,7 @@ DO:
   tbl-list:SCREEN-VALUE = choice.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_move_up
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_move_up f_dlg
 ON CHOOSE OF b_move_up IN FRAME f_dlg /* Move Up */
 DO:
   DEFINE VAR i           AS INTEGER NO-UNDO.
@@ -258,12 +233,7 @@ DO:
   tbl-list:SCREEN-VALUE = choice.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME tbl-list
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL tbl-list f_dlg
 ON VALUE-CHANGED OF tbl-list IN FRAME f_dlg
 DO:
   /* LIST-1 buttons are disabled if the list is empty */
@@ -279,14 +249,7 @@ DO:
   END.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &UNDEFINE SELF-NAME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK f_dlg 
-
 
 /* *************************  Standard Buttons ************************ */
 
@@ -297,57 +260,70 @@ FRAME {&FRAME-NAME}:DEFAULT-BUTTON = btn_OK:HANDLE.
 
 /* ***************************  Main Block  *************************** */
 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+&ENDIF
 
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
 /* Populate the selection list */
 tbl-list:LIST-ITEMS = pcTblList.
-
 /* If pcTblList is empty, just add some tables and return */
 IF pcTblList eq "" THEN DO:
+  /** this is ok for ide event as the addtables will use hte currently active dialog 
+      intended for xtbllist */
   RUN add-tables.
   /* Return the current value in the list. */
   pcTblList = tbl-list:LIST-ITEMS.   
 END.
 ELSE DO:
-  /* Now enable the interface and wait for the exit condition.            */
-  /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
-  MAIN-BLOCK:
-  DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-     ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-    RUN enable_UI.
-    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
-    /* Return the current value in the list. */
-    pcTblList = tbl-list:LIST-ITEMS.
-    /* Note that LIST-ITEMS will be "?" if the list is empty. */
-    IF pcTblList eq ? THEN pcTblList = "".
-  END.
-  RUN disable_UI.
+   
+    {adeuib/ide/dialoginit.i "FRAME f_dlg:handle"}
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    dialogService:View(). 
+    &endif
+    /* Now enable the interface and wait for the exit condition.            */
+    /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+    &scoped-define CANCEL-EVENT U2
+    {adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
+    MAIN-BLOCK:
+    DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+       ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+        RUN enable_UI.
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}. 
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+    
+       /* Return the current value in the list. */
+       pcTblList = tbl-list:LIST-ITEMS.
+       /* Note that LIST-ITEMS will be "?" if the list is empty. */
+       IF pcTblList eq ? THEN pcTblList = "".
+    END.
+    RUN disable_UI.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 /* **********************  Internal Procedures  *********************** */
+PROCEDURE choose-add-tables :
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:SetCurrentEvent(this-procedure,"add-tables").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else 
+        run add-tables.   
+    &endif
+end procedure.    
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE add-tables f_dlg 
 PROCEDURE add-tables :
 /*------------------------------------------------------------------------------
   Purpose:      Add tables to the list of tables.  
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VAR l_ok        AS LOGICAL     NO-UNDO.
-  DEFINE VAR new-item    AS CHARACTER   NO-UNDO.
-  DEFINE VAR i           AS INTEGER     NO-UNDO.
-  DEFINE VAR fl_name     AS CHARACTER   NO-UNDO.
-  DEFINE VAR tt-info     AS CHARACTER   NO-UNDO.
-
   FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
   /* Omit D and W types-- those are used to track temp-table info for
      SmartDataViewer and Web-Objects by AB and not meant to be exposed to
@@ -363,13 +339,17 @@ PROCEDURE add-tables :
     tt-info = LEFT-TRIM(tt-info,",":U).
   END.
   ELSE tt-info = ?.
-
-   
   /* Select some tables */
-  RUN adecomm/_tblsel.p (true, tt-info, INPUT-OUTPUT db_name,
-                         INPUT-OUTPUT fl_name,
-                         OUTPUT l_OK).
-
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      RUN adeuib/ide/_dialog_tblsel.p (true, tt-info, INPUT-OUTPUT db_name,
+                                       INPUT-OUTPUT fl_name,
+                                       OUTPUT l_OK). 
+  &else    
+  
+      RUN adecomm/_tblsel.p (true, tt-info, INPUT-OUTPUT db_name,
+                             INPUT-OUTPUT fl_name,
+                             OUTPUT l_OK).
+  &endif
   /* Add any new tables (unless they are already in the list). */
   IF l_OK THEN DO WITH FRAME {&FRAME-NAME}:
     DO i = 1 TO NUM-ENTRIES(fl_name):
@@ -380,11 +360,8 @@ PROCEDURE add-tables :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -398,11 +375,8 @@ PROCEDURE disable_UI :
   HIDE FRAME f_dlg.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -418,8 +392,4 @@ PROCEDURE enable_UI :
   VIEW FRAME f_dlg.
   {&OPEN-BROWSERS-IN-QUERY-f_dlg}
 END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
+  

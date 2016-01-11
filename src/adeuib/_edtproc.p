@@ -27,12 +27,13 @@ Modified on 10/24/96 gfs - Removed text from image buttons and added tooltips
             01/01/98 slk - Removed External Tables for SmartData
 	                         Removed External Tables for all ADM2 objects
             08/08/00 jep - Assign _P recid to newly created _TRG records.
+            01/18/2012 rkamboj. Making this program to run in integrated mode.
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER ph_win   AS WIDGET                            NO-UNDO.
 
 &SCOPED-DEFINE USE-3D           YES
 &GLOBAL-DEFINE WIN95-BTN        YES
-
+{adecomm/oeideservice.i}
 {adecomm/adestds.i}             /* Standards for "Sullivan Look"            */
 {adeuib/uniwidg.i}              /* Universal widget definition              */
 {adeuib/layout.i}               /* Definitions of the layout records        */
@@ -97,10 +98,14 @@ DEFINE VARIABLE h_btn_ttbls       AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_userfields  AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_declarative AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_side_label      AS WIDGET-HANDLE           NO-UNDO.
-
 DEFINE VARIABLE isSmartData	      AS LOGICAL NO-UNDO.
 DEFINE VARIABLE isWebObject       AS LOGICAL NO-UNDO.
 
+define variable dialogTitle       as character no-undo init "Procedure Settings". 
+DEFINE VAR lib-list   AS CHAR     NO-UNDO.
+DEFINE VAR l_ok       AS LOGICAL  NO-UNDO.
+DEFINE VAR l_code     AS CHAR     NO-UNDO.
+DEFINE VAR new-list AS CHARACTER NO-UNDO.
 /* Preprocessor Variables for the Combo-Boxes */
 &Scope Dflt-OCX Default [same location as file]
 &Scope Dflt-Dir Default [same directory as file]
@@ -180,9 +185,20 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
          _P._partition   VIEW-AS COMBO-BOX SIZE 30.8 BY 1 COLON 36 
                                    FORMAT "X(25)" LABEL "Partition"
   
-       WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
+  
+  
+       WITH 
+       &if DEFINED(IDE-IS-RUNNING) = 0 &then
+            VIEW-AS DIALOG-BOX 
+            TITLE dialogTitle  
+        &else    
+            no-box 
+            
+        &ENDIF
+           
+            KEEP-TAB-ORDER
             SIDE-LABELS SIZE 79.5 BY 16
-            TITLE "Procedure Settings" THREE-D.
+            THREE-D.
     ASSIGN 
          FRAME {&FRAME-NAME}:HIDDEN = TRUE
          FRAME {&FRAME-NAME}:SCROLLABLE = FALSE
@@ -201,7 +217,18 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
          _P._partition:LIST-ITEMS = "(None)":U + CHR(3) +
                        dynamic-function("definedPartitions" IN appSrvUtils)
          .
+         
+/*    IF OEIDEIsRunning THEN                          */
+/*    DO:                                             */
+/*        assign FRAME {&FRAME-NAME}:x = 343          */
+/*               FRAME {&FRAME-NAME}:y = 190 NO-ERROR.*/
+/*    END.                                            */
     
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         define variable dialogService as adeuib.idialogservice no-undo.           
+         Run CreateDialogService in hOEIDEService (FRAME {&FRAME-NAME}:handle,output dialogService).
+    &endif
+ 
     /* Handle sizing based on screen real estate */
     ASSIGN icon-hp = btn_libraries:HEIGHT-P IN FRAME {&FRAME-NAME}
            icon-wp = btn_libraries:WIDTH-P IN FRAME {&FRAME-NAME}.
@@ -284,99 +311,11 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
   ON CHOOSE OF btn_libraries IN FRAME {&FRAME-NAME} DO:
-    DEFINE VAR lib-list   AS CHAR     NO-UNDO.
-    DEFINE VAR l_ok       AS LOGICAL  NO-UNDO.
-    DEFINE VAR l_code     AS CHAR     NO-UNDO.
-    
-    DO ON STOP  UNDO, LEAVE
-       ON ERROR UNDO, LEAVE :
-      /* LIB-MGR - Method Library Dialog Box. */
-      RUN adeuib/_mldlg.w (INPUT _U._NAME , INPUT STRING(_U._WINDOW-HANDLE) ,
-                           OUTPUT lib-list , OUTPUT l_code ,
-                           OUTPUT l_ok).
-      IF l_OK THEN
-      DO:
-          FIND _TRG WHERE _TRG._wRECID   = RECID(_U)
-                    AND   _TRG._tSECTION = "_CUSTOM"
-                    AND   _TRG._tEVENT   = "_INCLUDED-LIB"
-                    NO-ERROR.
-          IF AVAILABLE _TRG THEN
-          DO:
-            /* If there's Included Libs, save their code to _TRG. Otherwise,
-               delete the existing _TRG record to avoid saving an empty
-               Included Libs section in the .w. */
-            IF lib-list <> "":U THEN
-                ASSIGN _TRG._tCODE = l_code .
-            ELSE
-                DELETE _TRG.
-          END.
-          ELSE IF /* NOT AVAILABLE _TRG AND */ lib-list <> "":U THEN
-          DO:
-            CREATE _TRG.
-            ASSIGN _TRG._pRECID   = (IF AVAIL(_P) THEN RECID(_P) ELSE ?)
-                   _TRG._wRECID   = RECID(_U)
-                   _TRG._tSECTION = "_CUSTOM":U
-                   _TRG._tEVENT   = "_INCLUDED-LIB":U
-                   _TRG._tCODE    = l_code .
-          END.
-      END.
-    END.
-    RETURN.
+      run choose_method_library.
   END.
-
-  ON CHOOSE OF btn_xTables IN FRAME {&FRAME-NAME} DO:
-    DEFINE VAR frst-tbl AS CHARACTER NO-UNDO.
-    DEFINE VAR i        AS INTEGER   NO-UNDO.
-    DEFINE VAR ldummy   AS LOGICAL   NO-UNDO.
-    DEFINE VAR lok      AS LOGICAL   NO-UNDO.
-    DEFINE VAR new-list AS CHARACTER NO-UNDO.
-
-    /* Make sure there is a current database */
-    IF NUM-DBS = 0 THEN DO:
-      RUN adecomm/_dbcnnct.p (
-        INPUT "You must have at least one connected database to insert database fields.",
-        OUTPUT ldummy).
-      if ldummy eq no THEN RETURN.
-    END.
   
-    /* Edit the list */
-    new-list = _P._xTblList.
-    RUN adeuib/_xtblist.w (INPUT-OUTPUT new-list).
-    IF new-list NE _P._xTblList THEN DO:
-      _P._xTblList = new-list.
-      RUN show_xTables.
-      /* Scan all queries for this procedure and remove all external tables  */
-      FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _P._WINDOW-HANDLE AND
-                         CAN-DO("FRAME,BROWSE,DIALOG-BOX,QUERY",x_U._TYPE):
-        FIND x_C WHERE RECID(x_C) = x_U._x-recid.
-        FIND _Q WHERE RECID(_Q) = x_C._q-recid NO-ERROR.
-        IF AVAILABLE _Q THEN DO:
-          RUN remove-ext-tables(x_C._q-recid,_P._xTblList).
-          IF _P._xTblList NE "":U AND NUM-ENTRIES(ENTRY(1,_Q._TblList)," ":U) = 1
-          THEN DO:  /* The first non-external table needs to be in the form of
-                       tbl of ext-tbl OR tbl where ext-tbl ... */
-            frst-tbl = ENTRY(1,_Q._TblList).
-            FIND-JOIN:
-            REPEAT i = 1 TO NUM-ENTRIES(new-list):
-              RUN adecomm/_j-test.p (frst-tbl, ENTRY(1,ENTRY(i,new-list)," ":U),
-                                     OUTPUT lok).
-              IF NOT lok THEN
-                RUN adecomm/_j-test.p (ENTRY(1,ENTRY(i,new-list)," ":U), frst-tbl,
-                                       OUTPUT lok).
-              IF lok THEN DO:  /* Make the join */
-                ENTRY(1,_Q._TblList) = ENTRY(1, _Q._TblList) + " OF ":U +
-                                        ENTRY(i,new-list).
-                LEAVE FIND-JOIN.             
-              END.
-            END.  /* FIND-JOIN */
-            IF NOT lok THEN DO:  /* No good join was found do a WHERE thingy */
-              ENTRY(1,_Q._TblList) = ENTRY(1, _Q._TblList) + " Where ":U +
-                                       TRIM(ENTRY(1,new-list)) + " ...":U.
-            END.  /* No good join was found */
-          END. /* IF first table is not joined to an external table */
-        END.  /* IF available _Q */
-      END.  /* For each x_U */
-    END.  /* IF the list has changed */
+  ON CHOOSE OF btn_xTables IN FRAME {&FRAME-NAME} DO:
+      run choose_external_tables.
   END.
 
   ON CHOOSE OF btn_help IN FRAME {&FRAME-NAME} OR HELP OF FRAME {&FRAME-NAME} DO:
@@ -388,15 +327,8 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   END.   
 
   ON CHOOSE OF b_adv
-    DO:
-      DEF VAR old-title AS CHAR NO-UNDO.
-      /* The advanced procedure settings can change the title on the window. */
-      old-title = _U._LABEL.
-      RUN adeuib/_advpset.w (INPUT RECID(_P)).  
-      lNewTitle = (_U._LABEL ne old-title).
-      RUN Adjust_Persist.   
-      RUN File_Type_Chk.       
-      RUN Adjust_Buttons.
+  DO:
+     run choose_advanced.     
   END.
         
   /* Changing compile-into based on user choice. */
@@ -580,6 +512,24 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   RUN Sensitize.
   RUN Adjust_Fields.
 
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+     define variable lCancel as logical no-undo. 
+     dialogService:View().
+     dialogService:SetOkButton(btn_OK:HANDLE IN FRAME {&FRAME-NAME}).
+     dialogService:SetCancelButton(btn_Cancel:HANDLE IN FRAME {&FRAME-NAME}).
+     dialogService:CancelEventNum = 2.
+     dialogService:Title = dialogTitle.
+  
+/*     /* endkey does not work it seems when we are a child of*/
+/*        another dialog running from ide,*/                  */
+/*     ON CHOOSE OF btn_Cancel DO:                            */
+/*         lCancel = true.                                    */
+/*         apply "u2" to this-procedure.                      */
+/*     END.                                                   */
+  
+  &endif
+
+
   /* Shorten display name. If we do, set tooltip to long name. */
   ASSIGN 
     save_name  = _P._SAVE-AS-FILE
@@ -622,8 +572,15 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   /* Stop Waiting and show the frame */
   FRAME {&FRAME-NAME}:HIDDEN = no.
   RUN adecomm/_setcurs.p ("").
-  
+  apply "entry"  to  FRAME {&FRAME-NAME}.
+  /* Note the wait is waiting for event defined using dialogservice CancelEventNum abovre
+     this is applied to the frame (the dialogservice does not have proc) different from when using the dialogstart.i 
+     with CancelEvent preprocessor */ 
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+  WAIT-FOR "GO" OF FRAME {&FRAME-NAME} or "U2" of frame {&FRAME-NAME}.  
+  &else
   WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.  
+  &endif
   
   /* Check that any paging information that was changed */
   IF lPagesEditted THEN RUN Check_Page_Change.
@@ -654,26 +611,49 @@ DELETE WIDGET-POOL.
 
 /* Change the links for objects in THIS-PROCEDURE */
 PROCEDURE edit-links:
-    RUN adeuib/_linked.w (RECID(_P), RECID(_U)).
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_edit_links").
+      run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+      RUN adeuib/_linked.w (RECID(_P), RECID(_U)).
+    &endif
+END PROCEDURE.
+
+PROCEDURE ide_choose_edit_links:
+    RUN adeuib/ide/_dialog_linked.p (RECID(_P), RECID(_U)).
 END PROCEDURE.
 
 /* Change the "page" information for this procedure */
 PROCEDURE edit-pages:
-    RUN adeuib/_edtpage.w (RECID(_P)).  
-    /* Remember that the user edited pages. */
-    lPagesEditted = YES.
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_edit_pages").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else  
+      RUN adeuib/_edtpage.w (RECID(_P)).  
+       /* Remember that the user edited pages. */
+      lPagesEditted = YES.
+   &endif 
 END PROCEDURE.
+
+PROCEDURE ide_choose_edit_pages:
+    RUN adeuib/ide/_dialog_edtpage.p (RECID(_P)).  
+    lPagesEditted = YES.
+end procedure.
 
 /* Change the names of the preprocessor variables */
 PROCEDURE edit-pproc:
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_ppvars").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else  
   RUN adeuib/_ppvars.w (INPUT-OUTPUT _P._LISTS).
+  &endif
 END PROCEDURE.
 
 /* Change the temp-table definitions in THIS-PROCEDURE */
 PROCEDURE edit-ttbls:
   DEFINE VARIABLE lDummy       AS LOGICAL                      NO-UNDO.
-  
-  /* 
+   /* 
    * Check that a at least one database is connected. If not, connect one
    * or abort Add 
    */
@@ -683,8 +663,12 @@ PROCEDURE edit-ttbls:
       OUTPUT lDummy).
     IF lDummy = NO THEN RETURN.
   END.
-
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_ttmain").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else  
   RUN adeuib/_ttmaint.w.
+  &endif
 END PROCEDURE.
 
 
@@ -783,7 +767,7 @@ PROCEDURE create_top_stuff:
                   LABEL       = "&Declarative statements"
                   TOOLTIP     = "Declarative statements that must come before definitions and executable statements."
             TRIGGERS:
-              ON CHOOSE PERSISTENT RUN adeuib/_editdecl.w (ph_win).
+              ON CHOOSE PERSISTENT RUN proc_declarative.
             END TRIGGERS.
       ASSIGN stupid = h_btn_declarative:LOAD-IMAGE({&ADEICON-DIR} + "declarations" +
                                                   "{&BITMAP-EXT}",0,0,28,28).
@@ -957,6 +941,9 @@ PROCEDURE Check_Page_Change:
   END.    
   /* Show the current page. */
   RUN adeuib/_showpag.p  (RECID(_P), _P._page-current).
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      gotopage(_P._WINDOW-HANDLE,_P._page-current).
+  &ENDIF    
 END PROCEDURE.
 
 PROCEDURE File_Type_Chk:
@@ -1106,4 +1093,180 @@ DEFINE VARIABLE xtbl        AS CHARACTER                                     NO-
   END.
 END.  /* Procedure remove-ext-tables */
 
+procedure choose_advanced:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    dialogService:SetCurrentEvent(this-procedure,"ide_choose_advanced").
+    run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+    run run_choose_advanced.  
+    &endif   
+end procedure.
 
+procedure ide_choose_advanced:
+   run run_choose_advanced.
+end procedure.
+
+procedure run_choose_advanced:     
+    DEF VAR old-title AS CHAR NO-UNDO.
+    /* The advanced procedure settings can change the title on the window. */
+    old-title = _U._LABEL.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      run adeuib/ide/_dialog_advpset.w (INPUT RECID(_P)) .
+    &else 
+      RUN adeuib/_advpset.w (INPUT RECID(_P)).
+    &endif  
+    lNewTitle = (_U._LABEL ne old-title).
+    RUN Adjust_Persist.   
+    RUN File_Type_Chk.       
+    RUN Adjust_Buttons.
+end.
+
+procedure choose_method_library:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"ide_choose_method_library").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else
+         run run_choose_method_library.
+    &endif.  
+
+end procedure.
+
+procedure ide_choose_method_library:
+    run run_choose_method_library.
+end procedure.
+
+procedure run_choose_method_library:
+  Assign lib-list = ""
+           l_code   = ""
+           l_ok     = false.
+    
+    DO ON STOP  UNDO, LEAVE
+       ON ERROR UNDO, LEAVE :
+      /* LIB-MGR - Method Library Dialog Box. */
+      &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         RUN adeuib/ide/_dialog_mldlg.p (INPUT _U._NAME , INPUT STRING(_U._WINDOW-HANDLE) ,
+                           OUTPUT lib-list , OUTPUT l_code ,
+                           OUTPUT l_ok).
+      &else
+      RUN adeuib/_mldlg.w (INPUT _U._NAME , INPUT STRING(_U._WINDOW-HANDLE) ,
+                           OUTPUT lib-list , OUTPUT l_code ,
+                           OUTPUT l_ok).
+      &endif
+      IF l_OK THEN
+      DO:
+          FIND _TRG WHERE _TRG._wRECID   = RECID(_U)
+                    AND   _TRG._tSECTION = "_CUSTOM"
+                    AND   _TRG._tEVENT   = "_INCLUDED-LIB"
+                    NO-ERROR.
+          IF AVAILABLE _TRG THEN
+          DO:
+            /* If there's Included Libs, save their code to _TRG. Otherwise,
+               delete the existing _TRG record to avoid saving an empty
+               Included Libs section in the .w. */
+            IF lib-list <> "":U THEN
+                ASSIGN _TRG._tCODE = l_code .
+            ELSE
+                DELETE _TRG.
+          END.
+          ELSE IF /* NOT AVAILABLE _TRG AND */ lib-list <> "":U THEN
+          DO:
+            CREATE _TRG.
+            ASSIGN _TRG._pRECID   = (IF AVAIL(_P) THEN RECID(_P) ELSE ?)
+                   _TRG._wRECID   = RECID(_U)
+                   _TRG._tSECTION = "_CUSTOM":U
+                   _TRG._tEVENT   = "_INCLUDED-LIB":U
+                   _TRG._tCODE    = l_code .
+          END.
+      END.
+    END.
+    RETURN.
+end procedure.
+
+procedure ide_choose_ppvars:
+     RUN adeuib/ide/_dialog_ppvars.p (INPUT-OUTPUT _P._LISTS).
+end procedure.  
+
+procedure ide_choose_ttmain:
+    RUN adeuib/ide/_dialog_ttmaint.p.
+end procedure.
+
+procedure proc_declarative: 
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_editdecl").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else      
+      run adeuib/_editdecl.w (ph_win).
+ &endif
+end procedure.  
+
+procedure ide_choose_editdecl:
+    run adeuib/ide/_dialog_editdecl.p (ph_win).
+end procedure.  
+
+procedure choose_external_tables:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"run_choose_external_tables").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else
+         RUN run_choose_external_tables.
+    &endif
+end procedure.
+
+procedure run_choose_external_tables:
+    DEFINE VAR frst-tbl AS CHARACTER NO-UNDO.
+    DEFINE VAR i        AS INTEGER   NO-UNDO.
+    DEFINE VAR ldummy   AS LOGICAL   NO-UNDO.
+    DEFINE VAR lok      AS LOGICAL   NO-UNDO.
+    
+
+    /* Make sure there is a current database */
+    IF NUM-DBS = 0 THEN DO:
+      RUN adecomm/_dbcnnct.p (
+        INPUT "You must have at least one connected database to insert database fields.",
+        OUTPUT ldummy).
+      if ldummy eq no THEN RETURN.
+    END.
+  
+    /* Edit the list */
+    new-list = _P._xTblList.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+       RUN adeuib/ide/_dialog_xtblist.p (INPUT-OUTPUT new-list).
+     &else
+       RUN adeuib/_xtblist.w (INPUT-OUTPUT new-list).
+    &endif
+    IF new-list NE _P._xTblList THEN DO:
+      _P._xTblList = new-list.
+      RUN show_xTables.
+      /* Scan all queries for this procedure and remove all external tables  */
+      FOR EACH x_U WHERE x_U._WINDOW-HANDLE = _P._WINDOW-HANDLE AND
+                         CAN-DO("FRAME,BROWSE,DIALOG-BOX,QUERY",x_U._TYPE):
+        FIND x_C WHERE RECID(x_C) = x_U._x-recid.
+        FIND _Q WHERE RECID(_Q) = x_C._q-recid NO-ERROR.
+        IF AVAILABLE _Q THEN DO:
+          RUN remove-ext-tables(x_C._q-recid,_P._xTblList).
+          IF _P._xTblList NE "":U AND NUM-ENTRIES(ENTRY(1,_Q._TblList)," ":U) = 1
+          THEN DO:  /* The first non-external table needs to be in the form of
+                       tbl of ext-tbl OR tbl where ext-tbl ... */
+            frst-tbl = ENTRY(1,_Q._TblList).
+            FIND-JOIN:
+            REPEAT i = 1 TO NUM-ENTRIES(new-list):
+              RUN adecomm/_j-test.p (frst-tbl, ENTRY(1,ENTRY(i,new-list)," ":U),
+                                     OUTPUT lok).
+              IF NOT lok THEN
+                RUN adecomm/_j-test.p (ENTRY(1,ENTRY(i,new-list)," ":U), frst-tbl,
+                                       OUTPUT lok).
+              IF lok THEN DO:  /* Make the join */
+                ENTRY(1,_Q._TblList) = ENTRY(1, _Q._TblList) + " OF ":U +
+                                        ENTRY(i,new-list).
+                LEAVE FIND-JOIN.             
+              END.
+            END.  /* FIND-JOIN */
+            IF NOT lok THEN DO:  /* No good join was found do a WHERE thingy */
+              ENTRY(1,_Q._TblList) = ENTRY(1, _Q._TblList) + " Where ":U +
+                                       TRIM(ENTRY(1,new-list)) + " ...":U.
+            END.  /* No good join was found */
+          END. /* IF first table is not joined to an external table */
+        END.  /* IF available _Q */
+      END.  /* For each x_U */
+    END.  /* IF the list has changed */
+end procedure. 

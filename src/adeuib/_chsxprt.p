@@ -67,7 +67,7 @@ DEFINE BUTTON btn_ok     LABEL "OK"          {&STDPH_OKBTN} AUTO-GO.
 DEFINE BUTTON btn_cancel LABEL "Cancel"      {&STDPH_OKBTN} AUTO-ENDKEY.
 DEFINE BUTTON btn_code   LABEL "&Code..."    {&STDPH_OKBTN}.
 DEFINE BUTTON btn_help   LABEL "&Help"       {&STDPH_OKBTN}.
-
+define variable wintitle as character no-undo initial "Copy To File":t32.
 FORM 
   SKIP ({&TFM_WID})
   "Items to Copy:":L40  AT 2
@@ -79,9 +79,22 @@ FORM
       &OK     = "btn_ok"
       &HELP   = "btn_help"
   }
-  WITH FRAME v_list VIEW-AS DIALOG-BOX TITLE "Copy To File":t32 NO-LABELS THREE-D.
+  WITH FRAME v_list 
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+     VIEW-AS DIALOG-BOX
+     TITLE wintitle
+  &else
+     NO-BOX
+  &endif  
+   NO-LABELS THREE-D.
+
+{adeuib/ide/dialoginit.i "FRAME v_list:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 
 ASSIGN v_list:READ-ONLY IN FRAME v_list = TRUE.
+
 
 /* ===================================================================== */
 /*                                TRIGGERS                               */
@@ -89,36 +102,13 @@ ASSIGN v_list:READ-ONLY IN FRAME v_list = TRUE.
 
 ON CHOOSE of btn_code in frame v_list
 DO:
-
-  RUN adeuib/_intpxpt.p. 
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"_do_choose_code").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else
+    run _do_choose_code.
+    &endif
   
-  ASSIGN ans    = false
-         v_list = "".
-  FOR EACH _U WHERE _U._SELECTEDib :
-    assign 
-      v_list = v_list + "   " + SUBSTRING(_U._NAME,1,20, "raw":U) + 
-                FILL(" ", MAX(1, 20 - LENGTH(_U._NAME, "raw":U))) + /* at least 1 space */
-                (IF _U._LABEL NE ? THEN SUBSTRING(_U._LABEL,1,20, "raw":U) ELSE "") +
-                CHR(10)
-      ans    = true.
-  END.
-  FIND _U WHERE _U._HANDLE = _h_win.
-  FOR EACH _trg 
-    where _trg._wrecid   = RECID(_U)
-    and   (_trg._tsection = "_PROCEDURE":u OR _trg._tsection = "_FUNCTION":u)
-    and   _trg._status   = "EXPORT":U
-    by _trg._tevent:
-
-    assign 
-      v_list = v_list + (IF _trg._tsection = "_PROCEDURE":u
-                         THEN "   PROCEDURE ":U
-                         ELSE "   FUNCTION  ":U)
-             + _Trg._tevent
-             + chr(10)
-      ans    = true.
-  END.
-
-  display v_list with frame v_list.
 END.  /* CHOOSE of btn_code in frame v_list */
     
 
@@ -200,11 +190,18 @@ END.
 
 IF lipShowFileDialog THEN
 DO:
+  &scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i btn_ok btn_cancel winTitle}  
   display v_list with frame v_list.
   enable btn_ok btn_cancel btn_code btn_help v_list
     with frame v_list.
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then  
   wait-for CHOOSE of btn_cancel in frame v_list
         or CHOOSE of btn_ok     in frame v_list.
+  &ELSE
+        WAIT-FOR "choose" of btn_ok in frame v_list or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+  &endif      
 END.
 ELSE DO:
   assign btn_ok:SENSITIVE = true.
@@ -257,3 +254,39 @@ FOR EACH _TRG WHERE _TRG._wRECID = RECID(frame_U):
   _TRG._STATUS = "EXPORT":U.
 END.
 END PROCEDURE.
+
+procedure _do_choose_code:
+      
+     &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+     run adeuib/ide/_dialog_intpxpt.p.
+     &else
+     run adeuib/_intpxpt.p.
+     &endif
+    ASSIGN ans    = false
+         v_list = "".
+  FOR EACH _U WHERE _U._SELECTEDib :
+    assign 
+      v_list = v_list + "   " + SUBSTRING(_U._NAME,1,20, "raw":U) + 
+                FILL(" ", MAX(1, 20 - LENGTH(_U._NAME, "raw":U))) + /* at least 1 space */
+                (IF _U._LABEL NE ? THEN SUBSTRING(_U._LABEL,1,20, "raw":U) ELSE "") +
+                CHR(10)
+      ans    = true.
+  END.
+  FIND _U WHERE _U._HANDLE = _h_win.
+  FOR EACH _trg 
+    where _trg._wrecid   = RECID(_U)
+    and   (_trg._tsection = "_PROCEDURE":u OR _trg._tsection = "_FUNCTION":u)
+    and   _trg._status   = "EXPORT":U
+    by _trg._tevent:
+
+    assign 
+      v_list = v_list + (IF _trg._tsection = "_PROCEDURE":u
+                         THEN "   PROCEDURE ":U
+                         ELSE "   FUNCTION  ":U)
+             + _Trg._tevent
+             + chr(10)
+      ans    = true.
+  END.
+
+  display v_list with frame v_list.
+end procedure.

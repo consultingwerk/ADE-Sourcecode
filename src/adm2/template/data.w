@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
-"ADM SmartDataObject Template with wizard.
+"ADM2 SmartDataObject Template with wizard.
 
 Use this template to create a new SmartDataObject with the assistance of the SmartDataObject Wizard. When completed, this object can be drawn onto any 'smart' container such as a SmartWindow, SmartDialog or SmartFrame. Non-smart objects, such as web objects, can also access a SmartDataObject by running it persistently and calling its methods."
 */

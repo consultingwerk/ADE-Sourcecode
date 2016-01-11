@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME Dlg_NewName
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dlg_NewName 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2012 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -104,7 +104,7 @@ DEFINE VARIABLE Type_Func_Ext AS CHARACTER    NO-UNDO INIT "_FUNCTION-EXTERNAL":
 DEFINE VARIABLE Type_Local    AS CHARACTER    NO-UNDO INIT "_LOCAL":U .
 DEFINE VARIABLE Invalid_Entry AS CHARACTER    NO-UNDO INIT "_INVALID-ENTRY":U .
 DEFINE VARIABLE Indent        AS CHARACTER    NO-UNDO INIT "   ":U.
-
+define variable lHidden       as logical no-undo.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -242,127 +242,11 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dlg_NewName Dlg_NewName
 ON GO OF FRAME Dlg_NewName /* New Function */
 DO:
-
-&Scoped-define EOL CHR(10)
-&Scoped-define COMMENT-LINE ------------------------------------------------------------------------------
-
-  DEFINE VARIABLE Valid_Entry    AS LOGICAL     NO-UNDO.
-  DEFINE VARIABLE Returns_Line   AS CHARACTER   NO-UNDO.
-  DEFINE VARIABLE Code-Block     AS CHARACTER   NO-UNDO.
-  
-  DO WITH FRAME {&FRAME-NAME}:
-
-  /* Trim leading spaces. */
-  ASSIGN Name:SCREEN-VALUE = TRIM(Name:SCREEN-VALUE)
+  ASSIGN Name:SCREEN-VALUE = TRIM(Name:SCREEN-VALUE) 
          Name              = Name:SCREEN-VALUE.
-  
-  /* Validate that the name is a legal PROGRESS internal procedure name. */
-  RUN adecomm/_valpnam.p
-      (INPUT  Name:SCREEN-VALUE, INPUT TRUE, INPUT "_INTERNAL":U,
-       OUTPUT Valid_Entry ).
-
-  IF NOT Valid_Entry THEN
-  DO:    
-      RUN set-state ( INPUT Type_Func + Invalid_Entry ).
-      RETURN NO-APPLY.
-  END.
-  
-  /* Don't allow the user to enter a duplicate name. */
-  IF CAN-DO ( p_Invalid_List , Name ) THEN
-  DO:
-     MESSAGE Name    SKIP(1)
-             "This name is reserved or already defined in an included Method Library." + CHR(10) +
-             "If you wish to override the existing function, you must ensure that you specify" + CHR(10) +
-             "the pre-processor 'EXCLUDE-" + Name + "' in the definition section" + CHR(10) +
-             "or else the procedure will not compile. " + CHR(10) + CHR(10) +
-             "Are you sure you wish to continue?"
-             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lchoice AS LOGICAL IN WINDOW ACTIVE-WINDOW .
-    IF NOT lchoice THEN
-    DO:
-       RUN set-state ( INPUT Type_Func  + Invalid_Entry ).
-       RETURN NO-APPLY.
-    END.
-  END.   
-
-  /* Function Implementation. */
   ASSIGN Returns-Type
          Returns-Type-2.
-  ASSIGN p_Define-As = Type:SCREEN-VALUE.
-
-  CASE p_Define-As:
-   /**************************************************************************/
-   /*                          standard FUNCTION IMPLEMENTATION              */  
-   /**************************************************************************/
-    WHEN Type_Func THEN
-    DO:
-
-      DEFINE VAR Return_Value AS CHARACTER NO-UNDO.
-      
-      ASSIGN Returns_Line = "RETURNS " + Returns-Type.
-      ASSIGN Code-Block = Returns_Line + CHR(10)
-                          + "  ( /* parameter-definitions */ ) :".
-
-      IF Returns-Type = "CHARACTER":U THEN
-        ASSIGN Return_Value = '""'.
-      ELSE IF Returns-Type = "DECIMAL":U THEN
-        ASSIGN Return_Value = "0.00".
-      ELSE IF Returns-Type = "INTEGER":U OR Returns-Type = "INT64":U THEN
-        ASSIGN Return_Value = "0".
-      ELSE IF Returns-Type = "LOGICAL":U THEN
-        ASSIGN Return_Value = "FALSE":U.
-      ELSE Return_Value = "?".
-      
-      Code-Block =   Code-Block + {&EOL} +
-      "/*{&COMMENT-LINE}" + {&EOL} +
-      "  Purpose:  " + {&EOL} + 
-      "    Notes:  " + {&EOL} + 
-      "{&COMMENT-LINE}*/" + {&EOL} +
-      {&EOL} +
-      "  RETURN " + Return_Value + ".   /* Function return value. */"
-      + {&EOL}
-      + {&EOL} +
-      "END FUNCTION.".
-
-      ASSIGN p_Returns  = Returns-Type
-             p_Code     = Code-Block .
-
-    END. /* WHEN _FUNCTION... */
-  
-
-   /**************************************************************************/
-   /*                          standard FUNCTION LOCAL OVERRIDE              */  
-   /**************************************************************************/
-    WHEN Type_Local THEN
-      ASSIGN p_Code = GetFuncCode( INPUT Name, INPUT p_Objects ).
-
-   /**************************************************************************/
-   /*                          standard FUNCTION EXTERNAL PROTOTYPE          */  
-   /**************************************************************************/
-    WHEN "_FUNCTION-EXTERNAL" THEN
-    DO:
-      ASSIGN Returns_Line = "RETURNS " + Returns-Type.
-      ASSIGN Code-Block = Returns_Line + CHR(10)
-                          + "  ( /* parameter-definitions */ ) :".
-      Code-Block =   Code-Block + "  /* External Prototype. */".
-      p_Code     = Code-Block.
-    END. /* WHEN _FUNCTION-EXTERNAL... */
-  
-  END CASE.
-
-  ASSIGN p_Name     = Name
-         p_Type     = Type_Func     /* Always return this to keep p_Code intact. */
-         p_OK       = TRUE .
-  
-/*  MESSAGE
- *          p_Name SKIP
- *          p_Type SKIP
- *          p_Returns SKIP
- *          p_Define-As SKIP
- *          p_OK   SKIP
- *          view-as alert-box in window active-window.*/
-
-  END.
-
+  run GenerateCode(name,type:screen-value,output p_Code,output p_returns) .
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -436,35 +320,38 @@ END.
 
 /* ***************************  
   *************************** */
-
-/* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
-IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ? THEN
-  FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
-  
-/* Make this dialog the current window. */
-ASSIGN
-  THIS-PROCEDURE:CURRENT-WINDOW = FRAME {&FRAME-NAME}:PARENT
-  CURRENT-WINDOW                = THIS-PROCEDURE:CURRENT-WINDOW.
-
-/* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
-{adecomm/okbar.i &TOOL = "AB"
-                 OTHER = btn_Create_Local
-                 &CONTEXT = {&New_Function_DB} }
-
-/* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
-ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
-
-/* Now enable the interface and wait for the exit condition.            */
-/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
-MAIN-BLOCK:
-DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  RUN set-init-values.
-  RUN enable_UI.
-  RUN set-state ( INPUT Init_Type ).                          
-  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS Name.
-END.
-RUN disable_UI.
+if not this-procedure:persistent then
+do: 
+    /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+    IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ? THEN
+      FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+      
+    /* Make this dialog the current window. */
+    ASSIGN
+      THIS-PROCEDURE:CURRENT-WINDOW = FRAME {&FRAME-NAME}:PARENT
+      CURRENT-WINDOW                = THIS-PROCEDURE:CURRENT-WINDOW.
+    
+    /* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
+    {adecomm/okbar.i &TOOL = "AB"
+                     OTHER = btn_Create_Local
+                     &CONTEXT = {&New_Function_DB} }
+    
+    /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
+    ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
+    
+    /* Now enable the interface and wait for the exit condition.            */
+    /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+    MAIN-BLOCK:
+    DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+       ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+      RUN set-init-values.
+      RUN enable_UI.
+      RUN set-state ( INPUT Init_Type ).                          
+      WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS Name.
+    END.
+    RUN disable_UI.
+end.
+else lHidden = true.    
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -510,6 +397,182 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+ 
+&IF DEFINED(EXCLUDE-GenerateCode) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE GenerateCode Include
+procedure GenerateCode private:
+	&Scoped-define EOL CHR(10)
+    &Scoped-define COMMENT-LINE ------------------------------------------------------------------------------
+  define input  parameter pName as character no-undo.
+  define input  parameter pType as character no-undo.
+  define output  parameter pCode  as character no-undo.
+  define output parameter pReturns as character no-undo.
+    
+  DEFINE VARIABLE Valid_Entry    AS LOGICAL     NO-UNDO.
+  DEFINE VARIABLE Returns_Line   AS CHARACTER   NO-UNDO.
+  DEFINE VARIABLE Code-Block     AS CHARACTER   NO-UNDO.
+  
+  DO WITH FRAME {&FRAME-NAME}:
+
+  /* Validate that the name is a legal PROGRESS internal procedure name. */
+  RUN adecomm/_valpnam.p
+      (INPUT  pName, INPUT TRUE, INPUT "_INTERNAL":U,
+       OUTPUT Valid_Entry ).
+
+  IF NOT Valid_Entry THEN
+  DO:    
+      if lhidden then
+      do: 
+           pcode = "ERROR:InvalidProcedureName".
+           return.
+      end.     
+      
+      RUN set-state ( INPUT Type_Func + Invalid_Entry ).
+      RETURN NO-APPLY.
+  END.
+  
+  /* Don't allow the user to enter a duplicate name. */
+  IF CAN-DO ( p_Invalid_List , Name ) THEN
+  DO:
+     MESSAGE Name    SKIP(1)
+             "This name is reserved or already defined in an included Method Library." + CHR(10) +
+             "If you wish to override the existing function, you must ensure that you specify" + CHR(10) +
+             "the pre-processor 'EXCLUDE-" + pName + "' in the definition section" + CHR(10) +
+             "or else the procedure will not compile. " + CHR(10) + CHR(10) +
+             "Are you sure you wish to continue?"
+             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lchoice AS LOGICAL IN WINDOW ACTIVE-WINDOW .
+    IF NOT lchoice THEN
+    DO:
+       if lhidden then
+       do: 
+           pcode = "ERROR:ReservedProcedureName".
+           return.
+       end.      
+        
+       RUN set-state ( INPUT Type_Func  + Invalid_Entry ).
+       RETURN NO-APPLY.
+    END.
+  END.   
+ 
+  ASSIGN p_Define-As = pType.
+
+  CASE p_Define-As:
+   /**************************************************************************/
+   /*                          standard FUNCTION IMPLEMENTATION              */  
+   /**************************************************************************/
+    WHEN Type_Func THEN
+    DO:
+
+      DEFINE VAR Return_Value AS CHARACTER NO-UNDO.
+      
+      ASSIGN pReturns = "RETURNS " + Returns-Type.
+      ASSIGN Code-Block = pReturns + CHR(10)
+                          + "  ( /* parameter-definitions */ ) :".
+
+      IF Returns-Type = "CHARACTER":U THEN
+        ASSIGN Return_Value = '""'.
+      ELSE IF Returns-Type = "DECIMAL":U THEN
+        ASSIGN Return_Value = "0.00".
+      ELSE IF Returns-Type = "INTEGER":U OR Returns-Type = "INT64":U THEN
+        ASSIGN Return_Value = "0".
+      ELSE IF Returns-Type = "LOGICAL":U THEN
+        ASSIGN Return_Value = "FALSE":U.
+      ELSE Return_Value = "?".
+      
+      /* this case is currently not used when hidden */
+      if not lHidden then
+         Code-Block =   Code-Block + {&EOL} +
+      "/*{&COMMENT-LINE}" + {&EOL} +
+      "  Purpose:  " + {&EOL} + 
+      "    Notes:  " + {&EOL} + 
+      "{&COMMENT-LINE}*/" + {&EOL} +
+      {&EOL}.
+      Code-Block =   Code-Block +
+      "  RETURN " + Return_Value + ".   /* Function return value. */"
+      + {&EOL}.
+      
+      if not lHidden then
+         Code-Block =   Code-Block + {&EOL} +
+           "END FUNCTION.".
+
+      ASSIGN pReturns  = Returns-Type
+             pCode     = Code-Block .
+
+    END. /* WHEN _FUNCTION... */
+  
+
+   /**************************************************************************/
+   /*                          standard FUNCTION LOCAL OVERRIDE              */  
+   /**************************************************************************/
+    WHEN Type_Local THEN
+    do:
+      ASSIGN pCode = GetFuncCode( INPUT pName, INPUT p_Objects ).
+        /* hackety hack -- the GetFuncCode assigns this global member, so make sure 
+           it is returned as output  */
+             pReturns = P_Returns.
+    end.
+    /**************************************************************************/
+   /*                          standard FUNCTION EXTERNAL PROTOTYPE          */  
+   /**************************************************************************/
+    WHEN "_FUNCTION-EXTERNAL" THEN
+    DO:
+      ASSIGN Returns_Line = "RETURNS " + Returns-Type.
+      ASSIGN Code-Block = Returns_Line + CHR(10)
+                          + "  ( /* parameter-definitions */ ) :".
+      Code-Block =   Code-Block + "  /* External Prototype. */".
+      pCode     = Code-Block.
+    END. /* WHEN _FUNCTION-EXTERNAL... */
+  
+  END CASE.
+
+  ASSIGN p_Name     = pName
+         p_Type     = Type_Func     /* Always return this to keep p_Code intact. */
+         p_OK       = TRUE .
+  
+/*  MESSAGE
+ *          p_Name SKIP
+ *          p_Type SKIP
+ *          p_Returns SKIP
+ *          p_Define-As SKIP
+ *          p_OK   SKIP
+ *          view-as alert-box in window active-window.*/
+
+  END.
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
+
+ 
+&IF DEFINED(EXCLUDE-GetCode) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE GetCode Include
+procedure GetCode:
+ /*------------------------------------------------------------------------------
+    Purpose:  get proc code  for ide                                                                      
+    Notes: We could have called Generatecode directly, but 
+           we keep it like this to be consistent with _newproc.w                                                                       
+------------------------------------------------------------------------------*/
+   define input  parameter pName as character no-undo.
+   define input  parameter pType as character no-undo.
+   define output  parameter pCode  as character no-undo.
+   define output parameter pReturns as character no-undo.
+   run GenerateCode(pname,ptype,output pCode,output pReturns).
+
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-init-values Dlg_NewName 
 PROCEDURE set-init-values :
@@ -641,13 +704,13 @@ FUNCTION GetFuncCode RETURNS CHARACTER
   &SCOPED-DEFINE EOL CHR(10)
   &SCOPED-DEFINE COMMENT-LINE ------------------------------------------------------------------------------
 
-  
+   
   DO nItem = 1 TO NUM-ENTRIES(p_ObjHandle):
     ASSIGN hSuper_Proc = WIDGET-HANDLE(ENTRY(nItem, p_ObjHandle)).
     IF VALID-HANDLE( hSuper_Proc ) AND
        CAN-DO(hSuper_Proc:INTERNAL-ENTRIES, p_Func_Name) THEN LEAVE.
   END.
-
+  
   ASSIGN Signature    = hSuper_Proc:GET-SIGNATURE(p_Func_Name)
          Return_Type  = CAPS(ENTRY(2, Signature))
          ParamDefs    = IF ENTRY(3, Signature) <> ""
@@ -659,7 +722,7 @@ FUNCTION GetFuncCode RETURNS CHARACTER
   ASSIGN
       Func_Code =
       "RETURNS " + Return_Type.
-
+ 
   /* Format the FUNCTION header parameter list. */
   DO nItem = 1 TO NUM-ENTRIES( ParamList ):
     ASSIGN Parm = ENTRY( nItem , ParamList ).
@@ -696,13 +759,14 @@ FUNCTION GetFuncCode RETURNS CHARACTER
     ASSIGN ParamList = " /* parameter-definitions */ ".
   
   ASSIGN Func_Code = Func_Code + {&EOL} + FILL(Space_Char , 2) + "(" + ParamList + ") :".
-
-  ASSIGN Func_Code =
-      Func_Code + {&EOL} +
-      "/*{&COMMENT-LINE}" + {&EOL} +
-      "  Purpose:     Super Override" + {&EOL} + 
-      "  Notes:       " + {&EOL} + 
-      "{&COMMENT-LINE}*/" + {&EOL}.
+  /* don't return comments to IDE */
+  if not lHidden then
+     ASSIGN Func_Code =
+         Func_Code + {&EOL} +
+         "/*{&COMMENT-LINE}" + {&EOL} +
+         "  Purpose:     Super Override" + {&EOL} + 
+         "  Notes:       " + {&EOL} + 
+        "{&COMMENT-LINE}*/" + {&EOL}.
 
   /* Format the SUPER() FUNCTION PARAMETER statement. */
   ASSIGN ParamList    = ParamDefs.
@@ -729,8 +793,10 @@ FUNCTION GetFuncCode RETURNS CHARACTER
       Func_Code + {&EOL} +      
       "  /* Code placed here will execute PRIOR to standard behavior. */" + {&EOL} +
       {&EOL} +
-      "  RETURN SUPER" + ParamRun + "." + {&EOL} +
-      {&EOL} +
+      "  RETURN SUPER" + ParamRun + "." + {&EOL}.
+   
+   if not lhidden then 
+         Func_Code = Func_Code + {&EOL} +
       "END FUNCTION.".
 
   RETURN Func_Code.

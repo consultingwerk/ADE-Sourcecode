@@ -20,56 +20,57 @@ Author: William T. Wood
 Date Created: 1 June 1995
 
 ----------------------------------------------------------------------------*/
-DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
+define input parameter uRecId as recid no-undo.
 
 {adeuib/uniwidg.i}   /* Universal Widget Records */
-
+{adecomm/oeideservice.i}
 
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
-DEFINE NEW GLOBAL SHARED VARIABLE gshSessionManager    AS HANDLE  NO-UNDO.
-DEFINE NEW GLOBAL SHARED VARIABLE gshRepositoryManager AS HANDLE  NO-UNDO.
+define new global shared variable gshSessionManager    as handle  no-undo.
+define new global shared variable gshRepositoryManager as handle  no-undo.
 
-DEFINE VARIABLE cnt                                 AS INTEGER    NO-UNDO.
-DEFINE VARIABLE FILE-NAME                           AS CHAR       NO-UNDO.
-DEFINE VARIABLE file-prfx                           AS CHAR       NO-UNDO.
-DEFINE VARIABLE file-base                           AS CHAR       NO-UNDO.
-DEFINE VARIABLE file-ext                            AS CHAR       NO-UNDO.
-DEFINE VARIABLE lEditMaster                         AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE src-file                            AS CHAR       NO-UNDO.
-
+define variable cnt                                 as integer    no-undo.
+define variable FILE-NAME                           as char       no-undo.
+define variable file-prfx                           as char       no-undo.
+define variable file-base                           as char       no-undo.
+define variable file-ext                            as char       no-undo.
+define variable lEditMaster                         as logical    no-undo.
+define variable src-file                            as char       no-undo.
+define variable lIDEIntegrated                      as logical    no-undo.
+define variable cMsg                                as character no-undo.
 /* Find the information about this SmartObject. */
-FIND _U       WHERE RECID(_U)       eq uRecId.
-FIND _S       WHERE RECID(_S)       eq _U._x-recid.
+find _U       where recid(_U)       eq uRecId.
+find _S       where recid(_S)       eq _U._x-recid.
 
 
 /* Assume the master can be editted. */
-ASSIGN lEditMaster = yes
+assign lEditMaster = yes
        file-name   = _S._FILE-NAME.
 
 /* Break the file name into its component parts. For example:
     c:\bin.win\gui\test.r => file-prfx "c:\bin.win\gui\",  file-base "test.r"
                              file-ext  "r" 
  */
-RUN adecomm/_osprefx.p (INPUT file-name, OUTPUT file-prfx, OUTPUT file-base).
+run adecomm/_osprefx.p (input file-name, output file-prfx, output file-base).
 
-IF CAN-DO("dynlookup.w,dyncombo.w":U, file-base) THEN DO:
+if can-do("dynlookup.w,dyncombo.w":U, file-base) then do:
   /* Dynamic lookup or combo -- launch the apropriate editor */
 
-  DEFINE VARIABLE lMultiInstance          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cChildDataKey           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRunAttribute           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSDFFilename            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainerWindow        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hContainerSource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hObject                 AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE ghSDFMaintWindow        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cRunContainerType       AS CHARACTER  NO-UNDO.
+  define variable lMultiInstance          as logical    no-undo.
+  define variable cChildDataKey           as character  no-undo.
+  define variable cRunAttribute           as character  no-undo.
+  define variable cSDFFilename            as character  no-undo.
+  define variable hContainerWindow        as handle     no-undo.
+  define variable hContainerSource        as handle     no-undo.
+  define variable hObject                 as handle     no-undo.
+  define variable ghSDFMaintWindow        as handle     no-undo.
+  define variable cRunContainerType       as character  no-undo.
 
-  ASSIGN
-    lMultiInstance    = NO
+  assign
+    lMultiInstance    = no
     cChildDataKey     = "":U
-    cRunAttribute     = STRING(THIS-PROCEDURE)
+    cRunAttribute     = string(this-procedure)
     hContainerWindow  = ?
     hContainerSource  = ?
     hObject           = ?
@@ -77,71 +78,87 @@ IF CAN-DO("dynlookup.w,dyncombo.w":U, file-base) THEN DO:
     cRunContainerType = "":U
     .
 
-  IF VALID-HANDLE(gshSessionManager) AND VALID-HANDLE(gshRepositoryManager) THEN DO:
-    cSDFFileName = DYNAMIC-FUNCTION("getSDFFileName" IN _S._HANDLE).
+  if valid-handle(gshSessionManager) and VALID-HANDLE(gshRepositoryManager) then do:
+    cSDFFileName = dynamic-function("getSDFFileName" in _S._HANDLE).
 
     /* If there is no SDFFileName and we are dealing with a Static viewer then
        pass in "NOMASTER".                                                     */
-    IF cSDFFileName EQ "":U OR cSDFFileName = ? THEN
-        ASSIGN cSDFFileName = "NOMASTER".
+    if cSDFFileName eq "":U or cSDFFileName = ? then
+        assign cSDFFileName = "NOMASTER".
                                  
-    RUN clearClientCache IN gshRepositoryManager.
-    RUN launchContainer IN gshSessionManager 
-                        (INPUT  "rysdfmaintw"        /* object filename if physical/logical names unknown */
-                        ,INPUT  "":U                 /* physical object name (with path and extension) if known */
-                        ,INPUT  "":U                 /* logical object name if applicable and known */
-                        ,INPUT  (NOT lMultiInstance) /* run once only flag YES/NO */
-                        ,INPUT  "":U                 /* instance attributes to pass to container */
-                        ,INPUT  cChildDataKey        /* child data key if applicable */
-                        ,INPUT  cSDFFileName         /* run attribute if required to post into container run */
-                        ,INPUT  "":U                 /* container mode, e.g. modify, view, add or copy */
-                        ,INPUT  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
-                        ,INPUT  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
-                        ,INPUT  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
-                        ,OUTPUT ghSDFMaintWindow     /* procedure handle of object run/running */
-                        ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
+    run clearClientCache in gshRepositoryManager.
+    run launchContainer in gshSessionManager 
+                        (input  "rysdfmaintw"        /* object filename if physical/logical names unknown */
+                        ,input  "":U                 /* physical object name (with path and extension) if known */
+                        ,input  "":U                 /* logical object name if applicable and known */
+                        ,input  (not lMultiInstance) /* run once only flag YES/NO */
+                        ,input  "":U                 /* instance attributes to pass to container */
+                        ,input  cChildDataKey        /* child data key if applicable */
+                        ,input  cSDFFileName         /* run attribute if required to post into container run */
+                        ,input  "":U                 /* container mode, e.g. modify, view, add or copy */
+                        ,input  hContainerWindow     /* parent (caller) window handle if known (container window handle) */
+                        ,input  hContainerSource     /* parent (caller) procedure handle if known (container procedure handle) */
+                        ,input  hObject              /* parent (caller) object handle if known (handle at end of toolbar link, e.g. browser) */
+                        ,output ghSDFMaintWindow     /* procedure handle of object run/running */
+                        ,output cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
                          ).
     /* Set the super procedure in the container so that it can write out properties using 'set' */
-    IF VALID-HANDLE(ghSDFMaintWindow) AND VALID-HANDLE(_S._HANDLE) THEN
-       DYNAMIC-FUNCTION("setSDFProcHandle":U IN ghSDFMaintWindow, _S._HANDLE).
+    if valid-handle(ghSDFMaintWindow) and VALID-HANDLE(_S._HANDLE) then
+       dynamic-function("setSDFProcHandle":U in ghSDFMaintWindow, _S._HANDLE).
      
-  END.  /* If the repository manager is running */
-  RETURN.
-END.
-ASSIGN cnt      = NUM-ENTRIES(file-base, ".")
-       file-ext = IF cnt < 2 THEN "" ELSE ENTRY(cnt, file-base, "." ).
+  end.  /* If the repository manager is running */
+  return.
+end.
+assign cnt      = num-entries(file-base, ".")
+       file-ext = if cnt < 2 then "" else entry(cnt, file-base, "." ).
 
 /* Look for a related .w file if the user asked for a .r.  We will use
    this to Edit the Master. */
-IF file-ext eq "r" THEN DO:
+if file-ext eq "r" then do:
   /* Replace the .r at the end of the file name. */
-  ASSIGN file-name = file-base
-         ENTRY(cnt, file-name, ".") = "w"
+  assign file-name = file-base
+         entry(cnt, file-name, ".") = "w"
          file-name = file-prfx + file-name.
-  IF SEARCH(file-name) eq ? THEN lEditMaster = no.
-END.
+  if search(file-name) eq ? then lEditMaster = no.
+end.
 /* Otherwise, just look for the file. */
-ELSE DO:
-  IF SEARCH(file-name) eq ? THEN lEditMaster = no.
-END.
+else do:
+  if search(file-name) eq ? then lEditMaster = no.
+end.
 
 /* Does the source exist in the DLC/src directory? */
-IF (REPLACE(file-prfx, "~\":U, "~/") eq "adm/objects/":U) OR (REPLACE(file-prfx, "~\":U, "~/") EQ "adm2/":U)
-THEN DO: src-file = SEARCH("src/":U + file-name).
-END.
-ELSE src-file = ?.
-
-
-/* Open the window for the SmartObject if we can find it. Otherwise
-   report an error if we cannot edit the master. */
-IF lEditMaster THEN RUN adeuib/_open-w.p (file-name, "", "WINDOW").
-ELSE MESSAGE "Source code for this SmartObject could not be found." SKIP(1)       
-             "You cannot edit the master until you move a copy of the " {&SKP}
-             "source file (i.e. " + file-name + ") into your PROPATH." +
-             (IF src-file ne ? 
-              THEN CHR(10) + CHR(10) +
-                   "[Note: The source code for this built-in PROGRESS object " +
-                   &IF "{&WINDOW-SYSTEM}" eq "OSF/Motif":U &THEN CHR(10) + &ENDIF
-                   "can be found in " + src-file + ".]"
-              ELSE "")
-             VIEW-AS ALERT-BOX ERROR.
+if (replace(file-prfx, "~\":U, "~/") eq "adm/objects/":U) or (replace(file-prfx, "~\":U, "~/") eq "adm2/":U)
+then do: src-file = search("src/":U + file-name).
+end.
+else src-file = ?.
+if lEditMaster then 
+do:
+    run adeuib/_open-w.p (file-name, "","WINDOW":U).
+end.
+else do:
+   /* Open the window for the SmartObject if we can find it.  
+      Otherwise report an error if we cannot edit the master. */
+   
+   if OEIDEIsRunning then 
+   do:
+       run getIsIDEIntegrated in hOEIDEService (output lIDEIntegrated).
+   end.
+   
+   cMsg = "Source code for this SmartObject could not be found.~n~n"       
+         + "You cannot edit the master until you move a copy of the "
+         + "source file (i.e. " + file-name + ") into your PROPATH." 
+         + (if src-file ne ? 
+            then  "~n~n" 
+                + "[Note: The source code for this built-in PROGRESS object "
+                + "can be found in " + src-file + ".]"
+             else "").
+   
+   if not lIdeintegrated then 
+   do:
+      message cMsg 
+            view-as alert-box error.
+   end.
+   else do:
+      ShowMessageInIDE(cmsg,"error",?,"ok",yes).
+   end.    
+end.

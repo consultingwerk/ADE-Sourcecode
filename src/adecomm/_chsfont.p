@@ -95,6 +95,7 @@ DEFINE RECTANGLE rSelected SIZE-PIXELS 1 BY 1 FGCOLOR ? BGCOLOR 0 EDGE-PIXELS 3 
 DEFINE RECTANGLE rHeavyRule {&STDPH_OKBOX}.
 &ENDIF
 
+    
 DEFINE FRAME frFontEdit
   SKIP({&TFM_WID})
   tSample NO-LABEL AT 25 SKIP(3)
@@ -124,8 +125,21 @@ DEFINE FRAME frFontEdit
       &CANCEL = "bCancel"
       &OTHER  = "space({&HM_DBTNG}) bEdit space({&HM_DBTNG}) bSave"
       &HELP   = "bHelp"}
-WITH SIDE-LABELS TITLE cipTitle WIDTH 90
-     VIEW-AS DIALOG-BOX DEFAULT-BUTTON bOK.
+WITH SIDE-LABELS 
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     TITLE cipTitle 
+     VIEW-AS DIALOG-BOX
+  &else
+      NO-BOX THREE-D  
+  &endif      
+     WIDTH 90
+     DEFAULT-BUTTON bOK.
+
+
+{adeuib/ide/dialoginit.i "FRAME frFontEdit:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 
 /* **************************** THREE-D Support *************************** */       
 /* In 3D, we want to change some of the characteristics of the widgets
@@ -153,9 +167,17 @@ PROCEDURE EditFont.
                 highest-font = MAX(highest-font, iipFontNumber).
   END.
   ELSE
+  do:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    ShowMessageInIDE("Font number" + string(iipFontNumber)+ " is not valid. ~n Valid font numbers are from 0 - 255. ",
+                     "Information","?","OK",yes).
+          
+    &else  
     MESSAGE "Font number" iipFontNumber "is not valid." SKIP
 	    "Valid font numbers are from 0 - 255."
-	VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.   
+	VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+	&endif
+  end.	   
 END PROCEDURE.
 
 PROCEDURE GetStartingFontNumber.
@@ -289,16 +311,30 @@ DO:
 
   IF SELF:FONT > 7 THEN RUN EditFont (SELF:FONT).
   ELSE DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+     ShowMessageInIDE("Only font numbers 8-255 are customizable.",
+                      "Information","?","OK",yes).
+                     
+    &else   
     MESSAGE "Only font numbers 8-255 are customizable."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS Ok.
+	&endif
   END.
 END.
 
 
 ON MOUSE-SELECT-DBLCLICK OF tFontDefault
 DO:
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+     ShowMessageInIDE("Only font numbers 8-255 are customizable.",
+                      "Information","?","OK",yes).
+                     
+  &else  
   MESSAGE "Only font numbers 8-255 are customizable."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS Ok.
+  &endif
 END.
 
 ON CHOOSE OF iLeftArrow DO:
@@ -319,8 +355,17 @@ ON CHOOSE OF iRightArrow DO:
 
   ASSIGN ivFontStart = tFont3:FONT IN FRAME frFontEdit + 1.
   IF ivFontStart > 255 THEN
+  do:
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+     ShowMessageInIDE("Valid Font numbers are from 0 to 255.",
+                       "Information","?","OK",yes).
+                     
+    &else
     MESSAGE "Valid Font numbers are from 0 to 255."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+	&endif
+  end.	
   ELSE
     DO:
       IF FONT-TABLE:NUM-ENTRIES < (ivFontStart + 4) THEN
@@ -338,11 +383,22 @@ ON GO OF FRAME frFontEdit DO:
   DEF VAR lOK AS LOGICAL NO-UNDO.
   /* Tell the user if they changed any colors, but did not save. */
   IF lChanged AND NOT lSaved THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+    lok     = ShowMessageInIDE("Font settings were edited, but they have ~n 
+                                   not been saved.  These changes will be lost when ~n
+                                   you leave the PROGRESS session. ~n
+                                   Would you like to save settings?",
+                                   "Warning","?","YES-NO-CANCEL",yes).
+                                   
+                      
+    &else
     MESSAGE "Font settings were edited, but they have" {&SKP}
             "not been saved.  These changes will be lost when" {&SKP}
             "you leave the PROGRESS session." SKIP(1)
             "Would you like to save settings?"
             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL UPDATE lOK.
+    &endif        
     IF lOK eq ? THEN RETURN NO-APPLY.
     ELSE IF lOK THEN RUN SaveSettings.
   END.
@@ -352,10 +408,19 @@ ON ENDKEY OF FRAME frFontEdit DO:
   /* Tell the user that changes make to the SYSTEM-DIALOG will not
      be undone. */
   IF lChanged OR lSaved THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    
+     ShowMessageInIDE("Changes make editing fonts or saving ~n font settings cannot be undone. ~n
+                      Cancelling this dialog will not undo those changes.",
+                      "Warning","?","OK",yes).
+                                   
+     
+    &else  
     MESSAGE "Changes make editing fonts or saving" {&SKP}
             "font settings cannot be undone." SKIP(1)
             "Cancelling this dialog will not undo those changes."
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+   &endif         
   END.
 END.
 
@@ -445,7 +510,7 @@ DO WITH FRAME frFontEdit:
     Display the correct initial font based on the font that was passed in
     and highlight the passed font.
   */
-  
+
   IF iFontNumber = ? THEN DO:
     RUN SetTextFonts(0).
     RUN HighlightSelectedFont(tFontDefault:HANDLE).
@@ -462,12 +527,14 @@ DO WITH FRAME frFontEdit:
     ELSE IF iFontNumber = ivFontStart + 3 THEN
       RUN HighlightSelectedFont(tFont3:HANDLE).
   END.
-
+  
   ASSIGN ivFrameWidth = FRAME frFontEdit:WIDTH-PIXELS -
                         FRAME frFontEdit:BORDER-LEFT-P -
                         FRAME frFontEdit:BORDER-RIGHT-P.
   ASSIGN FRAME frFontEdit:HIDDEN = FALSE.
-
+  
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i bok bcancel cipTitle}
   DO TRANSACTION ON ENDKEY UNDO, LEAVE:
     ASSIGN pressed_OK = no.
     RUN setSampleFont (IF iFontNumber eq ? 
@@ -475,8 +542,16 @@ DO WITH FRAME frFontEdit:
                        ELSE iFontNumber).
 
     ENABLE ALL EXCEPT bEdit iLeftArrow iRightArrow WITH FRAME frFontEdit.
+    
+    ENABLE bOk bCancel bHelp WITH FRAME frFontEdit.
     IF NOT RETRY THEN
-      UPDATE bOk bCancel bHelp WITH FRAME frFontEdit.
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        UPDATE bOk bCancel bHelp WITH FRAME frFontEdit. 
+    &ELSE
+        WAIT-FOR "choose" of bok in frame frFontEdit or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+      
     ASSIGN iiopFontNumber = iFontNumber  /* Send back changes */
            pressed_OK     = yes.
   END.

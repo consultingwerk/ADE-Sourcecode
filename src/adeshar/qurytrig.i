@@ -95,8 +95,14 @@ ON MOUSE-SELECT-DBLCLICK OF _qo._find-type IN BROWSE _qrytune DO:
   DO WITH FRAME dialog-1:
     IF _qo._seq-no = 1 /* AND iXternalCnt = 0 REMOVED for 95-06-28-002 DRH */
     THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("The first table in a query must be 'FOR EACH'.",
+                           "Information",?,"OK",yes).
+      
+       &else   
        MESSAGE 'The first table in a query must be "FOR EACH".'
                VIEW-AS ALERT-BOX INFORMATION.
+       &endif        
        RETURN NO-APPLY.
     END.
     CASE SELF:SCREEN-VALUE:
@@ -111,8 +117,14 @@ END.
 ON ANY-PRINTABLE OF _qo._find-type IN BROWSE _qrytune DO:
   DO WITH FRAME dialog-1:
     IF _qo._seq-no = 1 AND iXternalCnt = 0 THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("The first table in a query must be 'FOR EACH'.",
+                           "Information",?,"OK",yes).
+      
+       &else  
        MESSAGE 'The first table in a query must be "FOR EACH".'
                VIEW-AS ALERT-BOX INFORMATION.
+       &endif        
        RETURN NO-APPLY.
     END.
     CASE CHR(LASTKEY):
@@ -174,9 +186,20 @@ ON VALUE-CHANGED OF cShareType IN FRAME dialog-1 DO:
   ASSIGN cShareType = CAPS (cShareType:SCREEN-VALUE).  
   IF cShareType:SCREEN-VALUE = "Exclusive-Lock":U AND
      application = "{&UIB_SHORT_NAME}":U AND CAN-DO(pcValidStates,"FIELDS":U)
-  THEN MESSAGE "Opening a query with EXCLUSIVE-LOCK will cause a run-time"
+  THEN
+  do: 
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("Opening a query with EXCLUSIVE-LOCK will cause a run-time ~n
+                            error unless the OPEN statement is within a DO/REPEAT ~n
+                            TRANSACTION block.",
+                           "Warning",?,"OK",yes).
+      
+  &else    
+  MESSAGE "Opening a query with EXCLUSIVE-LOCK will cause a run-time"
                "error unless the OPEN statement is within a DO/REPEAT"
                "TRANSACTION block." VIEW-AS ALERT-BOX WARNING.
+  &endif             
+  end.             
   RUN BuildOptionList.ip.
   RUN BuildQuery.ip (OUTPUT eDisplayCode).
   ASSIGN
@@ -258,9 +281,16 @@ ON CHOOSE OF bFieldFormat DO:
               ELSE 5. 
           
     IF NewType = 5 THEN 
+    do:
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+          ShowMessageInIDE("Using numeric format as default.",
+                           "Warning","Format type missing","OK",yes).
+      
+      &else   
       MESSAGE "Using numeric format as default." 
-        VIEW-AS ALERT-BOX WARNING TITLE "Format type missing".  
-                         
+        VIEW-AS ALERT-BOX WARNING TITLE "Format type missing".
+      &endif    
+    end.                     
     IF NewType >= 1 THEN
        RUN adecomm/_y-build.p (NewType, INPUT-OUTPUT cOldFormat).
   END.
@@ -286,9 +316,16 @@ ON GO OF FRAME DIALOG-1 DO:
   */
   DEFINE VARIABLE chc AS LOGICAL NO-UNDO.
   IF plVisitFields and ({&TableRight}:NUM-ITEMS - iXternalCnt > 0) then do: 
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        chc =  ShowMessageInIDE("You have selected table(s) but no fields. ~n
+                                Do you want to select some fields now?" ,
+                                "Warning",?,"YES-NO",chc).
+      
+    &else   
     MESSAGE "You have selected table(s) but no fields." SKIP
       "Do you want to select some fields now?" 
       VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE chc.
+    &endif  
     IF chc THEN DO: 
       APPLY "CHOOSE" TO b_fields.
       RETURN NO-APPLY. 
@@ -342,50 +379,32 @@ END.
 ON CHOOSE OF bCheckSyntax DO:
   RUN CheckSyntax.ip (OUTPUT lOK).
   IF NOT lOK THEN
+  do:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         ShowMessageInIDE("Syntax is correct.":t48 ,
+                          "Information",?,"OK",yes).
+      
+    &else   
     MESSAGE "Syntax is correct.":t48 
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    &endif  
+  end.    
 END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bTableSwitch
   RUN ChangeJoinTarget.ip.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF b_Fields DO:
-  DEFINE VARIABLE tblst        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE tmptblnm     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i            AS INTEGER   NO-UNDO.
-  
-  /* Get current list of tables including external tables */
-  DO i = 1 TO {&TableRight}:NUM-ITEMS:
-    ASSIGN tmptblnm = ENTRY(1,ENTRY(i,{&TableRight}:LIST-ITEMS,{&SEP1}), " ")
-           tblst    = tblst + (IF i > 1 THEN "," ELSE "") +
-                     (IF NUM-ENTRIES(tmptblnm,".") = 1 THEN
-                       (IF CAN-FIND(FIRST _tt-tbl WHERE _tt-tbl.tt-name = tmptblnm)
-                          THEN "Temp-Tables":U ELSE LDBNAME(1)) + "." ELSE "") +
-                        tmptblnm.
-  END.
-  /* send the table list or a SmartData handle */
-  RUN adeuib/_coledit.p (INPUT tblst, INPUT ?).
-  ASSIGN plVisitFields  = NO.
+  RUN ChooseFields.
 END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF b_FreeFormQ DO:
-  DEF VAR ok-cancel            AS CHARACTER INITIAL "Cancel":U           NO-UNDO.
-  DEF VAR qcode                AS CHARACTER                              NO-UNDO.
-  
-  /* Build the query as it is currently known                                  */
-  RUN BuildQuery.ip (OUTPUT qcode).
-  ASSIGN _TblList = TRIM({&TableRight}:LIST-ITEMS).
-  
-  /* It is necessary to call another procedure, because the query builder is
-     unaware of the _U record for the currently in use because of its double
-     duty with results.                                                        */
-  RUN adeuib/_ffqdlg.p (INPUT qcode, INPUT _TblList, INPUT-OUTPUT ok-cancel).
-                  
-  IF ok-cancel = "Freeform":U THEN DO:
-    plVisitFields = FALSE.
-    APPLY "GO" TO FRAME DIALOG-1.
-  END.
-  ELSE RETURN NO-APPLY.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &THEN
+  RUN choose_b_FreeFormQ.
+  &else
+    dialogService:SetCurrentEvent(this-procedure,"choose_b_FreeFormQ").
+    run runChildDialog in hOEIDEService (dialogService) .
+  &ENDIF 
 END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bUp IN FRAME dialog-1 DO:
@@ -456,7 +475,7 @@ ON CHOOSE OF bDown IN FRAME dialog-1 DO:
 END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bRemove IN FRAME dialog-1
-  RUN DefaultActionRight.ip.	     
+  RUN DefaultActionRight.ip.         
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bAdd IN FRAME dialog-1
   RUN DefaultActionLeft.ip.
@@ -512,7 +531,7 @@ DO WITH FRAME dialog-1:
 
       /** Change the FORMAT part **/
       ENTRY (3, cTemp, {&sep2}) = IF SELF:SCREEN-VALUE <> cFORMAT THEN 
-                                    SELF:SCREEN-VALUE ELSE "":U				   
+                                    SELF:SCREEN-VALUE ELSE "":U                
       /** Put it back  **/
       ENTRY (LOOKUP (cFieldName, cList, {&Sep1}), {&CurData}, {&Sep1}) = cTemp.
   END.
@@ -520,47 +539,22 @@ END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bEqual, bNotEqual, bLess, bGreater, bLessEqual, bGreaterEqual,
   bAnd, bOR, bBegins, bMatches, bRange, bList, bContains DO:
-
-  DEFINE VARIABLE NewLabel AS CHARACTER NO-UNDO.
-
+  define variable NewLabel  as character no-undo.    
   NewLabel    = REPLACE(SELF:LABEL,"&":U,"":U). /* strip "&" mnemonic */ 
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    if self <> band:handle and self <> bOr:handle then
+    do:
+        dialogService:SetCurrentEvent(this-procedure,"choose_whereButton",NewLabel).
+        run runChildDialog in hOEIDEService (dialogService) .
+    end. 
+    else 
+       run choose_whereButton(NewLabel).
 
-  DO WITH FRAME dialog-1:
-    IF {&Join-Mode} THEN 
-      RUN Join.ip (NewLabel, TRUE).
-    ELSE DO:
-      IF res_calcfld THEN 
-        cTemp = SUBSTRING({&CurLeft}:SCREEN-VALUE,1,
-                          INDEX({&CurLeft}:SCREEN-VALUE,"(":u) - 2,
-                          "CHARACTER":u).
-      ELSE
-        RUN guess_field (OUTPUT cTemp). 
+&else
+    run choose_whereButton(NewLabel).
+&endif
+     
 
-      IF NUM-ENTRIES(cTemp," ":U) > 1 THEN
-        cTemp = ENTRY(NUM-ENTRIES(cTemp," ":U),cTemp," ":U).
-
-      RUN adeshar/_qwhere.p (NewLabel,cTemp,application,res_calcfld,
-                             {&CurLeft}:SCREEN-VALUE).
-    END.
-    FIND LAST ttWhere WHERE INTEGER (rsMain:SCREEN-VALUE) = ttWhere.iState 
-      AND lLeft:SCREEN-VALUE = ttWhere.cTable.
-
-    /* If from the users point of view we have saved this then just leave */
-    IF (ttWhere.cExpression = TRIM(eDisplayCode:SCREEN-VALUE)) THEN RETURN.   
-    i = ttWhere.iSeq.
-    CREATE ttWhere.
-    ASSIGN
-      cLastField                 = TRIM(eDisplayCode:SCREEN-VALUE)
-      ttWhere.iState             = INTEGER (rsMain:SCREEN-VALUE)
-      ttWhere.cTable             = lLeft:SCREEN-VALUE
-      ttWhere.iSeq               = i + 1
-      ttWhere.iOffset            = eDisplayCode:CURSOR-OFFSET 
-      ttWhere.cExpression        = eDisplayCode:SCREEN-VALUE 
-      ttWhere.lOperator          = TRUE /* ggg This needs work !! */ 
-      ttWhere.lWhState           = lWhState
-      bCheckSyntax:SENSITIVE     = TRUE
-      bUndo:SENSITIVE            = TRUE.
-  END.
 END.
 /*----------------------------------------------------------------------------*/
 ON CHOOSE OF bUndo DO:
@@ -763,9 +757,16 @@ ON VALUE-CHANGED OF tJoinable DO:
       .
   ELSE DO:
     IF (eDisplayCode:SCREEN-VALUE  > "") THEN DO:
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         lLogical = ShowMessageInIDE("This will delete the current join criteria. ~n
+                                      Do you wish to continue?" ,
+                                      "Warning",?,"YES-NO",lLogical).
+      
+      &else    
       MESSAGE "This will delete the current join criteria." SKIP
               "Do you wish to continue?" 
         VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lLogical.
+      &endif  
 
       IF (lLogical <> TRUE) THEN DO:
         tJoinable:SCREEN-VALUE = "YES".
@@ -831,9 +832,11 @@ ON VALUE-CHANGED OF rsMain DO:
         lConstant = rsMain:DISABLE("Options").
       RETURN NO-APPLY.
     END.
-  
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
     RUN adeshar/_qenable.p (auto_check, application, pcValidStates).
-
+    &else
+    RUN adeuib/ide/_dialog_qenable.p (auto_check, application, pcValidStates).
+    &endif
       CASE rsMain:SCREEN-VALUE:
       WHEN "{&Sort}" THEN DO:                 
          RUN DisplaySort.ip (FALSE, 0, INPUT-OUTPUT eDisplayCode). 
@@ -874,7 +877,7 @@ ON VALUE-CHANGED OF rsMain DO:
              eCurrentTable:SCREEN-VALUE = eCurrentTable
              lLeft:SCREEN-VALUE         = eCurrentTable
              eDisplayCode:SCREEN-VALUE  = ttWhere.cExpression.
-	END.
+    END.
       END.
 
       WHEN "{&Table}" THEN DO:
@@ -894,7 +897,7 @@ ON VALUE-CHANGED OF rsMain DO:
 
         RUN BuildOptionList.ip.
         RUN BuildQuery.ip (OUTPUT eDisplayCode). 
-	ASSIGN
+    ASSIGN
           eDisplayCode:SCREEN-VALUE = eDisplayCode  
           bCheckSyntax:SENSITIVE    = IF eDisplayCode <> "" THEN 
                                         TRUE ELSE FALSE.
@@ -912,4 +915,62 @@ END.
 
 /* qurytrig.i - end of file */
 
+PROCEDURE choose_b_FreeFormQ:
+  DEF VAR ok-cancel            AS CHARACTER INITIAL "Cancel":U           NO-UNDO.
+  DEF VAR qcode                AS CHARACTER                              NO-UNDO.
+  
+  /* Build the query as it is currently known                                  */
+  RUN BuildQuery.ip (OUTPUT qcode).
+  ASSIGN _TblList = TRIM({&TableRight}:LIST-ITEMS).
+  
+  /* It is necessary to call another procedure, because the query builder is
+     unaware of the _U record for the currently in use because of its double
+     duty with results.   
+                                                         */
+  RUN adeuib/_ffqdlg.p (INPUT qcode, INPUT _TblList, INPUT-OUTPUT ok-cancel).
+  IF ok-cancel = "Freeform":U THEN DO:
+    plVisitFields = FALSE.
+    APPLY "GO" TO FRAME DIALOG-1.
+  END.
+  ELSE RETURN NO-APPLY.
+      
+END PROCEDURE.
 
+procedure choose_whereButton:
+  define input  parameter pOperator as character no-undo.
+  DO WITH FRAME dialog-1:
+    IF {&Join-Mode} THEN 
+      RUN Join.ip (pOperator, TRUE).
+    ELSE DO:
+      IF res_calcfld THEN 
+        cTemp = SUBSTRING({&CurLeft}:SCREEN-VALUE,1,
+                          INDEX({&CurLeft}:SCREEN-VALUE,"(":u) - 2,
+                          "CHARACTER":u).
+      ELSE
+        RUN guess_field (OUTPUT cTemp). 
+
+      IF NUM-ENTRIES(cTemp," ":U) > 1 THEN
+        cTemp = ENTRY(NUM-ENTRIES(cTemp," ":U),cTemp," ":U).
+      RUN adeshar/_qwhere.p (pOperator,cTemp,application,res_calcfld,
+                             {&CurLeft}:SCREEN-VALUE).
+    END.
+    FIND LAST ttWhere WHERE INTEGER (rsMain:SCREEN-VALUE) = ttWhere.iState 
+      AND lLeft:SCREEN-VALUE = ttWhere.cTable.
+
+    /* If from the users point of view we have saved this then just leave */
+    IF (ttWhere.cExpression = TRIM(eDisplayCode:SCREEN-VALUE)) THEN RETURN.   
+    i = ttWhere.iSeq.
+    CREATE ttWhere.
+    ASSIGN
+      cLastField                 = TRIM(eDisplayCode:SCREEN-VALUE)
+      ttWhere.iState             = INTEGER (rsMain:SCREEN-VALUE)
+      ttWhere.cTable             = lLeft:SCREEN-VALUE
+      ttWhere.iSeq               = i + 1
+      ttWhere.iOffset            = eDisplayCode:CURSOR-OFFSET 
+      ttWhere.cExpression        = eDisplayCode:SCREEN-VALUE 
+      ttWhere.lOperator          = TRUE /* ggg This needs work !! */ 
+      ttWhere.lWhState           = lWhState
+      bCheckSyntax:SENSITIVE     = TRUE
+      bUndo:SENSITIVE            = TRUE.
+  END. 
+end procedure.    

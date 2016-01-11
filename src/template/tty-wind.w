@@ -5,8 +5,8 @@
 Use this template to create a new window specifically for Character Mode. Alter this default template or create new ones to accomodate your needs for different default sizes and/or attributes."
 */
 &ANALYZE-RESUME
-&Scoped-define WINDOW-NAME TERMINAL-SIMULATION
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS TERMINAL-SIMULATION 
+&Scoped-define WINDOW-NAME ttyWin
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS ttyWin 
 /*------------------------------------------------------------------------
 
   File: 
@@ -65,7 +65,7 @@ CREATE WIDGET-POOL.
 /* ***********************  Control Definitions  ********************** */
 
 /* Define the widget handle for the window                              */
-DEFINE VAR TERMINAL-SIMULATION AS WIDGET-HANDLE NO-UNDO.
+DEFINE VAR ttyWin AS WIDGET-HANDLE NO-UNDO.
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -89,7 +89,7 @@ DEFINE FRAME DEFAULT-FRAME
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
 IF SESSION:DISPLAY-TYPE = "GUI":U THEN
-  CREATE WINDOW TERMINAL-SIMULATION ASSIGN
+  CREATE WINDOW ttyWin ASSIGN
          HIDDEN             = YES
          TITLE              = "<insert window title>"
          HEIGHT             = 21
@@ -118,7 +118,7 @@ ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
 
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK TERMINAL-SIMULATION 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK ttyWin 
 
 
 /* ***************************  Main Block  *************************** */
@@ -163,7 +163,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI TERMINAL-SIMULATION _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI ttyWin _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -182,7 +182,7 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI TERMINAL-SIMULATION _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI ttyWin _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -193,9 +193,9 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  VIEW FRAME DEFAULT-FRAME IN WINDOW TERMINAL-SIMULATION.
+  VIEW FRAME DEFAULT-FRAME IN WINDOW ttyWin.
   {&OPEN-BROWSERS-IN-QUERY-DEFAULT-FRAME}
-  VIEW TERMINAL-SIMULATION.
+  VIEW ttyWin.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

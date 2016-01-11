@@ -265,7 +265,8 @@ END.
 
 ON VALUE-CHANGED OF tryPimaryForRowid IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "no" THEN DO:
-    ASSIGN forRowidUniq:SENSITIVE   = FALSE
+    IF migConstraint:SCREEN-VALUE = "no" THEN
+       ASSIGN forRowidUniq:SENSITIVE   = FALSE
            forRowidUniq:SCREEN-VALUE   = "no".
     IF choiceRowid:SENSITIVE  = FALSE THEN  DO:
        ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
@@ -292,16 +293,18 @@ END.
 
 ON VALUE-CHANGED OF migConstraint IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "no" THEN DO:
-    IF tryPimaryForRowid:screen-value   = "no" AND 
-       selBestRowidIdx:screen-value   = "no" THEN DO:
+    IF tryPimaryForRowid:screen-value   = "no" THEN DO:
        ASSIGN forRowidUniq:SENSITIVE   = FALSE
-              ForRow:SENSITIVE   = TRUE.
-              forRowidUniq:SCREEN-VALUE   = "no".
+              forRowidUniq:SCREEN-VALUE   = "no". 
+    END. 
+    IF selBestRowidIdx:screen-value   = "no" THEN DO:
+       ASSIGN ForRow:SENSITIVE   = TRUE.
        IF ForRow:screen-value   = "no"  THEN 
           ASSIGN selBestRowidIdx:SENSITIVE   = TRUE
                  iRecidOption:SENSITIVE   = FALSE.
        ELSE ASSIGN iRecidOption:SENSITIVE   = TRUE.
     END.
+    ELSE selBestRowidIdx:SENSITIVE   = TRUE.
   END.
   ELSE DO:
        IF ForRow:screen-value   = "no"  THEN 
@@ -324,7 +327,8 @@ ON VALUE-CHANGED OF ForRow IN FRAME DEFAULT-FRAME DO:
  END.
  ELSE DO:
    ForRow:SENSITIVE   = FALSE.
-   IF tryPimaryForRowid:SCREEN-VALUE   = "yes" THEN
+   IF tryPimaryForRowid:SCREEN-VALUE   = "yes" 
+           OR migConstraint:SCREEN-VALUE   = "yes" THEN
       forRowidUniq:SENSITIVE   = TRUE.
    IF tryPimaryForRowid:SCREEN-VALUE  =  "no" THEN  DO:
        ASSIGN mkClusteredExplict:SENSITIVE   = FALSE
@@ -348,8 +352,7 @@ ON VALUE-CHANGED OF ForRowidUniq IN FRAME DEFAULT-FRAME DO:
             iRecidOption:SENSITIVE   = TRUE
             selBestRowidIdx:SENSITIVE   = FALSE
             selBestRowidIdx:SCREEN-VALUE   = "yes"
-            choiceSchema:SENSITIVE   = TRUE
-            pcompatible = TRUE. 
+            choiceSchema:SENSITIVE   = TRUE.
  END.
  ELSE DO:
     selBestRowidIdx:SENSITIVE   = TRUE.

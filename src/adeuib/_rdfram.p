@@ -26,7 +26,7 @@ Date Modified: 02/09/94 by RPR (added 3-D support)
                06/04/99 by TSM Added Context-sensitive help for dialogs
                07/02/99 by TSM Added support NO-AUTO-VALIDATE
 ---------------------------------------------------------------------------- */
-{adecomm/oeideservice.i}
+{adecomm/oeideservice.i} 
 {adeuib/uniwidg.i}      /* Universal Widget TEMP-TABLE definition            */
 {adeuib/layout.i}       /* Layout temp-table definitions                     */
 {adeuib/triggers.i}     /* Trigger TEMP-TABLE definition                     */

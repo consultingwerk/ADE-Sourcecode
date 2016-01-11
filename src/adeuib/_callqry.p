@@ -38,7 +38,9 @@ DEFINE INPUT PARAMETER pcMode          AS CHARACTER                  NO-UNDO.
 {adecomm/adefext.i}
 {adeshar/quryshar.i "NEW GLOBAL"}
 {adecomm/tt-brws.i "NEW"}
-
+&SCOPED-DEFINE OEIDE-EXCLUDE-PROTOTYPES
+{adecomm/oeideservice.i}
+&UNDEFINE OEIDE-EXCLUDE-PROTOTYPES
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
@@ -117,8 +119,10 @@ DO:
            _tt-tbl.like-table = _TT._LIKE-TABLE
            _tt-tbl.table-type = _TT._TABLE-TYPE.
     CREATE ALIAS "DICTDB":U FOR DATABASE VALUE(SDBNAME(_TT._LIKE-DB)).
-    /* Build the field records for this table */       
+    /* Build the field records for this table */    
+   
     RUN adecomm/_bldfld.w (INPUT RECID(_tt-tbl), INPUT _TT._LIKE-TABLE).
+   
   END. /* FOR EACH _TT */
   
 END. /* IF There are any _TT records */
@@ -151,7 +155,7 @@ END.
 
 /* Get the list of external tables for this query record. */
 RUN adeuib/_tbllist.p (INPUT RECID(_U), INPUT FALSE, OUTPUT cTempExtTbls).
- 
+
 /* Add each table in the external list (in cTempExtTbls) as an external item
    in _TblList if it is not in cTempLine (the list of tables in the current BROWSE
    or FRAME).  Check the list backwards and add it to the front of _TblList because
@@ -248,11 +252,19 @@ ASSIGN lCheckFields    = CAN-DO(pcMode,"CHECK-FIELDS":U )
                          + (IF CAN-DO(pcMode,"QUERY-ONLY":U)
                             THEN "":U ELSE ",Fields")
        _freeFormEnable = NOT CAN-DO(pcMODE,"NO-FREEFORM-QUERY":U).
+  
+if OEIDE_CanLaunchDialog() then 
+DO:
 
-RUN adeshar/_query.p ("", _suppress_dbname, "{&UIB_SHORT_NAME}", 
+    run adeuib/ide/_dialog_query.p ("", _suppress_dbname, "{&UIB_SHORT_NAME}", 
                      cValidStates, lCheckFields, _auto_check, 
                      OUTPUT pressed_Cancel).
-                    
+END.    
+else
+    RUN adeshar/_query.p ("", _suppress_dbname, "{&UIB_SHORT_NAME}", 
+                     cValidStates, lCheckFields, _auto_check, 
+                     OUTPUT pressed_Cancel).
+
 /* useful debug messages - please leave in
  message
          "right out of query.p" skip

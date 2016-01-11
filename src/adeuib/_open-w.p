@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2012 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*------------------------------------------------------------------------
 
   File: _open-w.p 
@@ -17,11 +17,12 @@
       pTempFile: Name of temp file to Open for remote web files
       pMode : Mode of open
         OPEN:     Open the file as a WINDOW or DIALOG-BOX
+        IDE-WINDOW: Opening from IDE. 
         OPEN-NOEDIT: 
                   Open the file as a WINDOW or DIALOG-BOX 
                   but don't open an editor for it. (Used in OpenEdge Architect).
         UNTITLED: Open the file as a WINDOW or DIALOG-BOX, but don't
-                    use the filename. (Open as UNTITLED).
+                  use the filename. (Open as UNTITLED).
         IMPORT:   Import into the UIB's current frame or window.
        
   Output Parameters:
@@ -48,6 +49,8 @@ DEFINE INPUT PARAMETER pMode     AS CHARACTER NO-UNDO.
 {adeuib/sharvars.i}
 {adeuib/uniwidg.i}
 
+DEFINE BUFFER x_P             FOR _P.
+
 DEFINE VARIABLE cHostName       AS CHARACTER NO-UNDO.
 DEFINE VARIABLE hActiveWin      AS HANDLE    NO-UNDO.
 DEFINE VARIABLE ldummy          AS LOGICAL   NO-UNDO.
@@ -59,13 +62,34 @@ DEFINE VARIABLE cObjectNameFull AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cRelName        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cRelNameFull    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lSetMRU         AS LOGICAL    NO-UNDO.
-
+DEFINE VARIABLE lOk             AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lCancel         AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lOpenNoEdit     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lIDEIntegrated  AS LOGICAL    NO-UNDO.
+define variable lOpeningFromIde as logical no-undo.
+define variable lOpenInIDE        as logical no-undo.
+/* If OEIDE is running and not needIDEcall check if integrated */
+IF OEIDEIsRunning   then
+do:
+    run getIsIDEIntegrated in hOEIDEService (output lIDEIntegrated).
+end.    
 
-IF pMode EQ "OPEN-NOEDIT" THEN
+IF pMode EQ "OPEN-NOEDIT":U THEN
 DO:
-    ASSIGN pMode = "OPEN" lOpenNoEdit = TRUE.
+    ASSIGN pMode = "OPEN":U 
+           lOpenNoEdit = TRUE.
 END.
+ELSE IF pMode EQ "IDE-WINDOW":U THEN
+DO:
+    /* set flag to not call back to ide and set mode to open */
+    ASSIGN pMode = "WINDOW":U 
+           lOpeningFromIDE = TRUE.
+END.
+else IF pMode EQ "WINDOW":U or pMode EQ "OPEN":U then
+do:
+     /* Opening from abl - edit master need to call open in ide if integrated */
+    lOpenInIde = lIDEIntegrated.
+end.    
 
 /* BEFORE-OPEN hook */
 IF pMode NE "UNTITLED" AND pMode NE "IMPORT" THEN DO:
@@ -74,6 +98,8 @@ IF pMode NE "UNTITLED" AND pMode NE "IMPORT" THEN DO:
   IF NOT ldummy THEN RETURN. /* returning FALSE cancels the open */
 END.
 
+/*    if lSendEditMaster then  .*/
+/*    else                      */
 /* Save the handle of the current window and it's visualization. */
 ASSIGN hActiveWin = _h_win.
 
@@ -81,11 +107,17 @@ ASSIGN hActiveWin = _h_win.
 IF _DynamicsIsRunning  THEN
 DO:
    FIND FIRST _RyObject WHERE _RyObject.OBJECT_filename = pFileName NO-ERROR.
+   
    IF AVAILABLE _RyObject 
    AND pMode = "WINDOW":U 
    AND pTempFile = "":U 
    AND DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,_RyObject.object_type_code) THEN
    DO:
+      if lOpenInIDE then
+      do:   
+           openDynamicsEditor(getProjectName(),pFileName).
+           RETURN. 
+      end.    
       RUN ry/prc/rydynsckrp.p (pFileName, pMode).   
       returnValue = RETURN-VALUE.
       IF RETURN-VALUE > "" THEN 
@@ -117,6 +149,7 @@ DO:
      
      /* Check that the object in the repository is the same as the opened object. Construct the static object
         basd on the path, object name and extension. Check the FUll-PathName to see if it is on disk. */
+     
      IF AVAIL(_RyObject) THEN 
      DO:
        ASSIGN cRelName            =  _RyObject.object_path + (IF _RyObject.object_path = "" THEN "" ELSE "~/":U) 
@@ -128,14 +161,36 @@ DO:
               cRelNameFull        = REPLACE(cRelNameFull,"~\":U,"/":U) .        
      /* Check that the Searched file and the search file of pfilename are the same. It could be
         that the retrieved file in the repository is not the same as the opened file */
+        
        IF cObjectNameFull <> ?  AND cRelNameFull = cObjectNameFull AND cRelNameFull <> ? THEN
           pFileName = cObjectName.
+       
+       /* Opening from abl - edit master need to call ide */
+       if lOpenInIDE then
+       do:   
+            if  _ryobject.static_object =  false then
+            do:  
+                openDynamicsEditor(getProjectName(),pFileName).
+                RETURN. 
+            end.
+       end.    
      END. 
+     
+     /* Opening from abl - edit master need to call ide */
+     if lOpenInIDE then
+     do:   
+          if not AVAIL(_RyObject) or _ryobject.static_object =  true then  
+          do:
+              openDesignEditor(getProjectName(),cObjectNameFull).
+              RETURN. 
+          end.
+     end.
+     
      /* Turn mru off as it will set the fullpath instead of object name */
      ASSIGN lSetMRU = _mru_filelist
             _mru_filelist = NO.
-     /* Now run the _qssucker with the converted filename */       
      
+     /* Now run the _qssucker with the converted filename */       
      RUN adeuib/_qssuckr.p (pFileName, pTempFile, 
         (IF pMode eq "OPEN":U THEN "WINDOW":U
          ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
@@ -144,68 +199,52 @@ DO:
             returnValue   = RETURN-VALUE.
      IF _mru_filelist AND pMode <> "UNTITLED":U THEN
          RUN adeshar/_mrulist.p (pFileName, IF _remote_file THEN _BrokerURL ELSE "").
+      
    END.
 END.
 ELSE DO:
+   
+   if not program-name(2) begins "openfile adeuib/_tempdb.w" then
+   do:
+   /* Opening from abl - edit master need to call ide */
+   if lOpenInIDE then
+   do:    
+       ASSIGN cObjectName         = REPLACE(pFilename,"~\":U,"/":U)
+              FILE-INFO:FILE-NAME = cObjectName
+              cObjectNameFull     = FILE-INFO:FULL-PATHNAME
+              cObjectNameFull     = REPLACE(cObjectNameFull,"~\":U,"/":U) .
+       
+              openDesignEditor(getProjectName(),cObjectNameFull).
+
+       RETURN. 
+   end.
+     end.
+   
    RUN adeuib/_qssuckr.p (pFileName, pTempFile, 
-       (IF pMode eq "OPEN":U THEN "WINDOW":U
-        ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
-        ELSE pMode), FALSE).
-   ASSIGN returnValue            = RETURN-VALUE.
+      (IF pMode eq "OPEN":U THEN "WINDOW":U
+       ELSE IF pMode eq "UNTITLED":U THEN "WINDOW UNTITLED":U
+       ELSE pMode), FALSE).
+   ASSIGN returnValue = RETURN-VALUE.
+     
 END.
 SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-
 IF returnValue = "_ABORT":U THEN DO:
   RUN choose-pointer IN _h_uib.
   RUN display_current IN _h_uib.
   RETURN "_ABORT":U.
 END. /* If return value is abort */
 
-FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
+lok = true.
 
-DEFINE VARIABLE cLinkedFile  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
-
-/* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
-IF OEIDEIsRunning AND NOT lOpenNoEdit THEN
-DO:
-    IF _DynamicsIsRunning          
-        AND cRelNameFull > "" THEN
-        FILE-INFO:FILE-NAME = cRelNameFull.
-    ELSE                        
-        FILE-INFO:FILE-NAME = pFileName.
-    /* Ensure pFileName is a full path */
-    IF FILE-INFO:FULL-PATHNAME <> ? THEN
-        pFileName = FILE-INFO:FULL-PATHNAME.
+/* if not ide integrated start Section Editor Window to allow file synchronization */  
+/*if not lIDEIntegrated and lok then                */
+/*    RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ).*/
     
-    RUN getActiveProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
-    /* File is a project file */
-    IF cProjectName > "" THEN
-    DO:
-        RUN getLinkedFileOfFile IN hOEIDEService (pFileName, OUTPUT cLinkedFile).
-        IF cLinkedFile = "" THEN /* File has not been registed */
-        DO:
-            cLinkedFile = createLinkedFile("lnk":U, ".tmp":U).
-            IF pTempFile > "" THEN
-                OS-COPY VALUE(pTempFile) VALUE(cLinkedFile).
-            ELSE
-                OS-COPY VALUE(pFileName) VALUE(cLinkedFile).
-        END.
-        
-        IF returnValue BEGINS "_REOPEN,":U THEN
-        DO:
-            DEFINE VARIABLE hWindow AS HANDLE NO-UNDO.
-            hWindow = WIDGET-HANDLE(ENTRY(2, returnValue)).
-            IF _P._TYPE = "Dialog-Box":U AND hWindow:TYPE = "WINDOW":U THEN        
-                hWindow = hWindow:FIRST-CHILD.
-            openEditor(getProjectName(), pFileName, cLinkedFile, hWindow).
-        END.
-        ELSE    
-            openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
-        /* If file was already registed, its content is not modified */
-        RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ). /* Start Section Editor Window to allow file synchronization */
-    END.
-END.
+IF lIDEIntegrated AND OEIDEIsRunning then
+DO:   
+   RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ).
+END.       
+FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
 
 /* Save the broker URL that was used to open the file for existing files
    only, not for new files. If the file was opened from the MRU file list, 
@@ -221,7 +260,7 @@ DO:
                      (IF INDEX(_h_win:TITLE, cHostName) EQ 0 
                       THEN cHostName ELSE "").
 END.
-                     
+
 /* In case of _qssuckr failure, reset the cursors */
 RUN adecomm/_setcurs.p ("":U).
 
@@ -256,7 +295,70 @@ IF pMode ne "IMPORT" AND VALID-HANDLE(_h_win) THEN DO:
     ASSIGN hActiveWin = WIDGET-HANDLE(ENTRY(2, returnValue)) NO-ERROR.
     RUN WinMenuChoose IN _h_UIB (hActiveWin:TITLE).
   END.
-
+  
 END.
 
 /* _open-w.p - end of file */
+
+
+/* **********************  Internal Procedures  *********************** */
+
+PROCEDURE openEditorInIDE:
+
+/*------------------------------------------------------------------------------
+		Purpose: NOT USED   																	  
+		Notes:  todo removve																	  
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER pcFileName AS CHARACTER NO-UNDO.
+    DEFINE INPUT  PARAMETER pcFullFileName AS CHARACTER NO-UNDO.
+    DEFINE OUTPUT PARAMETER plOk       AS LOGICAL   NO-UNDO.
+    
+    /* DEFINE INPUT  PARAMETER plWebFile  AS LOGICAL NO-UNDO.*/
+    
+    DEFINE VARIABLE hWindow     AS HANDLE NO-UNDO.
+    DEFINE VARIABLE cProjectName AS CHARACTER NO-UNDO.
+
+
+/*    IF plWebfile THEN                                       */
+/*         FIND x_P WHERE x_P._SAVE-AS-FILE EQ cRelPathWeb AND*/
+/*              x_P._BROKER-URL EQ _BrokerURL AND             */
+/*              x_P._save-as-path EQ cSavePath NO-ERROR.      */
+/*    ELSE                                                    */
+    
+               
+    FIND x_P WHERE x_P._SAVE-AS-FILE EQ pcFileName NO-ERROR.
+
+    IF AVAILABLE x_P THEN 
+    DO:
+       hWindow = x_P._WINDOW-HANDLE.
+       
+       /* TODO this seems mutually exlusive 1 from qsuckr and 2 from here */ 
+       /* Get the real window for a dialog-box _U */
+       IF hWindow:TYPE ne "WINDOW":U THEN hWindow = hWindow:PARENT.
+       IF x_P._TYPE <> "Dialog-Box":U AND hWindow:TYPE = "WINDOW":U THEN        
+          hWindow = hWindow:FIRST-CHILD.
+        
+    END.    
+    
+    /* TODO - clean up -- no need to check dynamicsrunning here? */    
+    IF _DynamicsIsRunning          
+        AND pcFullFileName > "" THEN
+        FILE-INFO:FILE-NAME = pcFullFileName.
+    ELSE                        
+        FILE-INFO:FILE-NAME = pcFileName.
+        
+    /* Ensure pFileName is a full path */
+    IF FILE-INFO:FULL-PATHNAME <> ? THEN
+        pcFileName = FILE-INFO:FULL-PATHNAME.
+    
+    RUN getActiveProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).
+    
+    /* file is a project file */
+    IF cProjectName > "" THEN
+    DO:
+        openDesignEditor(getProjectName(), pFileName). 
+        plOk = true.
+    END.
+
+END PROCEDURE.
+

@@ -200,6 +200,8 @@
     WITH VIEW-AS DIALOG-BOX THREE-D NO-LABELS OVERLAY
          TITLE "File generation".
 
+{adecomm/oeideservice.i} 
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -460,6 +462,10 @@ DEFINE FRAME fMain
 /* This procedure should always be RUN PERSISTENT.  Report the error,  */
 /* then cleanup and return.                                            */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
+  if OEIDEIsRunning then
+            ShowMessageInIDE("{&FILE-NAME} should only be RUN PERSISTENT.":U,
+                             "Error",?,"OK",YES).
+  else                             
   MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   RETURN.
@@ -906,6 +912,10 @@ PROCEDURE createDir :
   /* If a drive letter is referenced but a dos-slash is missing
      right after the drive. i.e d:temp */
   IF cDirToCreate NE "":U AND INDEX(cListDir, DOS-SLASH) NE 3 THEN DO:
+    if OEIDEIsRunning then
+            ShowMessageInIDE("Can not create " + pcDir + ".":U,
+                             "Information",?,"OK",YES).
+    else   
     MESSAGE "Can not create" pcDir ".":U SKIP
             VIEW-AS ALERT-BOX INFORMATION.
       RETURN "ERROR":U.
@@ -916,6 +926,10 @@ PROCEDURE createDir :
     cDirToCreate = cDirToCreate + (IF cDirToCreate NE "":U THEN DOS-SLASH ELSE "":U) + ENTRY(iCount, cListDir, DOS-SLASH).
     OS-CREATE-DIR VALUE (cDirToCreate).
     IF OS-ERROR NE 0 THEN DO:
+      if OEIDEIsRunning then
+            ShowMessageInIDE("Creation of " + pcDir + " failed.":U,
+                             "Information",?,"OK",YES).
+      else   
       MESSAGE "Creation of" pcDir "failed." 
               VIEW-AS ALERT-BOX INFORMATION.
       RETURN "ERROR":U.
@@ -1089,7 +1103,7 @@ PROCEDURE genCustomFiles :
    DEFINE VARIABLE iCreated        AS INTEGER      NO-UNDO.
    DEFINE VARIABLE iUpdated        AS INTEGER      NO-UNDO.
    DEFINE VARIABLE lNewClass       AS LOGICAL      NO-UNDO.
-    
+   define variable lAnswer         as logical      no-undo.  
    ASSIGN
      lNewClass = yes.
 
@@ -1111,11 +1125,17 @@ PROCEDURE genCustomFiles :
          lNewClass = NO.
        IF NOT glReplace THEN
        DO:  /* Ask if they want to overwrite existing class file */
+          
+         if OEIDEIsRunning then
+           lAnswer = ShowMessageInIDE("File " + cFile + " already exists ~n
+                                      Do you want to replace it?" ,
+                                      "Question",?,"Yes-no",YES).
+         else 
          MESSAGE "File" cFile "already exists" SKIP
                  "Do you want to replace it?" 
                  VIEW-AS ALERT-BOX QUESTION
                  BUTTONS YES-NO
-                 UPDATE lAnswer AS LOGICAL.
+                 UPDATE lAnswer.
          /* Restore the cursor shape to 'Wait' */        
          RUN changeCursor (INPUT 'WAIT':U).                               
          IF NOT lAnswer THEN NEXT GENERATION-BLOCK.
@@ -1425,6 +1445,10 @@ PROCEDURE genRcodeSuper :
 
   COMPILE VALUE(gcStdFiles[4]) SAVE INTO VALUE (gcDosRun) NO-ERROR.
   IF COMPILER:ERROR THEN DO:
+    if OEIDEIsRunning then
+        ShowMessageInIDE("Compilation of super procedure failed.",
+                         "Information",?,"Ok",YES).
+    else  
     MESSAGE "Compilation of super procedure failed." 
         VIEW-AS ALERT-BOX INFORMATION.
     RETURN ERROR.    
@@ -1459,7 +1483,7 @@ PROCEDURE genStandardFiles :
    DEFINE VARIABLE cCldTpl         AS CHARACTER    NO-UNDO.
    DEFINE VARIABLE cCldDef         AS CHARACTER    NO-UNDO.            
    DEFINE VARIABLE cCldDerive      AS CHARACTER    NO-UNDO.
-
+   define variable lAnswer         as logical      no-undo.
    /* For definition file, paths are slightly different we want to remove
       the trailing UNIX-SLASH */
    ASSIGN
@@ -1494,11 +1518,16 @@ PROCEDURE genStandardFiles :
          lNewClass = NO.
        IF NOT glReplace THEN
        DO:  /* Ask if they want to overwrite existing class file */
+         if OEIDEIsRunning then
+            lAnswer = ShowMessageInIDE("File " + cFile + " already exists ~n
+                                        Do you want to replace it?",
+                                        "Question",?,"Yes-No",YES).
+         else
          MESSAGE "File" cFile "already exists" SKIP
                  "Do you want to replace it?" 
                  VIEW-AS ALERT-BOX QUESTION
                  BUTTONS YES-NO
-                 UPDATE lAnswer AS LOGICAL.
+                 UPDATE lAnswer.
          /* Restore the cursor shape to 'Wait' */        
          RUN changeCursor (INPUT 'WAIT':U).                
          IF NOT lAnswer THEN NEXT GENERATION-BLOCK.        
@@ -1979,6 +2008,10 @@ PROCEDURE screenValidation :
    /* A class name is mandatory */
    IF NOT glNameChanged THEN DO WITH FRAME {&FRAME-NAME}:
       DYNAMIC-FUNCTION('backToPage1':U).
+      if OEIDEIsRunning then
+        ShowMessageInIDE("A class name must be supplied.",
+                         "Information",?,"OK",YES).
+      else
       MESSAGE "A class name must be supplied." VIEW-AS ALERT-BOX INFORMATION.
       APPLY "ENTRY":U TO cName.
       RETURN "ERROR":U.        
@@ -2023,7 +2056,11 @@ PROCEDURE screenValidation :
      /* There is an error */
      IF RETURN-VALUE NE "":U THEN DO:
       cMessage = RETURN-VALUE.
-      DYNAMIC-FUNCTION('backToPage1':U).     
+      DYNAMIC-FUNCTION('backToPage1':U).
+      if OEIDEIsRunning then
+        ShowMessageInIDE(cMessage,
+                         "Information",?,"OK",YES).
+      else     
       MESSAGE cMessage VIEW-AS ALERT-BOX INFORMATION.
       APPLY "ENTRY":U TO hField.
       RETURN "ERROR":U.
@@ -2066,7 +2103,10 @@ PROCEDURE showError :
   Notes:       RETURN ERROR must be handled in the calling block
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcError          AS CHARACTER    NO-UNDO.
-
+   if OEIDEIsRunning then
+     ShowMessageInIDE(pcError,
+                      "Information",?,"OK",YES).
+  else 
   MESSAGE pcError 
          VIEW-AS ALERT-BOX INFORMATION.
         
@@ -2302,6 +2342,10 @@ PROCEDURE validateDirectory :
   
   /* Directory value is blank */
   IF pcDir = "":U THEN  DO:
+    if OEIDEIsRunning then
+     ShowMessageInIDE("The " + pcDirLabel + " can not be left blank.",
+                      "Information",?,"OK",YES).
+    else  
     MESSAGE "The" pcDirLabel "can not be left blank." 
             VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.    
@@ -2310,12 +2354,21 @@ PROCEDURE validateDirectory :
     lExist = DYNAMIC-FUNCTION('directoryExist':U, INPUT pcDir).
     /* If lExist EQ ?, we have found something that is not a directory */
     IF lExist EQ ? THEN DO:
+      if OEIDEIsRunning then
+        ShowMessageInIDE("Invalid directory.",
+                         "Information",?,"OK",YES).
+      else  
       MESSAGE "Invalid directory." 
               VIEW-AS ALERT-BOX INFORMATION.
       RETURN "ERROR":U.        
     END.
     /* If the directory not already exists, create it */
     IF NOT lExist THEN DO:
+      if OEIDEIsRunning then
+        lAnswer = ShowMessageInIDE("The " + LC(pcDirLabel) + pcDir + " doesn't exist ~n
+                                   Do you want to create it?",
+                                   "Question",?,"YES-NO",YES).
+      else  
       MESSAGE "The" LC(pcDirLabel) pcDir "doesn't exist" SKIP
               "Do you want to create it?"
               VIEW-AS ALERT-BOX QUESTION
@@ -2328,6 +2381,13 @@ PROCEDURE validateDirectory :
     /* If they try to write in DLC, give a warning */
     ELSE IF DYNAMIC-FUNCTION('isInDLC':U, INPUT pcDir) THEN DO:
       ASSIGN lAnswer = TRUE.
+      if OEIDEIsRunning then
+      lAnswer = ShowMessageInIDE("Directory " + pcDir + " is a subdirectory of DLC ~n
+                                 You shouldn't install code in the DLC directory. ~n
+                                 However, do you want to create this directory ~n
+                                 under your current directory?",
+                                 "Question",?,"YES-NO",YES).
+      else                                   
       MESSAGE "Directory" pcDir "is a subdirectory of DLC" SKIP
               "You shouldn't install code in the DLC directory." SKIP
               "However, do you want to create this directory" SKIP
@@ -2390,6 +2450,10 @@ PROCEDURE validateIsCLD :
 
   /* Standard necessary information */
   IF gcDeriveMeth = "":U OR gcDeriveProp = "":U THEN DO:
+    if OEIDEIsRunning then
+      ShowMessageInIDE("Class file " + cDerive + " can't be analyzed.",
+                       "Information",?,"OK",YES).
+    else  
     MESSAGE "Class file" cDerive "can't be analyzed." VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.
   END.  
@@ -2403,12 +2467,22 @@ PROCEDURE validateIsCLD :
   /* Files refrenced in the .cld file may not exist or be found
      check it */
   IF NOT DYNAMIC-FUNCTION('fileExist':U, INPUT gcDeriveMeth) THEN DO:
+    if OEIDEIsRunning then
+      ShowMessageInIDE("The method library " + gcDeriveMeth + " ~n
+                        referenced in " + cDerive + " can't be found.",
+                       "Information",?,"OK",YES).
+    else  
     MESSAGE "The method library" gcDeriveMeth SKIP
             "referenced in" cDerive "can't be found."
             VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.        
   END.     
   IF NOT DYNAMIC-FUNCTION('fileExist':U, INPUT gcDeriveProp) THEN DO:
+    if OEIDEIsRunning then
+      ShowMessageInIDE("The property file " + gcDeriveProp +
+                        "~n referenced in " + cDerive + " can't be found.",
+                       "Information",?,"OK",YES).
+    else  
     MESSAGE "The property file" gcDeriveProp SKIP
             "referenced in" cDerive "can't be found."
             VIEW-AS ALERT-BOX INFORMATION.
@@ -2494,6 +2568,10 @@ PROCEDURE validateIsTemplate :
      It's to differentiate between real templates and object names that
      may contain the Template keyword */  
   IF NOT cInfo MATCHES "* Template*":U THEN DO:
+    if OEIDEIsRunning then
+      ShowMessageInIDE("File " + cTemplateFrom + " is not a template.",
+                       "Information",?,"OK",YES).
+    else  
     MESSAGE "File" cTemplateFrom "is not a template." VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.
   END.    

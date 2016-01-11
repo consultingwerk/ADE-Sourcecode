@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME f_dlg
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS f_dlg 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -55,12 +52,9 @@ DEFINE VARIABLE p_OK            AS LOGICAL   NO-UNDO .
 
 /* ***************************  Definitions  ************************** */
 DEFINE VARIABLE glDYnamicsCST AS LOGICAL    NO-UNDO.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+define variable cTitle        as character no-undo init "Use Custom":L.
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -78,8 +72,6 @@ b_move_down
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -130,25 +122,17 @@ DEFINE FRAME f_dlg
      b_move_down AT ROW 7.48 COL 52
      fiLabel AT ROW 1.19 COL 1 COLON-ALIGNED NO-LABEL
      SPACE(17.56) SKIP(6.67)
-    WITH VIEW-AS DIALOG-BOX NO-HELP 
-         SIDE-LABELS THREE-D  SCROLLABLE 
-         TITLE "Use Custom":L.
-
-
-/* *********************** Procedure Settings ************************ */
-
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
-
-
+     WITH 
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     VIEW-AS DIALOG-BOX NO-HELP
+     TITLE ctitle
+   &endif  
+     SIDE-LABELS THREE-D SCROLLABLE. 
+ 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
+  {adeuib/ide/dialoginit.i "frame f_dlg:handle"}
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f_dlg
    UNDERLINE                                                            */
 ASSIGN 
@@ -170,7 +154,6 @@ ASSIGN
 /* SETTINGS FOR SELECTION-LIST file-list IN FRAME f_dlg
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
  
 
@@ -179,7 +162,6 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME f_dlg
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL f_dlg f_dlg
 ON GO OF FRAME f_dlg /* Use Custom */
 DO:
   ASSIGN p_FileList = file-list:LIST-ITEMS
@@ -187,41 +169,17 @@ DO:
   HIDE FRAME {&FRAME-NAME}. 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_add
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_add f_dlg
 ON CHOOSE OF b_add IN FRAME f_dlg /* Add... */
 DO:
-  DEFINE VAR l_ok     AS LOGICAL   NO-UNDO.
-  DEFINE VAR new_file AS CHARACTER NO-UNDO.
-  DEFINE VAR l_Dupe   AS LOGICAL   NO-UNDO.
-           
-    RUN Get-Filename ( INPUT        "Add" ,
-                       INPUT        {&Add_Custom_Dlg_Box},
-                       INPUT-OUTPUT new_file ,
-                       OUTPUT       l_ok ) .
-  IF l_ok THEN DO:    
-    RUN CheckDupeItem (INPUT new_file , OUTPUT l_Dupe ).
-    IF NOT l_Dupe THEN DO:
-      /* Always add new items at the end of the list (because order is important).
-         Adding it in place is generally the wrong idea because users will add it
-         in order they want the palette to be created. */
-      ASSIGN l_ok = file-list:ADD-LAST ( new_file ) 
-             file-list:SCREEN-VALUE = new_file.
-      RUN set-state.
-    END.
-  END.
+   run choose_add.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_delete
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_delete f_dlg
 ON CHOOSE OF b_delete IN FRAME f_dlg /* Remove */
 DO:
   DEFINE VAR i      AS INTEGER NO-UNDO.
@@ -237,68 +195,50 @@ DO:
   RUN set-state.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Modify
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Modify f_dlg
 ON CHOOSE OF b_Modify IN FRAME f_dlg /* Modify... */
 DO:
   RUN Modify-Selection.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_move_down
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_move_down f_dlg
 ON CHOOSE OF b_move_down IN FRAME f_dlg /* Move Down */
 DO:
   RUN move_item IN THIS-PROCEDURE (INPUT file-list:SCREEN-VALUE , "DOWN":U ).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_move_up
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_move_up f_dlg
 ON CHOOSE OF b_move_up IN FRAME f_dlg /* Move Up */
 DO:
   RUN move_item IN THIS-PROCEDURE (INPUT file-list:SCREEN-VALUE , "UP":U ).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME file-list
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL file-list f_dlg
 ON DEFAULT-ACTION OF file-list IN FRAME f_dlg
 DO:
   RUN Modify-Selection.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL file-list f_dlg
 ON VALUE-CHANGED OF file-list IN FRAME f_dlg
 DO:
   /* Change the sensitivity of the buttons. */
   RUN set-state.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK f_dlg 
 
 
 /* ***************************  Main Block  *************************** */
@@ -314,6 +254,9 @@ THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
+ &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel cTitle}
+
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -322,17 +265,18 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN set-init-values.
   RUN enable_UI.
   RUN set-state.
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then   
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &else
+   WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure. 
+  &endif
 END.
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE CheckDupeItem f_dlg 
 PROCEDURE CheckDupeItem :
 /* -----------------------------------------------------------
   Purpose:    See if the File sent in is a DUPLICATE of any 
@@ -345,18 +289,24 @@ PROCEDURE CheckDupeItem :
         ASSIGN p_Duplicate = ( file-list:LOOKUP( p_File_Spec ) <> 0 ).
           
         IF p_Duplicate = TRUE THEN
-        MESSAGE p_File_Spec SKIP(1)
+        do:
+           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+               ShowMessageInIDE("This Method Library reference is already in the list and ~n 
+                                 cannot be added again.",
+                                 "Warning",?,"OK",yes).
+    
+           &else    
+           MESSAGE p_File_Spec SKIP(1)
                 "This Method Library reference is already in the list and" SKIP
                 "cannot be added again."
                 VIEW-AS ALERT-BOX WARNING IN WINDOW ACTIVE-WINDOW.
+           &endif        
+        end.        
     END.
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f_dlg  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -370,10 +320,7 @@ PROCEDURE disable_UI :
   HIDE FRAME f_dlg.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f_dlg  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -392,10 +339,35 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-f_dlg}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Get-Filename f_dlg 
+procedure choose_add:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+         dialogService:SetCurrentEvent(this-procedure,"do_choose_add").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+         RUN do_choose_add.
+    &endif
+end.    
+procedure do_choose_add:
+    DEFINE VAR l_ok     AS LOGICAL   NO-UNDO.
+  DEFINE VAR new_file AS CHARACTER NO-UNDO.
+  DEFINE VAR l_Dupe   AS LOGICAL   NO-UNDO.
+           
+    RUN Get-Filename ( INPUT        "Add" ,
+                       INPUT        {&Add_Custom_Dlg_Box},
+                       INPUT-OUTPUT new_file ,
+                       OUTPUT       l_ok ) .
+  IF l_ok THEN DO:    
+    RUN CheckDupeItem (INPUT new_file , OUTPUT l_Dupe ).
+    IF NOT l_Dupe THEN DO:
+      /* Always add new items at the end of the list (because order is important).
+         Adding it in place is generally the wrong idea because users will add it
+         in order they want the palette to be created. */
+      ASSIGN l_ok = file-list:ADD-LAST ( new_file ) in FRAME {&FRAME-NAME}
+             file-list:SCREEN-VALUE = new_file.
+      RUN set-state.
+    END.
+  END.
+end procedure.    
 PROCEDURE Get-Filename :
 /*------------------------------------------------------------------------------
   Purpose:     Call adeshar/_filname.p with many parameters already filled in.
@@ -404,7 +376,20 @@ PROCEDURE Get-Filename :
   DEFINE INPUT        PARAMETER p_help_context AS INTEGER NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER p_File_Spec AS CHAR FORMAT "X(256)" NO-UNDO.
   DEFINE OUTPUT       PARAMETER p_Return_Status AS LOGICAL NO-UNDO.
-             
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    RUN adeuib/ide/_dialog_filname.p 
+       ( INPUT        p_mode + " Custom Object File",  /* Dialog Title Bar */
+         INPUT        NO,                            /* YES is \'s converted to /'s */
+         INPUT        YES,                           /* YES if file must exist */
+         INPUT        '':U,                          /* No additional options */
+         INPUT        "Custom Object Files (*.cst)", /* File Filter (eg. "Include") */
+         INPUT        "*.cst",                       /* File Spec  (eg. *.i) */
+         INPUT        "AB",           /* ADE Tool (used for help call) */
+         INPUT        p_help_context,  /* Context ID for HELP call */
+         INPUT-OUTPUT p_File_Spec ,    /* File Spec entered */
+         OUTPUT       p_Return_Status  /* YES if user hits OK */
+       ) .  
+  &else           
   RUN adeshar/_filname.p 
        ( INPUT        p_mode + " Custom Object File",  /* Dialog Title Bar */
          INPUT        NO,                            /* YES is \'s converted to /'s */
@@ -417,14 +402,19 @@ PROCEDURE Get-Filename :
          INPUT-OUTPUT p_File_Spec ,    /* File Spec entered */
          OUTPUT       p_Return_Status  /* YES if user hits OK */
        ) .  
-
+   &endif
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure Modify-Selection:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+         dialogService:SetCurrentEvent(this-procedure,"choose_Modify-Selection").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+         RUN choose_Modify-Selection.
+    &endif
+end procedure.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Modify-Selection f_dlg 
-PROCEDURE Modify-Selection :
+PROCEDURE choose_Modify-Selection :
 /*------------------------------------------------------------------------------
   Purpose:    Change the value of the currently selected file.
   Parameters:  <none>
@@ -441,7 +431,8 @@ PROCEDURE Modify-Selection :
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN new_file = TRIM( file-list:SCREEN-VALUE )
            old_file = new_file.
-           
+    
+        
     RUN Get-Filename ( INPUT        "Modify" ,
                        INPUT        {&Modify_Custom_Dlg_Box},
                        INPUT-OUTPUT new_file ,
@@ -459,10 +450,7 @@ PROCEDURE Modify-Selection :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE move_item f_dlg 
 PROCEDURE move_item :
 /* -----------------------------------------------------------
   Purpose:     Move a given item "UP" or "DOWN" in the list. 
@@ -507,10 +495,7 @@ PROCEDURE move_item :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-init-values f_dlg 
 PROCEDURE set-init-values :
 /* -----------------------------------------------------------
   Purpose:     Set the initial values of the dialog-box.
@@ -532,10 +517,7 @@ PROCEDURE set-init-values :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-state f_dlg 
 PROCEDURE set-state :
 /* -----------------------------------------------------------
   Purpose:     Change the Sensitivity of all the buttons based
@@ -571,6 +553,4 @@ PROCEDURE set-state :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

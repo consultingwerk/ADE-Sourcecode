@@ -369,8 +369,13 @@ DEFINE {1} SHARED FRAME DIALOG-1
       &OTHER  = "b_freeformq"
       &HELP   = "bHelp" }
 
-   WITH VIEW-AS DIALOG-BOX DEFAULT-BUTTON bOk TITLE "Query Builder"
-   SIDE-LABELS KEEP-TAB-ORDER SCROLLABLE /*THREE-D*/ . 
+   WITH
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+   VIEW-AS DIALOG-BOX  TITLE "Query Builder"
+   &else
+   NO-BOX THREE-D
+   &endif
+   DEFAULT-BUTTON bOk SIDE-LABELS KEEP-TAB-ORDER SCROLLABLE /*THREE-D*/ . 
  
 /* Local Variable Definitions ---                                            */
 

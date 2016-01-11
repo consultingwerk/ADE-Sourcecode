@@ -186,6 +186,8 @@ LAST UPDATED: September, 1999 - J. Palazzo
               June 12, 2003 - D. McMann
                 Added support for V10 to find chm files(html) instead of hlp files
                 (Winhelp)
+              Jan, 2012 - Rajinder Kamboj 
+              Added support to run help with integrated app builder for PDS.
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER p_HelpID        AS CHARACTER NO-UNDO.
@@ -201,8 +203,33 @@ DEFINE VARIABLE lIsICFRunning         AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE ICFPrefix             AS CHARACTER INITIAL "ic":u NO-UNDO.
 DEFINE VARIABLE iVersion              AS INTEGER   NO-UNDO.
 
-DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+/* UIB Shared Variables and Common Definitions */
+{adecomm/oeideservice.i}
 
+/*{adeuib/sharvars.i}                  */
+/*{adeuib/uniwidg.i}                   */
+
+DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+  IF OEIDEIsRunning THEN
+  DO:
+      
+      DEFINE VARIABLE cResult      AS CHARACTER   NO-UNDO.
+      DEFINE VARIABLE newContextNumber AS CHARACTER NO-UNDO.
+
+      /* Use lower case for consistent casing */
+      ASSIGN newContextNumber = lc(p_HelpID) + string(p_ContextNumber).
+
+      IF newContextNumber <> ? then
+      do:
+          /** return if help was found in Eclipse other wise continue and use help here */
+          if checkHelp(newContextNumber) then
+          do:
+              showHelp(newContextNumber).
+              return. 
+          end.
+      end.
+  END.
+  
   IF SESSION:DISPLAY-TYPE = "TTY":U THEN
   DO ON STOP UNDO, RETURN ON ERROR UNDO, RETURN ON ENDKEY UNDO, RETURN:
     IF p_HelpCommand <> "QUIT":u THEN BELL.

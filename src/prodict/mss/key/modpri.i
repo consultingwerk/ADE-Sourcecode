@@ -181,8 +181,17 @@ PROCEDURE primary :
            ASSIGN name:SCREEN-VALUE IN FRAME frame_primary =  constr_name.
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_primary ="yes".
            ASSIGN DESC_EDIT2:SCREEN-VALUE IN FRAME frame_primary = descrip.
-           ASSIGN primary:SCREEN-VALUE IN FRAME frame_primary = "yes".            
-           ENABLE  BROWSE-PRIMARY Active DESC_EDIT2 
+           ASSIGN primary:SCREEN-VALUE IN FRAME frame_primary = "yes".   
+
+           IF user_dbtype    NE "MSS" then             
+               ENABLE  BROWSE-PRIMARY Active DESC_EDIT2 
+                 OK_BUT CREATE_BUT CANCEL_BUT 
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF   
+                  WITH FRAME frame_primary.
+           ELSE
+                ENABLE  BROWSE-PRIMARY DESC_EDIT2 
                  OK_BUT CREATE_BUT CANCEL_BUT 
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  

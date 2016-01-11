@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2012 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,7 @@ Author: Wm.T.Wood
 
 Date Created: September, 1993
 
+Update: rkamboj  June 27 2012 changed program to work with integration environment.  
 ----------------------------------------------------------------------------*/
 
 /* ===================================================================== */
@@ -39,7 +40,7 @@ Date Created: September, 1993
 {adeuib/layout.i}      /* Multi-layout temp-table definitions  */
 {adeuib/sharvars.i}    /* Major shared variables               */
 {adeuib/_undo.i}       /* Temp Table containing action history */
-
+{adecomm/oeideservice.i}
 /* ===================================================================== */
 /*                       Local Variable Definitions                      */
 /* ===================================================================== */
@@ -66,14 +67,39 @@ DEFINE TEMP-TABLE tt NO-UNDO
 /* ===================================================================== */
 /*                        Start of Executable Code                       */
 /* ===================================================================== */
-FIND LAST _action NO-ERROR.
-IF (NOT AVAILABLE _action) THEN RETURN.  /* This should not happen */
+
+IF OEIDEisRunning THEN
+DO:
+     FIND LAST _action WHERE _action._window-handle = _h_win NO-ERROR.
+     IF AVAIL _action THEN
+     DO: 
+        ASSIGN startSequenceNumber  = _action._seq-num
+               endSequenceNumber = startSequenceNumber.
+        /* NOTE: _action._data stores different type of data. for e.g it stores x,y position if we move widget, or stores
+                 end sequence number for undo etc. This is reason why sometimes it gives error during type casting.
+                 Since we need to undo one event at a time so I am setting startSequaceNumber 
+                 and endSequanceNumber same value and not using _action._data value. - Rkamboj         */
+
+     END.           
+     ELSE 
+     do:
+        ShowMessageInIDE("There is nothing to undo.",
+                         "Information",?,"OK",YES). 
+        RETURN.
+     end.   
+END.     
+ELSE
+DO:
+  FIND LAST _action NO-ERROR.
+  IF (NOT AVAILABLE _action) THEN RETURN.  /* This should not happen */
 
 endSequenceNumber = _action._seq-num.
 startSequenceNumber = INTEGER(_action._data).
-
+END.
 DO i = endSequenceNumber TO startSequenceNumber BY -1:
-  FIND _action WHERE _action._seq-num = i.
+  
+  FIND _action WHERE _action._seq-num = i no-error.
+
   IF _action._operation BEGINS "Start" OR
      _action._operation BEGINS "End" THEN DO:
     DELETE _action.
@@ -270,3 +296,5 @@ END.
      it may not be needed. */
 IF startSequenceNumber NE endSequenceNumber
 THEN RUN adeuib/_winsave.p(_h_win, FALSE).
+
+

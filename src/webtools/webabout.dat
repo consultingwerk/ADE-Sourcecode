@@ -1,5 +1,5 @@
 <!--------------------------------------------------------------------
-* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2011,2013 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,5 +16,5 @@
    onMouseOver="window.status='Browse the contents of the on-line WebSpeed Library.'; return true;" 
    onMouseOut="window.status=''; return true;">Help</A>
 <BR> 
-* Copyright ©1984-2012 Progress Software Corporation and/or its      *
+* Copyright ©1984-2013 Progress Software Corporation and/or its      *
 * subsidiaries or affiliates. All rights reserved.                   *

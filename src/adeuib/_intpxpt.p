@@ -54,7 +54,7 @@ DEFINE BUTTON qbf-rm LABEL "<< &Remove" SIZE 15 BY 1.125.
 Define button qbf-ok   label "OK"      {&STDPH_OKBTN} AUTO-GO.
 Define button qbf-cn   label "Cancel"  {&STDPH_OKBTN} AUTO-ENDKEY.
 Define button qbf-hlp  label "&Help"   {&STDPH_OKBTN}.
-
+define variable wintitle as character no-undo initial "Code Sections Selector":t32.
 /* Dialog Button Box */
 &IF {&OKBOX} &THEN
    DEFINE RECTANGLE rect_Btn_Box {&STDPH_OKBOX}.
@@ -84,8 +84,16 @@ FORM
 
   WITH FRAME FldPicker NO-LABELS
    DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-cn
-   TITLE "Code Sections Selector":t32 VIEW-AS DIALOG-BOX WIDTH 83.
-
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+   TITLE  wintitle VIEW-AS DIALOG-BOX 
+   &else
+      NO-BOX THREE-D  
+  &endif 
+   WIDTH 83.
+{adeuib/ide/dialoginit.i "FRAME FldPicker:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /*---------------------------  TRIGGERS  ---------------------------*/
 
 ON "VALUE-CHANGED" OF v_SrcLst IN FRAME FldPicker DO:
@@ -286,11 +294,17 @@ ASSIGN
 
         /* Select the first item in the source list */
 IF v_SrcLst:NUM-ITEMS > 0 THEN v_SrcLst:SCREEN-VALUE = v_SrcLst:ENTRY(1).
-
+&scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i qbf-ok qbf-cn winTitle}  
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   APPLY "ENTRY"  TO v_SrcLst IN FRAME FldPicker.
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
   WAIT-FOR "CHOOSE" OF qbf-ok IN FRAME FldPicker OR
       	   GO OF FRAME FldPicker.
+  &ELSE
+        WAIT-FOR "choose" of qbf-ok in frame FldPicker or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+  &endif      	   
 END.
 
 /* mark every selected procedure to be exported                       */

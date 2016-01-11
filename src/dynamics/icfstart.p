@@ -66,7 +66,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 /* Astra object identifying preprocessor */
 &glob   AstraProcedure    yes
-
+{adecomm/oeideservice.i}
 {src/adm2/globals.i}
 {af/sup2/afsetuppath.i}
 
@@ -197,6 +197,11 @@ DO:
   IF RETURN-VALUE <> "" AND
      RETURN-VALUE <> "QUIT":U THEN
   DO:
+    if OEIDEIsRunning then
+         ShowMessageInIDE("Unable to start the Progress Dynamics environment. The Configuration File Manager returned the following errors:":U
+                           + RETURN-VALUE,
+                          "Error",?,"OK",YES).
+    else                        
     MESSAGE 
       "Unable to start the Progress Dynamics environment. The Configuration File Manager returned the following errors:":U
       SKIP
@@ -262,6 +267,11 @@ DO:
 
 END.
 ELSE
+  if OEIDEIsRunning then
+     ShowMessageInIDE("Unable to start Configuration File Manager.~n" + 
+                       RETURN-VALUE,
+                       "Error",?,"OK",YES).
+  else                        
   MESSAGE 
   "Unable to start Configuration File Manager.":U
   SKIP

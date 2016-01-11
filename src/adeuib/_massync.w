@@ -100,7 +100,7 @@ DEFINE VAR    mas-to-cust-1 AS CHAR INITIAL "Alternate Reverts"  NO-UNDO.
 DEFINE VAR    mas-to-cust-2 AS CHAR INITIAL "to Master Value  "  NO-UNDO.
 DEFINE VAR    cust-to-mas-1 AS CHAR INITIAL "Master Updates to"  NO-UNDO.
 DEFINE VAR    cust-to-mas-2 AS CHAR INITIAL "Alternate Value  "  NO-UNDO.
-
+define variable frameTitle  as character no-undo init "Sync With Master".
 /* Query definitions                                                    */
 DEFINE QUERY BROWSE-1 FOR _DIFFER SCROLLING.
 
@@ -125,11 +125,22 @@ DEFINE FRAME massync
      Btn_Custom    AT ROW 10.5 COL 59
      mas-to-cust-1 AT ROW 10.5 COL 61 VIEW-AS TEXT NO-LABEL FORMAT "X(18)"
      mas-to-cust-2 AT ROW 11.5 COL 61 VIEW-AS TEXT NO-LABEL FORMAT "X(17)"
-    WITH VIEW-AS DIALOG-BOX SIDE-LABELS THREE-D 
-         SIZE 92.16 BY 11
-         TITLE "Sync With Master".
-{adecomm/okbar.i}
+    WITH 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX
+    TITLE frameTitle 
+    &else
+    no-box
+    &endif 
+    SIDE-LABELS 
+    THREE-D 
+    SIZE 92.16 BY 11
+        .
+        
 
+{adeuib/ide/dialoginit.i "frame massync:handle"}
+
+{adecomm/okbar.i}
  
 FIND _U WHERE RECID(_U) = u-recid.
 IF _U._TYPE = "SLIDER":U THEN
@@ -446,6 +457,10 @@ THEN CURRENT-WINDOW:WINDOW-STATE = WINDOW-NORMAL.
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
+&Scoped-define CANCEL-EVENT u2 
+{adeuib/ide/dialogstart.i btn_ok btn_cancel frameTitle}
+
+
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -754,7 +769,13 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 
 
   RUN enable_UI.
+  &if defined(IDE-IS-RUNNING) = 0 &then
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &else
+  dialogService:SizeToFit().
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+  if cancelDialog then undo, leave.
+  &endif
 END.
 RUN disable_UI.
 /* _UIB-CODE-BLOCK-END */

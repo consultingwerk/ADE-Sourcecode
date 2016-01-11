@@ -95,7 +95,7 @@ DEFINE BUTTON b_cancel   label "Cancel"   {&STDPH_OKBTN} AUTO-ENDKEY.
 DEFINE BUTTON b_Help     label "&Help"    {&STDPH_OKBTN}.
 DEFINE BUTTON b_ok       label "OK"       {&STDPH_OKBTN} AUTO-GO.
 DEFINE BUTTON b_no_flds  label "&Deselect All"  SIZE 15.00 BY 1.125.
-
+define variable xTitle   as character no-undo init "Field Selector" .
 DEFINE QUERY  db-browse FOR s_ttb_db.
 DEFINE BROWSE db-browse QUERY db-browse NO-LOCK
        DISPLAY s_ttb_db.ldbnm FORMAT "X(40)"
@@ -135,14 +135,24 @@ FORM
   b_no_flds     AT {&BCOL}
 
   with frame schemapk 
-       side-labels title "Field Selector" 
+       side-labels 
        &IF "{&WINDOW-SYSTEM}" = "OSF/Motif":u &THEN WIDTH 81 &ENDIF
-       view-as dialog-box
-               DEFAULT-BUTTON b_OK
-               CANCEL-BUTTON  b_Cancel.
+       &if DEFINED(IDE-IS-RUNNING) = 0 &THEN
+       view-as dialog-box 
+       title xTitle
+       &else
+       no-box three-d  
+       &endif
+       DEFAULT-BUTTON b_OK
+       CANCEL-BUTTON  b_Cancel.
 
-ASSIGN FRAME schemapk:HIDDEN = TRUE
-       FRAME schemapk:PARENT = active-window NO-ERROR.
+
+ASSIGN
+   FRAME schemapk:HIDDEN = TRUE
+&if DEFINED(IDE-IS-RUNNING) = 0 &THEN  
+   FRAME schemapk:PARENT = active-window
+&endif
+   NO-ERROR.
 
 /*-------------------------------Triggers------------------------------------*/
 
@@ -315,6 +325,11 @@ IF NOT p_Multi THEN DO:
   ELSE FRAME schemapk:WIDTH = v_type:COLUMN + v_type:WIDTH + 1.
 END.
 
+&if defined(IDE-IS-RUNNING) &then
+{adeuib/ide/dialoginit.i "frame schemapk:handle"} 
+dialogService:View().
+&endif
+
 { adecomm/okrun.i
     &FRAME  = "FRAME schemapk"
     &BOX    = "FS_Btn_Box"
@@ -370,16 +385,26 @@ ENABLE
   p_Prefix     when p_Prefix <> ?
   b_ok
   b_cancel 
-  b_Help       {&WHEN_HELP}
+  b_Help       {&WEN_HELP}
   WITH FRAME schemapk.
 
 /* See if we can select the default database */
 IF repos NE ? THEN REPOSITION db-browse TO RECID repos.
 ELSE t_log = db-browse:SELECT-ROW(1).
 
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i b_ok b_cancel xtitle}
 DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
-   WAIT-FOR CHOOSE OF b_ok IN FRAME schemapk OR
-                  GO OF FRAME schemapk.
+   &if DEFINED(IDE-IS-RUNNING) = 0 &THEN    
+   WAIT-FOR CHOOSE OF b_ok IN FRAME schemapk 
+         OR GO OF FRAME schemapk.
+   &ELSE
+   WAIT-FOR CHOOSE OF b_ok IN FRAME schemapk 
+         OR GO OF FRAME schemapk
+         OR "{&CANCEL-EVENT}":U of this-procedure.
+   if cancelDialog then undo, leave.
+   &ENDIF
+   
 END.
 
 HIDE FRAME schemapk.

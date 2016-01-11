@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
-"ADM SmartDialog Object Template
+"ADM2 SmartDialog Object Template
 
 Use this template to create a new dialog box which supports SmartObjects. Draw your SmartObjects on this container and establish the appropriate SmartLinks to connect them."
 */

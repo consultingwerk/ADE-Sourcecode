@@ -68,7 +68,7 @@ CREATE WIDGET-POOL.
 
 { adecomm/adefext.i }   /* Defines Preprocessor variables   */
 { adecomm/_adetool.i}
-
+{adecomm/oeideservice.i} 
 /* Parameters Definitions ---                                           */
 /* trg-code contains a string in the form of:
    type of object/title for window, text file for cue text */
@@ -93,12 +93,12 @@ RUN adeuib/_uibinfo.p (trg-recid, ?, "TEMPLATE", OUTPUT cResult).
 IF cResult eq STRING(yes) THEN RETURN.
  
 /* This procedure must run PERSISTENT.  If it was called any other way then
-   do it correctly. */       
+   do it correctly. */     
+  
 IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
   RUN adecomm/_so-cue.w PERSISTENT (INPUT trg-recid, INPUT-OUTPUT trg-code).
   RETURN.
 END.
-
 ELSE DO:
   ASSIGN   
      h         = SESSION:FIRST-PROCEDURE
@@ -135,14 +135,17 @@ ELSE DO:
   END.
 END.
 
+if not OEIDEisRunning then
+do:
 /* If cue cards are OFF or this one is in the exception list, kill it! */
-GET-KEY-VALUE SECTION sctn KEY "Disabled_Cue_Cards" VALUE dlist.
-RUN adeuib/_uibinfo.p (?, "SESSION", "USE_CUECARDS", OUTPUT user-ret-val).
-IF user-ret-val = "FALSE" OR CAN-DO (dlist, subject) THEN DO:
-   DELETE PROCEDURE THIS-PROCEDURE.
-   RETURN.
-END.
-IF dlist = ? THEN dlist = "".
+    GET-KEY-VALUE SECTION sctn KEY "Disabled_Cue_Cards" VALUE dlist.
+    RUN adeuib/_uibinfo.p (?, "SESSION", "USE_CUECARDS", OUTPUT user-ret-val).
+    IF user-ret-val = "FALSE" OR CAN-DO (dlist, subject) THEN DO:
+       DELETE PROCEDURE THIS-PROCEDURE.
+       RETURN.
+    END.
+    IF dlist = ? THEN dlist = "".
+end.    
 
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE l         AS LOGICAL NO-UNDO.
@@ -392,19 +395,27 @@ PAUSE 0 BEFORE-HIDE.
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:   
-   ASSIGN
-     {&WINDOW-NAME}:TITLE        = subject + " Cue Card"
-     THIS-PROCEDURE:PRIVATE-DATA = "CUE-CARD," + subject
-     e_cue-text                  = 
-       TRIM(SUBSTRING(tcode,LENGTH(firstline,"CHARACTER":u) + 1,-1,"CHARACTER"))
-     ENTRY(NUM-ENTRIES(e_cue-text,CHR(10)), e_cue-text, CHR(10) ) = "".
-     
-  RUN enable_UI.
-  RUN create_image.
-  RUN pos-win.    
-  IF NOT THIS-PROCEDURE:PERSISTENT THEN
-    WAIT-FOR "WINDOW-CLOSE" OF {&WINDOW-NAME}.
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+   Assign e_cue-text                  = 
+          TRIM(SUBSTRING(tcode,LENGTH(firstline,"CHARACTER":u) + 1,-1,"CHARACTER"))
+          ENTRY(NUM-ENTRIES(e_cue-text,CHR(10)), e_cue-text, CHR(10) ) = "".    
+   if OEIDEisRunning then
+   do:
+      ShowCueCard(subject + " Cue Card",e_cue-text).
+      IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
+      return.
+   end.   
+   else
+   do:   
+     ASSIGN
+       {&WINDOW-NAME}:TITLE        = subject + " Cue Card"
+       THIS-PROCEDURE:PRIVATE-DATA = "CUE-CARD," + subject.
+      RUN enable_UI.
+      RUN create_image.
+      RUN pos-win.
+      IF NOT THIS-PROCEDURE:PERSISTENT THEN
+        WAIT-FOR "WINDOW-CLOSE" OF {&WINDOW-NAME}.
+    end.    
 END.
 
 /* _UIB-CODE-BLOCK-END */

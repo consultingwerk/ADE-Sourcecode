@@ -5,12 +5,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2012 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _wizdfld.w
@@ -42,7 +42,7 @@
 
 /* ***************************  Definitions  ************************** */
 { src/adm2/support/admhlp.i} /* ADM Help File Defs */
-
+{adecomm/oeideservice.i {&OEIDE-EXCLUDE-PROTOTYPES}}
 /* Parameters Definitions ---                                           */
 DEFINE INPUT PARAMETER hWizard AS WIDGET-HANDLE                    NO-UNDO.
 
@@ -238,93 +238,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Addf C-Win
 ON CHOOSE OF b_Addf IN FRAME DEFAULT-FRAME /* Add Fields... */
 DO:
-  DEFINE VARIABLE tbllist       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE tbl           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE fld           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cSourceNames  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSourceFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataObjects  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cExclude      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cColumns      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cColumnName   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cColumnObject AS CHARACTER  NO-UNDO.
-
-  /* Run adecomm/_getdlst to allow the user to select fields */
-  IF VALID-HANDLE(h_do) THEN 
-  DO: /* Choosing from a SDO or SBO */
-    cSourceNames = getDataSourceNames().
-     
-    /* A previous wizard page may have specified and stored DataObjectNames.
-        (this is for support of SBOs) */
-    IF cSourceNames <> ? AND cSourceNames <> '':U THEN
-    DO:
-      cDataObjects = {fn getDataObjectNames h_do} NO-ERROR. 
-      IF NUM-ENTRIES(cSourceNames) < NUM-ENTRIES(cDataObjects) THEN
-      DO:
-        cColumns = {fn getDataColumns h_Do} NO-ERROR.
-        DO iColumn = 1 TO NUM-ENTRIES(cColumns):
-           ASSIGN 
-             cColumnName   = ENTRY(iColumn,cColumns)
-             cColumnObject = ENTRY(1,cColumnName,'.':U).
-            IF LOOKUP(cColumnObject,cSourceNames) = 0 THEN
-            DO:
-              ASSIGN cExclude = cExclude
-                              + (IF cExclude <> '':U THEN ',':U ELSE '':U)
-                              + cColumnName.
-            END.  /* lookup ccolumnObject,cSourcenamews = 0 */ 
-        END. /* do icolumn = 1 to */
-      END. /* num-entries <> num-entries */
-    END. /* cSourcenames <> ? or blank */
-   
-    RUN adecomm/_mfldsel.p 
-                 ("", 
-                  h_do, 
-                  ?, 
-                  "1", 
-                  ",", 
-                  cExclude,
-                  INPUT-OUTPUT fld-list).
-
-    RUN adecomm/_setcurs.p ("":U).
-  END.  /* IF valid h_do */
-  ELSE DO:  /* Choosing from a database */
-    tbllist = qtbls.
-    /* Strip out "OF" syntax */
-    DO i = 1 TO NUM-ENTRIES(tbllist):
-      ENTRY(i,tbllist) = ENTRY(1, ENTRY(i,tbllist), " ":U).
-    END.
-    
-    /* Run the column editor to maintain the field list */
-    RUN adeuib/_uib_dlg.p
-             (INT(br-recid), "COLUMN EDITOR":U, INPUT-OUTPUT tbllist).
-    
-    RUN adeuib/_uibinfo.p (INT(br-recid), ?, "FIELDS":U, OUTPUT fld-list).
-      
-    /* Remove dbname if settings require it */
-    DO i = 1 to NUM-ENTRIES(fld-list):
-      ASSIGN 
-        fld = ENTRY(i,fld-list) 
-        fld = ENTRY(NUM-ENTRIES(fld,".":U),fld,".":U)
-        tbl = SUBSTR(ENTRY(i,fld-list),1,R-INDEX(ENTRY(i,fld-list),".":U) - 1)    
-        ENTRY(i,fld-list) = DYNAMIC-FUNCTION('db-tbl-name' IN hFuncLib,tbl) 
-                            + ".":U
-                            + fld.
-    END. /* do i = 1 to num-entries(fld-list) */
-  END. /*else do (= database) */
-  
-  ASSIGN s_fields:LIST-ITEMS IN FRAME {&FRAME-NAME} = fld-list.
-   
-  IF s_fields:NUM-ITEMS IN FRAME {&FRAME-NAME} > 0 THEN DO:
-    SELF:LABEL = "&Modify Fields...".
-    APPLY "U1":U TO hWizard.  /* Ok to finish */
-  END.
-  ELSE DO:
-    SELF:LABEL = "&Add Fields...".
-    APPLY "U2":U TO hWizard.  /* NOT Ok to finish */
-  END.
-
+    run AddFieldsHandler.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -501,3 +415,123 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE AddFieldsHandler C-Win
+PROCEDURE AddFieldsHandler :
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDE_CanLaunchDialog()  then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"OpenColumnEditor").
+       run runChildDialog in hOEIDEService (ideevent) .
+   end.
+   else do:
+       run OpenColumnEditor.
+   end.    
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE OpenColumnEditor C-Win
+PROCEDURE OpenColumnEditor :
+  DEFINE VARIABLE tbllist       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE tbl           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE fld           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSourceNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceFields AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataObjects  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExclude      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumns      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cColumnName   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnObject AS CHARACTER  NO-UNDO.
+
+  /* Run adecomm/_getdlst to allow the user to select fields */
+  IF VALID-HANDLE(h_do) THEN 
+  DO: /* Choosing from a SDO or SBO */
+    cSourceNames = getDataSourceNames().
+     
+    /* A previous wizard page may have specified and stored DataObjectNames.
+        (this is for support of SBOs) */
+    IF cSourceNames <> ? AND cSourceNames <> '':U THEN
+    DO:
+      cDataObjects = {fn getDataObjectNames h_do} NO-ERROR. 
+      IF NUM-ENTRIES(cSourceNames) < NUM-ENTRIES(cDataObjects) THEN
+      DO:
+        cColumns = {fn getDataColumns h_Do} NO-ERROR.
+        DO iColumn = 1 TO NUM-ENTRIES(cColumns):
+           ASSIGN 
+             cColumnName   = ENTRY(iColumn,cColumns)
+             cColumnObject = ENTRY(1,cColumnName,'.':U).
+            IF LOOKUP(cColumnObject,cSourceNames) = 0 THEN
+            DO:
+              ASSIGN cExclude = cExclude
+                              + (IF cExclude <> '':U THEN ',':U ELSE '':U)
+                              + cColumnName.
+            END.  /* lookup ccolumnObject,cSourcenamews = 0 */ 
+        END. /* do icolumn = 1 to */
+      END. /* num-entries <> num-entries */
+    END. /* cSourcenames <> ? or blank */
+    if OEIDE_CanLaunchDialog()  then 
+        RUN adeuib/ide/_dialog_mfldsel.p 
+                     ("", 
+                      h_do, 
+                      ?, 
+                      "1", 
+                      ",", 
+                      cExclude,
+                      INPUT-OUTPUT fld-list).
+     else
+        RUN adecomm/_mfldsel.p 
+                     ("", 
+                      h_do, 
+                      ?, 
+                      "1", 
+                      ",", 
+                      cExclude,
+                      INPUT-OUTPUT fld-list).
+
+    RUN adecomm/_setcurs.p ("":U).
+  END.  /* IF valid h_do */
+  ELSE DO:  /* Choosing from a database */
+    tbllist = qtbls.
+    /* Strip out "OF" syntax */
+    DO i = 1 TO NUM-ENTRIES(tbllist):
+      ENTRY(i,tbllist) = ENTRY(1, ENTRY(i,tbllist), " ":U).
+    END.
+    
+    /* Run the column editor to maintain the field list */
+    RUN adeuib/_uib_dlg.p
+             (INT(br-recid), "COLUMN EDITOR":U, INPUT-OUTPUT tbllist).
+    
+    RUN adeuib/_uibinfo.p (INT(br-recid), ?, "FIELDS":U, OUTPUT fld-list).
+      
+    /* Remove dbname if settings require it */
+    DO i = 1 to NUM-ENTRIES(fld-list):
+      ASSIGN 
+        fld = ENTRY(i,fld-list) 
+        fld = ENTRY(NUM-ENTRIES(fld,".":U),fld,".":U)
+        tbl = SUBSTR(ENTRY(i,fld-list),1,R-INDEX(ENTRY(i,fld-list),".":U) - 1)    
+        ENTRY(i,fld-list) = DYNAMIC-FUNCTION('db-tbl-name' IN hFuncLib,tbl) 
+                            + ".":U
+                            + fld.
+    END. /* do i = 1 to num-entries(fld-list) */
+  END. /*else do (= database) */
+  
+  ASSIGN s_fields:LIST-ITEMS IN FRAME {&FRAME-NAME} = fld-list.
+   
+  IF s_fields:NUM-ITEMS IN FRAME {&FRAME-NAME} > 0 THEN DO:
+    b_Addf:LABEL = "&Modify Fields...".
+    APPLY "U1":U TO hWizard.  /* Ok to finish */
+  END.
+  ELSE DO:
+    b_Addf:LABEL = "&Add Fields...".
+    APPLY "U2":U TO hWizard.  /* NOT Ok to finish */
+  END.
+   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+    

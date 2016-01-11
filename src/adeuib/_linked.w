@@ -1,10 +1,7 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 /* Connected Databases 
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_linked
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_linked 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -68,16 +65,14 @@ DEFINE NEW SHARED VARIABLE litem AS INTEGER INITIAL 0 NO-UNDO.
 DEFINE VARIABLE l                AS LOGICAL           NO-UNDO.
 DEFINE VARIABLE curobj           AS CHARACTER         NO-UNDO.
 DEFINE VARIABLE curobjsv         AS CHARACTER         NO-UNDO.
-
+define variable xTitle as character no-undo init "SmartLinks".
 DEFINE BUFFER x_nadmlinks FOR nadmlinks.
+DEFINE VARIABLE temp_data as recid no-undo.
 /* Variables used for adm version */
 {adeuib/vsookver.i}
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+ 
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -114,8 +109,6 @@ rs_sort cb_tofrom
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -202,21 +195,16 @@ DEFINE RECTANGLE RECT-7
      SIZE 75 BY 8.33.
 
 /* Query definitions                                                    */
-&ANALYZE-SUSPEND
 DEFINE QUERY br_links FOR 
       _admlinks, 
       nadmlinks SCROLLING.
-&ANALYZE-RESUME
 
 /* Browse definitions                                                   */
 DEFINE BROWSE br_links
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_links d_linked _FREEFORM
   QUERY br_links NO-LOCK DISPLAY
       nadmlinks._source-name
       _admlinks._link-type
       nadmlinks._target-name
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
     WITH SEPARATORS SIZE 73 BY 7.62.
 
 
@@ -249,26 +237,30 @@ DEFINE FRAME d_linked
      " Links" VIEW-AS TEXT
           SIZE 6 BY .67 AT ROW 1 COL 3
      SPACE(85.13) SKIP(13.59)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "SmartLinks"
-         DEFAULT-BUTTON b_Close.
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX         
+    TITLE xTitle 
+    &else
+    no-box
+    &endif
+    KEEP-TAB-ORDER 
+    SIDE-LABELS 
+    NO-UNDERLINE 
+    THREE-D  
+    SCROLLABLE 
+    DEFAULT-BUTTON b_Close.
 
 
+{adeuib/ide/dialoginit.i "frame ~{&FRAME-NAME~}:handle}
 /* *********************** Procedure Settings ************************ */
 
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
 
 
 
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_linked
                                                                         */
 /* BROWSE-TAB br_links b_Close d_linked */
@@ -281,12 +273,10 @@ ASSIGN
 /* SETTINGS FOR COMBO-BOX cb_tofrom IN FRAME d_linked
    NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
 
 /* Setting information for Queries and Browse Widgets fields            */
 
-&ANALYZE-SUSPEND _QUERY-BLOCK BROWSE br_links
 /* Query rebuild information for BROWSE br_links
      _START_FREEFORM
 OPEN QUERY br_links FOR EACH _admlinks,
@@ -296,7 +286,6 @@ OPEN QUERY br_links FOR EACH _admlinks,
      _Options          = "NO-LOCK"
      _Query            is NOT OPENED
 */  /* BROWSE br_links */
-&ANALYZE-RESUME
 
  
 
@@ -305,31 +294,24 @@ OPEN QUERY br_links FOR EACH _admlinks,
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME d_linked
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_linked d_linked
 ON HELP OF FRAME d_linked /* SmartLinks */
 OR CHOOSE OF b_Help 
 DO:
   RUN adecomm/_adehelp.p ( "AB", "CONTEXT", {&SmartLinks_Dlg_Box}, ? ).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_linked d_linked
 ON WINDOW-CLOSE OF FRAME d_linked /* SmartLinks */
 DO:
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR. */
   APPLY "END-ERROR":U TO SELF.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define BROWSE-NAME br_links
 &Scoped-define SELF-NAME br_links
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_links d_linked
 ON VALUE-CHANGED OF br_links IN FRAME d_linked
 DO:
   /* Sensitize the Modify and Remove buttons, as appropriate. */ 
@@ -340,32 +322,17 @@ DO:
      b_Remove:SENSITIVE  = b_Modify:SENSITIVE.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Add
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Add d_linked
 ON CHOOSE OF b_Add IN FRAME d_linked /* Add... */
 DO:
-  DEFINE VAR lOK AS LOGICAL NO-UNDO.
-  
-  /* Add a new link. */
-  RUN adeuib/_linkadd.w (precid, ?, OUTPUT lOK). 
-  IF lOK THEN DO:
-    /* refresh the browser */
-    RUN Reopen_Query.    
-    /* Add any new custom links to list */
-    RUN Check_CustomLinks. 
-  END.
+   run choose_add.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_ckLinks
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_ckLinks d_linked
 ON CHOOSE OF b_ckLinks IN FRAME d_linked /* Check Links... */
 DO:
   DEFINE VAR lOK AS LOGICAL NO-UNDO.
@@ -373,36 +340,15 @@ DO:
   RUN CkLinks.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Modify
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Modify d_linked
 ON CHOOSE OF b_Modify IN FRAME d_linked /* Modify... */
 DO:
-  DEFINE VAR lOK AS LOGICAL NO-UNDO.
-  
-  /* Modify the currently selected link. (NOTE there should be no way to
-     get in here without some object selected.) */  
-  IF br_links:NUM-SELECTED-ROWS = 1 THEN DO:
-    IF NOT AVAILABLE (_admlinks) THEN l = br_links:FETCH-SELECTED-ROW(1).
-    RUN adeuib/_linkadd.w (precid, RECID(_admlinks), OUTPUT lOK). 
-    IF lOK THEN DO:
-      /* Refresh the browser */
-      DISPLAY {&FIELDS-IN-QUERY-{&BROWSE-NAME}} WITH BROWSE {&BROWSE-NAME}.    
-      /* Add any new custom links to list */
-      RUN Check_CustomLinks. 
-    END.
-  END.
+    run choose_Modify.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME b_Remove
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Remove d_linked
 ON CHOOSE OF b_Remove IN FRAME d_linked /* Remove */
 DO:
   DEFINE VARIABLE lt AS CHARACTER NO-UNDO.
@@ -422,12 +368,9 @@ DO:
   ELSE MESSAGE "You must first select a link." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_Source
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_Source d_linked
 ON VALUE-CHANGED OF cb_Source IN FRAME d_linked
 OR VALUE-CHANGED OF cb_linktype IN FRAME d_linked
 OR VALUE-CHANGED OF cb_target   IN FRAME d_linked
@@ -436,23 +379,17 @@ DO:
   RUN Reopen_Query.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME cb_tofrom
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL cb_tofrom d_linked
 ON VALUE-CHANGED OF cb_tofrom IN FRAME d_linked
 DO:
   RUN ReOpen_Query.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME rs_show
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL rs_show d_linked
 ON VALUE-CHANGED OF rs_show IN FRAME d_linked
 DO:
   IF SELF:SCREEN-VALUE = "1" THEN
@@ -463,13 +400,10 @@ DO:
   RUN ReOpen_Query.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK d_linked 
 
 
 /* ***************************  Main Block  *************************** */
@@ -502,6 +436,10 @@ IF SESSION:WIDTH-PIXELS / SESSION:PIXELS-PER-COL < 94 THEN
          b_Remove:WIDTH IN FRAME {&FRAME-NAME} = 10
          FRAME {&FRAME-NAME}:WIDTH             = 88.
 
+
+&SCOPED-DEFINE CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i  b_close b_close xtitle}
+       
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
@@ -511,7 +449,12 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   IF RETURN-VALUE = "NONE" THEN RETURN.
   RUN enable_UI.
   RUN Reopen_Query.
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &else
+   WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+   
+  &endif
 END.
 
 /* There seems to be a bug where ACTIVE-WINDOW gets reset. (It becomes the
@@ -522,13 +465,10 @@ APPLY "ENTRY" TO ACTIVE-WINDOW.
 
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Check_CustomLinks d_linked 
 PROCEDURE Check_CustomLinks :
 /* --------------------------------------------------------------------
   Purpose:     Look for Custom link types and add them to the list
@@ -559,10 +499,7 @@ PROCEDURE Check_CustomLinks :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE CkLinks d_linked 
 PROCEDURE CkLinks :
 /* --------------------------------------------------------------------
   Purpose:     Check the links
@@ -637,10 +574,7 @@ PROCEDURE CkLinks :
             /* Never Again */ OUTPUT lError). 
 END PROCEDURE. /* ckLinks */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI d_linked _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -654,10 +588,7 @@ PROCEDURE disable_UI :
   HIDE FRAME d_linked.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI d_linked _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -676,10 +607,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-d_linked}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Find_SOs d_linked 
 PROCEDURE Find_SOs :
 /* -----------------------------------------------------------
   Purpose:     Find SOs and their supported links
@@ -799,10 +727,7 @@ PROCEDURE Find_SOs :
          rs_sort:SCREEN-VALUE     = "1".
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Reopen_Query d_linked 
 PROCEDURE Reopen_Query :
 /* -----------------------------------------------------------
   Purpose:     Reopen the query
@@ -922,5 +847,78 @@ PROCEDURE Reopen_Query :
   END. /* modify sensitive but no available record */
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure choose_add:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        dialogService:SetCurrentEvent(this-procedure,"do_choose_add").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else
+        run do_choose_add.    
+     &endif 
+end procedure.
+
+procedure do_choose_add:
+   /* Add a new link. */
+   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        RUN adeuib/ide/_dialog_linkadd.p (precid,?, OUTPUT lOK).
+   &else
+       RUN adeuib/_linkadd.w (precid, ?, OUTPUT lOK).
+  &endif 
+  IF lOK THEN DO:
+    /* refresh the browser */
+    RUN Reopen_Query.    
+    /* Add any new custom links to list */
+    RUN Check_CustomLinks. 
+  END.
+end procedure.
+
+procedure choose_modify:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        dialogService:SetCurrentEvent(this-procedure,"do_choose_modify").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else
+        run do_choose_modify.    
+     &endif 
+    
+end procedure.
+
+procedure do_choose_modify:
+    DEFINE VAR lOK AS LOGICAL NO-UNDO.
+  
+    /* Modify the currently selected link. (NOTE there should be no way to
+       get in here without some object selected.) */  
+    IF br_links:NUM-SELECTED-ROWS in frame {&frame-name} = 1 THEN 
+    DO:
+        IF NOT AVAILABLE (_admlinks) THEN l = br_links:FETCH-SELECTED-ROW(1).
+            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        RUN adeuib/ide/_dialog_linkadd.p (precid,RECID(_admlinks), OUTPUT lOK).
+            &else
+        RUN adeuib/_linkadd.w (precid, RECID(_admlinks), OUTPUT lOK).
+            &endif 
+        IF lOK THEN 
+        DO:
+            /* Refresh the browser */
+            DISPLAY {&FIELDS-IN-QUERY-{&BROWSE-NAME}} WITH BROWSE {&BROWSE-NAME}.    
+            /* Add any new custom links to list */
+            RUN Check_CustomLinks. 
+        END.
+    END.
+end procedure.
+
+procedure ide_choose_linkadd:
+    IF lOK THEN DO:
+        if temp_data = ? then 
+        do:
+               /* refresh the browser */
+            RUN Reopen_Query.    
+            /* Add any new custom links to list */
+            RUN Check_CustomLinks.
+        end.
+        else
+        do:
+          /* Refresh the browser */
+           DISPLAY {&FIELDS-IN-QUERY-{&BROWSE-NAME}} WITH BROWSE {&BROWSE-NAME}.    
+           /* Add any new custom links to list */
+           RUN Check_CustomLinks. 
+        end.         
+  END.
+end procedure

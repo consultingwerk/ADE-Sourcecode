@@ -17,6 +17,7 @@ Author: Kumar Mayur
 
 Date Created:08/05/2011
 ----------------------------------------------------------------------------*/
+{prodict/user/uservar.i}
 {prodict/ora/key/modpri.i }
 
 
@@ -132,13 +133,22 @@ PROCEDURE unique :
                     WITH FRAME frame_unique.
            ASSIGN name:SCREEN-VALUE IN FRAME frame_unique =  constr_name.
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_unique ="yes".
-           ASSIGN DESC_EDIT2:SCREEN-VALUE IN FRAME frame_unique = descrip. 
-           ENABLE BROWSE-UNIQUE Active DESC_EDIT2 
-                    OK_BUT CREATE_BUT CANCEL_BUT 
+           ASSIGN DESC_EDIT2:SCREEN-VALUE IN FRAME frame_unique = descrip.
+           IF user_dbtype    NE "oracle" then 
+               ENABLE BROWSE-UNIQUE Active DESC_EDIT2 
+                   OK_BUT CREATE_BUT CANCEL_BUT 
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  
                  &ENDIF 
                   WITH FRAME frame_unique.
+           ELSE
+                ENABLE BROWSE-UNIQUE  DESC_EDIT2 
+                   OK_BUT CREATE_BUT CANCEL_BUT 
+                &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                &THEN HELP_BUT  
+                &ENDIF 
+                 WITH FRAME frame_unique.
+
             {&OPEN-BROWSERS-IN-QUERY-frame_unique}
         FIND FIRST DICTDB._constraint where _con-name = constr_name AND DICTDB._Constraint._Db-Recid = DbRecid NO-LOCK NO-ERROR.
         FOR EACH temp WHERE rec = _constraint._index-recid NO-LOCK:

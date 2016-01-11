@@ -487,7 +487,7 @@ PROCEDURE create_a_SmartViewer :
     DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
 
     DEFINE BUFFER X_U FOR _U. 
-
+ 
     IF gcFields = '':U THEN RETURN.
 
     /* Update _TT for DataObject */

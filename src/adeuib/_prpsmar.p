@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2006-2012 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _prpsmar.p
@@ -85,7 +85,7 @@ DEFINE VARIABLE i                 AS INTEGER                 NO-UNDO.
 
 DEFINE VARIABLE _settingsScreenValue AS CHARACTER            NO-UNDO.
 DEFINE VARIABLE _so-infoFile         AS CHARACTER            NO-UNDO.
-
+DEFINE VARIABLE FrameTitle           AS CHARACTER            NO-UNDO init  "Property Sheet".
 /** NO we may create widgets from the Instance Property Dialog
 CREATE WIDGET-POOL.
 **/ 
@@ -137,16 +137,25 @@ DO TRANSACTION:
 
          rect-pal          AT ROW 1.13  COL 73.5
          btn_links         AT ROW 1.13  COL 74.75
-       WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
-            SIDE-LABELS SIZE 84 BY 22 
-            TITLE "Property Sheet" THREE-D.
+       WITH 
+       &if DEFINED(IDE-IS-RUNNING) = 0 &then
+       VIEW-AS DIALOG-BOX      TITLE FrameTitle
+       &else
+       NO-BOX 
+       &endif 
+       KEEP-TAB-ORDER
+       SIDE-LABELS SIZE 84 BY 22 
+       THREE-D.
 
      ASSIGN    
-         FRAME {&FRAME-NAME}:HIDDEN = TRUE
-         FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW
-         FRAME {&FRAME-NAME}:TITLE  = "Property Sheet - " + _U._NAME +
+         FrameTitle                 = "Property Sheet - " + _U._NAME +
                                       IF lo-master THEN "":U
                                       ELSE (" - Layout: " + _U._LAYOUT-NAME)
+         FRAME {&FRAME-NAME}:HIDDEN = TRUE
+         FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW
+         &if DEFINED(IDE-IS-RUNNING) = 0  &then
+         FRAME {&FRAME-NAME}:TITLE  = FrameTitle
+         &endif
          btn_links:COLUMN       = IF SESSION:WIDTH-PIXELS > 700 THEN 75.5
                                                                    ELSE 74.75
          txt_advnc:SCREEN-VALUE IN FRAME {&FRAME-NAME} = " Advanced Options":L30
@@ -184,9 +193,10 @@ DO TRANSACTION:
 
   
     /* Handle sizing based on screen real estate */
+   
     ASSIGN icon-hp = btn_links:HEIGHT-P IN FRAME {&FRAME-NAME}
            icon-wp = btn_links:WIDTH-P IN FRAME {&FRAME-NAME}.
-  
+      
     &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN 
     IF SESSION:WIDTH-PIXELS = 640 AND SESSION:PIXELS-PER-COLUMN = 6 THEN
       ASSIGN icon-hp = 32
@@ -194,24 +204,28 @@ DO TRANSACTION:
              FRAME {&FRAME-NAME}:WIDTH = 89
              .
     &ENDIF
+ 
+
   
     /* *************************** Generate Needed Widgets ************************** */
     
     {adecomm/okbar.i}
-
-     ASSIGN FRAME {&FRAME-NAME}:DEFAULT-BUTTON = btn_OK:HANDLE IN FRAME {&FRAME-NAME}
+    {adeuib/ide/dialoginit.i "FRAME {&FRAME-NAME}:handle"}
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:View(). 
+    &endif
+    ASSIGN FRAME {&FRAME-NAME}:DEFAULT-BUTTON = btn_OK:HANDLE IN FRAME {&FRAME-NAME}
            adjust                      = FRAME {&FRAME-NAME}:HEIGHT - cur-row - 2.25  
            btn_ok:ROW                   = btn_ok:ROW - adjust
            btn_cancel:ROW               = btn_cancel:ROW - adjust
            btn_help:ROW                 = btn_help:ROW - adjust
-           frame {&FRAME-NAME}:HEIGHT   = frame {&FRAME-NAME}:HEIGHT - adjust 
+           frame {&FRAME-NAME}:HEIGHT   = frame {&FRAME-NAME}:HEIGHT - adjust
            rect-pal:HEIGHT              = btn_ok:ROW - 2
-           FRAME {&FRAME-NAME}:HIDDEN   = FALSE
-           .
+           FRAME {&FRAME-NAME}:HIDDEN   = FALSE no-error.
+       
               
   END.  /* IF NOT RETRY */
-  
-  
+ 
   /* ******************************** Triggers ****************************** */
   
   ON VALUE-CHANGED OF tog_parameterize DO:
@@ -224,6 +238,130 @@ DO TRANSACTION:
   ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
     
   ON CHOOSE OF btn_file IN FRAME {&FRAME-NAME} DO:
+      run choose_file.
+  END.
+  
+  ON CHOOSE OF btn_attr IN FRAME {&FRAME-NAME} DO:
+    /* Ask the object itself to edit its attribute list.  NOTE: this button
+       should never be enabled if the object is not valid, but we check here
+       anyway. */
+    IF VALID-HANDLE (_S._HANDLE) THEN DO:
+      RUN adeuib/_edtsmar.p (INTEGER(RECID(_U))).
+      /* Redisplay the settings (in case they changed). */
+      ASSIGN _settingsScreenValue = REPLACE(_S._settings,CHR(3),CHR(10))
+             _settingsScreenValue = REPLACE(_settingsScreenValue,CHR(4)," = ":U)
+             _settingsScreenValue:SCREEN-VALUE = _settingsScreenValue.
+      DISPLAY _settingsScreenValue WITH FRAME {&FRAME-NAME}.
+    END.
+  END.
+  
+  ON CHOOSE OF btn_links IN FRAME {&FRAME-NAME} DO:
+    RUN edit-links.
+  END.
+  
+  ON CHOOSE OF btn_layout IN FRAME {&FRAME-NAME} DO:      
+    RUN adeuib/_massync.p  (INPUT RECID(_U), INPUT _U._LAYOUT-NAME).   
+    /* Recreate the object if any thing has changed.  */
+    IF (org_height ne _L._HEIGHT) OR (org_width ne _L._WIDTH) OR
+       (org_row   ne _L._ROW)     OR (org_col   ne _L._COL)   
+    THEN lRecreate = YES.
+  END.
+  
+  ON CHOOSE OF btn_help IN FRAME {&FRAME-NAME} OR HELP OF FRAME {&FRAME-NAME} DO:
+    RUN adecomm/_adehelp.p ( "AB", "CONTEXT", {&Property_Sheet_SmartObjects}, ?).
+  END.
+  
+  /* Make sure names are valid */
+  ON LEAVE OF name IN FRAME {&FRAME-NAME} DO:
+    DEF VAR valid_name AS LOGICAL NO-UNDO.
+  
+    IF SELF:SCREEN-VALUE <> _U._NAME THEN DO:
+      RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
+      IF valid_name THEN
+        ASSIGN _U._NAME = INPUT FRAME {&FRAME-NAME} name
+               FRAME {&FRAME-NAME}:TITLE = "Property Sheet - " + _U._NAME +
+                                         IF _L._LO-NAME NE "Master Layout" THEN
+                                         " - Layout: " + _U._LAYOUT-NAME ELSE "".
+      ELSE RETURN NO-APPLY.
+    END.
+  END.
+  
+  /* Make sure the variable name is a valid Progress name. */
+  ON LEAVE OF _S._var-name IN FRAME {&FRAME-NAME} DO:
+    DEF VAR valid_name AS LOGICAL NO-UNDO.
+  
+    IF SELF:SCREEN-VALUE <> _S._var-name THEN DO:
+      RUN adecomm/_valname.p (SELF:SCREEN-VALUE, FALSE, OUTPUT valid_name).
+      IF valid_name
+      THEN _S._var-name = INPUT FRAME {&FRAME-NAME} _S._var-name.
+      ELSE RETURN NO-APPLY.
+    END.
+  END.
+  
+  /* Change REMOVE-FROM-LAYOUT */
+  ON VALUE-CHANGED OF tog_remove-from IN FRAME {&FRAME-NAME} DO:
+    _L._REMOVE-FROM-LAYOUT = SELF:CHECKED.
+  END.
+  RUN setup.
+  
+  DISPLAY _S._FILE-NAME WITH FRAME {&FRAME-NAME}. 
+  IF admVersion LT "ADM2":U THEN
+     DISPLAY "Instance Attributes:" @ instanceLbl WITH FRAME {&FRAME-NAME}.
+  ELSE 
+     DISPLAY "Instance Properties:" @ instanceLbl WITH FRAME {&FRAME-NAME}.
+  
+  &scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i btn_ok btn_cancel FrameTitle}
+ 
+  RUN adecomm/_setcurs.p ("").
+  
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     WAIT-FOR "GO" OF FRAME {&FRAME-NAME}. 
+  &ELSE
+     WAIT-FOR "GO" OF FRAME {&FRAME-NAME} or "u2" of this-procedure.       
+     if cancelDialog THEN UNDO, LEAVE.  
+  &endif
+  
+  
+  /* Remove the _S._var-name if it is not required */
+  IF (tog_parameterize:CHECKED eq NO) THEN _S._var-name = "":U.
+  
+  /* Turn status messages back on. (They were turned off at the top of the block */
+  STATUS INPUT.
+  
+  RUN adeuib/_winsave.p (_U._WINDOW-HANDLE, FALSE).
+  
+END.  /* BIG-TRANS-BLK */
+HIDE FRAME {&FRAME-NAME}.
+DELETE WIDGET-POOL.
+
+/* Has the SmartObject been removed from an alternate layout (or returned). */
+IF NOT lo-master THEN DO:
+  IF _L._REMOVE-FROM-LAYOUT THEN RUN HideObject IN _S._HANDLE. 
+  ELSE RUN ViewObject IN _S._HANDLE.
+END.
+/* Do we need to recreat the SmartObject? If so, do it.  NOTE that we are
+   outside of the BIG-TRANSACTION block, and that the WIDGET-POOL defined in
+   this .p has already been deleted, so the recreate will occur in the UIB's
+   widget pool. */
+IF lRecreate THEN DO:
+  RUN adecomm/_setcurs.p ("WAIT":U).
+  RUN adeuib/_recreat.p (RECID(_U)).
+END.
+
+/* ***************** PERSISTENT TRIGGERS FOR DYNAMIC WIDGETS  **************** */
+
+procedure choose_file:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+         dialogService:SetCurrentEvent(this-procedure,"do_choose_file").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+         RUN do_choose_file.
+    &endif
+    
+end procedure.    
+
+procedure do_choose_file:
     DEFINE VAR cnt          AS INTEGER NO-UNDO.
     DEFINE VAR ext          AS CHAR NO-UNDO.
     DEFINE VAR tmp_name     AS CHAR NO-UNDO.
@@ -235,7 +373,12 @@ DO TRANSACTION:
     
     /* Ask the user to Edit the name of the Master file. */
     new_name = _S._FILE-NAME.
-    RUN adeshar/_filname.p
+    RUN
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+        adeuib/ide/_dialog_filname.p
+    &else
+        adeshar/_filname.p
+    &endif
          ( INPUT        "Modify Master File Name", /* Dialog Title Bar */
            INPUT        NO,                      /* YES is \'s converted to /'s */
            INPUT        YES,                     /* NO if file must exist */
@@ -352,118 +495,20 @@ DO TRANSACTION:
       END. /* IF...ELSE DO: Full pathnames do not match... */
       
       /* Show the new name. */
-      _S._FILE-NAME:SCREEN-VALUE = _S._FILE-NAME.
+      _S._FILE-NAME:SCREEN-VALUE in frame {&frame-name} = _S._FILE-NAME.
       
     END. /* IF lOK THEN DO... */
-  END.
-  
-  ON CHOOSE OF btn_attr IN FRAME {&FRAME-NAME} DO:
-    /* Ask the object itself to edit its attribute list.  NOTE: this button
-       should never be enabled if the object is not valid, but we check here
-       anyway. */
-    IF VALID-HANDLE (_S._HANDLE) THEN DO:
-      RUN adeuib/_edtsmar.p (INTEGER(RECID(_U))).
-      /* Redisplay the settings (in case they changed). */
-      ASSIGN _settingsScreenValue = REPLACE(_S._settings,CHR(3),CHR(10))
-             _settingsScreenValue = REPLACE(_settingsScreenValue,CHR(4)," = ":U)
-             _settingsScreenValue:SCREEN-VALUE = _settingsScreenValue.
-      DISPLAY _settingsScreenValue WITH FRAME {&FRAME-NAME}.
-    END.
-  END.
-  
-  
-  ON CHOOSE OF btn_links IN FRAME {&FRAME-NAME} DO:
-    RUN edit-links.
-  END.
-  
-  ON CHOOSE OF btn_layout IN FRAME {&FRAME-NAME} DO:      
-    RUN adeuib/_massync.p  (INPUT RECID(_U), INPUT _U._LAYOUT-NAME).   
-    /* Recreate the object if any thing has changed.  */
-    IF (org_height ne _L._HEIGHT) OR (org_width ne _L._WIDTH) OR
-       (org_row   ne _L._ROW)     OR (org_col   ne _L._COL)   
-    THEN lRecreate = YES.
-  END.
-  
-  ON CHOOSE OF btn_help IN FRAME {&FRAME-NAME} OR HELP OF FRAME {&FRAME-NAME} DO:
-    RUN adecomm/_adehelp.p ( "AB", "CONTEXT", {&Property_Sheet_SmartObjects}, ?).
-  END.
-  
-  /* Make sure names are valid */
-  ON LEAVE OF name IN FRAME {&FRAME-NAME} DO:
-    DEF VAR valid_name AS LOGICAL NO-UNDO.
-  
-    IF SELF:SCREEN-VALUE <> _U._NAME THEN DO:
-      RUN adeuib/_ok_name.p (SELF:SCREEN-VALUE, RECID(_U), OUTPUT valid_name).
-      IF valid_name THEN
-        ASSIGN _U._NAME = INPUT FRAME {&FRAME-NAME} name
-               FRAME {&FRAME-NAME}:TITLE = "Property Sheet - " + _U._NAME +
-                                         IF _L._LO-NAME NE "Master Layout" THEN
-                                         " - Layout: " + _U._LAYOUT-NAME ELSE "".
-      ELSE RETURN NO-APPLY.
-    END.
-  END.
-  
-  /* Make sure the variable name is a valid Progress name. */
-  ON LEAVE OF _S._var-name IN FRAME {&FRAME-NAME} DO:
-    DEF VAR valid_name AS LOGICAL NO-UNDO.
-  
-    IF SELF:SCREEN-VALUE <> _S._var-name THEN DO:
-      RUN adecomm/_valname.p (SELF:SCREEN-VALUE, FALSE, OUTPUT valid_name).
-      IF valid_name
-      THEN _S._var-name = INPUT FRAME {&FRAME-NAME} _S._var-name.
-      ELSE RETURN NO-APPLY.
-    END.
-  END.
-  
-  /* Change REMOVE-FROM-LAYOUT */
-  ON VALUE-CHANGED OF tog_remove-from IN FRAME {&FRAME-NAME} DO:
-    _L._REMOVE-FROM-LAYOUT = SELF:CHECKED.
-  END.
-  
-  
-  RUN setup.
-  
-  DISPLAY _S._FILE-NAME WITH FRAME {&FRAME-NAME}. 
-  IF admVersion LT "ADM2":U THEN
-     DISPLAY "Instance Attributes:" @ instanceLbl WITH FRAME {&FRAME-NAME}.
-  ELSE 
-     DISPLAY "Instance Properties:" @ instanceLbl WITH FRAME {&FRAME-NAME}.
-   
-  RUN adecomm/_setcurs.p ("").
-  
-  WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.
-  
-  /* Remove the _S._var-name if it is not required */
-  IF (tog_parameterize:CHECKED eq NO) THEN _S._var-name = "":U.
-  
-  /* Turn status messages back on. (They were turned off at the top of the block */
-  STATUS INPUT.
-  
-  RUN adeuib/_winsave.p (_U._WINDOW-HANDLE, FALSE).
-  
-END.  /* BIG-TRANS-BLK */
-HIDE FRAME {&FRAME-NAME}.
-DELETE WIDGET-POOL.
+ end procedure. 
 
-/* Has the SmartObject been removed from an alternate layout (or returned). */
-IF NOT lo-master THEN DO:
-  IF _L._REMOVE-FROM-LAYOUT THEN RUN HideObject IN _S._HANDLE. 
-  ELSE RUN ViewObject IN _S._HANDLE.
-END.
-/* Do we need to recreat the SmartObject? If so, do it.  NOTE that we are
-   outside of the BIG-TRANSACTION block, and that the WIDGET-POOL defined in
-   this .p has already been deleted, so the recreate will occur in the UIB's
-   widget pool. */
-IF lRecreate THEN DO:
-  RUN adecomm/_setcurs.p ("WAIT":U).
-  RUN adeuib/_recreat.p (RECID(_U)).
-END.
-
-/* ***************** PERSISTENT TRIGGERS FOR DYNAMIC WIDGETS  **************** */
 
 /* Change the links for objects in THIS-PROCEDURE */
 PROCEDURE edit-links:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_linked").
+      run runChildDialog in hOEIDEService (dialogService) .
+    &else  
     RUN adeuib/_linked.w (RECID(_P), RECID(_U)).
+    &endif
 END PROCEDURE.
 
 /* ************************ OTHER INTERNAL PROCEDURES ************************ */
@@ -493,7 +538,7 @@ PROCEDURE setup :
                 LABEL       = "Smart&Info"
                 TOOLTIP     = "SmartInfo"
           TRIGGERS:
-            ON CHOOSE PERSISTENT RUN VALUE(_so-infoFile) (_S._HANDLE,"").
+            ON CHOOSE PERSISTENT RUN choose_smart_info .
           END TRIGGERS.
     ASSIGN stupid = h_btn-info:LOAD-IMAGE({&ADEICON-DIR} + "info-u" +
                                               "{&BITMAP-EXT}",0,0,28,28).
@@ -574,3 +619,25 @@ PROCEDURE setup :
     END.  /* IF...valid-object...*/
   END.
 END.  /* Procedure sensitize */
+
+procedure choose_smart_info:
+  /* 
+   &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_smart_info").
+      run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+    **/
+      run do_choose_smart_info.
+/*    &endif*/
+end procedure.
+
+procedure do_choose_smart_info:
+/*    &if DEFINED(IDE-IS-RUNNING) <> 0 &then*/
+/*    &else                                 */
+    run VALUE(_so-infoFile) (_S._HANDLE,"").
+/*    &endif*/
+end procedure.
+
+procedure ide_choose_linked:
+    RUN adeuib/ide/_dialog_linked.p (RECID(_P), RECID(_U)).
+end procedure.

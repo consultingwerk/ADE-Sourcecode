@@ -32,12 +32,14 @@
     7/14/94 wood    UIB Dialog size is now Inner-size (no border)    
     6/23/96 wood    Change file to a .w file
     6/15/99 tsm     Added support for separator-fgcolor
-
+    Jan-19-2012   Rajinder Kamboj 
+                  Added support to run help with integrated app builder for PDS.
 -----------------------------------------------------------------------------*/
 /* ===================================================================== */
 /*                    SHARED VARIABLES Definitions                       */
 /* ===================================================================== */
 &GLOBAL-DEFINE WIN95-BTN YES
+{adecomm/oeideservice.i}
 {adecomm/adestds.i}       /* Standard Include File for ADE tools         */
 {adeuib/uibhlp.i}         /* Help String Definitions                     */
 {adeuib/uniwidg.i}        /* Universal widget TEMP-TABLE definitions     */
@@ -56,7 +58,10 @@ DEFINE VAR       def-layouts AS CHAR      NO-UNDO
 DEFINE VAR       loname      AS CHAR      NO-UNDO.
 DEFINE VAR       origname    AS CHAR      NO-UNDO.
 DEFINE VAR       origtype    AS LOGICAL   NO-UNDO.
-
+DEFINE VAR       saved       AS LOGICAL   NO-UNDO.
+DEFINE VAR       curtype     AS LOGICAL   NO-UNDO.
+DEFINE VAR       wintitle    AS CHARACTER NO-UNDO INITIAL "Alternate Layout":U.
+DEFINE VAR       Childtitle  AS CHARACTER NO-UNDO INITIAL "New Layout Name".
 DEF NEW SHARED STREAM P_4GL.
 
 DEFINE BUFFER x_U FOR _U.
@@ -168,10 +173,26 @@ DEFINE FRAME cust-layout
      "Comment:" VIEW-AS TEXT
           SIZE 13 BY .81 AT ROW 10.48 COL 3
      SPACE(54.19) SKIP(3.76)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if defined(IDE-IS-RUNNING) = 0 &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle 
+    &else
+    no-box
+    &endif 
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Alternate Layout":U.
+         .
 
+{adeuib/ide/dialoginit.i "FRAME cust-layout:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
+
+IF OEIDEIsRunning THEN
+    DO:
+        assign FRAME cust-layout:x = 330 
+               FRAME cust-layout:y = 190 NO-ERROR.
+    END. 
 
 /* *********************** Procedure Settings ************************ */
 
@@ -517,13 +538,13 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL btn_new cust-layout
 ON CHOOSE OF btn_new IN FRAME cust-layout /* New... */
 DO:
-  RUN addlist.
-  /* On windows, we can make sure the combo box is sized correctly. */
-  &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-    ASSIGN cb-layout:INNER-LINES = MIN (MAX(3, cb-layout:NUM-ITEMS + 1), 10).
-  &ENDIF
-  ASSIGN loname = cb-layout:SCREEN-VALUE.
-  RUN set-screen-elements. 
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"choose_addlist").
+      run runChildDialog in hOEIDEService (dialogService) .
+    &else  
+    RUN choose_addlist.
+    &endif
+  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -635,21 +656,34 @@ DO TRANSACTION ON ENDKEY UNDO, LEAVE dlg_question
          origname   = loname.
          
   FIND _LAYOUT WHERE _LAYOUT._LO-NAME = loname.
-  ASSIGN origtype = _LAYOUT._GUI-BASED.
-  
+  ASSIGN origtype = _LAYOUT._GUI-BASED
+         curtype  = _cur_win_type. /* backup for cancel */
+           
   IF _U._WIN-TYPE = ? AND loname = "{&Master-Layout}":U THEN
     ASSIGN _cur_win_type      = _LAYOUT._GUI-BASED
            _U._WIN-TYPE       = _cur_win_type.
   
+  &scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i btn_Ok btn_cancel winTitle}
   RUN set-screen-elements.      
   RUN enable_UI.
   IF loname = "Master Layout" THEN
     ASSIGN Activate:VISIBLE = FALSE
            rm-lo:VISIBLE    = FALSE.
-         
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
 
+     &if DEFINED(IDE-IS-RUNNING) = 0  &then                  
+  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+     &ELSE
+  WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+  if cancelDialog THEN UNDO, LEAVE.  
+     &endif 
+  saved = true.
 END.
+ 
+/* ensure these are in synch again when cancel */  
+if not saved then 
+  _cur_win_type = curtype.
+
 FIND _L WHERE RECID(_L) = _U._lo-recid.
 RUN disable_UI.
 
@@ -658,6 +692,15 @@ RUN disable_UI.
 
 
 /* **********************  Internal Procedures  *********************** */
+PROCEDURE choose_addlist:
+  RUN addlist.
+    /* On windows, we can make sure the combo box is sized correctly. */
+  &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+    ASSIGN cb-layout:INNER-LINES IN FRAME {&FRAME-NAME} = MIN (MAX(3, cb-layout:NUM-ITEMS + 1), 10).
+  &ENDIF
+  ASSIGN loname = cb-layout:SCREEN-VALUE IN FRAME {&FRAME-NAME}.
+  RUN set-screen-elements.
+END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addlist cust-layout 
 PROCEDURE addlist :
@@ -677,7 +720,6 @@ PROCEDURE addlist :
   DEFINE BUTTON    b_help                   LABEL "&Help"       {&STDPH_OKBTN}.
   
   DEF VAR new-lo LIKE _LAYOUT._LO-NAME NO-UNDO.
-  
   DEF FRAME addlo SKIP (1)
       new-lo AT 4 LABEL "New Layout Name"
      {adecomm/okform.i
@@ -686,8 +728,19 @@ PROCEDURE addlist :
         &OK     = b_OK
         &CANCEL = b_Cancel
         &HELP   = b_Help}
-    WITH VIEW-AS DIALOG-BOX TITLE "New Layout Name" WIDTH 60 SIDE-LABELS.
-
+    WITH 
+    &if defined(IDE-IS-RUNNING) = 0 &then 
+    VIEW-AS DIALOG-BOX TITLE Childtitle
+    &else
+       NO-BOX THREE-D
+    &endif 
+    WIDTH 60 SIDE-LABELS.
+    
+    {adeuib/ide/dialoginit.i "FRAME addlo:handle"}
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:View(). 
+    &endif
+  
    {adecomm/okrun.i
        &FRAME  = "FRAME addlo"
        &BOX    = RECT-1
@@ -695,12 +748,27 @@ PROCEDURE addlist :
        &CANCEL = b_cancel
        &HELP   = b_help }
        
+    &scoped-define CANCEL-EVENT U3   
+   {adeuib/ide/dialogstart.i b_Ok b_cancel Childtitle}    
    ON CHOOSE OF b_help IN FRAME addlo       OR HELP OF FRAME addlo DO:
       RUN  adecomm/_adehelp.p ("AB", "CONTEXT", {&New_Layout_Name_Dlg_Box}, ?).   
    END.
-       
-   UPDATE new-lo b_ok b_cancel b_help WITH FRAME addlo DEFAULT-BUTTON b_ok.
    
+   &if defined(IDE-IS-RUNNING) = 0 &then 
+  
+   UPDATE new-lo b_ok b_cancel b_help WITH FRAME addlo DEFAULT-BUTTON b_ok.
+  
+   &else
+   display new-lo WITH FRAME addlo.
+   enable  new-lo b_ok b_cancel b_help WITH FRAME addlo DEFAULT-BUTTON b_ok.
+   
+   wait-for "go" of frame addlo or "{&CANCEL-EVENT}" of this-procedure.
+   if cancelDialog then
+       return.  
+   
+   assign FRAME addlo new-lo.
+   &endif
+         
    IF new-lo NE "" THEN DO:
      IF cb-layout:LOOKUP(new-lo) IN FRAME cust-layout > 0 THEN
        FIND _LAYOUT WHERE _LAYOUT._LO-NAME = new-lo.
@@ -712,6 +780,7 @@ PROCEDURE addlist :
               _LAYOUT._LO-NAME = new-lo
               _LAYOUT._ACTIVE  = TRUE.
      END.
+      
    END.
 END PROCEDURE.  /* addlist */
 

@@ -30,6 +30,10 @@ PROCEDURE DeleteSelectedComposite.
   FOR EACH _U WHERE _U._SELECTEDib AND CAN-DO("FRAME,DIALOG-BOX", _U._TYPE):
     RUN DeleteFrameContents.ip (INPUT RECID(_U)).  /* Need for recursive frames
                                                       owning frames             */
+ &IF DEFINED(OEIDESERVICE_I) <> 0 &THEN             
+    if OEIDEIsRunning then                          
+       run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
+  &endif                                          
   END. /* FOR FRAME or Dialog-BOX */
 END.  /* DeleteSelectedComposite */
 

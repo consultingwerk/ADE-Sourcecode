@@ -76,6 +76,10 @@ PROCEDURE CutSelected.
       DELETE _action.
     END.
     RUN adeuib/_delet_u.p (INPUT RECID(_U), INPUT NO /* Trash */ ).
+    &IF DEFINED(OEIDESERVICE_I) <> 0 &THEN
+       if OEIDEIsRunning then 
+          run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
+    &ENDIF
   END.  /* For each selected widget */
 
   RUN ActionHistoryCheck.

@@ -58,7 +58,7 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
 {adeuib/layout.i}            /* Layout temp-table definitions            */  
 {adeuib/custwidg.i}          /* Custom Object and Palette definitions    */
 {src/adm2/globals.i}
-
+{adecomm/oeideservice.i}
 /* INTERNAL PROCEDURES                                                   */
 
   DEFINE VAR f_bar_pos    AS INTEGER NO-UNDO.
@@ -180,14 +180,14 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
                                   _custom._name eq "&Default":U)
       THEN _custom_draw = "&Default":U.
       CASE _next_draw:
-        WHEN "BROWSE":U         THEN RUN adeuib/_drwbrow.p.
+        WHEN "BROWSE":U         THEN RUN draw_browse in _h_uib. /*  adeuib/_drwbrow.p.*/
         WHEN "BUTTON":U         THEN RUN adeuib/_drwbutt.p.
         WHEN "COMBO-BOX":U      THEN RUN adeuib/_drwcomb.p (_C._SIDE-LABELS).
         WHEN "EDITOR":U         THEN RUN adeuib/_drwedit.p.
         WHEN "FILL-IN":U        THEN RUN adeuib/_drwfill.p (_C._SIDE-LABELS).
         WHEN "FRAME":U          THEN RUN adeuib/_drwfram.p (YES). /* Use a box */
         WHEN "IMAGE":U          THEN RUN adeuib/_drwimag.p.
-        WHEN "QUERY":U          THEN RUN adeuib/_drwqry.p.
+        WHEN "QUERY":U          THEN RUN draw_query in _h_uib. /*adeuib/_drwqry.p. */
         WHEN "RADIO-SET":U      THEN RUN adeuib/_drwradi.p.
         WHEN "RECTANGLE":U      THEN RUN adeuib/_drwrect.p.
         WHEN "SELECTION-LIST":U THEN RUN adeuib/_drwsele.p.
@@ -204,85 +204,38 @@ DEFINE INPUT  PARAMETER goback2pntr      AS LOGICAL NO-UNDO.
             drawn = YES.
           END.  /* if dynamic viewer and icf running */
           ELSE DO:
-            /* Get a list of fields, and import them into the UIB */
-            RUN adeuib/_drwflds.p (INPUT "", INPUT-OUTPUT drawn, OUTPUT tfile).
-            IF drawn THEN DO:
-              SESSION:NUMERIC-FORMAT = "AMERICAN":U.
-              RUN adeuib/_qssuckr.p (tfile, "", "IMPORT":U, TRUE).
-              SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-
-              /* When drawing a data field for an object that is using a SmartData
-                 object, set the data field's Enable property based on the data object
-                 getUpdatableColumns. Must do this here since its not picked up automatically
-                 in the temp-table definition like format and label.  jep-code 4/29/98 */
-              IF (AVAILABLE _P) AND (_P._data-object <> "") THEN
-                RUN setDataFieldEnable IN _h_uib (INPUT RECID(_P)).
-              
-              /* Delete the temporary file */
-              OS-DELETE VALUE(tfile) NO-ERROR.
-            END.  /* if drawn */
+              /* Get a list of fields, and import them into the UIB */
+              run adeuib/_drwflds.p(INPUT "", INPUT-OUTPUT drawn, OUTPUT tfile).
+              /* signal that the call to draw will be done from ide 
+                 and all of the post procedures and handling will be called 
+                 from the ide_draw_fields call back   */
+              if return-value = "IDE DRAW" then
+                  return return-value.
+              IF drawn THEN  
+                  run draw_fields_from_file in _h_uib (tfile). 
           END.  /* else do */
-            
-          /* set the file-saved state to false */
-          IF drawn THEN 
-            RUN adeuib/_winsave.p (_h_win, FALSE).            
         END.
         OTHERWISE 
           MESSAGE "Cannot draw object of type:" _next_draw
             VIEW-AS ALERT-BOX ERROR.
       END CASE.  
     END. 
-
-    /* set the window-saved state to false, since we just created an obj. */
-    RUN adeuib/_winsave.p(_h_win, FALSE).
-
-    /* Go back to the pointer, if desired - or if there is no point to     */
-    /* staying in this mode.                                               */
-    IF goback2pntr THEN
-      ldummy = _h_menu_win:LOAD-MOUSE-POINTER("":U).
-    ELSE DO:
-      /* Make the last item drawn (which will be _h_cur_widg)
-        deselected (and not selectabe) and unmovable. Also, because we are
-        in draw mode. Get the correct cursor - and set _h_cur_widg to "?" */
-      FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
-      IF AVAIL _u THEN
-        ASSIGN _U._HANDLE:MOVABLE    = FALSE 
-               _U._HANDLE:SELECTABLE = FALSE
-               _U._HANDLE:SELECTED   = FALSE
-               _U._SELECTEDib        = FALSE  .        
-      ASSIGN ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
-             _h_cur_widg = ?.    
-
-      /* Reset the pointers correctly. */
-      RUN adeuib/_setpntr.p (_next_draw, INPUT-OUTPUT _object_draw).
-    END.    
-  END. 
-  
-  /* Dynamics - Find the current object-name and assign to _U.Object-name */
-  IF _next_draw NE "DB-FIELDS":U THEN
-  DO:
-    FIND _U WHERE _U._HANDLE = _h_cur_widg no-error.
-    IF AVAIL _U AND _palette_custom_choice <> ? THEN
-    DO:
-      FIND _custom WHERE RECID(_custom) = _palette_custom_choice.
-      ASSIGN _U._OBJECT-NAME = _custom._object_name
-             _U._CLASS-NAME  = _custom._object_type_code.  
-    END.
-    ELSE IF AVAIL _U AND _palette_choice <> ? THEN
-    DO:
-      FIND _palette_item WHERE RECID(_palette_item) = _palette_choice.
-      ASSIGN _U._OBJECT-NAME = _palette_item._object_name
-             _u._CLASS-NAME  = _palette_item._object_class.  
-    END.
-  END.  /* if not db-fields */
+    
+    /* TRUE is passed unconditionally for all other than "DB-FIELDS" since 
+       the call to winsave was done unconditionally before this was refactored
+       for ide (correct for the choices that cannot be cancelled) */
+    run post_drawobj_picked in _h_uib (if _next_draw = "DB-FIELDS":U then drawn else true). 
  
-  
+  END.
+   
+  run post_drawobj in _h_uib. 
+ 
   /* Return and reset return-value */
-  RETURN "":U. 
+  RETURN. 
   
 
 /***************************** Internal Procedures ***************************/  
-
+ 
 /* Drawing a field level widget into a down frame is a problem  
    There are a series of adjustments that need to be made for  
    column labels.  This routine does those adjustments. */

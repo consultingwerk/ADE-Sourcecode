@@ -95,7 +95,7 @@
   DEFINE VARIABLE gOldPath     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE gDirs        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE gTdirs       AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE gTitle       AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE gTitle       AS CHARACTER NO-UNDO init "Open SmartObject".
   
   DEFINE VARIABLE gBrowseone   AS LOGICAL   NO-UNDO INITIAL no.
   DEFINE VARIABLE gNewone      AS LOGICAL   NO-UNDO INITIAL no.
@@ -124,7 +124,6 @@
   DEFINE VARIABLE list-size   AS INTEGER INIT 8000 NO-UNDO. 
   DEFINE VARIABLE missed-file AS INTEGER           NO-UNDO.
   DEFINE VARIABLE DirError    AS INTEGER           NO-UNDO.
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -228,10 +227,18 @@ DEFINE FRAME d_openso
      "Directory:" VIEW-AS TEXT
           SIZE 12 BY .62 AT ROW 11.05 COL 3
      SPACE(39.56) SKIP(1.55)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Open SmartObject".
-
+    WITH 
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    VIEW-AS DIALOG-BOX 
+    TITLE gTitle
+    &else
+    no-box
+    &endif
+    KEEP-TAB-ORDER 
+    SIDE-LABELS 
+    NO-UNDERLINE THREE-D  
+    SCROLLABLE. 
+    
 
 /* *********************** Procedure Settings ************************ */
 
@@ -476,10 +483,13 @@ ELSE
                   &CONTEXT = gHelpFile
                  }
 
-                 
+&if defined(IDE-IS-RUNNING) = 0 &then           
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+&else
+{adeuib/ide/dialoginit.i "FRAME {&FRAME-NAME}:HANDLE"}
+&endif
 
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
@@ -497,6 +507,9 @@ END.
 
 ON RETURN OF FRAME {&FRAME-NAME} ANYWHERE 
   APPLY "U1":U TO THIS-PROCEDURE.
+     
+&SCOPED-DEFINE CANCEL-EVENT U1
+{adeuib/ide/dialogstart.i btn_ok btn_cancel gTitle }
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
@@ -1095,8 +1108,16 @@ PROCEDURE initGUI :
  DO WITH FRAME {&FRAME-NAME}:
    ASSIGN 
      b_browse:hidden     = NOT CAN-DO(p_showoptions,"BROWSE":U)
+   
      b_browse:sensitive  = NOT b_browse:hidden
-     b_new:hidden        = NOT CAN-DO(p_showoptions,"NEW":U)
+     
+     /* not supported in PDS 
+        need handler that starts wizard.  */
+     &if defined(IDE-IS-RUNNING) = 0 &then
+         b_new:hidden        = NOT CAN-DO(p_showoptions,"NEW":U)
+     &else
+         b_new:hidden  = true 
+     &endif
      b_new:sensitive     = NOT b_new:hidden
      b_preview:hidden    = NOT CAN-DO(p_showoptions,"PREVIEW":U)
      b_preview:sensitive = NOT b_preview:hidden
@@ -1598,13 +1619,15 @@ DO WITH FRAME {&FRAME-NAME}:
       RUN Check_Dirs.
     ASSIGN cb_filters:LIST-ITEMS     = gFilters
            cb_dirs:LIST-ITEMS        = gDirs
-           FRAME {&FRAME-NAME}:TITLE = gTitle
            cb_filters:SCREEN-VALUE   = cb_filters:ENTRY(1)
            cb_dirs:SCREEN-VALUE      = cb_dirs:ENTRY(1)
            cb_dirs                   = cb_dirs:SCREEN-VALUE
            cb_filters                = cb_filters:SCREEN-VALUE
            filename                  = ""
            p_otherThing              = ""
+          &if defined(IDE-IS-RUNNING) = 0 &then
+           FRAME {&FRAME-NAME}:TITLE = gTitle
+          &endif
         .
      IF cStart > '' THEN
        cb_dirs:SCREEN-VALUE = cStart.   

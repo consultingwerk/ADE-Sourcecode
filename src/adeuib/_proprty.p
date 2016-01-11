@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2012 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -33,7 +33,7 @@ DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 {adeuib/uniwidg.i}              /* Universal widget definition              */
 {adeuib/triggers.i}             /* Trigger Temp-table definition            */
 {adeuib/brwscols.i}             /* Brwose column temp-table definitions     */
-
+{adecomm/oeideservice.i}
 /* Rather than include all of sharvars.i, I'll just define the share for
    _h_uib, which is used to call its internal procedure setstatus. */
 /* DEFINE SHARED VAR _h_uib        AS WIDGET-HANDLE                     NO-UNDO. */
@@ -106,8 +106,12 @@ DO:
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE NO-ERROR.
   IF NOT AVAILABLE _P THEN
   DO:
-    MESSAGE "Unable to start Property sheet."
-      VIEW-AS ALERT-BOX ERROR.
+      if OEIDEisRunning then
+      ShowMessageInIDE("Unable to start Property sheet.",
+                       "Error","?","OK",YES).
+      else                 
+         MESSAGE "Unable to start Property sheet."
+         VIEW-AS ALERT-BOX ERROR.
     RETURN.
   END.
 
@@ -169,8 +173,14 @@ DO:
     IF _P.design_ryobject AND (NOT _P.static_object) THEN 
       RUN  adeuib/_prpdynsmart.w (_U._HANDLE).
     ELSE
+    do:
+      if OEIDEisRunning then
+      ShowMessageInIDE("Property sheet cannot be displayed. There are no objects in this design window.",
+                       "Information","?","OK",YES).
+      else                   
       MESSAGE "Property sheet cannot be displayed. There are no objects in this design window."
              VIEW-AS ALERT-BOX INFORMATION.
+    end.         
 
   END.
   ELSE 
@@ -188,6 +198,10 @@ ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE <> "SmartDataObject") THEN
 DO:
   IF CAN-FIND (_TRG WHERE _TRG._wRecid = RECID(_U) AND _TRG._tEvent = "OPEN_QUERY") THEN
   DO:
+    if OEIDEisRunning then
+      ShowMessageInIDE("A freeform query can only be modified via the Text Editor.",
+                       "Information","?","OK",YES).
+    else                     
     MESSAGE "A freeform query can only be modified via the Section Editor."
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     RETURN.
@@ -206,11 +220,25 @@ END.
 /* SmartObjects have their own property sheet 
  * This is the property sheet with the link and info buttons
  */
-ELSE IF (_U._TYPE eq "SmartObject":U) THEN 
-  RUN adeuib/_prpsmar.p (_U._HANDLE).
+ELSE IF (_U._TYPE eq "SmartObject":U) THEN
+DO:
+  if OEIDEIsRunning then
+      RUN adeuib/ide/_dialog_prpsmar.p (_U._HANDLE).    
+  else   
+      RUN adeuib/_prpsmar.p (_U._HANDLE).
+  
+END.  
 /* SmartData This is the property sheet with query/field buttons */
 ELSE IF (_U._TYPE eq "QUERY":U AND _U._SUBTYPE = "SmartDataObject":U) THEN 
-  RUN adeuib/_prpsdo.p (_U._HANDLE).
+DO:
+    if OEIDEIsRunning then  
+    do:
+        RUN adeuib/ide/_dialog_prpsdo.p (_U._HANDLE).
+    end.
+    else do:
+        RUN adeuib/_prpsdo.p (_U._HANDLE).
+    end.    
+END.
 ELSE
 DO:
   /* If this is a tree-view we just run the list-items/radio-set 
@@ -220,10 +248,16 @@ DO:
     RUN adeuib/_prplist.p (INPUT _U._HANDLE).
   
   /* Everything else uses the standard object property sheet. */
-  ELSE  
-    RUN adeuib/_prpobj.p (INPUT _U._HANDLE).
+  ELSE do:  
+     if OEIDEIsRunning then  
+     do:
+         RUN adeuib/ide/_dialog_prpobj.p (INPUT _U._HANDLE).
+     end.
+     else
+         RUN adeuib/_prpobj.p (INPUT _U._HANDLE). 
+  end. 
 END.
-
+     
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

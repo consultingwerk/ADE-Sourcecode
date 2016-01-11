@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2010 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -533,7 +533,10 @@ END.
 IF _TRG._tSECTION = "_XFTR" THEN /* wait til after code block is read in */  
   IF _XFTR._read NE ? THEN 
   DO ON STOP UNDO, LEAVE:
-    RUN value(_XFTR._read) (INPUT INT(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).   
+      run run_xftr_procedure in _h_uib(_XFTR._read, input INT(RECID(_TRG)),input-output _TRG._tCode).
+ 
+  /*    RUN value(_XFTR._read) (INPUT INT(RECID(_TRG)), INPUT-OUTPUT _TRG._tCode).*/
+  
   END.
   
 /* Report an error if necessary. */

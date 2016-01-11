@@ -36,6 +36,7 @@
 {adecomm/adestds.i} /* Standard Definitions             */ 
 {adeuib/uniwidg.i}  /* Universal widget TT defs         */
 {adeuib/sharvars.i} /* Shared vars                      */
+{adecomm/oeideservice.i {&OEIDE-EXCLUDE-PROTOTYPES}}
 
 DEFINE INPUT         PARAMETER pi-context AS INTEGER   NO-UNDO.
 DEFINE INPUT         PARAMETER dname      AS CHARACTER NO-UNDO.
@@ -73,7 +74,10 @@ CASE dname:
             ENTRY(i,args) = "Temp-Tables":U + "." + ctblname.
         END.  /* do i to num-entries*/
       END.  /* if avail _P */
-      RUN adeuib/_coledit.p (INPUT args, INPUT ?).
+      if OEIDE_CanLaunchDialog() then 
+          RUN adeuib/ide/_dialog_coledit.p (INPUT args, INPUT ?).
+      else
+          RUN adeuib/_coledit.p (INPUT args, INPUT ?).
     END.
   END.
   
@@ -89,17 +93,16 @@ CASE dname:
         IF AVAILABLE _P AND (NOT _P.Static_object OR (_P.object_type_code EQ "DynSDO":U))
             THEN ASSIGN args = IF args = "":U THEN "NO-FREEFORM-QUERY":U 
                            ELSE  args + ",NO-FREEFORM-QUERY":U.
-            
+       
       RUN adeuib/_callqry.p ("_U", RECID(_U), args ).
+    
     END.
     ELSE DO:
       RUN error-msg ( "Invalid context passed for call to Query Builder." ).
       RETURN "Error".
     END.
   END.
-    
 END CASE.
-
      
 /* error-msg -- standared error message. */
 PROCEDURE error-msg :

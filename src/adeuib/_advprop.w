@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v7r10
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME    adv-dial
 &Scoped-define FRAME-NAME     adv-dial
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS adv-dial 
 /************************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions           *
@@ -100,7 +97,7 @@ DEFINE VARIABLE tog-rows          AS INTEGER                 NO-UNDO.
 DEFINE VARIABLE tog-spc           AS DECIMAL INITIAL .99     NO-UNDO.
 
 DEFINE VARIABLE valid-items  AS CHARACTER            NO-UNDO.
-
+define variable dialogTitle as character no-undo init "Advanced Properties":L. 
 
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
@@ -112,8 +109,6 @@ DEFINE BUFFER sync_L   FOR _L.
 /* New-line character */
 &Scoped-define NL CHR(10)
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -170,10 +165,16 @@ DEFINE FRAME adv-dial
      _U._LAYOUT-NAME LABEL "Current Layout" VIEW-AS FILL-IN SIZE 31 BY 1
                          FORMAT "X(35)" COLON 16
      btn_layout AT 51
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
+     WITH 
+     &if DEFINED(IDE-IS-RUNNING) = 0  &then
+          VIEW-AS DIALOG-BOX
+          TITLE dialogTitle
+     &else
+          NO-BOX 
+     &endif
+         KEEP-TAB-ORDER
          SIDE-LABELS THREE-D
-         SIZE 82.01 BY 16.94
-         TITLE "Advanced Properties":L.
+         SIZE 82.01 BY 16.94.
 
 ASSIGN FRAME adv-dial:HIDDEN = TRUE
        fld-grp               = FRAME adv-dial:FIRST-CHILD
@@ -196,11 +197,18 @@ IF AVAILABLE parent_U THEN DO:
     col-lbl-adj = parent_C._FRAME-BAR:Y - 1.
 END.
 
-ASSIGN FRAME adv-dial:TITLE = FRAME adv-dial:TITLE + " for " + _U._TYPE + " " +
+ASSIGN dialogTitle = dialogTitle + " for " + _U._TYPE + " " +
                              _U._NAME + IF _U._LAYOUT-NAME NE "Master Layout" THEN
                               " - Layout: " + _U._LAYOUT-NAME ELSE ""
        _HEIGHT-P:SENSITIVE = (_U._TYPE NE "COMBO-BOX" OR (_U._TYPE = "COMBO-BOX" AND _U._SUBTYPE = "SIMPLE"))
        _U._PRIVATE-DATA:RETURN-INSERTED IN FRAME adv-dial = TRUE.
+
+
+{adeuib/ide/dialoginit.i "FRAME adv-dial:handle"}
+
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
+FRAME adv-dial:TITLE = dialogTitle.
+&endif
 
 IF _U._TYPE = "FRAME":U THEN DO:
   ASSIGN frame_name:CHECKED = (_P._frame-name-recid = RECID(_U)).
@@ -746,7 +754,6 @@ END.
 
 /* ***************  Runtime Attributes and UIB Settings  ************** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX adv-dial
    VISIBLE,L                                                            */
 
@@ -758,12 +765,10 @@ ASSIGN
 /* SETTINGS FOR FILL-IN cur-layout IN FRAME adv-dial
    NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
 /* ************************  Control Triggers  ************************ */
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK adv-dial 
 
 
 /* ***************************  Main Block  *************************** */
@@ -809,16 +814,8 @@ ON VALUE-CHANGED OF frame_name IN FRAME adv-dial DO:
 END.
 
 ON CHOOSE OF btn_layout IN FRAME adv-dial DO:
-
-  FIND _L WHERE RECID(_L) = _U._lo-recid.
-  RUN adeuib/_massync.w (INPUT u-recid, INPUT _L._LO-NAME).
-  RUN set_pixels_from_ppus.
-            
-  DISPLAY _U._LAYOUT-NAME _X _Y _WIDTH-P _HEIGHT-P WITH FRAME adv-dial.
-  IF h_v-wdth NE ? THEN
-     h_v-wdth:SCREEN-VALUE = STRING(_VIRTUAL-WIDTH-P,">,>>>,>>9").
-  IF h_v-hgt  NE ? THEN
-     h_v-hgt:SCREEN-VALUE = STRING(_VIRTUAL-HEIGHT-P,">,>>>,>>9").
+  run chooseLayout.
+  
 END.
 
 ON LEAVE OF _HEIGHT-P IN FRAME adv-dial DO:  /* Validate specified height */
@@ -1035,6 +1032,9 @@ ON LEAVE OF _Y IN FRAME adv-dial DO:  /* Validate specified row */
   ASSIGN _Y.
 END. /* TRIGGER */
   
+ &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel dialogTitle}
+  
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will slways fire.    */
 MAIN-BLOCK:
@@ -1050,9 +1050,13 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
              help-string:VISIBLE      = YES.
     ELSE help-string:SCREEN-VALUE = _U._HELP.
   END.
- 
+&if DEFINED(IDE-IS-RUNNING) = 0  &then
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+&ELSE
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
   
+  if cancelDialog THEN UNDO, LEAVE.  
+&endif
   /* Remove trailing whitespace on the PRIVATE-DATA. (Users often hit an
      extra <cr> at the end of this field.  Also, stripping trailing blanks
      is consistent with Progress Fill-In field behavior.) */
@@ -1146,13 +1150,35 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
 END.  /* MAIN-BLOCK */
 
 RUN disable_UI.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI adv-dial _DEFAULT-DISABLE
+procedure chooseLayout: 
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"doChooseLayout").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else      
+      run doChooseLayout.
+   &endif 
+end procedure.
+
+procedure doChooseLayout:
+    FIND _L WHERE RECID(_L) = _U._lo-recid.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    RUN adeuib/ide/_dialog_massync.p (INPUT u-recid, INPUT _L._LO-NAME).
+    &else      
+    RUN adeuib/_massync.w (INPUT u-recid, INPUT _L._LO-NAME).
+    &endif 
+    RUN set_pixels_from_ppus.
+            
+    DISPLAY _U._LAYOUT-NAME _X _Y _WIDTH-P _HEIGHT-P WITH FRAME adv-dial.
+    IF h_v-wdth NE ? THEN
+        h_v-wdth:SCREEN-VALUE = STRING(_VIRTUAL-WIDTH-P,">,>>>,>>9").
+    IF h_v-hgt  NE ? THEN
+        h_v-hgt:SCREEN-VALUE = STRING(_VIRTUAL-HEIGHT-P,">,>>>,>>9").
+end procedure.
+
 PROCEDURE disable_UI :
 /* --------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -1165,11 +1191,8 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME adv-dial.
 END PROCEDURE.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI adv-dial _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /* --------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -1200,8 +1223,6 @@ PROCEDURE enable_UI :
   RUN sensitivity.
     
 END PROCEDURE.
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 Procedure alignment_change.
   _U._ALIGN = SELF:SCREEN-VALUE.

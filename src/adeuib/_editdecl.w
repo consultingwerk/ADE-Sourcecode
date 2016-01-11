@@ -52,6 +52,7 @@ DEFINE STREAM test.         /* Used for syntax checking                 */
 FUNCTION compile-userfields RETURNS CHARACTER
   (INPUT p_U_PRecid AS RECID) IN _h_func_lib.
 
+define variable wintitle as char no-undo init "Edit Declarative Statements".
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -120,11 +121,19 @@ DEFINE FRAME Dialog-Frame
      chk-syntax AT ROW 9.81 COL 59
      af-label AT ROW 1.52 COL 25 RIGHT-ALIGNED NO-LABEL
      SPACE(48.99) SKIP(9.76)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Edit Declarative Statements".
+    WITH
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then  
+    VIEW-AS DIALOG-BOX      TITLE wintitle 
+    &else
+    NO-BOX
+    &endif 
+    KEEP-TAB-ORDER 
+    SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE.
 
-
+{adeuib/ide/dialoginit.i "FRAME Dialog-Frame:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -147,10 +156,13 @@ ASSIGN
        FRAME Dialog-Frame:HIDDEN           = TRUE.
 
 /* SETTINGS FOR FILL-IN af-label IN FRAME Dialog-Frame
-   NO-ENABLE ALIGN-R                                                    */
+   NO-ENABLE ALIGN-R        
+   
+                                        */
+&if DEFINED(IDE-IS-RUNNING) = 0  &then                                            
 ASSIGN 
        declarations:RETURN-INSERTED IN FRAME Dialog-Frame  = TRUE.
-
+&endif
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -225,10 +237,17 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN enable_UI.
   
   RUN display-record.
-  
+  &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
    /* Whole thing is a transaction to handle cancel action               */
   DO TRANSACTION:
-    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}. 
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+   
     RUN assign-record.
   END.  /* Transaction */
 END.

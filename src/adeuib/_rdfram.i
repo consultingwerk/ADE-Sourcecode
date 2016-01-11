@@ -39,6 +39,9 @@ DEFINE VARIABLE title_sa            AS CHAR                            NO-UNDO.
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
 
+function createContextMenu returns handle 
+    () in _h_uib.
+    
 /* Parent frames to the desired parent (or to the current procedure). */
 IF _U._TYPE eq "FRAME" THEN DO:
   FIND parent_U WHERE RECID(parent_U) = _U._parent-recid NO-ERROR.
@@ -217,7 +220,9 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
 
   IF OEIDEIsRunning THEN
   DO:
-    RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), h_dlg_win).
+      RUN displayDesignWindow IN hOEIDEService (_save_file, h_dlg_win).
+      run positionDesignWindow in hOEIDEService (h_dlg_win).
+      h_dlg_win:popup-menu = createContextMenu(). 
   END.
 
   ASSIGN
@@ -293,7 +298,7 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
          _L._COL                 = 1
          _L._ROW                 = 1
          _L._3-D                 = h_self:THREE-D
-         _U._WINDOW-HANDLE       = h_self
+         _U._WINDOW-HANDLE       = h_self 
          _h_frame                = h_self
          _h_cur_widg             = h_self
          _h_win                  = h_self

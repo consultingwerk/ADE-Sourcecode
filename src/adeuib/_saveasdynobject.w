@@ -67,7 +67,7 @@ DEFINE VARIABLE ghScmTool AS HANDLE   NO-UNDO.
 
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gcObjectType              AS CHARACTER  NO-UNDO.
-
+define variable wintitle                  as character  no-undo init "Save As Dynamic Object".
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -217,12 +217,21 @@ DEFINE FRAME gDialog
      fiTitle AT ROW 7.57 COL 5.8 COLON-ALIGNED NO-LABEL
      RECT-2 AT ROW 7.91 COL 2.4
      SPACE(2.19) SKIP(1.99)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
+    WITH
+    &if defined(IDE-IS-RUNNING) = 0 &then 
+    VIEW-AS dialog-box TITLE wintitle 
+    &else
+    no-box
+    &endif  
+    KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Save As Dynamic Object"
+         
          DEFAULT-BUTTON Btn_OK CANCEL-BUTTON Btn_Cancel.
 
-
+{adeuib/ide/dialoginit.i "FRAME gDialog:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /* *********************** Procedure Settings ************************ */
 
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
@@ -236,7 +245,8 @@ DEFINE FRAME gDialog
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB gDialog 
 /* ************************* Included-Libraries *********************** */
-
+&scoped-define CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i Btn_OK Btn_Cancel wintitle}
 {src/adm2/containr.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -484,7 +494,30 @@ END.
 
 /* ***************************  Main Block  *************************** */
  
-{src/adm2/dialogmn.i} 
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i Btn_ok Btn_cancel wintitle}
+/* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
+THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+
+RUN createObjects.
+
+/* Now enable the interface and wait for the exit condition.            */
+/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+  RUN initializeObject.
+  
+  &if defined(IDE-IS-RUNNING) = 0 &then 
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} {&FOCUS-Phrase}.
+  &else
+  WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure {&FOCUS-Phrase}.
+  &endif
+END.
+
+
+RUN destroyObject.
 
 /* If testing in the UIB, initialize the SmartObject. */  
 &IF DEFINED(UIB_IS_RUNNING) <> 0 &THEN          
@@ -901,6 +934,9 @@ PROCEDURE validate-save :
       /* Ensure the directory exists for the super procedure */
      cDir = TRIM(substring(fiPrcFullPath:SCREEN-VALUE IN FRAME {&FRAME-NAME},1,R-INDEX(fiPrcFullPath:SCREEN-VALUE,"/":U)),"/").
      FILE-INFO:FILE-NAME = cDir NO-ERROR.
+     
+     
+     
      
      IF FILE-INFO:FULL-PATHNAME = ? THEN
      DO:

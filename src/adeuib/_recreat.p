@@ -224,12 +224,8 @@ IF _U._TYPE = "WINDOW" THEN DO:
 
    IF OEIDEIsRunning THEN
    DO:
-     RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), _h_win).
-     IF AVAILABLE _P AND _P._SAVE-AS-FILE <> ? THEN
-     DO:
-       RUN getLinkedFileOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cLinkedFile).
-       RUN setWindowOfFile IN hOEIDEService (cLinkedFile, _h_win).
-     END.  
+     RUN displayDesignWindow IN hOEIDEService (_P._SAVE-AS-FILE,_h_win).  
+     
    END.
         
    IF _C._menu-recid NE ? THEN DO:
@@ -329,12 +325,7 @@ IF _U._TYPE = "DIALOG-BOX" THEN DO:
 
     IF OEIDEIsRunning THEN
     DO:    
-      RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), h_dlg_win).
-      IF AVAILABLE _P AND _P._SAVE-AS-FILE <> ? THEN
-      DO:
-        RUN getLinkedFileOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cLinkedFile).
-        RUN setWindowOfFile IN hOEIDEService (cLinkedFile, h_self).
-      END.  
+        RUN displayDesignWindow IN hOEIDEService (_P._SAVE-AS-FILE,h_dlg_win).
     END.
         
     ASSIGN _U._HANDLE            = h_self

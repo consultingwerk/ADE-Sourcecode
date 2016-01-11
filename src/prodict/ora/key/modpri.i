@@ -147,13 +147,22 @@ PROCEDURE primary :
                    WITH FRAME frame_primary.
            ASSIGN name:SCREEN-VALUE IN FRAME frame_primary =  constr_name.
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_primary ="yes".
-           ASSIGN DESC_EDIT2:SCREEN-VALUE IN FRAME frame_primary = descrip.          
-           ENABLE  BROWSE-PRIMARY Active DESC_EDIT2 
+           ASSIGN DESC_EDIT2:SCREEN-VALUE IN FRAME frame_primary = descrip.
+           IF user_dbtype    NE "oracle" then           
+               ENABLE  BROWSE-PRIMARY Active DESC_EDIT2 
                  OK_BUT CREATE_BUT CANCEL_BUT 
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  
                  &ENDIF   
                   WITH FRAME frame_primary.
+           ELSE
+               ENABLE  BROWSE-PRIMARY DESC_EDIT2 
+                 OK_BUT CREATE_BUT CANCEL_BUT 
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF   
+                  WITH FRAME frame_primary.
+
           {&OPEN-BROWSERS-IN-QUERY-frame_primary}
           FIND FIRST  DICTDB._constraint where _con-name = constr_name AND DICTDB._Constraint._Db-Recid = DbRecid  NO-LOCK NO-ERROR.
           FOR EACH temp WHERE rec = _constraint._index-recid NO-LOCK:

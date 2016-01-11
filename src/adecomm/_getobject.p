@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2012 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*----------------------------------------------------------------------------
 
 File                  : _getobject.p
@@ -25,24 +25,35 @@ Author: Pieter J. Meyer
 Date Created: September 2002
 
 ----------------------------------------------------------------------------*/
-
+{adecomm/oeideservice.i}
 DEFINE INPUT  PARAMETER phWindow           AS HANDLE      NO-UNDO.
 DEFINE INPUT  PARAMETER gcProductModule    AS CHARACTER   NO-UNDO.
 DEFINE INPUT  PARAMETER glOpenInAppBuilder AS LOGICAL     NO-UNDO.
 DEFINE INPUT  PARAMETER pcTitle            AS CHARACTER   NO-UNDO.
 DEFINE OUTPUT PARAMETER gcFileName         AS CHARACTER   NO-UNDO.
 DEFINE OUTPUT PARAMETER pressedOK          AS LOGICAL     NO-UNDO.
-
+ 
 IF SEARCH("adeuib/_opendialog.w":U) <> ?
 OR SEARCH("adeuib/_opendialog.r":U) <> ?
 THEN
-    RUN adeuib/_opendialog.w (INPUT  phWindow
-                           ,INPUT  gcProductModule
-                           ,INPUT  glOpenInAppBuilder
-                           ,INPUT  pcTitle
-                           ,OUTPUT gcFileName
-                           ,OUTPUT pressedOK
-                           ).
+DO:  
+    if OEIDEIsRunning then 
+        run adeuib/ide/_dialog_opendialog.p 
+                               (phWindow,
+                                gcProductModule,
+                                glOpenInAppBuilder,
+                                pcTitle,
+                                OUTPUT gcFileName,
+                                OUTPUT pressedOK).
+    else
+       run adeuib/_opendialog.w(phWindow,
+                                gcProductModule,
+                                glOpenInAppBuilder,
+                                pcTitle,
+                                OUTPUT gcFileName,
+                                OUTPUT pressedOK).
+
+END.                           
 ELSE DO:
   ASSIGN
     pressedOK = NO.

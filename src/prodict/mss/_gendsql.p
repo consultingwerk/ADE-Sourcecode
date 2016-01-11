@@ -51,6 +51,7 @@
               06/17/10 rkumar   Fix issue with incorrect sql generated when _For-owner is ?
               08/11/11 rkamboj  Fix issue assigment error with data direct driver for MSS.
               09/25/11 kmayur   Delta sql support for constraint feature              
+              07/18/12 musingh  Fix issue with FOREIGN-POS generatation (OE00222952)
               
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -5441,6 +5442,7 @@ RETURN.
 /* Receives comma-separated list of numbers and returns the highest value */
 FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER):
     DEFINE VARIABLE numEntries AS INTEGER NO-UNDO.
+    DEFINE VARIABLE this_i     AS INTEGER NO-UNDO.
     DEFINE VARIABLE this_j     AS INTEGER NO-UNDO.
     DEFINE VARIABLE this_max   AS INTEGER NO-UNDO.
 
@@ -5449,8 +5451,8 @@ FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER):
     IF numEntries < 2 THEN 
         RETURN INTEGER(pcInput).
 
-    REPEAT i = 1 TO numEntries:
-        this_j = INTEGER(ENTRY(i, pcInput)).
+    REPEAT this_i = 1 TO numEntries:
+        this_j = INTEGER(ENTRY(this_i, pcInput)).
         IF this_j > this_max THEN
             this_max = this_j.
     END.

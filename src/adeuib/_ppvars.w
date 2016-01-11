@@ -50,7 +50,7 @@
 
 /* Local Variable Definitions ---                                       */
 define var lOK as logical no-undo.
-
+define var wintitle as char no-undo init "Custom Lists":L.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -124,10 +124,18 @@ DEFINE FRAME f_dlg
      "Enter Names for Preprocessor Lists" VIEW-AS TEXT
           SIZE 39.6 BY .67 AT ROW 1.19 COL 2
      SPACE(6.40) SKIP(6.41)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Custom Lists":L.
-
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+    NO-BOX
+    &endif
+    KEEP-TAB-ORDER SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE. 
+         
+{adeuib/ide/dialoginit.i "FRAME f_dlg:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
  
 
 /* *********************** Procedure Settings ************************ */
@@ -281,11 +289,20 @@ IF LIST-6 eq "":U THEN LIST-6 = "List-6".
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}. 
+  IF NOT RETRY THEN
+      &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+   
 END.
 RUN disable_UI.
 

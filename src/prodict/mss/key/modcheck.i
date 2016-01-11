@@ -17,8 +17,8 @@ Author: Kumar Mayur
 
 Date Created:08/05/2011
 ----------------------------------------------------------------------------*/
+{prodict/user/uservar.i}
 {prodict/mss/key/moddef.i }
-
 
 /* Query definitions                                                    */
 DEFINE {1} QUERY BROWSE-CHECK FOR 
@@ -163,7 +163,16 @@ PROCEDURE check :
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_check ="yes".
            IF chek <> "" THEN EXPRESSION:SCREEN-VALUE IN FRAME frame_check = chek.
            ASSIGN DESC_EDIT:SCREEN-VALUE IN FRAME frame_check = descrip.
+         
+           IF user_dbtype    NE "MSS" then 
            ENABLE BROWSE-CHECK Active DESC_EDIT EXPRESSION
+                    OK_BUT CREATE_BUT CANCEL_BUT  
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF 
+                    WITH FRAME frame_check.
+           ELSE
+           ENABLE BROWSE-CHECK DESC_EDIT 
                     OK_BUT CREATE_BUT CANCEL_BUT  
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  

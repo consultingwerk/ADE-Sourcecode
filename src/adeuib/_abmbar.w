@@ -71,8 +71,8 @@
 {adeuib/triggers.i}     /* Trigger TEMP-TABLE definition                     */
 {adeuib/bld_tbls.i}     /* Build table list procedure                        */
 {adeuib/brwscols.i}   /* Definitions for _BC records                    */
-
-DEFINE NEW GLOBAL SHARED VAR OEIDEIsRunning AS LOGICAL    NO-UNDO.
+{adecomm/oeideservice.i}
+ 
 
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
 {defrescd.i}
@@ -3871,12 +3871,18 @@ PROCEDURE runOpenProcedure :
   
   IF cFullFilename <> ? THEN
   DO:
-     hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
-     IF VALID-HANDLE(hDesignManager) THEN
-        lOpenObject  = DYNAMIC-FUNCTION("openRyObjectAB" IN hDesignManager, INPUT cFullFilename).
-     RUN setstatus IN _h_UIB (?, "Opening file...") .
-     RUN adeuib/_open-w.p  (TRIM(cFullFilename), "", "WINDOW":U) .
-     RUN setstatus IN _h_UIB ("":U, "":U) .
+     if OEIDEIsRunning  then 
+     do:
+         openTextEditor(getProjectName(),cFullfileName).
+     end.
+     else do:    
+          hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U).
+         IF VALID-HANDLE(hDesignManager) THEN
+            lOpenObject  = DYNAMIC-FUNCTION("openRyObjectAB" IN hDesignManager, INPUT cFullFilename).
+         RUN setstatus IN _h_UIB (?, "Opening file...") .
+         RUN adeuib/_open-w.p  (TRIM(cFullFilename), "", "WINDOW":U) .
+         RUN setstatus IN _h_UIB ("":U, "":U) .
+     end.
   END.
 
 
@@ -4832,3 +4838,32 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+PROCEDURE getSubMenuHandle :
+/*------------------------------------------------------------------------------
+  Purpose:     Return the handle to the menu item defined in this-procedure.
+               
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER phMenuName         AS character NO-UNDO.
+    DEFINE OUTPUT PARAMETER phSubMenubar          AS HANDLE NO-UNDO.
+
+    DO ON ERROR UNDO, LEAVE:
+        /* Return the menubar handle. */
+        case phMenuName:
+            when "OpenAssociateProcedure" then 
+                 ASSIGN phSubMenubar = MENU-item m_Open_Procedure:handle in menu m_File NO-ERROR.
+            when "SaveDynamicAsStatic" then 
+                 ASSIGN phSubMenubar = MENU-item m_Save_As_Object:HANDLE in menu m_File NO-ERROR.
+            when "SaveStaticAsDynamic" then 
+                 ASSIGN phSubMenubar = MENU-item m_Save_As_Object:handle in menu m_File NO-ERROR.
+            when "RegisterinRepository" then 
+                 ASSIGN phSubMenubar = MENU-item m_Reg_in_Repos:HANDLE in menu m_File NO-ERROR.
+            when "DynamicObjectGenerator" then 
+                 ASSIGN phSubMenubar = MENU-item m_Generate_Objects:handle in menu m_build NO-ERROR.
+        end case.
+    END.
+
+    RETURN.
+
+END PROCEDURE.

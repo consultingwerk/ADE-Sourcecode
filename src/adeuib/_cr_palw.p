@@ -90,7 +90,7 @@ CREATE WINDOW _h_object_win
 
 IF OEIDEIsRunning THEN
 DO:
-    RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), _h_object_win).
+    RUN displayWindow IN hOEIDEService ("appbuilderpalette", "DesignView_" + getProjectName(), _h_object_win).
 END.
 _h_object_win:LOAD-ICON( {&ADEICON-DIR} + "uib%" + "{&icon-ext}" ) NO-ERROR.
 

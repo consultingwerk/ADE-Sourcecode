@@ -29,7 +29,6 @@ Modified by GFS on 3/11/96 - added support for small-icon
             TSM on 06/04/99 - added support for context-sensitive help
 ---------------------------------------------------------------------------- */
 DEFINE INPUT PARAMETER pp-recid AS RECID NO-UNDO.
-
 {adecomm/oeideservice.i}
 {adeuib/uniwidg.i}      /* Universal Widget TEMP-TABLE definition            */
 {adeuib/layout.i}       /* Layout temp-table definitions                     */
@@ -59,7 +58,15 @@ DEFINE VARIABLE _VIRTUAL-HEIGHT-P   AS INTEGER INITIAL ?.
 DEFINE VARIABLE _VIRTUAL-WIDTH-P    AS INTEGER INITIAL ?.
 DEFINE VARIABLE _X                  AS INTEGER INITIAL ?.
 DEFINE VARIABLE _Y                  AS INTEGER INITIAL ?.
+define variable IDEIntegrated       as logical no-undo.
+
 DEFINE BUFFER  x_U FOR _U.
+
+function createContextMenu returns handle 
+    () in _h_uib.
+    
+if valid-handle(hOEIDEService) then    
+       run getIsIDEIntegrated in hOEIDEService (output IDEIntegrated).    
 
 FIND _P WHERE RECID(_P) eq pp-recid.
 
@@ -342,6 +349,8 @@ DO:
           STATUS-AREA-FONT  = _C._STATUS-AREA-FONT
           STATUS-AREA       = _C._STATUS-AREA
           THREE-D           = _L._3-D
+          min-button = true /*not IDEIntegrated*/
+          max-button = true /* not IDEIntegrated */
           SHOW-IN-TASKBAR   = FALSE
           KEEP-FRAME-Z-ORDER = TRUE
           TITLE             = _U._LABEL
@@ -351,10 +360,13 @@ DO:
 END.
 IF OEIDEIsRunning THEN
 DO:
-  DEFINE VARIABLE hWindow AS HANDLE NO-UNDO.
-  hWindow = _h_win. /* Temporary fix for 20051027-068 */
-    RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), hWindow).
+   /* TODO deal with temp windows from save super of gendyn - 
+   set flag if no parent and don't call positionDesign below */   
+   DEFINE VARIABLE hWindow AS HANDLE NO-UNDO.
+   hWindow = _h_win. /* Temporary fix for 20051027-068 */
+   RUN displayDesignWindow IN hOEIDEService (_save_file,   hWindow).
   _h_win = hWindow.
+  _h_win:popup-menu = createContextMenu(). 
 END.
 
 /* Carefully load attributes that may conflict with others.  Note: conflicts */
@@ -409,79 +421,60 @@ ELSE DO ON STOP UNDO, LEAVE:
          _h_win:Y = _Y
          .
 END.
-IF OEIDEIsRunning AND _X NE ? AND _Y NE ? THEN
-DO:
-    ASSIGN _h_win:X = 343 _h_win:Y = 210 NO-ERROR.
-END.    
 
-
-/* Test the case where the window is off the screen.  Perhaps this is
-   because the user built it on a different monitor. Ask if she would like
-   to move it back on the screen. */
-IF NOT OEIDEIsRunning AND (_h_win:X >= SESSION:WIDTH-P OR _h_win:Y >= SESSION:HEIGHT-P OR
-   _h_win:X < 0 OR _h_win:Y < 0) THEN DO:
-  MESSAGE "The specified position of the window is off the screen." {&SKP}
-          "Would you like repositioned?"
-          VIEW-AS ALERT-BOX WARNING BUTTONS OK-CANCEL UPDATE ok.
-  IF ok
-  THEN ASSIGN
+/* position the design window based on IDE preferences */
+IF OEIDEIsRunning THEN
+DO: 
+    run positionDesignWindow in hOEIDEService (_h_win).
+END.  /* oeide */  
+ELSE DO:
+  /* Test the case where the window is off the screen.  Perhaps this is
+     because the user built it on a different monitor. Ask if she would like
+     to move it back on the screen. */
+  IF _h_win:X >= SESSION:WIDTH-P OR _h_win:Y >= SESSION:HEIGHT-P 
+  OR _h_win:X < 0                OR _h_win:Y < 0 THEN 
+  DO:
+    MESSAGE "The specified position of the window is off the screen." {&SKP}
+            "Would you like repositioned?"
+            VIEW-AS ALERT-BOX WARNING BUTTONS OK-CANCEL UPDATE ok.
+    IF ok THEN
+      ASSIGN
         _h_win:X = MAX(0, (SESSION:WIDTH-P - _h_win:WIDTH-P) / 2)
         _h_win:Y = MAX(0, (SESSION:HEIGHT-P - _h_win:HEIGHT-P) / 2).
-END.
+  END. 
+END. /* not ide */
 
-IF OEIDEIsRunning THEN
-	/* Realize the window and synchronize remaining attributes                   */
-    ASSIGN _h_win:HIDDEN         = TRUE
-           _h_win:SENSITIVE      = TRUE
-           CURRENT-WINDOW        = _h_win
-           _h_cur_widg           = _h_win
-           _U._HANDLE            = _h_win
-           _C._MIN-WIDTH         = _h_win:MIN-WIDTH / _cur_col_mult
-           _C._MIN-HEIGHT        = _h_win:MIN-HEIGHT / _cur_row_mult
-           _C._SCREEN-LINES      = _h_win:SCREEN-LINES
-           _U._TYPE              = _h_win:TYPE
-           _U._WINDOW-HANDLE     = _h_win
-           _C._WINDOW-STATE      = STRING(_h_win:WINDOW-STATE)
-           _L._COL               = ((_h_win:COL - 1) / _cur_col_mult) + 1
-           _L._COL-MULT          = _cur_col_mult
-           _L._HEIGHT            = _h_win:HEIGHT / _cur_row_mult
-           _L._ROW               = ((_h_win:ROW - 1) / _cur_row_mult) + 1
-           _L._ROW-MULT          = _cur_row_mult
-           _L._VIRTUAL-HEIGHT    = _h_win:VIRTUAL-HEIGHT / _cur_row_mult
-           _L._VIRTUAL-WIDTH     = _h_win:VIRTUAL-WIDTH / _cur_col_mult
-           _L._WIDTH             = _h_win:WIDTH / _cur_col_mult
-           /* Procedure Information */
-           _P._FILE-SAVED        = TRUE
-           _P._SAVE-AS-FILE      = _save_file
-           _P._WINDOW-HANDLE     = _U._WINDOW-HANDLE
-       NO-ERROR              /* NO-ERROR to prevent warning while using OEIDEIsRunning */
-           .
-ELSE
-	/* Realize the window and synchronize remaining attributes                   */
-    ASSIGN _h_win:HIDDEN         = TRUE
-           _h_win:SENSITIVE      = TRUE
-           CURRENT-WINDOW        = _h_win
-           _h_cur_widg           = _h_win
-           _U._HANDLE            = _h_win
-           _C._MIN-WIDTH         = _h_win:MIN-WIDTH / _cur_col_mult
-           _C._MIN-HEIGHT        = _h_win:MIN-HEIGHT / _cur_row_mult
-           _C._SCREEN-LINES      = _h_win:SCREEN-LINES
-           _U._TYPE              = _h_win:TYPE
-           _U._WINDOW-HANDLE     = _h_win
-           _C._WINDOW-STATE      = STRING(_h_win:WINDOW-STATE)
-           _L._COL               = ((_h_win:COL - 1) / _cur_col_mult) + 1
-           _L._COL-MULT          = _cur_col_mult
-           _L._HEIGHT            = _h_win:HEIGHT / _cur_row_mult
-           _L._ROW               = ((_h_win:ROW - 1) / _cur_row_mult) + 1
-           _L._ROW-MULT          = _cur_row_mult
-           _L._VIRTUAL-HEIGHT    = _h_win:VIRTUAL-HEIGHT / _cur_row_mult
-           _L._VIRTUAL-WIDTH     = _h_win:VIRTUAL-WIDTH / _cur_col_mult
-           _L._WIDTH             = _h_win:WIDTH / _cur_col_mult
-           /* Procedure Information */
-           _P._FILE-SAVED        = TRUE
-           _P._SAVE-AS-FILE      = _save_file
-           _P._WINDOW-HANDLE     = _U._WINDOW-HANDLE
-           .
+/* Realize the window and synchronize remaining attributes                   */
+ASSIGN _h_win:HIDDEN         = TRUE
+       _h_win:SENSITIVE      = TRUE
+       CURRENT-WINDOW        = _h_win
+       _h_cur_widg           = _h_win
+       _U._HANDLE            = _h_win
+       _C._MIN-WIDTH         = _h_win:MIN-WIDTH / _cur_col_mult
+       _C._MIN-HEIGHT        = _h_win:MIN-HEIGHT / _cur_row_mult
+       _C._SCREEN-LINES      = _h_win:SCREEN-LINES
+       _U._TYPE              = _h_win:TYPE
+       _U._WINDOW-HANDLE     = _h_win
+       _C._WINDOW-STATE      = STRING(_h_win:WINDOW-STATE)
+       _L._COL               = ((_h_win:COL - 1) / _cur_col_mult) + 1
+       _L._COL-MULT          = _cur_col_mult
+       _L._HEIGHT            = _h_win:HEIGHT / _cur_row_mult
+       _L._ROW               = ((_h_win:ROW - 1) / _cur_row_mult) + 1
+       _L._ROW-MULT          = _cur_row_mult
+       _L._VIRTUAL-HEIGHT    = _h_win:VIRTUAL-HEIGHT / _cur_row_mult
+       _L._VIRTUAL-WIDTH     = _h_win:VIRTUAL-WIDTH / _cur_col_mult
+       _L._WIDTH             = _h_win:WIDTH / _cur_col_mult
+       /* Procedure Information */
+       _P._FILE-SAVED        = TRUE
+       _P._SAVE-AS-FILE      = _save_file
+       _P._WINDOW-HANDLE     = _U._WINDOW-HANDLE
+   NO-ERROR.      /* NO-ERROR to prevent warning if OEIDEIsRunning */
+
+/* show warnings if not oeide */      
+IF not OEIDEIsRunning THEN    
+do i = 1 to error-status:num-messages:
+    message error-status:get-message(i) view-as alert-box warning.
+end.        
 
 /* If we need to, restore current window settings. */
 IF set-code-win THEN

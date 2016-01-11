@@ -87,8 +87,6 @@ Modified:
 ----------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER h_self   AS WIDGET                            NO-UNDO.
 
-
-
 &GLOBAL-DEFINE WIN95-BTN  TRUE
 &SCOPED-DEFINE USE-3D     YES
 
@@ -130,6 +128,9 @@ FUNCTION change-data-type RETURNS LOGICAL
 &SCOPED-DEFINE sicon_txt IF _C._SMALL-ICON eq '' THEN ''~
                          ELSE ENTRY(NUM-ENTRIES(_C._SMALL-ICON,'/'),_C._SMALL-ICON,'/')
 
+&SCOPED-DEFINE ABL_STATE "ABL"
+&SCOPED-DEFINE IDE_STATE "IDE"
+ 
 {adeuib/tog-hand.i}             /* Definitions of the handles for the toggles */
 DEFINE BUFFER      x_U FOR _U.
 DEFINE BUFFER      x_C FOR _C.
@@ -351,14 +352,23 @@ DEFINE VARIABLE sav_v-height LIKE _L._VIRTUAL-HEIGHT           NO-UNDO.
 DEFINE VARIABLE sav_v-width  LIKE _L._VIRTUAL-WIDTH            NO-UNDO.
 
 DEFINE VARIABLE notAmerican  AS LOGICAL  NO-UNDO.
-
+DEFINE VARIABLE sav_bgc AS INT NO-UNDO.
+DEF VAR sav_fgc AS INT NO-UNDO.
+DEF VAR sep_fgc AS INT NO-UNDO.
+DEF VAR Absolute_Name AS CHAR    NO-UNDO.
+DEFINE VARIABLE viewas      AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE wintitle AS CHARACTER NO-UNDO init "Data Field Defaults".
+define variable oldObjectName as character.
+ DEF VAR fmt     AS CHAR CASE-SENSITIVE NO-UNDO.
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP &IF "{&WINDOW-SYSTEM}" = "OSF/Motif" &THEN SKIP &ELSE &ENDIF
 
 DEFINE STREAM  temp_stream.
 DEFINE BUFFER B_U FOR _U.
 DEFINE BUFFER B_C FOR _C.
-
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then
+define variable CallResult as logical no-undo.
+ &endif 
 
 CREATE WIDGET-POOL.
 
@@ -399,9 +409,17 @@ END.
 /* Text widgets are not changeable in an alternative layout */
 IF _U._TYPE = "TEXT" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
   /* Text widgets are not changeable in an alternative layout */
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+    ShowMessageInIDE("Text objects may only be modified in the Master Layout.~n" +
+                      "Use a fill-in with the VIEW-AS-TEXT attribute instead.",
+                      "Information","?","OK",yes).
+      
+  &else
   MESSAGE "Text objects may only be modified in the Master Layout." SKIP
           "Use a fill-in with the VIEW-AS-TEXT attribute instead."
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  &endif    
   RETURN.
 END.
 
@@ -446,10 +464,28 @@ IF NOT RETRY THEN DO:
          btn_color    AT ROW 1.13  COL 78.75 NO-LABEL
          txt_geom     AT ROW 10    COL 2   BGC 1 FGC 15 NO-LABEL
          txt_attrs    AT ROW 25    COL 2   BGC 1 FGC 15 NO-LABEL
-         btn_adv      AT ROW 25    COL 50         
-       WITH VIEW-AS DIALOG-BOX SIDE-LABELS SIZE 88 BY 28 THREE-D.
-
-  IF CAN-DO("WINDOW",_U._TYPE) THEN RUN setup_for_window.
+         btn_adv      AT ROW 25    COL 50    
+         
+       WITH  
+      &if DEFINED(IDE-IS-RUNNING) = 0 &then
+          VIEW-AS DIALOG-BOX
+      
+      &else
+          NO-BOX
+      &endif        
+       SIDE-LABELS SIZE 88 BY 28 THREE-D.
+       
+  /* if IDE then */
+  &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      define variable dialogtitle as char no-undo.
+      define variable dialogService as adeuib.idialogservice no-undo.           
+      Run CreateDialogService in hOEIDEService (FRAME prop_sht:handle,output dialogService).
+      /* the sizing gets wrong if we wait with view until just before wait */
+      dialogService:View().
+ 
+  &endif
+  IF CAN-DO("WINDOW",_U._TYPE) THEN 
+      RUN setup_for_window.
 
   RUN remember_layout.
   RUN adjust_frame.
@@ -487,6 +523,7 @@ ELSE DO:  /* A RETRY */
            _L._COL = IF h_col:SCREEN-VALUE = "?" THEN ?
                                                  ELSE DECIMAL(h_col:SCREEN-VALUE).
 END.
+
 
 
 ON WINDOW-CLOSE OF FRAME prop_sht APPLY "END-ERROR":U TO SELF.
@@ -532,8 +569,14 @@ ON LEAVE OF name IN FRAME prop_sht DO:
            _LIKE-FIELD is blank, save the old name in the _LIKE-FIELD  */
         IF AVAILABLE(_F) AND _F._DISPOSITION = "LIKE" AND _U._DBNAME NE "" AND
            _F._LIKE-FIELD = "" THEN _F._LIKE-FIELD = _U._NAME.
-        ASSIGN _U._NAME = INPUT FRAME prop_sht name
-               FRAME prop_sht:TITLE = "Property Sheet - " + _U._NAME.
+        ASSIGN oldObjectName = _U._NAME
+               _U._NAME = INPUT FRAME prop_sht name
+          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+               dialogtitle  
+          &else     
+               FRAME prop_sht:TITLE 
+          &endif               
+              = "Property Sheet - " + _U._NAME.
         IF _U._TYPE = "{&WT-CONTROL}" THEN
           ASSIGN _U._HANDLE:NAME = _U._NAME.
       END.
@@ -545,109 +588,11 @@ ON LEAVE OF name IN FRAME prop_sht DO:
 END.
 
 ON CHOOSE OF btn_adv DO:
-  /* For logicals, we validate the format so we can get an 
-   * appropriate initial-data for the advanced prop sheet. */
-  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
-    IF NUM-ENTRIES(_F._FORMAT,"/":U) NE 2 THEN DO:
-      MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
-              "Use a format of the form 'yes/no' or 'true/false'."
-              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-      APPLY "ENTRY":U TO h_format.
-      RETURN NO-APPLY.
-    END.
-    ELSE _F._INITIAL-DATA = ENTRY (sav-ldef, _F._FORMAT,"/":U).
-  END. /* data-type is logical */
-
-  RUN adeuib/_advprop.w (RECID(_U), lbl_wdth).
-
-  /* Update logical fill-ins saved default-- it may have changed in advprop */
-  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
-     sav-ldef = LOOKUP (TRIM(_F._INITIAL-DATA), _F._FORMAT,"/":U).
-     IF sav-ldef = 0 THEN sav-ldef = 2.
-  END.
-
-  IF _U._TYPE = "FRAME":U AND (_C._PAGE-TOP OR _C._PAGE-BOTTOM) THEN
-    h_DOWN:CHECKED = FALSE.
-
-  IF h_align NE ? THEN h_align:SCREEN-VALUE = _U._ALIGN.
-
-  RUN compute_lbl_wdth. 
-
-  CASE _U._ALIGN:
-    WHEN "R" THEN xpos = _L._COL  - 1 + _L._WIDTH.
-    WHEN "C" THEN xpos = _L._COL - 2.
-    OTHERWISE
-      xpos = IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND parent_C._SIDE-LABELS THEN
-                   /* SIDE-LABELS */  (_L._COL - lbl_wdth)
-                ELSE IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
-                     NOT parent_L._NO-LABELS THEN
-                   /* COLUMN LABELS */ (_L._COL - MAX(0, lbl_wdth - _L._WIDTH))
-                ELSE _L._COL.
-  END.  /* Case */
-   
-  ASSIGN h_col:SCREEN-VALUE  = IF xpos NE ? THEN STRING(xpos,"->>9.99") ELSE "?"
-         h_row:SCREEN-VALUE  = IF _L._ROW NE ? THEN 
-                                 STRING(_L._ROW - col-lbl-adj,"->>9.99") ELSE "?"
-         h_wdth:SCREEN-VALUE = STRING(_L._WIDTH,">>9.99")
-         h_hgt:SCREEN-VALUE  = STRING(_L._HEIGHT,">>9.99").
-  IF h_row-hgt NE ? THEN
-    ASSIGN h_row-hgt:SCREEN-VALUE = STRING(_C._ROW-HEIGHT,">>9.99").
-  IF h_v-wdth NE ? THEN
-    ASSIGN h_v-wdth:SCREEN-VALUE = STRING(_L._VIRTUAL-WIDTH,">>9.99")
-           h_v-hgt:SCREEN-VALUE  = STRING(_L._VIRTUAL-HEIGHT,">>9.99").
-  IF h_REMOVE-FROM-LAYOUT NE ?  THEN
-    ASSIGN h_REMOVE-FROM-LAYOUT:CHECKED = _L._REMOVE-FROM-LAYOUT. 
-  APPLY "ENTRY" TO btn_OK IN FRAME prop_sht.
+   run choose_advanced.
 END.
 
 ON CHOOSE OF btn_color DO:
-  DEFINE VARIABLE l_ok           AS LOGICAL           NO-UNDO.
-  DEFINE VARIABLE parent_bgcolor AS INTEGER INITIAL ? NO-UNDO.
-  DEFINE VARIABLE parent_fgcolor AS INTEGER INITIAL ? NO-UNDO. 
-  DEFINE VARIABLE sav_bgc        AS INTEGER           NO-UNDO.
-  DEFINE VARIABLE sav_fgc        AS INTEGER           NO-UNDO.
-   
-  ASSIGN sav_bgc = _L._BGCOLOR
-         sav_fgc = _L._FGCOLOR.
-  
-  IF NOT CAN-DO("WINDOW,FRAME,DIALOG-BOX",_U._TYPE) THEN
-    /* Get the current Windows background and foreground colors. (dma) 
-       Backed out for 20000106-021.
-    RUN adecomm/_wincolr.p (parent_L._BGCOLOR,
-                            parent_L._FGCOLOR,
-                            OUTPUT parent_bgcolor, 
-                            OUTPUT parent_fgcolor). */ 
-    ASSIGN parent_bgcolor = parent_L._BGCOLOR
-           parent_fgcolor = parent_L._FGCOLOR.
-
-  /* Note that since _L can be undone, it will be if the user clicks CANCEL. */
-  /* If the window-system is in {&no_color} then comment that                */
-  /*     "Button Color not supported under MS-WINDOWS."                      */
-  RUN adecomm/_chscolr.p
-       (INPUT "Choose Color",
-        INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U AND
-               CAN-DO("BUTTON,IMAGE":U,_U._TYPE)
-               THEN (TRIM(STRING(LC(_U._TYPE),"!x(20)")) +
-                     " color not supported under " +
-                     SESSION:WINDOW-SYSTEM + ".")
-               ELSE ""),
-        INPUT (IF _U._TYPE = "BROWSE" AND _L._SEPARATORS THEN TRUE ELSE FALSE),
-        INPUT parent_bgcolor,
-        INPUT parent_fgcolor,
-        INPUT ?,
-        INPUT-OUTPUT _L._BGCOLOR,
-        INPUT-OUTPUT _L._FGCOLOR,
-        INPUT-OUTPUT _L._SEPARATOR-FGCOLOR,
-        OUTPUT l_ok).
-
-  IF _L._LO-NAME = "Master Layout" THEN DO:
-    FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
-                          sync_L._LO-NAME NE _L._LO-NAME:
-      IF sync_L._BGCOLOR = sav_bgc THEN sync_L._BGCOLOR = _L._BGCOLOR.
-      IF sync_L._FGCOLOR = sav_fgc THEN sync_L._FGCOLOR = _L._FGCOLOR.
-    END.
-  END.  /* If this was the master layout */
-  APPLY "ENTRY":U TO btn_OK IN FRAME prop_sht.
+    run choose_color.
 END.  /* ON CHOOSE OF btn_color */
 
 ON GO OF FRAME prop_sht DO:
@@ -656,8 +601,16 @@ ON GO OF FRAME prop_sht DO:
 
   IF (_L._COL NE ? AND _L._ROW EQ ?) OR
      (_L._COL EQ ? AND _L._ROW NE ?) THEN DO:
+     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Row and column specifications must both be unknown or they ~n" +
+                         "must both be valid values.",
+                         "Information","?","OK",yes).
+      
+     &else    
      MESSAGE "Row and column specifications must both be unknown or they" SKIP
              "must both be valid values." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+     &endif        
    l_error_on_go = TRUE.
   END.  /*  _COL & _ROW ckeck */
 
@@ -665,8 +618,15 @@ ON GO OF FRAME prop_sht DO:
   IF _U._WIDGET-ID NE ? AND 
     ((_U._WIDGET-ID MODULO 2 NE 0) OR (_U._WIDGET-ID < 2) OR (_U._WIDGET-ID > 65534)) THEN
   DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("The widget ID entered is invalid. It must be an even value between 2 and 65534.",
+                         "Information","?","OK",yes).
+      
+     &else   
     MESSAGE "The widget ID entered is invalid.  It must be an even value between 2 and 65534."
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    &endif  
     l_error_on_go = TRUE.
   END.
 
@@ -678,9 +638,17 @@ ON GO OF FRAME prop_sht DO:
     /* NOTE: This code is mirrored in the COMBO-BOX section above */
     IF _F._DATA-TYPE = "LOGICAL":U THEN DO:
       IF NUM-ENTRIES (_F._FORMAT, "/") NE 2 THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("'" + _F._FORMAT + "' is an invalid logical format. ~n" 
+                         + " Use a format of the form 'yes/no' or 'true/false' ",
+                         "Error","?","OK",yes).
+      
+     &else  
         MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
                 " Use a format of the form 'yes/no' or 'true/false'."
                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      &endif          
         l_error_on_go = TRUE.
       END.  /* If we don't have a slash */
       ELSE _F._INITIAL-DATA = ENTRY (sav-ldef, _F._FORMAT,"/":U).
@@ -764,8 +732,22 @@ RUN sensitize.
 
 RUN adecomm/_setcurs.p ("").
 
+ &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+/* the size is becomes wrong if we wait with the view until hwre  
+   dialogService:View().*/
+   dialogService:SetOkButton(btn_Ok:handle).
+   dialogService:SetCancelButton(btn_Cancel:handle).
+   dialogService:CancelEventNum = 3.
+   dialogService:Title = dialogTitle.
+   WAIT-FOR "GO" OF FRAME prop_sht or "u3" of FRAME prop_sht. 
+&else
+  WAIT-FOR "GO" OF FRAME prop_sht.
 
-WAIT-FOR "GO" OF FRAME prop_sht.
+ &endif
+ 
+
+
+
 /* Turn status messages back on. (They were turned off at the top of the block */
 STATUS INPUT.
 
@@ -895,8 +877,18 @@ IF CAN-DO("BUTTON,IMAGE":U,_U._TYPE) THEN DO:
   IF _U._TYPE = "BUTTON" THEN DO:
     IF _F._IMAGE-FILE = "" AND (_F._IMAGE-DOWN-FILE NE "" OR 
                                 _F._IMAGE-INSENSITIVE-FILE NE "") THEN
+    do: 
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Buttons will not show DOWN or INSENSITIVE images unless "
+                         + "an UP image is defined.",
+                         "Warning","?","OK",yes).
+      
+        &else                           
         MESSAGE "Buttons will not show DOWN or INSENSITIVE images unless"
-                "an UP image is defined." VIEW-AS ALERT-BOX WARNING.        
+                "an UP image is defined." VIEW-AS ALERT-BOX WARNING.
+        &endif        
+    end.                    
   END.
 END.
 
@@ -911,8 +903,16 @@ IF _U._TYPE = "COMBO-BOX":U AND TRIM(_F._LIST-ITEMS) = "" THEN recreate-self = T
 IF sav-max NE ? AND (sav-max  NE _F._MAX-VALUE OR 
                      sav-min  NE _F._MIN-VALUE )   THEN DO:
   IF _F._MIN-VALUE >= _F._MAX-VALUE THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("You have specified an invalid set of minimum/maximum values. ~n"
+                         + "Default values have been set.",
+                          "Error","?","OK",yes).
+      
+    &else  
     MESSAGE "You have specified an invalid set of minimum/maximum values." SKIP
             "Default values have been set." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    &endif        
     ASSIGN _F._MIN-VALUE            = 0
            _F._MAX-VALUE            = 100.
   END.
@@ -989,10 +989,21 @@ IF CAN-DO("FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
         IF RETURN-VALUE = "WONT-FIT" THEN DO:
           ASSIGN _C._FRAME-BAR:VISIBLE = FALSE
                  _C._SIDE-LABELS       = TRUE.
+          do: 
+          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE("There isn't enough room in frame " + _U._NAME + "~n" 
+                             + " for the header and body with COLUMN LABELS. ~n " 
+                             + "Reverting to SIDE-LABELS.",
+                             "Information","?","OK",yes).
+      
+          &else          
           MESSAGE "There isn't enough room in frame" _U._NAME SKIP
                   "for the header and body with COLUMN LABELS." SKIP (1)
                   "Reverting to SIDE-LABELS."
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+          &endif    
+          end.    
         END.  /* If won't fit */
       END.  /* If there are labels */
     END.  /* ELSE Going from side-labels to column labels */
@@ -1038,8 +1049,15 @@ PROCEDURE row_change.
   low-limit = IF CAN-DO ("WINDOW,DIALOG-BOX":U, _U._TYPE) THEN 1 - DECIMAL(h_hgt:SCREEN-VALUE)
                                          ELSE 1.
   IF DECIMAL(SELF:SCREEN-VALUE) < low-limit THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Row must be greater than or equal to " + STRING(low-limit) + ".",
+                         "Information","?","OK",yes).
+      
+    &else  
     MESSAGE "Row must be greater than or equal to" STRING(low-limit) + "."
             VIEW-AS ALERT-BOX INFORMATION.
+    &endif        
     SELF:SCREEN-VALUE = STRING(low-limit).
     RETURN ERROR.
   END.
@@ -1062,8 +1080,15 @@ PROCEDURE row_change.
   IF CAN-DO("WINDOW,DIALOG-BOX":U, _U._TYPE) AND 
      DECIMAL(SELF:SCREEN-VALUE) > -1 AND 
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+         ShowMessageInIDE("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
+                          "Information","?","OK",yes).
+      
+       &else  
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
                VIEW-AS ALERT-BOX INFORMATION.
+       &endif        
        SELF:SCREEN-VALUE = (IF DECIMAL(SELF:SCREEN-VALUE) < 0 THEN STRING("-1") ELSE STRING ("1")).
        RETURN ERROR.
   END.
@@ -1101,14 +1126,28 @@ PROCEDURE column_change.
            upr-limit = SESSION:WIDTH-CHARS.
            
   IF xpos < low-limit THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+        ShowMessageInIDE("Column must be greater than or equal to " + STRING(low-limit) + ".",
+                         "Information","?","OK",yes).
+      
+    &else  
     MESSAGE "Column must be greater than or equal to" STRING(low-limit) + "."
              VIEW-AS ALERT-BOX INFORMATION.
+   &endif          
     SELF:SCREEN-VALUE = STRING(low-limit).
     RETURN ERROR.
   END.
   IF xpos > upr-limit THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+      ShowMessageInIDE("Column must be less than or equal to " + STRING(upr-limit) + ".",
+                       "Information","?","OK",yes).
+      
+    &else  
     MESSAGE "Column must be less than or equal to" STRING(upr-limit) + "."
             VIEW-AS ALERT-BOX INFORMATION.
+    &endif        
     SELF:SCREEN-VALUE = STRING(upr-limit).
     RETURN ERROR.                                    
   END.
@@ -1118,8 +1157,15 @@ PROCEDURE column_change.
   IF CAN-DO("WINDOW,DIALOG-BOX":U, _U._TYPE) AND 
      DECIMAL(SELF:SCREEN-VALUE) > -1 AND 
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
+       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+         ShowMessageInIDE("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
+                          "Information","?","OK",yes).
+      
+       &else  
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
                VIEW-AS ALERT-BOX INFORMATION.
+       &endif        
        SELF:SCREEN-VALUE = (IF DECIMAL(SELF:SCREEN-VALUE) < 0 THEN STRING("-1") ELSE STRING ("1")).
        RETURN ERROR.
   END.
@@ -1397,7 +1443,15 @@ PROCEDURE complete_the_transaction:
     IF AVAILABLE(_F) AND _F._DISPOSITION = "LIKE":U AND
        (sav_height NE _L._HEIGHT OR sav_width NE _L._WIDTH) THEN
       _F._SIZE-SOURCE = "E":U.
-
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    IF CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE) THEN DO:
+       SetWindowSize(_U._WINDOW-HANDLE). 
+    end.
+    if oldObjectName <> _U._NAME then
+       run CallRenameWidget in _h_uib (Recid(_U),oldObjectName). 
+        
+          
+  &endif  
   END.  /* DO WITH FRAME prop_sht */
 END.  /* Complete the transaction */
 
@@ -1509,6 +1563,9 @@ PROCEDURE widget_id_change.
 END PROCEDURE.  /* widget_id_change */
 
 PROCEDURE db_field_selection.
+   
+  define input  parameter pState as character no-undo.
+  
   DEFINE VAR ans           AS LOGICAL              NO-UNDO.
   DEFINE VAR a-line        AS CHARACTER EXTENT 100 NO-UNDO.
   DEFINE VAR a-out         AS CHARACTER            NO-UNDO.
@@ -1575,13 +1632,23 @@ PROCEDURE db_field_selection.
          cObjectType = _U._class-name.
 
   IF _U._DBNAME = ? THEN DO: /* Select a DB field for this varaible */
+    
     IF UsesDataObject = NO THEN DO:      
+      
       /* Report Error -- no databases */
       IF NUM-DBS > 0 THEN ans = yes.
       ELSE RUN adecomm/_dbcnnct.p
               (INPUT  "You must have at least one connected database to select a field.",
                OUTPUT ans).
       IF ans THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+            if pState = {&ABL_STATE} then
+            do:
+                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
+                run runChildDialog in hOEIDEService (dialogService) .
+                return.
+            end.
+        &ENDIF 
         FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
         IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) THEN DO:
           FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
@@ -1597,7 +1664,15 @@ PROCEDURE db_field_selection.
                db_name  = _U._DBNAME
                tbl_name = _U._TABLE
                use_Prefix = ?.
-        RUN adecomm/_fldsel.p (FALSE,
+        
+        RUN 
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+            adeuib/ide/_dialog_fldsel.p     
+        &else
+        
+            adecomm/_fldsel.p 
+        &endif
+                             (FALSE,
                               IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var,
                               INPUT tt-info,
                               INPUT-OUTPUT use_Prefix,
@@ -1605,10 +1680,25 @@ PROCEDURE db_field_selection.
                               INPUT-OUTPUT tbl_name,
                               INPUT-OUTPUT fld_name,
                               OUTPUT pressed_ok).
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+        /* next prompt must be issued from ide again */
+        pState = {&ABL_STATE}. 
+        &endif
+        
       END.  /* IF ans (there is at least one DB connected */
     END.  /* IF UsesDataObject = NO */
 
     ELSE DO:  /* UsesDataObject */
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+            if pState = {&ABL_STATE} then
+            do:
+                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
+                run runChildDialog in hOEIDEService (dialogService) .
+                return.
+            end.
+        &ENDIF 
+       
+
 
       ASSIGN db_name = "Temp-Tables":U.
       /* Build the temp-table info to pass to the field picker. */
@@ -1625,8 +1715,15 @@ PROCEDURE db_field_selection.
       ELSE tt-info = ?.
     
       IF tbl_name = "" OR tbl_name = ? THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+           ShowMessageInIDE("Unable to determine data source information.",
+                            "Information","?","OK",yes).
+      
+       &else  
         MESSAGE "Unable to determine data source information."
                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+         &endif      
         RETURN.
       END.
       
@@ -1653,8 +1750,12 @@ PROCEDURE db_field_selection.
                    + f_U._NAME.
         END.
         fld_name = LEFT-TRIM(fld_name,",":U).
-        
-        RUN adecomm/_fldseld.p
+        RUN
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+            adeuib/ide/_dialog_fldseld.p     
+        &else
+            adecomm/_fldseld.p
+        &endif
             (INPUT tbl_list, 
              INPUT hDataObject , 
              INPUT tt-info, 
@@ -1662,6 +1763,12 @@ PROCEDURE db_field_selection.
              INPUT ",",
              INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
              INPUT-OUTPUT fld_name).
+        
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+        /* next prompt must be issued from ide again */
+        pState = {&ABL_STATE}. 
+        &endif
+    
         num_ent = NUM-ENTRIES(fld_name).
         ASSIGN pressed_ok = (RETURN-VALUE <> "CANCEL":U) AND (num_ent > 0).
         /* At this point, fld_name is in the form Temp-Tables.RowObject.Fieldname.
@@ -1684,14 +1791,28 @@ PROCEDURE db_field_selection.
           fld_type = DYNAMIC-FUNC("columnDataType":U IN hDataObject, fld_name) NO-ERROR.
           IF fld_type = "BLOB":U THEN
           DO:
+            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE(fld_name + " is a BLOB field and cannot be mapped to a visual object.",
+                             "Error","?","OK",yes).
+      
+            &else  
             MESSAGE fld_name " is a BLOB field and cannot be mapped to a visual object."
               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            &endif  
             RETURN.
           END.
           IF fld_type = "CLOB":U AND _U._TYPE NE "EDITOR":U THEN
           DO:
+            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE(fld_name + " is a CLOB field and can only be mapped to an editor object.",
+                             "Error","?","OK",yes).
+      
+            &else  
             MESSAGE fld_name " is a CLOB field and can only be mapped to an editor object."
               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            &endif  
             RETURN.
           END.
           /* Rename the local field if there is already a field on the viewer 
@@ -1738,11 +1859,19 @@ PROCEDURE db_field_selection.
           END.  /* if clob and type = editor */
         END.  /* if valid dataobject handle */
         ELSE DO:
+          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?","OK",yes).
+      
+            &else  
           MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
                  VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+          &endif       
           RETURN.
         END.
       END.  /* if uses data object */
+
 
       /* Verify that this field is not already in the same frame */
       FIND ip_U WHERE ip_U._HANDLE ne h_self
@@ -1842,8 +1971,15 @@ PROCEDURE db_field_selection.
         /* IF temp-table type "D", were are working with a SmartData object. jep-code */
         IF db_name = "Temp-Tables":U AND (_TT._TABLE-TYPE = "D") THEN DO:
           IF UsesDataObject AND NOT VALID-HANDLE(hDataObject) THEN DO:
+            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?","OK",yes).
+      
+            &else  
             MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+            &endif       
             RETURN.
           END.
           
@@ -1915,6 +2051,9 @@ PROCEDURE db_field_selection.
 
   IF _U._DBNAME NE ? THEN DO:  /* We have a DB field here, have the use specify
                                   what is explicit and what is implicit        */
+ 
+    
+    
     DEFINE VARIABLE db-var  AS CHARACTER VIEW-AS RADIO-SET VERTICAL
         RADIO-BUTTONS 
             "&Database Field", "Field",
@@ -1929,7 +2068,7 @@ PROCEDURE db_field_selection.
            VIEW-AS TOGGLE-BOX LABEL "&Label"            NO-UNDO.
     DEFINE VARIABLE def_view-as AS LOGICAL
            VIEW-AS TOGGLE-BOX LABEL "View-&As Phrase"   NO-UNDO.
-    DEFINE VARIABLE viewas      AS CHARACTER            NO-UNDO.
+    
 
     /* standard button rectangle */
 
@@ -1937,7 +2076,7 @@ PROCEDURE db_field_selection.
     DEFINE BUTTON btn_OK      LABEL "OK":C12     {&STDPH_OKBTN} AUTO-GO.
     DEFINE BUTTON btn_cancel  LABEL "Cancel":C12 {&STDPH_OKBTN} AUTO-ENDKEY.
     DEFINE BUTTON btn_help    LABEL "&Help":C12  {&STDPH_OKBTN}.
-
+    
     &SCOPED-DEFINE OK     btn_OK
     &SCOPED-DEFINE CANCEL btn_cancel
     &SCOPED-DEFINE HELP   btn_help
@@ -1951,17 +2090,42 @@ PROCEDURE db_field_selection.
         def_help    AT 10 SKIP ({&VM_WID})
         def_view-as AT 10 SKIP ({&VM_WIDG})
         {adecomm/okform.i}
-      WITH VIEW-AS DIALOG-BOX TITLE "Data Field Defaults" DEFAULT-BUTTON btn_OK
+      WITH
+       &if DEFINED(IDE-IS-RUNNING) = 0 &then 
+      VIEW-AS DIALOG-BOX TITLE wintitle
+      &else
+      NO-BOX
+      &endif 
+      DEFAULT-BUTTON btn_OK
            THREE-D.
-           
+ 
+ 
+ 
+       &if DEFINED(IDE-IS-RUNNING) = 0 &then 
     ASSIGN FRAME db-defaults:PARENT = ACTIVE-WINDOW.
+       &else
+            define variable defaultsService as adeuib.idialogservice no-undo.
+            if pState = {&ABL_STATE} then
+            do:
+                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
+                run runChildDialog in hOEIDEService (dialogService) .
+                return.
+            end.
+            else 
+            do:
+                run CreateDialogService in hOEIDEService(frame db-defaults:HANDLE,output defaultsService). 
+                defaultsService:View().
+            end.
+       &endif
+    
     IF _U._DBNAME NE ? THEN
       RUN adecomm/_s-schem.p(_U._DBNAME, _U._TABLE,
                              IF CAN-DO("LIKE,FIELD":U,_F._DISPOSITION) AND
                                _F._LIKE-FIELD NE "" THEN _F._LIKE-FIELD ELSE _U._NAME,
                              "FIELD:VIEW-AS":U,
                              OUTPUT viewas).
- 
+                        
+    
     {adecomm/okrun.i &FRAME = "FRAME db-defaults"} 
 
     ASSIGN def_label  = (_U._LABEL-SOURCE = "D")
@@ -2180,13 +2344,30 @@ PROCEDURE db_field_selection.
            def_help:SENSITIVE IN FRAME db-defaults   = TRUE
            def_view-as:SENSITIVE IN FRAME db-defaults = viewas NE ? AND
                                  db-var:SCREEN-VALUE IN FRAME db-defaults NE "LOCAL":U.
+    
     IF _F._SOURCE-DATA-TYPE = "CLOB":U THEN 
     DO:
       cLikeButton = ENTRY(5, db-var:RADIO-BUTTONS).
       db-var:DISABLE(cLikeButton).
     END.
-    UPDATE btn_OK btn_cancel btn_help WITH FRAME db-defaults.
-          
+    
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then  
+       define variable lCancelDialog as logical no-undo. 
+       defaultsService:SetOkButton(btn_OK:handle in frame db-defaults).
+       defaultsService:SetCancelButton(btn_Cancel:handle in frame db-defaults).
+       defaultsService:Title = wintitle.
+       on "choose" of btn_cancel in frame db-defaults  
+       do:
+           lCancelDialog = true.
+           apply "u3" to this-procedure.
+       end.    
+       enable  btn_OK btn_cancel btn_help WITH FRAME db-defaults.
+       wait-for "CHOOSE"  of btn_OK in FRAME db-defaults or "u3" of this-procedure.
+       if lcancelDialog then undo, leave.
+    &else
+       UPDATE btn_OK btn_cancel btn_help WITH FRAME db-defaults.
+    &endif
+            
   END. /* IF _U._DBNAME NE ? THEN DO */
 
   IF _U._DBNAME = ? THEN DO:
@@ -2232,8 +2413,15 @@ PROCEDURE db_field_selection.
       /* IF temp-table type "D", were are working with a SmartData object. jep-code */
       IF db_name = "Temp-Tables":U AND (_TT._TABLE-TYPE = "D") THEN DO:
         IF UsesDataObject AND NOT VALID-HANDLE(hDataObject) THEN DO:
+            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?","OK",yes).
+      
+            &else
             MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+             &endif      
             RETURN.
         END.  /* If we think we are using a SDO but don't have a valid handle */
         IF tmp-name = "" THEN tmp-name = _U._NAME.
@@ -2317,6 +2505,15 @@ PROCEDURE edge_pixels_change.
 END.
 
 PROCEDURE field_edit.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"do_field_edit").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else
+        RUN do_field_edit.
+    &endif
+end procedure. 
+
+PROCEDURE do_field_edit.
   DEFINE VARIABLE ctblname    AS CHARACTER         NO-UNDO.
   DEFINE VARIABLE i           AS INTEGER           NO-UNDO.
   DEFINE VARIABLE table-list  AS CHARACTER         NO-UNDO.
@@ -2349,7 +2546,11 @@ PROCEDURE field_edit.
       ENTRY(i,table-list) = "Temp-Tables":U + "." + ctblname.
   END.
   /* Send the table list or a handle to the SmartData */
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+  RUN adeuib/ide/_dialog_coledit.p (INPUT table-list, INPUT ?).
+  &else
   RUN adeuib/_coledit.p (INPUT table-list, INPUT ?).
+  &endif
   
   /* If this is a static SmartDataBrowser based on a dataview (not db aware)
      then redisplay the 4GL query, it may have changed based on columns
@@ -2360,13 +2561,29 @@ PROCEDURE field_edit.
 END.
 
 PROCEDURE font_edit.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"do_font_edit").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else
+        RUN do_font_edit.
+    &endif
+end procedure.
+
+PROCEDURE do_font_edit.
   DEFINE VARIABLE parent_font AS INTEGER INITIAL ? NO-UNDO.
   DEFINE VARIABLE l_ok        AS LOGICAL           NO-UNDO.
   DEFINE VARIABLE sav_font    AS INTEGER           NO-UNDO.
 
   IF _U._TYPE = "BROWSE" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      
+    ShowMessageInIDE("The font of a browse may not be changed between layouts.",
+                     "Information","?","OK",yes).
+      
+    &else  
     MESSAGE "The font of a browse may not be changed between layouts."
             VIEW-AS ALERT-BOX INFORMATION.
+    &endif        
     RETURN.
   END.  
   sav_font = _L._FONT.
@@ -2374,10 +2591,17 @@ PROCEDURE font_edit.
   IF NOT CAN-DO("WINDOW,FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
     ASSIGN parent_font = parent_L._FONT.
   END.
-  RUN adecomm/_chsfont.p  ("Choose Font",
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      RUN adeuib/ide/_dialog_chsfont.p ("Choose Font",
+                                     parent_font,
+                                     INPUT-OUTPUT _L._FONT,
+                                     OUTPUT l_ok).
+  &else  
+      RUN adecomm/_chsfont.p  ("Choose Font",
                            parent_font,
                            INPUT-OUTPUT _L._FONT,
                            OUTPUT l_ok).
+  &endif                         
   IF _U._TYPE = "COMBO-BOX":U THEN
     ASSIGN _U._HANDLE:FONT    = _L._FONT
            h_hgt:SCREEN-VALUE = STRING(_U._HANDLE:HEIGHT,">>>.99")
@@ -2402,6 +2626,7 @@ PROCEDURE format_change.
 
   IF notAmerican AND
       LOOKUP(_F._DATA-TYPE,"INTEGER,INT64,DECIMAL":U) > 0 THEN
+      
   RUN adecomm/_convert.p ("N-TO-A":U,
                           _F._FORMAT, 
                           ",",
@@ -2414,8 +2639,13 @@ PROCEDURE format_change.
   COMPILE VALUE(cTestFile) NO-ERROR.
   OS-DELETE VALUE(cTestFile).
   IF COMPILER:ERROR THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+    ShowMessageInIDE("Illegal format mask specification.",
+                     "Information","?","OK",yes).
+    &else  
     MESSAGE "Illegal format mask specification."
       VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    &endif  
     RETURN NO-APPLY.
   END.
 
@@ -2425,63 +2655,93 @@ PROCEDURE format_change.
 END.
 
 PROCEDURE format_professor.
-  DEF VAR fmt     AS CHAR CASE-SENSITIVE NO-UNDO.
-  fmt = h_format:SCREEN-VALUE.
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+       dialogService:SetCurrentEvent(this-procedure,"do_format_professor").
+       run runChildDialog in hOEIDEService (dialogService) .
+   &else 
+       RUN do_format_professor.
+   &endif 
+end procedure.   
 
-  /*
-  IF _F._FORMAT-SOURCE eq "E" THEN ASSIGN _F._FORMAT = h_format:SCREEN-VALUE.
-  fmt = _F._FORMAT .
-  */
-  CASE _F._DATA-TYPE:
-    WHEN "CHARACTER":U   THEN RUN adecomm/_y-build.p (1, INPUT-OUTPUT fmt).
-    WHEN "DATE":U        THEN RUN adecomm/_y-build.p (2, INPUT-OUTPUT fmt).
-    WHEN "DATETIME":U    THEN RUN adecomm/_y-build.p (34, INPUT-OUTPUT fmt).
-    WHEN "DATETIME-TZ":U THEN RUN adecomm/_y-build.p (40, INPUT-OUTPUT fmt).
-    WHEN "LOGICAL":U     THEN RUN adecomm/_y-build.p (3, INPUT-OUTPUT fmt).
-    WHEN "DECIMAL":U     THEN RUN adecomm/_y-build.p (5, INPUT-OUTPUT fmt). 
-    WHEN "RECID":U       THEN RUN adecomm/_y-build.p (7, INPUT-OUTPUT fmt).
-    WHEN "INT64":U       THEN RUN adecomm/_y-build.p (41, INPUT-OUTPUT fmt).
-    OTHERWISE                 RUN adecomm/_y-build.p (4, INPUT-OUTPUT fmt).
-  END CASE.
-  
-  /* Convert the output value, if necessary, back into American format */
-  /* and display this as the format's screen-value; however, store the */
-  /* American value separately.                                        */
-  IF notAmerican AND (_F._DATA-TYPE = "Integer":U OR _F._DATA-TYPE = "INT64":U
-       OR _F._DATA-TYPE = "Decimal":U) THEN
-       RUN adecomm/_convert.p ("N-TO-A",fmt, 
+PROCEDURE do_format_professor.
+    define variable current_datatype as integer no-undo.
+ 
+    Assign fmt = ""
+       fmt = h_format:SCREEN-VALUE.
+    /*
+    IF _F._FORMAT-SOURCE eq "E" THEN ASSIGN _F._FORMAT = h_format:SCREEN-VALUE.
+    fmt = _F._FORMAT .
+    */
+    CASE _F._DATA-TYPE:
+        WHEN "CHARACTER":U   THEN current_datatype = 1.
+        WHEN "DATE":U        THEN current_datatype = 2.
+        WHEN "DATETIME":U    THEN current_datatype = 34.
+        WHEN "DATETIME-TZ":U THEN current_datatype = 40.
+        WHEN "LOGICAL":U     THEN current_datatype = 3.
+        WHEN "DECIMAL":U     THEN current_datatype = 5.
+        WHEN "RECID":U       THEN current_datatype = 7.
+        WHEN "INT64":U       THEN current_datatype = 41.
+        OTHERWISE current_datatype = 4.
+    END CASE.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        RUN adeuib/ide/_dialog_y-build.p (current_datatype, INPUT-OUTPUT fmt).
+    &else 
+        RUN adecomm/_y-build.p (current_datatype, INPUT-OUTPUT fmt).
+    &endif 
+   
+    /* Convert the output value, if necessary, back into American format */
+    /* and display this as the format's screen-value; however, store the */
+    /* American value separately.                                        */
+    IF notAmerican AND (_F._DATA-TYPE = "Integer":U OR _F._DATA-TYPE = "INT64":U
+        OR _F._DATA-TYPE = "Decimal":U) THEN
+        RUN adecomm/_convert.p ("N-TO-A",fmt, 
                                _numeric_separator, _numeric_decimal, 
                                OUTPUT conv_fmt).
     ELSE
-       conv_fmt = fmt.
+        conv_fmt = fmt.
 
-  /* Update value */
-  IF _F._FORMAT NE fmt THEN DO:
-    ASSIGN h_format:SCREEN-VALUE = fmt
+    /* Update value */
+    IF _F._FORMAT NE fmt THEN 
+    DO:
+        ASSIGN h_format:SCREEN-VALUE = fmt
            _F._FORMAT            = conv_fmt
            _F._FORMAT-SOURCE     = "E".
-  END.
+    END.
 END PROCEDURE.
 
-PROCEDURE icon_change.
-  DEF VAR Absolute_Name AS CHAR    NO-UNDO.
+PROCEDURE icon_change. 
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:SetCurrentEvent(this-procedure,"do_icon_change").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else 
+        run do_icon_change.        
+    &endif
+end procedure.
+
+PROCEDURE do_icon_change.
   DEF VAR cnt           AS INTEGER NO-UNDO.
   DEF VAR TestExt       AS CHAR    NO-UNDO.
-  
+  Absolute_Name = "".
   image-formats = "Icons (*.ico)|*.ico|All Files|*.*":U.
-  RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle             */
-                          INPUT "IMAGE",               /* pMode              */
-                 &IF "{&WINDOW-SYSTEM}":U BEGINS "MS-WIN":U &THEN
-                          INPUT image-formats,         /* pFilters           */
-                 &ELSE
-                          INPUT "*.xbm,*.xpm|*.*":U,   /* pFilters           */
-                 &ENDIF
-                          INPUT-OUTPUT {&ICON-DIRS},   /* pDirList           */
-                          INPUT-OUTPUT _C._ICON,       /* pFileName          */
-                          OUTPUT Absolute_Name,        /* pAbsoluteFileMName */
-                          OUTPUT IF_OK).               /* pOK                */
+  RUN
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    adeuib/ide/_dialog_fndfile.p
+  &else  
+    adecomm/_fndfile.p 
+  &endif                        
+                 (INPUT "Image",               /* pTitle             */
+                  INPUT "IMAGE",               /* pMode              */
+         &IF "{&WINDOW-SYSTEM}":U BEGINS "MS-WIN":U &THEN
+                  INPUT image-formats,         /* pFilters           */
+         &ELSE
+                  INPUT "*.xbm,*.xpm|*.*":U,   /* pFilters           */
+         &ENDIF
+                  INPUT-OUTPUT {&ICON-DIRS},   /* pDirList           */
+                  INPUT-OUTPUT _C._ICON,       /* pFileName          */
+                  OUTPUT Absolute_Name,        /* pAbsoluteFileMName */
+                      OUTPUT IF_OK).               /* pOK                */
   IF IF_OK THEN DO:
-    ASSIGN stupid = SELF:LOAD-IMAGE(_C._ICON)
+    ASSIGN stupid = h_btn_up:LOAD-IMAGE(_C._ICON)
            h_fn_txt:SCREEN-VALUE = 
                     IF _C._ICON eq "" THEN ""
                     ELSE ENTRY(NUM-ENTRIES(_C._ICON,"/"),_C._ICON,"/").
@@ -2493,32 +2753,55 @@ PROCEDURE icon_change.
              TestExt = IF cnt > 1 THEN ENTRY(cnt,Absolute_Name,".":U) ELSE ""
              .      
       IF TestExt <> "ICO" THEN
+      do: 
+         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+            ShowMessageInIDE("Windows can only be minimized with true ~".ico~" files.",
+                             "Warning","?","OK",yes).
+         &else 
          MESSAGE "Windows can only be minimized with true ~".ico~" files."
-            VIEW-AS ALERT-BOX WARNING BUTTONS OK. 
+            VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+         &endif   
+      end.       
     END. /* IF...icon ne "" */ 
-  &ENDIF  
+    &ENDIF  
   END. /*...IF_OK...*/
 END PROCEDURE.
 
 PROCEDURE sicon_change.
-  DEF VAR Absolute_Name AS CHAR    NO-UNDO.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"do_sicon_change").
+         run runChildDialog in hOEIDEService (dialogService) .
+    &else 
+         run do_sicon_change.        
+    &endif
+END PROCEDURE.
+
+PROCEDURE do_sicon_change.
+/*  DEF VAR Absolute_Name AS CHAR    NO-UNDO.*/
   DEF VAR cnt           AS INTEGER NO-UNDO.
   DEF VAR TestExt       AS CHAR    NO-UNDO.
-  
+  Absolute_Name = "".
   image-formats = "Icons (*.ico)|*.ico|All Files|*.*":U.
-  RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle             */
-                          INPUT "IMAGE",               /* pMode              */
-                 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-                          INPUT image-formats,         /* pFilters           */
-                 &ELSE
-                          INPUT "*.xbm,*.xpm|*.*":U,   /* pFilters           */
-                 &ENDIF
-                          INPUT-OUTPUT {&ICON-DIRS},   /* pDirList           */
-                          INPUT-OUTPUT _C._SMALL-ICON, /* pFileName          */
-                          OUTPUT Absolute_Name,        /* pAbsoluteFileMName */
-                          OUTPUT IF_OK).               /* pOK                */
+   RUN
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    adeuib/ide/_dialog_fndfile.p
+  &else  
+    adecomm/_fndfile.p 
+  &endif  
+              (INPUT "Image",               /* pTitle             */
+              INPUT "IMAGE",               /* pMode              */
+     &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+              INPUT image-formats,         /* pFilters           */
+     &ELSE
+              INPUT "*.xbm,*.xpm|*.*":U,   /* pFilters           */
+     &ENDIF
+              INPUT-OUTPUT {&ICON-DIRS},   /* pDirList           */
+              INPUT-OUTPUT _C._SMALL-ICON, /* pFileName          */
+              OUTPUT Absolute_Name,        /* pAbsoluteFileMName */
+              OUTPUT IF_OK).               /* pOK                */
+                      
   IF IF_OK THEN DO:
-    ASSIGN stupid = SELF:LOAD-IMAGE(_C._SMALL-ICON)
+    ASSIGN stupid = h_sicon:LOAD-IMAGE(_C._SMALL-ICON)
            h_sicon_txt:SCREEN-VALUE = {&sicon_txt}.
     &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN 
     /* Get the file extension and make sure it is "ICO" in MS-Windows. 
@@ -2528,15 +2811,33 @@ PROCEDURE sicon_change.
              TestExt = IF cnt > 1 THEN ENTRY(cnt,Absolute_Name,".":U) ELSE ""
              .      
       IF TestExt <> "ICO" THEN
+      do:
+         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+            ShowMessageInIDE("Windows can only be minimized with true ~".ico~" files.",
+                             "Warning","?","OK",yes).
+         &else 
          MESSAGE "Windows can only be minimized with true ~".ico~" files."
-            VIEW-AS ALERT-BOX WARNING BUTTONS OK. 
+            VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+         &endif   
+      end.       
     END. /* IF...icon ne "" */ 
   &ENDIF  
   END. /*...IF_OK...*/
 END PROCEDURE.
 
 PROCEDURE image_down_change.
-  DEF VAR Absolute_Name AS CHAR NO-UNDO.
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:SetCurrentEvent(this-procedure,"do_image_down_change").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else 
+        run do_image_down_change.        
+    &endif
+END PROCEDURE.
+
+
+PROCEDURE do_image_down_change.
+  /* DEF VAR Absolute_Name AS CHAR NO-UNDO. */
+  Absolute_Name = "".
   
   image-formats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
     "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
@@ -2547,8 +2848,13 @@ PROCEDURE image_down_change.
     "|Adobe Photoshop (*.psd)|*.psd|Sun Raster (*.ras,*.im,*.im1,*.im8)|*.ras,*.im,*.im1,*.im8|TARGA (*.tga)|*.tga" +
     "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
     "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U.
-    
-  RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle            */
+   RUN
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    adeuib/ide/_dialog_fndfile.p
+  &else  
+    adecomm/_fndfile.p 
+  &endif   
+                         (INPUT "Image",               /* pTitle            */
                           INPUT "IMAGE",               /* pMode             */
       &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                           INPUT image-formats,         /* pFilters          */
@@ -2559,17 +2865,27 @@ PROCEDURE image_down_change.
                           INPUT-OUTPUT _F._IMAGE-DOWN-FILE, 
                           OUTPUT Absolute_Name,        /* pAbsoluteFileName */
                           OUTPUT IF_OK).               /* pOK               */
- IF IF_OK THEN
-   ASSIGN stupid                    = SELF:LOAD-IMAGE(_F._IMAGE-DOWN-FILE)
-          h_fn_dwn_txt:SCREEN-VALUE = IF _F._IMAGE-DOWN-FILE = ""
-             THEN ""
-             ELSE ENTRY(NUM-ENTRIES(_F._IMAGE-DOWN-FILE,dir-del),
-                                    _F._IMAGE-DOWN-FILE,dir-del).
+   IF IF_OK THEN
+      ASSIGN stupid    = h_btn_down:LOAD-IMAGE(_F._IMAGE-DOWN-FILE)
+             h_fn_dwn_txt:SCREEN-VALUE = 
+                         IF _F._IMAGE-DOWN-FILE = ""
+                         THEN ""
+                         ELSE ENTRY(NUM-ENTRIES(_F._IMAGE-DOWN-FILE,dir-del),
+                                                _F._IMAGE-DOWN-FILE,dir-del).
 END PROCEDURE.
 
 PROCEDURE image_insen_change.
-  DEF VAR Absolute_Name AS CHAR NO-UNDO.
-  
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+        dialogService:SetCurrentEvent(this-procedure,"do_image_insen_change").
+        run runChildDialog in hOEIDEService (dialogService) .
+    &else 
+        run do_image_insen_change.        
+    &endif
+END PROCEDURE.
+
+PROCEDURE do_image_insen_change.
+  /* DEF VAR Absolute_Name AS CHAR NO-UNDO. */
+  Absolute_Name = "".
   image-formats = "All Picture Files|*.bmp,*.dib,*.ico,*.gif,*.jpg,*.cal,*.cut,*.dcx,*.eps,*.ica,*.iff,*.img," +
     "*.lv,*.mac,*.msp,*.pcd,*.pct,*.pcx,*.psd,*.ras,*.im,*.im1,*.im8,*.tga,*.tif,*.xbm,*.bm,*.xpm,*.wmf,*.wpg" +
     "|Bitmaps (*.bmp,*.dib)|*.bmp,*.dib|Icons (*.ico)|*.ico|GIF (*.gif)|*.gif|JPEG (*.jpg)|*.jpg" +
@@ -2579,8 +2895,13 @@ PROCEDURE image_insen_change.
     "|Adobe Photoshop (*.psd)|*.psd|Sun Raster (*.ras,*.im,*.im1,*.im8)|*.ras,*.im,*.im1,*.im8|TARGA (*.tga)|*.tga" +
     "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
     "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U.
-  
-  RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle         */
+    RUN
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    adeuib/ide/_dialog_fndfile.p
+  &else  
+    adecomm/_fndfile.p 
+  &endif  
+                         (INPUT "Image",               /* pTitle         */
                           INPUT "IMAGE",               /* pMode          */
      &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                           INPUT image-formats,         /* pFilters       */
@@ -2592,17 +2913,26 @@ PROCEDURE image_insen_change.
                           OUTPUT Absolute_Name,        /* pAbsolute_Name */
                           OUTPUT IF_OK).               /* pOK            */
   IF IF_OK THEN
-    ASSIGN stupid       = SELF:LOAD-IMAGE(_F._IMAGE-INSENSITIVE-FILE)
+    ASSIGN stupid       = h_btn_insen:LOAD-IMAGE(_F._IMAGE-INSENSITIVE-FILE)
            h_fn_ins_txt:SCREEN-VALUE = IF _F._IMAGE-INSENSITIVE-FILE = ""
              THEN ""
              ELSE ENTRY(NUM-ENTRIES(_F._IMAGE-INSENSITIVE-FILE,dir-del),
                                     _F._IMAGE-INSENSITIVE-FILE,dir-del).
 END PROCEDURE.
 
-PROCEDURE image_up_change.
-  DEF VAR Absolute_Name AS CHAR NO-UNDO.
+PROCEDURE image_up_change:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_image_up_change").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else      
+      run do_image_up_change.
+   &endif 
+END PROCEDURE.
+
+PROCEDURE do_image_up_change:
+  /* DEF VAR Absolute_Name AS CHAR NO-UNDO. */
   DEF VAR tmp-name      AS CHAR NO-UNDO.
-  
+  Absolute_Name = "".
   IF _F._IMAGE-FILE = "adeicon/blank":U THEN
     ASSIGN tmp-name       = _F._IMAGE-FILE
            _F._IMAGE-FILE = "":U.
@@ -2617,7 +2947,13 @@ PROCEDURE image_up_change.
     "|TIFF (*.tif)|*.tif|Pixmap (*.xpm)|*.xpm|Metafiles (*.wmf)|*.wmf|WordPerfect graphics (*.wpg)|*.wpg|" +
     "Xbitmap (*.xbm,*.bm)|*.xbm,*.bm|All Files|*.*":U.
 
-  RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle            */
+     RUN
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    adeuib/ide/_dialog_fndfile.p
+  &else  
+    adecomm/_fndfile.p 
+  &endif 
+                         (INPUT "Image",               /* pTitle            */
                           INPUT "IMAGE",               /* pMode             */
      &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
                           INPUT image-formats,         /* pFilters          */
@@ -2628,12 +2964,11 @@ PROCEDURE image_up_change.
                           INPUT-OUTPUT _F._IMAGE-FILE, /* pFileName         */
                           OUTPUT Absolute_Name,        /* pAbsoluteFileName */
                           OUTPUT IF_OK).               /* pOK               */
-
   IF _F._IMAGE-FILE = "":U AND tmp-name <> "":U THEN
     ASSIGN _F._IMAGE-FILE = tmp-name.
  
   IF IF_OK THEN
-    ASSIGN stupid               = SELF:LOAD-IMAGE(_F._IMAGE-FILE)
+    ASSIGN stupid               = h_btn_up:LOAD-IMAGE(_F._IMAGE-FILE)
            h_fn_txt:SCREEN-VALUE = IF _F._IMAGE-FILE = ""
                      THEN ""
                      ELSE ENTRY(NUM-ENTRIES(_F._IMAGE-FILE,dir-del),
@@ -2676,8 +3011,7 @@ PROCEDURE max_value_change.
 END.
 
 PROCEDURE menu_bar_change.
-  DEF VAR pressed_ok as logical no-undo.
-  DEF VAR empty_menu as logical no-undo.
+  
   DEF VAR lOk        AS LOGICAL NO-UNDO.
 
   RUN adecomm/_setcurs.p ("WAIT":U).
@@ -2699,18 +3033,7 @@ PROCEDURE menu_bar_change.
   END. 
   
   menu-bar_recid = _C._menu-recid.
-  RUN adeuib/_edtmenu.p (INPUT RECID(_U), 
-                         INPUT "MENUBAR",
-                         INPUT ?,
-                         INPUT-OUTPUT menu-bar_recid,
-                         OUTPUT pressed_ok,
-                         OUTPUT empty_menu).
-  IF pressed_ok THEN ASSIGN update_menu-bar = pressed_ok
-                            delete_menu-bar = empty_menu.
-  IF delete_menu-bar THEN
-    ASSIGN h_btn_menu-bar:TOOLTIP = "Menu Bar".
-  ELSE 
-    ASSIGN h_btn_menu-bar:TOOLTIP = "Menu Bar (defined)".  
+  run choose_menubar. 
 END PROCEDURE.
 
 PROCEDURE min_value_change:
@@ -2763,9 +3086,7 @@ PROCEDURE no_label_change:
 END.
 
 PROCEDURE popup_menu_change:
-  DEF VAR pressed_ok as logical no-undo.
-  DEF VAR empty_menu as logical no-undo.
-                
+           
   RUN adecomm/_setcurs.p ("WAIT":U).
 
   /* Update the popup menu if necessary */ 
@@ -2778,13 +3099,7 @@ PROCEDURE popup_menu_change:
   END.
  
   popup_recid = _U._popup-recid.
-  RUN adeuib/_edtmenu.p (RECID(_U), "POPUP-MENU":U, ?,
-                         INPUT-OUTPUT popup_recid,
-                         OUTPUT pressed_ok,
-                         OUTPUT empty_menu).
-  IF pressed_ok THEN ASSIGN update_menu = pressed_ok
-                            delete_menu = empty_menu.
-  h_btn_popup:TOOLTIP = "Popup" + (IF delete_menu THEN " Menu" ELSE " Menu (Defined)").
+  run choose_popupmenu. 
 END.
 
 PROCEDURE query_edit:
@@ -2810,11 +3125,26 @@ PROCEDURE query_modify:
       OUTPUT dbconnected).
     if dbconnected eq no THEN RETURN.
   END.
+  
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_query_modify").
+      run runChildDialog in hOEIDEService (dialogService) .
+  &else
+      run do_query_modify.
+  &endif   
+  
+end procedure.
 
+procedure do_query_modify:
   DO ON QUIT, LEAVE:
-    IF _U._TYPE eq "BROWSE":U
-    THEN RUN adeuib/_callqry.p ("_U":U, RECID(_U), "NORMAL":U).
-    ELSE RUN adeuib/_callqry.p ("_U":U, RECID(_U), "QUERY-ONLY":U).
+    IF _U._TYPE eq "BROWSE":U THEN
+    DO: 
+        RUN adeuib/_callqry.p ("_U":U, RECID(_U), "NORMAL":U).
+    END.
+    ELSE
+    DO:
+        RUN adeuib/_callqry.p ("_U":U, RECID(_U), "QUERY-ONLY":U).
+    END. 
     FIND _TRG WHERE _TRG._wRECID = RECID(_U) AND
                     _TRG._tEVENT = "OPEN_QUERY":U NO-ERROR.
     IF AVAILABLE _TRG THEN RUN freeform_setup.
@@ -2823,7 +3153,7 @@ PROCEDURE query_modify:
     IF VALID-HANDLE(h_btn_flds) THEN
       h_btn_flds:SENSITIVE = h_btn_mdfy:SENSITIVE AND _Q._4GLQury NE "".
   END.
-END.
+end procedure.    
 
 PROCEDURE row-height_change:
   DEFINE VARIABLE minbrw-height AS DECIMAL NO-UNDO.
@@ -2844,8 +3174,14 @@ PROCEDURE row-height_change:
       ASSIGN h_self:HEIGHT     = new-height * 3 + 2
              h_self:ROW-HEIGHT = new-height
              minbrw-height     = h_self:MIN-HEIGHT-CHARS.
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+            ShowMessageInIDE(_U._NAME + " must be at least " + string(minbrw-height)
+                             + " characters high.  Resizing...",
+                             "Warning","?","OK",yes).
+      &else       
       MESSAGE _U._NAME "must be at least" minbrw-height
           "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+      &endif    
       ASSIGN h_self:HEIGHT      = minbrw-height
              h_hgt:SCREEN-VALUE = STRING(minbrw-height).
       APPLY "LEAVE":U TO h_hgt.
@@ -2919,11 +3255,18 @@ PROCEDURE toolbar_check:
   
   IF lMenu THEN  
   DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+         ShowMessageInIDE( "This window has at least one SmartToolbar with a menu. ~n" +
+                           "The SmartToolbar must be removed or its menu option turned off ~n" + 
+                           "before a menubar can be created with this tool.",
+                           "Information","?","OK",yes).
+    &else  
     MESSAGE 
      "This window has at least one SmartToolbar with a menu.   " SKIP
      "The SmartToolbar must be removed or its menu option turned off" SKIP 
      "before a menubar can be created with this tool."  
        VIEW-AS ALERT-BOX INFORMATION.
+    &endif   
   END. /* if valid-handle h_self:menu-bar */
   
   plOk = NOT lMenu.
@@ -2931,33 +3274,7 @@ PROCEDURE toolbar_check:
 END.
 
 PROCEDURE ttl_color_change:
-  DEF VAR sav_bgc AS INT NO-UNDO.
-  DEF VAR sav_fgc AS INT NO-UNDO.
-  DEF VAR sep_fgc AS INT NO-UNDO.
-  
-  ASSIGN sav_bgc = _L._TITLE-BGCOLOR
-         sav_fgc = _L._TITLE-FGCOLOR.
-               
-  RUN adecomm/_chscolr.p (INPUT "Choose Title Color",
-                          INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U
-                          THEN "Frame Title Color not supported under Windows."
-                          ELSE ""),
-                          INPUT FALSE,
-                          INPUT ?, 
-                          INPUT ?,  
-                          INPUT ?,
-                       INPUT-OUTPUT _L._TITLE-BGCOLOR,
-                          INPUT-OUTPUT _L._TITLE-FGCOLOR,
-                          INPUT-OUTPUT sep_fgc,
-                          OUTPUT stupid).
-                          
-  IF _L._LO-NAME = "Master Layout" THEN DO:
-    FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
-                          sync_L._LO-NAME NE _L._LO-NAME:
-      IF sync_L._TITLE-BGCOLOR = sav_bgc THEN sync_L._TITLE-BGCOLOR = _L._TITLE-BGCOLOR.
-      IF sync_L._TITLE-FGCOLOR = sav_fgc THEN sync_L._TITLE-FGCOLOR = _L._TITLE-FGCOLOR.
-    END.
-  END.                          
+    run choose_ttl_color_change.               
 END PROCEDURE.
 
 /* VIRTUAL DIMENSION CHANGE */
@@ -3001,7 +3318,11 @@ PROCEDURE vir_height_change.
 
   /* Display the error message */
   IF err-msg NE ? THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+    &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    &endif
     RETURN ERROR.
   END.
      
@@ -3048,7 +3369,11 @@ PROCEDURE vir_width_change.
      
   /* Display the error message */
   IF err-msg NE ? THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+    &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    &endif
     RETURN ERROR.
   END.
      
@@ -3117,8 +3442,14 @@ PROCEDURE height_change.
                      
   IF _U._TYPE = "BROWSE":U THEN do:
     IF new-height < h_self:MIN-HEIGHT-CHARS THEN DO:
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( _U._NAME + "must be at least" + string(h_self:min-height-chars) +
+                        "characters high.  Resizing...",
+                        "Warning","?","OK",yes).
+    &else  
       MESSAGE _U._NAME "must be at least" h_self:MIN-HEIGHT-CHARS
          "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+      &endif   
       ASSIGN new-height    = h_self:MIN-HEIGHT-CHARS
              h_self:HEIGHT = new-height.
     END.  /* if new height less than min height */
@@ -3132,7 +3463,11 @@ PROCEDURE height_change.
   
   /* Display an error message if there is one */
   IF err-msg NE ? THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+    &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    &endif
     RETURN ERROR.
   END.
     
@@ -3231,8 +3566,14 @@ PROCEDURE width_change.
           ASSIGN h_self:HEIGHT = h_self:HEIGHT + 1
                  h_self:WIDTH  = new-width
                  minbrw-height = h_self:MIN-HEIGHT-CHARS.
+          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ShowMessageInIDE( _U._NAME + " must be at least " + string( minbrw-height) + "~n"
+                            + "characters high.  Resizing...",
+                           "Warning","?","OK",yes).
+          &else       
           MESSAGE _U._NAME "must be at least" minbrw-height
               "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+          &endif    
           ASSIGN h_self:HEIGHT      = minbrw-height
                  h_hgt:SCREEN-VALUE = STRING(minbrw-height).
           APPLY "LEAVE":U TO h_hgt.
@@ -3246,7 +3587,11 @@ PROCEDURE width_change.
 
   /* Display the error message, if we got one */
   IF err-msg NE ? THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      ShowMessageInIDE( err-msg,"Warning","?","OK",yes).
+    &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    &endif
     RETURN ERROR.
   END.
 END PROCEDURE. /* width_change */
@@ -3340,10 +3685,16 @@ END PROCEDURE. /* Width_check */
 
 PROCEDURE adjust_frame.
   ASSIGN FRAME prop_sht:HIDDEN     = TRUE 
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
          FRAME prop_sht:PARENT     = ACTIVE-WINDOW
-         FRAME prop_sht:TITLE      = "Property Sheet - " + _U._NAME + 
+         FRAME prop_sht:TITLE     
+    &else
+        dialogTitle 
+    &endif
+          = "Property Sheet - " + _U._NAME + 
                                       IF _L._LO-NAME NE "Master Layout" THEN
                                       " - Layout: " + _U._LAYOUT-NAME ELSE ""
+         
          txt_geom:SCREEN-VALUE IN FRAME prop_sht  = " Geometry":L38
          txt_attrs:SCREEN-VALUE IN FRAME prop_sht = " Other Settings":L38
          last-tab                  = name:HANDLE IN FRAME prop_sht
@@ -4522,7 +4873,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SENSITIVE        = TRUE
                   TOOLTIP          = "Translation Attributes"
             TRIGGERS:
-              ON CHOOSE PERSISTENT RUN adeuib/_attredt.w (h_self, ?).
+              ON CHOOSE PERSISTENT RUN Trans_Attrs_procs.
             END TRIGGERS.
       ASSIGN stupid         = h_btn_trans:LOAD-IMAGE({&ADEICON-DIR} + "trans-u" +
                                           "{&BITMAP-EXT}",2,2,32,32)
@@ -4540,7 +4891,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SENSITIVE        = TRUE
                   TOOLTIP          = "Database Field"
            TRIGGERS:
-             ON CHOOSE PERSISTENT RUN db_field_selection.
+             ON CHOOSE PERSISTENT RUN db_field_selection({&ABL_STATE}).
            END TRIGGERS.
            
       ASSIGN stupid = h_btn_dbfld:LOAD-IMAGE({&ADEICON-DIR} + "flds-u" +
@@ -4549,6 +4900,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
     END.  /* Has dbfield */
     
     WHEN "MENU-BAR" THEN DO:
+        
       FIND x_U WHERE RECID(x_U) = _C._menu-recid NO-ERROR.
       CREATE BUTTON h_btn_menu-bar
            ASSIGN FRAME            = FRAME prop_sht:HANDLE
@@ -4887,7 +5239,7 @@ END. /* For each non-toggle attribute */
                   SENSITIVE        = TRUE
                   TOOLTIP          = "Tab Order"
             TRIGGERS:
-              ON CHOOSE PERSISTENT RUN adeuib/_tabedit.w (RECID(_U)).
+              ON CHOOSE PERSISTENT RUN tab_order.
             END TRIGGERS.
       ASSIGN stupid         = h_btn_tabs:LOAD-IMAGE({&ADEICON-DIR} + "tabedit" +
                                           "{&BITMAP-EXT}",2,2,32,32)
@@ -5273,16 +5625,26 @@ PROCEDURE frequency_validation:
   IF INTEGER(h_min-value:SCREEN-VALUE) <> 0 THEN DO:
     IF INTEGER(h_frequency:SCREEN-VALUE) > 
       (INTEGER(h_max-value:SCREEN-VALUE) - INTEGER(h_min-value:SCREEN-VALUE)) THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ShowMessageInIDE( "Tic mark frequency cannot be larger than the difference between 
+                              the maximum and minimum values.","Error","?","OK",yes).
+        &else  
         MESSAGE "Tic mark frequency cannot be larger than the difference between" +
           " the maximum and minimum values." 
             VIEW-AS ALERT-BOX ERROR.
+        &endif    
         ASSIGN lOk = FALSE.
     END.  /* tic mark frequency too big */
     ELSE lOk = TRUE.
   END.  /* min value negative */
   ELSE IF INTEGER(h_frequency:SCREEN-VALUE) > INTEGER(h_max-value:SCREEN-VALUE) THEN DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( "Tic mark frequency cannot be larger than the maximum value.",
+                         "Error","?","OK",yes).
+    &else  
     MESSAGE "Tic mark frequency cannot be larger than the maximum value."
         VIEW-AS ALERT-BOX ERROR.
+    &endif    
     ASSIGN lOk = FALSE.
   END.  /* frequency > max-value */  
   ELSE lOk = TRUE.
@@ -5328,8 +5690,13 @@ PROCEDURE delimiter_change:
          or length(h_delimiter:SCREEN-VALUE) = 0 
            or h_delimiter:SCREEN-VALUE = " ":U
        then DO:
+          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ShowMessageInIDE( "Delimiter must be specified. Reverting to default delimiter.",
+                             "Information","?","OK",yes).
+          &else 
           MESSAGE "Delimiter must be specified. Reverting to default delimiter."
             VIEW-AS ALERT-BOX INFO BUTTONS OK.
+          &endif  
           ASSIGN _F._delimiter = ",":U
                  h_delimiter:SCREEN-VALUE  = ",":U.
           RETURN NO-APPLY.
@@ -5338,8 +5705,13 @@ PROCEDURE delimiter_change:
     /* if invalid format*/
        IF LENGTH(h_delimiter:SCREEN-VALUE) <> 1 OR 
          (ASC(h_delimiter:SCREEN-VALUE) GT 126 OR ASC(h_delimiter:SCREEN-VALUE) LE 32) THEN DO:
+         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ShowMessageInIDE( "Delimiter must be a single printable character.",
+                             "Information","?","OK",yes).
+          &else    
          MESSAGE "Delimiter must be a single printable character."
                  VIEW-AS ALERT-BOX INFO BUTTONS OK.
+         &endif        
          RETURN NO-APPLY.
        END. /*if length */
        ELSE 
@@ -5546,9 +5918,15 @@ PROCEDURE process-sellist-and-combo:
     /* NOTE: This code is mirrored in the FILL-IN section below */
     IF _U._TYPE = "COMBO-BOX":U AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
       IF NUM-ENTRIES (_F._FORMAT, "/") NE 2 THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ShowMessageInIDE( "'" + _F._FORMAT + "' is an invalid logical format. ~n" +
+                             " Use a format of the form 'yes/no' or 'true/false'.",
+                             "Error","?","OK",yes).
+        &else  
         MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
                 " Use a format of the form 'yes/no' or 'true/false'."
                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        &endif        
         l_error_on_go = TRUE.
       END.
       ELSE _F._INITIAL-DATA = ENTRY (sav-ldef, _F._FORMAT,"/":U).
@@ -5633,9 +6011,14 @@ PROCEDURE set_window_controls:
   /* Tell the user that the small icon will be removed if no control-box */
   IF _C._CONTROL-BOX = FALSE AND _C._SMALL-ICON <> "" THEN
   DO:
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+           ok = ShowMessageInIDE( "This property change will remove the specified small icon",
+                                  "Information","?","OK",yes).
+    &else  
     MESSAGE 
        "This property change will remove the specified small icon"
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE ok.
+    &endif  
     IF NOT ok THEN
     DO:
         ASSIGN
@@ -5771,4 +6154,293 @@ FUNCTION getOpenObjectFilter RETURNS CHARACTER
   ( ) :
 
   RETURN "Procedure":U.
-END FUNCTION.
+END FUNCTION. 
+
+
+procedure choose_menubar:
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_menubar").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else 
+      run do_choose_menubar.             
+   &endif.                      
+end procedure.  
+
+procedure do_choose_menubar:
+    DEF VAR pressed_ok as logical no-undo.
+    DEF VAR empty_menu as logical no-undo.
+    
+       &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    RUN adeuib/ide/_dialog_edtmenu.p (INPUT RECID(_U), 
+                         INPUT "MENUBAR",
+                         INPUT ?,
+                         INPUT-OUTPUT menu-bar_recid,
+                         OUTPUT pressed_ok,
+                         OUTPUT empty_menu).
+       &else
+     RUN adeuib/_edtmenu.p (INPUT RECID(_U), 
+                         INPUT "MENUBAR",
+                         INPUT ?,
+                         INPUT-OUTPUT menu-bar_recid,
+                         OUTPUT pressed_ok,
+                         OUTPUT empty_menu).
+        &endif                    
+    IF pressed_ok THEN ASSIGN update_menu-bar = pressed_ok
+                              delete_menu-bar = empty_menu.
+                         
+    IF delete_menu-bar THEN
+        ASSIGN h_btn_menu-bar:TOOLTIP = "Menu Bar".
+    ELSE 
+      ASSIGN h_btn_menu-bar:TOOLTIP = "Menu Bar (defined)".  
+     
+end procedure.  
+    
+procedure choose_popupmenu:
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_popupmenu").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else 
+      run do_choose_popupmenu.             
+   &endif.                      
+end procedure.  
+
+procedure do_choose_popupmenu:
+    define var pressed_ok as logical no-undo.
+    define var empty_menu as logical no-undo.
+    
+       &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    RUN adeuib/ide/_dialog_edtmenu.p (RECID(_U), "POPUP-MENU":U, ?,
+                         INPUT-OUTPUT popup_recid,
+                         OUTPUT pressed_ok,
+                         OUTPUT empty_menu).
+       &else
+    RUN adeuib/_edtmenu.p (RECID(_U), "POPUP-MENU":U, ?,
+                         INPUT-OUTPUT popup_recid,
+                         OUTPUT pressed_ok,
+                         OUTPUT empty_menu).
+       &endif                   
+    
+    IF pressed_ok THEN ASSIGN update_menu = pressed_ok
+                            delete_menu = empty_menu.
+   
+    h_btn_popup:TOOLTIP = "Popup" + (IF delete_menu THEN " Menu" ELSE " Menu (Defined)").                           
+end procedure.    
+  
+
+procedure Trans_Attrs_procs:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_attredt").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else 
+    run adeuib/_attredt.w (h_self, ?).
+  &endif  
+end procedure. 
+
+procedure choose_advanced: 
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_advanced").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else      
+      run do_choose_advanced.
+   &endif 
+end procedure.
+
+procedure do_choose_advanced: 
+/* For logicals, we validate the format so we can get an 
+   * appropriate initial-data for the advanced prop sheet. */
+  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
+    IF NUM-ENTRIES(_F._FORMAT,"/":U) NE 2 THEN DO:
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+        ShowMessageInIDE( "'" + _F._FORMAT + "' is an invalid logical format. ~n" 
+                          + "Use a format of the form 'yes/no' or 'true/false'.",
+                          "Error","?","OK",yes).
+      &else  
+      MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
+              "Use a format of the form 'yes/no' or 'true/false'."
+              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+      &endif        
+      APPLY "ENTRY":U TO h_format.
+      RETURN NO-APPLY.
+    END.
+    ELSE _F._INITIAL-DATA = ENTRY (sav-ldef, _F._FORMAT,"/":U).
+  END. /* data-type is logical */
+  
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      RUN adeuib/ide/_dialog_advprop.p (RECID(_U), lbl_wdth).
+  &else      
+      RUN adeuib/_advprop.w (RECID(_U), lbl_wdth).
+  &endif 
+  
+  /* Update logical fill-ins saved default-- it may have changed in advprop */
+  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
+     sav-ldef = LOOKUP (TRIM(_F._INITIAL-DATA), _F._FORMAT,"/":U).
+     IF sav-ldef = 0 THEN sav-ldef = 2.
+  END.
+
+  IF _U._TYPE = "FRAME":U AND (_C._PAGE-TOP OR _C._PAGE-BOTTOM) THEN
+    h_DOWN:CHECKED = FALSE.
+
+  IF h_align NE ? THEN h_align:SCREEN-VALUE = _U._ALIGN.
+
+  RUN compute_lbl_wdth. 
+
+  CASE _U._ALIGN:
+    WHEN "R" THEN xpos = _L._COL  - 1 + _L._WIDTH.
+    WHEN "C" THEN xpos = _L._COL - 2.
+    OTHERWISE
+      xpos = IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND parent_C._SIDE-LABELS THEN
+                   /* SIDE-LABELS */  (_L._COL - lbl_wdth)
+                ELSE IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
+                     NOT parent_L._NO-LABELS THEN
+                   /* COLUMN LABELS */ (_L._COL - MAX(0, lbl_wdth - _L._WIDTH))
+                ELSE _L._COL.
+  END.  /* Case */
+   
+  ASSIGN h_col:SCREEN-VALUE  = IF xpos NE ? THEN STRING(xpos,"->>9.99") ELSE "?"
+         h_row:SCREEN-VALUE  = IF _L._ROW NE ? THEN 
+                                 STRING(_L._ROW - col-lbl-adj,"->>9.99") ELSE "?"
+         h_wdth:SCREEN-VALUE = STRING(_L._WIDTH,">>9.99")
+         h_hgt:SCREEN-VALUE  = STRING(_L._HEIGHT,">>9.99").
+  IF h_row-hgt NE ? THEN
+    ASSIGN h_row-hgt:SCREEN-VALUE = STRING(_C._ROW-HEIGHT,">>9.99").
+  IF h_v-wdth NE ? THEN
+    ASSIGN h_v-wdth:SCREEN-VALUE = STRING(_L._VIRTUAL-WIDTH,">>9.99")
+           h_v-hgt:SCREEN-VALUE  = STRING(_L._VIRTUAL-HEIGHT,">>9.99").
+  IF h_REMOVE-FROM-LAYOUT NE ?  THEN
+    ASSIGN h_REMOVE-FROM-LAYOUT:CHECKED = _L._REMOVE-FROM-LAYOUT. 
+  APPLY "ENTRY" TO btn_OK IN FRAME prop_sht.
+end procedure.
+ 
+procedure choose_color: 
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_color").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else      
+      run do_choose_color.
+   &endif 
+end procedure.
+    
+/* redirected from Trans_Attrs_procs */    
+procedure ide_choose_attredt:
+    run adeuib/ide/_dialog_attredt.p (h_self, ?).
+end procedure.
+
+procedure do_choose_color:
+  DEFINE VARIABLE l_ok           AS LOGICAL           NO-UNDO.
+  DEFINE VARIABLE parent_bgcolor AS INTEGER INITIAL ? NO-UNDO.
+  DEFINE VARIABLE parent_fgcolor AS INTEGER INITIAL ? NO-UNDO. 
+  /* DEFINE VARIABLE sav_bgc        AS INTEGER           NO-UNDO.
+  DEFINE VARIABLE sav_fgc        AS INTEGER           NO-UNDO. */
+   
+  ASSIGN sav_bgc = _L._BGCOLOR
+         sav_fgc = _L._FGCOLOR.
+  
+  IF NOT CAN-DO("WINDOW,FRAME,DIALOG-BOX",_U._TYPE) THEN
+    /* Get the current Windows background and foreground colors. (dma) 
+       Backed out for 20000106-021.
+    RUN adecomm/_wincolr.p (parent_L._BGCOLOR,
+                            parent_L._FGCOLOR,
+                            OUTPUT parent_bgcolor, 
+                            OUTPUT parent_fgcolor). */ 
+    ASSIGN parent_bgcolor = parent_L._BGCOLOR
+           parent_fgcolor = parent_L._FGCOLOR.
+
+  /* Note that since _L can be undone, it will be if the user clicks CANCEL. */
+  /* If the window-system is in {&no_color} then comment that                */
+  /*     "Button Color not supported under MS-WINDOWS."                      */
+  RUN 
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+  adeuib/ide/_dialog_chscolr.p
+  &else
+  adecomm/_chscolr.p
+  &endif  
+       (INPUT "Choose Color",
+        INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U AND
+               CAN-DO("BUTTON,IMAGE":U,_U._TYPE)
+               THEN (TRIM(STRING(LC(_U._TYPE),"!x(20)")) +
+                     " color not supported under " +
+                     SESSION:WINDOW-SYSTEM + ".")
+               ELSE ""),
+        INPUT (IF _U._TYPE = "BROWSE" AND _L._SEPARATORS THEN TRUE ELSE FALSE),
+        INPUT parent_bgcolor,
+        INPUT parent_fgcolor,
+        INPUT ?,
+        INPUT-OUTPUT _L._BGCOLOR,
+        INPUT-OUTPUT _L._FGCOLOR,
+        INPUT-OUTPUT _L._SEPARATOR-FGCOLOR,
+        OUTPUT l_ok).
+  
+  IF _L._LO-NAME = "Master Layout" THEN DO:
+    FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
+                          sync_L._LO-NAME NE _L._LO-NAME:
+      IF sync_L._BGCOLOR = sav_bgc THEN sync_L._BGCOLOR = _L._BGCOLOR.
+      IF sync_L._FGCOLOR = sav_fgc THEN sync_L._FGCOLOR = _L._FGCOLOR.
+    END.
+  END.  /* If this was the master layout */
+  
+  APPLY "ENTRY":U TO btn_OK IN FRAME prop_sht.
+ 
+end procedure.
+
+procedure choose_ttl_color_change:
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"do_choose_ttl_color_change").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else 
+      run do_choose_ttl_color_change.            
+   &endif 
+end procedure.
+
+procedure do_choose_ttl_color_change:
+   /* DEF VAR sav_bgc AS INT NO-UNDO.
+      DEF VAR sav_fgc AS INT NO-UNDO.
+      DEF VAR sep_fgc AS INT NO-UNDO. */
+  
+   ASSIGN sav_bgc = _L._TITLE-BGCOLOR
+          sav_fgc = _L._TITLE-FGCOLOR.
+    
+   RUN
+   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   adeuib/ide/_dialog_chscolr.p
+   &else             
+   adecomm/_chscolr.p 
+   &endif
+                         (INPUT "Choose Title Color",
+                          INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U
+                          THEN "Frame Title Color not supported under Windows."
+                          ELSE ""),
+                          INPUT FALSE,
+                          INPUT ?, 
+                          INPUT ?,  
+                          INPUT ?,
+                       INPUT-OUTPUT _L._TITLE-BGCOLOR,
+                          INPUT-OUTPUT _L._TITLE-FGCOLOR,
+                          INPUT-OUTPUT sep_fgc,
+                          OUTPUT stupid).
+  IF _L._LO-NAME = "Master Layout" THEN DO:
+    FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
+                          sync_L._LO-NAME NE _L._LO-NAME:
+      IF sync_L._TITLE-BGCOLOR = sav_bgc THEN sync_L._TITLE-BGCOLOR = _L._TITLE-BGCOLOR.
+      IF sync_L._TITLE-FGCOLOR = sav_fgc THEN sync_L._TITLE-FGCOLOR = _L._TITLE-FGCOLOR.
+    END.
+  END.           
+end procedure.    
+
+procedure tab_order:
+    &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+      dialogService:SetCurrentEvent(this-procedure,"ide_choose_tab_order").
+      run runChildDialog in hOEIDEService (dialogService) .
+   &else
+    run adeuib/_tabedit.w (RECID(_U)).
+   &endif 
+   
+end procedure.
+
+procedure ide_choose_tab_order:
+    run adeuib/ide/_dialog_tabedit.p (RECID(_U)).
+end procedure.
+
+procedure ide_db_field_selection:   
+    RUN  db_field_selection({&IDE_STATE}).
+end procedure. 
+    

@@ -31,7 +31,7 @@
 { adeshar/qurydefs.i } 
 { adecomm/cbvar.i }
 { adecomm/adeintl.i }
-
+{adecomm/oeideservice.i}
 DEFINE INPUT PARAMETER cLabel      AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER cGuess      AS CHARACTER NO-UNDO.
 DEFINE INPUT PARAMETER application AS CHARACTER NO-UNDO.
@@ -133,58 +133,173 @@ DO WITH FRAME dialog-1:
     
     WHEN "o":u THEN /* get one value of any type */
       CASE iDataType:
-        WHEN 1 THEN RUN adecomm/_y-strng.p
-          (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
-        WHEN 2 THEN RUN adecomm/_y-date.p   
-          (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
-        WHEN 34 THEN RUN adecomm/_y-datetime.p   
-          (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
-        WHEN 40 THEN RUN adecomm/_y-datetime-tz.p   
-          (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
-        WHEN 3 THEN RUN adecomm/_y-logic.p
-          (1,cFormat,?,OUTPUT cValue). 
+        WHEN 1 THEN
+        do: 
+           IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-strng.p
+           (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+           else
+           RUN adecomm/_y-strng.p
+           (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar). 
+        end.   
+        WHEN 2 THEN
+        do:
+             if OEIDEIsRunning then  
+               run adeuib/ide/_dialog_y-date.p(1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+             else
+            RUN adecomm/_y-date.p(1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+        end.  
+        WHEN 34 THEN
+        do:
+            if OEIDEIsRunning then  
+               run adeuib/ide/_dialog_y-datetime.p (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+            else     
+           RUN adecomm/_y-datetime.p   
+              (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+        end.      
+        WHEN 40 THEN
+        do: 
+            if OEIDEIsRunning then  
+               run adeuib/ide/_dialog_y-datetime-tz.p(1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+            else   
+            RUN adecomm/_y-datetime-tz.p   
+             (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+        end.     
+        WHEN 3 THEN
+        do:
+            if OEIDEIsRunning then  
+               run adeuib/ide/_dialog_y-logic.p
+          (1,cFormat,?,OUTPUT cValue).
+            else   
+             RUN adecomm/_y-logic.p
+          (1,cFormat,?,OUTPUT cValue).
+        end.   
         WHEN 4 OR WHEN 5 OR WHEN 41
-               THEN RUN adecomm/_y-num.p
-          (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+               THEN
+        do: 
+            if OEIDEIsRunning then  
+               run adeuib/ide/_dialog_y-num.p
+                   (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+            else      
+                RUN adecomm/_y-num.p
+                    (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
+        end.  
       END CASE.
       
     WHEN "u":u THEN /* get one unformatted string value */
+    do:
+      IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-strng.p(1,"x(":u + STRING(LENGTH(STRING("",cFormat),"CHARACTER":u)) + ")":u,
+         ?,OUTPUT cValue,OUTPUT lInclusiveVar).
+      else     
       RUN adecomm/_y-strng.p
         (1,"x(":u + STRING(LENGTH(STRING("",cFormat),"CHARACTER":u)) + ")":u,
          ?,OUTPUT cValue,OUTPUT lInclusiveVar).
-         
+    end.     
     WHEN "q":u THEN /* get qbw string */
-      RUN adecomm/_y-qbw.p (1,?,?,OUTPUT cValue).
-      
+    do:
+        IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-qbw.p (1,?,?,OUTPUT cValue).
+        else   
+           RUN adecomm/_y-qbw.p (1,?,?,OUTPUT cValue).
+    end.  
     WHEN "r":u THEN DO: /* get upper & lower range for anything but logical */
       CASE iDataType:
-        WHEN 1 THEN RUN "adecomm/_y-strng.p"  
+        WHEN 1 THEN
+        do: 
+          IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-strng.p (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+          else   
+          RUN "adecomm/_y-strng.p"  
           (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 2 THEN RUN "adecomm/_y-date.p"    
-          (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 34 THEN RUN "adecomm/_y-datetime.p"    
-          (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 40 THEN RUN "adecomm/_y-datetime-tz.p"    
-          (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.  
+        WHEN 2 THEN
+        do: 
+            IF OEIDEIsRunning then 
+            RUN "adeuib/ide/_dialog_y-date.p"    
+                (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+            else    
+            RUN "adecomm/_y-date.p"    
+                (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.        
+        WHEN 34 THEN 
+        do:
+            IF OEIDEIsRunning then
+            RUN "adeuib/ide/_dialog_y-datetime.p"    
+                 (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+            else
+            RUN "adecomm/_y-datetime.p"    
+                 (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).     
+        end.         
+        WHEN 40 THEN
+        do: 
+            IF OEIDEIsRunning then
+            RUN "adeuib/ide/_dialog_y-datetime-tz.p"    
+            (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+            else 
+            RUN "adecomm/_y-datetime-tz.p"    
+            (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.    
         WHEN 4 OR WHEN 5 OR WHEN 41
-               THEN RUN "adecomm/_y-num.p"  
-          (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+               THEN
+        do:  
+               IF OEIDEIsRunning then
+               RUN "adeuib/ide/_dialog_y-num.p"  
+               (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+               else   
+               RUN "adecomm/_y-num.p"  
+               (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.  
       END CASE.
     END.
     
     WHEN "m":u THEN DO: /* get list of values for anything but logical */
       CASE iDataType:
-        WHEN 1 THEN RUN "adecomm/_y-strng.p"  
+        WHEN 1 THEN
+        do: 
+          IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-strng.p(3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+          else   
+          RUN "adecomm/_y-strng.p"  
           (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 2 THEN RUN "adecomm/_y-date.p"    
-          (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 34 THEN RUN "adecomm/_y-datetime.p"    
-          (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 40 THEN RUN "adecomm/_y-datetime-tz.p"    
-          (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.  
+        WHEN 2 THEN
+        do: 
+             IF OEIDEIsRunning then  
+             RUN "adeuib/ide/_dialog_y-date.p"    
+                 (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+             else
+             RUN "adecomm/_y-date.p"    
+                 (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.  
+        WHEN 34 THEN
+        do: 
+           IF OEIDEIsRunning then  
+             RUN "adeuib/ide/_dialog_y-datetime.p"    
+            (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+           else   
+           RUN "adecomm/_y-datetime.p"    
+            (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.    
+        WHEN 40 THEN
+        do: 
+           IF OEIDEIsRunning then  
+             RUN "adeuib/ide/_dialog_y-datetime-tz.p"    
+              (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+           else    
+           RUN "adecomm/_y-datetime-tz.p"    
+              (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.      
         WHEN 4 OR WHEN 5 OR WHEN 41
-               THEN RUN "adecomm/_y-num.p"  
+               THEN
+        do:   
+             IF OEIDEIsRunning then  
+             RUN "adeuib/ide/_dialog_y-num.p"  
+                 (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+          else    
+               RUN "adecomm/_y-num.p"  
           (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
+        end.  
       END CASE. 
     END.
   END CASE.
@@ -203,7 +318,11 @@ DO WITH FRAME dialog-1:
                                   NOT c4glCode MATCHES "* ":u
                                 THEN " ":U ELSE "":U) + cLastField.
 
-    IF tAskRun AND NOT lWhState THEN DO: 
+    IF tAskRun AND NOT lWhState THEN DO:
+      IF OEIDEIsRunning then  
+           RUN adeuib/ide/_dialog_y-strng.p(5, "x(72)":u, "Enter the question to ask at run time:":u, 
+        OUTPUT cGuess, OUTPUT lInclusiveVar).
+      else        
       RUN adecomm/_y-strng.p 
         (5, "x(72)":u, "Enter the question to ask at run time:":u, 
         OUTPUT cGuess, OUTPUT lInclusiveVar).

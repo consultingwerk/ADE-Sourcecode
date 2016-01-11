@@ -1,8 +1,5 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI
-&ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_addlink
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_addlink 
 /*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
@@ -30,7 +27,7 @@
            03/10/98 SLK Added signature match 
            03/19/98 SLK Changed call to _mfldmap.p
            06/22/98 SLK Advise signature mismatch vs disallowing link
-
+   Notes: AppBuilder markup removed to support Appbuilder in IDE        
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -73,16 +70,13 @@ DEFINE VARIABLE l               AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE link-possible   AS LOGICAL   NO-UNDO.
 
 DEFINE BUFFER b-so FOR so.
-
+define variable frametitle as char no-undo init "Add a SmartLink" .
 /* If a RECORD- link is being added, we may have to set a Key-Name on the Target
    when the dialog is SAVED. */
 DEFINE VARIABLE Key-Name-to-Set AS CHARACTER NO-UNDO INITIAL ?.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -99,8 +93,6 @@ DEFINE VARIABLE Key-Name-to-Set AS CHARACTER NO-UNDO INITIAL ?.
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
 
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
 
 
 
@@ -157,25 +149,21 @@ DEFINE FRAME d_addlink
      "Target:" VIEW-AS TEXT
           SIZE 13 BY .76 AT ROW 1.76 COL 53
      SPACE(15.99) SKIP(10.18)
-    WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
-         SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
-         TITLE "Add a SmartLink".
-
-
-/* *********************** Procedure Settings ************************ */
-
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: DIALOG-BOX
-   Other Settings: COMPILE
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
-
-
-
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+     VIEW-AS DIALOG-BOX TITLE frameTitle
+     &else
+     NO-BOX
+     &endif 
+     KEEP-TAB-ORDER 
+     SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE .
+     
+{adeuib/ide/dialoginit.i "frame d_addlink:handle}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+    dialogService:View(). 
+&endif
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
-&ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX d_addlink
                                                                         */
 ASSIGN 
@@ -199,7 +187,6 @@ ASSIGN
 /* SETTINGS FOR SELECTION-LIST s_linktype IN FRAME d_addlink
    NO-DISPLAY                                                           */
 /* _RUN-TIME-ATTRIBUTES-END */
-&ANALYZE-RESUME
 
  
 
@@ -208,7 +195,6 @@ ASSIGN
 /* ************************  Control Triggers  ************************ */
 
 &Scoped-define SELF-NAME d_addlink
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL d_addlink d_addlink
 ON GO OF FRAME d_addlink /* Add a SmartLink */
 DO:
   DEFINE VARIABLE rc          AS LOGICAL NO-UNDO.
@@ -350,12 +336,9 @@ DO:
   
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_ForeignFields
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_ForeignFields d_addlink
 ON CHOOSE OF b_ForeignFields IN FRAME d_addlink /* Foreign Fields */
 DO:  
   ASSIGN s_dest s_source.
@@ -363,34 +346,25 @@ DO:
                     ,INPUT TRIM(s_source:SCREEN-VALUE)).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Info1
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Info1 d_addlink
 ON CHOOSE OF b_Info1 IN FRAME d_addlink /* Info on Source */
 DO:  
   RUN SmartInfo (INPUT TRIM(s_source:SCREEN-VALUE)).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME b_Info2
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_Info2 d_addlink
 ON CHOOSE OF b_Info2 IN FRAME d_addlink /* Info on Target */
 DO:
   RUN SmartInfo (INPUT TRIM(s_dest:SCREEN-VALUE)).
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME s_dest
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_dest d_addlink
 ON VALUE-CHANGED OF s_dest IN FRAME d_addlink
 DO:
   DEFINE VARIABLE         stat        AS LOGICAL NO-UNDO.
@@ -448,12 +422,9 @@ DO:
   END. /* link specified */
 END. /* On value-changed of s_dest */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME s_linktype
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_linktype d_addlink
 ON VALUE-CHANGED OF s_linktype IN FRAME d_addlink
 DO:
   DEFINE VARIABLE         stat        AS LOGICAL   NO-UNDO.
@@ -524,12 +495,9 @@ DO:
   END. 
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &Scoped-define SELF-NAME s_source
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL s_source d_addlink
 ON VALUE-CHANGED OF s_source IN FRAME d_addlink
 DO:
   /* Change the linktypes displayed. */
@@ -537,19 +505,18 @@ DO:
   RUN process-source.
 END.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 &UNDEFINE SELF-NAME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK d_addlink 
 
 
 /* ***************************  Main Block  *************************** */
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+
 IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
 THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+
 
 {adecomm/commeng.i}
 {adecomm/okbar.i &TOOL = "AB"
@@ -575,17 +542,23 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN Init.
   RUN enable_UI.
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &SCOPED-DEFINE CANCEL-EVENT U2
+  {adeuib/ide/dialogstart.i  btn_ok btn_cancel frametitle}
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
+      WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &else
+      WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.
+      if cancelDialog then 
+          undo, leave.
+  &endif
+  
 END.
 RUN disable_UI.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Check_Link d_addlink 
 PROCEDURE Check_Link :
 /*------------------------------------------------------------------------------
   Purpose:     Checks to see if a link already exists
@@ -627,10 +600,7 @@ PROCEDURE Check_Link :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Create_Link d_addlink 
 PROCEDURE Create_Link :
 /* -----------------------------------------------------------
   Purpose:     Creates, or modifies, a link
@@ -663,10 +633,7 @@ PROCEDURE Create_Link :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Create_LinkType d_addlink 
 PROCEDURE Create_LinkType :
 /* -----------------------------------------------------------
   Purpose:     Create a new link type
@@ -719,10 +686,7 @@ PROCEDURE Create_LinkType :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI d_addlink  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -736,10 +700,7 @@ PROCEDURE disable_UI :
   HIDE FRAME d_addlink.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI d_addlink  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -757,10 +718,7 @@ PROCEDURE enable_UI :
   {&OPEN-BROWSERS-IN-QUERY-d_addlink}
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ForeignFields d_addlink 
 PROCEDURE ForeignFields :
 /*------------------------------------------------------------------------------
   WORK
@@ -813,7 +771,6 @@ PROCEDURE ForeignFields :
 END PROCEDURE. /* ForeignFields */
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE SmartInfo d_addlink 
 PROCEDURE SmartInfo :
 /*------------------------------------------------------------------------------
   Purpose:     Get SmartInfo on this object.
@@ -833,10 +790,7 @@ PROCEDURE SmartInfo :
   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Init d_addlink 
 PROCEDURE Init :
 /* --------------------------------------------------------------------
   Purpose:     Initialize the dialog
@@ -846,10 +800,17 @@ PROCEDURE Init :
   DEFINE VARIABLE pos AS INTEGER NO-UNDO.
   
   /* Change the title of the window if appropriate */
+  &if DEFINED(IDE-IS-RUNNING) = 0 &then
   ASSIGN FRAME d_addlink:TITLE = IF p_Lrecid = ? THEN 
                      "Add a SmartLink"
                   ELSE 
                      "Modify a SmartLink".
+  &else
+  frametitle = IF p_Lrecid = ? THEN 
+                     "Add a SmartLink"
+                  ELSE 
+                     "Modify a SmartLink".
+  &endif                                      
 
   /* Add object names from 'so' T-T */
   FOR EACH SO WHERE so.active:
@@ -878,10 +839,7 @@ PROCEDURE Init :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE process-dest d_addlink 
 PROCEDURE process-dest :
 /*------------------------------------------------------------------------------
   Purpose:     Change the display based on the value of the link destination.  
@@ -928,10 +886,7 @@ PROCEDURE process-dest :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE process-source d_addlink 
 PROCEDURE process-source :
 /*------------------------------------------------------------------------------
   Purpose:     Change the display based on the value of the link source.  
@@ -1007,10 +962,7 @@ PROCEDURE process-source :
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Validate-Record-Link d_addlink 
 PROCEDURE Validate-Record-Link :
 /*------------------------------------------------------------------------------
   Purpose:     Check to see if src and dest can have a record link.
@@ -1221,6 +1173,4 @@ PROCEDURE Validate-Record-Link :
   END. /* IF p_stat eq no...*/    
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 

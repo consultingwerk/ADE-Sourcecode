@@ -51,7 +51,7 @@ DEFINE BUTTON btn_Retry  LABEL "Re&try"
 
 DEFINE BUTTON btn_Help  LABEL "&Help"
     {&STDPH_OKBTN}.
-
+DEFINE VARIABLE wintitle as char no-undo init "Record Menu Accelerator".
 /* Dialog Button Box */
 &IF {&OKBOX} &THEN
 DEFINE RECTANGLE RA_Btn_Box    {&STDPH_OKBOX}.
@@ -75,7 +75,11 @@ FORM
         &HELP   ="btn_Help" 
     }
   WITH FRAME Record_Accels SIDE-LABELS 
-       VIEW-AS DIALOG-BOX TITLE "Record Menu Accelerator" 
+       &if DEFINED(IDE-IS-RUNNING) = 0  &then
+       VIEW-AS DIALOG-BOX TITLE  wintitle
+       &else
+       no-box
+       &endif
                DEFAULT-BUTTON btn_OK 
                CANCEL-BUTTON btn_Cancel.
     { adecomm/okrun.i
@@ -84,7 +88,7 @@ FORM
         &OK     = "btn_OK"
         &HELP   = "btn_Help"
     }
-
+{adeuib/ide/dialoginit.i "FRAME Record_Accels:handle"}
 /*------------------- UI Triggers -------------------*/
 ON HELP OF FRAME Record_Accels ANYWHERE
   RUN adecomm/_adehelp.p
@@ -174,7 +178,8 @@ PROCEDURE StopRecording.
            p_Accelerator:SENSITIVE IN FRAME Record_Accels = FALSE
     . /* END ASSIGN */
 END PROCEDURE.
-
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_OK btn_cancel wintitle } 
 /*------------------- MAIN -------------------*/
 DO ON STOP UNDO, LEAVE :
     

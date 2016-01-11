@@ -107,7 +107,7 @@ Define button qbf-hlp  label "&Help"   {&STDPH_OKBTN}.
 
 DEFINE VARIABLE t_int AS INTEGER   NO-UNDO. /* scrap/loop */
 DEFINE VARIABLE t_log AS LOGICAL   NO-UNDO. /* scrap/loop */
-
+define variable wintitle as character no-undo init "Multi-Field Selector":t32.
 FORM 
   SKIP ({&TFM_WID})
   "Available Fields:":L31 AT 2 VIEW-AS TEXT
@@ -131,11 +131,19 @@ FORM
   SKIP ({&VM_WID})
   WITH FRAME FldPicker NO-LABELS
    DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-cn
-   TITLE "Multi-Field Selector":t32 VIEW-AS DIALOG-BOX.
-   
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then 
+   TITLE wintitle VIEW-AS DIALOG-BOX
+   &else
+   NO-BOX THREE-D
+   &endif
+   .
+
 ASSIGN v_SrcLst:DELIMITER  = p_Dlmtr
        v_TargLst:DELIMITER = p_Dlmtr.
-
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+ {adeuib/ide/dialoginit.i "FRAME FldPicker:handle"}
+  dialogService:View(). 
+&endif
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ON "VALUE-CHANGED" OF v_SrcLst IN FRAME FldPicker DO:
@@ -509,13 +517,21 @@ ASSIGN
 
 /* Select the first item in the source list */
 IF v_SrcLst:NUM-ITEMS > 0 THEN v_SrcLst:SCREEN-VALUE = v_SrcLst:ENTRY(1).
-
+ 
 /* Assume a cancel until the user hits OK. */
 l_Cancel = yes.
+&scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i qbf-ok qbf-cn wintitle}
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   APPLY "ENTRY"  TO v_SrcLst IN FRAME FldPicker.
-  WAIT-FOR "CHOOSE" OF qbf-ok IN FRAME FldPicker OR
-      	   GO OF FRAME FldPicker.   
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR "CHOOSE" OF qbf-ok IN FRAME FldPicker OR
+           GO OF FRAME FldPicker. 
+    &ELSE
+        WAIT-FOR "choose" of qbf-ok in frame FldPicker or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+    
   /* No Cancel. */
   l_cancel = NO.
 END.

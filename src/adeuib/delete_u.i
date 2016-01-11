@@ -434,6 +434,7 @@ DO:
   */
 
   /* Now get rid of the Universal widget record */
+      
   DELETE _U.
 END. /* IF {&TRASH} */
 ELSE /* IF NOT {&TRASH} */
@@ -467,6 +468,10 @@ DO:
      IF NOT AVAILABLE _HTM THEN
        RUN DeleteObject IN X_P._tv-proc (RECID(_U)).
   END.
+  &IF DEFINED(OEIDESERVICE_I) <> 0 &THEN
+    if OEIDEIsRunning then 
+       run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
+  &endif             
   /*
   PUBLISH "ab_objectdeleted":U (RECID(_U)).
   */ 

@@ -21,7 +21,7 @@ Author:  Wm.T.Wood
 
 Date Created: July 1995
 
-Modified: 
+Modified: 08-14-2012  Rkamboj  -- Added support for PDS to send height and width of window
   
 ----------------------------------------------------------------------------*/
 
@@ -31,7 +31,7 @@ Modified:
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
-
+{adecomm/oeideservice.i}
 /* Don't set _P._FILE-SAVED if the window is a TreeView. (dma) */
 DEFINE INPUT PARAMETER pSetSaved AS LOGICAL NO-UNDO.
 
@@ -44,11 +44,11 @@ DEFINE VAR new-height AS DECIMAL NO-UNDO.
 DEFINE VAR new-width  AS DECIMAL NO-UNDO.
 DEFINE VAR old-height AS DECIMAL NO-UNDO.
 DEFINE VAR old-width  AS DECIMAL NO-UNDO.
-      
+define var hWindow    as handle  no-undo.      
 /* Buffers to hold related objects */
 DEFINE BUFFER x_U FOR _U.
 DEFINE BUFFER x_L FOR _L.
-         
+    
 /* Buffer used for other layouts to be synch'd */
 DEFINE BUFFER sync_L FOR _L.
                                 
@@ -61,7 +61,7 @@ ASSIGN SELF:HEIGHT = SELF:HEIGHT NO-ERROR.
 /* Get the widget records so we might update them. */
 FIND _U WHERE _U._HANDLE = SELF.
 FIND _L WHERE RECID(_L) EQ _U._lo-recid.
-       
+if available _U then hWindow = _U._HANDLE.       
 /* If this is a DESIGN-WINDOW, then loop through all the children that
    are SIZE-TO-PARENT and get their minimum sizes. */  
 ASSIGN new-width  = SELF:WIDTH  / _L._COL-MULT
@@ -172,7 +172,10 @@ ELSE DO:
   IF VALID-HANDLE (h_AttrEd) AND h_AttrEd:FILE-NAME eq "adeuib/_attr-ed.w":U
   THEN RUN show-geometry IN h_AttrEd NO-ERROR.
 END.
-
+if OEIDEIsRunning then  
+do:                     
+   SetWindowSize(hWindow).
+end.
 /* Note that the window needs to be saved. Don't do this if the window is a
    TreeView. (dma) */
 IF pSetSaved THEN

@@ -1,10 +1,10 @@
-/*********************************************************************
-* Copyright (C) 2007-2008,2011 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
-
+/***********************************************************************
+* Copyright (C) 2007-2012 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
+ 
 /*----------------------------------------------------------------------------
 
 File: _uibmain.p
@@ -44,10 +44,9 @@ Modified    :
     9/29/94  gfs      Added call to load xftrs
     6/15/94  tullmann Added profiler checkpoints and init
     12/7/93  RPR      Added combo box
-	10/24/11 rkamboj  Replaced http://www.progress.com/services/techsupport link 
+    10/24/11 rkamboj  Replaced http://www.progress.com/services/techsupport link 
                       with "http://progresslink.progress.com/supportlink"
 ----------------------------------------------------------------------------*/
-DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 /* ===================================================================== */
 /*                      PREPROCESSOR DEFINITIONS                         */
 /* ===================================================================== */
@@ -73,7 +72,6 @@ DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 /* ===================================================================== */
 /*                            INCLUDE FILES                              */
 /* ===================================================================== */
-
 {adecomm/oeideservice.i}
 {adeuib/pre_proc.i}             
 {adecomm/adestds.i}        /* Standared ADE Preprocessor Directives */
@@ -87,7 +85,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 {adeuib/vsookver.i}        /* adm versioning                        */
 {adeshar/mrudefs.i}        /* MRU Filelist temp table defs          */
 {adeuib/peditor.i}         /* Editor support procedures             */
-{adeweb/web_file.i}
+{adeweb/web_file.i} 
 
 /* ===================================================================== */
 /*                    SHARED VARIABLES Definitions                       */
@@ -99,6 +97,8 @@ DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
 {adeuib/dialvars.i NEW}    /* Dialog box border variables         */
 
 /* Necessary to launch a dynamic container and clear its cache */
+DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_ABSecEd   AS HANDLE NO-UNDO.
+
 DEFINE NEW GLOBAL SHARED VARIABLE gshRepositoryManager AS HANDLE   NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE gshSessionManager    AS HANDLE   NO-UNDO.
 
@@ -108,11 +108,20 @@ DEFINE NEW GLOBAL SHARED VARIABLE gshSessionManager    AS HANDLE   NO-UNDO.
 /* Stores Visible state of OCX Property Editor window when running a procedure or
    for Tools menu calls. */
 DEFINE VARIABLE PropEditorVisible AS LOGICAL NO-UNDO.
-
+DEFINE VARIABLE IDEIntegrated     AS LOGICAL NO-UNDO.
+DEFINE VARIABLE IDENotInEditor    AS LOGICAL NO-UNDO.
+DEFINE VARIABLE IDEClient         AS HANDLE  NO-UNDO.
+DEFINE VARIABLE IDEEnterWindow    AS HANDLE  NO-UNDO.
+DEFINE VARIABLE IDEOpenUntitled   AS LOGICAL NO-UNDO.
+/* Used by getContext and setContext  */
+define variable fContext          as character no-undo extent.
+define variable WidgetAction      as character no-undo.
+define variable SetFocustoUI      as logical   no-undo initial yes.
 /*      orig_y      is the original Y coordinate of the down frame box       */
-DEF VAR orig_y      AS INTEGER                                       NO-UNDO.
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
-
+DEFINE VARIABLE orig_y                    AS INTEGER    NO-UNDO.
+define variable cur-widget-parent         as recid no-undo.
+define variable cur-widget-type           as character no-undo.
 &IF DEFINED(ADEICONDIR) = 0 &THEN
  {adecomm/icondir.i}
 &ENDIF
@@ -121,9 +130,21 @@ DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 /* ==================================================================== */
 /*                         Function Prototypes                          */
 /* ==================================================================== */
-FUNCTION GetHelpFile RETURNS CHARACTER
-  (INPUT p_HelpID AS CHARACTER) FORWARD.
-  
+function createContextMenu returns handle 
+    () forward.
+
+function GetHelpFile returns character
+  (input p_HelpID as character) forward.
+
+function setContext returns logical 
+    (pcContext as char extent) forward.
+    
+function getContext returns char extent 
+    ( ) forward.
+ function getOpenDialogHwnd returns integer 
+    ( ) in hOEIDEService. 
+function findWidgetName return character 
+         (WidgetParentrecId as recid) forward.    
 /* Establish if Dynamics is running */
 ASSIGN _DynamicsIsRunning = DYNAMIC-FUNCTION("IsICFRunning":U) NO-ERROR.
 IF _DynamicsIsRunning = ? THEN _DynamicsIsRunning = NO.
@@ -157,30 +178,48 @@ RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT _AB_license, OUTPUT _AB_T
 
 /* UIB Definitions         */
 {adeuib/uibmdefs.i}
+ 
 /* jep-icf: Moved uibmdefs.i to here from earlier in this code. It's
    creating dynamic widgets that should be in the correct AB widget pool. */
 
-DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_Parameters AS CHARACTER NO-UNDO.
-
+DEFINE NEW GLOBAL SHARED VARIABLE OEIDE_Parameters AS CHARACTER NO-UNDO. 
+ 
 SETUP_BLOCK:
 DO ON STOP   UNDO SETUP_BLOCK, LEAVE SETUP_BLOCK
    ON ERROR  UNDO SETUP_BLOCK, LEAVE SETUP_BLOCK:
   
   IF OEIDEisRunning THEN
-  DO:
-      IF p_File_List = "" THEN  
-          ASSIGN p_File_List      = OEIDE_Parameters
-                 OEIDE_Parameters = "".
-      
-      /* Start Section Editor proxy */
-      IF NOT VALID-HANDLE(OEIDE_ABSecEd) THEN
-          RUN adeuib/_oeidesync.w PERSISTENT SET hSecEd.
-  END.
+  DO:       
+    IF p_File_List = "" THEN
+    DO:  
+       if num-entries(OEIDE_Parameters) > 1 then 
+       do:
+           if entry(2,OEIDE_Parameters) = "UNTITLED":U then
+           do: 
+               assign
+                   IDEOpenUntitled = true 
+                   p_File_List = entry(1,OEIDE_Parameters).
+           end.
+       end.    
+       if p_File_List = "" then
+           assign p_File_List = OEIDE_Parameters.
+       
+       OEIDE_Parameters = "".
+    end. 
+       /* Start Section Editor proxy */
+    IF NOT VALID-HANDLE(OEIDE_ABSecEd) THEN
+         RUN adeuib/_oeidesync.w PERSISTENT SET hSecEd.
+    
+    if valid-handle(hOEIDEService) then    
+       run getIsIDEIntegrated in hOEIDEService (output IDEIntegrated).
+
+  END. /* OEIDEisRunning  */
   
   /* First Thing -- remember the handle of the UIB's main procedure so
      that we can RUN...IN it */
-  _h_uib = THIS-PROCEDURE.
+  _h_uib = THIS-PROCEDURE. 
   
+  /* undo, cut paste procedures are also used by _sanitiz.p */ 
   {adeuib/uibmundo.i}
 
   /* =================================================================== */
@@ -241,7 +280,15 @@ DO ON STOP   UNDO STOP_BLOCK, RETRY STOP_BLOCK
        
   /* Are we in a retry situation? */
   IF RETRY THEN DO:
-      MESSAGE "OK to quit the AppBuilder?" SKIP (1)
+      if OEIDEisRunning then 
+      ldummy = ShowMessageInIDE("OK to quit the AppBuilder? ~n~n"  
+                              + "WARNING: Unsaved work will be lost, but the open files may be corrupted.~n"
+                              + "You should not save the open files on top of their originals.~n" 
+                              + "Press ~"OK~" to quit the AppBuilder, or press ~"Cancel~" to continue.",
+                                "Question",?,"OK-CANCEL",ldummy).
+      else        
+          MESSAGE
+              "OK to quit the AppBuilder?" SKIP (1)
               "WARNING: Unsaved work will be lost, but" SKIP
               "the open files may be corrupted. You" SKIP
               "should not save the open files on top of" SKIP
@@ -262,6 +309,9 @@ DO ON STOP   UNDO STOP_BLOCK, RETRY STOP_BLOCK
 /* ===================================================================== */
 msg_watcher:READ-ONLY in frame action_icons = FALSE.
 
+
+
+/* **********************  Internal Procedures  *********************** */
 procedure msg_watch.
   DEFINE INPUT PARAMETER intxt   AS CHARACTER      NO-UNDO.
   DEFINE VARIABLE last-msg AS CHAR              NO-UNDO.
@@ -282,22 +332,22 @@ end.
 
 &ENDIF
 
-/* Exiting from the UIB */
-ON WINDOW-CLOSE OF _h_menu_win
-DO:
-  DEF VARIABLE save_opt   AS LOGICAL   NO-UNDO.
-  DEF VARIABLE cancel     AS LOGICAL   NO-UNDO.
-  DEF VARIABLE OK_Close   AS LOGICAL   NO-UNDO.
-  DEF VARIABLE h          AS WIDGET    NO-UNDO.
+  /* Exiting from the UIB */
+  ON WINDOW-CLOSE OF _h_menu_win
+  DO:
+    DEF VARIABLE save_opt   AS LOGICAL   NO-UNDO.
+    DEF VARIABLE cancel     AS LOGICAL   NO-UNDO.
+    DEF VARIABLE OK_Close   AS LOGICAL   NO-UNDO.
+    DEF VARIABLE h          AS WIDGET    NO-UNDO.
 
-  /* If we're running in a Dynamics session, make sure Dynamics is OK with the session ending */
-  IF _DynamicsIsRunning 
-  AND (SEARCH("af/sup2/afcnfrmext.p") <> ?
-    OR SEARCH("af/sup2/afcnfrmext.r") <> ?)
-  THEN DO:
+    /* If we're running in a Dynamics session, make sure Dynamics is OK with the session ending */
+    IF _DynamicsIsRunning 
+    AND (SEARCH("af/sup2/afcnfrmext.p") <> ?
+         OR SEARCH("af/sup2/afcnfrmext.r") <> ?) THEN 
+    DO:
       RUN af/sup2/afcnfrmext.p (OUTPUT OK_Close) NO-ERROR.
       IF OK_Close <> TRUE THEN RETURN NO-APPLY.
-  END.
+    END.
 
   /* Don't accept this action if the main UIB window (SELF) is disabled
      or if UIB's Stop_Button is sensitive.
@@ -307,56 +357,58 @@ DO:
      which is why we have to do this check.
   */
   
-  IF SELF:SENSITIVE AND NOT Stop_Button:SENSITIVE THEN
-  DO:
-    
-    /* SEW call to store current trigger code for specific window. */
-    RUN call_sew ("SE_STORE_WIN":U).
+    IF SELF:SENSITIVE AND NOT Stop_Button:SENSITIVE THEN
+    DO:
+     
+       /* SEW call to store current trigger code for specific window. */
+      RUN call_sew ("SE_STORE_WIN":U).
    
-    /* Close all windows -- the close action provides the calls to SCM hooks */
-    FOR EACH _U WHERE CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) AND
-             _U._STATUS <> "DELETED":
-       /* Close the window.  This should delete the widget.  If the widget
-          ever comes back not deleted, then the user cancelled, so we
-          cancel the exit */
-       ASSIGN 
-         h      = _U._HANDLE
-         _h_win = _U._HANDLE.
-       RUN wind-close (h).   
-       IF VALID-HANDLE(h) THEN RETURN NO-APPLY.
-    END.
+      /* Close all windows -- the close action provides the calls to SCM hooks */
+      FOR EACH _U WHERE CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) AND
+               _U._STATUS <> "DELETED":
+        /* Close the window.  This should delete the widget.  If the widget
+           ever comes back not deleted, then the user cancelled, so we
+           cancel the exit */
+         ASSIGN 
+           h  = _U._HANDLE
+           _h_win = _U._HANDLE.
+         RUN wind-close (h).   
+         IF VALID-HANDLE(h) THEN RETURN NO-APPLY.
+      END.
 
-    /* Now perform a close all for any open Procedure Windows belonging to
+      /* Now perform a close all for any open Procedure Windows belonging to
        the UIB.
-    */
-    REPEAT ON STOP UNDO, LEAVE:
-      RUN adecomm/_pwexit.p ("_ab.p":U /* PW Parent ID */ ,
+      */
+      REPEAT ON STOP UNDO, LEAVE:
+          RUN adecomm/_pwexit.p ("_ab.p":U /* PW Parent ID */ ,
                              OUTPUT OK_Close ).
-      LEAVE.
-    END.
-    /* Cancel the close event. */
-    IF OK_Close <> TRUE THEN RETURN.
+          LEAVE.
+      END.
+      
+      /* Cancel the close event. */
+      IF OK_Close <> TRUE THEN 
+          RETURN.
 
-    /* Close all open XML Mapping Tool windows belonging to the AB. */
-    REPEAT ON STOP UNDO, LEAVE:
-      RUN adexml/_winexit.p ("_ab.p":U /* Parent ID */, OUTPUT OK_Close ).
-      LEAVE.
-    END.
-    /* Cancel the close event. */
-    IF OK_Close <> TRUE THEN RETURN.
+      /* Close all open XML Mapping Tool windows belonging to the AB. */
+      REPEAT ON STOP UNDO, LEAVE:
+          RUN adexml/_winexit.p ("_ab.p":U /* Parent ID */, OUTPUT OK_Close ).
+          LEAVE.
+      END.
+      /* Cancel the close event. */
+      IF OK_Close <> TRUE THEN 
+          RETURN.
     
-    /* SEW call to close and delete SEW and its children. */
-    RUN call_sew ("SE_EXIT":U).
+      /* SEW call to close and delete SEW and its children. */
+      RUN call_sew ("SE_EXIT":U).
 
-    /* Close down the Character Run Window. FALSE suppresses messages. */
-    RUN adeuib/_ttysx.p (FALSE).
+      /* Close down the Character Run Window. FALSE suppresses messages. */
+      RUN adeuib/_ttysx.p (FALSE).
 
-    APPLY "U9" TO _h_menu_win.
-    /* Return NO-APPLY for the WINDOW-CLOSE event */
-    IF SELF eq _h_menu_win THEN RETURN NO-APPLY.
+      APPLY "U9" TO _h_menu_win.
+      /* Return NO-APPLY for the WINDOW-CLOSE event */
+      IF SELF eq _h_menu_win THEN RETURN NO-APPLY.
+    END.
   END.
-END.
-
 /* =================================================================== */
 /*                             UIB WAITFOR                             */
 /* =================================================================== */
@@ -372,7 +424,10 @@ END.
   RUN choose-pointer. /* Return to pointer mode. */
   /* Make sure everything is sensitized correctly. */
   RUN sensitize_main_window ("WIDGET,WINDOW").
-  
+  IF OEIDEisRunning THEN
+      /* Start uib proxy  TODO only start when integrated.. */
+      RUN initializeIDEClient.
+    
   /* Intercept the keyboard endkey events and do nothing.  This
      workaround bug# 93-07-14-057 where the "OK to quit message " screws up if
      we have the DO...ON ENDKEY UNDO STOP_BLOCK, RETRY STOP_BLOCK 
@@ -381,11 +436,16 @@ END.
      event. (bug 93-09-23-127) We want to catch real errors, but not the case
      of END-ERROR key.  Therefore, on ERROR just retry. */
   DO ON ENDKEY UNDO, RETRY
-     ON ERROR  UNDO, RETRY:
-    IF RETRY AND NOT CAN-DO ("END-ERROR,END-KEY",LAST-EVENT:FUNCTION)
-    THEN LEAVE.
-
-    WAIT-FOR "U9":U OF _h_menu_win FOCUS cur_widg_name.
+         ON ERROR  UNDO, RETRY:
+      IF RETRY AND NOT CAN-DO ("END-ERROR,END-KEY",LAST-EVENT:FUNCTION) THEN 
+          LEAVE.
+    
+      /** Tell PDS that the appbuilder is started - once only - not on retry  
+          Maybe this should have been outside the DO block, but we want to be as close to wait as possible 
+          (also visually, so that future code is added before this  ... )*/ 
+      if RETRY = false and OEIDEIsRunning then 
+          run appbuilderConnection in hOEIDEService.
+      WAIT-FOR "U9":U OF _h_menu_win FOCUS cur_widg_name.
   END.
 END. /* STOP-BLOCK */
 
@@ -409,6 +469,7 @@ SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
                   
 /* Clean up everything . */
 IF VALID-HANDLE(hAttrEd) THEN APPLY "CLOSE" TO hAttrEd.
+if valid-handle(IDEClient) then run destroyObject in IDEClient.
 RUN adeuib/_uibshut.p.
 
 /* Restore the users value for THREE-D */
@@ -429,6 +490,21 @@ DELETE WIDGET-POOL "{&AB_Pool}".
 /* ==================================================================== */
 /*                    Procedures & Functions                            */
 /* ==================================================================== */
+
+{adeuib/uibdel.i}  /* common delete code moved out */
+
+PROCEDURE apply_leave:
+/*------------------------------------------------------------------------------
+        Purpose: called from IDE to de-focus the window when the design 
+                 looses focus in the IDE. 
+                 This ensures that entry fires when clicking back in designer 
+                                                                                      
+        Notes:                                                                        
+------------------------------------------------------------------------------*/
+    IDENotInEditor = true.
+END PROCEDURE.
+
+  
 PROCEDURE initialize_uib:
   /* Create PROX.PROIDE com object to support ActiveX controls */   
   CREATE "PROX.PROIDE" _h_Controls NO-ERROR.
@@ -436,12 +512,23 @@ PROCEDURE initialize_uib:
   DO ON STOP UNDO, RETRY:
     DEFINE VAR msg_line     AS INTEGER NO-UNDO.
     DEFINE VAR UIB_Continue AS LOGICAL NO-UNDO.
-    
     IF NOT RETRY THEN
     DO msg_line = 1 TO ERROR-STATUS:NUM-MESSAGES:
+      if OEIDEIsRunning then
+        ShowMessageInIDE(ERROR-STATUS:GET-MESSAGE(msg_line),
+                         "Error","{&UIB_SHORT_NAME}","OK",YES). 
+      else  
       MESSAGE ERROR-STATUS:GET-MESSAGE(msg_line)
         VIEW-AS ALERT-BOX ERROR TITLE "{&UIB_SHORT_NAME}"  IN WINDOW ACTIVE-WINDOW.
     END.
+    if OEIDEIsRunning then 
+    UIB_Continue = ShowMessageInIDE("{&UIB_SHORT_NAME}" + 
+                     "encountered errors and cannot support ActiveX controls. ~n
+                     You may encounter further errors if you try to open or run 
+                     procedure files ~n containing ActiveX controls. ~n 
+                     Do you want to continue and start the " + "{&UIB_SHORT_NAME}" + " anyway? ",
+                     "Warning","{&UIB_SHORT_NAME}","OK",YES). 
+    else
     MESSAGE "{&UIB_SHORT_NAME}" 
             "encountered errors and cannot support ActiveX controls." SKIP
             "You may encounter further errors if you try to open or run" 
@@ -462,6 +549,10 @@ PROCEDURE initialize_uib:
      Custom Widgets, because one preference is the name of the custom file.) */
   CREATE _uib_prefs.
   RUN adeuib/_getpref.p (OUTPUT save_settings).
+  if ideIntegrated then
+  do:
+      run LoadIDEPreferences.
+  end.
   IF _suppress_dbname THEN Schema_Prefix = 1.  /* Insert dbfields with Table only */
   /* 99-02-15-020 Here because the menu was already set in mode-morph but
    * the values had not yet been read in from the registry.
@@ -479,13 +570,13 @@ PROCEDURE initialize_uib:
   
   /* Initialize the ADE WINMENU-MGR Object for active windows. */
   RUN adecomm/_adeobj.p ("WINMENU-MGR":U, INPUT-OUTPUT _h_WinMenuMgr ).
-
+ 
   RUN adeuib/_initpal.p.  /* initialize the palette temp-table */
-
   RUN adeuib/_cr_cust.p (yes).  /* read custom.txt file */
   IF RETURN-VALUE = "_ABORT" THEN RETURN "_ABORT".
-
-  /* Create object palette window */
+/*  if valid-handle(hOEIDEService) then*/
+/*      run adeuib/_oeidepalette.p.    */
+   /* Create object palette window */
   RUN adeuib/_cr_palw.p(MENU mb_toolbox:HANDLE).
   
   /* Set initial states on palette menubar */
@@ -498,9 +589,10 @@ PROCEDURE initialize_uib:
 
   /* Create the widget palette icons (and custom widget extensions). */
   RUN adeuib/_cr_pal.p (no).  
-
-  RUN adeuib/_cr_cmnu.p(MENU m_toolbox:HANDLE). /* create custom menus */
   
+  hide _h_object_win.
+  
+  RUN adeuib/_cr_cmnu.p(MENU m_toolbox:HANDLE). /* create custom menus */
   /* Since the palette location can now be saved/restored, we'll see if
    * the palette happens to be in the upper-left corner, if so, we'll adjust
    * the UIB windows, if not leave it.
@@ -536,7 +628,7 @@ PROCEDURE initialize_uib:
                                                     (SESSION:WIDTH-P - TBWidth)).
     END. /* IF NOT AutoHide */
   END. /* IF MS-WIN */
-
+   
   /* If object palette and menu window overlap move them off of each other.
      This means that we won't let the user specify things so that they will
      overlap */
@@ -566,7 +658,6 @@ PROCEDURE initialize_uib:
      
   END.  /* If there is an overlap */
   ASSIGN _cur_win_x    = _h_menu_win:X.
-  
   /* Create popup menu on the 'New' button */
   RUN adeuib/_cr_npop.p (_h_button_bar[1]).
   
@@ -635,10 +726,15 @@ PROCEDURE initialize_uib:
   ASSIGN save_interval                 = SESSION:MULTITASKING-INTERVAL
          SESSION:MULTITASKING-INTERVAL = 1
          _orig_dte_fmt                 = SESSION:DATE-FORMAT.
-
-  VIEW _h_menu_win.
-  IF _AB_License NE 2 THEN VIEW _h_object_win.
-    
+  
+  if not IDEIntegrated then
+  do:
+    VIEW _h_menu_win.
+    IF _AB_License NE 2 THEN VIEW _h_object_win.
+  end.
+  else if valid-handle(_h_object_win) then
+    _h_object_win:hidden = true.
+      
   /* Now go back to menu_window */
   CURRENT-WINDOW = _h_menu_win.
 
@@ -650,22 +746,25 @@ PROCEDURE initialize_uib:
                          SESSION:PIXELS-PER-ROW
          _tty_col_mult = FONT-TABLE:GET-TEXT-WIDTH-P ("o":U,_tty_font) /
                          SESSION:PIXELS-PER-COL.
-
+  
   /* Create the name of the OCX binary cut file. */
   RUN adecomm/_tmpfile.p({&STD_TYP_UIB_CLIP}, {&STD_EXT_UIB_WVX},
                          OUTPUT _control_cut_file).
-  
+
   /* Read in windows sent from the calling routine if any.                   */
   /* If the calling program sends "?,NEW" then  do a FILE/NEW action.        */
   IF p_File_List eq "?,NEW" THEN DO:
     /* Reset the cursor because here we have a possibility for user input    */
+    
     RUN adecomm/_setcurs.p (""). 
     RUN choose_file_new.
   END.
   ELSE IF LENGTH(p_File_List,"CHARACTER":U) > 0 THEN DO:
     DO i = 1 TO NUM-ENTRIES(p_FILE_LIST):
       open_file = ENTRY(i,p_FILE_LIST).
-      RUN adeuib/_open-w.p (open_file, "", "OPEN":U).
+      RUN adeuib/_open-w.p (open_file, "", if IDEOpenUntitled 
+                                           then "UNTITLED":U 
+                                           else "OPEN":U).
     END.
   END.
   ELSE DO:
@@ -682,9 +781,8 @@ PROCEDURE initialize_uib:
       END.
     END.
   END.
-  
   ASSIGN SESSION:MULTITASKING-INTERVAL = save_interval.
-    
+ 
   /* Do custom UIB setup -- this file is generally a no-op, but it can
      be used to initialize custom modifications.  */
   RUN adecomm/_adeevnt.p ("UIB", "Startup", STRING(THIS-PROCEDURE), 
@@ -702,73 +800,19 @@ PROCEDURE initialize_uib:
   setup_ok = yes.
 END.  /* initialize_uib */
 
-FUNCTION GetHelpFile RETURNS CHARACTER
-  (INPUT p_HelpID AS CHARACTER) :
-/*----------------------------------------------------------------------------
-PURPOSE:
-    Returns the full path and name to a PROGRESS Help File.
-SYNTAX
-    GetHelpFile( INPUT p_HelpID )
-FORWARD
-    FUNCTION GetHelpFile RETURNS CHARACTER
-        (INPUT p_HelpID AS CHARACTER) FORWARD.
-DESCRIPTION:
-    
-    See adecomm/_adehelp.p for details on how PROGRESS ADE Help File names
-    are deteremined.
-INPUT PARAMETERS:
-    p_HelpID
-        A character string identifying the PROGRESS ADE tool whose help
-        file full path and name you want returned.
-OUTPUT PARAMETERS:
-    None.
-RETURN VALUE
-    Full path and name of a PROGRESS Help File. Returns the name regardless
-    of whether the file exists or not. Returns as all lowercase.
-SEE ALSO
-    adecomm/_adehelp.p
-AUTHORS     : John Palazzo
-DATE CREATED: 2/11/97
-LAST UPDATED: 
-----------------------------------------------------------------------------*/
-
-DEFINE VARIABLE HelpFileDir         AS CHARACTER INITIAL "prohelp/":u NO-UNDO.
-DEFINE VARIABLE HelpFileName        AS CHARACTER NO-UNDO.
-DEFINE VARIABLE HelpFileFullName    AS CHARACTER NO-UNDO.
-DEFINE VARIABLE LanguageExtension   AS CHARACTER INITIAL "eng":u NO-UNDO.
-
-DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
-
-  /* Determine Language Extension */
-  IF CURRENT-LANGUAGE <> "?" THEN
-      ASSIGN LanguageExtension = 
-             LC(SUBSTRING(CURRENT-LANGUAGE,1,3,"CHARACTER":u)).
-  
-  ASSIGN HelpFileName        = LC((HelpFileDir + p_HelpID + LanguageExtension + ".chm":u))
-         FILE-INFO:FILE-NAME = HelpFileName
-         HelpFileFullName    = LC(FILE-INFO:FULL-PATHNAME).
-
-  IF HelpFileFullName = ? THEN
-    ASSIGN HelpFileFullName = LC(HelpFileDir + p_HelpID + "eng":u + ".chm":u).
-
-  RETURN LC(HelpFileFullName).
-  
-END. /* DO */
-
-END FUNCTION.
 
 /*****************************************************************************
-The majority of the methods used to implemented in two include files
-uibmproa.i uibmproe.i due to size limitations in the section editor. 
-(The split was alphabetical...) 
-
-The comments below are from uibmproa.i and is included for sentimental 
-reasons more than anything...  They do NOT represent the actual history as 
-we stopped adding comments in headers for fixes around 2001 as it simply was 
-unpractical with the amount if changes that we were doing at this time. 
+  The majority of the methods used to implemented in two include files
+  uibmproa.i uibmproe.i due to size limitations in the section editor. 
+  The split was alphabetical... 
+  The comments below are from uibmproa.i and is included for sentimental 
+  reasons more than historical. They do NOT represent the actual history as 
+  we stopped adding comments in headers for fixes around 2001 as it simply was 
+  unpractical with the amount if changes that we were doing at this time. 
 ****************************************************************************/    
-/*---- OLD HISTORY START - uibmproa.i ------------------------------------------
-File: uibmproa.i
+
+/*---- OLD HISTORY START -----------------------------------------------------------
+ File: uibmproa.i
 
 Description:
    The internal procedures of the main routine of the UIB 
@@ -828,62 +872,11 @@ Date Modified: 1/25/94 (RPR)
                                   Renamed h_button_bar to _h_button_bar (new shared).
                11/07/01 JEP-ICF   IZ 2342 MRU List doesn't work with dynamics objects.
                                   Fix : Update to procedure choose_mru_file.
- ---- OLD HISTORY END - uibmproa.i  ------------------------------------------*/
-{adeuib/uibdel.i}  /* common delete code moved out */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
-
-/* ********************  Preprocessor Definitions  ******************** */
-
-
-
-/* _UIB-PREPROCESSOR-BLOCK-END */
-&ANALYZE-RESUME
-
-
-
-/* *********************** Procedure Settings ************************ */
-
-&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
-/* Settings for THIS-PROCEDURE
-   Type: Include
-   Allow: 
-   Frames: 0
-   Add Fields to: Neither
-   Other Settings: INCLUDE-ONLY
- */
-&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
-
-/* *************************  Create Window  ************************** */
-
-&ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB) 
-  CREATE WINDOW Include ASSIGN
-         HEIGHT             = 18.29
-         WIDTH              = 64.8.
-/* END WINDOW DEFINITION */
-                                                                        */
-&ANALYZE-RESUME
-
  
+ ---- OLD HISTORY END -----------------------------------------------------------*/
 
+/***********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Include 
-
-
-/* ***************************  Main Block  *************************** */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-/* **********************  Internal Procedures  *********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE AddXFTR Include 
 PROCEDURE AddXFTR :
 /*------------------------------------------------------------------------------
   Purpose:     Add XFTR from Extentions Palette
@@ -896,6 +889,10 @@ PROCEDURE AddXFTR :
   
     FIND _U WHERE _U._HANDLE EQ _h_win NO-ERROR.
     IF NOT AVAILABLE (_U) THEN DO:
+        if OEIDEIsRunning then
+         ShowMessageInIDE("No design window is available.",
+                          "Error",?,"OK",YES).
+        else              
         MESSAGE "No design window is available." VIEW-AS ALERT-BOX
             ERROR BUTTONS OK.
         RETURN.
@@ -925,10 +922,7 @@ PROCEDURE AddXFTR :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Add_palette_custom_widget_defs Include 
 PROCEDURE Add_palette_custom_widget_defs :
 /*------------------------------------------------------------------------------
   Purpose:  Add OCX control to Palette    
@@ -938,10 +932,7 @@ PROCEDURE Add_palette_custom_widget_defs :
   RUN adeuib/_acontp.w.
 END PROCEDURE. /* Add_palette_custom_widget_defs */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Add_submenu_custom_widget_def Include 
 PROCEDURE Add_submenu_custom_widget_def :
 /*------------------------------------------------------------------------------
   Purpose:   Add OCX control to Submenu  
@@ -951,10 +942,7 @@ PROCEDURE Add_submenu_custom_widget_def :
   RUN adeuib/_prvcont.w.
 END PROCEDURE. /* Add_submenu_custom_widget_def */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE BrowseKBase Include 
 PROCEDURE BrowseKBase :
 /*------------------------------------------------------------------------------
   Purpose:  Browse the PROGRESS KnowledgeBase via Web Browser   
@@ -965,14 +953,16 @@ PROCEDURE BrowseKBase :
       RUN WinExec ( _WebBrowser + " http://progresslink.progress.com/supportlink":U, 1).
     /* RUN WinExec ( _WebBrowser + " http://www.progress.com/services/techsupport":U, 1). */
   ELSE
+  do:
+    if OEIDEIsRunning then
+        ShowMessageInIDE("Please define your web browser in Preferences",
+                        "Error",?,"OK",YES).
+    else  
     MESSAGE "Please define your web browser in Preferences" VIEW-AS ALERT-BOX ERROR.
-
+  end.
 END PROCEDURE. /* BrowseKBase */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE call_coderefs Include 
 PROCEDURE call_coderefs :
 /*------------------------------------------------------------------------------
   Purpose: Sends events to the Code References Window.    
@@ -1008,10 +998,7 @@ PROCEDURE call_coderefs :
 
 END PROCEDURE. /*  call_coderefs */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE call_run Include 
 PROCEDURE call_run :
 /*------------------------------------------------------------------------------
   Purpose:  run or debug a file.
@@ -1178,10 +1165,7 @@ PROCEDURE call_run :
   END. /* IF _h_win...*/
 END PROCEDURE. /* call_run */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE call_sew Include 
 PROCEDURE call_sew :
 /*------------------------------------------------------------------------------
   Purpose: called by UIB to trigger events for Section Editor Window.
@@ -1192,11 +1176,11 @@ PROCEDURE call_sew :
   Parameters:  p_secommand  
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE INPUT PARAMETER p_secommand AS CHARACTER NO-UNDO.
+  DEFINE INPUT PARAMETER p_secommand AS CHARACTER NO-UNDO.
 
- DEFINE VARIABLE lOEIDEOpen AS LOGICAL    NO-UNDO.
-    
- IF p_secommand = "SE_OEOPEN" THEN
+  DEFINE VARIABLE lOEIDEOpen AS LOGICAL    NO-UNDO.
+
+  IF p_secommand = "SE_OEOPEN" THEN
      ASSIGN p_secommand = "SE_OPEN" lOEIDEOpen = TRUE.
 
   /* Get the Section Editor for the current window. */
@@ -1205,13 +1189,21 @@ PROCEDURE call_sew :
 
   CASE p_secommand :
     WHEN "SE_OPEN":U THEN
-    DO:
+    DO:   
       IF _h_win EQ ? THEN RUN report-no-win.
       ELSE DO:
-
+        
         IF _h_cur_widg NE ? THEN
         DO:
-            FIND _U WHERE _U._HANDLE = _h_cur_widg.
+            
+            FIND _U WHERE _U._HANDLE = _h_cur_widg no-error.
+            if not avail _U then
+            do:
+                 IF _h_cur_widg:TYPE = "WINDOW":U THEN
+                 _h_cur_widg = _h_cur_widg:FIRST-CHILD.
+                 FIND first _U WHERE _U._HANDLE = _h_cur_widg.  
+                  
+            end.
             RUN SecEdWindow IN hSecEd ("_CONTROL", RECID(_U), ?, IF lOEIDEOpen THEN "SE_OEOPEN" ELSE "").
              /* Codedit can rename widgets, so redisplay the current widget
                 in case its name has changed.  Also it could change numeric
@@ -1219,12 +1211,14 @@ PROCEDURE call_sew :
             */
             SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
             RUN display_current.
+            
         END.
         ELSE DO:
             /* If no current widget, go to main block for window */
             FIND _U WHERE _U._HANDLE = _h_win.
             RUN SecEdWindow IN hSecEd
                             ("_CUSTOM":U, RECID(_U), "_MAIN-BLOCK":U, IF lOEIDEOpen THEN "SE_OEOPEN" ELSE "").
+          
         END.
       END. /* IF _h_win ne ? ... */
 
@@ -1246,17 +1240,13 @@ PROCEDURE call_sew :
 
     OTHERWISE /* All other Section Editor commands */
       RUN SecEdWindow IN hSecEd (se_section, se_recid, se_event, p_secommand).
-
+   
   END CASE.
-
   RETURN.
 
 END PROCEDURE. /* call_sew */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE call_sew_getHandle Include 
 PROCEDURE call_sew_getHandle :
 /*------------------------------------------------------------------------------
   Purpose: Returns the handle to the design window's Section Editor procedure.
@@ -1322,10 +1312,7 @@ PROCEDURE call_sew_getHandle :
 
 END PROCEDURE. /* call_sew_getHandle */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE call_sew_setHandle Include 
 PROCEDURE call_sew_setHandle :
 /*------------------------------------------------------------------------------
   Purpose: Set the default hSecEd handle to the handle of the SE parented to
@@ -1341,10 +1328,7 @@ PROCEDURE call_sew_setHandle :
   RETURN.
 END PROCEDURE. /* call_sew_getHandle */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Center-l-to-r Include 
 PROCEDURE Center-l-to-r :
 /*------------------------------------------------------------------------------
   Purpose: Align fields down the center    
@@ -1354,10 +1338,7 @@ PROCEDURE Center-l-to-r :
   RUN adeuib/_align.p ("c-l-to-r", ?).
 END PROCEDURE.  /* Center-l-to-r */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Center-t-to-b Include 
 PROCEDURE Center-t-to-b :
 /*------------------------------------------------------------------------------
   Purpose:   Align across the center  
@@ -1367,10 +1348,7 @@ PROCEDURE Center-t-to-b :
   RUN adeuib/_align.p (?, "c-t-to-b").
 END PROCEDURE.  /* Center-t-to-b */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changewidg Include 
 PROCEDURE changewidg :
 /*------------------------------------------------------------------------------
   Purpose:     Change the currently selected widget, frame and window.  
@@ -1401,10 +1379,7 @@ PROCEDURE changewidg :
   IF _h_cur_widg NE h_display_widg THEN RUN display_current.
 END PROCEDURE. /* changewidg */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Change_Customization_Parameters Include 
 PROCEDURE Change_Customization_Parameters :
 /*------------------------------------------------------------------------------
   Purpose: Change the session parameters for controling Dynamics customizations    
@@ -1487,7 +1462,6 @@ PROCEDURE Change_Customization_Parameters :
     cCustomizationTypes = LEFT-TRIM(cCustomizationTypes,"|":U).
   END.
   ELSE cCustomizationTypes = "":U.
-
   /* Call the customization Priority Editor */
   RUN ry/prc/rycusmodw.w (
     INPUT "Customization Priority Editor|Available|Selected", /* Window Title */
@@ -1499,7 +1473,6 @@ PROCEDURE Change_Customization_Parameters :
     INPUT cCustomizationTypes,
     INPUT-OUTPUT cCodeList,
     OUTPUT lok).
-
   IF lok THEN DO: /* The user did not cancel, save the changes */
     gcResultCodes = "":U.  /* Setup for next time */
 
@@ -1530,43 +1503,48 @@ PROCEDURE Change_Customization_Parameters :
 
 END PROCEDURE.  /* Change_Customization_Parameters */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change_grid_display Include 
 PROCEDURE change_grid_display :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  _cur_grid_visible = SELF:CHECKED.
-  FOR EACH _U WHERE CAN-DO("DIALOG-BOX,FRAME", _U._TYPE) AND _U._HANDLE <> ?:
-    ASSIGN  _U._HANDLE:GRID-VISIBLE = _cur_grid_visible.
-  END.
+    _cur_grid_visible = SELF:CHECKED.
+    run refresh_grid_display.
 END. /* change_grid_display */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+PROCEDURE refresh_grid_display :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  define buffer b_U for _u.
+  FOR EACH b_U WHERE CAN-DO("DIALOG-BOX,FRAME", b_U._TYPE) AND b_U._HANDLE <> ?:
+    ASSIGN  b_U._HANDLE:GRID-VISIBLE = _cur_grid_visible.
+  END.
+END.  
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change_grid_snap Include 
 PROCEDURE change_grid_snap :
+    _cur_grid_snap = SELF:CHECKED.
+    run refresh_grid_snap.
+END. 
+
+PROCEDURE refresh_grid_snap :
 /*------------------------------------------------------------------------------
   Purpose: Change grid snapping, but only on Graphical frames     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  _cur_grid_snap = SELF:CHECKED.
-  FOR EACH _U WHERE CAN-DO("DIALOG-BOX,FRAME", _U._TYPE) AND _U._HANDLE <> ?,
-       EACH _L WHERE RECID(_L) = _U._lo-recid:
-    IF _L._WIN-TYPE THEN _U._HANDLE:GRID-SNAP = _cur_grid_snap.
+   define buffer b_U for _u.
+   define buffer b_L for _L.
+  FOR EACH b_U WHERE CAN-DO("DIALOG-BOX,FRAME", b_U._TYPE) AND b_U._HANDLE <> ?,
+       EACH b_L WHERE RECID(b_L) = b_U._lo-recid:
+    IF b_L._WIN-TYPE THEN b_U._HANDLE:GRID-SNAP = _cur_grid_snap.
   END.
 END PROCEDURE. /* change_grid_snap */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change_grid_units Include 
 PROCEDURE change_grid_units :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1574,13 +1552,18 @@ PROCEDURE change_grid_units :
   Notes:       
 ------------------------------------------------------------------------------*/
    DEFINE VAR changed    AS LOGICAL                             NO-UNDO.
-   DEFINE VAR saved_gd   AS LOGICAL                             NO-UNDO.
-   DEFINE VAR hf         AS WIDGET                              NO-UNDO.
 
    /* This uses the current values for grid setup */
    RUN adeuib/_edtgrid.p ("Grid Units", OUTPUT changed).
-   IF changed THEN DO:
-     FOR EACH _U WHERE CAN-DO("DIALOG-BOX,FRAME", _U._TYPE) AND _U._HANDLE <> ?,
+   IF changed THEN  
+       run refresh_grid_units.
+    
+END.  /* change_grid_units */
+
+PROCEDURE refresh_grid_units :
+    DEFINE VAR saved_gd   AS LOGICAL                             NO-UNDO.
+    DEFINE VAR hf         AS WIDGET                              NO-UNDO.
+    FOR EACH _U WHERE CAN-DO("DIALOG-BOX,FRAME", _U._TYPE) AND _U._HANDLE <> ?,
        EACH _L WHERE RECID(_L) = _U._lo-recid:
       /* Change the grid - first turn off the grid display so that
          everything does not flash. */
@@ -1599,13 +1582,8 @@ PROCEDURE change_grid_units :
                 hf:GRID-FACTOR-H = _cur_grid_factor_h
                 hf:GRID-VISIBLE  = saved_gd.
      END.
-   END.
-END.  /* change_grid_units */
+end.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change_label Include 
 PROCEDURE change_label :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1728,10 +1706,7 @@ PROCEDURE change_label :
   IF LAST-EVENT:FUNCTION EQ "RETURN":U THEN RETURN ERROR.
 END. /*  change_label */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE change_name Include 
 PROCEDURE change_name :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1793,10 +1768,7 @@ PROCEDURE change_name :
   IF LAST-EVENT:FUNCTION EQ "RETURN":U THEN RETURN ERROR.
 END. /* change_name */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose-pointer Include 
 PROCEDURE choose-pointer :
 /*------------------------------------------------------------------------------
   Purpose:  change the _next_draw tool back to the pointer tool   
@@ -1846,10 +1818,7 @@ PROCEDURE choose-pointer :
   RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Lock}, "":U).
 END PROCEDURE. /* choose-pointer */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_assign_widgetID Include 
 PROCEDURE choose_assign_widgetID :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -1860,6 +1829,12 @@ PROCEDURE choose_assign_widgetID :
 
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
+    if OEIDEIsRunning then
+      lContinue = ShowMessageInIDE("Widget IDs will be written to all frames and widgets of this container.
+                                    If widget IDs have already been assigned to frames and widgets they will be overwritten. 
+                                    Do you wish to continue?",
+                                    "Question",?,"YES-NO",YES).
+    else  
     MESSAGE "Widget IDs will be written to all frames and widgets of this container. " +
             "If widget IDs have already been assigned to frames and widgets they will be overwritten. " +
             "Do you wish to continue?" 
@@ -1872,10 +1847,7 @@ PROCEDURE choose_assign_widgetID :
   END.
 END PROCEDURE.  /* choose_assign_widgetID */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_attributes Include 
 PROCEDURE choose_attributes :
 /*------------------------------------------------------------------------------
   Purpose: called by UIB to trigger events in the Attributes Editor
@@ -1883,6 +1855,10 @@ PROCEDURE choose_attributes :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
+    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
   /* If it doesn't exist, them create it.  Otherwise, move it to the top.
      NOTE that we need to make sure the handle points to the same item
      (because PROGRESS reuses procedure handles). */
@@ -1895,10 +1871,7 @@ PROCEDURE choose_attributes :
 
 END PROCEDURE. /* choose_attributes */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_check_syntax Include 
 PROCEDURE choose_check_syntax :
 /*------------------------------------------------------------------------------
   Purpose: Check the syntax of the current window    
@@ -1974,19 +1947,27 @@ PROCEDURE choose_check_syntax :
          COMPILER:FILE-OFFSET. */
       IF RETURN-VALUE BEGINS "ERROR:":U THEN DO:
         iErrOffset = INTEGER(ENTRY(2,ENTRY(1,RETURN-VALUE,CHR(10))," ":U)).
-
-        RUN adecomm/_s-alert.p (INPUT-OUTPUT lScrap, "error":U, "ok":U,
-          SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1,"CHARACTER":U)).
-
+        
+        if OEIDE_CanShowMessage() then
+            ShowMessageInIDE(SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1),"error",?,"OK",yes).
+    
+        else 
+            RUN adecomm/_s-alert.p (INPUT-OUTPUT lScrap, "error":U, "ok":U,
+                       SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1,"CHARACTER":U)).
+         
         FIND LAST _TRG WHERE _TRG._pRECID  EQ RECID(_P)
                          AND _TRG._tOFFSET LT iErrOffset
                          USE-INDEX _tOFFSET NO-ERROR.
         _err_recid = IF AVAILABLE _TRG THEN RECID(_TRG) ELSE ?.
       END. /* RETURN-VALUE BEGINS "ERROR:" */
       ELSE
+      do: 
+        if OEIDE_CanShowMessage() then
+         ShowMessageInIDE("Syntax is correct.","Information",?,"OK",YES).
+        else  
         MESSAGE "Syntax is correct."
           VIEW-AS ALERT-BOX INFORMATION.
-
+      end.
       /* Cleanup any left over remote .ab.i files. */
       RUN adeweb/_webcom.w (?, cBroker, web-tmp-file, "DELETE":U,
                           OUTPUT cScrap, INPUT-OUTPUT cScrap).
@@ -2012,16 +1993,16 @@ PROCEDURE choose_check_syntax :
   END.
 END PROCEDURE. /* choose_check_syntax */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_close Include 
 PROCEDURE choose_close :
 /*------------------------------------------------------------------------------
   Purpose: Close the current window    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+ /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
   IF _h_win = ? THEN  
     RUN report-no-win.
   ELSE
@@ -2029,16 +2010,17 @@ PROCEDURE choose_close :
     RUN wind-close (_h_win).
 END PROCEDURE. /* choose_close */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_close_all Include 
 PROCEDURE choose_close_all :
 /*------------------------------------------------------------------------------
   Purpose:  Close one or more windows    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+   /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
+  
   IF _h_win = ? THEN 
     RUN report-no-win.
   ELSE DO:
@@ -2054,16 +2036,16 @@ PROCEDURE choose_close_all :
   END.
 END PROCEDURE. /* choose_close_all */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_codedit Include 
 PROCEDURE choose_codedit :
 /*------------------------------------------------------------------------------
   Purpose: called by mi_code_edit, button-bar and Accelerators.    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+   /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
   IF NOT mi_code_edit:SENSITIVE THEN RETURN NO-APPLY.
   RUN adecomm/_setcurs.p ("WAIT":U) NO-ERROR.
   RUN call_sew ("SE_OPEN":U).
@@ -2073,10 +2055,7 @@ PROCEDURE choose_codedit :
   IF _next_draw NE ? THEN RUN choose-pointer.
 END PROCEDURE. /* choose_codedit */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_code_preview Include 
 PROCEDURE choose_code_preview :
 /*------------------------------------------------------------------------------
   Purpose:  called by menu and button-bar   
@@ -2084,7 +2063,11 @@ PROCEDURE choose_code_preview :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cScrap AS CHARACTER NO-UNDO.
-
+  
+  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) 
+    This would need to be changed to embedded dialog to support this from ide, not important the code can be seen with view source  */
+  if IDEIntegrated then 
+      return.
   IF _h_win = ? THEN
     RUN report-no-win.
   ELSE DO:
@@ -2108,10 +2091,7 @@ PROCEDURE choose_code_preview :
   END.
 END. /* choose_code_preview */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_control_props Include 
 PROCEDURE choose_control_props :
 /*------------------------------------------------------------------------------
   Purpose:  Bring up the OCX property editor    
@@ -2127,10 +2107,7 @@ PROCEDURE choose_control_props :
 
 END PROCEDURE. /* choose_control_props */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_copy Include 
 PROCEDURE choose_copy :
 /*------------------------------------------------------------------------------
   Purpose: called by Edit/Copy; Copy Accelerators.    
@@ -2188,21 +2165,30 @@ PROCEDURE choose_copy :
       END.
       ELSE DO:
         IF ivCount = 0 THEN
+        do:
+           if OEIDEIsRunning then
+              ShowMessageInIDE("There is nothing selected to copy.","Information",?,"OK",YES).
+           else 
            MESSAGE "There is nothing selected to copy." VIEW-AS ALERT-BOX
               INFORMATION BUTTONS OK.
+        end.      
         ELSE
+        do:
+          if OEIDEIsRunning then
+              ShowMessageInIDE("There are selected objects with different parents. ~n
+                               Copy only works on objects with the same parent.",
+                               "Information",?,"OK",YES).
+          else  
           MESSAGE "There are selected objects with different parents." SKIP
               "Copy only works on objects with the same parent."
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+        end.      
       END.
     END.  /* Invalid Copy */
   END. /* IF _h_win...ELSE DO: */
 END PROCEDURE. /* choose_copy  */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_cut Include 
 PROCEDURE choose_cut :
 /*------------------------------------------------------------------------------
   Purpose: called by Edit/Cut; Cut Accelerators    
@@ -2222,11 +2208,21 @@ PROCEDURE choose_cut :
       /* Cannot cut from alternate layouts. */
       IF CAN-FIND (FIRST _U WHERE _U._SELECTEDib
                      AND _U._LAYOUT-NAME ne "{&Master-Layout}":U)
-      THEN MESSAGE "Objects cannot be cut from alternate layouts." SKIP(1)
+      THEN
+      do: 
+          if OEIDEIsRunning then
+              ShowMessageInIDE("Objects cannot be cut from alternate layouts. ~n 
+                               Return to the Master Layout to cut these objects, 
+                               or go to their property sheets to remove them from 
+                               this layout.",
+                               "Information",?,"OK",YES).
+          else
+          MESSAGE "Objects cannot be cut from alternate layouts." SKIP(1)
                    "Return to the Master Layout to cut these objects,"
                    "or go to their property sheets to remove them from"
                    "this layout."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      end.             
       ELSE DO:
         /* SEW store current trigger code before cutting to clipboard. */
         RUN call_sew ("SE_STORE_SELECTED":U).
@@ -2270,39 +2266,53 @@ PROCEDURE choose_cut :
         RUN del_cur_widg_check. /* Have we deleted the current widget? */
         RUN setstatus ("":U, "":U).
       END. /* IF...Master-Layout... */
+      if OEIDEIsRunning and avail _U then 
+       run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
     END. /* Valid Cut */
     ELSE DO:  /* Invalid Cut */
       IF CAN-DO(_AB_Tools, "Enable-ICF":U)  THEN
         APPLY LASTKEY TO SELF.
       ELSE DO:
-        IF ivCount = 0
-           THEN MESSAGE "There is nothing selected to cut."
+        IF ivCount = 0 THEN
+        do: 
+           if OEIDEIsRunning then
+              ShowMessageInIDE("There is nothing selected to cut.",
+                               "Information",?,"OK",YES).
+           else 
+           MESSAGE "There is nothing selected to cut."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        ELSE MESSAGE "There are selected objects with different parents." SKIP
+        end.           
+        ELSE
+        do: 
+            if OEIDEIsRunning then
+              ShowMessageInIDE("There are selected objects with different parents. ~n
+                               Cut only works on objects with the same parent.",
+                               "Information",?,"OK",YES).
+           else
+           MESSAGE "There are selected objects with different parents." SKIP
                    "Cut only works on objects with the same parent."
                     VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+        end.
       END.
     END. /* Invalid Cut */
   END.
 END PROCEDURE.  /* choose_cut */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_debug Include 
 PROCEDURE choose_debug :
 /*------------------------------------------------------------------------------
   Purpose: run the current window with the debugger      
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) 
+    Causes errors if executed from ide */
+  if IDEIntegrated then 
+      return.
   RUN call_run ("DEBUG").
 END PROCEDURE. /* choose_debug */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_duplicate Include 
 PROCEDURE choose_duplicate :
 /*------------------------------------------------------------------------------
   Purpose: called by Edit/Duplicate.      
@@ -2321,8 +2331,14 @@ PROCEDURE choose_duplicate :
   END.
 
   IF ivCount = 0 THEN
+  do:
+    if OEIDEIsRunning then
+              ShowMessageInIDE("There is nothing selected to duplicate.",
+                               "Information",?,"OK",YES).
+    else  
     MESSAGE "There is nothing selected to duplicate." VIEW-AS ALERT-BOX
             INFORMATION BUTTONS OK.
+  end.          
   ELSE DO:
 
     /* SEW store current trigger code before duplicating in UIB. */
@@ -2349,8 +2365,9 @@ PROCEDURE choose_duplicate :
     END.
     RUN adeuib/_qssuckr.p (dup_file, "", "IMPORT", FALSE).
     SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
+    WidgetAction = "Add".
     RUN display_current.
-
+    WidgetAction = "".
     /* SEW Update after adding widgets in UIB. */
     RUN call_sew ("SE_ADD":U).
 
@@ -2374,10 +2391,7 @@ PROCEDURE choose_duplicate :
 
 END PROCEDURE. /* Duplicate */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_editor Include 
 PROCEDURE choose_editor :
 /*------------------------------------------------------------------------------
   Purpose: called from the mnu_editor dynamic menu-item in the mnu-tools menu
@@ -2389,10 +2403,50 @@ Parameters:  <none>
   SESSION:DATE-FORMAT = _orig_dte_fmt.
 END PROCEDURE. /* Choose editor */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+PROCEDURE RightClick_viewSource:
+    RUN choose_viewSource(INPUT "RightClick":U).
+END PROCEDURE.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_erase Include 
+PROCEDURE choose_viewSource:
+    DEFINE INPUT PARAMETER clickType AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE wType       AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE wName       AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE wSection    AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE wTrigger    AS CHARACTER NO-UNDO.
+    DEFINE BUFFER   buff_U      FOR _U.
+    DEFINE VARIABLE windowName  AS CHARACTER no-undo .
+    IF AVAILABLE _P THEN 
+       ASSIGN FILE-INFO:FILE-NAME = _P._save-as-file.
+        
+    IF clickType = "DoubleClick":U THEN 
+    DO:
+        FIND FIRST _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+        IF AVAILABLE(_U) THEN 
+        DO:
+            ASSIGN wName = _U._Name
+                   wType = _U._TYPE.
+
+            IF VALID-HANDLE(OEIDE_ABSecEd) THEN 
+                 RUN get_default_event IN OEIDE_ABSecEd(wType, OUTPUT wTrigger).
+            /* OPEN_QUERY is not a real trigger */
+            if wTrigger = "OPEN_QUERY" then 
+               wTrigger = "". 
+            IF wTrigger = "" THEN 
+                ASSIGN  wSection = "MAIN BLOCK":U.
+            ELSE   
+                ASSIGN  wSection = "TRIGGER":U.      
+        END.
+    END.      
+    else
+        ASSIGN wType    = ""
+               wName    = ""
+               wSection = ""
+               wTrigger = "". 
+    if valid-handle (hOEIDEService) and IDEIntegrated THEN 
+         viewSource(_h_win,wName,wType,wSection,wTrigger). 
+   
+END PROCEDURE.
+ 
 PROCEDURE choose_erase :
 /*------------------------------------------------------------------------------
   Purpose:  Erase marked widgets 
@@ -2430,8 +2484,14 @@ PROCEDURE choose_erase :
        END.
     END.
     ELSE
+    do:
+      if OEIDEIsRunning then
+              ShowMessageInIDE("There is nothing selected for deletion.",
+                               "Information",?,"OK",YES).
+      else  
       MESSAGE "There is nothing selected for deletion."
           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+    end.      
   END.
   ELSE DO: /* objects to delete */
     /* Bailout if user is attempting to delete the browser off a DynBrows */
@@ -2531,40 +2591,20 @@ PROCEDURE choose_erase :
   END. /* objects to delete */
 END. /* choose_erase */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_export_file Include 
 PROCEDURE choose_export_file :
 /*------------------------------------------------------------------------------
   Purpose: Export selected objects to an export file.     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE cnt AS INTEGER NO-UNDO.
-
-  IF _h_win = ? THEN RUN report-no-win.
-  ELSE DO:
-    RUN adeuib/_chksel.p ( OUTPUT cnt ).
-    IF cnt >= 0 THEN
-    DO:
-      /* SEW store current trigger code before copying to file. */
-      RUN call_sew ("SE_STORE_SELECTED":U).
-      RUN adeuib/_chsxprt.p (TRUE).
-    END.
-    ELSE DO: /* Invalid Selection */
-      MESSAGE "There are selected objects with different parents." SKIP
-              "Copy to File only works on objects with the same parent."
-          VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-      RETURN.
-    END. /* Invalid Selection */
-  END.
+   if IdeIntegrated then   
+      runDialog(_h_win,"exportFile":U).
+  else
+      run do_export_file.    
 END. /* choose_export_file */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_new Include 
 PROCEDURE choose_file_new :
 /*------------------------------------------------------------------------------
   Purpose:  creates a new window or dialog-box and makes sure that the new item 
@@ -2577,8 +2617,10 @@ PROCEDURE choose_file_new :
   DEFINE VAR cFileExt  AS CHAR NO-UNDO.
   DEFINE VAR lHtmlFile AS LOG  NO-UNDO.
   DEFINE VAR h_curwin  AS HANDLE NO-UNDO.
-
-
+  /* prevent this from being triggered by hotkey from ide design window */
+  if IDEIntegrated then 
+      return.
+      
   /* Save off the current object design window handle. Use it to determine
      if a new object was actually created (handle will change). */
   ASSIGN h_curwin = _h_win.
@@ -2607,23 +2649,14 @@ PROCEDURE choose_file_new :
     /* je-icf: Show the property sheet of new dynamic repository object. */
     IF (_h_win <> ?) AND (_h_win <> h_curwin) THEN
     DO:
-      FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
-      IF AVAILABLE(_P) AND (NOT _P.static_object) AND
-               LOOKUP("DynView":U,_P.parent_classes)= 0
-           AND LOOKUP("DynSDO":U,_P.parent_classes) = 0
-           AND LOOKUP("DynDataView":U,_P.parent_classes) = 0
-           AND LOOKUP("Dynbrow":U,_P.parent_classes)= 0   THEN
-        RUN choose_prop_sheet IN _h_UIB.
-
+      run startDynPropSheet.  
     END.
 
   END. /* If a valid choice */
+  
 END PROCEDURE.  /* choose_file_new */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_open Include 
 PROCEDURE choose_file_open :
 /*------------------------------------------------------------------------------
   Purpose:  called by File/Open or Ctrl-O    
@@ -2634,10 +2667,7 @@ PROCEDURE choose_file_open :
 
 END PROCEDURE.  /* choose_file_open */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_print Include 
 PROCEDURE choose_file_print :
 /*------------------------------------------------------------------------------
   Purpose:   called by File/Print   
@@ -2673,18 +2703,58 @@ PROCEDURE choose_file_print :
   END.  /* else do - _h_win <> ? */
 END PROCEDURE.  /* choose_file_print */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure choose_file_save :
+    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+    if IDEIntegrated then 
+      return.
+    run do_file_save.
+end procedure.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_save Include 
-PROCEDURE choose_file_save :
+
+PROCEDURE ide_file_save :
+/*------------------------------------------------------------------------------
+  Purpose: called by adeuib.ide.request._saverequest on behalf of ide  
+  Parameters: phwin  window handle>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define input parameter phWin as handle no-undo.
+    define variable lrefresh as log  no-undo.
+    define buffer b_u for _u. 
+    
+    find b_u where b_U._HANDLE = phwin no-error.
+    
+    if not avail b_U then
+    do:
+        if phwin:type = "WINDOW":U then
+             phwin = phwin:first-child.
+        find b_U where b_U._HANDLE = phwin no-error.   
+    end.
+    if not avail b_u then 
+       undo, throw new Progress.Lang.AppError("Invalid window handle reference passed to save method.",?).
+    
+    if phwin <> _h_win then
+    do:
+        _h_win = phWin.
+        lRefresh = true.
+    end.    
+    
+    run do_file_save.
+    finally: 
+        if lRefresh then
+        do:
+            run display_curwin.
+        end. 
+    end finally.
+end procedure.
+
+PROCEDURE do_file_save :
 /*------------------------------------------------------------------------------
   Purpose: called by File/Save or Ctrl-S    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE saveStatic   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE notSavedYet  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE pError       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE pAssocError  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lOK          AS LOGICAL    NO-UNDO.
@@ -2700,17 +2770,17 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cSaveFile    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE rRecid       AS RECID      NO-UNDO.
   DEFINE VARIABLE cAbort       AS CHARACTER  NO-UNDO.
-
+  
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
-    ASSIGN saveStatic = YES.
+    ASSIGN notSavedYet = YES.
     FIND _U WHERE _U._HANDLE = _h_win.
-
     /* If we are running Dynamics, check to see if this is a dynamic
        object and save it as such if it is                         */
     IF CAN-DO(_AB_Tools,"Enable-ICF") THEN 
     DO:
       FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+      
       IF (NOT _P.static_object) AND
          LOOKUP(_P._TYPE,"SmartDataBrowser,SmartDataObject,SmartDataViewer,SmartViewer":U) > 0 THEN 
       DO:
@@ -2729,16 +2799,28 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
                            THEN TRIM(SUBSTRING(cDefCode,iStart + 5,  iEnd - iStart - 5 ))
                            ELSE _save_file
             NO-ERROR.
+            
             ASSIGN cSaveFile       = _P._SAVE-AS-FILE
                    _P._SAVE-AS-FILE = _save_File
                    rRecid           = RECID(_P).
-
-            /* The call to _saveaswizd.w requires a valid _h_cur_widg, but this
+                 /* The call to _saveaswizd.w requires a valid _h_cur_widg, but this
                won't be the case if multiple objects are choosen. In this case
                set it to _h_win.  */
+               
             IF NOT VALID-HANDLE(_h_cur_widg) THEN 
               _h_cur_widg = _h_win.
-            run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).            
+            if OEIDEisRunning then
+            do:
+                /* wait state locks the ui when embedded (probably becuase there is no automatic turn off
+                   since there is no dialog) */
+                run setstatus("","").
+                run adeuib/ide/_dialog_saveaswizd.p (no,
+                                                     output lRegisterObj,
+                                                     output lOK).
+            end.
+            else
+                run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).
+            
             IF rRecid <> RECID(_P) THEN
                FIND _P WHERE  RECID(_P) = rRecid .
             IF NOT lOK THEN DO:
@@ -2751,7 +2833,7 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
             action is changed to "OPEN". */
         ASSIGN lNew              = LOOKUP("NEW":U,_P.design_action) > 0
                _P.design_action  = REPLACE (_P.design_action, "NEW":U, "OPEN":U)
-               saveStatic        = NO NO-ERROR. /* This is to clear the ERROR handle */
+               notSavedYet        = NO NO-ERROR. /* This is to clear the ERROR handle */
 
         RUN setstatus ("WAIT":U,"Saving object...":U).
 
@@ -2842,19 +2924,17 @@ DEFINE VARIABLE cancel       AS LOGICAL    NO-UNDO.
       END.
     END. /* If we are running dynamics */
 
-    IF saveStatic THEN DO:
+    IF notSavedYet THEN DO:
       /* SEW call to store current trigger code for specific window. */
       RUN call_sew ("SE_STORE_WIN":U).
-
+      
       RUN save_window (NO, OUTPUT cancel).
+      
     END. /* If saving a static object */
   END. /* Else we have a valid window handle */
-END PROCEDURE. /* choose_file_save */
+END PROCEDURE. /* do_file_save */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_saveAsStatic_Undo Include 
 PROCEDURE choose_file_saveAsStatic_Undo :
 /*------------------------------------------------------------------------------
   Purpose:     Returns _U records to their previous state
@@ -2916,10 +2996,7 @@ END.
 
 END PROCEDURE. /* choose_file_saveAsStatic_Undo */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_save_all Include 
 PROCEDURE choose_file_save_all :
 /*------------------------------------------------------------------------------
   Purpose: called by File/Save All     
@@ -2928,7 +3005,10 @@ PROCEDURE choose_file_save_all :
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER x_U FOR _U.
   DEFINE BUFFER x_P FOR _P.
-
+  
+  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
   FOR EACH x_U WHERE CAN-DO("WINDOW,DIALOG-BOX",x_U._TYPE)
                                          AND x_U._STATUS NE "DELETED":
 
@@ -2937,42 +3017,49 @@ PROCEDURE choose_file_save_all :
 
     FIND x_P WHERE x_P._u-recid EQ RECID(x_U).
     IF x_P._SAVE-AS-FILE = ? THEN
+    do:
+      if OEIDEIsRunning then
+              ShowMessageInIDE(IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME + "~n" 
+                               + "This window has not been previously saved.",
+                               "Information",?,"OK",YES).
+      else  
       MESSAGE IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME SKIP
         "This window has not been previously saved."
         VIEW-AS ALERT-BOX INFORMATION.
-
+    end.
     RUN choose_file_save.
 
   END.  /* for each x_u */
 END PROCEDURE.  /* choose_file_save_all */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure choose_file_save_as :
+    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+    if IDEIntegrated then 
+      return.
+    run do_file_save_as.
+end procedure.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_save_as Include 
-PROCEDURE choose_file_save_as :
+
+PROCEDURE do_file_save_as :
 /*------------------------------------------------------------------------------
   Purpose:  Save current window with a new name   
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cancel        AS LOGICAL    NO-UNDO.
-
+ 
   IF _h_win = ? THEN  RUN report-no-win.
   ELSE DO:
     FIND _U WHERE _U._HANDLE = _h_win.
-
     /* SEW call to store current trigger code for specific window. */
     RUN call_sew ("SE_STORE_WIN":U).
     RUN save_window (YES, OUTPUT cancel).
+    
   END.
 
-END PROCEDURE. /*choose_file_save_as */
+END PROCEDURE. /*do_file_save_as */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_save_as_dynamic Include 
 PROCEDURE choose_file_save_as_dynamic :
 /*------------------------------------------------------------------------------
   Purpose: Save current window with a new name     
@@ -3000,10 +3087,7 @@ PROCEDURE choose_file_save_as_dynamic :
 
 END PROCEDURE. /*  choose_file_save_as_dynamic */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_file_save_as_static Include 
 PROCEDURE choose_file_save_as_static :
 /*------------------------------------------------------------------------------
   Purpose:     Save dynamic object as static
@@ -3058,6 +3142,10 @@ PROCEDURE choose_file_save_as_static :
  ELSE IF DYNAMIC-FUNCTION('classIsA':u in gshRepositoryManager, _P.Object_Type_Code, 'DynDataView':u) THEN
      cObjectType = 'StaticDataView':u.
  ELSE DO:
+   if OEIDEIsRunning then
+     ShowMessageInIDE("Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static.",
+                       "Information",?,"OK",YES).
+   else  
    MESSAGE "Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static." view-as alert-box.
    RETURN.
  END.
@@ -3150,8 +3238,13 @@ END.
    ASSIGN _mru_filelist = lMRUFileList.
    IF RETURN-VALUE BEGINS "_ABORT":U THEN
    DO:
+     if OEIDEIsRunning then
+     ShowMessageInIDE(RETURN-VALUE,"Information",?,"OK",YES).
+     else  
+  
      MESSAGE RETURN-VALUE
         VIEW-AS ALERT-BOX INFO BUTTONS OK.
+  
      FIND _P WHERE RECID(_P) =  r_PRecid.
      ASSIGN _P._SAVE-AS-FILE   = cOldSaveAsFile
            _P.static_object    = NO
@@ -3164,6 +3257,11 @@ END.
    END.
  END. /* End if SEARCH(_P._Design_template_file) */
  ELSE DO:
+    if OEIDEIsRunning then
+     ShowMessageInIDE("Could not save object as static. ~n 
+                      Template file " +  _P.design_template_file + "was not found",
+                      "Information",?,"OK",YES).
+    else 
     MESSAGE "Could not save object as static." SKIP(1)
             "Template file " +  _P.design_template_file + "was not found"
        VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -3352,9 +3450,7 @@ END. /* End if cResultCode > "" */
  /* Refind _P after closing template window and reassign _h_Win incase it was confused*/
  FIND _P WHERE RECID(_P) = r_PRecid.
  FIND _U WHERE RECID(_U) = r_URecid.
-
-
-  
+ 
  IF _h_win NE hOldWin THEN
  DO:
     ASSIGN _h_Win      = hOldWin
@@ -3399,41 +3495,20 @@ END. /* End if cResultCode > "" */
  DELETE OBJECT ttHL NO-ERROR.
 END PROCEDURE. /* choose_file_save_as_static */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_goto_page Include 
-PROCEDURE choose_goto_page :
+PROCEDURE choose_goto_page:
 /*------------------------------------------------------------------------------
   Purpose: change the page number shown for the current window     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
- /* Does this procedure support paging? If so change the page and display
-     it? */
-  IF _h_win = ? THEN RUN report-no-win.
-  ELSE DO:
-    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
-    IF CAN-DO (_P._links, "PAGE-TARGET") THEN DO:
-      /* Only page 0 is allowed on alternate layouts. */
-      FIND _U WHERE RECID(_U) EQ _P._u-recid.
-      IF _U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN DO:
-        RUN adeuib/_gotopag.w (RECID(_P)).
-        RUN display_page_number.
-      END.
-      ELSE DO:
-        MESSAGE "Changing pages is not supported except in the {&Master-Layout}."
-                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        IF _P._page-current NE 0 THEN RUN adeuib/_showpag.p (0).
-      END. /* IF <not master layout>... */
-    END. /* IF CAN-DO...Page-Target... */
-  END. /* IF valid window... */
+  if IdeIntegrated then   
+      runDialog(_h_win,"gotoPage":U).
+  else
+      run do_goto_page.     
 END PROCEDURE. /* choose_goto_page */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_import_fields Include 
 PROCEDURE choose_import_fields :
 /*------------------------------------------------------------------------------
   Purpose:  load fields (and their VIEW-AS) from the database   
@@ -3455,6 +3530,10 @@ PROCEDURE choose_import_fields :
               AND _U._WINDOW-HANDLE EQ _h_win NO-ERROR.
     IF AVAILABLE _U THEN _h_frame = _U._HANDLE.
     ELSE DO:
+      if OEIDEIsRunning then
+        ShowMessageInIDE("Please select a frame in which to insert database fields.",
+                      "Information",?,"OK",YES).
+      else  
       MESSAGE "Please select a frame in which to insert database fields."
              VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
       RETURN.
@@ -3507,71 +3586,20 @@ PROCEDURE choose_import_fields :
   IF _next_draw NE ? THEN RUN choose-pointer.
 END PROCEDURE. /* choose_import_fields */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_import_file Include 
 PROCEDURE choose_import_file :
 /*------------------------------------------------------------------------------
   Purpose: Import an exported file    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEF VAR lnth_sf AS INTEGER NO-UNDO.
-  DEF VAR pressed_ok AS LOGICAL NO-UNDO.
-  DEF VAR absolute_name AS CHAR NO-UNDO.
-
-  /* Choose a *.wx file from the saved set of WIDGET-DIRS.  Use TEMPLATE
-     mode here so that we can show related pictures of the choosen file
-     (if they exist). */
-  open_file = "".
-  RUN adecomm/_fndfile.p (INPUT "From File",                          /* pTitle            */
-                          INPUT "TEMPLATE",                           /* pMode             */
-                          INPUT "Export (*.wx)|*.wx|All Files|*.*":U, /* pFilters          */
-                          INPUT-OUTPUT {&WIDGET-DIRS},                /* pDirList          */
-                          INPUT-OUTPUT open_file,                     /* pFileName         */
-                          OUTPUT absolute_name,                       /* pAbsoluteFileName */
-                          OUTPUT pressed_ok).                         /* pOK               */
-  IF pressed_OK THEN DO:
-    open_file = absolute_name.
-    /* Deselect the currently selected widgets. */
-    RUN deselect_all (?, ?).
-    RUN setstatus ("":U, "Insert from file...").
-    IF open_file <> "" AND open_file <> ? THEN
-      RUN adeuib/_qssuckr.p (open_file, "", "IMPORT":U, FALSE).
-
-    SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-
-    /* In case of _qssuckr failure, reset the cursors. */
-    RUN setstatus ("":U, "":U).
-
-    /* Special Sanity check -- sanitize our records */
-    RUN adeuib/_sanitiz.p.
-
-    IF (_h_win = ?) THEN RETURN.
-
-    /* set the file-saved state to false */
-    RUN adeuib/_winsave.p(_h_win, FALSE).
-
-    FIND _U WHERE _U._HANDLE = _h_win.
-    ASSIGN _h_cur_widg    = _U._HANDLE
-           _h_frame       = (IF _U._TYPE EQ "WINDOW":U THEN ? ELSE _U._HANDLE)
-           .
-    RUN display_current.
-
-    /* SEW Update after adding widgets in UIB. */
-    RUN call_sew ("SE_ADD":U).
-
-    /* Return to pointer mode. */
-    IF _next_draw NE ? THEN
-      RUN choose-pointer.
-  END.
+  if IdeIntegrated then   
+      runDialog(_h_win,"importFile":U).
+  else
+      run do_import_file.   
 END PROCEDURE. /* choose_import_file */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_insert_trigger Include 
 PROCEDURE choose_insert_trigger :
 /*------------------------------------------------------------------------------
   Purpose:   bring up the Choose Event dialog from the Section Editor 
@@ -3579,18 +3607,17 @@ PROCEDURE choose_insert_trigger :
   Notes:       
 ------------------------------------------------------------------------------*/
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
-  IF NOT mi_insert_trigger:SENSITIVE THEN RETURN NO-APPLY.
-  IF VALID-HANDLE(OEIDE_ABSecEd) THEN
-    RUN NewTriggerBlock IN OEIDE_ABSecEd (?) NO-ERROR.  /* prompt for event name */
-
-  /* Return to pointer mode. */
-  IF _next_draw NE ? THEN RUN choose-pointer.
+/*  IF NOT mi_insert_trigger:SENSITIVE THEN RETURN NO-APPLY.*/
+  
+  if IdeIntegrated then
+      AddTrigger(_h_win,cur_widg_name,cur-widget-type).
+/*      runDialog(_h_win,"insertTrigger":U).*/
+  else
+      run do_insert_trigger.   
+   
 END PROCEDURE. /* choose_insert_trigger */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_insert_procedure Include 
 PROCEDURE choose_insert_procedure :
 /*------------------------------------------------------------------------------
   Purpose:   bring up the Add Procedure dialog from the Section Editor 
@@ -3599,17 +3626,14 @@ PROCEDURE choose_insert_procedure :
 ------------------------------------------------------------------------------*/
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
   IF NOT mi_insert_procedure:SENSITIVE THEN RETURN NO-APPLY.
-  IF VALID-HANDLE(OEIDE_ABSecEd) THEN
-    RUN NewCodeBlock IN OEIDE_ABSecEd ("_PROCEDURE":U) NO-ERROR.
-
-  /* Return to pointer mode. */
-  IF _next_draw NE ? THEN RUN choose-pointer.
+  if IdeIntegrated then   
+      AddCodeSection(_h_win,"PROCEDURE").
+/*      runDialog(_h_win,"insertProcedure":U).*/
+  else
+      run do_insert_procedure.   
 END PROCEDURE. /* choose_insert_procedure */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_insert_function Include 
 PROCEDURE choose_insert_function :
 /*------------------------------------------------------------------------------
   Purpose:   bring up the Add Function dialog from the Section Editor 
@@ -3618,17 +3642,15 @@ PROCEDURE choose_insert_function :
 ------------------------------------------------------------------------------*/
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
   IF NOT mi_insert_function:SENSITIVE THEN RETURN NO-APPLY.
-  IF VALID-HANDLE(OEIDE_ABSecEd) THEN
-    RUN NewCodeBlock IN OEIDE_ABSecEd ("_FUNCTION":U) NO-ERROR.
+  if IdeIntegrated then  
+       AddCodeSection(_h_win,"FUNCTION").
+/*       runDialog(_h_win,"insertFunction":U).*/
+   else
+       run do_insert_function .     
 
-  /* Return to pointer mode. */
-  IF _next_draw NE ? THEN RUN choose-pointer.
 END PROCEDURE. /* choose_insert_function */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_mru_file Include 
 PROCEDURE choose_mru_file :
 /*------------------------------------------------------------------------------
   Purpose: opens file from the MRU Filelist    
@@ -3675,9 +3697,14 @@ PROCEDURE choose_mru_file :
             ws-get-relative-path (INPUT _mru_files._file) )).
 
         IF INDEX(RETURN-VALUE,"File not found":U) NE 0 THEN
+        do:
+          if OEIDEIsRunning then
+            ShowMessageInIDE(ws-get-relative-path (INPUT _mru_files._file) + " not found in WebSpeed agent PROPATH.",
+                      "Information",?,"OK",YES).
+          else  
           MESSAGE ws-get-relative-path (INPUT _mru_files._file) "not found in WebSpeed agent PROPATH."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
+        end.
         DELETE _mru_files.
         RUN adeshar/_mrulist.p("":U, "":U).
         lFileError = TRUE.
@@ -3705,6 +3732,10 @@ PROCEDURE choose_mru_file :
       END.
 
       IF lFileError THEN DO:
+        if OEIDEIsRunning then
+            ShowMessageInIDE(_mru_files._file + "cannot be found.",
+                      "Error",?,"OK",YES).
+        else   
         MESSAGE _mru_files._file "cannot be found." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         DELETE _mru_files.
         RUN adeshar/_mrulist.p("":U, "":U).
@@ -3752,23 +3783,20 @@ PROCEDURE choose_mru_file :
 
 END PROCEDURE.  /*choose_mru_file */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_new_adm2_class Include 
 PROCEDURE choose_new_adm2_class :
 /*------------------------------------------------------------------------------
   Purpose: create a new ADM2 class    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+   if OEIDEIsRunning then
+      run adeuib/ide/_dialog_clasnew.p.
+   else
    RUN adeuib/_clasnew.w.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_new_pw Include 
 PROCEDURE choose_new_pw :
 /*------------------------------------------------------------------------------
   Purpose: creates a new Procedure Window.    
@@ -3784,24 +3812,267 @@ PROCEDURE choose_new_pw :
 
 END PROCEDURE. /* choose_new_pw */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_object_open Include 
 PROCEDURE choose_object_open :
 /*------------------------------------------------------------------------------
   Purpose: called by File/Open Object to Open Repository Object     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  /*prevent accelerator when in ide   */
+  if IDEIntegrated then 
+      return.
   RUN choose_open (INPUT "OBJECT":u).
 
 END PROCEDURE.  /* choose_object_open */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+/** called from _oideuib - generates .wrx,  refreshes smartobjects and sends save event, 
+*  pcfile - file name (used to open silently if no handle passed)
+*  phhandle the handle of the design window (if open)
+*/
+PROCEDURE ide_texteditor_save_event  :
+    define input  parameter pcFile   as character no-undo.
+    define input  parameter phhandle as handle no-undo.
+    define variable lSilentOpen    as logical no-undo.
+    
+    if valid-handle(OEIDE_ABSecEd) then
+    do:
+        if phHandle = ? then
+        do:
+            /* No window open -  run the _qssuckr to open the file silently */       
+            RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+            phhandle = _h_win.
+            lSilentOpen = true.
+        end.
+        run saveFileEvent IN OEIDE_ABSecEd (phhandle).
+    end.
+    finally:
+        /** close if silent open 
+           To keep this around we would need to be able to make it visible and embedd in eclipse if 
+           design window is opened while it is alive 
+           @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */ 
+        if lSilentOpen then 
+           run wind-close (phhandle).      
+                
+    end finally.
+   
+END PROCEDURE.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_open Include 
+/** pctype - 'Procedures' or 'Functions'
+*   pcfile - file name (used to open silently if no handle passed)
+*   phhandle - the handle of the design window (if open)
+*   out response - list of overridable procedures or functions (supports adm1)
+*/
+PROCEDURE ide_get_overrides  :
+    define input  parameter pcType   as character no-undo.
+    define input  parameter pcFile   as character no-undo.
+    define input  parameter phhandle as handle no-undo.
+    define output parameter response as longchar  no-undo.
+    define variable cSection as character no-undo.
+    define variable lSilentOpen    as logical no-undo.
+    cSection = if pcType = "Procedures" then "_PROCEDURE" else "_FUNCTION".
+    
+    if phHandle = ? then
+    do:
+        /* No window open -  run the _qssuckr to open the file silently */       
+        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        phhandle = _h_win.
+        lSilentOpen = true.
+    end.
+    
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN GetOverrides IN OEIDE_ABSecEd (phhandle,cSection, output response).
+    
+    finally:
+        /** close if silent open 
+           To keep this around we would need to be able to make it visible and embedd in eclipse if 
+           design window is opened while it is alive 
+           @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */ 
+        if lSilentOpen then 
+           run wind-close (phhandle).      
+        		
+    end finally.
+   
+END PROCEDURE.
+
+/** pclinkedfilename - linked file name
+*   pcfile - file name (used to open silently if no handle passed)
+*   phhandle - the handle of the design window (if open)
+*/
+PROCEDURE ide_syncFromFile :
+    define input  parameter pcLinkedFileName  as character no-undo.
+    define input  parameter phhandle as handle no-undo.
+    define variable lSilentOpen    as logical no-undo.
+    
+/*    /* not used by ide - somewhat unlikely and requires management of linked file by caller  */*/
+/*    if phHandle = ? then                                                                       */
+/*    do:                                                                                        */
+/*        /* No window open -  run the _qssuckr to open the file silently */                     */
+/*        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).                              */
+/*        phhandle = _h_win.                                                                     */
+/*        lSilentOpen = true.                                                                    */
+/*    end.                                                                                       */
+    
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN syncFromIDE IN OEIDE_ABSecEd (phHandle,pcLinkedFileName).
+    
+/*    finally:                                                                                                                */
+/*        /** close if silent open                                                                                            */
+/*           To keep this around we would need to be able to make it visible and embedd in eclipse if                         */
+/*           design window is opened while it is alive                                                                        */
+/*           @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */*/
+/*        if lSilentOpen then                                                                                                 */
+/*           run wind-close (phhandle).                                                                                       */
+/*                                                                                                                            */
+/*    end finally.                                                                                                            */
+   
+END PROCEDURE.
+
+
+/** pclinkedfilename - linked file name
+*   pcfile - file name (used to open silently if no handle passed)
+*   phhandle - the handle of the design window (if open)
+*/
+PROCEDURE ide_syncFromAppbuilder :
+    define input  parameter pcLinkedFileName  as character no-undo.
+    define input  parameter pcFile   as character no-undo.
+    define input  parameter phhandle as handle no-undo.
+    define variable lSilentOpen    as logical no-undo.
+    
+    /* not used by ide - requires management of linked file by caller  */
+    if phHandle = ? then
+    do:
+        /* No window open -  run the _qssuckr to open the file silently */       
+        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        phhandle = _h_win.
+        lSilentOpen = true.
+    end.
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN syncFromAppbuilder IN OEIDE_ABSecEd (phHandle,pcLinkedFileName).
+    
+    finally:
+        /** close if silent open 
+           To keep this around we would need to be able to make it visible and embedd in eclipse if 
+           design window is opened while it is alive 
+           @TODO this is likely not very difficult in uib , but may also require work on java side to deal with linking   */ 
+        if lSilentOpen then 
+           run wind-close (phhandle).      
+                
+    end finally.
+   
+END PROCEDURE.
+
+procedure debugshowstuff :
+    define buffer b_u for _u.
+    define buffer b_trg for _trg.
+     define variable cc as character no-undo.
+     
+     for each b_u:
+             cc = cc + chr(10)
+             + "u: " + b_u._name +   " type:  " + b_u._type  
+            + " parent " +    (if b_U._PARENT = ? then  "?" else string(b_U._PARENT))  +  "wh  " + string(b_u._WINDOW-HANDLE) + " def " + b_U._DEFINED-BY + " stat " + b_U._STATUS.
+    end.
+
+/*    for each b_u:                                                                                        */
+/*        for each b_trg where  b_TRG._wRECID   EQ RECID(b_U):                                             */
+/*          cc = cc + chr(10)                                                                              */
+/*             + "u: " + b_u._name                                                                         */
+/*             + " section: " + b_TRG._tSECTION + " event: " + b_TRG._tEVENT + " status: " + b_TRG._STATUS.*/
+/*        end.                                                                                             */
+/*    end.                                                                                                 */
+    message cc
+    view-as alert-box.
+end.
+
+/** get the override body with parameters 
+*   pctype - 'Procedures' or 'Functions'
+*   pcfile - file name (used to open silently if no handle passed)
+*   phhandle - the handle of the design window (if open)
+*   pcname = procedure or function name to override - (adm1 supported returns local- for adm--) 
+*   out response - code body  (no block start and end and no top comments )
+*/
+PROCEDURE ide_get_override_body  :
+    define input  parameter pcType   as character no-undo.
+    define input  parameter pcFile   as character no-undo.
+    define input  parameter phhandle as handle no-undo.
+    define input  parameter pcname   as character no-undo.
+    define output parameter response as longchar  no-undo.
+    define variable cSection as character no-undo.
+    define variable lSilentOpen    as logical no-undo.
+    cSection = if pcType = "Procedures" then "_PROCEDURE" else "_FUNCTION".
+    
+    if phHandle = ? then
+    do:
+        /* No window open -  run the _qssucker to open the file silently */       
+        RUN adeuib/_qssuckr.p (pcFile,"","Window-Silent", FALSE).        
+        phhandle = _h_win.
+        lSilentOpen = true.
+    end.
+    
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN GetOverrideBody IN OEIDE_ABSecEd (phhandle,cSection,pcname, output response).
+    
+    finally:
+        if lSilentOpen then 
+           run wind-close (phhandle).      
+                
+    end finally.
+   
+END PROCEDURE.
+
+
+
+
+PROCEDURE ide_choose_object_open :
+/*------------------------------------------------------------------------------
+  Purpose: called by _oeideuib to Open Repository Object     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define variable cFile as character no-undo.
+    define variable pressed-ok as logical no-undo.
+    define variable cRelname as character no-undo.
+    define variable cRelnamefull as character no-undo.
+    define variable lDynPropSheet as logical no-undo.
+  
+    /* Deselect the currently selected widgets */
+    RUN deselect_all (?, ?).
+    
+    RUN adecomm/_getobject.p ( _h_menu_win   /* Window Handle             */
+                              , ""            /* Product Module            */
+                              ,YES           /* Open in AppBuilder        */
+                              ,"Open Object" /* Title to display          */
+                              ,OUTPUT cFile    /* Name of File being opened */
+                              ,OUTPUT pressed-ok   /* Pressed OK on selection   */
+                              ).
+    if pressed-ok then
+    do:                         
+        find _RyObject where _RyObject.OBJECT_filename = cFile no-error.
+        if avail _ryobject then 
+        do: 
+            if _RyObject.static_object then
+            do:
+                assign
+                    cRelName =  _RyObject.object_path 
+                              + (if _RyObject.object_path = "" then "" else "~/":U) 
+                                 + cFile
+                                 + (if num-entries(cFile,".") le 1 and _RyObject.object_extension <> "" 
+                                    then "." + _RyObject.object_extension 
+                                    else "")
+                   file-info:file-name = cRelName              
+                   cRelNameFull        = file-info:full-pathname
+                   cRelNameFull        = replace(cRelNameFull,"~\":U,"/":U) .   
+                openDesignEditor(getProjectName(),cRelNameFull).
+            end.
+            else do:
+                openDynamicsEditor(getProjectName(),cFile).
+            end.
+        end.
+    end.
+     
+END PROCEDURE.  /* choose_object_open */
+
+
 PROCEDURE choose_open :
 /*------------------------------------------------------------------------------
   Purpose: Displays Open File or Open Object dialog and performs the open     
@@ -3810,7 +4081,10 @@ PROCEDURE choose_open :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pOpenMode AS CHARACTER NO-UNDO.
-
+  /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
+  
   DEFINE VARIABLE cTempFile    AS CHARACTER              NO-UNDO.
   DEFINE VARIABLE h_curwin     AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE h_active_win AS HANDLE                 NO-UNDO.
@@ -3891,6 +4165,7 @@ PROCEDURE choose_open :
   IF pressed-ok THEN
   DO:
     RUN setstatus (?, cOpenMsg).
+        
     RUN adeuib/_open-w.p (open_file, cTempFile, "WINDOW":U).
     IF _DynamicsIsRunning AND RETURN-VALUE > "" AND NOT RETURN-VALUE BEGINS  "_":U THEN
     DO:
@@ -3936,10 +4211,7 @@ PROCEDURE choose_open :
 
 END PROCEDURE.    /* choose_open */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_paste Include 
 PROCEDURE choose_paste :
 /*------------------------------------------------------------------------------
   Purpose: called by Edit/Paste; PASTE Accelerators     
@@ -3958,6 +4230,10 @@ PROCEDURE choose_paste :
 
   ASSIGN temp_file = CLIPBOARD:VALUE NO-ERROR.  /* Using temp_file */
   IF temp_file = "" OR temp_file = ? THEN
+    if OEIDEIsRunning then
+            ShowMessageInIDE("The clipboard is empty, there are no objects to paste.",
+                             "Information",?,"OK",YES).
+    else   
     MESSAGE "The clipboard is empty, there are no objects to paste."
         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
   ELSE DO:
@@ -3986,8 +4262,9 @@ PROCEDURE choose_paste :
 
       RUN adeuib/_qssuckr.p(temp_file, "", "IMPORT":U, FALSE).
       SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
+      WidgetAction = "Add".
       RUN display_current.
-
+      WidgetAction = "".
       /* SEW Update after adding widgets in UIB. */
       RUN call_sew ("SE_ADD":U).
 
@@ -4003,8 +4280,14 @@ PROCEDURE choose_paste :
       IF CAN-DO(_AB_Tools, "Enable-ICF":U)  THEN
       APPLY LASTKEY TO SELF.
       ELSE
+      do:
+         if OEIDEIsRunning then
+            ShowMessageInIDE("The contents of the clipboard cannot be pasted into the design window.",
+                             "Information",?,"OK",YES).
+         else  
          MESSAGE "The contents of the clipboard cannot be pasted into the design window."
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      end.        
     END.
     OS-DELETE VALUE(temp_file).
 
@@ -4017,10 +4300,7 @@ PROCEDURE choose_paste :
   ASSIGN  CLIPBOARD:MULTIPLE = Clip_Multiple.
 END PROCEDURE. /* choose_paste   */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_proc_settings Include 
 PROCEDURE choose_proc_settings :
 /*------------------------------------------------------------------------------
   Purpose:  bring up the property sheet for current procedure   
@@ -4028,52 +4308,87 @@ PROCEDURE choose_proc_settings :
   Notes:       
 ------------------------------------------------------------------------------*/
  DEFINE VAR cur_page AS INTEGER NO-UNDO.
-
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
     /* Save the current page incase the user changes it. */
+    
     FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
     cur_page = _P._page-current.
-    /* Procedure Settings editor */
-    RUN adeuib/_edtproc.p (_h_win).
+    if IDEIntegrated then 
+        run adeuib/ide/_dialog_edtproc.p(_h_win).
+    else    
+        RUN adeuib/_edtproc.p (_h_win).
+    
+    APPLY "ENTRY" TO _h_win. 
     IF cur_page NE _P._page-current THEN RUN display_page_number.
+    
   END.
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_prop_sheet Include 
+/* some code calls property_sheet directly */ 
 PROCEDURE choose_prop_sheet :
+/*------------------------------------------------------------------------------
+  Purpose:  bring up the property sheet - redirect from ide if integrated   
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   /* the ide will use UIBDialogCommnad that makes the IDE modal 
+      before calling back to openPropertySheet in _oeideuib and then
+      do_choose_prop_sheet, which calls do_property_sheet */
+   if IDEIntegrated then
+   do:
+       openPropertySheet(_h_win) .
+   end.
+   else 
+       run do_choose_prop_sheet. 
+ END PROCEDURE.
+
+/* called directly from choose or from ide if integrated */ 
+PROCEDURE do_choose_prop_sheet :
 /*------------------------------------------------------------------------------
   Purpose:  bring up the property sheet   
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  IF _h_cur_widg <> ?
-  THEN RUN property_sheet (_h_cur_widg).
-  ELSE MESSAGE "No object is currently selected." {&SKP}
-               "Please select an object with the pointer and try again."
+  IF _h_cur_widg <> ? THEN
+  do: 
+      /* APPLY "ENTRY" TO _h_menu_win.  */
+      APPLY "ENTRY" TO _h_cur_widg.
+      RUN do_property_sheet (_h_cur_widg).
+      APPLY "ENTRY" TO _h_cur_widg.
+      
+    
+  end.    
+  ELSE 
+  do:
+      if OEIDEIsRunning then
+            ShowMessageInIDE("No object is currently selected. ~n
+                             Please select an object with the pointer and try again.",
+                             "Information",?,"OK",YES).
+      else
+      MESSAGE "No object is currently selected." {&SKP}
+              "Please select an object with the pointer and try again."
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  end.          
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+procedure choose_reg_in_repos :
+    run choose_reg_in_repos in _h_menubar_proc.
+end procedure.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_run Include 
 PROCEDURE choose_run :
 /*------------------------------------------------------------------------------
   Purpose: called by F2 or Compile/Run    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  if OEIDEIsRunning then
+  RunDesign(_h_win).
+  else
   RUN call_run ("RUN").
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_show_palette Include 
+   
 PROCEDURE choose_show_palette :
 /*------------------------------------------------------------------------------
   Purpose:  This shows or hides the tool palette   
@@ -4081,7 +4396,9 @@ PROCEDURE choose_show_palette :
   Notes:   called by CTRL-T or Windows/Show Tool Palette.     
 ------------------------------------------------------------------------------*/
  DEFINE VAR h AS WIDGET  NO-UNDO.
-
+    /*prevent accelerator when in ide  (was not able to fix this by setting accelerator = "" or ? ) */
+  if IDEIntegrated then 
+      return.
   IF _AB_License EQ 2 THEN RETURN.
   h = mi_show_toolbox.
   IF _h_object_win:VISIBLE THEN
@@ -4102,37 +4419,19 @@ PROCEDURE choose_show_palette :
   END.
 END PROCEDURE. /* choose_show_palette */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_tab_edit Include 
 PROCEDURE choose_tab_edit :
 /*------------------------------------------------------------------------------
   Purpose: fires off the tab-editor    
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  IF _h_win = ? THEN
-    RUN report-no-win.
-  ELSE DO:
-    FIND _U WHERE _U._HANDLE = _h_frame NO-ERROR.
-    IF NOT AVAILABLE _U THEN DO:
-      /* This happens when a smartviewer is opened, but not entered */
-      FIND FIRST _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._TYPE = "FRAME":U
-        NO-ERROR.
-      IF NOT AVAILABLE _U THEN
-        MESSAGE "Please click on the frame you want to edit."
-          VIEW-AS ALERT-BOX INFO BUTTONS OK.
-      ELSE _h_frame = _U._HANDLE.
-    END.  /* If not available _U */
-    RUN adeuib/_tabedit.w (RECID (_U)).
-  END.
+    if IdeIntegrated then   
+      runDialog(_h_win,"tabOrder":U).
+  else
+    run do_tab_edit.   
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_tempdb_maint Include 
 PROCEDURE choose_tempdb_maint :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -4184,10 +4483,31 @@ PROCEDURE choose_tempdb_maint :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+PROCEDURE ide_choose_template :
+/*------------------------------------------------------------------------------
+  Purpose:  called from ide  
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  define output parameter pAbsoluteFileName as character no-undo.
+  DEFINE VARIABLE cFileName         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lOK               AS LOGICAL   NO-UNDO.
+ 
+  RUN adeuib/ide/_dialog_fndfile.p (INPUT "Choose Other Template",             /* pTitle            */
+                                        INPUT "TEMPLATE",                          /* pMode             */
+                                        INPUT "Windows (*.w)|*.w|All Files|*.*":U, /* pFilters          */
+                                        INPUT-OUTPUT {&TEMPLATE-DIRS},             /* pDirList          */
+                                        INPUT-OUTPUT cFileName,                    /* pFileName         */
+                                        OUTPUT       pAbsoluteFileName,            /* pAbsoluteFileName */
+                                        OUTPUT       lOK).                         /* pOK               */
+  
+  /* probably not necessary */
+  IF not lOK then 
+      pAbsoluteFileName = "".
+       
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_template Include 
+END PROCEDURE. /* choose_template */
+
 PROCEDURE choose_template :
 /*------------------------------------------------------------------------------
   Purpose:  called by 'New' popup menu   
@@ -4210,10 +4530,7 @@ PROCEDURE choose_template :
 
 END PROCEDURE. /* choose_template */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_uib_browser Include 
 PROCEDURE choose_uib_browser :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -4227,6 +4544,10 @@ PROCEDURE choose_uib_browser :
 ------------------------------------------------------------------------------*/
 
    IF NOT CAN-FIND(FIRST _U) THEN DO:
+     if OEIDEIsRunning then
+            ShowMessageInIDE("There are no objects to list.",
+                             "Information",?,"OK",YES).
+     else  
      MESSAGE "There are no objects to list." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
      RETURN.
    END.
@@ -4266,10 +4587,7 @@ PROCEDURE choose_uib_browser :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE choose_undo Include 
 PROCEDURE choose_undo :
 /*------------------------------------------------------------------------------
   Purpose:     
@@ -4280,17 +4598,21 @@ PROCEDURE choose_undo :
      of the form "Undo Move". */
   /* This is necessary as the CTRL-Z will fire this even if there is nothing to undo */
   IF NUM-ENTRIES(_undo-menu-item:LABEL," ":U) < 2 THEN DO:
+    if OEIDEIsRunning then
+       ShowMessageInIDE("There is nothing to undo.",
+                        "Information",?,"OK",YES).
+    else  
     MESSAGE "There is nothing to undo." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     RETURN.
   END.
-
+  
   RUN setstatus ("WAIT":U, "Undoing " + ENTRY(2,_undo-menu-item:LABEL, " ":U) +
                           "...":U).   /* Show the wait-cursor  */
   RUN adeuib/_undo.p.
   RUN setstatus ("":U, " ":U).        /* Clear the wait-cursor */
-
+  WidgetAction = "Add".
   RUN display_current.  /* Show the last widget undone */
-
+  WidgetAction = "".
   /* SEW Update after adding/deleting widgets in UIB. */
   RUN call_sew ("SE_UNDO":U).
 
@@ -4300,10 +4622,7 @@ PROCEDURE choose_undo :
                            SUBSTRING(_action._operation, 4, -1, "CHARACTER":U) ).
 END PROCEDURE. /* choose_undo */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE CreateDataFieldPopup Include 
 PROCEDURE CreateDataFieldPopup :
 /*------------------------------------------------------------------------------
   Purpose: creates popup menus for all datafield objects     
@@ -4373,10 +4692,7 @@ PROCEDURE CreateDataFieldPopup :
 
 END PROCEDURE. /* CreateDataFieldPopup */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE curframe Include 
 PROCEDURE curframe :
 /*------------------------------------------------------------------------------
   Purpose:  change the currently frame and window.  
@@ -4405,6 +4721,7 @@ PROCEDURE curframe :
       IF NOT AVAIL _U THEN RETURN.
       ELSE IF _U._TYPE = "DIALOG-BOX":U THEN
       DO:
+          
         ASSIGN _h_Frame        = hFrame
                _h_win          = h_thing
                _h_cur_widg     = ?
@@ -4461,17 +4778,14 @@ PROCEDURE curframe :
   RETURN .
 END PROCEDURE. /* curframe */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE curwidg Include 
 PROCEDURE curwidg :
 /*------------------------------------------------------------------------------
   Purpose: change the currently selected widget frame and window    
   Parameters:  <none>
   Notes: This procedure is called when the user clicks anywhere 
          the user selects a widget.      
-------------------------------------------------------------------------------*/
+------------------------------------------------------------------------------*/      
   /* Has anything changed? */
   IF SELF NE _h_cur_widg THEN DO:
     RUN curframe (SELF).
@@ -4484,13 +4798,15 @@ PROCEDURE curwidg :
     IF _h_cur_widg:TYPE NE "WINDOW":U AND _h_cur_widg:TYPE NE "FRAME":U THEN
       APPLY "SELECTION":U TO _h_cur_widg.
   END.
-
+  
+  if IDENotInEditor and IDEIntegrated and valid-handle(hOEIDEService) then
+      activateWindow(_h_win).
+ 
+  IDENotInEditor = false.
+    
 END PROCEDURE. /* curwidg */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE delselected Include 
 PROCEDURE delselected :
 /*------------------------------------------------------------------------------
   Purpose: deleted all selected widgets    
@@ -4536,15 +4852,13 @@ PROCEDURE delselected :
     END.
 
     {adeuib/delete_u.i &TRASH = FALSE}
+    
   END.  /* For each selected widget */
   /* Have we deleted the current widget? */
   RUN del_cur_widg_check.
 END PROCEDURE. /* delselected */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE del_cur_widg_check Include 
 PROCEDURE del_cur_widg_check :
 /*------------------------------------------------------------------------------
   Purpose: Check to see if the "current widget" still exists    
@@ -4596,10 +4910,7 @@ PROCEDURE del_cur_widg_check :
 
 END PROCEDURE. /* del_cur_widg_check */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE deselect_all Include 
 PROCEDURE deselect_all :
 /*------------------------------------------------------------------------------
   Purpose: Deselect all widgets (except except_h) that are not in window 
@@ -4618,10 +4929,7 @@ PROCEDURE deselect_all :
   END.
 END PROCEDURE. /* deselect_all */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE designFrame.ControlNameChanged Include 
 PROCEDURE designFrame.ControlNameChanged :
 /*------------------------------------------------------------------------------
   Purpose: Special trigger for Control-Frames...     
@@ -4640,10 +4948,7 @@ PROCEDURE designFrame.ControlNameChanged :
   RUN call_sew ("SE_PROPS":U). /* notify Section Editor of change */
 END PROCEDURE. /* designFrame.ControlNameChanged */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE designFrame.ObjectCreated Include 
 PROCEDURE designFrame.ObjectCreated :
 /*------------------------------------------------------------------------------
   Purpose: Special trigger for Control-Frames...
@@ -4658,10 +4963,7 @@ PROCEDURE designFrame.ObjectCreated :
          _U._LABEL    = name.
 END PROCEDURE. /* designFrame.ObjectCreated */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE dialog-close Include 
 PROCEDURE dialog-close :
 /*------------------------------------------------------------------------------
   Purpose: redirects this to wind-close after making sure that h_self points 
@@ -4669,16 +4971,14 @@ PROCEDURE dialog-close :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
   DEFINE INPUT PARAMETER h_self  AS WIDGET  NO-UNDO.
   IF h_self:TYPE = "WINDOW":U THEN
     h_self = h_self:FIRST-CHILD.
   RUN wind-close (h_self).
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_widgets Include 
 PROCEDURE disable_widgets :
 /*------------------------------------------------------------------------------
   Purpose:  disable the UIB so that another tool can run   
@@ -4750,10 +5050,6 @@ PROCEDURE disable_widgets :
 
 END PROCEDURE. /* disable_widgets */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE display_current Include 
 PROCEDURE display_current :
 /*------------------------------------------------------------------------------
   Purpose: shows the name and label of the current widget in in the menu window.    
@@ -4771,7 +5067,7 @@ PROCEDURE display_current :
   DEFINE VARIABLE cs-char       AS CHARACTER CASE-SENSITIVE NO-UNDO.
   DEFINE VARIABLE l_master      AS LOGICAL                  NO-UNDO.
   DEFINE VARIABLE l_DynLabel    AS LOGICAL                  NO-UNDO.
-
+  
   DEFINE BUFFER ipU FOR _U.
 
   DEFINE BUFFER b_U FOR _U.
@@ -4808,28 +5104,18 @@ PROCEDURE display_current :
 
     IF VALID-HANDLE(h_display_widg) THEN DO:
       error_on_leave = NO.
-      IF cur_widg_name:SENSITIVE AND INPUT cur_widg_name NE display_name THEN
+      if cur_widg_name:SENSITIVE AND INPUT cur_widg_name NE display_name THEN
         APPLY "LEAVE":U TO cur_widg_name.
       IF cur_widg_text:SENSITIVE AND INPUT cur_widg_text NE display_text THEN
         APPLY "LEAVE":U TO cur_widg_text.
       IF error_on_leave THEN RETURN.
     END.
-
     FIND b_U WHERE b_U._HANDLE = _h_cur_widg AND b_U._STATUS <> "DELETED"
             NO-ERROR.
     IF AVAILABLE b_U AND _next_draw EQ ? THEN DO:
       /* Menus don't have _L's */
       FIND _L WHERE RECID(_L) = b_U._lo-recid NO-ERROR.
-      /* Move FOCUS to the current widget, if possible. This is because Motif
-         sometimes gets lost (and sometimes shows a large focus border.
-         Regardless, always make sure FOCUS is set (otherwise the ON ANYWHERE
-         triggers will not work.  NOTE that we don't apply entry to the
-         current widget because this will highlight it in certain cases
-         (eg. if it is a COMBO-BOX or FILL-IN).  */
-      &IF "{&WINDOW-SYSTEM}" eq "OSF/Motif"
-      &THEN IF FOCUS NE _h_cur_widg THEN APPLY "ENTRY":U TO _h_win.
-      &ELSE IF FOCUS EQ ? THEN APPLY "ENTRY":U TO _h_win.
-      &ENDIF
+      IF FOCUS EQ ? and valid-handle(_h_win) THEN APPLY "ENTRY":U TO _h_win.
       /* Show it selected */
       IF CAN-SET(_h_cur_widg,"SELECTED":U) AND b_U._TYPE NE "DIALOG-BOX":U
       THEN ASSIGN b_U._SELECTEDib       = YES
@@ -4841,7 +5127,9 @@ PROCEDURE display_current :
       ASSIGN cur_widg_name            = IF (b_U._TABLE = ?) THEN b_U._NAME
                                         ELSE b_U._NAME + " (" +  b_U._TABLE + ")"
              cur_widg_name:SENSITIVE  = (b_U._TYPE <> "TEXT") AND
-                                           (b_U._TABLE = ?).
+                                           (b_U._TABLE = ?)
+             cur-widget-parent        = b_U._PARENT-RECID
+             cur-widget-type          = b_U._TYPE.
       IF b_U._TABLE NE ? THEN DO:
         FIND _F WHERE RECID(_F) = b_U._x-recid NO-ERROR.
         IF AVAILABLE _F AND _F._DISPOSITION EQ "LIKE" THEN
@@ -4977,7 +5265,7 @@ PROCEDURE display_current :
     ASSIGN h_display_widg = _h_cur_widg
            display_name   = cur_widg_name
            display_text   = cur_widg_text.
-
+ 
     /* Now display (or hide) items depending on the current window.
        This catches changing the current window, or changing pages
        in the current window. */
@@ -4993,13 +5281,15 @@ PROCEDURE display_current :
        window at that point. */
     IF NOT PROGRAM-NAME(2) BEGINS "DesignFrame.ControlNameChanged":U THEN
       RUN show_control_properties (0).
+      
+    if WidgetAction = "" then WidgetAction = "FOCUS".
+    if OEIDEIsRunning and cur_widg_name <> "" then
+       run CallWidgetEvent in _h_uib(input recid(b_U),WidgetAction).
+        
   END. /* If not mouse-select-down. */
 END PROCEDURE. /* display_current */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE display_curwin Include 
 PROCEDURE display_curwin :
 /*------------------------------------------------------------------------------
   Purpose: when the current window changes, then hide or show information 
@@ -5022,12 +5312,14 @@ PROCEDURE display_curwin :
              new-mode       = IF _P._TYPE = "WEB-OBJECT" THEN "WEB" ELSE "UIB".
       IF new-visual-obj NE _visual-obj OR new-mode NE last-mode THEN DO:
         _visual-obj = new-visual-obj.
+ 
         RUN mode-morph (new-mode).
       END.
     END.
+ 
     /* Sensitize the UIB main window based on the type of window. */
     RUN sensitize_main_window ("WINDOW").
-
+    
     IF VALID-HANDLE(mi_goto_page) THEN DO:
       /* Show page information */
       IF VALID-HANDLE(_h_win) AND CAN-DO (_P._links, "PAGE-TARGET") THEN DO:
@@ -5053,10 +5345,7 @@ PROCEDURE display_curwin :
 
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE display_page_number Include 
 PROCEDURE display_page_number :
 /*------------------------------------------------------------------------------
   Purpose: show the current page number in the UIB's status line.
@@ -5077,10 +5366,7 @@ PROCEDURE display_page_number :
   RUN adecomm/_statdsp.p  (_h_status_line, {&STAT-Page}, cPage).
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disp_help Include 
 PROCEDURE disp_help :
 /*------------------------------------------------------------------------------
   Purpose: Dispatches help for the current widget.  This means that it calls 
@@ -5142,10 +5428,280 @@ PROCEDURE disp_help :
   END. /* if avail i_U */
 END PROCEDURE. /* disp_help */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+PROCEDURE do_export_file :
+/*------------------------------------------------------------------------------
+  Purpose: Export selected objects to an export file.     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cnt AS INTEGER NO-UNDO.
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE double-click Include 
+  IF _h_win = ? THEN RUN report-no-win.
+  ELSE DO:
+    RUN adeuib/_chksel.p ( OUTPUT cnt ).
+    IF cnt >= 0 THEN
+    DO:
+      /* SEW store current trigger code before copying to file. */
+      RUN call_sew ("SE_STORE_SELECTED":U).
+      if OEIDEIsRunning then
+      RUN adeuib/ide/_dialog_chsxprt.p (TRUE).
+      else
+      RUN adeuib/_chsxprt.p (TRUE).
+    END.
+    ELSE DO: /* Invalid Selection */
+      if OEIDEIsRunning then
+       ShowMessageInIDE("There are selected objects with different parents. ~n
+                        Copy to File only works on objects with the same parent.",
+                        "Information",?,"OK",YES).
+      else    
+      MESSAGE "There are selected objects with different parents." SKIP
+              "Copy to File only works on objects with the same parent."
+          VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      RETURN.
+    END. /* Invalid Selection */
+  END.
+END. /* do_export_file */
+
+PROCEDURE do_goto_page :
+/*------------------------------------------------------------------------------
+  Purpose: change the page number shown for the current window     
+  Parameters:  <none>
+  Notes:  call from choose_goto_page      
+------------------------------------------------------------------------------*/
+ /* Does this procedure support paging? If so change the page and display
+     it? */
+  /* define input parameter pFileName as character no-undo. */
+  define variable cResult as character no-undo.
+  IF _h_win = ? THEN RUN report-no-win.
+  ELSE DO:
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
+    
+    IF CAN-DO (_P._links, "PAGE-TARGET") THEN DO:
+      /* Only page 0 is allowed on alternate layouts. */
+      FIND _U WHERE RECID(_U) EQ _P._u-recid.
+      IF _U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN DO:
+        if OEIDE_CanLaunchDialog() then
+            run adeuib/ide/_dialog_gotopag.p(recid(_P)).
+        else    
+            run adeuib/_gotopag.w (RECID(_P)).
+        
+        RUN display_page_number.
+        if IDEIntegrated and valid-handle(hOEIDEService) then      
+            gotoPage(_h_win,_P._page-current).
+      
+      END.
+      ELSE DO:
+        if OEIDE_CanShowMessage() then
+            ShowMessageInIDE("Changing pages is not supported except in the {&Master-Layout}.",
+                        "Information",?,"OK",YES).
+        else  
+        MESSAGE "Changing pages is not supported except in the {&Master-Layout}."
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+        IF _P._page-current NE 0 THEN RUN adeuib/_showpag.p (0).
+      END. /* IF <not master layout>... */
+    END. /* IF CAN-DO...Page-Target... */
+  END. /* IF valid window... */
+END PROCEDURE. /*do_goto_page */
+
+procedure IDEEnablePageNo:
+    define output parameter pageNumber as integer no-undo.
+    define variable cResult    as character no-undo.
+    IF _h_win = ? THEN pageNumber = ?.
+    else
+    do:
+       FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win.
+       if avail(_P) then
+       do:
+           IF CAN-DO (_P._links, "PAGE-TARGET") THEN
+           DO:
+               FIND _U WHERE RECID(_U) EQ _P._u-recid.
+               IF _U._LAYOUT-NAME EQ '{&Master-Layout}':U THEN 
+                  pageNumber = _P._page-current.
+               ELSE
+                  pageNumber = 0.
+               
+           END.
+           ELSE
+              pageNumber = ?.    
+       end.
+       else
+       pageNumber = ?.
+    end.  
+    
+    
+end procedure.
+
+procedure setPage:
+    define input parameter piPage as integer no-undo. 
+    
+    find _P where _P._WINDOW-HANDLE eq _h_win.
+    if can-do (_P._links, "PAGE-TARGET") then 
+    do:
+        
+        /* Only page 0 is allowed on alternate layouts. */
+        find _U where recid(_U) eq _P._u-recid.
+        if _U._LAYOUT-NAME eq '{&Master-Layout}':U then 
+        do:
+           if piPage ne _P._page-current then 
+           do: 
+               _P._page-current = piPage.
+               run adeuib/_showpag.p (recid(_P), piPage).
+           END.
+           run display_page_number.
+           return "yes".
+        end.
+        else do:
+            /*
+            MESSAGE "Changing pages is not supported except in the {&Master-Layout}."
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+                */
+            if _P._page-current ne 0 then 
+                run adeuib/_showpag.p (recid(_P),0).
+           return "NO". 
+        end. /* IF <not master layout>... */
+    end.
+    else
+    return "NO" .
+end procedure.
+
+
+PROCEDURE do_import_file :
+/*------------------------------------------------------------------------------
+  Purpose: Import an exported file    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEF VAR lnth_sf AS INTEGER NO-UNDO.
+  DEF VAR pressed_ok AS LOGICAL NO-UNDO.
+  DEF VAR absolute_name AS CHAR NO-UNDO.
+
+  /* Choose a *.wx file from the saved set of WIDGET-DIRS.  Use TEMPLATE
+     mode here so that we can show related pictures of the choosen file
+     (if they exist). */
+  open_file = "".
+  if OEIDEIsRunning then
+  RUN adeuib/ide/_dialog_fndfile.p (INPUT "From File",                          /* pTitle            */
+                          INPUT "TEMPLATE",                           /* pMode             */
+                          INPUT "Export (*.wx)|*.wx|All Files|*.*":U, /* pFilters          */
+                          INPUT-OUTPUT {&WIDGET-DIRS},                /* pDirList          */
+                          INPUT-OUTPUT open_file,                     /* pFileName         */
+                          OUTPUT absolute_name,                       /* pAbsoluteFileName */
+                          OUTPUT pressed_ok).                         /* pOK               */
+  else                        
+  RUN adecomm/_fndfile.p (INPUT "From File",                          /* pTitle            */
+                          INPUT "TEMPLATE",                           /* pMode             */
+                          INPUT "Export (*.wx)|*.wx|All Files|*.*":U, /* pFilters          */
+                          INPUT-OUTPUT {&WIDGET-DIRS},                /* pDirList          */
+                          INPUT-OUTPUT open_file,                     /* pFileName         */
+                          OUTPUT absolute_name,                       /* pAbsoluteFileName */
+                          OUTPUT pressed_ok).                         /* pOK               */
+  IF pressed_OK THEN DO:
+    open_file = absolute_name.
+    /* Deselect the currently selected widgets. */
+    RUN deselect_all (?, ?).
+    RUN setstatus ("":U, "Insert from file...").
+    IF open_file <> "" AND open_file <> ? THEN
+      RUN adeuib/_qssuckr.p (open_file, "", "IMPORT":U, FALSE).
+
+    SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
+
+    /* In case of _qssuckr failure, reset the cursors. */
+    RUN setstatus ("":U, "":U).
+
+    /* Special Sanity check -- sanitize our records */
+    RUN adeuib/_sanitiz.p.
+
+    IF (_h_win = ?) THEN RETURN.
+
+    /* set the file-saved state to false */
+    RUN adeuib/_winsave.p(_h_win, FALSE).
+
+    FIND _U WHERE _U._HANDLE = _h_win.
+    ASSIGN _h_cur_widg    = _U._HANDLE
+           _h_frame       = (IF _U._TYPE EQ "WINDOW":U THEN ? ELSE _U._HANDLE)
+           .
+    RUN display_current.
+
+    /* SEW Update after adding widgets in UIB. */
+    RUN call_sew ("SE_ADD":U).
+
+    /* Return to pointer mode. */
+    IF _next_draw NE ? THEN
+      RUN choose-pointer.
+  END.
+END PROCEDURE. /* do_import_file */
+
+PROCEDURE do_insert_function:
+ /** removed call to ide - possible future call ide text editor add procedure 
+    IN any case it should not be called from here.. but from choose_insert_function */
+/*  if OEIDEIsRunning then               */
+/*     AddCodeSection(_h_win,"FUNCTION").*/
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+       RUN NewCodeBlock IN OEIDE_ABSecEd ("_FUNCTION":U) NO-ERROR.
+   /* Return to pointer mode. */
+  IF _next_draw NE ? THEN RUN choose-pointer.
+END PROCEDURE.
+    
+PROCEDURE do_insert_procedure:
+   /** removed call to ide - possible future call ide text editor add procedure 
+    IN any case it should not be called from here.. but from choose_insert_procedure */
+/*  if OEIDEIsRunning then                */
+/*     AddCodeSection(_h_win,"PROCEDURE").*/
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+        RUN NewCodeBlock IN OEIDE_ABSecEd ("_PROCEDURE":U) NO-ERROR.
+    /* Return to pointer mode. */
+    IF _next_draw NE ? THEN RUN choose-pointer.
+END PROCEDURE.
+    
+PROCEDURE do_insert_trigger:
+   /** removed call to ide - possible future call ide text editor add procedure 
+    IN any case it should not be called from here.. but from choose_insert_trigger */  
+    /* 
+   if OEIDEIsRunning then  
+       AddTrigger(_h_win,cur_widg_name,cur-widget-type). */
+    IF VALID-HANDLE(OEIDE_ABSecEd) THEN
+        RUN NewTriggerBlock IN OEIDE_ABSecEd (?) NO-ERROR.  /* prompt for event name */
+
+    /* Return to pointer mode. */
+    IF _next_draw NE ? THEN RUN choose-pointer.
+END PROCEDURE.
+
+PROCEDURE do_tab_edit :
+/*------------------------------------------------------------------------------
+  Purpose: fires off the tab-editor    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  IF _h_win = ? THEN
+    RUN report-no-win.
+  ELSE DO:
+    FIND _U WHERE _U._HANDLE = _h_frame NO-ERROR.
+    IF NOT AVAILABLE _U THEN DO:
+      /* This happens when a smartviewer is opened, but not entered */
+      FIND FIRST _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._TYPE = "FRAME":U
+        NO-ERROR.
+      IF NOT AVAILABLE _U THEN
+      do:
+        if OEIDEIsRunning then
+          ShowMessageInIDE("Please click on the frame you want to edit.",
+                        "Information",?,"OK",YES).
+        else  
+        MESSAGE "Please click on the frame you want to edit."
+          VIEW-AS ALERT-BOX INFO BUTTONS OK.
+      end.    
+      ELSE _h_frame = _U._HANDLE.
+    END.  /* If not available _U */
+    if avail _u then 
+    do:
+        if IDEIntegrated then 
+            run adeuib/ide/_dialog_tabedit.p (RECID(_U)).
+        else
+            RUN adeuib/_tabedit.w (RECID (_U)).
+    end.
+  END.
+END PROCEDURE.
+
+
 PROCEDURE double-click :
 /*------------------------------------------------------------------------------
   Purpose: called by persistent triggers on UIB objects  
@@ -5163,7 +5719,7 @@ PROCEDURE double-click :
     ASSIGN _h_cur_widg = SELF.
     FIND FIRST _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
   END.
-
+  
   IF NOT AVAILABLE _U THEN RETURN.
 
   IF _U._TYPE = "{&WT-CONTROL}" THEN DO:
@@ -5172,29 +5728,43 @@ PROCEDURE double-click :
       RUN show_control_properties (1).
     END.
     ELSE
+    do:
+      if OEIDEIsRunning then
+          ShowMessageInIDE("You may not change OCX properties in an alternate layout. ~n 
+                           You may change the size, position and color of the Control Frame.",
+                            "Information",?,"OK",YES).
+      else  
       MESSAGE "You may not change OCX properties in an alternate layout." SKIP
               "You may change the size, position and color of the Control Frame."
               VIEW-AS ALERT-BOX INFORMATION.
+    end.          
   END.
   ELSE DO:  /* A normal progress widget */
     IF _dblclick_section_ed THEN DO:
-      /* Find _P of _h_cur_widg and if it is dynamic don't bring up the editor */
+        /* Find _P of _h_cur_widg and if it is dynamic don't bring up the editor */
       FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
       IF AVAILABLE _P AND NOT _P.static_object THEN DO:
         /* A dynamic object, don't open the section editor */
+        if OEIDEIsRunning then
+          ShowMessageInIDE("The Text Editor is not used for dynamic objects.",
+                            "Information",?,"OK",YES).
+        else
         MESSAGE "The Section Editor is not used for dynamic objects."
           VIEW-AS ALERT-BOX INFO BUTTONS OK.
       END.  /* If a dynamic object */
-      ELSE RUN choose_codedit.
+      ELSE
+      DO: 
+         IF IDEIntegrated THEN 
+            RUN choose_viewSource(INPUT "DoubleClick").
+         ELSE RUN choose_codedit.
+      END.
     END. /* If dection editor */
-    ELSE RUN property_sheet (?).
+    ELSE 
+        RUN property_sheet (?).
   END. /* DO for a normal progress widget */
 END PROCEDURE.
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE drawobj Include 
 PROCEDURE drawobj :
 /*------------------------------------------------------------------------------
   Purpose: drawobj is a procedure to figure out what widget is to be drawn 
@@ -5213,6 +5783,7 @@ PROCEDURE drawobj :
   IF _next_draw NE ? THEN DO:
     /* check 'drawing' permissions for this procedure */
     FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+ 
     FIND _palette_item WHERE _palette_item._name = _next_draw.
     IF _palette_item._type EQ {&P-BASIC} OR _palette_item._type EQ {&P-XCONTROL} THEN DO:
       CASE _next_draw:
@@ -5319,6 +5890,10 @@ PROCEDURE drawobj :
           /* If a widget was clicked into but it was not a RowObject field
              we need to let the user know and return */
           IF NOT lRowObj AND NOT lValid THEN DO:
+           if OEIDEIsRunning then
+              ShowMessageInIDE(cName + "is not a Data Source field. A SmartDataField must be dropped onto a Data Source field.",
+                               "Information",?,"OK",YES).
+            else  
             MESSAGE cName "is not a Data Source field. A SmartDataField must be dropped onto a Data Source field.".
             BELL.
             RETURN.
@@ -5326,6 +5901,10 @@ PROCEDURE drawobj :
           /* If no widget was clicked into then we need to let the user
              know and return */
           ELSE IF NOT lValid THEN DO:
+            if OEIDEIsRunning then
+              ShowMessageInIDE("A SmartDataField must be dropped onto a Data Source field.",
+                               "Information",?,"OK",YES).
+            else  
             MESSAGE "A SmartDataField must be dropped onto a Data Source field.".
             BELL.
             RETURN.
@@ -5343,9 +5922,13 @@ PROCEDURE drawobj :
         END.  /* Otherwise */
       END CASE.
     END.
-
+   
     /* Special case of TTY mode */
     IF (NOT _cur_win_type) AND CAN-DO("IMAGE,{&WT-CONTROL}",_next_draw) THEN DO:
+      if OEIDEIsRunning then
+         ShowMessageInIDE("Character mode windows cannot contain " + _next_draw + " objects.",
+                               "Information",?,"OK",YES).
+      else  
       MESSAGE "Character mode windows cannot contain" _next_draw "objects."
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
       RUN choose-pointer.
@@ -5364,7 +5947,7 @@ PROCEDURE drawobj :
                mi_color:SENSITIVE         = TRUE.
     END.
 
-
+       
     /* Now draw... */
     RUN setstatus ("WAIT":U, "Drawing " + _next_draw + "...").
     IF LDBNAME("DICTDB":U) = ? OR DBTYPE("DICTDB":U)NE "PROGRESS":U THEN
@@ -5375,10 +5958,10 @@ PROCEDURE drawobj :
         LEAVE FIND-PRO.
       END.
     END.
-
     RUN adeuib/_drawobj.p (goback2pntr).
-
-    IF RETURN-VALUE NE "NO DRAW" THEN DO:
+ 
+    IF RETURN-VALUE NE "NO DRAW" and RETURN-VALUE NE "IDE DRAW" THEN 
+    DO:
       /* Show the current widget and reset the pointer. */
       IF goback2pntr THEN RUN choose-pointer.
       RUN display_current.
@@ -5391,10 +5974,7 @@ PROCEDURE drawobj :
   END. /* IF _next_draw ne ? */
 END PROCEDURE.  /* drawobj */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE drawobj-in-box Include 
 PROCEDURE drawobj-in-box :
 /*------------------------------------------------------------------------------
   Purpose: called at the end of a box-select and it computes the second-corner 
@@ -5425,10 +6005,7 @@ PROCEDURE drawobj-in-box :
         ASSIGN _h_frame = hOldFrame.
 END PROCEDURE.  /* drawobj-in-box */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE drawobj-or-select Include 
 PROCEDURE drawobj-or-select :
 /*------------------------------------------------------------------------------
   Purpose: called when we want to either select the frame draw   
@@ -5442,7 +6019,6 @@ DEFINE VARIABLE hOldFrame AS HANDLE NO-UNDO.
   /* Draw an object -- let progress select the frame but we need to
     "select" the dialog-box because it is not selectable. */
   FIND _U WHERE _U._HANDLE = SELF.
-
   IF _next_draw EQ ? THEN DO:
     /* Select the dialog-box and deselect all other widgets. */
     IF _U._TYPE EQ "DIALOG-BOX" THEN RUN changewidg (SELF, YES).
@@ -5460,8 +6036,405 @@ DEFINE VARIABLE hOldFrame AS HANDLE NO-UNDO.
   END.
 END PROCEDURE. /* drawobj-or-select */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+/* wraps the external call to adeuib/_drwbrow.p in order to allow call thru ide */
+procedure draw_browse:
+   if IdeIntegrated then   
+       runDialog(_h_win,"runDrawBrowse":U).
+   else
+       run adeuib/_drwbrow.p.     
+end procedure. /* draw_query */ 
+
+/* wraps the external call to adeuib/_drwqry.p. in order to allow call thru ide */
+procedure draw_query:
+   if IdeIntegrated then   
+       runDialog(_h_win,"runDrawQuery":U).
+   else
+       run adeuib/_drwqry.p.     
+end procedure. /* draw_query */ 
+
+procedure run_xftr_procedure:
+    define input        parameter pcProcedure as character no-undo.
+    define input        parameter piContextId as integer   no-undo.
+    define input-output parameter pcCode      as character no-undo.
+    
+    define variable cContextIn  as character extent 3 no-undo.
+    define variable cContextOut as character extent 2 no-undo.
+    
+    if IdeIntegrated then  
+    do: 
+        assign 
+            cContextIn[1] = pcProcedure
+            cContextIn[2] = string(piContextId)
+            cContextIn[3] = pcCode.  
+        setContext(cContextIn).  
+        /* call run_xftr_procedure_context_runner from the ide */  
+        runDialog(_h_win,"runXFTRProcedure":U).
+       /* wait until ide calls run_xftr_procedure_context_runner */
+        wait-for "U8":u of _h_win.
+        cContextOut = getContext().
+        pcCode = cContextOut[1].
+        return cContextOut[2].
+    end.
+    else do:   
+        run value(pcProcedure) (piContextId, input-output pcCode).
+        return return-value.
+    end.   
+end procedure.
+
+procedure run_xftr_procedure_context_runner:
+    define variable cContextIn  as character extent 3 no-undo.
+    define variable cContextOut as character extent 2 no-undo.
+     
+    cContextIn = getContext().
+    /* TODO check for side effects  */
+    apply "entry" to _h_win.
+    run value(cContextIn[1]) (int(cContextIn[2]), input-output cContextIn[3]).
+    cContextOut[1] = cContextIn[3].
+    cContextOut[2] = return-value.
+    setContext(cContextOut).
+    /* tell run_xftr_procedure that context is ready */ 
+    apply "u8":u to _h_win.    
+end procedure.
+
+procedure choose_smartobject:
+    define input parameter pcTool as char no-undo.
+    define input parameter pcCustomtool as character no-undo.
+    define input parameter pcAttr as char no-undo.
+    define input parameter pcTemplate as char no-undo.
+    define input parameter pcAction as char no-undo.
+    define variable chooseSmartObject as adeuib.ide._choosesmartobject no-undo.
+    
+    if IDEIntegrated then
+    do:  
+        assign
+            chooseSmartObject = new adeuib.ide._choosesmartobject()
+            chooseSmartObject:Tool = pcTool
+            chooseSmartObject:CustomTool = pcCustomtool
+            chooseSmartObject:Attributes = pcAttr
+            chooseSmartObject:Template = pcTemplate
+            chooseSmartObject:Action = pcAction.
+        
+        chooseSmartObject:SetCurrentEvent(this-procedure,"do_choose_smartobject":U).
+        run runChildDialog in hOEIDEService(chooseSmartObject). 
+    end.
+    else 
+        run do_choose_smartobject(pcTool,pccustomTool,pcAttr,pcTemplate,pcAction). 
+    
+end procedure.
+
+procedure do_choose_smartobject:
+    define input parameter pcTool as char no-undo.
+    define input parameter pcCustomTool as char no-undo.
+    define input parameter pcAttr as char no-undo.
+    define input parameter pcTemplate as char no-undo.
+    define input parameter pcAction as char no-undo.
+ 
+    define variable cTool             as character initial "smartObject" no-undo.
+    define variable cFile             as character no-undo.
+    define variable cUnused           as character no-undo.
+    define variable lCancelled        as logical no-undo.
+ 
+    run adecomm/_setcurs.p("WAIT").
+    
+    session:date-format = _orig_dte_fmt.
+    
+    IF pcTool = "SmartDataObject":U THEN 
+        ctool = pcTool. /* Otherwise smartObject */
+    if IDEIntegrated then 
+        RUN adeuib/ide/_dialog_chosobj.p 
+                               (ctool, 
+                                pcAttr, 
+                                pcTemplate,
+                                pcAction,
+                                output cFile,
+                                output cUnused ,
+                                output lCancelled).
+    else
+        RUN adecomm/_chosobj.w (ctool,
+                                pcAttr, 
+                                pcTemplate,
+                                pcAction,
+                                output cFile,
+                                output cUnused ,
+                                output lCancelled).
+    if cFile <> "" then 
+        _object_draw = cFile.
+    else assign 
+        _object_draw = ?.
+   
+    if _object_draw eq ? then 
+    do:
+        /* If there is no object draw at this point (usually happens when
+         * a user cancels out of a picker) then go back to the pointer */
+        run choose-pointer.
+        return.
+    end.
+    
+    run setDrawMode.
+    
+    ASSIGN _next_draw   = pctool
+           _custom_draw = pcCustomTool.
+           
+    /* Set mouse pointer to selected item */
+    RUN adeuib/_setpntr.p (_next_draw, input-output _object_draw).
+    
+    if not IDEIntegrated then
+        run setToolStatus(pcCustomTool).                                
+end.
+
+/* call back from _drawobj for most cases.  */
+procedure post_drawobj_picked: 
+    define input  parameter plDrawn as logical no-undo.
+    /* set the window-saved state to false, since we just created an obj. */
+    if plDrawn then 
+        RUN adeuib/_winsave.p(_h_win, FALSE).
+
+    /* Go back to the pointer, if desired - or if there is no point to     */
+    /* staying in this mode.                                               */
+    IF goback2pntr THEN
+      ldummy = _h_menu_win:LOAD-MOUSE-POINTER("":U).
+    ELSE DO:
+      /* Make the last item drawn (which will be _h_cur_widg)
+        deselected (and not selectabe) and unmovable. Also, because we are
+        in draw mode. Get the correct cursor - and set _h_cur_widg to "?" */
+      FIND _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
+      IF AVAIL _u THEN
+        ASSIGN _U._HANDLE:MOVABLE    = FALSE 
+               _U._HANDLE:SELECTABLE = FALSE
+               _U._HANDLE:SELECTED   = FALSE
+               _U._SELECTEDib        = FALSE  .        
+      ASSIGN ldummy      = _h_win:LOAD-MOUSE-POINTER({&start_draw_cursor})
+             _h_cur_widg = ?.    
+
+      /* Reset the pointers correctly. */
+      RUN adeuib/_setpntr.p (_next_draw, INPUT-OUTPUT _object_draw).
+    END.
+end procedure.
+
+/* call back from _drawobj for all cases. after post_drawobj_picked   */
+procedure post_drawobj: 
+   /* Dynamics - Find the current object-name and assign to _U.Object-name */
+  IF _next_draw NE "DB-FIELDS":U THEN
+  DO:
+    FIND _U WHERE _U._HANDLE = _h_cur_widg no-error.
+    IF AVAIL _U AND _palette_custom_choice <> ? THEN
+    DO:
+      FIND _custom WHERE RECID(_custom) = _palette_custom_choice.
+      ASSIGN _U._OBJECT-NAME = _custom._object_name
+             _U._CLASS-NAME  = _custom._object_type_code.  
+    END.
+    ELSE IF AVAIL _U AND _palette_choice <> ? THEN
+    DO:
+      FIND _palette_item WHERE RECID(_palette_item) = _palette_choice.
+      ASSIGN _U._OBJECT-NAME = _palette_item._object_name
+             _u._CLASS-NAME  = _palette_item._object_class.  
+    END.
+     if OEIDEIsRunning and avail _U then
+        run CallWidgetEvent in _h_uib(input recid(_U),"Add").
+         
+  END.  /* if not db-fields */
+end procedure.
+ 
+/** select tables step of field selection 
+   called for non-smart objects */ 
+procedure ide_select_tables_and_draw_fields:
+    define input parameter MultiSelect       as logical no-undo.
+    define input parameter TempTableInfo     as character no-undo.
+    define input parameter DataBaseName       as character no-undo.
+    define input parameter TableNames        as character no-undo.
+    define variable lok                      as logical no-undo.
+    
+    RUN adeuib/ide/_dialog_tblsel.p 
+                    (MultiSelect, 
+                     TempTableInfo,
+                     INPUT-OUTPUT DataBaseName, 
+                     INPUT-OUTPUT TableNames,
+                     OUTPUT lok).
+    if not lok  or TableNames = "" or TableNames = ? then
+    do:
+                 
+       if lok then
+       do:
+           if OEIDEIsRunning then
+             ShowMessageInIDE("There are no database tables selected.",
+                               "Information",?,"OK",YES).
+           else
+           MESSAGE "There are no database tables selected."
+                   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+       end.            
+       RUN adecomm/_setcurs.p ("":U).       
+       IF goback2pntr THEN 
+          RUN choose-pointer.              
+    end. 
+    else      
+        run select_fields_for_table(TempTableInfo,DataBaseName,TableNames).
+end.  
+
+/** called after table selection to start multi field slection
+   used by drawflds  and ide_select_tables_and_draw_fields */
+procedure select_fields_for_table:
+    define input parameter TempTableInfo     as character no-undo.
+    define input parameter DataBaseName as character no-undo.
+    define input parameter TableNames   as character no-undo.
+    
+    define variable num_ent as integer no-undo.
+    define variable tbl_list as char no-undo.
+    define variable exclude-fields as character no-undo.
+    define variable drawService as adeuib.ide._drawfields no-undo.
+    DEFINE BUFFER x_U FOR _U.
+    
+    ASSIGN num_ent = NUM-ENTRIES(TableNames)
+          tbl_list = TableNames.
+    IF num_ent > 0 THEN DO:
+    /* Get a list of "database.table,database.table" */
+    DO i = 1 TO num_ent:
+      ENTRY(i,tbl_list) = DataBaseName + "." + ENTRY(i,TableNames).
+    END.
+    
+    /* Build an exclude field list of those database fields already in
+       the object. Don't want them to display in the available fields list.
+    */
+    
+    IF AVAILABLE _U THEN
+    DO:
+        FOR EACH x_U WHERE x_U._PARENT-Recid = RECID(_U)
+                     AND   (IF x_u._TABLE = x_u._BUFFER 
+                            THEN CAN-DO(tbl_list,x_u._DBNAME + "." + x_U._TABLE) 
+                            
+                            /* if this is a buffer the 'temp-tables' in 
+                               tbl-list cannot be used to compare x_u, 
+                               so we compare only the buffername  */
+                            ELSE CAN-DO(REPLACE(tbl_list,"Temp-Tables.":U,"":U),
+                                        x_u._BUFFER)  
+                           )                       
+                     AND   x_U._STATUS <> "DELETED":U NO-LOCK:
+            ASSIGN exclude-fields = exclude-fields + x_u._BUFFER + "." + x_U._NAME + ",".
+        END.
+        ASSIGN exclude-fields = TRIM(exclude-fields, ',') NO-ERROR.
+    END.
+    if IDEIntegrated then
+    do:
+        drawService = new adeuib.ide._drawfields().
+        assign
+            drawService:TableList = tbl_list
+            drawService:TempTableInfo = TempTableInfo
+            drawService:Items = "2"
+            drawService:Delimiter = ","
+            drawService:ExcludeFieldNames = exclude-fields
+            drawService:FieldNames = _fld_names.
+        drawService:SetCurrentEvent(_h_uib,"ide_select_and_draw_fields").    
+        run runChildDialog in hOEIDEService (drawService) .
+/*        RETURN "IDE DRAW".*/
+    end.
+    else do:
+        RUN adecomm/_mfldsel.p (INPUT tbl_list, INPUT ?, INPUT TempTableInfo, "2", ",", 
+                                INPUT exclude-fields, INPUT-OUTPUT _fld_names).
+                                
+        
+        RUN adecomm/_setcurs.p ("":U).
+    end.
+  END.
+end.
+
+/* run multi field selector and draw selected fields 
+   It calls vaious post procedures that are refactored from _drawflds.p 
+   which also calls these post procedures. 
+ */
+procedure ide_select_and_draw_fields:
+    define input parameter pcTableList  as character no-undo.
+    define input parameter pcTT         as character no-undo.
+    define input parameter pcItems      as character no-undo.
+    define input parameter pcDlmtr      as character no-undo.
+    define input parameter pcExclude    as character no-undo.
+    define input parameter pcFields     as character no-undo.
+    
+    define variable lUseDataObject      as logical   no-undo.
+    define variable cSDOClobCols        as character no-undo.
+    define variable hDataSource         as handle    no-undo.
+    define variable cFile               as character no-undo.
+    define variable cDbName             as character no-undo.
+    
+    FIND _U WHERE _U._HANDLE = _h_frame NO-ERROR.
+    FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+    
+    luseDataObject = (_P._DATA-OBJECT <> "").
+    
+    if luseDataObject then
+    do:
+       hDataSource = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, INPUT _P._DATA-OBJECT,
+                                                             INPUT TARGET-PROCEDURE).
+       IF NOT VALID-HANDLE(hDataSource) THEN
+       DO:
+           if OEIDEIsRunning then
+             ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
+                               "Information",?,"OK",yes).
+           else
+           MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
+                   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+            
+           RETURN.
+       END.
+    
+    end.
+    
+    RUN adeuib/ide/_dialog_mfldsel.p (pcTableList, 
+                                      hDataSource, 
+                                      pcTT, 
+                                      pcItems, 
+                                      pcDlmtr, 
+                                      pcExclude, 
+                                      INPUT-OUTPUT pcFields).
+    if pcFields > "" then 
+    do:                                  
+        if lUseDataObject then
+        do:
+             cSDOClobCols = DYNAMIC-FUNCTION("getCLOBColumns":U IN hDataSource).
+             cDbName = "Temp-Tables":U.
+        end.     
+        else 
+            cDbName = entry(1,entry(1,pcTableList),".").
+        run adeuib/_drwflds2.p(cDbName,pcTableList,pcFields,luseDataObject,cSDOClobCols,output cFile).  
+        run draw_fields_from_file(cFile).
+    
+    end.
+    RUN adecomm/_setcurs.p ("":U).
+    run post_drawobj_picked(pcFields > ""). 
+    run post_drawobj. 
+    /* this is duplication of the code after run _drawobj.p */
+    /* Show the current widget and reset the pointer. */
+    IF goback2pntr THEN 
+        RUN choose-pointer.
+    RUN display_current.
+
+      /* SEW Update after adding widgets in UIB. */
+    RUN call_sew ("SE_ADD":U).
+    
+    finally:
+        if luseDataObject then
+           {fnarg shutdown-sdo target-procedure _h_func_lib}.    
+    end finally.
+END.
+
+/**
+  currently called from draw_obj which does FIND  _P 
+*/     
+procedure draw_fields_from_file:
+    define input parameter pcFile as character no-undo.
+    /* Get a list of fields, and import them into the UIB */
+    SESSION:NUMERIC-FORMAT = "AMERICAN":U.
+    RUN adeuib/_qssuckr.p (pcFile, "", "IMPORT":U, TRUE).
+    SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
+     
+    /* When drawing a data field for an object that is using a SmartData
+       object, set the data field's Enable property based on the data object
+       getUpdatableColumns. Must do this here since its not picked up automatically
+       in the temp-table definition like format and label.  jep-code 4/29/98 */
+    IF (AVAILABLE _P) AND (_P._data-object <> "") THEN
+        RUN setDataFieldEnable IN _h_uib (INPUT RECID(_P)).
+      
+      /* Delete the temporary file */
+    OS-DELETE VALUE(pcFile) NO-ERROR.
+end.
 
 /*****************************************************************************
   The majority of the methods used to implemented in two include files
@@ -5473,18 +6446,7 @@ END PROCEDURE. /* drawobj-or-select */
   unpractical with the amount if changes that we were doing at this time. 
 ****************************************************************************/    
 
-/*---- OLD HISTORY START - uibmproe.i -----------------------------------------
-
-File: uibmproe.i
-
-Description:
-   The internal procedures of the main routine of the UIB.  E -> Z
-
-Input Parameters:
-   <None>
-
-Output Parameters:
-   <None>
+/*---- OLD HISTORY START -----------------------------------------------------------
 
 File: uibmproe.i
 
@@ -5543,11 +6505,7 @@ Modified:
     02/12/02 Ross  - Revised save_window_static to check to see if it should save
                      as dynamic (viewers and browsers only at this point) then
                      call ry/prc/rygendynp.p if it should.
----- OLD HISTORY END - uibmproe.i -----------------------------------------*/
-/*  =======================================================================  */
-/*                        INTERNAL PROCEDURE Definitions                     */
-/*  =======================================================================  */
-
+--- OLD HISTORY END ---------------------------------------------------------*/
 
 PROCEDURE edit_preferences:
   RUN adeuib/_edtpref.w.
@@ -5645,6 +6603,10 @@ procedure enable_widgets.
            h:HIDDEN = no NO-ERROR.  
     IF ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
     DO c = 1 TO ERROR-STATUS:NUM-MESSAGES:  
+      if OEIDEIsRunning then
+         ShowMessageInIDE(ERROR-STATUS:GET-MESSAGE(c),
+                          "Error",?,"OK",yes).
+      else  
       MESSAGE ERROR-STATUS:GET-MESSAGE(c) VIEW-AS ALERT-BOX ERROR.
     END.
   END.
@@ -6070,8 +7032,9 @@ procedure frame-select-up.
   DEFINE BUFFER ipU FOR _U.
   
   &IF {&dbgmsg_lvl} > 0 &THEN run msg_watch("frame-select-up"). &ENDIF
+ 
   CASE LAST-EVENT:FUNCTION :
-    WHEN "" OR WHEN "MOUSE-SELECT-CLICK" OR WHEN "MOUSE-EXTEND-CLICK" THEN 
+     WHEN "" OR WHEN "MOUSE-SELECT-CLICK" OR WHEN "MOUSE-EXTEND-CLICK" THEN 
       run drawobj-or-select.
     WHEN "MOUSE-SELECT-DBLCLICK" THEN RUN double-click.
     WHEN "END-BOX-SELECTION" THEN DO:
@@ -6154,32 +7117,57 @@ END.
 /* Load another custom object file */
 PROCEDURE get_custom_widget_defs : 
   DEFINE VARIABLE rc       AS LOGICAL NO-UNDO. /* return code yes=ok no=cancel */
-  DEFINE VARIABLE cDynList AS CHARACTER NO-UNDO. /* Add Palette/Template to list */
+  DEFINE VARIABLE cList AS CHARACTER NO-UNDO. /* Add Palette/Template to list */
 
   RUN setstatus ("":U, "Select custom object files...":U).
    /* If Dynamics is running and it's using the cst in the repository, send template and palette objects */
   IF CAN-DO(_AB_Tools,"Enable-ICF") AND _dyn_cst_template > "" AND _dyn_cst_palette > "" THEN
   DO:
-     ASSIGN cDynList = "~~@DummyTemplates:,*************,":U +  _dyn_cst_template
-            cDynList = cDynlist + ",,Palettes:,************," + _dyn_cst_palette.
-     
-     RUN adeuib/_getcust.w (INPUT-OUTPUT cDynlist, OUTPUT rc). /* ask for file */  
+     ASSIGN cList = "~~@DummyTemplates:,*************,":U +  _dyn_cst_template
+            cList = clist + ",,Palettes:,************," + _dyn_cst_palette.
+  
+     if IDEIntegrated then  
+         RUN adeuib/ide/_dialog_getcust.p (INPUT-OUTPUT cList, OUTPUT rc). /* ask for file */  
+  
+     else    
+         RUN adeuib/_getcust.w (INPUT-OUTPUT cList, OUTPUT rc). /* ask for file */  
   END.
-  ELSE
-     RUN adeuib/_getcust.w (INPUT-OUTPUT {&CUSTOM-FILES}, OUTPUT rc). /* ask for file */
+  ELSE DO: 
+     if IDEIntegrated then  
+         RUN adeuib/ide/_dialog_getcust.p (INPUT-OUTPUT {&CUSTOM-FILES}, OUTPUT rc). /* ask for file */  
+  
+     else    
+         RUN adeuib/_getcust.w (INPUT-OUTPUT {&CUSTOM-FILES}, OUTPUT rc). /* ask for file */  
+  end.  
   IF NOT rc THEN DO: /* cancelled. */
     RUN setstatus("":U,"":U).
     RETURN.
   END.
-  RUN  update_palette.
+  RUN update_palette.
+END.       
 
+PROCEDURE hide_ab_in_desktop:
+    run show_uibmain_in_desktop(false).
+    run show_palette_in_desktop(false).
 END.
 
 /* GetParent - Get the parent of a Progress window (real HWND) */
 PROCEDURE GetParent EXTERNAL "USER32.DLL":
    DEFINE INPUT  PARAMETER in-hwn AS LONG.
    DEFINE RETURN PARAMETER hwnd   AS LONG.
-END.          
+END.  
+
+procedure LoadIDEPreferences:
+    define variable phand as handle no-undo. 
+    run adeuib/_oeidepref.p PERSISTENT SET phand.
+    run getIDEproperties in phand (input open_file).
+    run getIDEpreferences in phand (input open_file).
+       
+    finally:
+        if valid-handle(phand) then
+            delete object phand no-error.
+    end finally.
+end procedure.      
 
 /* Check to see if there any dirty OCX controls */
 PROCEDURE is_control_dirty.
@@ -6324,7 +7312,6 @@ PROCEDURE mode-morph.
   DEFINE VARIABLE i                 AS INTEGER NO-UNDO.
   DEFINE VARIABLE AboutImage    AS CHARACTER   NO-UNDO.
 
-  
   /* jep-icf: Check to see if we should replace the AB menubar with ICF menubar. */
   IF (mode = "INIT":U) AND CAN-DO(_AB_Tools,"Enable-ICF") THEN
   DO ON ERROR UNDO, LEAVE:
@@ -6340,7 +7327,6 @@ PROCEDURE mode-morph.
         RUN displayStatusbarInfo IN _h_menubar_proc.
       END.
   END.
-
 
   ASSIGN last-mode  = mode
          h_menu-bar = _h_menu_win:MENU-BAR.
@@ -6484,10 +7470,10 @@ PROCEDURE mode-morph.
                    PARENT = h.
       CREATE MENU-ITEM mi_chlayout ASSIGN LABEL = "Alternate &Layout..."
                    PARENT = m_layout
-         TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout in _h_uib. END TRIGGERS.
       CREATE MENU-ITEM mi_chCustLayout ASSIGN LABEL = "Custom &Layout..."
                    PARENT = m_layout
-         TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN morph_layout in _h_uib. END TRIGGERS.
       IF _DynamicsIsRunning THEN
         CREATE MENU-ITEM mi_CustomParams ASSIGN LABEL = "Customization &Priority..."
                      PARENT = m_layout
@@ -6589,18 +7575,18 @@ PROCEDURE mode-morph.
     IF _AB_License NE 2 THEN DO:
       CREATE MENU-ITEM mi_duplicate ASSIGN LABEL = "&Duplicate" SENSITIVE = FALSE
                PARENT = h_sm
-         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_duplicate. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_duplicate in _h_uib. END TRIGGERS.
     END.  /* IF UIB is licensed */
   
     /* Always do this */
     CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                           PARENT = h_sm.
     CREATE MENU-ITEM mi_erase ASSIGN LABEL = "De&lete"                     PARENT = h_sm
-       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_erase. END TRIGGERS.
+       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_erase in _h_uib. END TRIGGERS.
     CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                           PARENT = h_sm.
     CREATE MENU-ITEM mi_export ASSIGN LABEL = "Copy to &File..."           PARENT = h_sm
-       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_export_file. END TRIGGERS.
+       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_export_file in _h_uib.  END TRIGGERS.
     CREATE MENU-ITEM mi_import ASSIGN LABEL = "&Insert from File..."       PARENT = h_sm
-       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_import_file. END TRIGGERS.
+       TRIGGERS: ON CHOOSE PERSISTENT RUN choose_import_file in _h_uib. END TRIGGERS.
 
     IF OEIDEIsRunning THEN DO:
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
@@ -6608,13 +7594,13 @@ PROCEDURE mode-morph.
                PARENT = h_sm.
       CREATE MENU-ITEM mi_insert_trigger ASSIGN LABEL = "Trigger" SENSITIVE = FALSE
                PARENT = m_insert
-         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_trigger. END TRIGGERS.      
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_trigger in _h_uib. END TRIGGERS.      
       CREATE MENU-ITEM mi_insert_procedure ASSIGN LABEL = "Procedure" SENSITIVE = FALSE
                PARENT = m_insert
          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_procedure. END TRIGGERS.      
       CREATE MENU-ITEM mi_insert_function ASSIGN LABEL = "Function" SENSITIVE = FALSE
                PARENT = m_insert
-         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_function. END TRIGGERS.               
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_insert_function in _h_uib. END TRIGGERS.               
          
     END.
     
@@ -6622,16 +7608,16 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
       CREATE MENU-ITEM mi_tab_edit ASSIGN LABEL = "T&ab Order..." SENSITIVE = FALSE
                PARENT = h_sm
-         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_tab_edit. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_tab_edit in _h_uib. END TRIGGERS.
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
       CREATE MENU-ITEM mi_goto_page ASSIGN LABEL = "&Goto Page..."
                SENSITIVE = FALSE      PARENT = h_sm
-         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_goto_page. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN choose_goto_page in _h_uib. END TRIGGERS.
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm. 
       CREATE MENU-ITEM mi_assign_widgetid
            ASSIGN LABEL = "Assign &Widget IDs"
                SENSITIVE = FALSE      PARENT = h_sm
-          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_assign_widgetid. END TRIGGERS.
+          TRIGGERS: ON CHOOSE PERSISTENT RUN choose_assign_widgetid in _h_uib. END TRIGGERS.
     END.  /* IF UIB */
 
     /* Compile Menu */
@@ -6688,7 +7674,7 @@ PROCEDURE mode-morph.
     IF {adecomm/editsrc.i} THEN DO:
       CREATE MENU-ITEM mi_editing_opts ASSIGN LABEL = "&Editing Options..."
                 SENSITIVE = TRUE                                           PARENT = h_sm
-         TRIGGERS: ON CHOOSE PERSISTENT RUN editing_options. END TRIGGERS.
+         TRIGGERS: ON CHOOSE PERSISTENT RUN editing_options in _h_uib. END TRIGGERS.
 
     END.
 
@@ -6696,11 +7682,11 @@ PROCEDURE mode-morph.
       CREATE MENU-ITEM h_s ASSIGN SUBTYPE = "RULE"                         PARENT = h_sm.
       CREATE MENU-ITEM mi_grid_snap ASSIGN LABEL = "Snap to &Grid"
                 SENSITIVE = FALSE    TOGGLE-BOX = YES                PARENT = h_sm
-         TRIGGERS: ON VALUE-CHANGED PERSISTENT RUN change_grid_snap. END TRIGGERS.
+         TRIGGERS: ON VALUE-CHANGED PERSISTENT RUN change_grid_snap in _h_uib. END TRIGGERS.
 
       CREATE MENU-ITEM mi_grid_display ASSIGN LABEL = "&Display Grid"
                 SENSITIVE = FALSE    TOGGLE-BOX = YES PARENT = h_sm
-         TRIGGERS: ON VALUE-CHANGED PERSISTENT RUN change_grid_display. END TRIGGERS.
+         TRIGGERS: ON VALUE-CHANGED PERSISTENT RUN change_grid_display in _h_uib. END TRIGGERS.
 
       ASSIGN mi_grid_snap:CHECKED    = _cur_grid_snap
              mi_grid_display:CHECKED = _cur_grid_visible.
@@ -6708,14 +7694,18 @@ PROCEDURE mode-morph.
   END.  /* IF mode = "INIT" */
 
   ELSE DO: /* Mode is either UIB or WEB - NOT INIT */ 
-
+ 
     /* Show palette if UIB, hide if WEB */
-    IF VALID-HANDLE(_h_object_win) THEN DO:
-      IF MODE = "UIB" AND VALID-HANDLE(mi_show_toolbox) AND 
-         mi_show_toolbox:LABEL = "&Hide Object Palette" AND
-         _h_menu_win:WINDOW-STATE NE 2
-        THEN _h_object_win:HIDDEN = no.
-      ELSE _h_object_win:HIDDEN = yes.
+    IF VALID-HANDLE(_h_object_win) THEN 
+    DO:
+      IF NOT IDEIntegrated 
+      AND MODE = "UIB" 
+      AND VALID-HANDLE(mi_show_toolbox) 
+      AND mi_show_toolbox:LABEL = "&Hide Object Palette" 
+      AND _h_menu_win:WINDOW-STATE NE 2 THEN 
+          _h_object_win:HIDDEN = no.
+      ELSE 
+          _h_object_win:HIDDEN = yes.
     END.
     
     /* Hide "Label" field if a WEB object */
@@ -6748,16 +7738,15 @@ PROCEDURE mode-morph.
 /*    IF VALID-HANDLE(_h_WinMenuMgr) THEN
       RUN WinMenuRebuild IN _h_uib.  */
   END. /* ELSE mode is not INIT */
-
+ 
 END.  /* mode-morph */
 
 /* In all other tools this is included in adecomm/toolsrun.i, but in the UIB
-   it is here */
+   it is here  */
 {adecomm/toolsupp.i}
 
 /* Morph the Layout  */
 PROCEDURE morph_layout.
-  
   DEFINE VARIABLE cObjType      AS CHARACTER                 NO-UNDO.
   DEFINE VARIABLE cur-lo-name   AS CHARACTER                 NO-UNDO.
   DEFINE VARIABLE cLayoutStack  AS CHARACTER                 NO-UNDO.
@@ -6778,7 +7767,6 @@ PROCEDURE morph_layout.
   DEFINE VARIABLE iStack        AS INTEGER                   NO-UNDO.
   DEFINE VARIABLE pRecid        AS RECID                     NO-UNDO.
 
-
   DEFINE BUFFER b_U    FOR _U.
   DEFINE BUFFER b_L    FOR _L.  /* Base or old layout       */  
   DEFINE BUFFER n_L    FOR _L.  /* Current or new layout    */
@@ -6793,6 +7781,10 @@ PROCEDURE morph_layout.
   FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
   IF NOT AVAILABLE _U THEN DO:
     BELL.
+    if OEIDEIsRunning then
+         ShowMessageInIDE("To change to a different layout a window must be present.",
+                          "Information",?,"OK",yes).
+    else
     MESSAGE "To change to a different layout a window must be present."
             VIEW-AS ALERT-BOX.
     RETURN.
@@ -6810,7 +7802,11 @@ PROCEDURE morph_layout.
   ELSE lDynamic = FALSE.
 
   IF lDynamic THEN DO:
-    RUN disable_widgets.
+    
+    /* we cannot hide all windows opened in Eclipse...  oeideservice displayContainer hook will embedd it in
+       Eclipse dialog */
+    IF not OEIDEIsRunning THEN
+        RUN disable_widgets.
 
     DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
 
@@ -6845,19 +7841,26 @@ PROCEDURE morph_layout.
           ,OUTPUT hCustomLayout        /* procedure handle of object run/running */
           ,OUTPUT cObjType             /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
           ).
-      
-      WAIT-FOR WINDOW-CLOSE, CLOSE OF hCustomLayout.   
     
+      WAIT-FOR WINDOW-CLOSE, CLOSE OF hCustomLayout.   
+     
     END.  /* do on stop, on error */
-
-    RUN enable_widgets.
+    /* no need to enable if OEIDE is running since we did not disable */
+    IF not OEIDEIsRunning THEN
+        RUN enable_widgets.
   END.  /* If we have a dynamic object */
-  ELSE RUN adeuib/_layout.w.
-
+  ELSE
+  DO:
+    IF OEIDEIsRunning THEN
+      RUN adeuib/ide/_dialog_layout.p.
+    ELSE    
+      RUN adeuib/_layout.w.
+  END.
   IF NOT AVAILABLE _U THEN DO:  /* It gets lost with the disable_widgets */
     FIND _P WHERE _P._WINDOW-HANDLE eq _h_win NO-ERROR.
     FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
   END.
+
   IF (cur-lo-name <> _U._LAYOUT-NAME) OR (_cur_win_type <> _U._WIN-TYPE) THEN
   DO:
     /* Bug fix 19940518-055  jep
@@ -7000,7 +8003,6 @@ PROCEDURE morph_layout.
     /* If dynamic, may need to inform the Dynamic Property Sheet */
     IF lDynamic AND VALID-HANDLE(_h_menubar_proc) THEN
        RUN prop_changeContainer in _h_menubar_proc (STRING(tmp-win),STRING(_h_win)) NO-ERROR.
-    
     /* After morphing disable undo */
     FOR EACH _action:
       DELETE _action.
@@ -7012,8 +8014,7 @@ PROCEDURE morph_layout.
     _h_cur_widg = _h_win.
     RUN display_current.
   END.  /* If the layout or window type has changed */
-END.
-
+END.  
 
 /* Move selected widgets to bottom. */
 PROCEDURE movetobottom.
@@ -7164,20 +8165,104 @@ PROCEDURE Open_SO_Untitled:
 
 
 END PROCEDURE.
-   
+ 
+PROCEDURE OpenRyObject:
+    define input  parameter pfile as character no-undo.
+    define output parameter pok as logical no-undo.
+    define variable hRepDesignManager as handle no-undo.
+    define variable lok as logical no-undo.
+    if _DynamicsIsRunning then
+    do:
+        hRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U) NO-ERROR.
+        IF VALID-HANDLE(hRepDesignManager) THEN
+            pOk = DYNAMIC-FUNCTION("openRyObjectAB" IN hRepDesignManager, INPUT pfile).
+    end.
+    else pok = false.
+end procedure.   
+
+/**
+ create _ryobject before open ing the template. 
+ called from _oeideuib (standalone appbuilder uses the old similar code in _newobj.w )
+ 
+
+*/
+PROCEDURE NewRyObject:
+    define input  parameter pcType as character no-undo.
+    define input  parameter pcName as character no-undo.
+    /* optional - uses custom info id not provided */
+    define input  parameter pcTemplatename as character no-undo.
+    define output parameter plAvail as logical no-undo.
+    define variable cProductModuleCode as character no-undo.
+    define variable cProdlist  as character no-undo.
+    define variable hDesignManager as handle no-undo. 
+    
+    if _DynamicsIsRunning then
+    do:
+        /* there is no unique index on this table (arrggh)... name is probably unique by itself */
+        find _custom where _custom._type = pctype and _custom._name =  pcName no-error.
+        if available (_custom) then
+        do:
+            hDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U, INPUT "RepositoryDesignManager":U). 
+            
+            assign cProductModuleCode =  
+               DYNAMIC-FUNC("getCurrentProductModule":U in hDesignManager) .
+            if cProductModuleCode = ? or cProductModuleCode = "" then 
+            do:   
+                /* @TODO this is expensive -find a better way - maybe just fix containerbuilder launch to 
+                   handle unknown */
+                cProdList = DYNAMIC-FUNCTION("getproductModuleList":U IN hDesignManager,
+                                             "product_module_Code":U,
+                                             "product_module_code":U,
+                                             "&1":U,
+                                             CHR(3)).
+                   
+                cProductModuleCode =  entry(2,cProdList,CHR(3)).
+            end.
+            else 
+                cProductModuleCode = if index(cProductModuleCode,"//":U) > 0 
+                                     then substr(cProductModuleCode,1,index(cProductModuleCode,"//":U) - 1)
+                                     else cProductmoduleCode.
+            /* Fill in the _RyObject record for the AppBuilder. */
+            find _RyObject where _RyObject.object_filename = pcTemplatename no-error.
+            if not available _RyObject then
+                create _RyObject.
+            assign 
+                 _RyObject.object_type_code       = _custom._object_type_code
+                 _RyObject.parent_classes         = DYNAMIC-FUNC("getClassParentsFromDB":U in gshRepositoryManager, input _RyObject.Object_type_code)
+                 _RyObject.object_filename        = if pcTemplatename > "" then pcTemplatename else _custom._design_template_file
+                 _RyObject.product_module_code    = cProductModuleCode
+                 _RyObject.static_object          = _custom._static_object
+                 _RyObject.container_object       = _custom._type = "Container":u
+                 _RyObject.design_action          = "NEW":u
+                 _RyObject.design_ryobject        = if _custom._static_object then no else yes
+                 _RyObject.design_template_file   =  _RyObject.object_filename
+                 _RyObject.design_propsheet_file  = _custom._design_propsheet_file
+                 _RyObject.design_image_file      = _custom._design_image_file.
+           
+           plAvail = true.
+        end. /* If AVAIL(_custom) */
+    
+    end.
+    
+end procedure.   
+ 
 /* open_untitled : Open a .W file untitled (i.e. template) */
 PROCEDURE Open_Untitled:
   DEFINE INPUT PARAMETER file_to_open AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE hWin             AS HANDLE  NO-UNDO.
   DEFINE VARIABLE lNativeDynObject AS LOGICAL    NO-UNDO.
-
+  define variable cReturn as character no-undo.
   RUN deselect_all (?, ?).
   /* Open the choice as an untitled window. */
   RUN setstatus ("WAIT":U, "Opening template...").
-  RUN adeuib/_open-w.p (file_to_open, "", "UNTITLED":U).
+  /* Open the window for the SmartObject if we can find it.  
+     Otherwise report an error if we cannot edit the master. */
+                                       
+  RUN adeuib/_open-w.p (file_to_open, "","UNTITLED":U).
   
-  IF RETURN-VALUE <> "_ABORT":U AND _DynamicsIsRunning AND AVAILABLE _P THEN 
+  cReturn = RETURN-VALUE.
+  IF cReturn <> "_ABORT":U AND _DynamicsIsRunning AND AVAILABLE _P THEN 
   DO:
      IF DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,_P.object_type_code) THEN
        ASSIGN hWin        =  _P._WINDOW-HANDLE:WINDOW
@@ -7192,41 +8277,58 @@ PROCEDURE Open_Untitled:
   RUN setstatus ("":U, "":U).
    /* Return to pointer mode. */
   IF _next_draw NE ? THEN RUN choose-pointer.
-
+  /* _oeideuib need to know  this  */
+  return cReturn.
 END PROCEDURE.
 
-/* property_sheet : Edit the property sheet of a widget (h_self).       */
 PROCEDURE property_sheet:
-  DEFINE INPUT PARAMETER h_self AS WIDGET   NO-UNDO.
+    DEFINE INPUT PARAMETER h_self AS WIDGET   NO-UNDO.
+    
+    DEFINE VAR   h_parent_win     AS WIDGET                       NO-UNDO.
+    DEFINE VAR   h_current_win    AS WIDGET                       NO-UNDO.
+    define variable ideevent as adeuib.ide._widgetevent  no-undo.
+    /* Don't go into property sheets if the last event was a dbl-click and
+      we were in draw mode */
+    IF LAST-EVENT:FUNCTION = "MOUSE-SELECT-DBLCLICK" AND _next_draw NE ? THEN 
+        RETURN.
 
-  DEFINE VAR   h_parent_win     AS WIDGET                       NO-UNDO.
-  DEFINE VAR   h_temp           AS WIDGET                       NO-UNDO.
+    /* Tell the user we are doing something, then draw it. */
+    RUN setstatus ("WAIT":U, "Edit properties of current object."). 
+    /* If h_self is not specified, then use SELF -- also, parent the dialog boxes
+       that will come up to the window where SELF is */
+    IF h_self = ? THEN 
+    DO:
+        /* Run this in the window where the user clicked (if, keep getting parents
+           of self until we have a window). */
+        ASSIGN  h_self = SELF
+                h_parent_win = SELF.
+        DO WHILE h_parent_win:TYPE NE "WINDOW":
+            IF CAN-QUERY(h_parent_win, "PARENT") THEN 
+                h_parent_win = h_parent_win:PARENT. /* Normal case */
+            ELSE 
+                h_parent_win = h_parent_win:OWNER.  /* For menus   */
+        END.
+        CURRENT-WINDOW = h_parent_win.
+    END.
+    if IDEIntegrated then
+    do:
+       ideevent = new adeuib.ide._widgetevent().
+       ideevent:EventHandle = h_self.
+       ideevent:SetCurrentEvent(this-procedure,"do_property_sheet").
+       run runChildDialog in hOEIDEService (ideevent) .
+    end.
+    else 
+        run do_property_sheet(h_self). 
+end.
+
+/* property_sheet : Edit the property sheet of a widget (h_self).       */
+PROCEDURE do_property_sheet:
+  DEFINE INPUT PARAMETER h_self AS WIDGET   NO-UNDO.
+  define variable h_current_win as handle no-undo.
   DEFINE VAR   cType            AS CHARACTER                    NO-UNDO.
   DEFINE VAR   ldummy           AS LOGICAL                      NO-UNDO.
   DEFINE VAR   r_U              AS ROWID                        NO-UNDO.
-
-  /* Don't go into property sheets if the last event was a dbl-click and
-     we were in draw mode */
-  IF LAST-EVENT:FUNCTION = "MOUSE-SELECT-DBLCLICK" AND _next_draw NE ? 
-  THEN RETURN.
-
-  /* Tell the user we are doing something, then draw it. */
-  RUN setstatus ("WAIT":U, "Edit properties of current object."). 
-  /* If h_self is not specified, then use SELF -- also, parent the dialog boxes
-     that will come up to the window where SELF is */
-  IF h_self = ? THEN DO:
-    /* Run this in the window where the user clicked (if, keep getting parents
-     of self until we have a window). */
-    ASSIGN  h_self = SELF
-            h_parent_win = SELF.
-    DO WHILE h_parent_win:TYPE NE "WINDOW":
-       IF CAN-QUERY(h_parent_win, "PARENT") 
-       THEN h_parent_win = h_parent_win:PARENT. /* Normal case */
-       ELSE h_parent_win = h_parent_win:OWNER.  /* For menus   */
-    END.
-    CURRENT-WINDOW = h_parent_win.
-  END.
-
+  
   /* Deselect All widgets (except h_self) */
   RUN deselect_all (h_self, ?).
   /* Make this the current widget */
@@ -7250,11 +8352,12 @@ PROCEDURE property_sheet:
   IF _P._TYPE BEGINS "WEB":U THEN
     RUN choose_attributes.
   ELSE DO:
-    ASSIGN r_U = ROWID(_U).
-    RUN adeuib/_proprty.p (h_self).
-    FIND _U WHERE ROWID(_U) = r_U.
-  END.
     
+    ASSIGN r_U = ROWID(_U).
+    h_current_win = _h_win.
+    RUN adeuib/_proprty.p (h_self).
+    FIND _U WHERE ROWID(_U) = r_U.     
+  END.
   /* For menus, the property sheet may have deleted the widget. */
   IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",cTYPE) THEN DO:
     IF AVAILABLE _U THEN  
@@ -7300,6 +8403,11 @@ END PROCEDURE. /* property_sheet */
 /* report-no-win   is a procedure that tells the user _h_win is unknown.  */
 PROCEDURE report-no-win.
   BELL.
+  if OEIDEIsRunning then
+      ShowMessageInIDE("No window is selected. ~n 
+                       Please choose an existing window, ~n or new one. ",
+                       "Error",?,"OK",yes).
+  else
   MESSAGE  "No window is selected." {&SKP}
            "Please choose an existing window," {&SKP}
       "or new one." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -7360,12 +8468,46 @@ PROCEDURE save_palette: /* by GFS 2/95 */
         RUN adeshar/_puterr.p ( INPUT "Object Palette" , INPUT _h_object_win ).
 END PROCEDURE. /* Save Palette */
 
+/* caled from _oeideuib.p to save when open new file from ide *
+   assumes current window. could be improved to use the file param */
+procedure save_new_file:
+    DEFINE INPUT  PARAMETER pcFile       AS CHARACTER NO-UNDO.
+    
+    DEFINE OUTPUT PARAMETER plCancel AS LOGICAL NO-UNDO.
+    
+    FIND _U WHERE _U._HANDLE = _h_win.
+    
+    FIND _P WHERE _P._u-recid eq RECID(_U).       
+    _P._save-as-file = pcFile.
+    /* SEW call to store current trigger code for specific window. */
+     
+    RUN call_sew in _h_uib("SE_STORE_WIN":U).
+    RUN save_window in _h_uib(NO, OUTPUT plCancel).
+
+end.
+
+/* called from _oeideuib.p to save as after file is selected 
+     assumes current window. could be improved to use the file param */
+
+procedure save_as_file:
+    define input  parameter pcFile       as character no-undo.
+    define input  parameter pcNewFile    as character no-undo.
+    
+    define output parameter plCancel as logical no-undo.
+    
+    find _U where _U._HANDLE = _h_win.
+    
+    find _P where _P._u-recid eq RECID(_U).       
+     _save_file    = pcNewFile.
+    plCancel = yes.
+    run save_file(yes,no,no,no,"",input-output plCancel).
+end.
+
 /* save_window   Saves the current _U to the related _P._SAVE-AS-FILE and 
                  updates the window title. */
 PROCEDURE save_window:
   DEFINE INPUT  PARAMETER ask_file_name  AS LOGICAL NO-UNDO.
   DEFINE OUTPUT PARAMETER user_cancel    AS LOGICAL NO-UNDO.
-
   DEFINE VARIABLE cAction       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cBrokerURL    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cFile         AS CHARACTER NO-UNDO.
@@ -7373,9 +8515,7 @@ PROCEDURE save_window:
   DEFINE VARIABLE cOptions      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cPath         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRelName      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cReturnValue  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cSaveFile     AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cScrap        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTempFile     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE file_ext      AS CHARACTER NO-UNDO.
   DEFINE VARIABLE h_title_win   AS WIDGET    NO-UNDO.
@@ -7385,9 +8525,6 @@ PROCEDURE save_window:
   DEFINE VARIABLE lok2save      AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lSaveUntitled AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE OldTitle      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE proxy-file    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE hWin          AS WIDGET    NO-UNDO.
-  DEFINE VARIABLE hCurWidg      AS WIDGET    NO-UNDO.
   DEFINE VARIABLE cError        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cAssocError   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDefCode      AS CHARACTER  NO-UNDO.
@@ -7402,47 +8539,16 @@ PROCEDURE save_window:
   DEFINE VARIABLE cValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hTempDBLib    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cFileWeb      AS CHARACTER  NO-UNDO INIT ?.
+ 
 
-
-  DEFINE BUFFER d_P FOR _P.
   DEFINE BUFFER x_U FOR _U.
-
+ 
   FIND _P WHERE _P._u-recid eq RECID(_U).    
-
+  
   DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lProjectFile AS LOGICAL    NO-UNDO INITIAL FALSE.
   DEFINE VARIABLE cLinkedFile  AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE pFileName    AS CHARACTER  NO-UNDO.
-  
-  IF OEIDEIsRunning THEN
-  DO:
-      RUN getActiveProjectOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cProjectName).  
-      IF cProjectName > "" THEN
-          lProjectFile = TRUE.
-  END.
-
-  IF OEIDEIsRunning AND lProjectFile THEN
-  DO:        
-    IF AVAILABLE _P THEN
-    DO:        
-        DEFINE VAR context          AS CHARACTER  NO-UNDO.
-        DEFINE VARIABLE cFileName   AS CHARACTER  NO-UNDO.
-        DEFINE VARIABLE ok2continue AS LOGICAL    NO-UNDO.
-                
-        /* Give others a chance to abort the save */
-        context = STRING(_P._u-recid).
-        RUN adecomm/_adeevnt.p (INPUT  "UIB":U,
-                          INPUT  "BEFORE-SAVE":U,
-                          INPUT  context,
-                          INPUT  _save_file,
-                          OUTPUT ok2continue).
-        IF NOT ok2continue THEN RETURN "Error-Override":U.    
-        saveEditor(getProjectName(), _P._SAVE-AS-FILE, ask_file_name).
-        _P._FILE-SAVED         = TRUE. /* marks the file as saved - assumes a successful saveEditor call */
-        RETURN.
-    END.        
-  END.
-  
   /* Is the file missing any links, or is it OK to Save */
   RUN adeuib/_advsrun.p (_h_win,"SAVE":U, OUTPUT lok2save).  
   IF NOT lOk2save THEN RETURN.
@@ -7454,7 +8560,8 @@ PROCEDURE save_window:
     lSaveUntitled = (_remote_file AND NOT ask_file_name AND _save_file = ?) 
    NO-ERROR.
 
-  IF _save_file NE ? AND _remote_file AND _P._broker-url NE "" THEN DO:
+  IF _save_file NE ? AND _remote_file AND _P._broker-url NE "" THEN 
+  DO:
       /* for remote files - webspeed - we have the path to construct the 
          full path in _save-as-path, so qualify the file name now.
       */
@@ -7465,12 +8572,16 @@ PROCEDURE save_window:
              _P record and the MRU list (down below in this function) */
           cFileWeb = ws-set-path-info(_P._save-as-file, _save_file).
   END.
+ 
 
   IF _P.design_ryobject AND _DynamicsIsRunning
-  AND (NOT _P.static_object)
-  THEN DO:
+  AND (NOT _P.static_object) THEN 
+  DO:
 
-    /* Set the cursor pointer in all windows */
+    
+/*     Set the cursor pointer in all windows*/
+    
+    
     RUN setstatus ("WAIT":U,"Saving object...").
 
     IF _P.container_object THEN
@@ -7482,10 +8593,10 @@ PROCEDURE save_window:
         /* Plan to add this object to the MRU list of its new and save is completed. */
         ASSIGN lNewObject = CAN-DO(_P.design_action ,"NEW":u)
                lMRUSave   = lNewObject.
-
         /* Call the object's property sheet to save the object. */
         RUN saveObject IN _P.design_hpropsheet
           (INPUT-OUTPUT _save_file, OUTPUT user_cancel).
+        
         /* Update MRU list if save of new object is successful. */
         ASSIGN lMRUSave = (lNewObject AND user_cancel = NO).
 
@@ -7525,13 +8636,21 @@ PROCEDURE save_window:
          AppBuilder, the container builder will not be destroyed (it was to avoid being
          viewed when the container stopped running even if it was hidden before it was run). */
       ELSE 
+      do:
+        if OEIDEIsRunning then
+         ShowMessageInIDE("Container not saved to the repository.  Its property sheet is not open.":U,
+                          "Error",?,"OK",yes).
+        else  
         MESSAGE "Container not saved to the repository.  Its property sheet is not open.":U  VIEW-AS ALERT-BOX.
+      end.  
     END.  /* if container object */
     /* Check for DynBrowse, DynView and DynSDO which are not containers */
     ELSE DO:
        ASSIGN lNew = CAN-DO(_P.design_action, "NEW":u).
+       
        IF lNew OR ask_file_name THEN 
        DO: 
+          
           ASSIGN 
             _save_file       = _P.Object_filename
             cSaveFile        = _P._SAVE-AS-FILE
@@ -7541,8 +8660,19 @@ PROCEDURE save_window:
           /* If we are saving As, set the save-as-file equal to the original object name */
           IF _P._SAVE-AS-FILE = "" THEN
              ASSIGN _P._SAVE-AS-FILE = _P.object_fileName.
+         
+          if OEIDEisRunning then
+          do:
+              /* locks the ui when embedded (probably becuase there is no automatic turn off
+              since there is no dialog) */
+              run setstatus("","").
+              run adeuib/ide/_dialog_saveaswizd.p (no,
+                                                   output lRegisterObj,
+                                                   output lOK).
+          end.
+          else
+             run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).
           
-          run adeuib/_saveaswizd.w (input no, output lRegisterObj, output lOK).
           IF rRecid <> RECID(_P) THEN
             FIND _P WHERE  RECID(_P) = rRecid .
           IF NOT lOK THEN 
@@ -7587,16 +8717,22 @@ PROCEDURE save_window:
          ASSIGN _P.design_action  = REPLACE(_P.design_action, "NEW":U, "OPEN":U).
 
        RUN setstatus ("WAIT":U,"Saving object...":U).
-
+       
        ASSIGN rURecid = RECID(_U).
        /* Here's where we save the dynamic object */
        RUN ry/prc/rygendynp.p (INPUT RECID(_P), 
                                OUTPUT cError,             /* Error saving object */
                                OUTPUT cAssocError).       /* Error saving associated object - if there is one */
-       /* 20031118-003  - causes _U to be unavailable */
+         /* 20031118-003  - causes _U to be unavailable 
+            ab pds integration - synch _p and _h_win also not only _u
+            - rygendynp calls wind-close after creating super proc 
+              wind-close find some other window than this */  
        IF rURecid <> RECID(_U) THEN
-         FIND _U WHERE RECID(_U) = rURecid.
-       
+       do:
+           FIND _U WHERE RECID(_U) = rURecid.
+           FIND _P WHERE _P._u-recid eq RECID(_U).    
+           _h_win = _P._window-handle.
+       end.
        RUN setstatus ("":U, "":U).
 
        IF (cError <> "" AND NOT cError BEGINS "Associated data":U) THEN
@@ -7613,9 +8749,16 @@ PROCEDURE save_window:
                              INPUT ?,
                              OUTPUT cError).
           ELSE
+          do:
+             if OEIDEIsRunning then
+                ShowMessageInIDE("Object was not saved to the repository. ~n" +
+                                 cError,
+                                 "Warning",?,"OK",yes).
+             else 
              MESSAGE "Object was not saved to the repository." SKIP(1)
                 cError
                 VIEW-AS ALERT-BOX WARNING.
+          end.      
           IF lNew THEN
              ASSIGN _P._SAVE-AS-FILE = ?
                     _P.design_action = REPLACE (_P.design_action, "OPEN":U,"NEW":U ).
@@ -7674,7 +8817,7 @@ PROCEDURE save_window:
 
        RUN adeuib/_wintitl.p (h_title_win, _U._LABEL + "(" + _P.OBJECT_type_code + ")", _U._LABEL-ATTR, 
                               _P._SAVE-AS-FILE).
- 
+        
        /* Change the active window title on the Window menu. */
        IF (h_title_win:TITLE <> OldTitle) AND VALID-HANDLE(_h_WinMenuMgr) THEN
          RUN WinMenuChangeName IN _h_WinMenuMgr
@@ -7692,7 +8835,6 @@ PROCEDURE save_window:
        /* IZ 776 Redisplay current filename in AB Main window. */
        RUN display_current IN _h_uib.
 
-
     END. /* End check for DynBrowse, DynView or DynSDO */
 
     RUN setstatus ("":U,"":U).  /* Set the cursor pointer in all windows */
@@ -7709,7 +8851,7 @@ PROCEDURE save_window:
 
   /* If there is no name, or we need to ask, or if there was a wizard which 
      assigned a product_module, then get a new file name. */
-  
+     
   IF ask_file_name OR _save_file = ?  THEN 
   DO:
     /* When saving a new file or saving an existing file as something
@@ -7717,18 +8859,17 @@ PROCEDURE save_window:
     ASSIGN lMRUSave    = TRUE.
     /*  If we can't find the file, that means this is a new file. */
     
-    IF _save_file = ?
-    THEN DO:
-      IF _P._html-file <> "":U
-      THEN DO:
+    IF _save_file = ? THEN 
+    DO:
+      IF _P._html-file <> "":U THEN 
+      DO:
         /* Set the filename to be like the name of the HTML file. */
         ASSIGN 
           cSaveFile = IF _remote_file
                       THEN _P._html-file
                       ELSE SEARCH(_P._html-file)
           ix        = R-INDEX(cSaveFile, ".":U).
-        IF i > 0 AND INDEX(cSaveFile, "/":U, ix) = 0
-        THEN
+        IF i > 0 AND INDEX(cSaveFile, "/":U, ix) = 0 THEN
           cSaveFile = SUBSTRING(cSaveFile, 1, ix - 1, "CHARACTER":U).
 
         /* Watch for cases of a period in the directory, but not in the file 
@@ -7793,10 +8934,14 @@ PROCEDURE save_window:
 
          /* IZ 9872 and IZ 9903 Workaround to be fixed properly later */
          IF NOT VALID-HANDLE(_h_cur_widg) THEN _h_cur_widg = _h_win.
-
-         run adeuib/_saveaswizd.w (input (if ask_file_name then yes else no),
-                                   output lRegisterObj,
-                                   output lOK).                                 
+         if OEIDEisRunning then
+            run adeuib/ide/_dialog_saveaswizd.p (input (if ask_file_name then yes else no),
+                                                 output lRegisterObj,
+                                                 output lOK).
+         else
+            run adeuib/_saveaswizd.w (input (if ask_file_name then yes else no),
+                                      output lRegisterObj,
+                                      output lOK).                                 
                                  
          IF rRecid <> RECID(_P) THEN
            FIND _P WHERE  RECID(_P) = rRecid .
@@ -7809,8 +8954,9 @@ PROCEDURE save_window:
             RETURN.
          END.
          
-         ASSIGN _save_file = _P._SAVE-AS-FILE.
-         IF lRegisterObj THEN _P.design_ryObject = YES.
+         ASSIGN _save_file = _P._SAVE-AS-FILE 
+                _P.design_ryObject = lRegisterObj.
+      
       END.
       ELSE DO:
          RUN adeuib/_sel_fn.p ("Save As", 
@@ -7819,7 +8965,55 @@ PROCEDURE save_window:
          IF _save_file = ? THEN RETURN.  /* the user cancelled */
       END.
     END.
+  end. /* IF ask_file_name OR _save_file = ? */  
+  
+  run save_file(ask_file_name,lsaveuntitled,lRegisterObj,lmrusave,cfileWeb,input-output user_cancel).
+  
+  /* This code executes only if the file was not in a project before saving. */
+  /* This code is similar to the one in adeuib/_open-w.p */
+  IF NOT AVAILABLE _P OR _save_file = ? THEN RETURN.
+  pFileName = _P._SAVE-AS-FILE.
 
+ 
+END PROCEDURE. /* save_window */
+
+/* separated out from save_window to be called from ide with already selected file name
+   _P must be avail
+   _save_file has the new file name */
+procedure save_file  private:
+    define input  parameter ask_file_name as logical no-undo.
+    define input  parameter lsaveuntitled as logical no-undo.
+    define input  parameter lRegisterObj as logical no-undo.
+    define input  parameter lmrusave as logical no-undo.
+    define input  parameter cfileWeb as character no-undo.
+    
+    define input-output parameter user_cancel as logical no-undo.
+    
+    define variable cPath         as character no-undo.
+    define variable cFile         as character no-undo.
+    define variable hcurwidg as handle no-undo.
+    define variable hWin as handle no-undo.
+    define variable cScrap as character no-undo.
+    define variable cBrokerUrl as character no-undo.
+    define variable cOptions as character no-undo.    
+    define variable cRelName as character no-undo.
+    define variable cFirstLine as character no-undo.
+    define variable cAction as character no-undo.
+    define variable cReturnValue as character no-undo.
+    define variable proxy-file as character no-undo.
+    define variable h_title_win as handle no-undo.
+    define variable OldTitle as character no-undo.
+    define variable cTables as character no-undo.
+    define variable hTempDBLib as handle no-undo. 
+    define variable cObjectType as character no-undo. 
+    define variable cError as character no-undo.
+    
+    define buffer x_u for _u.
+    define buffer d_P for _P.
+    
+    IF ask_file_name OR _save_file = ? then
+    do:  
+  
     /*
      * If ask_file_name is set then a "save as" is occuring.
      * Cover a situation with a OCX control. If an existing
@@ -7838,7 +9032,13 @@ PROCEDURE save_window:
 
         IF _P._VBX-FILE <> ?
         THEN DO:
-
+          if OEIDEIsRunning then
+             lOk = ShowMessageInIDE("Do you want to continue to save the ~n
+                                 {&WT-CONTROL} binary file in" + _P._VBX-FILE + "? ~n
+                                 Choose YES to to continue; Choose NO to ~n 
+                                 reset to the default location. ~n",
+                                 "Question","Save {&WT-CONTROL} Binary File?","YES-NO",YES).
+          else
           MESSAGE "Do you want to continue to save the" SKIP
                   "{&WT-CONTROL} binary file in" _P._VBX-FILE + "?" SKIP
                   "Choose YES to to continue; Choose NO to" SKIP
@@ -7920,6 +9120,14 @@ PROCEDURE save_window:
     END.
 
     IF AVAILABLE d_P THEN DO:
+      if OEIDEIsRunning then
+           ShowMessageInIDE("Another window uses ~n" +
+                                 (IF cFileWeb NE ? THEN ws-get-relative-path (INPUT cFileWeb) ELSE _save_file)
+                                + "to save into. ~n
+                                Either close that window or choose another filename ~n 
+                                for this window. The 'Save As...' operation has been cancelled.",
+                                 "Warning",?,"OK",YES).
+      else  
       MESSAGE
         "Another window uses" 
         (IF cFileWeb NE ? THEN ws-get-relative-path (INPUT cFileWeb) ELSE _save_file)
@@ -7944,6 +9152,13 @@ PROCEDURE save_window:
       DO ON STOP   UNDO, LEAVE
          ON ENDKEY UNDO, LEAVE
          ON ERROR  UNDO, LEAVE:
+        if OEIDEIsRunning then
+           ShowMessageInIDE(_save_file + 
+                            "Cannot save to this file. ~n
+                            File is read-only or the path specified ~n
+                            is invalid. Use a different filename.",
+                            "Warning",?,"OK",YES).
+        else     
         MESSAGE _save_file SKIP
           "Cannot save to this file."  SKIP(1)
           "File is read-only or the path specified" SKIP
@@ -7977,8 +9192,9 @@ PROCEDURE save_window:
            hCurWidg = _h_cur_widg.
     IF _P._file-version BEGINS "WDT_v2":U THEN
       RUN adeweb/_genweb.p (RECID(_P), "SAVE":U, ?, _save_file, OUTPUT cScrap).
-    ELSE
+    ELSE  
       RUN adeshar/_gen4gl.p (IF ask_file_name THEN "SAVEAS" ELSE "SAVE":U).
+  
     /* Closing/saving a SmartObject may cause focus to move to the instance of
        the object in a SmartWindow due to it being recreated after code generation.
        This can set the current window and widget _h_win and _h_cur_widg to the
@@ -8198,9 +9414,11 @@ PROCEDURE save_window:
        
     /* jep-icf: IZ 1981 Save static repository object. */
     /* Only save if user specified to register the object */
-    IF _DynamicsIsRunning  AND lRegisterObj THEN 
+    IF _DynamicsIsRunning  AND lRegisterObj THEN
+    do: 
+        /*  historical name, saves dynamics non native */
        RUN save_window_static (INPUT RECID(_P), OUTPUT cError).
-
+    end.  
     _P.design_action = "OPEN":U.
   END. /* _save_file NE ? */
 
@@ -8210,35 +9428,8 @@ PROCEDURE save_window:
      _P.smartObject_obj <> ?            AND
      _P.smartObject_obj <> 0            THEN
     PUBLISH "MasterObjectModified":U FROM gshRepositoryManager (INPUT _P.smartObject_obj, INPUT _P.Object_FileName).
-
-/* This code executes only if the file was not in a project before saving. */
-/* This code is similar to the one in adeuib/_open-w.p */
-IF NOT AVAILABLE _P OR _save_file = ? THEN RETURN.
-pFileName = _P._SAVE-AS-FILE.
-
-/* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
-/* TODO -- Fix case when file is in a different project ... */
-IF OEIDEIsRunning THEN
-DO:    
-    FILE-INFO:FILE-NAME = pFileName.
-    /* Ensure pFileName is a full path */
-    IF FILE-INFO:FULL-PATHNAME <> ? THEN
-        pFileName = FILE-INFO:FULL-PATHNAME.
-    RUN getActiveProjectOfFile IN hOEIDEService (pFileName, OUTPUT cProjectName).    
-    IF cProjectName > "" THEN
-    DO:
-        RUN getLinkedFileOfFile IN hOEIDEService (pFileName, OUTPUT cLinkedFile).
-        IF cLinkedFile = "" THEN /* File has not been registed */
-        DO:
-            cLinkedFile = createLinkedFile("lnk", ".tmp").
-            OS-COPY VALUE(pFileName) VALUE(cLinkedFile).
-        END.
-        openEditor(getProjectName(), pFileName, cLinkedFile, _h_win).
-        /* If file was already registed, its content is not modified */
-        RUN call_sew IN _h_UIB (INPUT "SE_OEOPEN":U ). /* Start Section Editor Window to allow file synchronization */
-    END.
-END.
-
+ 
+ 
 END PROCEDURE. /* save_window */
 
 
@@ -8333,6 +9524,11 @@ PROCEDURE save_window_static :
                              INPUT ?,
                              OUTPUT cError).
          ELSE
+         if OEIDEIsRunning then
+           ShowMessageInIDE("Object not saved to repository. ~n" 
+                            + pError,
+                            "Warning",?,"OK",yes).
+          else
           MESSAGE "Object not saved to repository." SKIP(1)
                   pError
             VIEW-AS ALERT-BOX WARNING.
@@ -8404,6 +9600,9 @@ PROCEDURE save_window_static :
          
       IF cCalcError > "" THEN
       DO:
+        if OEIDEIsRunning then
+           ShowMessageInIDE(cCalcError,"Warning",?,"OK",yes).
+        else  
         MESSAGE cCalcError VIEW-AS ALERT-BOX.
         DELETE _RYObject.
         RETURN.
@@ -8421,6 +9620,15 @@ PROCEDURE save_window_static :
                     + (IF cCalcRelativePath > "" THEN "~/":U ELSE "") 
                     + cObjectFileName ) = ? THEN 
       DO:
+         if OEIDEIsRunning then
+           ShowMessageInIDE(cObjectFileName +  " is not located in the ' " 
+                           + (IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
+                              THEN cCalcRelativePath
+                              ELSE "default")
+                           + "' directory." + CHR(10) + 
+                           "The file must be located in the same directory as the product module's relative path. ":U,
+                           "Warning",?,"OK",yes).
+         else 
          MESSAGE cObjectFileName +  " is not located in the '" 
                         + (IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
                           THEN cCalcRelativePath
@@ -8558,9 +9766,15 @@ PROCEDURE save_window_static :
                              OUTPUT cError).
 
         ELSE
+        do: 
+          if OEIDEIsRunning then
+           ShowMessageInIDE("Object not saved to repository. ~n" 
+                            + pError,"Warning",?,"OK",yes).
+          else    
           MESSAGE "Object not saved to repository." SKIP(1)
                   pError
             VIEW-AS ALERT-BOX WARNING.
+        end.    
       END.
       ELSE
       DO:   /* Add static registered object to mru list */
@@ -8582,7 +9796,6 @@ END PROCEDURE.  /* save_window_static */
  */
 PROCEDURE sensitize_main_window :
   DEFINE INPUT PARAMETER pCheck AS CHAR NO-UNDO.
-  
   DEFINE VARIABLE l             AS LOGICAL           NO-UNDO.
   DEFINE VARIABLE lDynamic      AS LOGICAL           NO-UNDO.
   DEFINE VARIABLE lMulti        AS LOGICAL           NO-UNDO.
@@ -8590,12 +9803,11 @@ PROCEDURE sensitize_main_window :
   DEFINE VARIABLE window-check  AS LOGICAL           NO-UNDO.
   DEFINE VARIABLE widget-check  AS LOGICAL           NO-UNDO.
   DEFINE VARIABLE frame_cnt     AS INTEGER INITIAL 0 NO-UNDO.
-
+ 
   /* Decide what items to check. */
   ASSIGN widget-check = CAN-DO(pCheck, "WIDGET") 
          window-check = CAN-DO(pCheck, "WINDOW").
-
-  /* Do window checking. */
+     /* Do window checking. */
   IF window-check THEN DO:
     /* Disable things if there is NO window - the "key" widget here is the
        "Save" button.  If that is already set, then don't worry about it. */
@@ -8800,7 +10012,7 @@ PROCEDURE sensitize_main_window :
         FIND _U WHERE _U._HANDLE = _h_cur_widg NO-LOCK NO-ERROR.
         IF AVAILABLE _U THEN DO:
           l = _U._TYPE <> "TEXT":U AND _U._TYPE <> "SmartObject":U.
-        END.	  
+        END.      
       END.    
       ASSIGN m_insert:SENSITIVE          = l 
                                          OR mi_insert_procedure:SENSITIVE
@@ -9213,6 +10425,63 @@ PROCEDURE switch_palette_menu: /* by GFS 2/95 */
   RUN adeuib/_rsz_wp.p (INPUT no). /* resize palette window */
 END.
 
+procedure isCurrentWindowDynamic:
+    define output parameter plDynamic   as logical no-undo.
+    define output parameter plNative    as logical no-undo.
+    define variable ldummy as logical no-undo.
+    define variable cdummy as character no-undo.
+    run getCurrentWindowInfo(output cdummy,output ldummy,output ldummy, output plDynamic, output plNative ).
+end.
+
+procedure getCurrentWindowInfo:
+    define output parameter pcFilename  as char no-undo.
+    define output parameter plSaved     as logical no-undo.
+    define output parameter plRepos     as logical no-undo.
+    define output parameter plDynamic   as logical no-undo.
+    define output parameter plNative    as logical no-undo.
+    
+    define buffer b_P for _P. 
+    find b_P where b_P._WINDOW-HANDLE = _h_win no-error.
+    if available(b_P) then 
+    do:
+        assign
+            plSaved = b_p._save-as-file <> ? /* did not work- b_p._file-saved */
+            pcfilename = b_p._save-as-file.
+        if _DynamicsIsRunning then
+        do:
+            plDynamic =  not b_P.static_object. 
+            plNative = DYNAMIC-FUNCTION("isDynamicClassNative":U IN _h_func_lib,_P.object_type_code).
+            plRepos =  b_p.design_ryobject .
+        end.
+        /* else all params are false */
+    end.
+    else 
+        assign plDynamic = ? 
+               plNative = ? 
+               plSaved = ?.
+end.
+
+procedure getCurrentWindowTitle:
+    define output parameter pcTitle as char no-undo.
+    define variable locHand as handle no-undo.
+    if _h_win:type = "FRAME" then
+       pctitle = _h_win:parent:title.
+    else    
+       pctitle = _h_win:title.
+    
+end.
+
+
+PROCEDURE startDynPropSheet:
+  FIND _P WHERE _P._WINDOW-HANDLE = _h_win NO-ERROR.
+  IF AVAILABLE(_P) AND (NOT _P.static_object) 
+  AND LOOKUP("DynView":U,_P.parent_classes)= 0
+  AND LOOKUP("DynSDO":U,_P.parent_classes) = 0
+  AND LOOKUP("DynDataView":U,_P.parent_classes) = 0
+  AND LOOKUP("Dynbrow":U,_P.parent_classes)= 0   THEN
+    RUN choose_prop_sheet IN _h_UIB.
+  
+END.
 
 PROCEDURE tapit.
   DEFINE BUFFER parent_U                FOR _U.
@@ -9426,6 +10695,11 @@ END. /* PROCEDURE tapit */
 /* Message to tell users they can't manipulate test in alternative layouts */
 PROCEDURE text_message.
   /* Text widgets are not changeable in an alternative layout */
+  if OEIDEIsRunning then
+     ShowMessageInIDE("Text objects may only be modified in the Master Layout. ~n
+                      Use a fill-in with the VIEW-AS-TEXT attribute instead." 
+                      ,"Warning",?,"OK",yes).
+  else
   MESSAGE "Text objects may only be modified in the Master Layout." SKIP
           "Use a fill-in with the VIEW-AS-TEXT attribute instead."
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -9441,22 +10715,19 @@ END.
    
    tool  = The name of the palette tool to use. 
            ? if want to force another tool choose
-           of the last tool.
-   
-   
- */  
+           of the last tool.*/
+             
 procedure tool_choose:
   DEFINE INPUT PARAMETER cType  AS INTEGER                          NO-UNDO.
   DEFINE INPUT PARAMETER tool   AS CHAR                             NO-UNDO. 
   DEFINE INPUT PARAMETER custom AS CHAR                             NO-UNDO. 
-  
+ 
   DEFINE VARIABLE cancelled      AS LOGICAL                         NO-UNDO.
   DEFINE VARIABLE cStatus_line   AS CHARACTER                       NO-UNDO. 
   DEFINE VARIABLE customTool     AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE filechosen     AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE ParentHWND     AS INTEGER                         NO-UNDO.
   DEFINE VARIABLE parse          AS CHARACTER                       NO-UNDO.
-  DEFINE VARIABLE ptool          AS CHARACTER INITIAL "smartObject" NO-UNDO.
   DEFINE VARIABLE sameCustom     AS LOGICAL                         NO-UNDO.
   DEFINE VARIABLE sameTool       AS LOGICAL                         NO-UNDO.
   DEFINE VARIABLE saveCustom     AS RECID                           NO-UNDO.
@@ -9467,7 +10738,7 @@ procedure tool_choose:
   DEFINE VARIABLE unused         AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE tmpString      AS CHARACTER                       NO-UNDO.
   DEFINE VARIABLE cFullPath      AS CHARACTER                       NO-UNDO.
-
+  
   /*
    * The "rules" for tool choosing and locking:
    *
@@ -9498,377 +10769,404 @@ procedure tool_choose:
    * bring up a dialog box.
    */
    
-  IF tool = "POINTER":U THEN DO:
-      RUN choose-pointer.
-      RETURN.
-  END.
-
-  /* Don't let people draw on a dynamic browse */
-  IF _DynamicsIsRunning AND AVAILABLE _P THEN DO:
-    IF LOOKUP(_P.OBJECT_type_code,
-              DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
-                                                  INPUT "DynBrow":U)) <> 0 THEN DO:
-      RUN choose-pointer.
-      RETURN.
+    IF tool = "POINTER":U THEN 
+    DO:
+        RUN choose-pointer.
+        RETURN.
     END.
-  END.
-  /*
-   * Force this tool choose to run like the
-   * previous call
-   */
 
-/*message "tool" tool skip
-        "custom" custom skip
-        "ctype" cType skip
-        view-as alert-box. */
-  IF (tool = ?) AND (cType = 3) THEN DO:
+    /* Don't let people draw on a dynamic browse */
+    IF _DynamicsIsRunning AND AVAILABLE _P THEN 
+    DO:
+        IF LOOKUP(_P.OBJECT_type_code,
+              DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager,
+                                                  INPUT "DynBrow":U)) <> 0 THEN 
+        DO:
+            RUN choose-pointer.
+            RETURN.
+        END.
+    END.
+    /*
+    * Force this tool choose to run like the
+    * previous call
+    */
+
+    /*message "tool" tool skip
+              "custom" custom skip
+              "ctype" cType skip
+                view-as alert-box. */
+    IF (tool = ?) AND (cType = 3) THEN 
+    DO:
   
-    FIND _palette_item WHERE RECID(_palette_item) = _palette_choice NO-ERROR.
-    IF AVAILABLE (_palette_item) THEN ASSIGN tool = _palette_item._name.
-    ELSE RETURN.
-  END. 
-  /*
-   * In case the user first comes in through the
-   * "other path" before any tool is chosen.
-   */
-  IF tool = ? THEN RETURN.
+        FIND _palette_item WHERE RECID(_palette_item) = _palette_choice NO-ERROR.
+        IF AVAILABLE (_palette_item) THEN 
+            ASSIGN tool = _palette_item._name.
+        ELSE 
+            RETURN.
+    END. 
+    /*
+     * In case the user first comes in through the
+     * "other path" before any tool is chosen.
+     */
+    IF tool = ? THEN 
+        RETURN.
     
-  ASSIGN
-    customTool       = custom
-    saveItem         = _palette_choice
-    saveCustom       = _palette_custom_choice
-    widget_click_cnt = widget_click_cnt + 1
-    goBack2pntr      = YES
-    saveNextDraw     = _next_draw
-    saveCustomDraw   = _custom_draw
-  .
-      
-  FIND _palette_item WHERE _palette_item._name = tool.
-  _palette_choice = recid(_palette_item).
-      
-  FIND _custom WHERE _custom._name = custom 
-               AND   _custom._type = tool no-error.
-  
-  IF AVAILABLE _custom THEN DO:
     ASSIGN
-      _palette_custom_choice = recid(_custom)
-      parse = TRIM(_custom._ATTR)
-    .
+        customTool       = custom
+        saveItem         = _palette_choice
+        saveCustom       = _palette_custom_choice
+        widget_click_cnt = widget_click_cnt + 1
+        goBack2pntr      = YES
+        saveNextDraw     = _next_draw
+        saveCustomDraw   = _custom_draw
+      .
+     
+    FIND _palette_item WHERE _palette_item._name = tool.
+    _palette_choice = recid(_palette_item).
+  
+    FIND _custom WHERE _custom._name = custom 
+                   AND   _custom._type = tool no-error.
+  
+    IF AVAILABLE _custom THEN 
+    DO:
+        ASSIGN
+            _palette_custom_choice = recid(_custom)
+            parse = TRIM(_custom._ATTR)
+            .
             /*message "   CUSTOM REC" skip
                 "tool     " tool skip
                 "custom   " custom skip
                 "base type" _custom._type skip
                          view-as alert-box.  */
 
-  END.
-  ELSE DO:
-    ASSIGN
-      _palette_custom_choice = ?
-      parse = TRIM(_palette_item._ATTR)
-    .
-         
-    /*    message "NO CUSTOM REC" skip
-                "tool     " tool skip
-                "custom   " custom skip
-                "cType    " cType skip
-                "parse    " parse skip
-                view-as alert-box. */
-  END.                
-  /* If the click count is 1 then the user
-   * moved off the POINTER.
-   */
- 
-  IF widget_click_cnt > 1 THEN DO:
-     
-     ASSIGN
-       sameTool = (saveItem = _palette_choice)
-       sameCustom = (saveCustom = _palette_custom_choice)
-     .
-           
-     IF sameTool THEN DO:
-
-       /*
-        * The user is working in the same tool.
-        */
- 
-       IF (cType = 0) THEN DO:
-         
-         /*
-          * The tool_choose came from a palette icon
-          * Lock/unlock the palette icon
-          */
-          
-         RUN tool_lock (saveNextdraw, saveCustomdraw).
-         IF ((widget_click_cnt modulo 2) = 0) THEN RETURN.
-         IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN RETURN.
-         
-       END.
-       ELSE IF cType = 3 THEN DO:
-         /*
-          * The tool_choose came from an outside source
-          * (the lock status area is one case). Perform
-          * the same operations as if cType = 0 
-          */
-          
-         RUN tool_lock (saveNextdraw, saveCustomdraw).
-         IF ((widget_click_cnt modulo 2) = 0) THEN RETURN.
-         
-         /*
-          * We've just unlocked.If we're working with a picker
-          * then don't bring it up in this case
-          */
-          
-         IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN RETURN.
-         
-       END.
-       ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN DO:
-       
-         /*
-          * The tool_choose came from a menu and the custom
-          * item is a picker. Break the lock.
-          */
-         
-         widget_click_cnt = 1.
-         RUN tool_lock (saveNextdraw, saveCustomdraw). 
-         
-       END.
-       ELSE IF sameCustom THEN DO:
-       
-         /*
-          * The exact same tool and custom was picked
-          * twice in row. Force the lock.
-          */
-         widget_click_cnt = 2.          
-         RUN tool_lock (saveNextdraw, saveCustomdraw).
-
-         RETURN.
-         
-       END.
-       ELSE
-         ASSIGN 
-           goBack2pntr      = YES
-           widget_click_cnt = 1
-        .
-    
-  END.
-     ELSE
-       ASSIGN 
-         goBack2pntr      = YES
-         widget_click_cnt = 1
-       .
-  END.
-          
-  /* Special cases - Browses or dbFields with no connected databases */
-  IF _palette_item._dbconnect AND NUM-DBS = 0 THEN DO:
-     /* If we find the term 'object' anywhere in the palette item name,
-        don't bother adding the 'object' part to the message we'll give
-        the customer. Keeps from displaying something like
-        'create a SmartObject object.' - jep */
-     IF INDEX(_palette_item._name, 'object':U) = 0 THEN
-        tmpString = " object.".
-     ELSE
-        tmpString = ".".
-        
-    RUN adecomm/_dbcnnct.p (
-      INPUT "You must have at least one connected database to " 
-            + (IF   _palette_item._name = "DB-FIELDS" THEN "add database fields."
-               ELSE "create a " + _palette_item._name + tmpString),
-      OUTPUT ldummy).
-    IF ldummy eq no THEN 
-    DO:
-       RUN choose-pointer.
-       RETURN.
     END.
-  END.
-  
-  /* If tool is text and not master layout give message and return */
-  IF tool = "TEXT":U THEN DO:
-    FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
-    IF AVAILABLE _U THEN DO:
-      IF _U._LAYOUT-NAME NE "Master Layout" THEN DO:
-        MESSAGE "Text objects may only be drawn in the Master Layout." SKIP
-                "Use a fill-in with the VIEW-AS-TEXT attribute instead."
-        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        RETURN.
-      END.
-    END.
-  END.
-  
-
-  /* Now see if we have a pointer or other tool */
-  
-  DO WITH FRAME widget_icons:
-  
-    /* Which palette entry corresponds to this tool */
-    FIND _palette_item WHERE _palette_item._NAME = tool NO-ERROR.
-    
-    /* "Restore" the old choice to its "up" state */
-    
-      IF hDrawTool NE ? AND hDrawTool:PRIVATE-DATA NE tool
-        THEN hDrawTool:HIDDEN    = NO.
-    
-      IF h_lock NE ? THEN h_lock:HIDDEN       = YES.
-    
-      ASSIGN toolframe         = hDrawTool:FRAME
-             toolframe:BGCOLOR = ?.
- 
-      /* "Depress" the new choice widget tool by hiding it. */
-    
-      ASSIGN
-          hDrawTool   = _h_up_image
-          h_lock      = WIDGET-HANDLE(ENTRY(2,_h_up_image:PRIVATE-DATA)).
-    
-      IF NOT hDrawTool:HIDDEN THEN hDrawTool:HIDDEN = YES. 
-      IF NOT h_lock:HIDDEN    THEN h_lock:HIDDEN = YES.
-    
-      ASSIGN toolframe         = hDrawTool:FRAME
-             toolframe:BGCOLOR = 7.
-      
- /* For SmartObjects, the user could have chosen "NEW" or cancel from
-     * a "CHOOSE", in which case we don't want to do anything
-     */
- 
- IF _palette_item._TYPE <> {&P-BASIC} THEN DO: /* custom icon, SmartObject or OCX control*/
-      IF custom eq "NEW" THEN 
-      DO:
-         IF _palette_item._New_Template <> "" THEN 
-         DO: 
-            FILE-INFO:FILE-NAME = _palette_item._New_Template.
-            cFullPath = FILE-INFO:FULL-PATHNAME.
-            /* IF object will be registered in dynamics, we need to set the object 
-               information. This will only work for static objects */
-            IF _DynamicsIsRunning THEN 
-            DO:                     
-              /* Fill in the _RyObject record for the AppBuilder. */
-              FIND _RyObject WHERE _RyObject.object_filename = cFullPath NO-ERROR.
-
-              IF NOT AVAILABLE _RyObject THEN
-                 CREATE _RyObject.
-
-              ASSIGN 
-                _RyObject.object_type_code       = _palette_item._object_class
-                _RyObject.parent_classes         = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.object_type_code)
-                _RyObject.object_filename        =  cFullPath
-                _RyObject.product_module_code    = ""
-                _RyObject.static_object          = YES
-                _RyObject.container_object       = ?
-                _RyObject.design_action          = "NEW":u
-                _RyObject.design_ryobject        = YES
-                _RyObject.design_template_file   =  _palette_item._New_Template
-                _RyObject.design_propsheet_file  = ""
-                _RyObject.design_image_file      = "".
-            END.  
-           
-            RUN adeuib/_open-w.p (cFullPath, "",
-                                  "UNTITLED").
-         END. /* If _New_Template <> "" */
-         RUN choose-pointer.
-         RETURN.
-      END. /* If custom = 'NEW' */
-      ELSE DO:
-        /* If this a OCX control then call out to the OCX picker */
-        IF ENTRY(1, parse, CHR(10)) BEGINS "CONTROL" THEN
-          ASSIGN _object_draw = entry(2, parse, CHR(10))
-                 customTool   = entry(3, parse, CHR(10))
-                 tool         = "{&WT-CONTROL}".
-        ELSE IF tool = "{&WT-CONTROL}" THEN DO:
-          run adecomm/_setcurs.p("WAIT").
-          ASSIGN SESSION:DATE-FORMAT = _orig_dte_fmt.
-
-          /* Present OCX dialog via call to PROX. Get window parent handle
-             to position OCX dialog over Palette window. */
-          RUN GetParent(INPUT _h_object_win:HWND, OUTPUT ParentHWND).
-          ASSIGN _ocx_draw = _h_Controls:GetControl(ParentHWND) NO-ERROR.
-
-          /* _ocx_draw will contain a valid com-handle. */
-          IF VALID-HANDLE(_ocx_draw) THEN DO:
-            ASSIGN
-              _object_draw = _ocx_draw:ClassID
-              _custom_draw = _ocx_draw:ShortName
-              customTool   = _custom_draw.
-          END.
-          ELSE _object_draw = ?.
-          
-          run adecomm/_setcurs.p("").
-        END.
-        ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "USE" THEN
-            _object_draw = TRIM(SUBSTRING(ENTRY(1,parse,CHR(10)),4,-1,"CHARACTER")).
-        ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN DO:
-          run adecomm/_setcurs.p("WAIT").
-          ASSIGN SESSION:DATE-FORMAT = _orig_dte_fmt.
-          IF tool = "SmartDataObject":U THEN ptool = tool. /* Otherwise smartObject */
-          RUN adecomm/_chosobj.w (INPUT ptool,
-                                  INPUT parse, 
-                                  INPUT _palette_item._New_Template,
-                                  INPUT "BROWSE,NEW,PREVIEW",
-                                  OUTPUT filechosen,
-                                  OUTPUT unused,
-                                  OUTPUT cancelled).
-          IF filechosen <> "" THEN _object_draw = filechosen.
-          ELSE ASSIGN _object_draw = ?.
-        END.  /* IF directory list */
-        
-        IF _object_draw eq ? THEN DO:
-
-          /*
-           * If there is no object draw at this point (usually happens when
-           * a user cancels out of a picker) then go back to the pointer
-           *
-           */
-          RUN choose-pointer.
-          RETURN.
-  
-        END. 
-
-      END. /* NOT "NEW" */
-    END. /* NOT TYPE 1 */
- 
-    /* If we were in Pointer mode (next_draw = ?) and are now in draw mode,
-       then make everything deselectionable (and deselectioned) if the
-       last value of _next_draw was a pointer. Also set unmovable. */
-    IF _next_draw EQ ? THEN DO:
-      FOR EACH _U WHERE _U._HANDLE <> ? AND
-          NOT CAN-DO("WINDOW,DIALOG-BOX,MENU,SUB-MENU,MENU-ITEM", _U._TYPE):
-        ASSIGN _U._HANDLE:MOVABLE    = FALSE
-               _U._HANDLE:SELECTABLE = FALSE
-               _U._SELECTEDib        = FALSE.
-      END.
-    END.
-    
-    /* "Depress" the new choice widget tool by hiding it. */
-    IF _palette_item._type eq {&P-BASIC} THEN _object_draw = ?. 
-    ASSIGN _next_draw   = tool
-           _custom_draw = customTool.
-
-    /* Set mouse pointer to selected item */
-    RUN adeuib/_setpntr.p (_next_draw, input-output _object_draw).
-  
-    /* Show the user what the current tool is (in the HELP attribute of the
-       drawing tool. */
-    IF custom eq ? 
-    THEN cStatus_Line = hDrawTool:HELP.  /* eg. "Button" or "Selection-List" */
     ELSE DO:
-      /* Set the status line to custom (eg.  "OK" or "Cancel").  */
-      cStatus_line = custom.
-      /* Remove underbars (& characters), but not ampersands (&&) */
-      cStatus_line = REPLACE (  REPLACE ( REPLACE (
-                        cStatus_line,
+        ASSIGN
+            _palette_custom_choice = ?
+            parse = TRIM(_palette_item._ATTR)
+            .
+         
+     /*    message "NO CUSTOM REC" skip
+                    "tool     " tool skip
+                    "custom   " custom skip
+                    "cType    " cType skip
+                    "parse    " parse skip
+                view-as alert-box. */
+    END.                
+    /* If the click count is 1 then the user
+     * moved off the POINTER.
+     */
+
+    IF widget_click_cnt > 1 THEN 
+    DO:
+        ASSIGN
+            sameTool = (saveItem = _palette_choice)
+            sameCustom = (saveCustom = _palette_custom_choice)
+            .
+        IF sameTool THEN 
+        DO:
+            /*
+            * The user is working in the same tool.
+            */
+            IF (cType = 0) THEN 
+            DO:
+             /*
+              * The tool_choose came from a palette icon
+              * Lock/unlock the palette icon
+              */
+                RUN tool_lock (saveNextdraw, saveCustomdraw).
+                IF ((widget_click_cnt modulo 2) = 0) THEN 
+                    RETURN.
+                IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+                    RETURN.
+         
+            END.
+            ELSE IF cType = 3 THEN 
+            DO:
+                /*
+                 * The tool_choose came from an outside source
+                 * (the lock status area is one case). Perform
+                 * the same operations as if cType = 0 
+                 */
+                RUN tool_lock (saveNextdraw, saveCustomdraw).
+                IF ((widget_click_cnt modulo 2) = 0) THEN 
+                    RETURN.
+                 /*
+                  * We've just unlocked.If we're working with a picker
+                  * then don't bring it up in this case
+                  */
+                IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+                    RETURN.
+            END. /* cType = 3 */
+            ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+            DO:
+                 /*
+                  * The tool_choose came from a menu and the custom
+                  * item is a picker. Break the lock.
+                  */
+                 widget_click_cnt = 1.
+                 RUN tool_lock (saveNextdraw, saveCustomdraw). 
+            END.
+            ELSE IF sameCustom THEN 
+            DO:
+                /*
+                 * The exact same tool and custom was picked
+                 * twice in row. Force the lock.
+                 */
+                widget_click_cnt = 2.          
+                RUN tool_lock (saveNextdraw, saveCustomdraw).
+                RETURN.
+            END.
+            ELSE
+                ASSIGN 
+                    goBack2pntr      = YES
+                    widget_click_cnt = 1
+                    .
+    
+        END. /* if sametool */
+        ELSE
+            ASSIGN 
+                goBack2pntr      = YES
+                widget_click_cnt = 1
+                .
+    END. /* IF widget_click_cnt > 1  */
+          
+    /* Special cases - Browses or dbFields with no connected databases */
+    IF _palette_item._dbconnect AND NUM-DBS = 0 THEN 
+    DO:
+        /* If we find the term 'object' anywhere in the palette item name,
+           don't bother adding the 'object' part to the message we'll give
+           the customer. Keeps from displaying something like
+           'create a SmartObject object.' - jep */
+        IF INDEX(_palette_item._name, 'object':U) = 0 THEN
+            tmpString = " object.".
+        ELSE
+            tmpString = ".".
+        
+        RUN adecomm/_dbcnnct.p (INPUT "You must have at least one connected database to " 
+                                + (IF _palette_item._name = "DB-FIELDS" THEN "add database fields."
+                                   ELSE "create a " + _palette_item._name + tmpString),
+                                OUTPUT ldummy).
+        IF ldummy eq no THEN 
+        DO:
+            RUN choose-pointer.
+            RETURN.
+        END.
+    END.
+  
+    /* If tool is text and not master layout give message and return */
+    IF tool = "TEXT":U THEN 
+    DO:
+        FIND _U WHERE _U._HANDLE = _h_win NO-ERROR.
+        IF AVAILABLE _U THEN 
+        DO:
+            IF _U._LAYOUT-NAME NE "Master Layout" THEN 
+            DO:
+                if OEIDEIsRunning then
+                    ShowMessageInIDE("Text objects may only be drawn in the Master Layout. ~n
+                                     Use a fill-in with the VIEW-AS-TEXT attribute instead.",
+                                     "Warning",?,"OK",yes).
+                else
+                MESSAGE "Text objects may only be drawn in the Master Layout." SKIP
+                "Use a fill-in with the VIEW-AS-TEXT attribute instead."
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+                RETURN.
+            END.
+        END.
+    END.
+
+    /* Now see if we have a pointer or other tool */
+    DO WITH FRAME widget_icons:
+  
+        /* Which palette entry corresponds to this tool */
+        FIND _palette_item WHERE _palette_item._NAME = tool NO-ERROR.
+        
+        /* "Restore" the old choice to its "up" state */
+        IF hDrawTool NE ? AND hDrawTool:PRIVATE-DATA NE tool THEN 
+            hDrawTool:HIDDEN    = NO.
+    
+        IF h_lock NE ? THEN h_lock:HIDDEN       = YES.
+    
+        ASSIGN toolframe         = hDrawTool:FRAME
+               toolframe:BGCOLOR = ?.
+ 
+         /* "Depress" the new choice widget tool by hiding it. */
+        ASSIGN
+            hDrawTool   = _h_up_image
+            h_lock      = WIDGET-HANDLE(ENTRY(2,_h_up_image:PRIVATE-DATA)).
+    
+        IF NOT hDrawTool:HIDDEN THEN 
+            hDrawTool:HIDDEN = YES. 
+        IF NOT h_lock:HIDDEN THEN 
+            h_lock:HIDDEN = YES.
+    
+        ASSIGN toolframe         = hDrawTool:FRAME
+               toolframe:BGCOLOR = 7.
+      
+         /* For SmartObjects, the user could have chosen "NEW" or cancel from
+          * a "CHOOSE", in which case we don't want to do anything  */
+        IF _palette_item._TYPE <> {&P-BASIC} THEN 
+        DO: /* custom icon, SmartObject or OCX control*/
+            IF custom eq "NEW" THEN 
+            DO:
+                IF _palette_item._New_Template <> "" THEN 
+                DO: 
+                    FILE-INFO:FILE-NAME = _palette_item._New_Template.
+                    cFullPath = FILE-INFO:FULL-PATHNAME.
+                    /* IF object will be registered in dynamics, we need to set the object 
+                        information. This will only work for static objects */
+                    IF _DynamicsIsRunning THEN 
+                    DO:                     
+                        /* Fill in the _RyObject record for the AppBuilder. */
+                        FIND _RyObject WHERE _RyObject.object_filename = cFullPath NO-ERROR.
+
+                        IF NOT AVAILABLE _RyObject THEN
+                            CREATE _RyObject.
+
+                        ASSIGN 
+                            _RyObject.object_type_code       = _palette_item._object_class
+                            _RyObject.parent_classes         = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, INPUT _RyObject.object_type_code)
+                            _RyObject.object_filename        =  cFullPath
+                            _RyObject.product_module_code    = ""
+                            _RyObject.static_object          = YES
+                            _RyObject.container_object       = ?
+                            _RyObject.design_action          = "NEW":u
+                            _RyObject.design_ryobject        = YES
+                            _RyObject.design_template_file   =  _palette_item._New_Template
+                            _RyObject.design_propsheet_file  = ""
+                            _RyObject.design_image_file      = "".
+                    END.  
+                    RUN adeuib/_open-w.p (cFullPath,"","UNTITLED").
+                END. /* If _New_Template <> "" */
+                RUN choose-pointer.
+                RETURN.
+            END. /* If custom = 'NEW' */
+            ELSE DO:
+                /* If this a OCX control then call out to the OCX picker */
+                IF ENTRY(1, parse, CHR(10)) BEGINS "CONTROL" THEN
+                     ASSIGN _object_draw = entry(2, parse, CHR(10))
+                            customTool   = entry(3, parse, CHR(10))
+                            tool         = "{&WT-CONTROL}".
+                ELSE IF tool = "{&WT-CONTROL}" THEN 
+                DO:
+                    run adecomm/_setcurs.p("WAIT").
+                    ASSIGN SESSION:DATE-FORMAT = _orig_dte_fmt.
+
+                    /* Present OCX dialog via call to PROX. Get window parent handle
+                       to position OCX dialog over Palette window. */
+                    
+/*                    if ideintegrated then*/
+/*                    do:                  */
+/*                        run runChildDialog in hOEIDEService("ide-choose-ocx").*/
+                         RUN choose_ocx( INPUT _h_object_win:HWND).
+                         
+/*                    end.*/
+/*                    RUN GetParent(INPUT _h_object_win:HWND, OUTPUT ParentHWND).    */
+/*                    ASSIGN _ocx_draw = _h_Controls:GetControl(ParentHWND) NO-ERROR.*/
+/*                                                                                   */
+/*                    /* _ocx_draw will contain a valid com-handle. */               */
+/*                    IF VALID-HANDLE(_ocx_draw) THEN                                */
+/*                    DO:                                                            */
+/*                        ASSIGN                                                     */
+/*                             _object_draw = _ocx_draw:ClassID                      */
+/*                             _custom_draw = _ocx_draw:ShortName                    */
+/*                             customTool   = _custom_draw.                          */
+/*                    END.                                                           */
+/*                    ELSE _object_draw = ?.                                         */
+/*                                                                                   */
+/*                    run adecomm/_setcurs.p("").                                    */
+                END.
+                ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "USE" THEN
+                    _object_draw = TRIM(SUBSTRING(ENTRY(1,parse,CHR(10)),4,-1,"CHARACTER")).
+                ELSE IF ENTRY(1,parse,CHR(10)) BEGINS "DIRECTORY-LIST" THEN 
+                DO:
+                    /* wraps run adecomm/_chosobj.w to support modal call from IDE */ 
+                    run choose_smartobject(INPUT tool,
+                                           INPUT customTool,
+                                           INPUT parse, 
+                                           INPUT _palette_item._New_Template,
+                                           INPUT "BROWSE,NEW,PREVIEW" ).
+                     /* post logic is handled in choose_smartobject  */
+                     RETURN.  
+                    
+                END.  /* IF directory list */
+        
+                IF _object_draw eq ? THEN 
+                DO:
+                   /* If there is no object draw at this point (usually happens when
+                    * a user cancels out of a picker) then go back to the pointer */
+                    RUN choose-pointer.
+                    RETURN.
+                END. 
+            END. /* NOT "NEW" */
+        END. /* NOT TYPE 1 */
+        
+        /* If we were in Pointer mode (next_draw = ?) and are now in draw mode,
+           then make everything deselectionable (and deselectioned) if the
+           last value of _next_draw was a pointer. Also set unmovable. */
+        run setDrawMode.
+         
+        /* "Depress" the new choice widget tool by hiding it. */
+        IF _palette_item._type eq {&P-BASIC} THEN 
+            _object_draw = ?. 
+    
+        ASSIGN _next_draw   = tool
+               _custom_draw = customTool.
+   
+        /* Set mouse pointer to selected item */
+        RUN adeuib/_setpntr.p (_next_draw, input-output _object_draw).
+        
+        Run setToolStatus(custom).
+    END. /* do with frame  */
+
+END PROCEDURE. /* tool_choose - Click on widget tool button */
+
+ /* If we were in Pointer mode (next_draw = ?) and are now in draw mode,
+    then make everything deselectionable (and deselectioned) if the
+    last value of _next_draw was a pointer. Also set unmovable. */
+procedure setDrawMode: 
+    if _next_draw EQ ? then  
+    do:
+        FOR EACH _U WHERE _U._HANDLE <> ? 
+                      AND NOT CAN-DO("WINDOW,DIALOG-BOX,MENU,SUB-MENU,MENU-ITEM", _U._TYPE):
+            ASSIGN _U._HANDLE:MOVABLE    = FALSE
+                   _U._HANDLE:SELECTABLE = FALSE
+                   _U._SELECTEDib        = FALSE.
+        END.
+    end.
+end procedure. 
+
+/* Show the user what the current tool is (in the HELP attribute of the drawing tool.*/
+procedure setToolStatus: 
+    define input parameter pCustom as character no-undo.
+    
+    define variable cStatusLine as character no-undo.
+   
+    IF pCustom eq ? THEN 
+         cStatusLine = hDrawTool:HELP.  /* eg. "Button" or "Selection-List" */
+    ELSE 
+    DO:
+        /* Set the status line to custom (eg.  "OK" or "Cancel").  */
+        cStatusLine = pCustom.
+        /* Remove underbars (& characters), but not ampersands (&&) */
+        cStatusLine = REPLACE (  REPLACE ( REPLACE (
+                        cStatusLine,
                         "&&":U,CHR(10)),
                         "&":U, "":U),
                         CHR(10), "&&":U).
-      /* We would like the status line to list the widget type as well, 
-         so add the hDrawTool:HELP  if we isn't already in the custom name.  
-         (eg. if custom = "OK Button" we don't o say "OK Button Button".) */
-      IF INDEX(cStatus_line, hDrawTool:HELP) eq 0
-      THEN cStatus_line = RIGHT-TRIM(cStatus_line) + " ":U + hDrawTool:HELP.
+        /* We would like the status line to list the widget type as well, 
+           so add the hDrawTool:HELP  if we isn't already in the custom name.  
+           (eg. if custom = "OK Button" we don't o say "OK Button Button".) */
+        IF INDEX(cStatusLine, hDrawTool:HELP) eq 0 THEN 
+            cStatusLine = RIGHT-TRIM(cStatusLine) + " ":U + hDrawTool:HELP.
+    
     END.
 
-    RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Tool}, cStatus_line).
+    RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Tool}, cStatusLine).
     RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Lock}, 
                             IF goBack2Pntr THEN "" ELSE "Lock").
-  END. /* IF _next_draw = ?..ELSE... */
+end procedure.
 
-END PROCEDURE. /* Click on on widget tool button */
 
 /* tool_lock - Select and "lock" a tool (_next_draw).  Clicking if
    if already locked, toggles it off. Continured clicking on the same tool
@@ -9909,16 +11207,35 @@ procedure tool_lock:
   IF (widget_click_cnt > 6) AND (_uib_prefs._user_hints) THEN DO:
      widget_click_cnt = 1. /* Reset the counter */
      IF _next_draw = ?
-     THEN MESSAGE "You have already chosen the POINTER tool.  This tool" {&SKP}
+     THEN
+     do: 
+         if OEIDEIsRunning then
+             ShowMessageInIDE("You have already chosen the POINTER tool.  This tool ~n
+                             allows you to select and move objects that you have ~n
+                             already created. Double-clicking on an object will ~n
+                             bring up the Attribute Editor for that object.",
+                             "Information","Pointer Tool","OK",yes).
+         else
+         MESSAGE "You have already chosen the POINTER tool.  This tool" {&SKP}
                   "allows you to select and move objects that you have" {&SKP}
                   "already created. Double-clicking on an object will" {&SKP}
                   "bring up the Attribute Editor for that object."
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Pointer Tool".
+     end.       
      ELSE DO:
        ASSIGN draw_in_a = IF _next_draw = "FRAME" THEN "window or frame" ELSE "frame"
               thing     = IF _next_draw = "SCHEMA-LIST" THEN "DB FIELDS"
                           ELSE IF _next_draw = "TOGGLE" THEN "TOGGLE BOX"
                           ELSE _next_draw.
+       if OEIDEIsRunning then
+             ShowMessageInIDE("You have already chosen the " + thing + "tool. ~n
+                              There are two ways to create a new " + thing + " object - ~n
+                               1) Click & Drag to define a position and size; OR ~n
+                               2) Click in a " + draw_in_a + " to create a default " + thing  + "~n~n" +
+                              "NOTE: Clicking with MOUSE-EXTEND will ~"lock~" your ~n 
+                              choice of drawing tool.",
+                              "Information",?,"OK",yes).
+       else                   
        MESSAGE "You have already chosen the" thing "tool." {&SKP}
                "There are two ways to create a new" thing "object -" SKIP
                " 1) Click & Drag to define a position and size; OR" SKIP
@@ -9986,6 +11303,8 @@ PROCEDURE update_palette :
   APPLY "ENTRY" TO _h_menu_win.
   RUN adeuib/_initpal.p.           /* re-initialize the palette */
   RUN adeuib/_cr_cust.p (INPUT no).           /* read new custom file */
+/*  if valid-handle(hOEIDEService) then*/
+/*      run adeuib/_oeidepalette.p.    */
   IF RETURN-VALUE = "_CANCEL" THEN RUN restorePaletteCustom.
   RUN adeuib/_cr_pal.p(INPUT yes). /* delete old palette items and rebuild */
   RUN adeuib/_cr_cmnu.p(INPUT MENU m_toolbox:HANDLE). /* add custom menus */
@@ -10003,10 +11322,15 @@ PROCEDURE update_palette :
   
 END.
 
+PROCEDURE view_ab_in_desktop:
+    run show_uibmain_in_desktop(true).
+    run show_palette_in_desktop(true).
+END.
+
 /* wind-close  - delete the current window  */
 procedure wind-close.
   DEFINE INPUT PARAMETER h_self  AS WIDGET NO-UNDO.
-  
+
   DEFINE VAR save_opt   AS LOGICAL           NO-UNDO.
   DEFINE VAR cancel     AS LOGICAL           NO-UNDO.
   DEFINE VAR context    AS CHAR              NO-UNDO.
@@ -10016,64 +11340,53 @@ procedure wind-close.
   DEFINE VAR askToSave  AS LOGICAL           NO-UNDO INITIAL FALSE.
   DEFINE VAR tmp_hSecEd AS HANDLE            NO-UNDO.
   DEFINE VAR hPropSheet AS HANDLE            NO-UNDO.
-    
-  FIND _U WHERE _U._HANDLE = h_self NO-ERROR.
-  FIND _P WHERE _P._u-recid eq RECID(_U).
-
   DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lProjectFile AS LOGICAL    NO-UNDO INITIAL FALSE.
   DEFINE VARIABLE lOEIDEReload AS LOGICAL    NO-UNDO INITIAL FALSE.
   
+  FIND _U WHERE _U._HANDLE = h_self NO-ERROR.
+  
+  /* set in syncFromIDE. It is currently set on the window also when dialog, so check here 
+     before changing h_self   
+   @todo remove and replace this (always bad) use of private-data by proper mechanism  */ 
   IF OEIDEIsRunning THEN
-  DO:
-      lOEIDEReload = IF h_self:PRIVATE-DATA = "_RELOAD" THEN TRUE ELSE FALSE.
-      RUN getActiveProjectOfFile IN hOEIDEService (_P._SAVE-AS-FILE, OUTPUT cProjectName).  
-      IF cProjectName > "" THEN
-          lProjectFile = TRUE.
-  END.
-  /* If OEIDE is running, a wind-close action is passed to the OEIDE Editor 
-  	 Cases:
-  	 	- "_RELOAD" used from syncFromIDE, window is closed
-  	 	- "_OEIDE" used from closeABFile, window is closed
-  	 	- otherwise, close action is passed to the OEIDE Editor
-   */
-  IF OEIDEIsRunning AND lProjectFile AND NOT lOEIDEReload THEN
-  DO:
-    IF h_self:PRIVATE-DATA <> "_OEIDE" THEN
-	DO:
-        DEFINE VARIABLE cLinkedFile AS CHARACTER  NO-UNDO.
-        
-        RUN getLinkedFileName IN hOEIDEService (h_self, OUTPUT cLinkedFile).
-    	RUN syncFromAB IN OEIDE_ABSecEd (cLinkedFile) NO-ERROR.
-        closeEditor(getProjectName(), _P._SAVE-AS-FILE, TRUE).
-        RETURN.
-    END.
-  END.
+     lOEIDEReload = h_self:PRIVATE-DATA = "_RELOAD". 
+  
+  if not avail _U then
+  do:
+      IF h_self:TYPE = "WINDOW":U THEN
+          h_self = h_self:FIRST-CHILD.
+      FIND _U WHERE _U._HANDLE = h_self NO-ERROR.   
+  end.
+  
+  FIND _P WHERE _P._u-recid eq RECID(_U) no-error.
 
   /* jep-icf: Change the file saved state of design window based on prop sheet. */
-  IF VALID-HANDLE(_P.design_hpropsheet) THEN
+  IF available _P and VALID-HANDLE(_P.design_hpropsheet) THEN
     ASSIGN _P._FILE-SAVED = NOT DYNAMIC-FUNC('isModified':u IN _P.design_hpropsheet) NO-ERROR.
-  
+
   ASSIGN /* dma */
-    tmp_hSecEd = hSecEd
+    tmp_hSecEd = hSecEd.
+
+    IF available _P then
     hSecEd     = _P._hSecEd.
     
   /* IZ 1508 This call can create a Section Editor window for
      a procedure that's being closed. Only make the call if the
      procedure already has a Section Editor window open for it. - jep */
   /* SEW call to store current trigger code for specific window. */
-  IF VALID-HANDLE(_P._hSecEd) THEN
+  IF available _P and VALID-HANDLE(_P._hSecEd) THEN
     RUN call_sew ( INPUT "SE_STORE_WIN").
 
   /* If the file is dirty then save, if not, then check to
      see if OCX controls are dirty */
-  IF _P._FILE-SAVED EQ no THEN askToSave = yes.
+  IF avail _P and _P._FILE-SAVED EQ no THEN askToSave = yes.
   ELSE IF (OPSYS = "WIN32":u) THEN
   DO: /* OCX Dirty Check */
      RUN is_control_dirty(h_self, output askToSave).
   END.
- 
-  IF NOT OEIDEIsRunning OR NOT lProjectFile THEN 
+
+  IF NOT OEIDEIsRunning OR (NOT lProjectFile AND NOT IDEIntegrated) THEN 
   DO:
     IF askToSave = yes THEN DO: 
       /* This save question should be similar to the one for dialogs and in closeup.p */
@@ -10081,7 +11394,15 @@ procedure wind-close.
       ASSIGN save_opt = yes
              tmp-name = IF _U._SUBTYPE eq "Design-Window" THEN _U._LABEL
                         ELSE _U._NAME.
-
+        
+      if OEIDEIsRunning then
+          save_opt = ShowMessageInIDE((IF _P._SAVE-AS-FILE <> ? 
+                              THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
+                              ELSE tmp-name ) +
+                              "This window has changes which have not been saved. ~n
+                              Save changes before closing?",
+                              "Warning",?,"YES-NO-CANCEL",yes).
+      else
       MESSAGE (IF _P._SAVE-AS-FILE <> ? 
               THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
               ELSE tmp-name ) SKIP
@@ -10096,6 +11417,7 @@ procedure wind-close.
       END.
     END.
   END. /* OEIDEIsRunning */
+
   
   /* IZ 839 Save_window calls sensitize_main_window, which can move the current
      record out of _U so it's no longer available. Refind it here just in case. */
@@ -10104,16 +11426,20 @@ procedure wind-close.
   /* Check with source code control programs and see if we really should close 
      the file.  [Save the context and file name so that we can report the
      event after the file has closed and _U is no longer valid.] */
-   ASSIGN context    = STRING(RECID(_U))
-          file-name  = _P._SAVE-AS-FILE
-          lib_parent = STRING(_U._WINDOW-HANDLE).
+  if avail _U then   
+  ASSIGN context    = STRING(RECID(_U))
+         lib_parent = STRING(_U._WINDOW-HANDLE).
+         
+   if avail _P then      
+   file-name  =  _P._SAVE-AS-FILE.
+          
   IF NOT lOEIDEReload THEN
     RUN adecomm/_adeevnt.p 
          (INPUT "UIB", "Before-Close", context, file-name,
           OUTPUT save_opt).
   ELSE
     save_opt = TRUE.
-  IF save_opt THEN DO:
+  IF avail _U and save_opt THEN DO:
     RUN PurgeActionRecords( _U._HANDLE ).
 
     /* Hide the window to prevent flashing. */
@@ -10198,7 +11524,6 @@ END.
 /*                   Look at the function and decide what to do. */
 procedure wind-select-up.
   DEFINE VAR action-string       AS CHAR                               NO-UNDO.
-
   /* If we are not drawing, then see if we want to go into the property sheet */
   IF _next_draw eq ? THEN DO:  
     IF LAST-EVENT:FUNCTION eq "MOUSE-SELECT-DBLCLICK":U 
@@ -10206,7 +11531,7 @@ procedure wind-select-up.
     ELSE RUN curwidg.
   END.
   ELSE DO:
-
+    
     /* We can only draw FRAMES and SmartObjects in a Window */
     IF    CAN-DO ("FRAME,QUERY":U, _next_draw)
        OR ((_object_draw ne ?) /* i.e. SmartObject */
@@ -10226,6 +11551,11 @@ procedure wind-select-up.
                         AND _U._STATUS ne "DELETED":U)
       THEN action-string = "select".
       ELSE action-string = "create".
+      if OEIDEIsRunning then
+         ShowMessageInIDE("An " + _next_draw + " object cannot be drawn outside a frame.~n
+                          Please " + action-string + " a frame.",
+                          "Information",?,"OK",yes).
+      else
       MESSAGE "An" _next_draw "object cannot be drawn outside a frame." SKIP
               "Please" action-string  "a frame."
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -10240,7 +11570,7 @@ END PROCEDURE.
 /* persistent triggers IN a given context.                                    */
 PROCEDURE wind-event:
   DEF INPUT PARAMETER p_case AS CHAR NO-UNDO.
-  
+ 
   /* NOTE: there have been reported cases of events being issued to a 
      deleted window.  For example, the MS-WINDOW's Task Manager closes a
      PROGRESS window by first sending the CLOSE event, then the ENTRY event.
@@ -10277,20 +11607,41 @@ PROCEDURE wind-event:
         END.
      &ENDIF
     END.
-    WHEN "WINDOW-CLOSE"     THEN RUN wind-close (SELF).
+    WHEN "WINDOW-CLOSE"     THEN
+    DO:
+        if not IDEIntegrated then
+            RUN wind-close (SELF).
+    END.
     WHEN "WINDOW-ENTRY" OR WHEN "DIALOG-ENTRY":U THEN DO: 
-      IF SELF:TYPE EQ "WINDOW" AND SELF:WINDOW-STATE NE WINDOW-MINIMIZED AND
-         SELF NE _h_win THEN DO:
-        IF NOT VALID-HANDLE(_h_win) THEN _h_win = SELF.
+      
+      IF  SELF:TYPE EQ "WINDOW" 
+      AND SELF:WINDOW-STATE NE WINDOW-MINIMIZED 
+      AND SELF NE _h_win THEN 
+      DO:
+        IF NOT VALID-HANDLE(_h_win) THEN 
+            _h_win = SELF.
         RUN curwidg.
         RUN show_control_properties (INPUT 0).
       END.
+      else if IDENotInEditor AND IDEIntegrated and valid-handle(hOEIDEService) then
+      do:
+           IDENotInEditor = false.
+           if SetFocustoUI then   
+              activateWindow(_h_win).
+      end.
     END.
     WHEN "WINDOW-MINIMIZED" THEN DO:
-      RUN adeuib/_vldwin.p (SELF).
-      RUN display_current.
+        RUN adeuib/_vldwin.p (SELF).
+        RUN display_current.
     END.
-    OTHERWISE MESSAGE "Unexpected Window Event called:" p_case.
+    OTHERWISE
+    do:
+       if OEIDEIsRunning then
+         ShowMessageInIDE("Unexpected Window Event called:" + p_case,
+                          "Information",?,"OK",yes).
+      else  
+       MESSAGE "Unexpected Window Event called:" p_case.
+    end.
   END CASE.
 END PROCEDURE.
 
@@ -10445,6 +11796,75 @@ PROCEDURE WinMenuChoose :
 
 END PROCEDURE.
 
+/* WinIDEChoose -                                                          */
+/*      Handles the action where user chooses an tab with an active window */ 
+/*        in the IDE    */
+
+PROCEDURE WinIDEChoose :
+  DEFINE INPUT PARAMETER pHWND AS INT NO-UNDO.
+  DEFINE VARIABLE hWindow      AS HANDLE         NO-UNDO.
+  
+  run GetWindowHandleFromIDEParent(pHwnd,output hWindow).
+ 
+  if hWindow = ? then 
+     return.
+       
+  /* We've found the window to make active. */
+/*  assign hWindow:WINDOW-STATE = WINDOW-NORMAL when hWindow:WINDOW-STATE = WINDOW-MINIMIZED*/
+/*         hWindow:VISIBLE      = true.                                                     */
+/*  hWindow:MOVE-TO-TOP().                                                                  */
+  IDENotInEditor = false.
+  IDEEnterWindow = hWindow.
+  apply "ENTRY" to hWindow.
+        
+END PROCEDURE.        
+
+/*     Get the _P window that belongs to a parent in the IDE */ 
+/*     Assumes one design window per IDE    */
+
+PROCEDURE GetWindowHandleFromIDEParent:
+  DEFINE INPUT  PARAMETER pHWND   AS INT NO-UNDO.
+  DEFINE OUTPUT PARAMETER pHandle AS HANDLE NO-UNDO.
+  
+  DEFINE BUFFER x_P FOR _P.
+  
+  DEFINE VARIABLE hWindow      AS HANDLE         NO-UNDO.
+
+  if pHWND = ? or pHWND = 0 then return. 
+ 
+  for each x_p:
+      assign hWindow = x_P._WINDOW-HANDLE.
+       
+      if hWindow:TYPE = "FRAME":U then
+      do:
+          pHandle = hWindow.
+          leave. 
+      end.
+      else
+      do:   
+          hWindow = (IF hWindow:TYPE = "WINDOW":U THEN hWindow ELSE hWindow:PARENT). 
+      if not valid-handle(hWindow) or hWindow:IDE-PARENT-HWND <> pHWND then
+         next.   
+      pHandle = hWindow.
+      LEAVE.
+      end.      
+  end. /* FOR EACH x_P */
+   
+  /*
+  for each x_p:
+      assign hWindow = x_P._WINDOW-HANDLE.
+             hWindow = (IF hWindow:TYPE = "WINDOW":U THEN hWindow ELSE hWindow:PARENT).
+              
+      if not valid-handle(hWindow) or hWindow:IDE-PARENT-HWND <> pHWND then
+         next.   
+      pHandle = hWindow.
+      LEAVE.
+            
+  end.
+  */
+END PROCEDURE.
+
+
 PROCEDURE copyPaletteCustom:
   FOR EACH _save_palette_item: DELETE _save_palette_item. END.
   FOR EACH _save_custom: DELETE _save_custom. END.
@@ -10459,6 +11879,7 @@ PROCEDURE copyPaletteCustom:
 END PROCEDURE. /* copy PaletteCustom */
 
 PROCEDURE restorePaletteCustom:
+   
   FOR EACH _palette_item: DELETE _palette_item. END.
   FOR EACH _custom: DELETE _custom. END.
   FOR EACH _save_palette_item:
@@ -10482,9 +11903,577 @@ PROCEDURE setAppBuilder_UBuffer:
   DEFINE INPUT PARAMETER p_Recid      AS RECID          NO-UNDO.
   FIND _U WHERE RECID(_U) = p_Recid.
 END.
+ 
+PROCEDURE initializeIDEClient:
+    DEFINE VARIABLE cNames   AS CHARACTER NO-UNDO EXTENT 19.
+    DEFINE VARIABLE hHandles AS HANDLE    NO-UNDO EXTENT 19.
+    define variable MitemHandle as handle no-undo.
+    run adeuib/_oeideuib.p persistent set IDEClient.
+    
+    
+    if valid-handle(IDEClient) then
+    do:
+        Assign
+            cNames[1]   = "CUT":U
+            hHandles[1] =  MENU-ITEM mi_cut:handle in menu m_edit
+            cNames[2]   = "COPY":U
+            hHandles[2] = MENU-ITEM mi_copy:handle in menu m_edit
+            cNames[3]   = "PASTE":U
+            hHandles[3] = MENU-ITEM mi_paste:handle in menu m_edit
+            cNames[4]   = "UNDO":U
+            hHandles[4] = _undo-menu-item 
+/*            hHandles[4] = MENU-ITEM mi_undo:handle in menu m_edit*/
+            cNames[5]   = "DUPLICATE":U
+            /* dynamic */
+            hHandles[5] =  mi_duplicate:handle     
+            cNames[6]   = "DELETE":U
+            /* dynamic */
+            hHandles[6] =  mi_erase:handle     
+            cNames[7]   = "ALIGN":U
+            /* dynamic */
+            hHandles[7] =  m_align:handle     
+            cNames[8]   = "AlternateLayout":U
+            /* dynamic */
+            hHandles[8] =  mi_chlayout:handle     
+            cNames[9]   = "CustomLayout":U
+            /* dynamic */
+            hHandles[9] =  mi_chCustlayout:handle    
+            cNames[10]   = "TabOrder":U
+            /* dynamic */
+            hHandles[10] =  mi_tab_edit:handle     
+            cNames[11]   = "UIB":U
+            hHandles[11] =  _h_uib
+            cNames[12]   = "window":U
+            hHandles[12] = _h_menu_win
+            cNames[13]  = "SAVE"    
+            hHandles[13] = MENU-ITEM mi_save:handle in menu m_file. 
+        if valid-handle(_h_menubar_proc) then 
+        do:
+               
+            run getSubMenuHandle in _h_menubar_proc(input "OpenAssociateProcedure", output MitemHandle).
+            assign cNames[14]   = "OpenAssociateProcedure"
+                   hHandles[14] = MitemHandle.
+            run getSubMenuHandle in _h_menubar_proc(input "SaveDynamicAsStatic", output MitemHandle).
+            assign cNames[15]   = "SaveDynamicAsStatic"
+                   hHandles[15] = MitemHandle.
+            run getSubMenuHandle in _h_menubar_proc(input "SaveStaticAsDynamic", output MitemHandle).       
+            assign cNames[16]   = "SaveStaticAsDynamic"
+                   hHandles[16] = MitemHandle.
+            run getSubMenuHandle in _h_menubar_proc(input "RegisterinRepository", output MitemHandle).       
+            assign cNames[17]   = "RegisterinRepository"
+                   hHandles[17] = MitemHandle.
+            run getSubMenuHandle in _h_menubar_proc(input "DynamicObjectGenerator", output MitemHandle).
+            assign cNames[18]   = "DynamicObjectGenerator"
+                   hHandles[18] = MitemHandle.
+        end.      
+        IF _DynamicsIsRunning THEN
+           assign cNames[19]   = "CustomizationPriority"
+                  hHandles[19] = mi_CustomParams:handle.
+        run setHandles in IDEClient (cNames,hHandles).
+    end.  
+ END. 
 
 
+procedure context_menu_drop :
+/* TODO static menus */   
+    DEFINE INPUT  PARAMETER hParent AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hMenu AS HANDLE NO-UNDO.
+    define variable lDyn as logical no-undo.
+    define variable lNat as logical  no-undo.
+    define variable ActionRecord as logical no-undo.
+    define buffer b_p for _p.
+    run isCurrentWindowDynamic(output lDyn, output lNat).
+    
+    hMenu = hParent:first-child.
+    do while valid-handle(hmenu):
+        case hmenu:name:
+           when "GotoPage" then
+           do:
+                FIND b_P WHERE b_P._WINDOW-HANDLE EQ _h_win no-error.
+                hMenu:sensitive =  avail b_p and CAN-DO (b_P._links, "PAGE-TARGET").
+           end.      
+           when "AddFunction":U or 
+           when "AddProcedure":U or 
+           when "AddTrigger":U or
+           when "ViewSource":U or 
+           when "Compile":U or 
+           when "CopytoFile":U or 
+           when "InsertFromFile":U then  
+               hMenu:sensitive = not lDyn.
+           when "undo":U then 
+           do:
+               run canundocurrentwindow (output ActionRecord).
+               if not ActionRecord then 
+                   hMenu:sensitive = false. 
+               else   
+                   hMenu:sensitive = _undo-menu-item:sensitive . 
+           end.
+           when "cut":U then 
+               hMenu:sensitive = MENU-ITEM mi_cut:sensitive in menu m_edit.
+           when "copy":U then 
+               hMenu:sensitive = MENU-ITEM mi_copy:sensitive in menu m_edit.
+           when "paste":U then 
+               hMenu:sensitive = MENU-ITEM mi_paste:sensitive in menu m_edit.
+           when "duplicate":U then 
+               hMenu:sensitive = mi_duplicate:sensitive.
+           when "delete":U then 
+               hMenu:sensitive = mi_duplicate:sensitive.
+        end.    
+        hMenu = hMenu:next-sibling.
+    end.      
+end.    
 
+PROCEDURE choose_ocx:
+    define input parameter pHWND as INTEGER no-undo.
+     
+    define variable chooseOcx as adeuib.ide._chooseocx no-undo.
+    
+    if IDEIntegrated then
+    do:  
+        assign
+            chooseOcx                    = new adeuib.ide._chooseocx()
+            chooseOcx:pHWND              = pHWND.
+                    
+        chooseOcx:SetCurrentEvent(this-procedure,"do_choose_ocx":U).
+        run runChildDialog in hOEIDEService(chooseOcx). 
+    end.
+    else 
+        run do_choose_ocx(pHWND). 
+END PROCEDURE.    
 
+PROCEDURE do_choose_ocx:
+    
+    define input parameter pHWND as integer no-undo.
+    DEFINE VARIABLE ParentHWND AS integer NO-UNDO.
+    DEFINE VARIABLE ihwnd AS INTEGER NO-UNDO.
+    if IDEIntegrated then
+    do:  
+        ihwnd = getOpenDialogHwnd().
+        ASSIGN _ocx_draw = _h_Controls:GetControl(ihwnd) NO-ERROR.
+    END.
+    else
+    DO:
+        ASSIGN _ocx_draw = _h_Controls:GetControl(pHWND) NO-ERROR.
+        RUN GetParent(INPUT pHWND, OUTPUT ParentHWND).
+    END.
+    /* _ocx_draw will contain a valid com-handle. */
+    IF VALID-HANDLE(_ocx_draw) THEN
+    DO:
+        ASSIGN
+          _object_draw = _ocx_draw:ClassID
+          _custom_draw = _ocx_draw:ShortName.
+/*          customTool   = _custom_draw.*/
+    END.
+    ELSE _object_draw = ?.
 
+    run adecomm/_setcurs.p("").
+    
+END PROCEDURE.    
 
+/* ************************  Function Implementations ***************** */
+function createContextMenu returns handle 
+        (  ):
+
+/*------------------------------------------------------------------------------
+        Purpose:  create a design time popup menu                                                                     
+        Notes:    Currently only used when IDEIntegrated                                                                      
+------------------------------------------------------------------------------*/    
+    define variable hMenu as handle no-undo.
+    define variable hItem as handle no-undo.
+    create menu hMenu
+        assign popup-only = true 
+        triggers:
+            on menu-drop persistent run context_menu_drop in this-procedure(hMenu).
+        end.
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Undo":U
+            label = "Undo"
+        triggers:
+            on choose persistent run choose_undo in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Cut":U
+            label = "Cut"
+        triggers:
+            on choose persistent run choose_cut in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Copy":U
+            label = "Copy"
+        triggers:
+            on choose persistent run choose_copy in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name  = "Paste":U
+            label = "Paste"
+        triggers:
+            on choose persistent run choose_paste in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Duplicate":U
+            label = "Duplicate"
+        triggers:
+            on choose persistent run choose_duplicate in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Delete":U
+            label = "Delete"
+        triggers:
+            on choose persistent run choose_erase in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "ViewSource":U
+            label = "View Source"
+        triggers:
+            on choose persistent run RightClick_viewSource in this-procedure.
+                               
+        end.
+        
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Run":U
+            label = "Run"
+        triggers:
+            on choose persistent run choose_run in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "Compile":U
+            label = "Compile"
+        triggers:
+            on choose persistent run choose_compile in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+      
+    create menu-item hItem
+        assign 
+            parent = hMenu
+            name = "AddFunction":U
+            label = "Add Function..."
+         triggers:
+             on choose persistent run choose_insert_function in this-procedure.
+         end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            name = "AddProcedure":U
+            label = "Add Procedure..."
+        triggers:
+            on choose persistent run choose_insert_procedure in this-procedure.
+        end.
+     
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            name = "AddTrigger":U
+            label = "Add Trigger..."
+        triggers:
+            on choose persistent run choose_insert_trigger in this-procedure.
+        end.
+   
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+      
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            name = "CopytoFile":U
+            label = "Copy to File..."
+        triggers:
+            on choose persistent run choose_export_file in this-procedure.
+        end.
+
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            name = "InsertfromFile":U
+            label = "Insert from File..."
+        triggers:
+            on choose persistent run choose_import_file in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            name = "TabOrder":U
+            label = "Tab Order..."
+        triggers:
+            on choose persistent run choose_tab_edit in this-procedure.
+        end.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+            subtype = "RULE":U.
+    
+    create menu-item hItem
+        assign 
+            parent  = hMenu
+           name = "GotoPage":U         
+           label = "Goto Page..."
+        triggers:
+            on choose persistent run choose_goto_page in this-procedure.
+        end.
+    return hMenu.   
+end function.
+
+function setContext returns logical 
+    ( pcContext as char extent ):
+    extent(fContext) = ?. 
+    fContext = pccontext.    
+    return true.        
+end function.
+
+function getContext returns char extent 
+    (  ):
+   return fContext.
+end function.
+      
+FUNCTION GetHelpFile RETURNS CHARACTER
+  (INPUT p_HelpID AS CHARACTER) :
+/*----------------------------------------------------------------------------
+PURPOSE:
+    Returns the full path and name to a PROGRESS Help File.
+SYNTAX
+    GetHelpFile( INPUT p_HelpID )
+FORWARD
+    FUNCTION GetHelpFile RETURNS CHARACTER
+        (INPUT p_HelpID AS CHARACTER) FORWARD.
+DESCRIPTION:
+    
+    See adecomm/_adehelp.p for details on how PROGRESS ADE Help File names
+    are deteremined.
+INPUT PARAMETERS:
+    p_HelpID
+        A character string identifying the PROGRESS ADE tool whose help
+        file full path and name you want returned.
+OUTPUT PARAMETERS:
+    None.
+RETURN VALUE
+    Full path and name of a PROGRESS Help File. Returns the name regardless
+    of whether the file exists or not. Returns as all lowercase.
+SEE ALSO
+    adecomm/_adehelp.p
+AUTHORS     : John Palazzo
+DATE CREATED: 2/11/97
+LAST UPDATED: 
+----------------------------------------------------------------------------*/
+
+DEFINE VARIABLE HelpFileDir         AS CHARACTER INITIAL "prohelp/":u NO-UNDO.
+DEFINE VARIABLE HelpFileName        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE HelpFileFullName    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE LanguageExtension   AS CHARACTER INITIAL "eng":u NO-UNDO.
+
+DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+
+  /* Determine Language Extension */
+  IF CURRENT-LANGUAGE <> "?" THEN
+      ASSIGN LanguageExtension = 
+             LC(SUBSTRING(CURRENT-LANGUAGE,1,3,"CHARACTER":u)).
+  
+  ASSIGN HelpFileName        = LC((HelpFileDir + p_HelpID + LanguageExtension + ".chm":u))
+         FILE-INFO:FILE-NAME = HelpFileName
+         HelpFileFullName    = LC(FILE-INFO:FULL-PATHNAME).
+
+  IF HelpFileFullName = ? THEN
+    ASSIGN HelpFileFullName = LC(HelpFileDir + p_HelpID + "eng":u + ".chm":u).
+
+  RETURN LC(HelpFileFullName).
+  
+END. /* DO */
+
+END FUNCTION.
+
+procedure canUndoCurrentWindow:
+    define output parameter ActionRecord as logical.
+    
+    define buffer buff_action for _action.
+    if can-find (first buff_action where buff_action._window-handle = _h_win ) then  
+       ActionRecord = true.
+    ELSE 
+       ActionRecord = false.
+end procedure.
+
+PROCEDURE OpenAssociatedProcedure:
+/*------------------------------------------------------------------------------
+  Purpose:     Open associated procedure for an object
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   run runOpenProcedure in _h_menubar_proc.
+END PROCEDURE.
+
+procedure CanConvertFormToDynamic:
+  
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  convertType = 1 then Static to dynamic
+            convertType = 2 then dynamic to static
+            converttype = 0 then nothing
+------------------------------------------------------------------------------*/
+  define output parameter ConvertType    AS integer no-undo.
+  define variable lCanConvert as logical no-undo.
+  define buffer local_P  for _P.
+  define buffer local_U  for _U.
+  assign ConvertType = 0.
+  find local_U where local_U._HANDLE = _h_win no-error.  
+  find local_P where local_P._WINDOW-HANDLE = local_U._WINDOW-HANDLE no-error.
+  if available local_P then do:
+    if local_P.static_object then  /* Going from static to dynamic */
+      assign lCanConvert = lookup(local_P._TYPE,
+                         "SmartDataViewer,SmartViewer,SmartDataBrowser,SmartBrowser,SmartDataObject":U) > 0
+                         and lookup("NEW":U,local_P.design_action) = 0
+             ConvertType = if lCanConvert then 1 else 0.
+    ELSE  /* Going from Dynamic to Static (Limit the choices for now) */
+      assign lCanConvert = lookup(local_P._TYPE,
+         /* IZ 9851 & 9855 "SmartDataViewer,SmartViewer,SmartDataBrowser,SmartBrowser,SmartDataObject":U) > 0 */
+                         "SmartDataViewer,SmartViewer,SmartDataObject":U) > 0
+                         and lookup("NEW":U,local_P.design_action) = 0
+              ConvertType = if lCanConvert then 2 else 0.
+    
+  end. /* If available local_P */
+end procedure.
+  
+procedure RunDynamicPropertySheet:
+    if valid-handle(_h_menubar_proc) then
+        run choose_dynProperties in _h_menubar_proc.
+end procedure.                      
+
+procedure ExportCurrentWidgetTree  :
+    define input parameter pcPath as character no-undo.
+    define input parameter pcFile as character no-undo.
+    run adeuib/_oeidewidgets.p (pcPath,pcfile,_h_win).
+end procedure.                      
+
+procedure SelectWidgetinUI:
+    define input parameter widgetName as character.
+    find _U where _U._WINDOW-HANDLE = _h_win and _U._NAME = trim(widgetName) no-error.
+    IF AVAILABLE _U THEN 
+    DO:
+        ASSIGN _h_cur_widg  = _U._HANDLE
+               SetFocustoUI = no.
+                   
+        FIND _F WHERE RECID(_F) = _U._x-recid NO-ERROR.
+        IF AVAILABLE _F THEN _h_frame = _F._FRAME.
+        ELSE IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN _h_frame = _U._HANDLE.
+        ELSE _h_frame = ?.
+    
+        /* Deselect all widgets (except _h_cur_widg) */
+        RUN deselect_all  IN _h_uib (_h_cur_widg, ?).
+        /* Make this the current widget */
+        RUN curframe  IN _h_uib (_h_cur_widg).
+        RUN display_current IN _h_uib.
+        SetFocustoUI = yes. /* Activate this flag to set focus for other events from outline view */
+  END.
+end procedure.    
+
+procedure choose_compile:
+    if IDEIntegrated then
+       CompileDesign(_h_win).
+end.    
+function findWidgetName return character 
+         (WidgetParentrecId as recid):
+    define buffer loc_u for _u.
+    find first loc_u where recid(loc_u) = WidgetParentrecId no-error.
+    if  available loc_U then   
+    return loc_U._NAME.
+    else
+    return "". 
+end function. 
+
+procedure CallWidgetEvent:
+    define input parameter U_Recid as recid no-undo.
+    define input parameter WidgetAction as character no-undo.
+    define buffer loc_U for _U.
+    find loc_U where recid(loc_U) = U_Recid no-lock no-error.
+    if available(loc_U) then
+       WidgetEvent(_h_win,
+                   loc_U._NAME,
+                   loc_U._LABEL,
+                   loc_U._TYPE,
+                   findWidgetName(loc_U._PARENT-RECID),
+                   WidgetAction).
+      
+end procedure.    
+
+procedure CallRenameWidget:
+    define input parameter U_Recid as recid no-undo.
+    define input parameter WidgetOldName as character no-undo.
+    define buffer loc_U for _U.
+    find loc_U where recid(loc_U) = U_Recid no-lock no-error.
+    if available(loc_U) then
+       RenameWidget(_h_win,
+                   WidgetOldName,
+                   loc_U._NAME,
+                   loc_U._LABEL,
+                   loc_U._TYPE,
+                   findWidgetName(loc_U._PARENT-RECID),
+                   "Rename").
+       
+end procedure.
+    
+procedure isTTY:
+    define output parameter pistty  as logical no-undo.
+    define variable childhandle as handle no-undo.
+    define buffer loc_U for _U.
+    if _h_win:type <> "FRAME" then
+       childhandle = _h_win:first-child.
+    else
+       childhandle = _h_win.
+     
+    find loc_U where loc_u._HANDLE = childhandle no-lock no-error.
+    
+    if available loc_u then
+       assign pistty  =  loc_U._WIN-TYPE = false.
+         
+end procedure.    

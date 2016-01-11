@@ -20,6 +20,7 @@ Date Created:08/05/2011
 ----------------------------------------------------------------------------*/
 
 {prodict/admnhlp.i }
+{prodict/user/uservar.i}
 
 DEFINE {1} BUTTON OK_BUT  
      LABEL "OK" 
@@ -74,7 +75,8 @@ DO:
 END.
 
 ON CHOOSE OF OK_BUT IN FRAME DEFAULT-FRAME
-  DO:     
+  DO:    
+      IF user_dbtype    NE "oracle" then 
 	   RUN SAVE.
 	   RUN CHECK_DEL.	  
        APPLY "END-ERROR" TO FRAME DEFAULT-FRAME .

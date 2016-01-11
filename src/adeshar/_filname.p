@@ -113,12 +113,22 @@ DEFINE FRAME DIALOG-1
         &OTHER  ="SPACE( {&HM_BTNG} ) btn_Browse"
         &HELP   ="btn_Help" 
     }
-    WITH OVERLAY NO-LABELS TITLE p_Dlg_Title
-         VIEW-AS DIALOG-BOX THREE-D SIDE-LABELS
-                 DEFAULT-BUTTON btn_OK
-                 CANCEL-BUTTON  btn_Cancel.
+    WITH OVERLAY NO-LABELS 
+    &if DEFINED(IDE-IS-RUNNING) = 0 &then
+        TITLE p_Dlg_Title
+        VIEW-AS DIALOG-BOX 
+     &else
+        NO-BOX
+     &endif 
+        THREE-D SIDE-LABELS
+        DEFAULT-BUTTON btn_OK
+        CANCEL-BUTTON  btn_Cancel.
 
+&if DEFINED(IDE-IS-RUNNING) = 0 &then    
   ASSIGN FRAME DIALOG-1:PARENT = ACTIVE-WINDOW.
+&else  
+  {adeuib/ide/dialoginit.i "FRAME DIALOG-1:handle}
+&endif
 
     { adecomm/okrun.i
         &FRAME  = "FRAME DIALOG-1"
@@ -159,7 +169,7 @@ ON WINDOW-CLOSE OF FRAME DIALOG-1
     
 ON CHOOSE OF btn_Cancel IN FRAME DIALOG-1
   RUN PressedCancel.
-
+   
 ON CHOOSE OF btn_Browse IN FRAME DIALOG-1 DO:
     DEFINE VAR Return_Status AS LOGICAL.
     DEFINE VAR Focus_Widget      AS WIDGET-HANDLE.
@@ -192,10 +202,17 @@ DO ON STOP UNDO, LEAVE ON ENDKEY UNDO, LEAVE ON ERROR UNDO, LEAVE:
             .
             
     ENABLE ALL WITH FRAME DIALOG-1.
+    {adeuib/ide/dialogstart.i  btn_ok btn_cancel p_Dlg_Title}
     
     DO ON STOP UNDO, LEAVE ON ERROR UNDO , LEAVE ON ENDKEY UNDO, LEAVE: 
         DISPLAY p_File_Name WITH FRAME DIALOG-1.
+        &if DEFINED(IDE-IS-RUNNING) = 0 &then    
         WAIT-FOR GO OF FRAME DIALOG-1. 
+        &else
+        dialogService:SizeToFit(). 
+        WAIT-FOR GO OF FRAME DIALOG-1 or "U2" of this-procedure. 
+        if cancelDialog then undo, leave. 
+        &endif
     END.
 
     STATUS INPUT.   
@@ -218,11 +235,17 @@ END.
 
 ON GO OF FRAME DIALOG-1 DO:  
   ASSIGN p_File_Name.
-  IF p_must_exist AND SEARCH(p_File_Name) eq ? THEN DO:    
+  IF p_must_exist AND SEARCH(p_File_Name) eq ? THEN DO: 
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( p_File_Name + "~n Cannot find this file. ~n  
+                                 Please verify that the correct path and filename are given.",
+                                 "Warning",?,"OK",yes).
+    &else     
     MESSAGE p_File_Name SKIP
             "Cannot find this file." SKIP(1)
             "Please verify that the correct path and filename are given."
             VIEW-AS ALERT-BOX WARNING.
+    &endif        
     RETURN NO-APPLY.            
   END.
   
@@ -251,11 +274,18 @@ PROCEDURE PressedOK .
 
       /* Report error. */
       IF search-file eq ? THEN DO:
+        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+       ShowMessageInIDE( TRIM( p_File_Name ) + "~n Cannot find this file. ~n  
+                                 The file should be specified with a full path or exist ~n
+                                 in the PROGRESS PROPATH.",
+                                 "Warning",?,"OK",yes).
+        &else   
         MESSAGE TRIM( p_File_Name ) SKIP
                 "Cannot find this file." SKIP(1)
                 "The file should be specified with a full path or exist" SKIP
                 "in the PROGRESS PROPATH."
                 VIEW-AS ALERT-BOX WARNING.
+        &endif        
         RETURN ERROR.
       END. /* IF search... */
     END. /* IF p_must_exist... */
@@ -272,13 +302,15 @@ PROCEDURE PressedOK .
     
 END.
 
-
 PROCEDURE PressedCancel .
     ASSIGN  p_Return_Status = FALSE  /* Cancel */
             p_File_Name     = v_File_Name
             . 
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then 
+        apply "U2" to this-procedure.   
+    &endif      
+      
 END.
-
 
 PROCEDURE BrowseFiles .
   DEFINE OUTPUT PARAMETER p_Return_Status AS LOGICAL INIT FALSE NO-UNDO.

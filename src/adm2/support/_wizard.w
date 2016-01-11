@@ -57,10 +57,12 @@
 /* ***************************  Definitions  ************************** */
 { src/adm2/support/admhlp.i } /* ADM Help File Defs */
 
+{adecomm/oeideservice.i}
+
 /* Parameters Definitions ---                                           */
 DEFINE INPUT        PARAMETER trg-recid AS INTEGER   NO-UNDO.
 DEFINE INPUT-OUTPUT PARAMETER trg-Code  AS CHARACTER NO-UNDO.
-
+DEFINE VARIABLE OEIDE_wizard     AS handle   NO-UNDO.
 /* Shared Variable Definitions ---                                      */
 DEFINE NEW SHARED VARIABLE intro-text   AS CHARACTER NO-UNDO.
 DEFINE NEW SHARED VARIABLE fld-list     AS CHARACTER NO-UNDO.
@@ -83,6 +85,13 @@ DEFINE VARIABLE gPreViewName     AS CHAR                              NO-UNDO.
 DEFINE VARIABLE gDataSourceNames   AS CHARACTER     INIT ?            NO-UNDO.
 DEFINE VARIABLE gUpdateTargetNames AS CHARACTER     INIT ?            NO-UNDO.
 
+/* set to true to avoid dialog box and allow embedding in IDE  */
+DEFINE VARIABLE gUseWindow         AS LOGICAL                         NO-UNDO.
+
+
+DEFINE VARIABLE ghWindow          AS HANDLE                            NO-UNDO.
+DEFINE VARIABLE ghFrame           AS HANDLE                            NO-UNDO.
+
 /* Local Variable Definitions ---                                       */
 DEFINE VARIABLE ptype            AS CHARACTER                         NO-UNDO.
 DEFINE VARIABLE br-recid         AS CHARACTER                         NO-UNDO.
@@ -103,7 +112,8 @@ DEFINE VARIABLE r                AS RECID                             NO-UNDO.
 DEFINE VARIABLE ok_to_finish     AS LOGICAL                           NO-UNDO.
 DEFINE VARIABLE cResult          AS CHARACTER                         NO-UNDO.
 DEFINE VARIABLE l                AS LOGICAL                           NO-UNDO.
-
+DEFINE VARIABLE hWaitFrame       AS HANDLE                            NO-UNDO.
+ 
 FUNCTION shutdown-sdo RETURNS LOGICAL
         (INPUT procHandle     AS HANDLE) IN gFuncLibHdl.
 
@@ -122,9 +132,24 @@ IF TRIM(ENTRY(2, tcode,CHR(10))) = "Destroy on next read */":U THEN DO:
   RETURN.
 END.
 
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getOkToFinish Procedure
+FUNCTION getOkToFinish RETURNS LOGICAL 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUseWindow Procedure
+FUNCTION getUseWindow RETURNS LOGICAL 
+	(  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
@@ -165,6 +190,13 @@ FUNCTION getFuncLibHandle RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastButton d_wizard 
 FUNCTION getLastButton RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNumPages d_wizard   
+FUNCTION getNumPages RETURNS INTEGER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -354,23 +386,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_finish d_wizard
 ON CHOOSE OF b_finish IN FRAME d_wizard /* Finish */
 DO:
-  DEFINE VARIABLE cUpdateTargets AS CHARACTER  NO-UNDO.
-
-  gLastBtn = "FINISH":U.
-  /* If this is a SmartViewer or SmartBrowser then create the Fields or Columns */
-  IF fld-list NE "":U THEN
-  DO:
-    /* if specified updateTargets then tell _crtsobj to enable these only */ 
-    cUpdateTargets = getUpdateTargetNames().    
-    IF cUpdateTargets <> ? THEN
-      fld-list = fld-list + ";":U + cUpdateTargets.
-    
-    RUN adeuib/_crtsobj.w (ptype,fld-list).
-  
-  END.
-  PUBLISH "ab_WizardFinished":U. 
- 
-  APPLY "GO":U TO FRAME {&FRAME-NAME}.
+  run finishWizard.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -396,25 +412,6 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
-/* Update SmartBrowser display */
-RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U,  OUTPUT ptype).
-
-getFuncLibHandle().
-
-IF NUM-DBS = 0 
-AND (pType BEGINS "WEB":U) = FALSE
-AND ptype = 'SmartDataObject':U THEN
-DO:
-  RUN adecomm/_dbcnnct.p (
-    INPUT "You must have at least one connected database to create a " + ptype + " object.",
-    OUTPUT l).
-  if l eq no THEN 
-      RETURN "_ABORT".
-END.
-/* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
-IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
-THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
-
 ON END-ERROR OF FRAME {&FRAME-NAME} DO:
   DEFINE VARIABLE choice AS LOGICAL INITIAL NO NO-UNDO.
   MESSAGE "Are you sure you want to cancel?" VIEW-AS ALERT-BOX QUESTION
@@ -431,33 +428,126 @@ ON U2 OF FRAME {&FRAME-NAME} DO:
   ASSIGN ok_to_finish = NO.
 END.
 
+ 
+/* Update SmartBrowser display */
+RUN adeuib/_uibinfo.p (?, "PROCEDURE ?":U, "TYPE":U,  OUTPUT ptype).
+
+getFuncLibHandle().
+
+IF NUM-DBS = 0 
+AND (pType BEGINS "WEB":U) = FALSE
+AND ptype = 'SmartDataObject':U THEN
+DO:
+  RUN adecomm/_dbcnnct.p (
+    INPUT "You must have at least one connected database to create a " + ptype + " object.",
+    OUTPUT l).
+  if l eq no THEN 
+      RETURN "_ABORT".
+END.
+
+if OEIDEIsrunning then 
+do:    
+  if valid-handle(hOEIDEService) then
+  do:      
+      run getIsIDEIntegrated in hOEIDEService (output gUseWindow ).
+  end.     
+end.     
+
+if not gUseWindow then 
+do:
+  /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+  IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT eq ?
+  THEN FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+end.
+
+if gUseWindow then 
+do:
+   /** NOTE: adeuib/_templateinfo uses this line to check if the wizardd is supported */ 
+   run adeuib/_oeidewizard.p persistent set OEIDE_wizard.
+   run setWizard in OEIDE_wizard (this-procedure).  
+    
+   run createWindow(input-output ghwindow, input-output ghframe).  
+   ON U1 OF ghFrame DO:
+     ASSIGN ok_to_finish = YES.
+   END.
+
+   ON U2 OF ghFrame DO:
+      ASSIGN ok_to_finish = NO.
+   END.
+    
+end.
+else do:
+   ON U1 OF FRAME {&FRAME-NAME} DO:
+     ASSIGN ok_to_finish = YES.
+   END.
+
+   ON U2 OF FRAME {&FRAME-NAME} DO:
+      ASSIGN ok_to_finish = NO.
+   END.
+    
+end.    
+ 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
 MAIN-BLOCK:
 DO ON STOP    UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK TRANSACTION:
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK :
    
   RUN Setup.
   IF pgm-list = "":U OR pgm-list = ? THEN DO:
     MESSAGE "No programs were specified for this Wizard." VIEW-AS ALERT-BOX.
     RETURN.
   END.
-  RUN enable_UI.
+  if gUseWindow = false then 
+  do:
+    RUN enable_UI.
+  end.
   ASSIGN 
     current-page = 0
     lCancel      = true.
-  RUN WizProc.
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
-  ASSIGN 
-    lCancel = no.
-  /* Get handle of the window */
-  RUN adeuib/_uibinfo.p (?, "WINDOW ?":U, "HANDLE":U, OUTPUT h_win).
   
-  /* flag window as 'dirty' (needs to be saved) */
-  RUN adeuib/_winsave.p (WIDGET-HANDLE(h_win), FALSE). 
+  if gUseWindow then
+     current-window = ghWindow.   
+  
+  RUN WizProc. 
+  if gUseWindow = false then
+     hWaitFrame = FRAME {&FRAME-NAME}:handle.
+  else 
+  do:
+    view ghwindow.
+    view ghframe.
+    hWaitFrame = ghFrame.
+/*    ON END-ERROR ANYWHERE                   */
+/*    do:                                     */
+/*       message "end-error"                  */
+/*       view-as alert-box.                   */
+/*        run cancelWizard in this-procedure. */
+/*        return no-apply.                    */
+/*    end.                                    */
+/*    ON ENDKEY ANYWHERE                      */
+/*    do:                                     */
+/*       message "endkey"                     */
+/*       view-as alert-box.                   */
+/*        run cancelWizard in this-procedure. */
+/*        /* set up for events from the ide */*/
+/*        return no-apply.                    */
+/*    end.                                    */
+  end.
+  
+  WAIT-FOR GO OF hWaitFrame.
+  /* have not been able to find a way to apply end-error or error for ide */
+  if gLastBtn <> "Cancel":U then
+  do:
+     lCancel = no.
+      
+      /* Get handle of the window */
+      RUN adeuib/_uibinfo.p (?, "WINDOW ?":U, "HANDLE":U, OUTPUT h_win).
+      
+      /* flag window as 'dirty' (needs to be saved) */
+      RUN adeuib/_winsave.p (WIDGET-HANDLE(h_win), FALSE).
+  end. 
 END.
-
 /* Cleanup */
 RUN destroyObject.
 
@@ -473,6 +563,65 @@ IF lCancel OR gCancelOnFinish THEN
 
 /* **********************  Internal Procedures  *********************** */
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE cancelWizard d_wizard 
+PROCEDURE cancelWizard :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    gLastBtn = "CANCEL". 
+    if valid-handle(hWaitFrame) then 
+        APPLY "GO":U TO hWaitFrame.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createWindow d_wizard 
+PROCEDURE createWindow :
+/*------------------------------------------------------------------------------
+  Purpose:  create window and frame that replaces the dialog-box 
+            for embedding in IDE   
+  Parameters:  <none>
+  Notes:     
+------------------------------------------------------------------------------*/
+  DEFINE input-output parameter phWindow AS HANDLE NO-UNDO. 
+  DEFINE input-output parameter phFrame AS HANDLE NO-UNDO. 
+  
+  define variable iHwnd as integer no-undo.
+  
+  create window phwindow
+      assign width = frame {&frame-name}:width 
+             height =  frame {&frame-name}:height 
+             three-d = true
+             message-area = false
+             resize = false
+             status-area = false  
+        .
+   
+   run getViewHwnd in hOEIDEService ("","WIZARD",output iHwnd).       
+   
+   if iHwnd > 0 then 
+   do:
+       ASSIGN 
+         phWindow:IDE-WINDOW-TYPE = 0 /* no window */ 
+         phWindow:IDE-PARENT-HWND = iHwnd.
+   end.         
+    
+   create frame phFrame
+      assign width = frame {&frame-name}:width 
+             height = frame {&frame-name}:height 
+             three-d = true
+             scrollable = false
+        .
+        
+     
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject d_wizard 
 PROCEDURE destroyObject :
 /*------------------------------------------------------------------------------
@@ -481,6 +630,7 @@ PROCEDURE destroyObject :
   Notes:       
 ------------------------------------------------------------------------------*/
  RUN disable_UI.
+ 
 
   /* Delete the current page */
  IF VALID-HANDLE(current-proc) THEN
@@ -489,7 +639,7 @@ PROCEDURE destroyObject :
    gLastBtn = "CANCEL":U. 
    APPLY "close":U TO current-proc.
  END.
- /* Kill sdo's (web) started by wizard pages */
+ /* Kill sdos (web) started by wizard pages */
  shutdown-sdo(THIS-PROCEDURE).
   
  FOR EACH tSupport:
@@ -499,7 +649,11 @@ PROCEDURE destroyObject :
 
  /* Delete the Wizard XFTR and its _TRG record. */
  RUN adeuib/_accsect.p ("DELETE":U,?,?,INPUT-OUTPUT trg-recid,INPUT-OUTPUT trg-code).
-
+ 
+ delete object ghwindow no-error.
+ delete object ghframe no-error.
+ if valid-handle(OEIDE_wizard) then
+     run destroyObject in OEIDE_wizard.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -534,16 +688,45 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   ENABLE b_Cancel b_back b_next b_finish 
-      WITH FRAME d_wizard.
+    WITH FRAME d_wizard.
   {&OPEN-BROWSERS-IN-QUERY-d_wizard}
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE finishWizard d_wizard 
+PROCEDURE finishWizard :
+
+  DEFINE VARIABLE cUpdateTargets AS CHARACTER  NO-UNDO.
+
+  gLastBtn = "FINISH":U.
+  /* If this is a SmartViewer or SmartBrowser then create the Fields or Columns */
+  IF fld-list NE "":U THEN
+  DO:
+    /* if specified updateTargets then tell _crtsobj to enable these only */ 
+    cUpdateTargets = getUpdateTargetNames().    
+    IF cUpdateTargets <> ? THEN
+      fld-list = fld-list + ";":U + cUpdateTargets.
+    
+    RUN adeuib/_crtsobj.w (ptype,fld-list).
+  
+  END.
+  
+  /* adeweb/_genwpg.p subscribes */
+  PUBLISH "ab_WizardFinished":U. 
+ 
+  APPLY "GO":U TO hWaitFrame.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getSDOhandle d_wizard 
 PROCEDURE getSDOhandle :
-/*------------------------------------------------------------------------------
+  /*------------------------------------------------------------------------------
   Purpose: get the handle of the SDO and start it if it's not started.   
   Parameters: 
      INPUT pcFilename  - SDO name
@@ -573,6 +756,68 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+ 
+ 
+&IF DEFINED(EXCLUDE-ideSupport) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ideSupport Include
+procedure oeide_Supported private:
+	/*------------------------------------------------------------------------------
+			Purpose: Java checks if this exists in the rcode to identify if the 
+			         wizard is supported.																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ShowCurrentPage Include
+PROCEDURE ShowCurrentPage:
+
+	/*------------------------------------------------------------------------------
+	Purpose: run the new page if curent-proc not valid/current-page .  																	  
+	Notes:  																	  
+	------------------------------------------------------------------------------*/
+    DEFINE VARIABLE    hParent   AS HANDLE   NO-UNDO.
+ 
+    hParent   = if gUseWindow then ghFrame else FRAME {&FRAME-NAME}:handle.
+    IF NOT VALID-HANDLE(current-proc)
+    OR (current-proc:FILE-NAME <> TRIM(ENTRY(current-page,pgm-list))) THEN 
+    DO:
+        
+      RUN VALUE(TRIM(ENTRY(current-page,pgm-list))) 
+           PERSISTENT SET current-proc (hParent).
+    
+      /* Add to list of started pages, 
+         IsFirstRun() will now return false for this procedures name */ 
+      IF NOT CAN-DO (gStartedProcList,current-proc:file-name) THEN
+      DO:
+        ASSIGN gStartedProcList = (IF gStartedProcList = "":U 
+                                   THEN "":U
+                                   ELSE gStartedProcList + ",":U)
+                                 + current-proc:file-name. 
+                                 
+         /*  TODO - signal this to IDE - see closeEditor in oeideservice. 
+             the wizard pages adds endkey end-error events on the window handle
+            (for design time?). This causes problems when we host this in 
+             a window instead of a dialog. */
+/*            The following auses a  GPF:                                    */
+/*        ON END-ERROR OF {&WINDOW-NAME} OR ENDKEY OF {&WINDOW-NAME} ANYWHERE*/
+/*          persistent run cancelWizard in this-procedure.                   */
+/*                                                                           */
+      END.                                 
+    END.  
+
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE Setup d_wizard 
 PROCEDURE Setup :
 /*------------------------------------------------------------------------------
@@ -593,6 +838,103 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+ 
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ValidatePage Include
+PROCEDURE ValidateCurrentPage:
+    DEF    VARIABLE    num-pages AS INTEGER  NO-UNDO.
+  
+    num-pages = NUM-ENTRIES(pgm-list).
+/*      MESSAGE "current-page" current-page*/
+/*      VIEW-AS ALERT-BOX.                 */
+    IF current-page = 0 THEN 
+    DO: /* first time - initialize */
+      ASSIGN current-page     = 1.
+      if not gUseWindow then
+      do: 
+          b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = no.
+          IF num-pages = 1 THEN 
+             ASSIGN b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = no
+                    b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = no.
+      end.
+    END.
+    ELSE DO:
+      
+      IF gLastBtn = "Next":U THEN 
+      DO:
+        IF (current-page + 1) <= num-pages THEN 
+        DO:
+          APPLY "close":U TO current-proc.
+          IF NOT VALID-HANDLE(current-proc) THEN           
+            ASSIGN current-page     = current-page + 1.
+            if not gUseWindow then
+                b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = yes.
+        END.
+        if not gUseWindow then
+            b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = (current-page < num-pages).
+      END.
+      ELSE IF gLastBtn = "Back":U THEN 
+      DO:
+        APPLY "close":U TO current-proc.
+        ASSIGN current-page = current-page - 1.
+        if not gUseWindow then
+            assign
+               b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = current-page > 1
+               b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = yes.
+      END.
+    END.
+    if not gUseWindow then
+    do: 
+        ASSIGN b_finish:SENSITIVE = (current-page eq num-pages) AND ok_to_finish
+               FRAME {&FRAME-NAME}:TITLE = dtitle + " - Page ":U + string(current-page) +
+                                " of ":U + STRING(num-pages).
+                                
+    end.
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE WizardAction d_wizard 
+PROCEDURE ValidateAction:
+  DEFINE INPUT  PARAMETER pcAction         AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcStatus         AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE lCurrentChanged AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lCanFinish      AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lHasNext        AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lHasPrev        AS LOGICAL   NO-UNDO.
+  
+  /*------------------------------------------------------------------------------
+   Purpose: Validates current-proc and adjusts current-page 
+            according to pcAction if valid page                                                                                                                                          
+   Notes:   Split the validation from display for IDE 
+            Java display thread cannot wait for response from request that 
+            displays data to IDE from ABL (from other thread)                                                                                                                                    
+  ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iPage AS INTEGER NO-UNDO.
+  
+  iPage = current-page.
+  gLastBtn = pcAction.
+ 
+ 
+  RUN ValidateCurrentPage.
+ 
+  assign 
+    lCurrentChanged = (iPage <> current-page)
+    lCanFinish = ok_to_finish
+    lHasNext   = current-page < num-entries(pgm-list)
+    lHasPrev   = current-page > 1. 
+   
+  pcStatus = string(int(lCurrentChanged)) 
+           + string(int(lCanFinish))
+           + string(int(lHasNext))
+           + string(int(lHasPrev)).
+  
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE WizProc d_wizard 
 PROCEDURE WizProc :
@@ -601,55 +943,8 @@ PROCEDURE WizProc :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-    DEF VARIABLE  num-pages AS INTEGER  NO-UNDO.
-    
-    ASSIGN
-      num-pages = NUM-ENTRIES(pgm-list).
-
-    IF current-page = 0 THEN DO: /* first time - initialize */
-      ASSIGN current-page     = 1
-             b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = no.
-      IF num-pages = 1 THEN 
-        ASSIGN b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = no
-               b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = no.
-    END.
-    ELSE DO:
-      IF SELF:NAME = "b_Next":U THEN DO:
-        IF (current-page + 1) <= num-pages THEN DO:
-          APPLY "close":U TO current-proc.
-          
-          IF NOT VALID-HANDLE(current-proc) THEN           
-            ASSIGN current-page     = current-page + 1
-                   b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = yes.
-        END.
-        b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = 
-                                 (current-page < num-pages).
-      END.
-      ELSE IF SELF:NAME = "b_Back":U THEN DO:
-        APPLY "close":U TO current-proc.
-        ASSIGN current-page = current-page - 1
-               b_Back:SENSITIVE IN FRAME {&FRAME-NAME} = current-page > 1
-               b_Next:SENSITIVE IN FRAME {&FRAME-NAME} = yes.
-      END.
-    END.
-    ASSIGN b_finish:SENSITIVE = (current-page eq num-pages) AND ok_to_finish
-           FRAME {&FRAME-NAME}:TITLE = dtitle + " - Page ":U + string(current-page) +
-                                       " of ":U + STRING(num-pages).    
-    IF NOT VALID-HANDLE(current-proc)
-    OR (current-proc:FILE-NAME <> TRIM(ENTRY(current-page,pgm-list))) THEN 
-    DO:
-      RUN VALUE(TRIM(ENTRY(current-page,pgm-list))) PERSISTENT 
-        SET current-proc (INPUT FRAME {&FRAME-NAME}:HANDLE).     
-      
-      /* Add to list of started pages, 
-         IsFirstRun() will now return false for this procedures name */ 
-      
-      IF NOT CAN-DO (gStartedProcList,current-proc:file-name) THEN
-        ASSIGN gStartedProcList = (IF gStartedProcList = "":U 
-                                   THEN "":U
-                                   ELSE gStartedProcList + ",":U)
-                                    + current-proc:file-name. 
-    END.   
+    run ValidateCurrentPage.
+    run ShowCurrentPage.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -706,6 +1001,34 @@ END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNumPages d_wizard 
+FUNCTION getNumPages RETURNS INTEGER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/ 
+  RETURN num-entries(pgm-list). 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getOkToFinish Include
+FUNCTION getOkToFinish RETURNS LOGICAL 
+	(  ):
+	/*------------------------------------------------------------------------------
+			Purpose:  																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+    RETURN ok_to_finish.
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPreview d_wizard 
 FUNCTION getPreview RETURNS LOGICAL
@@ -785,6 +1108,20 @@ FUNCTION getUpdateTargetNames RETURNS CHARACTER
 
 END FUNCTION.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseWindow Include
+FUNCTION getUseWindow RETURNS LOGICAL 
+	(  ):
+
+	/*------------------------------------------------------------------------------
+			Purpose:  																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+   return gUseWindow.
+END FUNCTION.
+	
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 

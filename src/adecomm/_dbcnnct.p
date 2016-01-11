@@ -48,6 +48,8 @@ Define var dummy_7       as char    NO-UNDO.
 Define var dummy_8       as char    NO-UNDO.
 Define var dummy_9       as char    NO-UNDO.
 
+{adecomm/oeideservice.i}
+
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP ""
 
@@ -55,9 +57,15 @@ Define var dummy_9       as char    NO-UNDO.
 
 /* Should we ask if user wants to connect ? */
 IF pi_msg eq ? THEN po_OK = YES.
-ELSE MESSAGE pi_msg {&SKP} "Do you want to connect to a database?"
+ELSE
+do: 
+    if OEIDEIsRunning then
+       po_OK = ShowMessageInIDE(pi_msg + " ~n Do you want to connect to a database?",
+                         "Question","?","OK-CANCEL",YES).
+    else                     
+       MESSAGE pi_msg {&SKP} "Do you want to connect to a database?"
              VIEW-AS ALERT-BOX QUESTION BUTTONS OK-CANCEL UPDATE po_OK.
-
+end.
 IF po_OK THEN DO:
   /* Set defaults for the db connect dialog. */
   ASSIGN DB_Multi_User = no

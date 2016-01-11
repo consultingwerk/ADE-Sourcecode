@@ -45,7 +45,7 @@ IF NOT initialized_adestds THEN
 { adeuib/sharvars.i }
 /* Help Context Definitions. */
 { adeuib/uibhlp.i }
-
+define variable ftitle as char init " Method Library Reference".
 DEFINE VARIABLE v_File_Spec  LIKE p_File_Spec  NO-UNDO .
 DEFINE VARIABLE Open_Curly   AS CHARACTER  NO-UNDO 
   FORMAT "x(1)":U INITIAL "~{":U.
@@ -87,8 +87,13 @@ DEFINE FRAME DIALOG-1
      &OTHER  ="SPACE( {&HM_BTNG} ) btn_Browse"
      &HELP   ="btn_Help" 
   }
-  WITH OVERLAY NO-LABELS TITLE p_Dlg_Type + " Method Library Reference"
-    VIEW-AS DIALOG-BOX THREE-D
+  WITH OVERLAY NO-LABELS 
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    VIEW-AS DIALOG-BOX TITLE p_Dlg_Type + ftitle
+  &else
+  NO-BOX
+  &endif  
+    THREE-D
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel.
 
 ASSIGN FRAME DIALOG-1:PARENT = ACTIVE-WINDOW.
@@ -99,7 +104,11 @@ ASSIGN FRAME DIALOG-1:PARENT = ACTIVE-WINDOW.
    &OK     = "btn_OK"
    &HELP   = "btn_Help"
 }
-
+ftitle = p_Dlg_Type + ftitle.
+{adeuib/ide/dialoginit.i "FRAME DIALOG-1:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 /******************************************************************/
 /*                     UI TRIGGERS                                */
 /******************************************************************/
@@ -155,7 +164,8 @@ END.
 /****************************************************************
 * Main Code Section                                             *
 ****************************************************************/
-
+ &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel ftitle}
 DO ON STOP UNDO, LEAVE ON ENDKEY UNDO, LEAVE ON ERROR UNDO, LEAVE:    
   STATUS INPUT "".
   ASSIGN  
@@ -169,7 +179,16 @@ DO ON STOP UNDO, LEAVE ON ENDKEY UNDO, LEAVE ON ERROR UNDO, LEAVE:
   DISPLAY Open_Curly Close_Curly WITH FRAME DIALOG-1.
     
   DO ON STOP UNDO, LEAVE ON ERROR UNDO , LEAVE ON ENDKEY UNDO, LEAVE:
-    UPDATE p_File_Spec WITH FRAME DIALOG-1.            
+      
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        UPDATE p_File_Spec WITH FRAME DIALOG-1. 
+    &ELSE
+        p_File_Spec:screen-value = p_File_Spec.
+        apply "entry" to p_File_Spec.
+        WAIT-FOR "choose" of btn_ok in frame DIALOG-1 or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif  
+               
   END.
 
   STATUS INPUT.
@@ -211,9 +230,12 @@ PROCEDURE PressedOK:
   END.
 
   IF lNotFound THEN DO:
-    RUN adecomm/_s-alert.p (INPUT-OUTPUT Invalid_IsOK, "warning":u, "yes-no":U,
-      SUBSTITUTE("&1^Cannot find Method Library file.^^Check that the file exists and can be found in the PROPATH.  The including file may not compile correctly until the Method Library can be found.^^Do you want to continue?",
-      cFile ))).
+    RUN adecomm/_s-alert.p (
+      INPUT-OUTPUT Invalid_IsOK, 
+      "warning":u, 
+      "yes-no":U,
+      SUBSTITUTE("&1^Cannot find Method Library file.^^Check that the file exists and can be found in the PROPATH.  The including file may not compile correctly until the Method Library can be found.^^Do you want to continue?",cFile )
+      ).
     IF NOT Invalid_IsOK THEN RETURN ERROR.
   END.
     

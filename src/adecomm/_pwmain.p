@@ -141,7 +141,7 @@ DO ON STOP UNDO, LEAVE:
     IF OEIDEIsRunning AND p_Edit_Command = "UNTITLED":U AND NUM-ENTRIES(p_File_List) > 0 THEN
     DO:
         /* Open file in IDE Editor */
-        openEditor(?, ENTRY( List_Item, p_File_List ), "UNTITLED":U, ?).
+        openTextEditor(getProjectName(), p_File_List).
         PW_Opened = TRUE.
         
           /* --- Begin SCM changes --- */

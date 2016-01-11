@@ -71,13 +71,28 @@ DEFINE FRAME DIALOG-1
      SKIP( {&TFM_WID} )
      SPACE( {&HFM_WID} )
      p_Dir_Name LABEL "Directory &Name" VIEW-AS FILL-IN SIZE 45 BY 1
-    WITH OVERLAY NO-LABELS TITLE p_Dlg_Title
-         VIEW-AS DIALOG-BOX THREE-D SIDE-LABELS.
+    WITH OVERLAY NO-LABELS
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then  
+    TITLE p_Dlg_Title
+    VIEW-AS DIALOG-BOX
+    &else
+    NO-BOX
+    &endif 
+    THREE-D SIDE-LABELS.
+ {adeuib/ide/dialoginit.i "FRAME DIALOG-1:handle"}
+&IF DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+dialogService:View().
+&else
+ASSIGN FRAME DIALOG-1:PARENT = ACTIVE-WINDOW.  
+&ENDIF 
 
-ASSIGN FRAME DIALOG-1:PARENT = ACTIVE-WINDOW.
+
+
 { adecomm/okbar.i
         &FRAME-NAME  = "DIALOG-1"
 }
+
+
      
 /* Standard Help Trigger - Note that we cannot pass this to okbar.i because
    the help tool is a variable.  */
@@ -129,7 +144,15 @@ DO ON STOP UNDO, LEAVE ON ENDKEY UNDO, LEAVE ON ERROR UNDO, LEAVE:
     
     DO ON STOP UNDO, LEAVE ON ERROR UNDO , LEAVE ON ENDKEY UNDO, LEAVE: 
         DISPLAY p_Dir_Name WITH FRAME DIALOG-1.
-        WAIT-FOR GO OF FRAME DIALOG-1. 
+        &scoped-define CANCEL-EVENT U2
+        {adeuib/ide/dialogstart.i btn_ok btn_cancel p_Dlg_title}
+        &if DEFINED(IDE-IS-RUNNING) = 0  &then
+         WAIT-FOR GO OF FRAME DIALOG-1.
+        &ELSE
+         WAIT-FOR GO OF FRAME DIALOG-1 or "U2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+      &endif
+         
     END.
 
     STATUS INPUT.   

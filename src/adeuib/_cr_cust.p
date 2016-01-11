@@ -56,6 +56,7 @@ Modified by GFS on 2/10/95 -- Add new palette support for RoadRunner.
 
 /* Depeding on location of call - main or use custom/add custom */
 DEFINE INPUT PARAMETER _start AS LOGICAL NO-UNDO.
+{adecomm/oeideservice.i}
 {adeuib/sharvars.i}
 {adeuib/custwidg.i}
 {src/adm2/globals.i}
@@ -154,11 +155,19 @@ DO:
      RUN read-customPalette-Dynamics IN THIS-PROCEDURE (INPUT-OUTPUT cDynamicMsg).
  
      
-  IF cDynamicMsg > "" AND cDynamicMsg <> "NO-MESSAGE":U THEN 
+  IF cDynamicMsg > "" AND cDynamicMsg <> "NO-MESSAGE":U THEN
+  do: 
+     if OEIDEIsRunning then
+         ShowMessageInIDE(cDynamicMsg + CHR(10) 
+                         + "Dynamic design templates and palettes cannot be loaded unless they are both properly defined." + CHR(10)
+                         + "The appBuilder will now load the static .cst files.",
+                           "Information","?","OK",yes).
+     else 
      MESSAGE cDynamicMsg + CHR(10) 
              + "Dynamic design templates and palettes cannot be loaded unless they are both properly defined." + CHR(10)
              + "The appBuilder will now load the static .cst files."
         VIEW-AS ALERT-BOX INFO BUTTONS OK.
+  end.      
   ELSE IF cDynamicMsg > "" THEN
       ASSIGN _dyn_cst_palette  = ""
              _dyn_cst_template = "".
@@ -268,6 +277,12 @@ END.
 IF NOT CAN-FIND (FIRST _custom WHERE _custom._type = "Container") AND
    _AB_license NE 2 /* Not Webspeed */ THEN 
 DO:
+  if OEIDEIsRunning then
+         ShowMessageInIDE("Your custom object files do not contain any Container objects. " +
+                          "If you are using a custom object file from another version of " +
+                          "PROGRESS, you should update it to the latest version.",
+                           "Warning","?","OK",yes).
+  else  
   MESSAGE "Your custom object files do not contain any Container objects. " {&SKP}
           "If you are using a custom object file from another version of " {&SKP}
           "PROGRESS, you should update it to the latest version."
@@ -632,6 +647,13 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
        FILE-INFO:FILE-NAME = cPalTemplateFile.
        IF FILE-INFO:FULL-PATHNAME = ? THEN
        DO:
+         if OEIDEIsRunning then
+         ShowMessageInIDE("Cannot find palette template:" + QUOTER(cPalTemplateFile)
+                           +  " for " + QUOTER(cClass) + ": "
+                           + cPalLabel +
+                           "Please check the value of property 'PaletteNewTemplate' and make sure that it can be located in your PROPATH.",
+                           "Error","?","OK",yes).
+         else    
          MESSAGE "Cannot find palette template:" + QUOTER(cPalTemplateFile)
                 + " for " + QUOTER(cClass) + ": "
                 + cPalLabel skip
@@ -958,6 +980,13 @@ PROCEDURE read-customTemplate-Dynamics :
       FILE-INFO:FILE-NAME = ctemplateFile.
       IF FILE-INFO:FULL-PATHNAME = ? THEN
       DO:
+        if OEIDEIsRunning then
+         ShowMessageInIDE("Cannot find TEMPLATE: " + cTemplateFile
+                          + " for " + CAPS(cClass) + ": "
+                          + ctemplateLabel +
+                          "Please check the name and make sure that it can be located in your PROPATH.",
+                          "Error","?","OK",yes).
+        else  
         MESSAGE "Cannot find TEMPLATE: " + cTemplateFile
                + " for " + CAPS(cClass) + ": "
                + ctemplateLabel skip
@@ -1075,6 +1104,14 @@ PROCEDURE read-custom-file :
               FILE-INFO:FILE-NAME = TRIM(SUBSTRING(TRIM(cline),13,-1,"CHARACTER")).
               IF FILE-INFO:FULL-PATHNAME = ? THEN
               DO:
+                if OEIDEIsRunning then
+                   ShowMessageInIDE("Cannot find NEW-TEMPLATE: " +
+                                    TRIM(SUBSTRING(TRIM(cline),13,-1,"CHARACTER"))
+                                    + " for " + CAPS(_custom._type) + ": "
+                                    + _custom._name +
+                                    "Please check the name and make sure that it can be located in your PROPATH.",
+                                    "Error","?","OK",yes).
+                else  
                 MESSAGE "Cannot find NEW-TEMPLATE: " +
                       TRIM(SUBSTRING(TRIM(cline),13,-1,"CHARACTER"))
                       + " for " + CAPS(_custom._type) + ": "
@@ -1215,6 +1252,12 @@ PROCEDURE read-custom-file :
             FILE-INFO:FILE-NAME = _palette_item._NEW_TEMPLATE.
             IF FILE-INFO:FULL-PATHNAME = ? THEN 
             DO:
+                if OEIDEIsRunning then
+                   ShowMessageInIDE("Cannot find NEW-TEMPLATE: " + _palette_item._NEW_TEMPLATE + 
+                                    " for OBJECT: " + _palette_item._NAME +
+                                    "Please check the name and make sure that it can be located in your PROPATH.",
+                                    "Error","?","OK",yes).
+                else
                  MESSAGE "Cannot find NEW-TEMPLATE: " + _palette_item._NEW_TEMPLATE + 
                    " for OBJECT: " + _palette_item._NAME skip
                    "Please check the name and make sure that it can be located in your PROPATH."
@@ -1348,9 +1391,14 @@ REMOVE*/
                  */
 
                 IF OPSYS = "MSDOS" AND cToken = "VBX" THEN
+                do:
+                  if OEIDEIsRunning then
+                   ShowMessageInIDE("Custom widget," + cToken + ", defined without palette icon.",
+                                    "Error","?","OK",yes).
+                  else  
                   MESSAGE "Custom widget," cToken + ", defined without palette icon."
                       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
+                end.
                 /* Added to prevent the now bogus "*VBX" definitions from
                  * being blindly added onto the last good definition (gfs)
                  */
@@ -1368,10 +1416,18 @@ REMOVE*/
         /* If the file was empty (i.e. it contained no Custom Object definitions) 
            then let the user know something was wrong. */
         IF empty-file THEN
+        do:
+          if OEIDEIsRunning then
+             ShowMessageInIDE(p_filename +
+                             "This file did not define any Custom Objects." +
+                             "Please make sure you were pointing to the correct file.",
+                             "Warning","?","OK",yes).
+          else  
           MESSAGE p_filename SKIP
                   "This file did not define any Custom Objects." SKIP(1)
                   "Please make sure you were pointing to the correct file."
               VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+        end.      
       END. /* IF valid file */
     END. /* IF NOT RETRY */
   END. /* DO ON STOP... */

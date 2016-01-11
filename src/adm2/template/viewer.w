@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
-"ADM SmartDataViewer Object Template.
+"ADM2 SmartDataViewer Object Template.
 
 Use this template to create a new SmartDataViewer object in which to visualize data. Once created, this object can be drawn onto any SmartObject container, such as a SmartWindow, SmartDialog or SmartFrame."
 */
@@ -8,7 +8,7 @@ Use this template to create a new SmartDataViewer object in which to visualize d
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 {adecomm/appserv.i}
 DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTable 
 /*------------------------------------------------------------------------
 
   File:
@@ -105,14 +105,14 @@ END.
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
-  CREATE WINDOW vTableWin ASSIGN
+  CREATE WINDOW vTable ASSIGN
          HEIGHT             = 17
          WIDTH              = 80.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB vTable 
 /* ************************* Included-Libraries *********************** */
 
 {src/adm2/viewer.i}
@@ -126,7 +126,7 @@ END.
 /* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
-/* SETTINGS FOR WINDOW vTableWin
+/* SETTINGS FOR WINDOW vTable
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME F-Main
    NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
@@ -149,7 +149,7 @@ ASSIGN
 
  
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartDataViewer" vTableWin _INLINE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "SmartDataViewer" vTable _INLINE
 /* Actions: adm2/support/_wizard.w ? ? ? adm2/support/_wizdel.p */
 /* SmartDataViewer Wizard
 Welcome to the SmartDataViewer Wizard! During the next few steps, the wizard will lead you through creating a SmartDataViewer object. First you will choose a DataObject to supply data to the SmartDataViewer, then you can specify the fields that will be displayed in the SmartDataViewer. Press Next to proceed.
@@ -159,7 +159,7 @@ adm2/support/_wizntro.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,adm2/suppo
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK vTable 
 
 
 /* ***************************  Main Block  *************************** */
@@ -176,7 +176,7 @@ adm2/support/_wizntro.w,adm2/support/_wizdo.w,adm2/support/_wizdfld.w,adm2/suppo
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI vTableWin  _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI vTable  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface

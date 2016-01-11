@@ -67,7 +67,7 @@ DEFINE OUTPUT PARAMETER pressedOK       AS LOGICAL      NO-UNDO.
     external caller. */
 {adeuib/sharvars.i}.
 {adeuib/uniwidg.i}.
-
+{adecomm/oeideservice.i}
 DEFINE VARIABLE gcFilename     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcSavedPath    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcError        AS CHARACTER  NO-UNDO.
@@ -125,6 +125,16 @@ DEFINE VARIABLE cRootDirectory AS CHARACTER  NO-UNDO.
 /* ***************************  Main Block  *************************** */
 DO ON STOP UNDO, LEAVE:
     /* Call the Add to Repository dialog. Passes data back in an _RyObject record. */
+    if OEIDEisRunning then
+    RUN adeuib/ide/_dialog_saveasdynobject.p
+        (INPUT phWindow,                /* Parent Window    */
+         INPUT pcProductModule,         /* Product Module   */
+         INPUT pcFileName,              /* Object to add    */
+         INPUT pcType,                  /* File type        */
+         INPUT pPrecid,                  /* _P recID */
+         OUTPUT grRyObject,             /* RyObject created */
+         OUTPUT pressedOK). 
+    else
     RUN adeuib/_saveasdynobject.w
         (INPUT phWindow,                /* Parent Window    */
          INPUT pcProductModule,         /* Product Module   */
@@ -165,14 +175,34 @@ DO ON STOP UNDO, LEAVE:
         IF (gcError <> "" AND NOT gcError BEGINS "Associated data":U) THEN
         DO ON  STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
           IF gcError NE "Shown":U THEN
-            MESSAGE "Object not added to repository." SKIP(1)
-                    gcError
-              VIEW-AS ALERT-BOX.
+          DO:
+             
+ 
+         /* Skip message if hosted in Eclipse
+            - This is not really needed. if needed implement with "not show again" in Eclipse   
+             note that there may also be lock issues due to save waiting when calling eclipse
+            (progress waiting for eclipse waiting for progress) due to save/saveas                  
+             from here */ 
+                if NOT OEIDE_CanShowMessage() then                                       
+/*                ShowOkMessageInIDE("Object not added to repository.","Error",?).*/
+/*            else                                                                */
+                    MESSAGE "Object not added to repository." SKIP(1)
+                       gcError
+                    VIEW-AS ALERT-BOX.
+          END.   
         END.
         ELSE IF (gcError = "") THEN
-        DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
-            MESSAGE "Object was added to repository."
-              VIEW-AS ALERT-BOX INFORMATION.
+        DO:
+        /* Skip message if hosted in Eclipse
+            - This is not really needed. if needed implement with "not show again" in Eclipse   
+             note that there may also be lock issues due to save waiting when calling eclipse
+            (progress waiting for eclipse waiting for progress) due to save/saveas                  
+             from here */ 
+               if NOT OEIDE_CanShowMessage() then                                       
+/*                ShowOkMessageInIDE("Object not added to repository.","Error",?).*/
+/*            else                                                                */
+                    MESSAGE "Object was added to repository."
+                    VIEW-AS ALERT-BOX INFORMATION.
         END.
     END. /* pressedOK */
 END.

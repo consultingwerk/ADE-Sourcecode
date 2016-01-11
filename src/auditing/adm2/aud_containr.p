@@ -4509,8 +4509,8 @@ PROCEDURE initializeVisualContainer :
                 + DYNAMIC-FUNCTION('getProjectName':U IN hOEIDEService) /* linked to specific project   */
       .
     {get ContainerHandle hWindow}.                /* need widget handle of actual window */
-    IF hWindow:TYPE = "window":U THEN             /* only do for windows (not frames) */
-      RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hWindow).      
+/*    IF hWindow:TYPE = "window":U THEN             /* only do for windows (not frames) */*/
+/*      RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hWindow).                  */
   END.
   /* End of IDE docking code */
 

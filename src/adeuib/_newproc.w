@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dlg_NewName
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dlg_NewName 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2012 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File    :    _newproc.w
@@ -93,7 +93,7 @@ DEFINE VARIABLE Type_Local    AS CHARACTER    NO-UNDO INIT "_LOCAL":U .
 DEFINE VARIABLE Type_Default  AS CHARACTER    NO-UNDO INIT "_DEFAULT":U .
 DEFINE VARIABLE Default_List  AS CHARACTER    NO-UNDO .
 DEFINE VARIABLE Invalid_Entry AS CHARACTER    NO-UNDO INIT "_INVALID-ENTRY":U .
-
+define variable lHidden       as logical no-undo.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -218,50 +218,8 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Dlg_NewName Dlg_NewName
 ON GO OF FRAME Dlg_NewName /* New Procedure */
 DO:
-
-  DEFINE VARIABLE Valid_Entry    AS LOGICAL     NO-UNDO.
-  
-    /* Trim leading spaces. */
-  ASSIGN Name:SCREEN-VALUE = TRIM(Name:SCREEN-VALUE).
-  
-  /* Validate that the name is a legal PROGRESS internal procedure name. */
-  RUN adecomm/_valpnam.p
-      (INPUT  Name:SCREEN-VALUE, INPUT TRUE, INPUT "_INTERNAL":U,
-       OUTPUT Valid_Entry ).
-
-  IF NOT Valid_Entry THEN
-  DO:    
-      RUN set-state ( INPUT Type:SCREEN-VALUE + Invalid_Entry ).
-      RETURN NO-APPLY.
-  END.
-  
-  IF CAN-DO ( p_Invalid_List , Name:SCREEN-VALUE ) THEN
-  DO:
-     MESSAGE Name:SCREEN-VALUE    SKIP(1)
-             "This name is reserved or already defined in an included Method Library." + CHR(10) +
-             IF NOT CAN-DO("destroyObject":U, Name:SCREEN-VALUE) THEN
-                "If you wish to override the existing procedure, you must ensure that you specify" + CHR(10) +
-                "the pre-processor 'EXCLUDE-" + Name:SCREEN-VALUE + "' in the definition section" + CHR(10) +
-                "or else the procedure will not compile. " + CHR(10) + CHR(10)
-             ELSE  CHR(10)   
-             "Are you sure you wish to continue?"
-             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lchoice AS LOGICAL IN WINDOW ACTIVE-WINDOW .
-    IF NOT lchoice THEN
-    DO:
-       RUN set-state ( INPUT Type:SCREEN-VALUE + Invalid_Entry ).
-       RETURN NO-APPLY.
-    END.
-  END.
-  
-  ASSIGN p_Name = Name:SCREEN-VALUE
-         p_Type = Type:SCREEN-VALUE
-         p_OK   = TRUE .
-
-  /* If type is local, check if user is working with an "adm-" V8 style local override.
-     If not, build the V9 style super override code. */
-  IF (p_Type = Type_Local) AND NOT (Smart_List:SCREEN-VALUE BEGINS Smart_Prefix) THEN
-    p_Code_Block = GetProcCode( INPUT p_Name, INPUT p_Objects).
-
+    ASSIGN Name:SCREEN-VALUE = TRIM(Name:SCREEN-VALUE).
+    run GenerateCode(name:screen-value,Smart_List:SCREEN-VALUE,type:screen-value,output p_Code_Block) .
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -335,33 +293,38 @@ END.
 
 /* ***************************  Main Block  *************************** */
 
-/* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
-IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT EQ ? THEN
-  FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
-
-/* Make this dialog the current window. */
-ASSIGN
-  THIS-PROCEDURE:CURRENT-WINDOW = FRAME {&FRAME-NAME}:PARENT
-  CURRENT-WINDOW                = THIS-PROCEDURE:CURRENT-WINDOW.
-
-/* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
-{adecomm/okbar.i &TOOL = "AB"
-                 &CONTEXT = {&New_Procedure_Dlg_Box} }
-
-/* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
-ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
-
-/* Now enable the interface and wait for the exit condition.            */
-/* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
-MAIN-BLOCK:
-DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  RUN set-init-values.
-  RUN enable_UI.
-  RUN set-state ( INPUT Init_Type ).
-  WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS Name.
-END.
-RUN disable_UI.
+if not this-procedure:persistent then
+do: 
+    /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
+    IF VALID-HANDLE(ACTIVE-WINDOW) AND FRAME {&FRAME-NAME}:PARENT EQ ? THEN
+      FRAME {&FRAME-NAME}:PARENT = ACTIVE-WINDOW.
+    
+    /* Make this dialog the current window. */
+    ASSIGN
+      THIS-PROCEDURE:CURRENT-WINDOW = FRAME {&FRAME-NAME}:PARENT
+      CURRENT-WINDOW                = THIS-PROCEDURE:CURRENT-WINDOW.
+    
+    /* ADE okbar.i places standard ADE OK-CANCEL-HELP buttons.              */
+    {adecomm/okbar.i &TOOL = "AB"
+                     &CONTEXT = {&New_Procedure_Dlg_Box} }
+    
+    /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
+    ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
+    
+    /* Now enable the interface and wait for the exit condition.            */
+    /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+    MAIN-BLOCK:
+    DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+       ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
+      RUN set-init-values.
+      RUN enable_UI.
+      RUN set-state ( INPUT Init_Type ).
+      WAIT-FOR GO OF FRAME {&FRAME-NAME} FOCUS Name.
+    END.
+    
+    RUN disable_UI.
+end.
+else lHidden = true.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -406,6 +369,105 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+ 
+&IF DEFINED(EXCLUDE-GenerateCode) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE GenerateCode Include
+procedure GenerateCode private:
+	/*------------------------------------------------------------------------------
+			Purpose:  																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+  define input  parameter pName as character no-undo.
+  define input  parameter pSmart as character no-undo.
+  define input  parameter pType as character no-undo.
+  define output  parameter pCode  as character no-undo.
+  DEFINE VARIABLE Valid_Entry    AS LOGICAL     NO-UNDO.
+  /* Validate that the name is a legal PROGRESS internal procedure name. */
+  RUN adecomm/_valpnam.p
+      (INPUT  pName, INPUT TRUE, INPUT "_INTERNAL":U,
+       OUTPUT Valid_Entry ).
+
+  IF NOT Valid_Entry THEN
+  DO:    
+      if lhidden then
+      do: 
+           pcode = "ERROR:InvalidProcedureName".
+           return.
+      end.     
+      
+      RUN set-state ( INPUT pType + Invalid_Entry ).
+      RETURN NO-APPLY.
+  END.
+  
+  IF CAN-DO ( p_Invalid_List , pName ) THEN
+  DO:
+     MESSAGE pName    SKIP(1)
+             "This name is reserved or already defined in an included Method Library." + CHR(10) +
+             IF NOT CAN-DO("destroyObject":U, pName) THEN
+                "If you wish to override the existing procedure, you must ensure that you specify" + CHR(10) +
+                "the pre-processor 'EXCLUDE-" + pName + "' in the definition section" + CHR(10) +
+                "or else the procedure will not compile. " + CHR(10) + CHR(10)
+             ELSE  CHR(10)   
+             "Are you sure you wish to continue?"
+             VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE lchoice AS LOGICAL IN WINDOW ACTIVE-WINDOW .
+    IF NOT lchoice THEN
+    DO:
+       if lhidden then
+       do: 
+           pcode = "ERROR:ReservedProcedureName".
+           return.
+       end.     
+      
+       RUN set-state ( pType + Invalid_Entry ).
+       RETURN NO-APPLY.
+    END.
+  END.
+  
+  ASSIGN p_Name = pName
+         p_Type = pType
+         p_OK   = TRUE .
+
+  /* If type is local, check if user is working with an "adm-" V8 style local override.
+     If not, build the V9 style super override code. */
+  IF (p_Type = Type_Local) AND NOT (pSmart BEGINS Smart_Prefix) THEN
+    pCode = GetProcCode( INPUT p_Name, INPUT p_Objects).
+
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
+
+ 
+&IF DEFINED(EXCLUDE-GetCode) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE GetCode Include
+procedure GetCode:
+   /*------------------------------------------------------------------------------
+			Purpose:  get proc code  for ide																	  
+			Notes:  																	  
+	------------------------------------------------------------------------------*/
+   define input  parameter pName as character no-undo.
+   define input  parameter pType as character no-undo.
+   define output  parameter pCode  as character no-undo.
+   define variable cSmart as character no-undo.
+   /* adm1 procedure override is sent as local- from ide */
+   cSmart = REPLACE( pName, Local_Prefix ,Smart_Prefix ).
+   run GenerateCode(pname,csmart,ptype,output pCode).
+   
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE set-init-values Dlg_NewName 
 PROCEDURE set-init-values :
@@ -657,7 +719,8 @@ FUNCTION GetProcCode RETURNS CHARACTER
     IF VALID-HANDLE( hSuper_Proc ) AND
        CAN-DO(hSuper_Proc:INTERNAL-ENTRIES, p_Proc_Name) THEN LEAVE.
   END.
-
+  /* don't return comments to IDE */
+  if not lHidden then
   ASSIGN
       p_Code = 
       "/*{&COMMENT-LINE}" + {&EOL} +
@@ -697,7 +760,7 @@ FUNCTION GetProcCode RETURNS CHARACTER
   ParamDef = GetDefParams(INPUT ParamDef).
 
   IF (ParamDef <> "") THEN
-    ASSIGN p_Code   = p_Code + {&EOL} + ParamDef
+    ASSIGN p_Code   =  (if p_code <> "" then p_Code + {&EOL} else "") + ParamDef
            ParamRun = "(" + ParamRun + ")".
 
   ASSIGN p_Code = p_Code + {&EOL} +      
@@ -705,9 +768,9 @@ FUNCTION GetProcCode RETURNS CHARACTER
       {&EOL} +
       "  RUN SUPER" + ParamRun + "." + {&EOL} +
       {&EOL} +
-      "  /* Code placed here will execute AFTER standard behavior.    */" + {&EOL} +
-      {&EOL} +
-      "END PROCEDURE.".
+      "  /* Code placed here will execute AFTER standard behavior.    */" + {&EOL}. 
+   if not lhidden then 
+         p_Code = p_Code +  {&EOL} +  "END PROCEDURE.".
 
   RETURN p_Code.
   

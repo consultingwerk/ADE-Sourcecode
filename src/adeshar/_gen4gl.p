@@ -82,7 +82,7 @@ Last Modified:
 {adeuib/links.i}
 {adeuib/advice.i}
 {adeuib/uibhlp.i}
-
+{adecomm/oeideservice.i}
 /* FUNCTION PROTOTYPES */
 FUNCTION db-fld-name RETURNS CHARACTER
   (INPUT rec-type AS CHARACTER, INPUT rec-recid AS RECID) IN _h_func_lib.
@@ -185,6 +185,7 @@ DEFINE VARIABLE TagLine       AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE cSuperEvent   AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE lEmpty        AS LOGICAL                               NO-UNDO.
 DEFINE VARIABLE ctempFile     AS CHARACTER                             NO-UNDO.
+define variable lAllowEmptyTriggers as logical no-undo.
 
 DEFINE BUFFER x_U  FOR _U.
 DEFINE BUFFER xx_U FOR _U.
@@ -241,6 +242,10 @@ IF p_status NE "PREVIEW":U AND p_status NE "PRINT":U THEN DO:
   IF NOT ok2continue THEN RETURN "Error-Override":U.
 END.
 
+/* we cannot remove empty triggers when working with ide  
+   This is a problem with code synchronization, making triggers disappear on sync.  */ 
+lAllowEmptyTriggers = OEIDEIsRunning.
+
 /* Open output file. */
 IF p_status BEGINS "SAVE":U THEN 
 DO ON STOP  UNDO, RETRY
@@ -261,10 +266,20 @@ DO ON STOP  UNDO, RETRY
         (INPUT _save_file , INPUT "_WRITE-TEST":U , OUTPUT write-access).
   END.
   IF write-access <> "W":U THEN DO:
-    MESSAGE _save_file SKIP
-      "Cannot save to this file."  SKIP(1)
-      "File is read-only or the path specified" SKIP
-      "is invalid. Use a different filename."
+      if OEIDE_CanShowMessage() then 
+       /* the formatting is deliberatley different.  */
+          ShowOkMessageInIDE(
+          _save_file + "~n" +
+          "Cannot save to this file. "  
+          +  "File is read-only or the path specified is invalid."
+           + "~n" 
+           + "Use a different filename.",
+          "Warning",?). 
+      else 
+          MESSAGE _save_file SKIP
+          "Cannot save to this file."  SKIP(1)
+          "File is read-only or the path specified" SKIP
+          "is invalid. Use a different filename."
       VIEW-AS ALERT-BOX WARNING BUTTONS OK IN WINDOW ACTIVE-WINDOW.
     RETURN "Error-Write":U.
   END.
@@ -278,13 +293,21 @@ DO ON STOP  UNDO, RETRY
      sdo_tmp_file = SUBSTRING(_save_file,1,(LENGTH(_save_file) - 1)) + "i":U.
      IF SEARCH(sdo_tmp_file) <> ? THEN
      DO:
-        RUN adecomm/_s-alert.p 
-           (INPUT-OUTPUT lOK, 
-            "information":U,
-            "yes-no":U,
-            SUBSTITUTE("&1 already exists. Do you want to replace it?:^^&2",
-            sdo_tmp_file,
-            cReturnValue)).
+        if OEIDE_CanShowMessage() then
+            lok = ShowMessageInIDE(SUBSTITUTE("&1 already exists. Do you want to replace it?:^^&2",sdo_tmp_file,cReturnValue),
+                              "information":U,?,"yes-no":U,lok).
+        
+        else 
+         
+         /* supports ide  */
+            RUN adecomm/_s-alert.p 
+             (INPUT-OUTPUT lOK, 
+             "information":U,
+             "yes-no":U,
+             SUBSTITUTE("&1 already exists. Do you want to replace it?:^^&2",
+             sdo_tmp_file,
+             cReturnValue)).
+        
         IF NOT lOK THEN 
         DO:
            tmp_file =  SEARCH(_save_file).
@@ -1214,21 +1237,24 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND _U._STATUS <> "DELETED"
              _TRG._tEVENT) THEN NEXT TRIGGER-BLOCK.
     
     ASSIGN null_section = no. /* Initialize to not null section. */
-  
-    /* If its not an empty DO: END. block or there is code following the
-       DO: END. block, save the trigger. Fixes bug 94-07-21-051. */
-    ASSIGN strt = INDEX(_TRG._tCODE,":") + 1       /* Colon after DO */
-           stp  = R-INDEX(_TRG._tCODE,"END.") - 1. /* END. */
-    /* If strt is 1 then we are missing the colon; if stp is -1 then
-       there is no "END.". In these cases, we cannot check for a null block. */
-    IF (strt > 1 AND stp > -1) THEN DO:
-      IF TRIM(SUBSTRING(_TRG._tCODE, strt , stp - strt , "CHARACTER":U)) = ""
-      THEN
-        ASSIGN stp = stp + 4 /* Move to the period in "END." */
-               null_section = (LENGTH(RIGHT-TRIM(_TRG._tCODE), "CHARACTER":U)
-                               = stp) NO-ERROR.
-    END. /* If we have both the colon and the "END." */
     
+    /* allow empty is set above when running in ide */
+    if not lAllowEmptyTriggers then
+    do:
+        /* If its not an empty DO: END. block or there is code following the
+           DO: END. block, save the trigger. Fixes bug 94-07-21-051. */
+        ASSIGN strt = INDEX(_TRG._tCODE,":") + 1       /* Colon after DO */
+               stp  = R-INDEX(_TRG._tCODE,"END.") - 1. /* END. */
+        /* If strt is 1 then we are missing the colon; if stp is -1 then
+           there is no "END.". In these cases, we cannot check for a null block. */
+        IF (strt > 1 AND stp > -1) THEN DO:
+          IF TRIM(SUBSTRING(_TRG._tCODE, strt , stp - strt , "CHARACTER":U)) = ""
+          THEN
+            ASSIGN stp = stp + 4 /* Move to the period in "END." */
+                   null_section = (LENGTH(RIGHT-TRIM(_TRG._tCODE), "CHARACTER":U)
+                                   = stp) NO-ERROR.
+         END. /* If we have both the colon and the "END." */
+    end.
     IF (null_section = FALSE) THEN DO:
       IF CreatingSuper AND _P._TYPE NE "SmartDataObject":U THEN /* Temporarily change _tEvent */
         ASSIGN cSuperEvent  = _TRG._tEvent
@@ -1967,8 +1993,11 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
     END.
     WHEN "CHECK-SYNTAX":U THEN DO:
       RUN adecomm/_setcurs.p ("").
-      MESSAGE "Syntax is correct" 
-        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Information"
+      if OEIDE_CanShowMessage() then
+          ShowOkMessageInIDE("Syntax is correct" ,"Information":u,? ).
+      else
+          MESSAGE "Syntax is correct" 
+        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Information":u
                           IN WINDOW _h_menu_win.
     END.
     OTHERWISE DO:
@@ -2355,6 +2384,8 @@ PROCEDURE compile-and-load:
            will happen only on the 2nd SmartObject found.  Tell the user that
            we are going to stop recreating instances of the file. */
         IF NOT can_run THEN DO:
+            
+            
           MESSAGE _save_file SKIP
                   "The SmartObject was saved. However, it does not" {&SKP}
                   "run successfully."   SKIP (1)

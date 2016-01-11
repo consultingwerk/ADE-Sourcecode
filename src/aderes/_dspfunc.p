@@ -101,7 +101,7 @@ PROCEDURE ViewAs:
       IF cIndex = "l":u THEN "label":u  ELSE
       IF cIndex = "e":u THEN "export":u ELSE "").
     IF cIndex <> "l" THEN
-      RUN adecomm/_s-alert.p (INPUT-OUTPUT selfield,"question":u,"yes-no":u,
+      RUN adecomm/_s-alert2.p (INPUT-OUTPUT selfield,"question":u,"yes-no":u,
         SUBSTITUTE("There are no fields chosen for &1 view.  Do you want to select them now?",vname)).
 
     /* reselect fields */
@@ -499,7 +499,7 @@ PROCEDURE RunAdmin:
   RUN VALUE(cProg) (cTemp,OUTPUT lRet) NO-ERROR.
 
   IF ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES > 0 THEN
-    RUN adecomm/_s-alert.p (INPUT-OUTPUT qbf-a,"error":u,"ok":u,
+    RUN adecomm/_s-alert2.p (INPUT-OUTPUT qbf-a,"error":u,"ok":u,
       SUBSTITUTE("There is a problem with &1.^^&2",
       cProg,ERROR-STATUS:GET-MESSAGE(1))). 
   ELSE DO:
@@ -679,7 +679,7 @@ PROCEDURE Exit:
 
   IF qbf-dirty THEN DO:
     qbf-a = TRUE.
-    RUN adecomm/_s-alert.p (INPUT-OUTPUT qbf-a,"question":u,"yes-no-cancel":u,
+    RUN adecomm/_s-alert2.p (INPUT-OUTPUT qbf-a,"question":u,"yes-no-cancel":u,
       "The current query has changed.  Do you want to save the changes?").
 
     IF qbf-a THEN DO:

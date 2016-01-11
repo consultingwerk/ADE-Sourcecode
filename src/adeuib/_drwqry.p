@@ -25,7 +25,7 @@ Date Created: 3/26/1995
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
-
+{adecomm/oeideservice.i}
 DEFINE VAR cur-lo   AS CHAR NO-UNDO.
 
 DEFINE BUFFER parent_U FOR _U.
@@ -75,9 +75,9 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
   /* Create the Visualization of the Query object */
   RUN adeuib/_undqry.p (RECID(_U)).
 END.
-
-/* Call the Query Builder so that the user can define the query */
+if OEIDEIsRunning and avail _U then
+        run CallWidgetEvent in _h_uib(input recid(_U),"Add").
 RUN adeuib/_callqry.p ("_U":U, RECID(_U), "QUERY-ONLY":U).
-
+ 
 /* FOR EACH layout other than the current layout, populate _L records for them */
 {adeuib/multi_l.i}

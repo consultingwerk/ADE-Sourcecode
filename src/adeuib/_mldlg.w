@@ -75,7 +75,11 @@ DEFINE VARIABLE Close_Curly AS CHARACTER  NO-UNDO
   FORMAT "x(1)" INITIAL "~}":U.
 DEFINE VARIABLE h_mlmgr     AS HANDLE     NO-UNDO.
                 /* Procedure handle of LIB-MGR.  */
-
+DEFINE VARIABLE wintitle as char no-undo init "Method Libraries":L.
+DEFINE VARIABLE l_ok     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE new_file AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE lAction  As CHAR NO-UNDO.  
+DEFINE VAR old_file AS CHARACTER NO-UNDO.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -144,11 +148,19 @@ DEFINE FRAME f_ML_Dlg
      "Method Library Include References:" VIEW-AS TEXT
           SIZE 36 BY .67 AT ROW 1.29 COL 3
      SPACE(29.85) SKIP(6.76)
-    WITH VIEW-AS DIALOG-BOX 
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    VIEW-AS DIALOG-BOX TITLE wintitle
+    &else
+    NO-BOX
+    &endif
          SIDE-LABELS THREE-D  SCROLLABLE 
-         TITLE "Method Libraries":L.
+         .
 
- 
+ {adeuib/ide/dialoginit.i "FRAME f_ML_Dlg:handle"}
+&if DEFINED(IDE-IS-RUNNING) <> 0  &then
+   dialogService:View(). 
+&endif
 
 /* *********************** Procedure Settings ************************ */
 
@@ -251,12 +263,18 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL b_add f_ML_Dlg
 ON CHOOSE OF b_add IN FRAME f_ML_Dlg /* Add... */
 DO:
-  DEFINE VARIABLE l_ok     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE new_file AS CHARACTER  NO-UNDO.
+  Assign lAction = "Add"
+         new_file = "".
+         
   DEFINE VARIABLE l_Dupe   AS LOGICAL    NO-UNDO.
-  
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"ide_choose_mlref").
+         run runChildDialog in hOEIDEService (dialogService) .
+   &else
     RUN adeuib/_mlref.p ( "Add", cBrokerURL,
                           INPUT-OUTPUT new_file, OUTPUT l_ok ) .
+   &endif         
+              
     IF NOT l_ok THEN RETURN.
     
     ASSIGN new_file = ( Open_Curly + new_file + Close_Curly).
@@ -372,6 +390,8 @@ ON WINDOW-CLOSE OF FRAME {&FRAME-NAME} APPLY "END-ERROR":U TO SELF.
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
+ &scoped-define CANCEL-EVENT U2
+{adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
 MAIN-BLOCK:
 DO ON STOP    UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
@@ -386,7 +406,13 @@ DO ON STOP    UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   RUN enable_UI.
   RUN set-state.
   RUN adecomm/_setcurs.p (INPUT "":U).
-  WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+  &if DEFINED(IDE-IS-RUNNING) = 0  &then
+        WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+    &ELSE
+        WAIT-FOR "choose" of btn_ok in frame {&FRAME-NAME} or "u2" of this-procedure.       
+        if cancelDialog THEN UNDO, LEAVE.  
+    &endif
+  
 END.
 RUN adecomm/_setcurs.p (INPUT "":U).
 RUN disable_UI.
@@ -469,19 +495,27 @@ PROCEDURE Modify-Selection :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VAR l_ok     AS LOGICAL   NO-UNDO.
-  DEFINE VAR new_file AS CHARACTER NO-UNDO.
-  DEFINE VAR old_file AS CHARACTER NO-UNDO.
+/*  DEFINE VAR l_ok     AS LOGICAL   NO-UNDO.*/
+/*  DEFINE VAR new_file AS CHARACTER NO-UNDO.*/
+/*  DEFINE VAR old_file AS CHARACTER NO-UNDO.*/
   DEFINE VAR item     AS CHARACTER NO-UNDO.
   DEFINE VAR l_Dupe   AS LOGICAL   NO-UNDO.
   
   DO WITH FRAME {&FRAME-NAME}:
+      Assign lAction = "Modify".
+          
+             
     ASSIGN new_file = TRIM( file-list:SCREEN-VALUE ,
                             Open_Curly + " " + Close_Curly )
            old_file = new_file.
-           
+   
+  &if DEFINED(IDE-IS-RUNNING) <> 0  &then
+         dialogService:SetCurrentEvent(this-procedure,"ide_choose_mlref").
+         run runChildDialog in hOEIDEService (dialogService) .
+   &else       
     RUN adeuib/_mlref.p ( "Modify", cBrokerURL,
                           INPUT-OUTPUT new_file, OUTPUT l_ok ).
+   &endif                       
     IF NOT l_ok OR ( new_file = old_file ) THEN RETURN.
    
     ASSIGN new_file = Open_Curly + new_file + Close_Curly.
@@ -616,4 +650,41 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+procedure ide_choose_mlref:
+    define variable l_Dupe as logical no-undo.
+    
+        RUN adeuib/ide/_dialog_mlref.p ( lAction, cBrokerURL,
+                          INPUT-OUTPUT new_file, OUTPUT l_ok ) .
+                        
+    IF lAction = "Add" then
+    DO :              
+           IF NOT l_ok THEN RETURN.
+        
+        ASSIGN new_file = ( Open_Curly + new_file + Close_Curly).
+        RUN CheckDupeItem (INPUT new_file , OUTPUT l_Dupe ).
+        IF l_Dupe THEN RETURN.
+        
+        IF file-list:NUM-ITEMS IN FRAME f_ML_Dlg = 0 THEN
+          ASSIGN l_ok = file-list:ADD-FIRST ( new_file ) .
+        ELSE
+          ASSIGN l_ok = file-list:INSERT( new_file , file-list:SCREEN-VALUE ).
+        
+        ASSIGN file-list:SCREEN-VALUE = new_file.
+        RUN set-state.
+    END.   
+    else
+    do:
+        IF NOT l_ok OR ( new_file = old_file ) THEN RETURN.
+   
+    ASSIGN new_file = Open_Curly + new_file + Close_Curly.
+    RUN CheckDupeItem (INPUT new_file , OUTPUT l_Dupe ).
+    IF l_Dupe THEN RETURN.
+
+    IF new_file = file-list:SCREEN-VALUE THEN RETURN.
+    
+    ASSIGN l_ok     = file-list:INSERT( new_file , file-list:SCREEN-VALUE )
+           l_ok     = file-list:DELETE( file-list:SCREEN-VALUE )  
+           file-list:SCREEN-VALUE = new_file .
+    end.               
+end procedure.
 

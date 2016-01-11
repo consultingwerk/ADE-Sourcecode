@@ -73,7 +73,7 @@ DEFINE RECTANGLE arect        EDGE-CHARS .2 FGC 1 BGC 1 SIZE 9  BY .1.
 
 DEFINE VARIABLE cOldAttr      AS CHARACTER                    NO-UNDO.
 DEFINE VARIABLE lBrowseColumn AS LOGICAL INITIAL NO           NO-UNDO.
-
+define variable wintitle as character no-undo init "String Attributes":C17.
 
 /* Definitions of the field level widgets                               */
 &SCOPED-DEFINE FRAME-NAME attr-dial
@@ -88,14 +88,23 @@ DEFINE FRAME attr-dial
      srect AT ROW 7.52 COL 12
      arect AT ROW 2.52 COL 60
      ":" AT ROW 2.7 COLUMN 59
-    WITH VIEW-AS DIALOG-BOX SIDE-LABELS 
-         SIZE 75.49 BY 10.76
-         TITLE "String Attributes":C17.
+    WITH 
+    &if DEFINED(IDE-IS-RUNNING) = 0  &then
+    VIEW-AS DIALOG-BOX 
+    TITLE wintitle
+    &else
+    no-box three-d
+    &endif
+    SIDE-LABELS 
+    SIZE 75.49 BY 10.76.
+         
 
 ASSIGN FRAME attr-dial:HIDDEN       = TRUE
        srect:ROW IN FRAME attr-dial = 2.52.
-
+       
 CREATE WIDGET-POOL.
+
+
 
 TRANS-BLK:
 DO TRANSACTION:
@@ -525,34 +534,45 @@ REMOVE*/
   END.  /* Has PRIVATE DATA */
 
 
-  {adecomm/okbar.i} 
-  ASSIGN FRAME attr-dial:DEFAULT-BUTTON = btn_OK:HANDLE IN FRAME attr-dial.
-
+{adecomm/okbar.i} 
+ASSIGN FRAME attr-dial:DEFAULT-BUTTON = btn_OK:HANDLE IN FRAME attr-dial.
+  
 
 ON CHOOSE OF btn_help IN FRAME attr-dial OR HELP OF FRAME attr-dial DO:
   RUN adecomm/_adehelp.p ( "ab", "CONTEXT", {&String_Attrs_Dlg_Box}, ? ).
 END.
-
-  
+ 
   ASSIGN cur-row                  = cur-row + .5
          adjust                   = FRAME attr-dial:HEIGHT - cur-row - 2.25
          btn_ok:ROW               = btn_ok:ROW - adjust
          btn_cancel:ROW           = btn_cancel:ROW - adjust
          btn_help:ROW             = btn_help:ROW - adjust
          FRAME attr-dial:HEIGHT   = frame attr-dial:HEIGHT - adjust
-         FRAME attr-dial:HIDDEN   = FALSE. 
-       
+     . 
+  {adeuib/ide/dialoginit.i "FRAME attr-dial:handle"}
+  &IF DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+  dialogService:View().  
+   &ELSE
+  FRAME attr-dial:HIDDEN   = FALSE.
+   &ENDIF 
+      
   /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
   ON WINDOW-CLOSE OF FRAME attr-dial APPLY "END-ERROR":U TO SELF.
-
  
   /* Now enable the interface and wait for the exit condition.            */
   /* (NOTE: handle ERROR and END-KEY so cleanup code will slways fire.    */
   MAIN-BLOCK:
   DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
      ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  
-    WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+   &scoped-define CANCEL-EVENT U2
+   {adeuib/ide/dialogstart.i btn_ok btn_cancel wintitle}
+   &if DEFINED(IDE-IS-RUNNING) = 0  &then
+     WAIT-FOR GO OF FRAME {&FRAME-NAME}.
+   &ELSE
+     WAIT-FOR GO OF FRAME {&FRAME-NAME} or "{&CANCEL-EVENT}" of this-procedure.       
+     if cancelDialog THEN UNDO, LEAVE.  
+   &endif
+    
   END.
 END.  /*TRANS-BLK */
 HIDE FRAME attr-dial.

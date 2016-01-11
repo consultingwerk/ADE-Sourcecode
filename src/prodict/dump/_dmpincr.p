@@ -2070,7 +2070,7 @@ DO ON STOP UNDO, LEAVE
            DICTDB._Area._Area-number = DICTDB._Index._idx-num NO-LOCK .
       IF AVAIL DICTDB._Area THEN   
       FIND DICTDB2._Area WHERE
-           DICTDB2._Area._Area-name = DICTDB._Area._Area-name .
+           DICTDB2._Area._Area-name = DICTDB._Area._Area-name no-error.
       IF NOT AVAIL DICTDB2._Area THEN DO:
         ASSIGN s_errorsLogged = TRUE.        
         OUTPUT STREAM err-log TO {&errFileName} APPEND NO-ECHO.

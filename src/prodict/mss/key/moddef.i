@@ -157,7 +157,16 @@ PROCEDURE default :
            IF act = "t" THEN Active:SCREEN-VALUE IN FRAME frame_default ="yes".
            IF chek <> "" THEN EXPRESSION:SCREEN-VALUE IN FRAME frame_default = chek.
            ASSIGN DESC_EDIT:SCREEN-VALUE IN FRAME frame_default = descrip.
-           ENABLE   BROWSE-DEFAULT Active DESC_EDIT EXPRESSION 
+
+           IF user_dbtype    NE "MSS" then
+              ENABLE   BROWSE-DEFAULT Active DESC_EDIT EXPRESSION 
+                    OK_BUT CREATE_BUT CANCEL_BUT 
+                 &IF "{&WINDOW-SYSTEM}" <> "TTY"
+                 &THEN HELP_BUT  
+                 &ENDIF 
+                    WITH FRAME frame_default.
+           ELSE
+               ENABLE   BROWSE-DEFAULT DESC_EDIT 
                     OK_BUT CREATE_BUT CANCEL_BUT 
                  &IF "{&WINDOW-SYSTEM}" <> "TTY"
                  &THEN HELP_BUT  
