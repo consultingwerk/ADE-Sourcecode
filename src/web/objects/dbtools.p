@@ -30,6 +30,9 @@ DEFINE NEW GLOBAL SHARED VARIABLE web-utilities-hdl AS HANDLE    NO-UNDO.
 DEFINE NEW GLOBAL SHARED VARIABLE gcDBset           AS CHARACTER NO-UNDO INIT "".
 
 DEFINE VARIABLE cfg-failover AS LOGICAL    NO-UNDO.
+/** webstart.p */
+FUNCTION getEnv                RETURNS CHARACTER
+  (INPUT p_name                 AS CHARACTER) IN web-utilities-hdl.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -255,7 +258,7 @@ PROCEDURE init-config :
      Following each database is parameters or a program that will run if the database is not connected.
      Databases=sports2000=sportsconnect.p|db1=db1connect.p
   */
-  ASSIGN c1 = OS-GETENV("DATABASES":U).
+  ASSIGN c1 = GetEnv("DATABASES":U).
   IF c1 NE ? AND c1 > "" THEN
   DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN 
@@ -270,7 +273,7 @@ PROCEDURE init-config :
      
      c1=Default=webstate|sports=sports;webstate
   */
-  ASSIGN c1 = REPLACE(OS-GETENV("DB_GROUP":U),";":U,",":U).
+  ASSIGN c1 = REPLACE(GetEnv("DB_GROUP":U),";":U,",":U).
   IF c1 NE ? AND c1 > "" THEN
   c1-Block:
   DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
@@ -292,7 +295,7 @@ PROCEDURE init-config :
      [DbOject] Default=login|sports=c:/usr/apps/cart/ *;/app2/collect|sports2=c:/usr/apps/other/ *
   */
   
-  ASSIGN c1 = REPLACE(OS-GETENV("DB_OBJECT":U),";":U,",":U).
+  ASSIGN c1 = REPLACE(GetEnv("DB_OBJECT":U),";":U,",":U).
   IF c1 NE ? AND c1 GT "" THEN
   DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN 
@@ -306,7 +309,7 @@ PROCEDURE init-config :
    
    /* Failover Databases in case the real DBset cannot connect...
   */
-  ASSIGN c1 = OS-GETENV("DB_FAILOVER":U).
+  ASSIGN c1 = GetEnv("DB_FAILOVER":U).
   IF c1 NE ? AND c1 > "" THEN DO:
     ASSIGN cfg-failover = TRUE.
     DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):

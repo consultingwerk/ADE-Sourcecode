@@ -37,19 +37,13 @@ class OpenEdge.Net.HTTP.DefaultHeaderBuilder inherits HttpHeaderBuilder:
         
         assign oHeader = new HttpHeader(this-object:HeaderName).
         
+        if HasOption('paramDelimiter':u) then
+            assign oHeader:ParamDelimiter = GetOptionStringValue('paramDelimiter':u).
+        
+        if HasOption('hdrValue':u) then
+            assign oHeader:Value = GetOptionStringValue('hdrValue':u).
+        
         return oHeader.
-    end method.
-    
-    /** Sets the header's value 
-        
-        @param character The complete (unparsed) header value
-        @return HttpHeaderBuilder The current builder object. */
-    method override public HttpHeaderBuilder Value(input pcValue as character):
-        Assert:NotNull(pcValue, 'Header value'). 
-        
-        assign this-object:Header:Value = pcValue.
-        
-        return this-object.
     end method.
     
 end class.

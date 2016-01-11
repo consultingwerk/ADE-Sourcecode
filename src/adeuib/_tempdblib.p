@@ -1235,7 +1235,7 @@ PROCEDURE getPref :
  END.
  .
 
-{Set LogFile lUseLog}.
+{set LogFile lUseLog}.
 {set LogFileName gcLogFile}.
 
 

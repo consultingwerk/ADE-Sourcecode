@@ -411,9 +411,9 @@ IF _U._TYPE = "TEXT" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
   /* Text widgets are not changeable in an alternative layout */
   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-    ShowMessageInIDE("Text objects may only be modified in the Master Layout.~n" +
+    run ShowOkMessage in hOEIDEService("Text objects may only be modified in the Master Layout.~n" +
                       "Use a fill-in with the VIEW-AS-TEXT attribute instead.",
-                      "Information","?","OK",yes).
+                      "Information","?").
       
   &else
   MESSAGE "Text objects may only be modified in the Master Layout." SKIP
@@ -603,9 +603,9 @@ ON GO OF FRAME prop_sht DO:
      (_L._COL EQ ? AND _L._ROW NE ?) THEN DO:
      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Row and column specifications must both be unknown or they ~n" +
+        run ShowOkMessage in hOEIDEService("Row and column specifications must both be unknown or they ~n" +
                          "must both be valid values.",
-                         "Information","?","OK",yes).
+                         "Information","?").
       
      &else    
      MESSAGE "Row and column specifications must both be unknown or they" SKIP
@@ -620,8 +620,8 @@ ON GO OF FRAME prop_sht DO:
   DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("The widget ID entered is invalid. It must be an even value between 2 and 65534.",
-                         "Information","?","OK",yes).
+        run ShowOkMessage in hOEIDEService("The widget ID entered is invalid. It must be an even value between 2 and 65534.",
+                         "Information","?").
       
      &else   
     MESSAGE "The widget ID entered is invalid.  It must be an even value between 2 and 65534."
@@ -640,9 +640,9 @@ ON GO OF FRAME prop_sht DO:
       IF NUM-ENTRIES (_F._FORMAT, "/") NE 2 THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("'" + _F._FORMAT + "' is an invalid logical format. ~n" 
+        run ShowOkMessage in hOEIDEService("'" + _F._FORMAT + "' is an invalid logical format. ~n" 
                          + " Use a format of the form 'yes/no' or 'true/false' ",
-                         "Error","?","OK",yes).
+                         "Error","?").
       
      &else  
         MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
@@ -879,9 +879,9 @@ IF CAN-DO("BUTTON,IMAGE":U,_U._TYPE) THEN DO:
     do: 
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Buttons will not show DOWN or INSENSITIVE images unless "
+        run ShowOkMessage in hOEIDEService("Buttons will not show DOWN or INSENSITIVE images unless "
                          + "an UP image is defined.",
-                         "Warning","?","OK",yes).
+                         "Warning","?").
       
         &else                           
         MESSAGE "Buttons will not show DOWN or INSENSITIVE images unless"
@@ -904,9 +904,9 @@ IF sav-max NE ? AND (sav-max  NE _F._MAX-VALUE OR
   IF _F._MIN-VALUE >= _F._MAX-VALUE THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("You have specified an invalid set of minimum/maximum values. ~n"
+        run ShowOkMessage in hOEIDEService("You have specified an invalid set of minimum/maximum values. ~n"
                          + "Default values have been set.",
-                          "Error","?","OK",yes).
+                          "Error","?").
       
     &else  
     MESSAGE "You have specified an invalid set of minimum/maximum values." SKIP
@@ -991,10 +991,10 @@ IF CAN-DO("FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
           do: 
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE("There isn't enough room in frame " + _U._NAME + "~n" 
+            run ShowOkMessage in hOEIDEService("There isn't enough room in frame " + _U._NAME + "~n" 
                              + " for the header and body with COLUMN LABELS. ~n " 
                              + "Reverting to SIDE-LABELS.",
-                             "Information","?","OK",yes).
+                             "Information","?").
       
           &else          
           MESSAGE "There isn't enough room in frame" _U._NAME SKIP
@@ -1071,8 +1071,8 @@ PROCEDURE row_change.
   IF DECIMAL(SELF:SCREEN-VALUE) < low-limit THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Row must be greater than or equal to " + STRING(low-limit) + ".",
-                         "Information","?","OK",yes).
+        run ShowOkMessage in hOEIDEService("Row must be greater than or equal to " + STRING(low-limit) + ".",
+                         "Information","?").
       
     &else  
     MESSAGE "Row must be greater than or equal to" STRING(low-limit) + "."
@@ -1102,8 +1102,8 @@ PROCEDURE row_change.
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-         ShowMessageInIDE("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
-                          "Information","?","OK",yes).
+         run ShowOkMessage in hOEIDEService("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
+                          "Information","?").
       
        &else  
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
@@ -1148,8 +1148,8 @@ PROCEDURE column_change.
   IF xpos < low-limit THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Column must be greater than or equal to " + STRING(low-limit) + ".",
-                         "Information","?","OK",yes).
+        run ShowOkMessage in hOEIDEService("Column must be greater than or equal to " + STRING(low-limit) + ".",
+                         "Information","?").
       
     &else  
     MESSAGE "Column must be greater than or equal to" STRING(low-limit) + "."
@@ -1161,8 +1161,8 @@ PROCEDURE column_change.
   IF xpos > upr-limit THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-      ShowMessageInIDE("Column must be less than or equal to " + STRING(upr-limit) + ".",
-                       "Information","?","OK",yes).
+      run ShowOkMessage in hOEIDEService("Column must be less than or equal to " + STRING(upr-limit) + ".",
+                       "Information","?").
       
     &else  
     MESSAGE "Column must be less than or equal to" STRING(upr-limit) + "."
@@ -1179,8 +1179,8 @@ PROCEDURE column_change.
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-         ShowMessageInIDE("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
-                          "Information","?","OK",yes).
+         run ShowOkMessage in hOEIDEService("A" + _U._TYPE + " may not have an explicit position in the range -1 to 1.",
+                          "Information","?").
       
        &else  
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
@@ -1386,8 +1386,11 @@ PROCEDURE complete_the_transaction:
     IF _U._TYPE = "WINDOW":U AND sav-iu NE _C._ICON THEN
       stupid = h_self:LOAD-ICON(_C._ICON).
     
+    /* while this is not used/supported on tty let's make it ccompile*/ 
+    &IF "{&WINDOW-SYSTEM}" <> "TTY":U &THEN
     IF _U._TYPE = "WINDOW":U AND sav-iu2 NE _C._SMALL-ICON THEN
       stupid = h_self:LOAD-SMALL-ICON(_C._SMALL-ICON).
+    &ENDIF
     
     IF _U._TYPE = "IMAGE":U THEN DO:
       h_self:STRETCH-TO-FIT = _F._STRETCH-TO-FIT.
@@ -1734,8 +1737,8 @@ PROCEDURE db_field_selection.
       IF tbl_name = "" OR tbl_name = ? THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-           ShowMessageInIDE("Unable to determine data source information.",
-                            "Information","?","OK",yes).
+           run ShowOkMessage in hOEIDEService("Unable to determine data source information.",
+                            "Information","?").
       
        &else  
         MESSAGE "Unable to determine data source information."
@@ -1806,8 +1809,8 @@ PROCEDURE db_field_selection.
           DO:
             &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE(fld_name + " is a BLOB field and cannot be mapped to a visual object.",
-                             "Error","?","OK",yes).
+            run ShowOkMessage in hOEIDEService(fld_name + " is a BLOB field and cannot be mapped to a visual object.",
+                             "Error","?").
       
             &else  
             MESSAGE fld_name " is a BLOB field and cannot be mapped to a visual object."
@@ -1819,8 +1822,8 @@ PROCEDURE db_field_selection.
           DO:
             &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE(fld_name + " is a CLOB field and can only be mapped to an editor object.",
-                             "Error","?","OK",yes).
+            run ShowOkMessage in hOEIDEService(fld_name + " is a CLOB field and can only be mapped to an editor object.",
+                             "Error","?").
       
             &else  
             MESSAGE fld_name " is a CLOB field and can only be mapped to an editor object."
@@ -1874,8 +1877,8 @@ PROCEDURE db_field_selection.
         ELSE DO:
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
-                             "Error","?","OK",yes).
+            run ShowOkMessage in hOEIDEService("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?").
       
             &else  
           MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
@@ -1986,8 +1989,8 @@ PROCEDURE db_field_selection.
           IF UsesDataObject AND NOT VALID-HANDLE(hDataObject) THEN DO:
             &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
-                             "Error","?","OK",yes).
+            run ShowOkMessage in hOEIDEService("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?").
       
             &else  
             MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
@@ -2492,8 +2495,8 @@ procedure do-select-defaults:
         IF UsesDataObject AND NOT VALID-HANDLE(hDataObject) THEN DO:
             &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-            ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
-                             "Error","?","OK",yes).
+            run ShowOkMessage in hOEIDEService("Unable to start data object " + _P._DATA-OBJECT + ".",
+                             "Error","?").
       
             &else
             MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
@@ -2654,8 +2657,8 @@ PROCEDURE do_font_edit.
   IF _U._TYPE = "BROWSE" AND _U._LAYOUT-NAME NE "Master Layout" THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-    ShowMessageInIDE("The font of a browse may not be changed between layouts.",
-                     "Information","?","OK",yes).
+    run ShowOkMessage in hOEIDEService("The font of a browse may not be changed between layouts.",
+                     "Information","?").
       
     &else  
     MESSAGE "The font of a browse may not be changed between layouts."
@@ -2717,8 +2720,8 @@ PROCEDURE format_change.
   OS-DELETE VALUE(cTestFile).
   IF COMPILER:ERROR THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-    ShowMessageInIDE("Illegal format mask specification.",
-                     "Information","?","OK",yes).
+    run ShowOkMessage in hOEIDEService("Illegal format mask specification.",
+                     "Information","?").
     &else  
     MESSAGE "Illegal format mask specification."
       VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -2832,8 +2835,8 @@ PROCEDURE do_icon_change.
       IF TestExt <> "ICO" THEN
       do: 
          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-            ShowMessageInIDE("Windows can only be minimized with true ~".ico~" files.",
-                             "Warning","?","OK",yes).
+            run ShowOkMessage in hOEIDEService("Windows can only be minimized with true ~".ico~" files.",
+                             "Warning","?").
          &else 
          MESSAGE "Windows can only be minimized with true ~".ico~" files."
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -2890,8 +2893,8 @@ PROCEDURE do_sicon_change.
       IF TestExt <> "ICO" THEN
       do:
          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-            ShowMessageInIDE("Windows can only be minimized with true ~".ico~" files.",
-                             "Warning","?","OK",yes).
+            run ShowOkMessage in hOEIDEService("Windows can only be minimized with true ~".ico~" files.",
+                             "Warning","?").
          &else 
          MESSAGE "Windows can only be minimized with true ~".ico~" files."
             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -3239,9 +3242,9 @@ PROCEDURE row-height_change:
              h_self:ROW-HEIGHT = new-height
              minbrw-height     = h_self:MIN-HEIGHT-CHARS.
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-            ShowMessageInIDE(_U._NAME + " must be at least " + string(minbrw-height)
+            run ShowOkMessage in hOEIDEService(_U._NAME + " must be at least " + string(minbrw-height)
                              + " characters high.  Resizing...",
-                             "Warning","?","OK",yes).
+                             "Warning","?").
       &else       
       MESSAGE _U._NAME "must be at least" minbrw-height
           "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -3320,10 +3323,10 @@ PROCEDURE toolbar_check:
   IF lMenu THEN  
   DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         ShowMessageInIDE( "This window has at least one SmartToolbar with a menu. ~n" +
+         run ShowOkMessage in hOEIDEService( "This window has at least one SmartToolbar with a menu. ~n" +
                            "The SmartToolbar must be removed or its menu option turned off ~n" + 
                            "before a menubar can be created with this tool.",
-                           "Information","?","OK",yes).
+                           "Information","?").
     &else  
     MESSAGE 
      "This window has at least one SmartToolbar with a menu.   " SKIP
@@ -3383,7 +3386,7 @@ PROCEDURE vir_height_change.
   /* Display the error message */
   IF err-msg NE ? THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+       run ShowOkMessage in hOEIDEService( err-msg,"Information","?").
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
@@ -3434,7 +3437,7 @@ PROCEDURE vir_width_change.
   /* Display the error message */
   IF err-msg NE ? THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+       run ShowOkMessage in hOEIDEService( err-msg,"Information","?").
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
@@ -3507,9 +3510,9 @@ PROCEDURE height_change.
   IF _U._TYPE = "BROWSE":U THEN do:
     IF new-height < h_self:MIN-HEIGHT-CHARS THEN DO:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( _U._NAME + "must be at least" + string(h_self:min-height-chars) +
+       run ShowOkMessage in hOEIDEService( _U._NAME + "must be at least" + string(h_self:min-height-chars) +
                         "characters high.  Resizing...",
-                        "Warning","?","OK",yes).
+                        "Warning","?").
     &else  
       MESSAGE _U._NAME "must be at least" h_self:MIN-HEIGHT-CHARS
          "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -3528,7 +3531,7 @@ PROCEDURE height_change.
   /* Display an error message if there is one */
   IF err-msg NE ? THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( err-msg,"Information","?","OK",yes).
+       run ShowOkMessage in hOEIDEService( err-msg,"Information","?").
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
@@ -3631,9 +3634,9 @@ PROCEDURE width_change.
                  h_self:WIDTH  = new-width
                  minbrw-height = h_self:MIN-HEIGHT-CHARS.
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ShowMessageInIDE( _U._NAME + " must be at least " + string( minbrw-height) + "~n"
+           run ShowOkMessage in hOEIDEService( _U._NAME + " must be at least " + string( minbrw-height) + "~n"
                             + "characters high.  Resizing...",
-                           "Warning","?","OK",yes).
+                           "Warning","?").
           &else       
           MESSAGE _U._NAME "must be at least" minbrw-height
               "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -3652,7 +3655,7 @@ PROCEDURE width_change.
   /* Display the error message, if we got one */
   IF err-msg NE ? THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-      ShowMessageInIDE( err-msg,"Warning","?","OK",yes).
+      run ShowOkMessage in hOEIDEService( err-msg,"Warning","?").
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
@@ -5690,8 +5693,8 @@ PROCEDURE frequency_validation:
     IF INTEGER(h_frequency:SCREEN-VALUE) > 
       (INTEGER(h_max-value:SCREEN-VALUE) - INTEGER(h_min-value:SCREEN-VALUE)) THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ShowMessageInIDE( "Tic mark frequency cannot be larger than the difference between 
-                              the maximum and minimum values.","Error","?","OK",yes).
+           run ShowOkMessage in hOEIDEService( "Tic mark frequency cannot be larger than the difference between 
+                              the maximum and minimum values.","Error","?").
         &else  
         MESSAGE "Tic mark frequency cannot be larger than the difference between" +
           " the maximum and minimum values." 
@@ -5703,8 +5706,8 @@ PROCEDURE frequency_validation:
   END.  /* min value negative */
   ELSE IF INTEGER(h_frequency:SCREEN-VALUE) > INTEGER(h_max-value:SCREEN-VALUE) THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( "Tic mark frequency cannot be larger than the maximum value.",
-                         "Error","?","OK",yes).
+       run ShowOkMessage in hOEIDEService( "Tic mark frequency cannot be larger than the maximum value.",
+                         "Error","?").
     &else  
     MESSAGE "Tic mark frequency cannot be larger than the maximum value."
         VIEW-AS ALERT-BOX ERROR.
@@ -5755,8 +5758,8 @@ PROCEDURE delimiter_change:
            or h_delimiter:SCREEN-VALUE = " ":U
        then DO:
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ShowMessageInIDE( "Delimiter must be specified. Reverting to default delimiter.",
-                             "Information","?","OK",yes).
+           run ShowOkMessage in hOEIDEService( "Delimiter must be specified. Reverting to default delimiter.",
+                             "Information","?").
           &else 
           MESSAGE "Delimiter must be specified. Reverting to default delimiter."
             VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -5770,8 +5773,8 @@ PROCEDURE delimiter_change:
        IF LENGTH(h_delimiter:SCREEN-VALUE) <> 1 OR 
          (ASC(h_delimiter:SCREEN-VALUE) GT 126 OR ASC(h_delimiter:SCREEN-VALUE) LE 32) THEN DO:
          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ShowMessageInIDE( "Delimiter must be a single printable character.",
-                             "Information","?","OK",yes).
+           run ShowOkMessage in hOEIDEService( "Delimiter must be a single printable character.",
+                             "Information","?").
           &else    
          MESSAGE "Delimiter must be a single printable character."
                  VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -5983,9 +5986,9 @@ PROCEDURE process-sellist-and-combo:
     IF _U._TYPE = "COMBO-BOX":U AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
       IF NUM-ENTRIES (_F._FORMAT, "/") NE 2 THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ShowMessageInIDE( "'" + _F._FORMAT + "' is an invalid logical format. ~n" +
+           run ShowOkMessage in hOEIDEService( "'" + _F._FORMAT + "' is an invalid logical format. ~n" +
                              " Use a format of the form 'yes/no' or 'true/false'.",
-                             "Error","?","OK",yes).
+                             "Error","?").
         &else  
         MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
                 " Use a format of the form 'yes/no' or 'true/false'."
@@ -6076,8 +6079,8 @@ PROCEDURE set_window_controls:
   IF _C._CONTROL-BOX = FALSE AND _C._SMALL-ICON <> "" THEN
   DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-           ok = ShowMessageInIDE( "This property change will remove the specified small icon",
-                                  "Information","?","OK",yes).
+          run ShowMessage in hOEIDEService( "This property change will remove the specified small icon",
+                                  "Information","?","OK-CANCEL", input-output ok).
     &else  
     MESSAGE 
        "This property change will remove the specified small icon"
@@ -6315,9 +6318,9 @@ procedure do_choose_advanced:
   IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
     IF NUM-ENTRIES(_F._FORMAT,"/":U) NE 2 THEN DO:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        ShowMessageInIDE( "'" + _F._FORMAT + "' is an invalid logical format. ~n" 
+        run ShowOkMessage in hOEIDEService( "'" + _F._FORMAT + "' is an invalid logical format. ~n" 
                           + "Use a format of the form 'yes/no' or 'true/false'.",
-                          "Error","?","OK",yes).
+                          "Error","?").
       &else  
       MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
               "Use a format of the form 'yes/no' or 'true/false'."

@@ -1619,12 +1619,12 @@ DO:
         FIND x_U WHERE x_U._WINDOW-HANDLE = h_trg_win
                    AND x_U._NAME          = object_name
                    AND x_U._STATUS        <> "DELETED" NO-ERROR.
-   /* ELSE
+    ELSE
         FIND x_U WHERE x_U._WINDOW-HANDLE = h_trg_win
                    AND x_U._NAME          = ENTRY(3,object_name,".")
                    AND x_U._DBNAME        = ENTRY(1,object_name,".")
                    AND x_U._TABLE         = ENTRY(2,object_name,".")
-                   AND x_U._STATUS        <> "DELETED" NO-ERROR.*/
+                   AND x_U._STATUS        <> "DELETED" NO-ERROR.
                       
     IF NOT AVAILABLE x_U AND ENTRY(6, p_Sect-Curr, " ") = "BROWSE":U THEN
     DO:

@@ -169,8 +169,8 @@ PROCEDURE EditFont.
   ELSE
   do:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-    ShowMessageInIDE("Font number" + string(iipFontNumber)+ " is not valid. ~n Valid font numbers are from 0 - 255. ",
-                     "Information","?","OK",yes).
+    run ShowOkMessage in hOEIDEService("Font number" + string(iipFontNumber)+ " is not valid. ~n Valid font numbers are from 0 - 255. ",
+                     "Information","?").
           
     &else  
     MESSAGE "Font number" iipFontNumber "is not valid." SKIP
@@ -313,8 +313,8 @@ DO:
   ELSE DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
     
-     ShowMessageInIDE("Only font numbers 8-255 are customizable.",
-                      "Information","?","OK",yes).
+     run ShowOkMessage in hOEIDEService("Only font numbers 8-255 are customizable.",
+                      "Information","?").
                      
     &else   
     MESSAGE "Only font numbers 8-255 are customizable."
@@ -328,8 +328,8 @@ ON MOUSE-SELECT-DBLCLICK OF tFontDefault
 DO:
   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
     
-     ShowMessageInIDE("Only font numbers 8-255 are customizable.",
-                      "Information","?","OK",yes).
+     run ShowOkMessage in hOEIDEService("Only font numbers 8-255 are customizable.",
+                      "Information","?").
                      
   &else  
   MESSAGE "Only font numbers 8-255 are customizable."
@@ -358,8 +358,7 @@ ON CHOOSE OF iRightArrow DO:
   do:
   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
     
-     ShowMessageInIDE("Valid Font numbers are from 0 to 255.",
-                       "Information","?","OK",yes).
+     run ShowOkMessage in hOEIDEService("Valid Font numbers are from 0 to 255.","Information","?").
                      
     &else
     MESSAGE "Valid Font numbers are from 0 to 255."
@@ -384,12 +383,12 @@ ON GO OF FRAME frFontEdit DO:
   /* Tell the user if they changed any colors, but did not save. */
   IF lChanged AND NOT lSaved THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-    
-    lok     = ShowMessageInIDE("Font settings were edited, but they have ~n 
+    lok = true.
+    run ShowMessage in hOEIDEService("Font settings were edited, but they have ~n 
                                    not been saved.  These changes will be lost when ~n
                                    you leave the PROGRESS session. ~n
                                    Would you like to save settings?",
-                                   "Warning","?","YES-NO-CANCEL",yes).
+                                   "Warning","?","YES-NO-CANCEL",input-output lok).
                                    
                       
     &else
@@ -410,9 +409,9 @@ ON ENDKEY OF FRAME frFontEdit DO:
   IF lChanged OR lSaved THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
     
-     ShowMessageInIDE("Changes make editing fonts or saving ~n font settings cannot be undone. ~n
+     run ShowOkMessage in hOEIDEService("Changes make editing fonts or saving ~n font settings cannot be undone. ~n
                       Cancelling this dialog will not undo those changes.",
-                      "Warning","?","OK",yes).
+                      "Warning","?").
                                    
      
     &else  

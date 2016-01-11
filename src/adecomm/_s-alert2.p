@@ -19,6 +19,10 @@ pi_type the the type of alert box to use.
   pi_type = "q*" -> question
   pi_type = "w*" -> warning
 
+ NOTE/WARNING: 
+       The input-output is not following ABL MESSAGE statement standard  
+       CANCEL is returned as ? also when there are only 2 buttons 
+              
 pi_butn is the type of button(s) to use.
 pio_ans is the initial value and also the result.
   pi_butn = "YES-NO"        -> pio_ans = TRUE/FALSE
@@ -33,7 +37,8 @@ End-error handling:
   there is a "NO" button, then the result will be as if the user
   pressed the "NO" button.  If there is only the "OK" button, then the
   result will be as if the user selected the "OK" button.
-  
+---  
+      
  
 */
 
@@ -106,286 +111,32 @@ ASSIGN v_text = TRIM(v_text, CHR(10)) + CHR(10) + IF lOver THEN "..." ELSE "".
 /*****************************************************************/
 /********************** End new parser ***************************/
 
-/*****************************************************************/
-/******************* Screen messaging part ***********************/
-CASE SUBSTRING(pi_type,1,1,"CHARACTER":u) + "/":u + pi_butn:
-  WHEN "e/YES-NO":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN       
+if pi_type matches "e*":U then
+    pi_type = "ERROR":U.
+else if pi_type matches "i*":U then
+   pi_type = "INFORMATION":U.
+else if pi_type matches "m*":U then
+   pi_Type = "MESSAGE":U.
+else if pi_type matches "q*":U then
+   pi_Type = "QUESTION".
+else if pi_type matches "w*":U then
+   pi_Type = "WARNING".
+else pi_Type = "MESSAGE".
+     
+&if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN       
     if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Error",?,"YES-NO",pio_ans).
-    else
-    &endif  
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX error BUTTONS YES-NO
-      UPDATE pio_ans.
-  end.    
-  WHEN "e/YES-NO-CANCEL":u THEN
-  do: 
-     &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Error",?,"YES-NO-CANCEL",pio_ans).
-    else   
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX error BUTTONS YES-NO-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "e/OK":u THEN
-  do:
-     &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Error",?,"OK",yes).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX error BUTTONS OK
-      UPDATE pio_ans.
-  end.    
-  WHEN "e/OK-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN  
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Error",?,"OK-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX error BUTTONS OK-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "e/RETRY-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN  
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Error",?,"RETRY-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX error BUTTONS RETRY-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "i/YES-NO":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Information",?,"YES-NO",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX information BUTTONS YES-NO
-      UPDATE pio_ans.
-  end.    
-  WHEN "i/YES-NO-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Information",?,"YES-NO-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX information BUTTONS YES-NO-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "i/OK":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Information",?,"OK",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX information BUTTONS OK
-      UPDATE pio_ans.
-  end.    
-  WHEN "i/OK-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Information",?,"OK-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX information BUTTONS OK-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "i/RETRY-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Information",?,"RETRY-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX information BUTTONS RETRY-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "m/YES-NO":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Message",?,"YES-NO",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX message BUTTONS YES-NO
-      UPDATE pio_ans.
-  end.    
-  WHEN "m/YES-NO-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Message",?,"YES-NO-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX message BUTTONS YES-NO-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "m/OK":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Message",?,"OK",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX message BUTTONS OK
-      UPDATE pio_ans.
-  end.    
-  WHEN "m/OK-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Message",?,"OK-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX message BUTTONS OK-CANCEL
-     UPDATE pio_ans.
-  end.   
-  WHEN "m/RETRY-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Message",?,"RETRY-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX message BUTTONS RETRY-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "q/YES-NO":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Question",?,"YES-NO",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX question BUTTONS YES-NO
-      UPDATE pio_ans.
-  end.    
-  WHEN "q/YES-NO-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Question",?,"YES-NO-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX question BUTTONS YES-NO-CANCEL
-      UPDATE pio_ans.
-  end.   
-  WHEN "q/OK":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Question",?,"OK",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX question BUTTONS OK
-      UPDATE pio_ans.
-  end.    
-  WHEN "q/OK-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Question",?,"OK-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX question BUTTONS OK-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "q/RETRY-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Question",?,"RETRY-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX question BUTTONS RETRY-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "w/YES-NO":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Warning",?,"YES-NO",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX warning BUTTONS YES-NO
-      UPDATE pio_ans.
-  end.    
-  WHEN "w/YES-NO-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Warning",?,"YES-NO-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX warning BUTTONS YES-NO-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "w/OK":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Warning",?,"OK",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX warning BUTTONS OK
-      UPDATE pio_ans.
-  end.    
-  WHEN "w/OK-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Warning",?,"OK-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX warning BUTTONS OK-CANCEL
-      UPDATE pio_ans.
-  end.    
-  WHEN "w/RETRY-CANCEL":u THEN
-  do:
-    &if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN   
-    if OEIDE_CanShowMessage() then
-       pio_ans = ShowMessageInIDE(v_text,"Warning",?,"RETRY-CANCEL",pio_ans).
-    else  
-    &endif
-    MESSAGE v_text
-      VIEW-AS ALERT-BOX warning BUTTONS RETRY-CANCEL
-      UPDATE pio_ans.
-  end.    
-END CASE.
+    do:                           
+        pio_ans = ShowMessageInIDE(v_text,pi_Type,?,pi_butn,pio_ans).
+    end.
+    else do:     
+&endif
 
+        run adecomm/_showmessage.p(v_text,pi_type,?,pi_butn,?,input-output pio_ans). 
+
+&if DEFINED(IDE-IS-SUPPORTED) <> 0  &THEN       
+    end. /* else */
+&endif
+ 
 /* proper end-error handling of return value. */
 IF NOT pio_ans AND NUM-ENTRIES(pi_butn,"-":u) = 2 THEN
   pio_ans = (IF pi_butn MATCHES "*-CANCEL":u THEN ? ELSE pi_butn <> "YES-NO":u).

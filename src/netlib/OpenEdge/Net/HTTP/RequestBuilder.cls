@@ -21,25 +21,26 @@ using OpenEdge.Core.Collections.StringStringMap.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.String.
 using OpenEdge.Core.WidgetHandle.
-using OpenEdge.Net.HTTP.Filter.Auth.AuthFilterEventHandlerWrapper.
-using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 using OpenEdge.Net.HTTP.AuthenticatedRequest.
 using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.BuilderRegistry.
+using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.DefaultRequestBuilder.
+using OpenEdge.Net.HTTP.Filter.Auth.AuthFilterEventHandlerWrapper.
+using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
-using OpenEdge.Net.HTTP.HttpRequestDecorator.
 using OpenEdge.Net.HTTP.HttpRequest.
+using OpenEdge.Net.HTTP.HttpRequestDecorator.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.ProxyHttpRequest.
 using OpenEdge.Net.HTTP.RequestBuilder.
-using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
+using OpenEdge.Net.ISupportMultipartEntity.
 using OpenEdge.Net.URI.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
@@ -64,7 +65,10 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
 
     define private variable mcXmlContentTypes as character no-undo
         init 'application/xml,text/xml,text/xml-external-parsed-entity,application/xml-external-parsed-entity,application/xml-dtd':u.     
-     
+
+    define private variable mcMultipartContentTypes as character no-undo
+        init 'multipart/mixed':u.
+             
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
         get():
@@ -164,7 +168,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder The request builder being constructed. */
     method static public RequestBuilder Get(input poURI as URI, input poEntity as Object):
         return RequestBuilder
-                    :Build(MethodEnum:GET:Name, poURI)
+                    :Build(string(MethodEnum:GET), poURI)
                     :WithData(poEntity).
     end method.
     
@@ -178,7 +182,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                                             input poEntity as Object,
                                             input pcContentType as character):
         return RequestBuilder
-                    :Build(MethodEnum:GET:Name, poURI)
+                    :Build(string(MethodEnum:GET), poURI)
                     :WithData(poEntity, pcContentType).
     end method.
 
@@ -200,7 +204,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
     method static public RequestBuilder Put(input poURI as URI,
                                             input poEntity as Object):
         return RequestBuilder
-                    :Build(MethodEnum:PUT:Name, poURI)
+                    :Build(string(MethodEnum:PUT), poURI)
                     :WithData(poEntity).
     end method.
     
@@ -214,7 +218,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                                             input poEntity as Object,
                                             input pcContentType as character):
         return RequestBuilder
-                    :Build(MethodEnum:PUT:Name, poURI)
+                    :Build(string(MethodEnum:PUT), poURI)
                     :WithData(poEntity, pcContentType).
     end method.
 
@@ -234,7 +238,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder The request builder being constructed. */
     method static public RequestBuilder Post(input poURI as URI, input poEntity as Object):
         return RequestBuilder
-                    :Build(MethodEnum:POST:Name, poURI)
+                    :Build(string(MethodEnum:POST), poURI)
                     :WithData(poEntity).
     end method.
     
@@ -248,7 +252,41 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                                              input poEntity as Object,
                                              input pcContentType as character):
         return RequestBuilder
-                    :Build(MethodEnum:POST:Name, poURI)
+                    :Build(string(MethodEnum:POST), poURI)
+                    :WithData(poEntity, pcContentType).
+    end method.
+
+    /** Returns a request builder for a default Patch request 
+        
+        @param  character The target URI
+        @param  Object The message body/entity for the request
+        @return RequestBuilder The request builder being constructed. */
+    method static public RequestBuilder Patch(input pcURI as character, input poEntity as Object):
+        return RequestBuilder:Patch(OpenEdge.Net.URI:Parse(pcURI), poEntity).
+    end method.
+
+    /** Returns a request builder for a default Patch request 
+        
+        @param  URI    The target URI
+        @param  Object The message body/entity for the request
+        @return RequestBuilder The request builder being constructed. */
+    method static public RequestBuilder Patch(input poURI as URI, input poEntity as Object):
+        return RequestBuilder
+                    :Build(string(MethodEnum:PATCH), poURI)
+                    :WithData(poEntity).
+    end method.
+    
+    /** Returns a request builder for a default Patch request 
+        
+        @param  URI    The target URI
+        @param  Object The message body/entity for the request
+        @param  character The content type of the entity
+        @return RequestBuilder The request builder being constructed. */
+    method static public RequestBuilder Patch(input poURI as URI,
+                                             input poEntity as Object,
+                                             input pcContentType as character):
+        return RequestBuilder
+                    :Build(string(MethodEnum:PATCH), poURI)
                     :WithData(poEntity, pcContentType).
     end method.
     
@@ -279,7 +317,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                                                input poEntity as Object,
                                                input pcContentType as character):
         return RequestBuilder
-                    :Build(MethodEnum:DELETE:Name, poURI)
+                    :Build(string(MethodEnum:DELETE), poURI)
                     :WithData(poEntity, pcContentType).        
     end method.    
             
@@ -298,7 +336,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder The request builder being constructed. */
     method static public RequestBuilder Delete(input poURI as URI, input poEntity as Object):
         return RequestBuilder
-                    :Build(MethodEnum:DELETE:Name, poURI)
+                    :Build(string(MethodEnum:DELETE), poURI)
                     :WithData(poEntity).
     end method.
 
@@ -317,7 +355,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
     method static public RequestBuilder Head(input poURI as URI):
         define variable oBuilder as RequestBuilder no-undo.
         
-        oBuilder = RequestBuilder:Build(MethodEnum:HEAD:Name, poURI).
+        oBuilder = RequestBuilder:Build(string(MethodEnum:HEAD), poURI).
         
         return oBuilder.
     end method.
@@ -354,7 +392,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder The request builder being constructed. */
     method static public RequestBuilder Options(input poURI as URI, input poEntity as Object):
         return RequestBuilder
-                    :Build(MethodEnum:OPTIONS:Name, poURI)
+                    :Build(string(MethodEnum:OPTIONS), poURI)
                     :WithData(poEntity).
     end method.
     
@@ -368,7 +406,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                                                 input poEntity as Object,
                                                 input pcContentType as character):
         return RequestBuilder
-                    :Build(MethodEnum:OPTIONS:Name, poURI)
+                    :Build(string(MethodEnum:OPTIONS), poURI)
                     :WithData(poEntity, pcContentType).
     end method.
     
@@ -387,7 +425,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
     method static public RequestBuilder Trace(input poURI as URI):
         define variable oBuilder as RequestBuilder no-undo.
         
-        oBuilder = RequestBuilder:Build(MethodEnum:TRACE:Name, poURI).
+        oBuilder = RequestBuilder:Build(string(MethodEnum:TRACE), poURI).
         
         return oBuilder.
     end method.
@@ -470,7 +508,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
     method public RequestBuilder WithTransferEncoding(input poEncoding as TransferEncodingEnum):
         Assert:NotNull(poEncoding, 'Transfer encoding').
         
-        return AddHeader('Transfer-Encoding':u, poEncoding:Name).
+        return AddHeader('Transfer-Encoding':u, string(poEncoding)).
     end method.
 
     /** Adds data to the request.
@@ -492,6 +530,8 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                 return WithData(poEntity, entry(1, mcHtmlContentTypes)).
             when poEntity:GetClass():IsA(get-class(IStringStringMap)) then
                 return WithData(poEntity, entry(1, mcFormContentTypes)).
+            when poEntity:GetClass():IsA(get-class(ISupportMultipartEntity)) then
+                return WithData(poEntity, entry(1, mcMultipartContentTypes)).
             otherwise
                 return WithData(poEntity, entry(1, mcTextContentTypes)).
         end case.
@@ -603,7 +643,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder This builder object */
     method public RequestBuilder UsingBasicAuthentication(input poCredentials as Credentials):
         return UsingCredentials(poCredentials,
-                                AuthenticationMethodEnum:Basic:Name,
+                                string(AuthenticationMethodEnum:Basic),
                                 'realm=""':u).
     end method.
        
@@ -613,7 +653,7 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @return RequestBuilder This builder object */
     method public RequestBuilder UsingDigestAuthentication(input poCredentials as Credentials):
         return UsingCredentials(poCredentials,
-                                AuthenticationMethodEnum:Digest:Name,
+                                string(AuthenticationMethodEnum:Digest),
                                 'realm=""':u).
     end method.
 
@@ -728,7 +768,8 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @param HttpHeader The header */
     method protected logical SetHeaderOption(input poHeader as HttpHeader):
         Assert:NotNull(poHeader, 'Http header').
-                                                         
+        
+        /* Requests are not allowed mutiple headers with the same name. */
         return SetOption('header+':u + poHeader:Name, poHeader).
     end method.
     
@@ -759,7 +800,19 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         
         return AddHeader('Content-Type':u, pcContentType).
     end method.
-    
+
+
+    /** Adds an ETag value to the request.
+     
+        @param character The tag value  
+        @return RequestBuilder This builder object */
+    method public RequestBuilder ETag(input pcETag as character):
+        Assert:NotNullOrEmpty(pcETag, 'ETag ').
+        
+        /* Per RFC2616 the ETag value must be a quoted string */
+        return AddHeader('ETag':u, quoter(pcETag)).
+    end method.
+        
     /** Decorate the request with additional behaviour
             
         @param  Class The type of decorator to use

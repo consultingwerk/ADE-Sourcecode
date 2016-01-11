@@ -8,15 +8,14 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
     Description : 
     Author(s)   : pjudge
     Created     : Thu Jan 29 09:30:28 EST 2015
-    Notes       : 
+    Notes       : * Typically used for cases where a HttpMessage property is
+                    populted from different headers (names); also for Cookies.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.BuilderRegistry.
-using OpenEdge.Net.HTTP.Filter.Header.ContentLengthSetHeaderFilter.
-using OpenEdge.Net.HTTP.Filter.Header.ContentTypeSetHeaderFilter.
 using OpenEdge.Net.HTTP.Filter.Header.SetCookieSetHeaderFilter.
 using OpenEdge.Net.HTTP.Filter.Header.TransferEncodingSetHeaderFilter.
 using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
@@ -42,11 +41,12 @@ class OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder:
     /** Adds initial values into the registry
     
         @param BuilderRegistry The registry to populate */
-    method static private void InitializeRegistry(input poRegistry as BuilderRegistry):    
-        poRegistry:Put('Content-Type':u, get-class(ContentTypeSetHeaderFilter)).
-        poRegistry:Put('Content-Length':u, get-class(ContentLengthSetHeaderFilter)).
+    method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         poRegistry:Put('Set-Cookie':u, get-class(SetCookieSetHeaderFilter)).
+        /* from response */
         poRegistry:Put('Transfer-Encoding':u, get-class(TransferEncodingSetHeaderFilter)).
+        /* from request */
+        poRegistry:Put('Accept-Encoding':u, get-class(TransferEncodingSetHeaderFilter)).
     end method.
     
     /** Returns a response writer for a given content-type.
@@ -75,5 +75,5 @@ class OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder:
         
         return oWriter.
     end method.
-
+    
 end class.

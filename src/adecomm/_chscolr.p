@@ -398,9 +398,9 @@ PROCEDURE EditColor.
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       define variable colnum as character no-undo.
       colnum = if iipColorNumber = ? then "?" else string(iipColorNumber).
-      ShowMessageInIDE("Color number" + colnum + "is not valid. ~n
+      run ShowOkMessage in hOEIDEService("Color number" + colnum + "is not valid. ~n
                         Valid color numbers are from 0 - 255.",
-                        "Information","?","OK",yes).
+                        "Information","?").
       
     &else   
     MESSAGE "Color number" iipColorNumber "is not valid." SKIP
@@ -564,8 +564,8 @@ PROCEDURE SelectForegroundRectangle.
       do:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Unknown color number.",
-                         "Error","?","OK",yes).
+        run ShowOkMessage in hOEIDEService("Unknown color number.",
+                         "Error","?").
       
         &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -622,8 +622,8 @@ PROCEDURE SelectBackgroundRectangle.
         do:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-        ShowMessageInIDE("Unknown color number.",
-                         "Error","?","OK",yes).
+        run ShowOkMessage in hOEIDEService("Unknown color number.",
+                         "Error","?").
       
         &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -679,8 +679,7 @@ PROCEDURE SelectSeparatorRectangle.
         do:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
       
-         ShowMessageInIDE("Unknown color number.",
-                          "Error","?","OK",yes).
+         run ShowOkMessage in hOEIDEService("Unknown color number.","Error","?").
       
         &else  
         MESSAGE "Unknown color number." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -915,12 +914,12 @@ ON GO OF FRAME frColorEdit DO:
   /* Tell the user if they changed any colors, but did not save. */
   IF lChanged AND NOT lSaved THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-      
-      lOK = ShowMessageInIDE("Color settings were edited, but they have ~n
+      lok = true. 
+      run ShowMessage in hOEIDEService("Color settings were edited, but they have ~n
                              not been saved.  These changes will be lost when ~n
                              you leave the PROGRESS session. ~n
                              Would you like to save settings?",
-                            "Warning","?","YES-NO-CANCEL",yes).
+                            "Warning","?","YES-NO-CANCEL",input-output lok).
       &else  
     MESSAGE "Color settings were edited, but they have" {&SKP}
             "not been saved.  These changes will be lost when" {&SKP}
@@ -938,10 +937,10 @@ ON ENDKEY OF FRAME frColorEdit DO:
      be undone. */
   IF lChanged OR lSaved THEN DO:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-      
-      CallResult = ShowMessageInIDE("Changes make editing colors or saving ~n color settings cannot be undone. ~n
+      CallResult = true.
+      run ShowMessage in hOEIDEService("Changes make editing colors or saving ~n color settings cannot be undone. ~n
                             Cancelling this dialog will not undo those changes.",
-                            "Warning","?","OK",yes).
+                            "Warning","?","OK",input-output CallResult).
       if not CallResult then return.                 
       &else 
       MESSAGE "Changes make editing colors or saving" {&SKP}
@@ -1085,9 +1084,7 @@ DO:
   IF SELF:BGCOLOR = ? THEN
   do:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-      
-      ShowMessageInIDE("The default color is not customizable.",
-                       "Information","?","OK",yes).
+      run ShowOkMessage in hOEIDEService("The default color is not customizable.","Information","?").
     &else                                  
     MESSAGE "The default color is not customizable."
 	VIEW-AS ALERT-BOX INFORMATION BUTTONS Ok.

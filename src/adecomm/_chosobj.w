@@ -128,8 +128,7 @@
   DEFINE VARIABLE missed-file AS INTEGER           NO-UNDO.
   DEFINE VARIABLE DirError    AS INTEGER           NO-UNDO.
 
-
-
+ 
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
@@ -477,7 +476,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   IF NOT rc THEN DO:
      &if defined(IDE-IS-RUNNING) <> 0 &then  
          if OEIDE_CanShowMessage() then 
-              ShowMessageInIDE("Invalid parameters defined for " + gObjectType + ".","Error":U,?,"ok":U,true).
+             run ShowOkMessage in hOEIDEService ("Invalid parameters defined for " + gObjectType + ".","Error":U,?).
          else    
      &endif  
          MESSAGE "Invalid parameters defined for " gObjectType + "."
@@ -636,7 +635,7 @@ PROCEDURE BuildFileList :
           SET-SIZE(list-mem) = 0.
           &if defined(IDE-IS-RUNNING) <> 0 &then  
               if OEIDE_CanShowMessage() then 
-                 ShowMessageInIDE("Error in directory search.","Error":U,?,"ok":U,true).
+                  run ShowOkMessage in hOEIDEService ("Error in directory search.","Error":U,?,"ok":U).
                else    
           &endif  
              MESSAGE "Error in directory search." VIEW-AS ALERT-BOX ERROR.
@@ -647,7 +646,7 @@ PROCEDURE BuildFileList :
         do:
           &if defined(IDE-IS-RUNNING) <> 0 &then  
               if OEIDE_CanShowMessage() then 
-                 ShowMessageInIDE("Too many files in your directory. The file list may not be inclusive.","Information":U,?,"ok":U,true).
+                  run ShowOkMessage in hOEIDEService ("Too many files in your directory. The file list may not be inclusive.","Information":U,?).
                else    
           &endif  
           MESSAGE "Too many files in your directory." skip
@@ -828,7 +827,7 @@ PROCEDURE ChangeFilter :
           IF INDEX(tfname, "*") = 0 THEN DO:
             &if defined(IDE-IS-RUNNING) <> 0 &then  
                 if OEIDE_CanShowMessage() then 
-                    ShowMessageInIDE("Invalid directory path or filename.","Error":U,?,"ok":U,true).
+                      run ShowOkMessage in hOEIDEService("Invalid directory path or filename.","Error":U,?).
                 else    
             &endif    
                 MESSAGE "Invalid directory path or filename." VIEW-AS ALERT-BOX ERROR.
@@ -870,7 +869,7 @@ PROCEDURE ChangeFilter :
             ELSE DO: /* The '*' should not come before the last slash! */
                 &if defined(IDE-IS-RUNNING) <> 0 &then  
                 if OEIDE_CanShowMessage() then 
-                    ShowMessageInIDE("Invalid wildcard entry.","Error":U,?,"ok":U,true).
+                     run ShowOkMessage in hOEIDEService("Invalid wildcard entry.","Error":U,?).
                 else    
                 &endif
                 MESSAGE "Invalid wildcard entry." VIEW-AS ALERT-BOX ERROR.
@@ -889,7 +888,7 @@ PROCEDURE ChangeFilter :
       ELSE DO: /* really a bad filename! */
         &if defined(IDE-IS-RUNNING) <> 0 &then  
             if OEIDE_CanShowMessage() then 
-                ShowMessageInIDE("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?,"ok":U,true).
+                run ShowOkMessage in hOEIDEService("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?).
             else    
         &endif
             MESSAGE "File: " + filename:SCREEN-VALUE + " was not found." 
@@ -944,7 +943,7 @@ PROCEDURE Check_Dirs :
           &if defined(IDE-IS-RUNNING) <> 0 &then  
         
           if OEIDE_CanShowMessage() then 
-              ShowMessageInIDE(cMsg,"Warning":U,?,"ok":U,true).
+               run ShowOkMessage in hOEIDEService(cMsg,"Warning":U,?).
           else    
           &endif 
            
@@ -984,7 +983,7 @@ PROCEDURE Check_FileChosen :
             .
           &if defined(IDE-IS-RUNNING) <> 0 &then  
           if OEIDE_CanShowMessage() then 
-              ShowMessageInIDE("Please select a file.","Warning":U,?,"ok":U,true).
+               run ShowOkMessage in hOEIDEService("Please select a file.","Warning":U,?).
           else    
           &endif  
           MESSAGE "Please select a file." VIEW-AS ALERT-BOX WARNING. 
@@ -1320,7 +1319,7 @@ PROCEDURE OCX.FileClosed :
       ELSE do:
           &if defined(IDE-IS-RUNNING) <> 0 &then  
           if OEIDE_CanShowMessage() then 
-              ShowMessageInIDE("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?,"ok":U,true).
+              run ShowOkMessage in hOEIDEService("File: " + filename:SCREEN-VALUE + " was not found.","Error":U,?).
           else    
           &endif    
           
@@ -1513,7 +1512,7 @@ do with frame {&FRAME-NAME}:
         */
        &if defined(IDE-IS-RUNNING) <> 0 &then  
           if OEIDE_CanShowMessage() then 
-              ShowMessageInIDE("A problem was detected trying to access the " + fullname + " control.","Error":U,?,"ok":U,true).
+              run ShowOkMessage in hOEIDEService("A problem was detected trying to access the " + fullname + " control.","Error":U,?).
           else    
        &endif  
          message "A problem was detected trying to access the" skip

@@ -22,7 +22,4 @@ interface OpenEdge.Net.HTTP.IHttpRequest inherits IHttpMessage:
     /** (mandatory) The URI to request eg. http://progress.com/ */
     define public property URI as URI no-undo get.  set.
 
-    /** The content types which we will accept in response to this request */
-    define public property AcceptContentType as character extent no-undo get. set.
-    
 end interface.

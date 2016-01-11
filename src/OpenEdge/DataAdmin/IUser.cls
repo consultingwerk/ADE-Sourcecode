@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011,2015 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -35,6 +35,9 @@ interface OpenEdge.DataAdmin.IUser inherits IDataAdminElement:
        
      /** An optional description of the user. */
      define public property Description   as character no-undo get. set.    
+     
+     /** An optional User number of the user) */
+     define public property Number        as integer no-undo get. set.
      
      /** Set to true if the user is an SQL only user. (ignored by ABL runtime)*/
      define public property IsSqlOnly     as logical no-undo get. set.   

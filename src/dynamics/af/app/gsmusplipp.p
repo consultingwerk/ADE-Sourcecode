@@ -1870,9 +1870,17 @@ FUNCTION columnValue RETURNS CHARACTER
                                                    INPUT NO)) NO-ERROR.
                                                     
       RUN userLoginOrganisations IN gshSecurityManager (INPUT dLoginUser, output cAllowedCompany).
-      do Cntr = 2 to num-entries(cAllowedCompany) by 2:
-          if Cntr > 2 then cLoginCompanyObject = cLoginCompanyObject + ",".
-          cLoginCompanyObject = cLoginCompanyObject + entry(Cntr,cAllowedCompany).
+    /* PSC00328149:
+    previously cAllowedCompany returned the result with comma(,) separated values, 
+    this will fail to fetch the correct companies on below code with European settings 
+    since cLoginCompanyObject returns the decimal values with comma(,) as numeric-decimal-point(with European settings).
+    To fix this we will be using hash(#) to separate cAllowedCompany values.
+    Now cAllowedCompany will return the result with hash(#) separated values
+    and below code will look for hash(#).
+    */
+      do Cntr = 2 to num-entries(cAllowedCompany,"#") by 2:
+          if Cntr > 2 then cLoginCompanyObject = cLoginCompanyObject + "#".
+          cLoginCompanyObject = cLoginCompanyObject + entry(Cntr,cAllowedCompany,"#").
       end.
       return cLoginCompanyObject.
   end.  

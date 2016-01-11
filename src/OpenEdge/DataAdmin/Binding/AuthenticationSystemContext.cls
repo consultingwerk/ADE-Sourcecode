@@ -1,20 +1,20 @@
- /*************************************************************/
+/*************************************************************/
 
- /* Copyright (c) 2011 by progress Software Corporation       */
- /*                                                           */
- /* all rights reserved.  no part of this program or document */
- /* may be  reproduced in  any form  or by  any means without */
- /* permission in writing from progress Software Corporation. */
- /*************************************************************/
- /*------------------------------------------------------------------------
-    File        : AuthenticationSystemContext
-    Purpose     : 
-    Syntax      : 
-    Description : 
-    Author(s)   : hdaniels
-    Created     : Feb 2011
-    Notes       : 
-  ----------------------------------------------------------------------*/
+/* Copyright (c) 2015 by progress Software Corporation       */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
+/*------------------------------------------------------------------------
+   File        : AuthenticationSystemContext
+   Purpose     : 
+   Syntax      : 
+   Description : 
+   Author(s)   : hdaniels
+   Created     : Feb 2011
+   Notes       : 
+ ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 
 using OpenEdge.DataAdmin.AuthenticationSystem.
@@ -43,10 +43,10 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
     define temp-table copytable reference-only like ttAuthenticationSystem .  
    
       
-	define public override property TableHandle as handle no-undo 
-    	get():
-    		return temp-table ttAuthenticationSystem:handle.
-    	end get.
+    define public override property TableHandle as handle no-undo 
+        get():
+            return temp-table ttAuthenticationSystem:handle.
+        end get.
     
     define public override property KeyFields as character  no-undo  
         get():
@@ -80,31 +80,31 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
         return dataset dsAuthenticationSystem:handle. 
     end method.
     	
-	method public override character GetJoinFields(parentid as char):
+    method public override character GetJoinFields(parentid as char):
         case parentid:
         end.
     end.
 
-/*	method protected void LoadInstances().                   */
-/*        if not Loaded then                                */
-/*        for each ttDomain:                                */
-/*            if not valid-object(ttDomain.Entity) then     */
-/*                ttDomain.Entity = new Domain(this-object).*/
-/*        end.                                              */
-/*        Loaded = true.                                    */
-/*    end method.                                           */
-/*                                                          */
-/*    method protected void UnLoadInstances().              */
-/*        for each ttDomain:                                */
-/*            ttDomain.Entity = ?.                          */
-/*        end.                                              */
-/*        Loaded = false.                                   */
-/*    end method.                                           */
+    /*	method protected void LoadInstances().                   */
+    /*        if not Loaded then                                */
+    /*        for each ttDomain:                                */
+    /*            if not valid-object(ttDomain.Entity) then     */
+    /*                ttDomain.Entity = new Domain(this-object).*/
+    /*        end.                                              */
+    /*        Loaded = true.                                    */
+    /*    end method.                                           */
+    /*                                                          */
+    /*    method protected void UnLoadInstances().              */
+    /*        for each ttDomain:                                */
+    /*            ttDomain.Entity = ?.                          */
+    /*        end.                                              */
+    /*        Loaded = false.                                   */
+    /*    end method.                                           */
 	
-	method public override void CreateRow(entity as IDataAdminElement):
-	    /* the default syserror has all info */
-	    CreateRow(cast(entity,IAuthenticationSystem)).    
-	end method.
+    method public override void CreateRow(entity as IDataAdminElement):
+        /* the default syserror has all info */
+        CreateRow(cast(entity,IAuthenticationSystem)).    
+    end method.
 
     method public override void CopyTable(cntxt as IDataAdminModel):
         define variable hTbl as handle no-undo.
@@ -113,8 +113,8 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
         Loaded = false.
     end method.    
     
-	method private void CopyTable(input table copytable):
-	    define variable dataerror as DataContextError no-undo.      
+    method private void CopyTable(input table copytable):
+        define variable dataerror as DataContextError no-undo.      
         for each copytable on error undo, throw:  
             if valid-object(Service) and valid-object(copytable.Entity) then 
             do:
@@ -135,7 +135,7 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
                     if not valid-object(DataError) then 
                         dataError = new DataContextError("Domain",e).
                     else 
-                       dataError:AddMessage(e).             		
+                        dataError:AddMessage(e).             		
                 end catch. 
             end.             
         end.    
@@ -153,7 +153,7 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
             
     end method.  
 	
-	method private character GetCreateError(authenticationSystem as IAuthenticationSystem):
+    method private character GetCreateError(authenticationSystem as IAuthenticationSystem):
         return this-object:GetCreateError(cast(authenticationSystem,IDataAdminElement),authenticationSystem:Name). 
     end method.
     
@@ -164,47 +164,69 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
             hBefore = phSystem:before-buffer.
             hbefore:find-by-rowid(phSystem:before-rowid).
             if phSystem::name <> hBefore::name then
-               undo, throw new ReadOnlyPropertyError(Name,phSystem::name,"Name").
+                undo, throw new ReadOnlyPropertyError(Name,phSystem::name,"Name").
         end.    
         
     end method.      
          
          
-	method private void ValidateAuthenticationSystem(authenticationsystem as IAuthenticationSystem):
-	    define variable validateError as DataContextError no-undo.
-	    define variable e1 as logical no-undo.
-/*	    define variable e2 as logical no-undo.   */
-/*        define variable e3 as logical no-undo.*/
-        define variable e11 as logical no-undo.
-/*        define variable e12 as logical no-undo.*/
-/*        define variable e13 as logical no-undo.*/
+    method private void ValidateAuthenticationSystem(authenticationsystem as IAuthenticationSystem):
+        define variable validateError as DataContextError no-undo.
+        define variable e1            as logical          no-undo.
+        /*	    define variable e2 as logical no-undo.   */
+        /*        define variable e3 as logical no-undo.*/
+        define variable e11           as logical          no-undo.
+    /*        define variable e12 as logical no-undo.*/
+    /*        define variable e13 as logical no-undo.*/
 
-/*        e11 = not valid-object(domain:Tenant).*/
-        /* 
-        if not e11 and valid-object(Service) then
-            assign
-                e1 = domain:Tenant:Service <> Service.
-        */
+    /*        e11 = not valid-object(domain:Tenant).*/
+    /* 
+    if not e11 and valid-object(Service) then
+        assign
+            e1 = domain:Tenant:Service <> Service.
+    */
         
-	end method.    
+    end method.    
 	
-	method public void CreateRow(authenticationSystem as IAuthenticationSystem):
-	    define variable validateError as DataContextError no-undo.
-       
-	    temp-table ttAuthenticationSystem:tracking-changes = true.
-	    ValidateAuthenticationSystem(authenticationSystem).
+    method public void CreateRow(authenticationSystem as IAuthenticationSystem):
+        define variable validateError as DataContextError no-undo.
 	    
-	    do on error undo, throw: 
-	        Count = Count + 1.
-	        create ttAuthenticationSystem.
+        define variable mPtr          as MEMPTR           no-undo.
+        define variable md5Value      as CHAR             no-undo.
+        define variable cFileName     as CHAR             no-undo.
+        define variable iLength       as INT              no-undo.
+        define variable mraw          as raw              no-undo.        
+       
+        temp-table ttAuthenticationSystem:tracking-changes = true.
+        ValidateAuthenticationSystem(authenticationSystem).
+	    
+        do on error undo, throw: 
+            Count = Count + 1.	       
+            cFileName = authenticationSystem:Callback .
+            RCODE-INFO:FILE-NAME = REPLACE(cFileName, ".p", ".r").
+            IF RCODE-INFO:CRC-VALUE = ? THEN 
+            DO:                                
+                undo, throw new UnsupportedOperationError("ERROR - did not find info for rcode in callback procedure").
+            END.
+        
+            md5Value = RCODE-INFO:MD5-VALUE.
+            IF md5Value = ? THEN 
+            DO:                                
+                undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have MD5 value").
+            END.
+        
+            iLength = LENGTH(md5Value).
+            SET-SIZE(mptr) = iLength + 1.
+            PUT-STRING(mptr,1) = md5Value.
+            create ttAuthenticationSystem.
             assign 
-                ttAuthenticationSystem.Name            = authenticationSystem:name
-                ttAuthenticationSystem.Entity          = authenticationSystem
-                ttAuthenticationSystem.Description     = authenticationSystem:Description
-                ttAuthenticationSystem.IsEnabled       = authenticationSystem:IsEnabled
-                ttAuthenticationSystem.Callback        = authenticationSystem:Callback  
-                ttAuthenticationSystem.Comments        = authenticationSystem:Comments    
-                .   
+                ttAuthenticationSystem.Name           = authenticationSystem:name
+                ttAuthenticationSystem.Entity         = authenticationSystem
+                ttAuthenticationSystem.Description    = authenticationSystem:Description
+                ttAuthenticationSystem.IsEnabled      = authenticationSystem:IsEnabled
+                ttAuthenticationSystem.ModuleChecksum = (if authenticationSystem:ModuleChecksum = logical("yes") then GET-BYTES(mptr,1, iLength) else ?)
+                ttAuthenticationSystem.Callback       = authenticationSystem:Callback  
+                ttAuthenticationSystem.Comments       = authenticationSystem:Comments.   
             OnRowCreated().      
             catch e as Error:  
                 delete ttAuthenticationSystem.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : UrlEncodingTypeEnum
@@ -12,20 +12,8 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.EnumMember.
-using OpenEdge.Net.UriEncodingTypeEnum.
-
-class OpenEdge.Net.UriEncodingTypeEnum serializable inherits EnumMember: 
-    &global-define EnumMembers 
-    
-    {Consultingwerk/EnumMember.i Default    0        UriEncodingTypeEnum}
-    {Consultingwerk/EnumMember.i Query      1        UriEncodingTypeEnum}
-    {Consultingwerk/EnumMember.i Cookie     2        UriEncodingTypeEnum}
-    
-    constructor protected UriEncodingTypeEnum( input piValue as integer, input pcName as character ):
-        super (input piValue, input pcName).
-    end constructor.
-    
-    {Consultingwerk/EnumFromString.i OpenEdge.Net.UriEncodingTypeEnum}
-
-end class.
+enum OpenEdge.Net.UriEncodingTypeEnum:
+    define enum       Default = 0
+                      Query
+                      Cookie.
+end enum.

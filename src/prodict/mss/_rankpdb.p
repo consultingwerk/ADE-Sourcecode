@@ -342,20 +342,21 @@ _idxloop:
      ASSIGN keyCreated   = TRUE
             s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc +  ":PKC:MIGCON".
   ELSE IF msstryp AND NOT noIndex AND 
-        ( pk_unique OR ( NOT pk_unique AND (compatible AND (mssOptRowid EQ "U")))) THEN DO:
+        ( pk_unique OR ( NOT pk_unique AND NOT mssrecidCompat AND (compatible AND (mssOptRowid EQ "U")) )) THEN DO:
      FIND FIRST s_ttb_idx WHERE s_ttb_idx.ttb_tbl = itbl_recid AND 
                                 s_ttb_idx.pro_prim = TRUE NO-ERROR.
      IF AVAILABLE s_ttb_idx AND NOT pk_unique THEN DO:
         ASSIGN s_ttb_idx.pro_uniq_bkp = s_ttb_idx.pro_uniq /* save original */
                s_ttb_idx.pro_uniq = TRUE /* Fake it as Unique */
                s_ttb_idx.ds_idx_typ = 1
+               s_ttb_idx.proxy_key = TRUE
                restorReqd = TRUE
                s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":OEPUK|" + s_ttb_idx.pro_name.
         IF (NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "1") 
         THEN  ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NTGPK".
      END.
-     ASSIGN keyCreated   = TRUE
-            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":OEPK"
+     IF NOT mssrecidCompat THEN
+        ASSIGN keyCreated   = TRUE
             s_ttb_idx.ds_idx_typ = 1.
   END.
   ELSE IF (compatible AND (mssOptRowid NE "U")) THEN 
@@ -419,6 +420,9 @@ ELSE DO:
             END.
           END.
 
+         IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND s_ttb_idx.pro_prim THEN
+            s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":OEPK".
+
          IF INDEX(s_ttb_idx.ds_msc21,"p") <> 0 THEN DO:
              ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":PKROW|" + s_ttb_idx.pro_name.
              IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 THEN
@@ -428,7 +432,7 @@ ELSE DO:
          ELSE IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 THEN
                 ASSIGN s_ttb_tbl.rank_desc = s_ttb_tbl.rank_desc + ":NONCC|" + s_ttb_idx.pro_name.
 
-         IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND INDEX(s_ttb_idx.ds_msc21,"p") <> 0 AND NOT keyCreated THEN
+         IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND NOT keyCreated THEN
 	    assign s_ttb_idx.ds_idx_typ = 1.
 
          IF INDEX(s_ttb_idx.ds_msc21,"r") <> 0 AND  s_ttb_idx.ds_idx_typ <> 1 THEN

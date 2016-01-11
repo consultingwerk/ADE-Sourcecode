@@ -158,10 +158,10 @@ DO:
   IF cDynamicMsg > "" AND cDynamicMsg <> "NO-MESSAGE":U THEN
   do: 
      if OEIDEIsRunning then
-         ShowMessageInIDE(cDynamicMsg + CHR(10) 
+         run ShowOkMessage in hOEIDEService(cDynamicMsg + CHR(10) 
                          + "Dynamic design templates and palettes cannot be loaded unless they are both properly defined." + CHR(10)
                          + "The appBuilder will now load the static .cst files.",
-                           "Information","?","OK",yes).
+                           "Information","?").
      else 
      MESSAGE cDynamicMsg + CHR(10) 
              + "Dynamic design templates and palettes cannot be loaded unless they are both properly defined." + CHR(10)
@@ -278,10 +278,10 @@ IF NOT CAN-FIND (FIRST _custom WHERE _custom._type = "Container") AND
    _AB_license NE 2 /* Not Webspeed */ THEN 
 DO:
   if OEIDEIsRunning then
-         ShowMessageInIDE("Your custom object files do not contain any Container objects. " +
+         run ShowOkMessage in hOEIDEService("Your custom object files do not contain any Container objects. " +
                           "If you are using a custom object file from another version of " +
                           "PROGRESS, you should update it to the latest version.",
-                           "Warning","?","OK",yes).
+                           "Warning","?").
   else  
   MESSAGE "Your custom object files do not contain any Container objects. " {&SKP}
           "If you are using a custom object file from another version of " {&SKP}
@@ -648,11 +648,11 @@ Toggle-Box,Slider,Button,Selection-List,Editor,Combo-Box,Fill-In,Text,~
        IF FILE-INFO:FULL-PATHNAME = ? THEN
        DO:
          if OEIDEIsRunning then
-         ShowMessageInIDE("Cannot find palette template:" + QUOTER(cPalTemplateFile)
+         run ShowOkMessage in hOEIDEService("Cannot find palette template:" + QUOTER(cPalTemplateFile)
                            +  " for " + QUOTER(cClass) + ": "
                            + cPalLabel +
                            "Please check the value of property 'PaletteNewTemplate' and make sure that it can be located in your PROPATH.",
-                           "Error","?","OK",yes).
+                           "Error","?").
          else    
          MESSAGE "Cannot find palette template:" + QUOTER(cPalTemplateFile)
                 + " for " + QUOTER(cClass) + ": "
@@ -981,11 +981,11 @@ PROCEDURE read-customTemplate-Dynamics :
       IF FILE-INFO:FULL-PATHNAME = ? THEN
       DO:
         if OEIDEIsRunning then
-         ShowMessageInIDE("Cannot find TEMPLATE: " + cTemplateFile
+         run ShowOkMessage in hOEIDEService("Cannot find TEMPLATE: " + cTemplateFile
                           + " for " + CAPS(cClass) + ": "
                           + ctemplateLabel +
                           "Please check the name and make sure that it can be located in your PROPATH.",
-                          "Error","?","OK",yes).
+                          "Error","?").
         else  
         MESSAGE "Cannot find TEMPLATE: " + cTemplateFile
                + " for " + CAPS(cClass) + ": "
@@ -1105,12 +1105,12 @@ PROCEDURE read-custom-file :
               IF FILE-INFO:FULL-PATHNAME = ? THEN
               DO:
                 if OEIDEIsRunning then
-                   ShowMessageInIDE("Cannot find NEW-TEMPLATE: " +
+                   run ShowOkMessage in hOEIDEService("Cannot find NEW-TEMPLATE: " +
                                     TRIM(SUBSTRING(TRIM(cline),13,-1,"CHARACTER"))
                                     + " for " + CAPS(_custom._type) + ": "
                                     + _custom._name +
                                     "Please check the name and make sure that it can be located in your PROPATH.",
-                                    "Error","?","OK",yes).
+                                    "Error","?").
                 else  
                 MESSAGE "Cannot find NEW-TEMPLATE: " +
                       TRIM(SUBSTRING(TRIM(cline),13,-1,"CHARACTER"))
@@ -1253,10 +1253,10 @@ PROCEDURE read-custom-file :
             IF FILE-INFO:FULL-PATHNAME = ? THEN 
             DO:
                 if OEIDEIsRunning then
-                   ShowMessageInIDE("Cannot find NEW-TEMPLATE: " + _palette_item._NEW_TEMPLATE + 
+                   run ShowOkMessage in hOEIDEService("Cannot find NEW-TEMPLATE: " + _palette_item._NEW_TEMPLATE + 
                                     " for OBJECT: " + _palette_item._NAME +
                                     "Please check the name and make sure that it can be located in your PROPATH.",
-                                    "Error","?","OK",yes).
+                                    "Error","?").
                 else
                  MESSAGE "Cannot find NEW-TEMPLATE: " + _palette_item._NEW_TEMPLATE + 
                    " for OBJECT: " + _palette_item._NAME skip
@@ -1400,8 +1400,8 @@ REMOVE*/
                 IF OPSYS = "MSDOS" AND cToken = "VBX" THEN
                 do:
                   if OEIDEIsRunning then
-                   ShowMessageInIDE("Custom widget," + cToken + ", defined without palette icon.",
-                                    "Error","?","OK",yes).
+                   run ShowOkMessage in hOEIDEService("Custom widget," + cToken + ", defined without palette icon.",
+                                    "Error","?").
                   else  
                   MESSAGE "Custom widget," cToken + ", defined without palette icon."
                       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -1425,10 +1425,10 @@ REMOVE*/
         IF empty-file THEN
         do:
           if OEIDEIsRunning then
-             ShowMessageInIDE(p_filename +
+             run ShowOkMessage in hOEIDEService(p_filename +
                              "This file did not define any Custom Objects." +
                              "Please make sure you were pointing to the correct file.",
-                             "Warning","?","OK",yes).
+                             "Warning","?").
           else  
           MESSAGE p_filename SKIP
                   "This file did not define any Custom Objects." SKIP(1)

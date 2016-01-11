@@ -21,6 +21,7 @@ using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder.
 using OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder.
 using Progress.Json.ObjectModel.JsonArray.
+using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder:
     
@@ -38,7 +39,6 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         end get.
         private set.
     
-    /* constants. private and properties to make immutable */
     define protected property PROP_SSL_PROTOCOLS  as character init 'sslprotocols':u no-undo get.
     define protected property PROP_SSL_CIPHERS    as character init 'sslciphers':u   no-undo get.
     define protected property PROP_SSL_HOSTVERIFY as character init 'nohostverify':u no-undo get.
@@ -160,6 +160,20 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, pcValue).
+        
+        return this-object.
+    end method.                                                     
+
+    /** Adds or overwrites an option for the client library.
+        
+        @param  character The name of the option
+        @param  Object The value of the option (can be anything)
+        @return ClientLibraryBuilder This builder object. */
+    method public ClientLibraryBuilder Option(input pcName as character,
+                                              input poValue as Object):
+        
+        Assert:NotNullOrEmpty(pcName, 'Option name').
+        SetOption(pcName, poValue).
         
         return this-object.
     end method.                                                     

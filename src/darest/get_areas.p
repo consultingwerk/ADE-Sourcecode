@@ -56,7 +56,14 @@ procedure Execute :
         area = service:GetArea(restRequest:KeyValue[1]).
         if not valid-object(area) then 
             undo, throw new NotFoundError("Area '"  + restRequest:KeyValue[1]  + "' not found").
-        area:ExportTree(cFileOut).
+        if restRequest:NumLevels = 1 then   
+           area:ExportTree(cFileOut).
+        else do:
+           if restRequest:CollectionName[2] = "Extents" then
+               area:Extents:Export(cFileOut). 
+           else 
+              undo, throw new NotFoundError ("Invalid collection reference " + quoter(restRequest:CollectionName[2]) + " in URL " + quoter(restRequest:RequestUrl)).
+        end.       
     end.
     else do:
         pageRequest = restRequest:GetPageRequest().

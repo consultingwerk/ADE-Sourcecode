@@ -237,9 +237,9 @@ ON GO OF FRAME DIALOG-1 DO:
   ASSIGN p_File_Name.
   IF p_must_exist AND SEARCH(p_File_Name) eq ? THEN DO: 
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( p_File_Name + "~n Cannot find this file. ~n  
+        run ShowOkMessage in hOEIDEService( p_File_Name + "~n Cannot find this file. ~n  
                                  Please verify that the correct path and filename are given.",
-                                 "Warning",?,"OK",yes).
+                                 "Warning",?).
     &else     
     MESSAGE p_File_Name SKIP
             "Cannot find this file." SKIP(1)
@@ -275,10 +275,10 @@ PROCEDURE PressedOK .
       /* Report error. */
       IF search-file eq ? THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE( TRIM( p_File_Name ) + "~n Cannot find this file. ~n  
+        run ShowOkMessage in hOEIDEService( TRIM( p_File_Name ) + "~n Cannot find this file. ~n  
                                  The file should be specified with a full path or exist ~n
                                  in the PROGRESS PROPATH.",
-                                 "Warning",?,"OK",yes).
+                                 "Warning",?).
         &else   
         MESSAGE TRIM( p_File_Name ) SKIP
                 "Cannot find this file." SKIP(1)

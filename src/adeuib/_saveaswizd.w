@@ -906,7 +906,7 @@ DO:
               OR KEYLABEL(LASTKEY) = "~\") 
               AND SELF:SELECTION-START = ? 
               AND (SUBSTRING(SELF:SCREEN-VALUE,1,2) = "//":U 
-                   OR SUBSTRING(SELF:SCREEN-VALUE,1,2) = "~\\":U) 
+                   OR SUBSTRING(SELF:SCREEN-VALUE,1,2) = "~\~\":U) 
           THEN RETURN NO-APPLY.
   END.
 
@@ -958,7 +958,7 @@ DO:
               OR KEYLABEL(LASTKEY) = "~\") 
               AND SELF:SELECTION-START = ? 
               AND (SUBSTRING(SELF:SCREEN-VALUE,1,2) = "//":U 
-                   OR SUBSTRING(SELF:SCREEN-VALUE,1,2) = "~\\":U) 
+                   OR SUBSTRING(SELF:SCREEN-VALUE,1,2) = "~\~\":U) 
           THEN RETURN NO-APPLY.
   END.
 
@@ -2153,8 +2153,7 @@ END.
     &if defined(IDE-IS-RUNNING) <> 0 &then 
       
 /* TODO add command to check if open in PDS already 
-      if lReplace then
-      ShowOkMessageInIDE ("The is iops","OK",?).
+   
   */
     &endif  
  END.

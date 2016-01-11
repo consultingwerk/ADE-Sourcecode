@@ -3223,7 +3223,7 @@ DO ON STOP UNDO, LEAVE:
                                     AND t-name = ilin[5]
                                     AND new-name = ilin[3]
                                     NO-ERROR.
-            IF NOT AVAILABLE rename-obj THEN                         
+            IF NOT AVAILABLE rename-obj AND DICTDB._field._extent < 0 THEN                         
               ASSIGN fieldname = "a##" + SUBSTRING(ilin[3], 1, (INTEGER(user_env[29]) - 3)).   
             ELSE
               ASSIGN fieldname = ilin[3].

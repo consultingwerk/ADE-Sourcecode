@@ -67,7 +67,6 @@ procedure Execute :
     else do:
         policies = service:GetPartitionPolicies().
     end.    
-        
     /* get taskname and write Request Start to the logfile */ 
     cTaskName = restRequest:GetQueryValue("TaskName").
     if cTaskName > "" then
@@ -94,7 +93,7 @@ procedure Execute :
             if restRequest:CollectionName[2] = "partitionPolicyDetails" then
             do:
                 details = policy:Details.
-                details:Import(cFile).
+                details:ImportTree(cFile).
                 service:UpdatePartitionPolicy(policy).
                 details:ExportLastSavedTree(cFileOut).
             end.
@@ -102,7 +101,8 @@ procedure Execute :
             and restRequest:NumLevels = 3 
             and restRequest:CollectionName[3] = "deallocate" then
             do:
-                                                
+                undo, throw new UnsupportedOperationError("Deallocate of paretition policy details").   
+                                 
     /*                deallocTable = service:GetTable(restRequest:KeyValue[2]).                                 */
     /*                if not valid-object(deallocTable) then                                                    */
     /*                    undo, throw new NotFoundError("Table " + restRequest:KeyValue[2] + " was not found.").*/

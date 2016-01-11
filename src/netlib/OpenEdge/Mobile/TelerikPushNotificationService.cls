@@ -109,9 +109,9 @@ class OpenEdge.Mobile.TelerikPushNotificationService inherits PushNotificationSe
         define variable cErrorDescription as character no-undo.
         
         case poResponse:StatusCode:
-            when StatusCodeEnum:OK:Value or
-            when StatusCodeEnum:Created:Value or 
-            when StatusCodeEnum:NoContent:Value then
+            when integer(StatusCodeEnum:OK) or
+            when integer(StatusCodeEnum:Created) or 
+            when integer(StatusCodeEnum:NoContent) then
                 /* 200, 201, 204 no-op */.
             otherwise
             do:

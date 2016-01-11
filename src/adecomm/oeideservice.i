@@ -156,12 +156,25 @@ function openPropertySheet returns logical
           (windowHandle  as handle)  
            in hOEIDEService.     
                
+/* deprecated - use viewSourceTrigger or viewSourceSection */
 function viewSource returns logical 
     ( phWindow as handle,
       wName AS CHARACTER,
       wType AS CHARACTER,
       wSection AS CHARACTER,
       wTrigger AS CHARACTER) in hOEIDEService.
+
+function viewSourceTrigger returns logical 
+    ( phWindow as handle,
+      pEvent as character,
+      pName as character,
+      pType as character,
+      pLabel as character,
+      pParent as character) in hOEIDEService.
+
+function viewSourceSection returns logical 
+    ( phWindow as handle,
+      pSection AS CHARACTER) in hOEIDEService.
 
 function saveEditor returns logical 
          (projectName   as character,
@@ -221,7 +234,9 @@ function AddCodeSection return logical
 function AddTrigger return logical
          (phwindow   as handle,
           WidgetName as character,
-          WidgetType as character) in hOEIDEService.    
+          WidgetText as character,
+          WidgetType as character,
+          WidgetParent as character) in hOEIDEService.    
           
 function RunDesign return logical
          (phwindow   as handle) in hOEIDEService.    

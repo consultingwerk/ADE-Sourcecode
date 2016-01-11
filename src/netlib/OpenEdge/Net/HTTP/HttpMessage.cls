@@ -8,10 +8,7 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
     Description : 
     Author(s)   : pjudge
     Created     : Mon Feb 17 14:34:39 EST 2014
-    Notes       : * Most properties mutators and associated 'set' methods are 
-                    PROTECTED in this class. The ConcreteHttpResponse or HttpRequest 
-                    implementations should either provide public overrides or
-                    a public mutator method.
+    Notes       : 
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -19,23 +16,21 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.CookieCollection.
+using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
+using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
+using OpenEdge.Net.HTTP.HttpHeaderCollection.
 using OpenEdge.Net.HTTP.IHttpMessage.
+using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.HttpHeader.
-using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
-using OpenEdge.Net.HTTP.IHttpMessageWriter.
 
 class OpenEdge.Net.HTTP.HttpMessage 
             implements IHttpMessage, ISupportInitialize
             abstract:
     
-    /* Stores header name/value pairs */
-    define static protected temp-table Headers no-undo
-        field ParentMessage as integer
-        field HeaderName as character
-        field HttpHeader as Object
-        index idx1 as primary unique ParentMessage HeaderName. 
+    /** Holds headers for this message */
+    define protected property Headers as HttpHeaderCollection no-undo get. private set.
     
     /** The cookies only relevant to only this message (request or response) */
     define protected property Cookies as CookieCollection no-undo get. private set.
@@ -51,19 +46,57 @@ class OpenEdge.Net.HTTP.HttpMessage
     /** The message's content type (eg text/html). For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
     define public property ContentType as character no-undo
-        get.
+        get():
+            /* Content-Type header */
+            if HasHeader('Content-Type':u) then
+                return GetHeader('Content-Type':u):GetBaseValue().
+            else
+                return '':u.
+        end get.
         set(input pcContentType as character):
+            define variable oHeader as HttpHeader no-undo.
+            
             Assert:NotNull(pcContentType, 'Content Type').
-            assign this-object:ContentType = pcContentType.
+            
+            /* Content-Type */
+            if HasHeader('Content-Type':u) then
+                assign oHeader = GetHeader('Content-Type':u).
+            else
+            do:
+                assign oHeader = HttpHeaderBuilder:Build('Content-Type':u)
+                                    :Header.
+                SetHeader(oHeader).
+            end.
+            
+            assign oHeader:Value = pcContentType.
         end set.
-     
+        
     /** The message's content type encoding (eg charset='utf-8'). For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.7 */
     define public property CharacterEncoding as character no-undo
-        get.
+        get():
+            /* Content-Type header */
+            if HasHeader('Content-Type':u) then
+                return GetHeader('Content-Type':u):GetParameterValue('charset':u).
+            else
+                return '':u.
+        end get.
         set(input pcCharacterEncoding as character):
+            define variable oHeader as HttpHeader no-undo.
+            
             Assert:NotNull(pcCharacterEncoding, 'Character Encoding').
-            assign this-object:CharacterEncoding = pcCharacterEncoding.
+            
+            /* Content-Type */
+            if HasHeader('Content-Type':u) then
+                assign oHeader = GetHeader('Content-Type':u).
+            else
+            do:
+                assign oHeader = HttpHeaderBuilder:Build('Content-Type':u)
+                                    :Header.
+                SetHeader(oHeader).
+            end.
+            
+            oHeader:SetParameterValue('charset':u, pcCharacterEncoding).
         end set.
     
     /** Object containing the response body/entity.
@@ -73,14 +106,41 @@ class OpenEdge.Net.HTTP.HttpMessage
     
     /**  The length (in bytes/characters) of the payload/entity. */    
     define public property ContentLength as integer no-undo
-        get.
+        get():
+            define variable iLength as integer no-undo.
+            
+            /* Content-Length */
+            if HasHeader('Content-Length':u) then
+                assign iLength = integer(GetHeader('Content-Length':u):Value).
+            else
+                assign iLength = 0.
+            
+            return iLength.
+        end get.
         set (input piContentlength as integer):
             Assert:IsZeroOrPositive(piContentlength, 'Content Length').
-            assign this-object:ContentLength = piContentlength.
+            
+            define variable oHeader as HttpHeader no-undo.
+            
+            /* Content-Length header */
+            if HasHeader('Content-Length':u) then
+                assign oHeader = GetHeader('Content-Length':u). 
+            else
+            do:
+                assign oHeader = HttpHeaderBuilder
+                                    :Build('Content-Length':u)
+                                    :Header.
+                SetHeader(oHeader).
+            end.
+            
+            assign oHeader:Value = string(piContentlength).
         end set.
     
     /** The message's Transfer-Encoding. For more detail, see
-        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */ 
+        http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 
+        
+        This property does not use the same mechanism that the ContentType does,
+        since the header name used depends on whether this is a request or response. */ 
     define public property TransferEncoding as character no-undo
         get.
         set(input pcTransferEncoding as character):
@@ -95,16 +155,23 @@ class OpenEdge.Net.HTTP.HttpMessage
     constructor protected HttpMessage():
     end constructor.
     
+    destructor HttpMessage():
+        Destroy().
+    end destructor.
+    
     method public void Initialize():
-        assign this-object:TransferEncoding = TransferEncodingEnum:None:Name
-               this-object:Cookies          = new CookieCollection().
+        assign this-object:TransferEncoding = string(TransferEncodingEnum:None)
+               this-object:Cookies          = new CookieCollection()
+               this-object:Headers          = new HttpHeaderCollection().
     end method.
  
     method public void Destroy():
-        assign this-object:Entity = ?.
-        
         ClearHeaders().
         ClearCookies().
+        
+        assign this-object:Entity  = ?
+               this-object:Headers = ?
+               this-object:Cookies = ?.
     end method.
     
     /** Adds header info to this message's collection of headers.
@@ -124,59 +191,7 @@ class OpenEdge.Net.HTTP.HttpMessage
             oWriter:Close(). 
         end.
         else
-            UpdateHeaderRecord(poHeader).
-    end method.
-    
-    /** Internal helper method to perform the find. 
-    
-        @param handle    The buffer handle of the Headers table.
-        @param character The header name
-        @return logical True if a header record was found. */ 
-    method private logical FindHeaderRecord(input phBuffer as handle, input pcName as character):
-        phBuffer:find-unique(substitute('where &1.ParentMessage eq &2 and &1.HeaderName eq &3',
-                               phBuffer:name,
-                               integer(this-object),
-                               quoter(pcName))) no-error.
-        
-        return phBuffer:available.
-    end method.
-
-    /** Internal helper method to perform the find. 
-    
-        @param character The header name
-        @return logical True if a header record was found. */ 
-    method private logical FindHeaderRecord(input pcName as character):
-        return FindHeaderRecord(buffer Headers:handle, pcName).
-    end method.
-     
-    /** Private method for updating the value of a header record
-        
-        @param character The header name
-        @param character the header value. */
-    method private void UpdateHeaderRecord(input poHeader as HttpHeader):
-        define buffer lbHeader for Headers.
-        
-        find lbHeader where
-             lbHeader.ParentMessage eq integer(this-object) and
-             lbHeader.HeaderName eq poHeader:Name
-             no-error.
-        if not available lbHeader then
-        do:
-            create lbHeader.
-            assign lbHeader.ParentMessage = integer(this-object)
-                   lbHeader.HeaderName = poHeader:Name.
-        end.
-        assign lbHeader.HttpHeader = poHeader.
-    end method.
-
-    /** Private method for removing a header record
-        
-        @param character The header name  */
-    method private void DeleteHeaderRecord(input pcName as character):
-        define buffer lbHeader for Headers.
-        
-        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
-            delete lbHeader.
+            this-object:Headers:Put(poHeader).
     end method.
     
     /** Returns a named header
@@ -184,14 +199,7 @@ class OpenEdge.Net.HTTP.HttpMessage
         @param  character The name of the header to retrieve
         @return HttpHeader The header object. Null if not exists. */
     method public HttpHeader GetHeader(input pcName as character).
-        define buffer lbHeader for Headers.
-        
-        Assert:NotNullOrEmpty(pcName, 'Header name').
-        
-        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
-            return cast(lbHeader.HttpHeader, HttpHeader).
-        else
-            return ?.
+        return this-object:Headers:Get(pcName).
     end method.
     
     /** Returns all the headers (Names and values)
@@ -199,28 +207,7 @@ class OpenEdge.Net.HTTP.HttpMessage
         @param HttpHeader[] An array of headers
         @return integer The number of headers returned */
     method public integer GetHeaders(output poHeaders as HttpHeader extent):
-        define variable iCount as integer no-undo.
-        define buffer lbHeader for Headers.
-        
-        define query qryHeader for lbHeader.
-        open query qryHeader preselect each lbHeader where 
-                                            lbHeader.ParentMessage eq integer(this-object).
-        
-        assign iCount = query qryHeader:num-results.
-        if iCount ne 0 then
-            assign extent(poHeaders) = iCount.
-        
-        get first qryHeader.
-        do while available lbHeader:
-            assign poHeaders[query qryHeader:current-result-row] = cast(lbHeader.HttpHeader, HttpHeader)
-                   .
-            get next qryHeader.
-        end.
-        
-        return iCount.
-        finally:
-            close query qryHeader.
-        end finally.
+        return this-object:Headers:GetAll(output poHeaders).
     end method.
         
     /** Indicates whether a header exists for this message or not. 
@@ -230,7 +217,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     method public logical HasHeader(input pcName as character):
         Assert:NotNullOrEmpty(pcName, 'Header name').
         
-        return FindHeaderRecord(pcName).
+        return this-object:Headers:Has(pcName).
     end method.
     
     /** Removes a header from the collection of message headers.
@@ -242,9 +229,7 @@ class OpenEdge.Net.HTTP.HttpMessage
         
         @param character The name of the header to remove */    
     method public void RemoveHeader(input pcName as character):
-        Assert:NotNullOrEmpty(pcName, 'Header name').
-        
-        DeleteHeaderRecord(pcName).
+        this-object:Headers:Remove(pcName).
     end method.
     
     /** COOKIES **/
@@ -292,12 +277,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     
     /** Removes all headers from this message */ 
     method public void ClearHeaders().
-        define buffer lbHeader for Headers.
-        
-        for each lbHeader where
-                 lbHeader.ParentMessage eq integer(this-object):
-            delete lbHeader.
-        end.                     
+        this-object:Headers:Clear().
     end method.
     
 end class.

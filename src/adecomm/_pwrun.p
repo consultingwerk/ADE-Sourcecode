@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2015 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -125,7 +125,8 @@ DO ON STOP UNDO, LEAVE:
      * - the end of its path MUST match the package declared in the CLASS 
      * e.g. CLASS foo.bar MUST have a pathname foo/bar.cls
      * If the compiler compiles OO4GL syntax in a file without a .cls extension, 
-     * it will generate error (12622) for a CLASS and (12623) for an INTERFACE.
+     * it will generate error (12622) for a CLASS, (12623) for an INTERFACE
+     * and (17950) for an ENUM.
      * Also, if the compiler compiles a .cls file, and the pathname does NOT
      * match the package declared in the CLASS, it will generate error (12629),
      * and set the COMPILER:CLASS-TYPE attribute to the name of the declared CLASS
@@ -153,8 +154,8 @@ DO ON STOP UNDO, LEAVE:
      *   
      * - untitled buffer, containing OO4GL code
      *   On the first pass through SACB, the buffer is saved to a temp file
-     *   with a non-.cls extension. The compiler will return a (12622) or 
-     *   (12623) error, which indicates this is OO4GL. We then set isClass to 
+     *   with a non-.cls extension. The compiler will return a (12622), (12623) or
+     *   (17950) error, which indicates this is OO4GL. We then set isClass to 
      *   indicate it is OO4GL, and force another pass of SACB.
      *   On the second pass of SACB, we know the buffer contains OO4GL, 
      *   but we don't know the correct class name. We change the extension of
@@ -174,8 +175,8 @@ DO ON STOP UNDO, LEAVE:
      * - buffer loaded from a non-.cls file
      *   When loading the non-.cls file, we know the extension is not .cls,
      *   so this is treated the same as an untitled edit buffer. However, if 
-     *   the code contains any OO4GL statements, we will not trap the (12622)
-     *   or (12623) errors, since the file is already determined as non-OO4GL 
+     *   the code contains any OO4GL statements, we will not trap the (12622), (12623)
+     *   or (17950) errors, since the file is already determined as non-OO4GL 
      *   by its extension. Regardless, we leave the SACB to report the outcome
      *   of the compile.
      *
@@ -346,14 +347,17 @@ DO ON STOP UNDO, LEAVE:
           IF RETURN-VALUE BEGINS "ERROR:":U THEN
           DO:
               /* check for .cls-related errors */
-              /* look for IS_CLASS_ERROR and IS_INTERFACE_ERROR */
+              /* look for IS_CLASS_ERROR, IS_INTERFACE_ERROR and IS_ENUM_ERROR */
               isClassError = 
                   INDEX(RETURN-VALUE,{&IS_CLASS_ERROR}) > 0 OR
-                  INDEX(RETURN-VALUE,{&IS_INTERFACE_ERROR}) > 0.
-              /* look for WRONG_CLASS_TYPE_ERROR or WRONG_INTERFACE_TYPE_ERROR */
+                  INDEX(RETURN-VALUE,{&IS_INTERFACE_ERROR}) > 0 OR 
+                  INDEX(RETURN-VALUE,{&IS_ENUM_ERROR}) > 0.
+              /* look for WRONG_CLASS_TYPE_ERROR, WRONG_INTERFACE_TYPE_ERROR and
+                 WRONG_ENUM_TYPE_ERROR */
               isWrongClass = 
                   INDEX(RETURN-VALUE,{&WRONG_CLASS_TYPE_ERROR}) > 0 OR
-                  INDEX(RETURN-VALUE,{&WRONG_INTERFACE_TYPE_ERROR}) > 0.
+                  INDEX(RETURN-VALUE,{&WRONG_INTERFACE_TYPE_ERROR}) > 0 OR 
+                  INDEX(RETURN-VALUE,{&WRONG_ENUM_TYPE_ERROR}) > 0.
               /* if we have IsClassError and this is not a .cls AND
                * this is an untitled edit buffer */
               IF (isClassError AND NOT isClass AND 
@@ -410,11 +414,13 @@ DO ON STOP UNDO, LEAVE:
               ASSIGN
                 isClassError = 
                   (IF ERROR-STATUS:GET-NUMBER(ictr) = {&IS_CLASS_ERROR_NUM} OR
-                      ERROR-STATUS:GET-NUMBER(ictr) = {&IS_INTERFACE_ERROR_NUM}
+                      ERROR-STATUS:GET-NUMBER(ictr) = {&IS_INTERFACE_ERROR_NUM} OR
+                      ERROR-STATUS:GET-NUMBER(ictr) = {&IS_ENUM_ERROR_NUM}
                    THEN TRUE ELSE isClassError)
                 isWrongClass = 
                   (IF ERROR-STATUS:GET-NUMBER(ictr) = {&WRONG_CLASS_TYPE_ERROR_NUM} OR
-                      ERROR-STATUS:GET-NUMBER(ictr) = {&WRONG_INTERFACE_TYPE_ERROR_NUM}
+                      ERROR-STATUS:GET-NUMBER(ictr) = {&WRONG_INTERFACE_TYPE_ERROR_NUM} OR
+                      ERROR-STATUS:GET-NUMBER(ictr) = {&WRONG_ENUM_TYPE_ERROR_NUM}
                    THEN TRUE ELSE isWrongClass).
             END.
             /* if this is not a .cls file and is untitled */

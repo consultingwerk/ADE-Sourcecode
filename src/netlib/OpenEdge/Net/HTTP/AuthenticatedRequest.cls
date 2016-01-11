@@ -46,7 +46,7 @@ class OpenEdge.Net.HTTP.AuthenticatedRequest inherits HttpRequestDecorator
     constructor public AuthenticatedRequest(input poHttpRequest as IHttpRequest):
         super(poHttpRequest).
         
-        assign this-object:AuthenticationMethod = AuthenticationMethodEnum:None:Name.
+        assign this-object:AuthenticationMethod = string(AuthenticationMethodEnum:None).
     end constructor.
 
     /** Add authentication to this request. */

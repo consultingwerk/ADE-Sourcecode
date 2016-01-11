@@ -17,16 +17,15 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.ServerConnection.FormatMaskEnum.
+using OpenEdge.Core.ServerConnection.FormatMaskHelper.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.ServerConnection.ConnectionParameters.
-using OpenEdge.Core.ServerConnection.FormatMaskEnum.
-
-using OpenEdge.Core.Assert.
-
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
-using Progress.Lang.AppError. 
+using Progress.Lang.AppError.
 
 class OpenEdge.Core.ServerConnection.ConnectionParameters 
             implements IConnectionParameters: 
@@ -97,11 +96,18 @@ class OpenEdge.Core.ServerConnection.ConnectionParameters
                          specified by the property.
         @return character A useable string of connection parameters. */
     method public character GetConnectionString(input pcFormatMask as character):
+        define variable oEnum as FormatMaskEnum no-undo.
+        
         if this-object:FormatMask:Equals(FormatMaskEnum:Custom) then
             undo, throw new AppError(
                         substitute('&1 uses a Custom format mask, which cannot be overridden',
-                            this-object:GetClass():TypeName)
-                        , 0).
+                            this-object:GetClass():TypeName)).
+        
+        /* The built-in enums don't allow jiggery-pokery with the name and :Name properties. The Helper
+           makes sure that we get the actual mask and not the enumerator's name */
+        assign oEnum = FormatMaskEnum:GetEnum(pcFormatMask) no-error.
+        if valid-object(oEnum) then
+            assign pcFormatMask = FormatMaskHelper:GetMask(oEnum).
         
         return ConnectionParameters:GetConnectionString(this-object:Options, pcFormatMask).
     end method.
@@ -121,7 +127,7 @@ class OpenEdge.Core.ServerConnection.ConnectionParameters
                             this-object:GetClass():TypeName)
                         , 0).
         
-        return GetConnectionString(poFormatMask:ToString()).
+        return GetConnectionString(FormatMaskHelper:GetMask(poFormatMask)).
     end method.
     
     /** Returns the Options as a formatted string for use by the server to connect. 

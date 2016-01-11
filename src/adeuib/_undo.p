@@ -83,8 +83,8 @@ DO:
      END.           
      ELSE 
      do:
-        ShowMessageInIDE("There is nothing to undo.",
-                         "Information",?,"OK",YES). 
+        run ShowOkMessage in hOEIDEService("There is nothing to undo.",
+                         "Information",?). 
         RETURN.
      end.   
 END.     

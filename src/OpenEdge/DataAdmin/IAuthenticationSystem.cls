@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2015 by progress Software Corporation       */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -26,6 +26,9 @@ interface OpenEdge.DataAdmin.IAuthenticationSystem inherits IDataAdminElement:
    
    /** This flag denotes if PAM plugin is enabled for the authentication system */    
     define public property IsEnabled       as logical   no-undo get. set.
+    
+    /** This flag denotes if PAM Library checksum value is set or not */    
+    define public property ModuleChecksum       as logical   no-undo get. set.
  
    /** Callback procedure name for the authentication system */
     define public property Callback        as char      no-undo get. set.

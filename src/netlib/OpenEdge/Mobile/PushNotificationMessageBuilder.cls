@@ -33,7 +33,9 @@ using OpenEdge.Net.HTTP.ConfigBuilder.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.AppError.
 using Progress.Json.ObjectModel.JsonDataType.
+using OpenEdge.Net.HTTP.ConfigBuilder.
 
 class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBuilder:
     /* List of operands that the message need. A property to keep it read-only.
@@ -307,8 +309,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
     method public PushNotificationMessageBuilder MatchChannels(input poChannels as JsonObject):
         Assert:NotNull(poChannels, 'Channels').
         
-        SetOption('channels.':u + string(PushNotificationFilterOperandEnum:Matches), poChannels).
-        
+        SetOption('channels.':u + string(PushNotificationFilterOperandEnum:Includes), poChannels).
         return this-object.
     end method.
     /** CHANNELS END **/
@@ -333,7 +334,6 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
                                                                           input pcFilterValue as character,
                                                                           input poOperand as PushNotificationFilterOperandEnum).
                                                                          
-
     /** General method to add array filters to the payload.
     
         Supported operands: Includes/NotIncludes/Matches            

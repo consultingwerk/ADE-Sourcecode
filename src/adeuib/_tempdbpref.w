@@ -662,7 +662,7 @@ PROCEDURE getPreference :
  GET-KEY-VALUE SECTION  cSection KEY "TempDBLogFile":U VALUE cValue.
   IF cValue = ? THEN 
       ASSIGN FILE-INFO:FILE-NAME = "."
-             fiLog = FILE-INFO:FULL-PATHNAME  + "\" + "Temp-dbLog.txt":U .
+             fiLog = FILE-INFO:FULL-PATHNAME  + "~\" + "Temp-dbLog.txt":U .
   ELSE fiLog = cValue.
 
  GET-KEY-VALUE SECTION  cSection KEY "TempDBLogFileAppend":U VALUE cValue.

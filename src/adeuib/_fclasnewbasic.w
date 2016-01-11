@@ -463,8 +463,8 @@ DEFINE FRAME fMain
 /* then cleanup and return.                                            */
 IF NOT THIS-PROCEDURE:PERSISTENT THEN DO:
   if OEIDEIsRunning then
-            ShowMessageInIDE("{&FILE-NAME} should only be RUN PERSISTENT.":U,
-                             "Error",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("{&FILE-NAME} should only be RUN PERSISTENT.":U,
+                             "Error",?).
   else                             
   MESSAGE "{&FILE-NAME} should only be RUN PERSISTENT.":U
           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -913,8 +913,8 @@ PROCEDURE createDir :
      right after the drive. i.e d:temp */
   IF cDirToCreate NE "":U AND INDEX(cListDir, DOS-SLASH) NE 3 THEN DO:
     if OEIDEIsRunning then
-            ShowMessageInIDE("Can not create " + pcDir + ".":U,
-                             "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("Can not create " + pcDir + ".":U,
+                             "Information",?).
     else   
     MESSAGE "Can not create" pcDir ".":U SKIP
             VIEW-AS ALERT-BOX INFORMATION.
@@ -927,8 +927,8 @@ PROCEDURE createDir :
     OS-CREATE-DIR VALUE (cDirToCreate).
     IF OS-ERROR NE 0 THEN DO:
       if OEIDEIsRunning then
-            ShowMessageInIDE("Creation of " + pcDir + " failed.":U,
-                             "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("Creation of " + pcDir + " failed.":U,
+                             "Information",?).
       else   
       MESSAGE "Creation of" pcDir "failed." 
               VIEW-AS ALERT-BOX INFORMATION.
@@ -1127,9 +1127,9 @@ PROCEDURE genCustomFiles :
        DO:  /* Ask if they want to overwrite existing class file */
           
          if OEIDEIsRunning then
-           lAnswer = ShowMessageInIDE("File " + cFile + " already exists ~n
+            run ShowMessage in hOEIDEService("File " + cFile + " already exists ~n
                                       Do you want to replace it?" ,
-                                      "Question",?,"Yes-no",YES).
+                                      "Question",?,"Yes-no",input-output lAnswer).
          else 
          MESSAGE "File" cFile "already exists" SKIP
                  "Do you want to replace it?" 
@@ -1446,8 +1446,8 @@ PROCEDURE genRcodeSuper :
   COMPILE VALUE(gcStdFiles[4]) SAVE INTO VALUE (gcDosRun) NO-ERROR.
   IF COMPILER:ERROR THEN DO:
     if OEIDEIsRunning then
-        ShowMessageInIDE("Compilation of super procedure failed.",
-                         "Information",?,"Ok",YES).
+        run ShowOkMessage in hOEIDEService("Compilation of super procedure failed.",
+                         "Information",?).
     else  
     MESSAGE "Compilation of super procedure failed." 
         VIEW-AS ALERT-BOX INFORMATION.
@@ -1519,9 +1519,9 @@ PROCEDURE genStandardFiles :
        IF NOT glReplace THEN
        DO:  /* Ask if they want to overwrite existing class file */
          if OEIDEIsRunning then
-            lAnswer = ShowMessageInIDE("File " + cFile + " already exists ~n
+            run ShowMessage in hOEIDEService("File " + cFile + " already exists ~n
                                         Do you want to replace it?",
-                                        "Question",?,"Yes-No",YES).
+                                        "Question",?,"Yes-No",input-output lAnswer).
          else
          MESSAGE "File" cFile "already exists" SKIP
                  "Do you want to replace it?" 
@@ -2009,8 +2009,8 @@ PROCEDURE screenValidation :
    IF NOT glNameChanged THEN DO WITH FRAME {&FRAME-NAME}:
       DYNAMIC-FUNCTION('backToPage1':U).
       if OEIDEIsRunning then
-        ShowMessageInIDE("A class name must be supplied.",
-                         "Information",?,"OK",YES).
+        run ShowOkMessage in hOEIDEService("A class name must be supplied.",
+                         "Information",?).
       else
       MESSAGE "A class name must be supplied." VIEW-AS ALERT-BOX INFORMATION.
       APPLY "ENTRY":U TO cName.
@@ -2058,8 +2058,8 @@ PROCEDURE screenValidation :
       cMessage = RETURN-VALUE.
       DYNAMIC-FUNCTION('backToPage1':U).
       if OEIDEIsRunning then
-        ShowMessageInIDE(cMessage,
-                         "Information",?,"OK",YES).
+        run ShowOkMessage in hOEIDEService(cMessage,
+                         "Information",?).
       else     
       MESSAGE cMessage VIEW-AS ALERT-BOX INFORMATION.
       APPLY "ENTRY":U TO hField.
@@ -2104,8 +2104,8 @@ PROCEDURE showError :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcError          AS CHARACTER    NO-UNDO.
    if OEIDEIsRunning then
-     ShowMessageInIDE(pcError,
-                      "Information",?,"OK",YES).
+     run ShowOkMessage in hOEIDEService(pcError,
+                      "Information",?).
   else 
   MESSAGE pcError 
          VIEW-AS ALERT-BOX INFORMATION.
@@ -2343,8 +2343,8 @@ PROCEDURE validateDirectory :
   /* Directory value is blank */
   IF pcDir = "":U THEN  DO:
     if OEIDEIsRunning then
-     ShowMessageInIDE("The " + pcDirLabel + " can not be left blank.",
-                      "Information",?,"OK",YES).
+     run ShowOkMessage in hOEIDEService("The " + pcDirLabel + " can not be left blank.",
+                      "Information",?).
     else  
     MESSAGE "The" pcDirLabel "can not be left blank." 
             VIEW-AS ALERT-BOX INFORMATION.
@@ -2355,8 +2355,8 @@ PROCEDURE validateDirectory :
     /* If lExist EQ ?, we have found something that is not a directory */
     IF lExist EQ ? THEN DO:
       if OEIDEIsRunning then
-        ShowMessageInIDE("Invalid directory.",
-                         "Information",?,"OK",YES).
+        run ShowOkMessage in hOEIDEService("Invalid directory.",
+                         "Information",?).
       else  
       MESSAGE "Invalid directory." 
               VIEW-AS ALERT-BOX INFORMATION.
@@ -2365,9 +2365,9 @@ PROCEDURE validateDirectory :
     /* If the directory not already exists, create it */
     IF NOT lExist THEN DO:
       if OEIDEIsRunning then
-        lAnswer = ShowMessageInIDE("The " + LC(pcDirLabel) + pcDir + " doesn't exist ~n
+         run ShowMessage in hOEIDEService("The " + LC(pcDirLabel) + pcDir + " doesn't exist ~n
                                    Do you want to create it?",
-                                   "Question",?,"YES-NO",YES).
+                                   "Question",?,"YES-NO",input-output lAnswer).
       else  
       MESSAGE "The" LC(pcDirLabel) pcDir "doesn't exist" SKIP
               "Do you want to create it?"
@@ -2382,11 +2382,11 @@ PROCEDURE validateDirectory :
     ELSE IF DYNAMIC-FUNCTION('isInDLC':U, INPUT pcDir) THEN DO:
       ASSIGN lAnswer = TRUE.
       if OEIDEIsRunning then
-      lAnswer = ShowMessageInIDE("Directory " + pcDir + " is a subdirectory of DLC ~n
+          run ShowMessage in hOEIDEService("Directory " + pcDir + " is a subdirectory of DLC ~n
                                  You shouldn't install code in the DLC directory. ~n
                                  However, do you want to create this directory ~n
                                  under your current directory?",
-                                 "Question",?,"YES-NO",YES).
+                                 "Question",?,"YES-NO",input-output lAnswer).
       else                                   
       MESSAGE "Directory" pcDir "is a subdirectory of DLC" SKIP
               "You shouldn't install code in the DLC directory." SKIP
@@ -2451,8 +2451,8 @@ PROCEDURE validateIsCLD :
   /* Standard necessary information */
   IF gcDeriveMeth = "":U OR gcDeriveProp = "":U THEN DO:
     if OEIDEIsRunning then
-      ShowMessageInIDE("Class file " + cDerive + " can't be analyzed.",
-                       "Information",?,"OK",YES).
+      run ShowOkMessage in hOEIDEService("Class file " + cDerive + " can't be analyzed.",
+                       "Information",?).
     else  
     MESSAGE "Class file" cDerive "can't be analyzed." VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.
@@ -2468,9 +2468,9 @@ PROCEDURE validateIsCLD :
      check it */
   IF NOT DYNAMIC-FUNCTION('fileExist':U, INPUT gcDeriveMeth) THEN DO:
     if OEIDEIsRunning then
-      ShowMessageInIDE("The method library " + gcDeriveMeth + " ~n
+      run ShowOkMessage in hOEIDEService("The method library " + gcDeriveMeth + " ~n
                         referenced in " + cDerive + " can't be found.",
-                       "Information",?,"OK",YES).
+                       "Information",?).
     else  
     MESSAGE "The method library" gcDeriveMeth SKIP
             "referenced in" cDerive "can't be found."
@@ -2479,9 +2479,9 @@ PROCEDURE validateIsCLD :
   END.     
   IF NOT DYNAMIC-FUNCTION('fileExist':U, INPUT gcDeriveProp) THEN DO:
     if OEIDEIsRunning then
-      ShowMessageInIDE("The property file " + gcDeriveProp +
+      run ShowOkMessage in hOEIDEService("The property file " + gcDeriveProp +
                         "~n referenced in " + cDerive + " can't be found.",
-                       "Information",?,"OK",YES).
+                       "Information",?).
     else  
     MESSAGE "The property file" gcDeriveProp SKIP
             "referenced in" cDerive "can't be found."
@@ -2569,8 +2569,8 @@ PROCEDURE validateIsTemplate :
      may contain the Template keyword */  
   IF NOT cInfo MATCHES "* Template*":U THEN DO:
     if OEIDEIsRunning then
-      ShowMessageInIDE("File " + cTemplateFrom + " is not a template.",
-                       "Information",?,"OK",YES).
+      run ShowOkMessage in hOEIDEService("File " + cTemplateFrom + " is not a template.",
+                       "Information",?).
     else  
     MESSAGE "File" cTemplateFrom "is not a template." VIEW-AS ALERT-BOX INFORMATION.
     RETURN "ERROR":U.

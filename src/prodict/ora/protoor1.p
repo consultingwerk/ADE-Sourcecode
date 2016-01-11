@@ -212,6 +212,8 @@ ASSIGN user_env[1]  = "ALL"
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.
        user_env[36] =  (if migConstraint then "y" else "n"). /* 195067 */
+       user_env[37] = "PP". /* PP - Pull as part of Push *
+                             * IP - Independent PULL operation */
        user_env[38] =  choiceUniquness . /* 195067 */
        user_env[39] =  choiceDefault . /* 195067 */        
        user_env[40] =  (IF nls_up THEN "y" ELSE "n"). /* 195067 */

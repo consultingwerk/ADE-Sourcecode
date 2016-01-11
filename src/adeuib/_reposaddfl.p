@@ -178,8 +178,8 @@ DO ON STOP UNDO, LEAVE:
         IF (gcError = "") THEN
         DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE:
             if OEIDEIsRunning then
-             ShowMessageInIDE("Object was registered in the repository.",
-                             "Information","?","OK",yes).
+             run ShowOkMessage in hOEIDEService("Object was registered in the repository.",
+                             "Information","?").
             else
             MESSAGE "Object was registered in the repository."
               VIEW-AS ALERT-BOX INFORMATION.
@@ -254,8 +254,8 @@ DO ON ERROR UNDO, LEAVE:
     /* Prompt for Product Module if for some reason we don't have it. */
     IF (_RyObject.product_module_code = "":u) THEN DO:
       if OEIDEIsRunning then
-             ShowMessageInIDE("No product module has been specified.",
-                             "Error","?","OK",yes).
+             run ShowOkMessage in hOEIDEService("No product module has been specified.",
+                             "Error","?").
       else                         
       MESSAGE "No product module has been specified."
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -277,8 +277,8 @@ DO ON ERROR UNDO, LEAVE:
     IF cCalcError > "" THEN
     DO:
       if OEIDEIsRunning then
-             ShowMessageInIDE(cCalcError,
-                             "Error","?","OK",yes).
+             run ShowOkMessage in hOEIDEService(cCalcError,
+                             "Error","?").
       else                         
       MESSAGE cCalcError VIEW-AS ALERT-BOX.
       DELETE _RYObject.
@@ -298,13 +298,13 @@ DO ON ERROR UNDO, LEAVE:
                   + cObjectFileName ) = ? THEN 
     DO:
        if OEIDEIsRunning then
-             ShowMessageInIDE(cObjectFileName +  " is not located in the '" 
+             run ShowOkMessage in hOEIDEService(cObjectFileName +  " is not located in the '" 
                               + IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
                                 THEN cCalcRelativePath
                                 ELSE "default"
                               + "' directory." + CHR(10) + 
                                 "The file must be located in the same directory as the product module's relative path.":U,
-                                "Error","?","OK",yes).
+                                "Error","?").
        else  
        MESSAGE cObjectFileName +  " is not located in the '" 
                       + IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
@@ -339,8 +339,8 @@ DO ON ERROR UNDO, LEAVE:
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "" THEN
         do:
           if OEIDEIsRunning then
-             ShowMessageInIDE(RETURN-VALUE,
-                             "Error","?","OK",yes).
+             run ShowOkMessage in hOEIDEService(RETURN-VALUE,
+                             "Error","?").
           else   
           MESSAGE RETURN-VALUE VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         end.

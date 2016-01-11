@@ -101,7 +101,7 @@ else if num-entries(user_env[27]) > 1
               ).
      else assign
             lcompatible = (user_env[27] BEGINS "y"). /* create recid fields/indexes */
-IF (ENTRY(1,user_env[36]) = "y") OR (ENTRY(2,user_env[36]) = "y")  OR        
+IF (ENTRY(1,user_env[36]) = "y") OR (ENTRY(2,user_env[36]) = "y")  OR (UPPER(ENTRY(3,user_env[36])) = "Y") OR       
    (lcompatible AND ((NUM-ENTRIES(user_env[27]) >= 3) AND  /* U = For ROWID uniqueness, P = Prime ROWID */
                     ((ENTRY(3,user_env[27]) EQ "U") OR (ENTRY(3,user_env[27]) EQ "P")))
    )  
@@ -295,7 +295,9 @@ ASSIGN user_dbname  = mss_dbname
        user_env[24] = "15"
        /* first y is for sequence support.
           second entry is for new sequence generator 
-          third entry is for use newer datatime types 
+          third entry is for use newer datatime types
+          fourth entry is for native sequence generator
+          fifth entry is for cache size of native sequence generator
        */
        user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
                       (IF mapMSSDatetime THEN ',n' ELSE ',y') + 

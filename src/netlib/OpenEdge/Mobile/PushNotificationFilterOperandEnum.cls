@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : PushNotificationFilterOperandEnum
@@ -12,31 +12,20 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Mobile.PushNotificationFilterOperandEnum.
-using OpenEdge.Core.EnumMember.
-
-class OpenEdge.Mobile.PushNotificationFilterOperandEnum inherits EnumMember: 
-    &global-define EnumValues 
-    
-    {Consultingwerk/EnumMember.i Equals         1        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i NotEqual       2        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i Includes       3        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i NotIncludes    4        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i Matches        5        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i GreaterThan    6        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i GreaterOrEqual 7        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i LessThan       8        PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i LessOrEqual    9        PushNotificationFilterOperandEnum}
-    /* Last 3 for GEO type */
-    {Consultingwerk/EnumMember.i Near           10       PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i NearSphere     11       PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i Within         12       PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i And            13       PushNotificationFilterOperandEnum}
-    {Consultingwerk/EnumMember.i Or             14       PushNotificationFilterOperandEnum}
-
-    constructor protected PushNotificationFilterOperandEnum( input piValue as integer, input pcName as character ):
-        super (input piValue, input pcName).
-    end constructor.
-    
-    {Consultingwerk/EnumFromString.i OpenEdge.Mobile.PushNotificationFilterOperandEnum}
-end class.
+enum OpenEdge.Mobile.PushNotificationFilterOperandEnum: 
+    define enum       Equals         = 1 
+                      NotEqual
+                      Includes 
+                      NotIncludes 
+                      Matches 
+                      GreaterThan 
+                      GreaterOrEqual 
+                      LessThan 
+                      LessOrEqual 
+                      /* Last 3 for GEO type */
+                      Near
+                      NearSphere
+                      Within
+                      And
+                      Or.
+end enum.

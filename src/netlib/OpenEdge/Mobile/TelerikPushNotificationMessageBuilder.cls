@@ -68,9 +68,9 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         assign cPlatforms = '!*':u.
         for each ConfigOption where
                  ( ConfigOption.ParentBuilder eq integer(this-object) and
-                   ConfigOption.ConfigName    eq 'platform.':U + PushNotificationFilterOperandEnum:Equals:Name) or
+                   ConfigOption.ConfigName    eq 'platform.':U + string(PushNotificationFilterOperandEnum:Equals)) or
                  ( ConfigOption.ParentBuilder eq integer(this-object) and
-                   ConfigOption.ConfigName    eq 'platform.':U + PushNotificationFilterOperandEnum:Includes:Name)
+                   ConfigOption.ConfigName    eq 'platform.':U + string(PushNotificationFilterOperandEnum:Includes))
                  :
             assign oChild = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax   = cast(oChild, JsonArray):Length.
@@ -88,9 +88,9 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         /* exclude these */
         for each ConfigOption where
                  ( ConfigOption.ParentBuilder eq integer(this-object) and
-                   ConfigOption.ConfigName    eq 'platform.':U + PushNotificationFilterOperandEnum:NotEqual:Name) or
+                   ConfigOption.ConfigName    eq 'platform.':U + string(PushNotificationFilterOperandEnum:NotEqual)) or
                  ( ConfigOption.ParentBuilder eq integer(this-object) and
-                   ConfigOption.ConfigName    eq 'platform.':U + PushNotificationFilterOperandEnum:NotIncludes:Name)
+                   ConfigOption.ConfigName    eq 'platform.':U + string(PushNotificationFilterOperandEnum:NotIncludes))
                  :
             assign oChild  = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax    = cast(oChild, JsonArray):Length.
@@ -165,7 +165,8 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'channels.':U       :
             
-            assign oFilterOperand = PushNotificationFilterOperandEnum:FromString(entry(2, ConfigOption.ConfigName, '.':U)) no-error.
+            assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(2, ConfigOption.ConfigName, '.':U))
+                   no-error.
             
             case oFilterOperand:
                 when PushNotificationFilterOperandEnum:Matches or
@@ -182,13 +183,11 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                         assign oFilterClause = new JsonObject().
                         oFilters:Add(oFilterClause).
                         
-                        oFilterClause:Add(OperandValue[PushNotificationFilterOperandEnum:NotEqual:Value],
+                        oFilterClause:Add(OperandValue[integer(PushNotificationFilterOperandEnum:NotEqual)],
                                           cast(ConfigOption.ObjectValue, JsonArray):GetCharacter(iLoop)).
                     end.  
             end case.
         end.
-        oFilters:WriteFile(session:temp-dir + 'channel-filters.json', true).
-        
         if oFilters:Length gt 0 then
             AddArrayFilter('Parameters.channels':u,  oFilters, PushNotificationFilterOperandEnum:Or).
                     
@@ -198,7 +197,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'device.id.':U      :
             
-            assign oFilterOperand = PushNotificationFilterOperandEnum:FromString(entry(3, ConfigOption.ConfigName, '.':U)) 
+            assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(3, ConfigOption.ConfigName, '.':U))
                    no-error.
 
             case oFilterOperand:
@@ -215,13 +214,11 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                         assign oFilterClause = new JsonObject().
                         oFilters:Add(oFilterClause).
                         
-                        oFilterClause:Add(OperandValue[PushNotificationFilterOperandEnum:NotEqual:Value],
+                        oFilterClause:Add(OperandValue[integer(PushNotificationFilterOperandEnum:NotEqual)],
                                           cast(ConfigOption.ObjectValue, JsonArray):GetCharacter(iLoop)).
                     end.  
             end case.
         end.        
-        oFilters:WriteFile(session:temp-dir + 'device-filters.json', true).
-        
         if oFilters:Length gt 0 then
             AddArrayFilter('Id':u,  oFilters, PushNotificationFilterOperandEnum:Or).
             
@@ -229,7 +226,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
         assign oParent = cast(GetOptionObjectValue('filter':u), JsonObject).
         if valid-object(oParent) then
         do:
-            if session:debug-alert then
+            if log-manager:logging-level gt 4 then
                 oParent:WriteFile(session:temp-dir + 'push_notification_filter.json':u, true).
             
             oPayload:Add('Filter':u, cast(oParent, JsonObject):GetJsonText()).
@@ -274,10 +271,8 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 assign oFilterClause = new JsonObject().
                 
                 oFilterClause:Add(pcFilterName, cast(poFilterValue, JsonObject)).
-                oFilterObject:Add(OperandValue[poOperand:Value],
-                                  oFilterClause).
+                oFilterObject:Add(OperandValue[integer(poOperand)], oFilterClause).
             end.    /* $ELEMMATCH */
-            when PushNotificationFilterOperandEnum:Or or
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
             do:
@@ -313,9 +308,8 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                     end case.   /* data type */
                 end.    /* loop through elements */
                 
-                oFilterObject:Add(OperandValue[poOperand:Value],
-                                  cast(oFilterValue, JsonArray)).
-            end.    /* $IN $NIN $OR */
+                oFilterObject:Add(OperandValue[integer(poOperand)], cast(oFilterValue, JsonArray)).
+            end.    /* $IN $NIN */
             otherwise
                 undo, throw new AppError(substitute('&1 operand not supported for array filter',
                                                     string(poOperand)), 0). 
@@ -354,13 +348,13 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 
                 AddFilter(oFilterObject).
                 
-                oFilterObject:Add(OperandValue[poOperand:Value], oFilterClause).
+                oFilterObject:Add(OperandValue[integer(poOperand)], oFilterClause).
                 oFilterClause:Add(pcFilterName, pcFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for string filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -397,13 +391,13 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                        oFilterClause = new JsonObject().
                 
                 AddFilter(oFilterObject).
-                oFilterObject:Add(OperandValue[poOperand:Value], oFilterClause).
+                oFilterObject:Add(OperandValue[integer(poOperand)], oFilterClause).
                 oFilterClause:Add(pcFilterName, iso-date(ptFilterValue)).
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for date filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -434,13 +428,13 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                        oFilterClause = new JsonObject().
                 AddFilter(oFilterObject).
                 
-                oFilterObject:Add(OperandValue[poOperand:Value], oFilterClause).
+                oFilterObject:Add(OperandValue[integer(poOperand)], oFilterClause).
                 oFilterClause:Add(pcFilterName, plFilterValue).
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for logical filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -481,13 +475,13 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 
                 AddFilter(oFilterObject).
                 
-                oFilterObject:Add(OperandValue[poOperand:Value], oFilterClause).
+                oFilterObject:Add(OperandValue[integer(poOperand)], oFilterClause).
                 oFilterClause:Add(pcFilterName, pdFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for numeric filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -524,7 +518,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 assign oFilterObject = new JsonObject().
                 AddFilter(oFilterObject).
                 
-                oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonObject)).
+                oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
             end.
             when PushNotificationFilterOperandEnum:Or or
             when PushNotificationFilterOperandEnum:Includes or
@@ -534,12 +528,12 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 assign oFilterObject = new JsonObject().
                 
                 AddFilter(oFilterObject).
-                oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonArray)).
+                oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for object filter',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object. 
@@ -619,14 +613,14 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for pointer filter',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         /* if we got here, we passed all the validation */
         assign oFilterObject = new JsonObject().
         AddFilter(oFilterObject).
         
-        oFilterObject:Add(OperandValue[poOperand:Value], poFilterValue).
+        oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
             
         return this-object. 
     end method.    
@@ -668,12 +662,11 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 assign oFilterObject = new JsonObject().
                 AddFilter(oFilterObject).
                 
-                oFilterObject:Add(OperandValue[poOperand:Value], poFilterValue).
+                oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
             end.
             otherwise
-                undo, throw new AppError(
-                                substitute('&1 operand not supported for pointer filter',
-                                    poOperand:Name), 0). 
+                undo, throw new AppError(substitute('&1 operand not supported for pointer filter',
+                                         string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object. 
@@ -700,7 +693,7 @@ class OpenEdge.Mobile.TelerikPushNotificationMessageBuilder inherits PushNotific
                 assign oFilterArray = new JsonArray().
                        oFilterParent = new JsonObject().
                 oFilterArray:Add(oFilter).                       
-                oFilterParent:Add(OperandValue[PushNotificationFilterOperandEnum:And:Value],
+                oFilterParent:Add(OperandValue[integer(PushNotificationFilterOperandEnum:And)],
                                   oFilterArray).
                 SetOption('filter':u, oFilterParent).                                  
             end.

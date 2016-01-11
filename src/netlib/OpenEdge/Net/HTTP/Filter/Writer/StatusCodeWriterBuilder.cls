@@ -45,13 +45,13 @@ class OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder:
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):        /* redirects */
         /* redirects */
-        poRegistry:Put(string(StatusCodeEnum:Found:Value),
+        poRegistry:Put(string(integer(StatusCodeEnum:Found)),
                        get-class(RedirectStatusFilter)).
-        poRegistry:Put(string(StatusCodeEnum:MovedPermanently:Value),
+        poRegistry:Put(string(integer(StatusCodeEnum:MovedPermanently)),
                        get-class(RedirectStatusFilter)).
 
         /* authorization */
-        poRegistry:Put(string(StatusCodeEnum:Unauthorized:Value),
+        poRegistry:Put(string(integer(StatusCodeEnum:Unauthorized)),
                        get-class(AuthorizationStatusFilter)).
     end method.        
     

@@ -496,7 +496,7 @@ PROCEDURE EditorAction :
   DEFINE VARIABLE hWindow     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
   
-  {Get ContainerSource hContainer}.
+  {get ContainerSource hContainer}.
     
   CASE pcAction:
 

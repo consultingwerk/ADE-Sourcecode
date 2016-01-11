@@ -16,18 +16,20 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter.
-using OpenEdge.Net.HTTP.Filter.Writer.ContentTypeResponseWriterBuilder.
+using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
 using Progress.Lang.AppError.
-using Progress.Lang.Object.
+using Progress.Lang.Error.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary 
         implements IHttpClientLibrary, ISupportInitialize:
@@ -55,6 +57,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     /* stateful variables used by the callbacks */
     define private variable moResponseWriter as IHttpMessageWriter no-undo.
 
+    /* used for debug/logging purposes */
+    define private variable miChunkNumber as integer no-undo.
+
     /** Constructor.
         
         @param character This library's name
@@ -75,14 +80,18 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                moSocketConnectionParam = poSocketConnectionParams.
     end constructor.
     
+    destructor public ABLSocketLibrary():
+        Destroy().
+        assign moSocketLib = ?
+               moSocketConnectionParam = ?.
+    end destructor.    
+    
 	method public void Initialize():
         moSocketLib:DataReceived:Subscribe(DataReceivedHandler).
     end method.
     
     method public void Destroy():
         moSocketLib:DataReceived:Unsubscribe(DataReceivedHandler).
-        
-        assign moSocketLib = ?.
     end method.
 
     /** Event handler for dealing with data received from the ClientSocket
@@ -91,18 +100,36 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void DataReceivedHandler(input poSender as ClientSocket,
                                            input poEventArgs as SocketReadEventArgs):
-        if session:debug-alert then
+        define variable cChunkFile as character no-undo.
+        
+        if log-manager:logging-level ge 5 then
         do:
-            output to value(session:temp-dir + 'response-data-received.txt':u) append.
-            put unformatted                        skip(2) 
-                '================================' skip
-                'NEW CHUNK (' poEventArgs:Data:Size ')' skip
-                '================================' skip.
-            output close.
+            assign miChunkNumber = miChunkNumber + 1.
+            
+            LogMessage(substitute('CHUNK: NUM= &1':u, miChunkNumber), 5).
+            LogMessage(substitute('CHUNK: SIZE(b)= &1':u, poEventArgs:Data:Size), 5).
+            LogMessage(substitute('CHUNK: READ(b)= &1':u, poEventArgs:BytesRead), 5).
+            
+            if log-manager:logging-level ge 6 then
+            do:
+                assign cChunkFile = session:temp-dir + substitute('response-data-chunk-&1.txt':u, string(miChunkNumber, '99999':u)).
+                LogMessage(substitute('CHUNK: FILE= &1':u, cChunkFile), 6).
+                
+                output to value(cChunkFile).
+                put unformatted
+                    '================================':u skip 
+                    'NEW CHUNK (':u poEventArgs:Data:Size ')':u skip
+                    'BYTES READ (':u poEventArgs:BytesRead ')':u skip
+                    '================================':u skip.
+                output close.
+
+                copy-lob poEventArgs:Data:Value to file cChunkFile append.
+            end.
+            
             copy-lob poEventArgs:Data:Value to file session:temp-dir + 'response-data-received.txt':u append.
         end.
         
-        /* Process the number of bytes read chunk */
+        /* Process the number of bytes read chunk */        
         moResponseWriter:Write(poEventArgs).
     end method.
   
@@ -139,21 +166,29 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         assign oMessageBody = ByteBucket:Instance().
         ExtractBody(poRequest, oMessageBody).
         
-        if session:debug-alert then
+        if log-manager:logging-level ge 5 then
         do:
+            LogMessage('REQUEST: FILE= ':u + session:temp-dir + 'request-raw.txt':u, 5).
             copy-lob from oMessageBody:GetBytes():Value 
                      to   file session:temp-dir + 'request-raw.txt':u.
-
+            
+            LogMessage('RESPONSE: FILE= ':u + session:temp-dir + 'response-data-received.txt':u, 5).
+            assign miChunkNumber = 0.
             output to value(session:temp-dir + 'response-data-received.txt':u).
             output close.
         end.
         
         /* Steady! */
         do on stop undo, return error new AppError(substitute('Connection timeout for server &1 on port &2 ',
-                                    poRequest:URI:Host,
-                                    poRequest:URI:Port), miErrorNo_ConnectionTimeout)
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port), miErrorNo_ConnectionTimeout)
            stop-after iTimeout:
-            moSocketConnectionParam:URI = poRequest:URI. 
+           
+           if type-of(poRequest, ISupportProxy) then
+                assign moSocketConnectionParam:URI = cast(poRequest, ISupportProxy):ProxyURI.
+            else
+                assign moSocketConnectionParam:URI = poRequest:URI.
+            
             moSocketLib:Connect(moSocketConnectionParam).
         end.
         
@@ -161,14 +196,14 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if not moSocketLib:Connected then
             return error new AppError(
                                 substitute('Connection failure for server &1 on port &2 ',
-                                    poRequest:URI:Host,
-                                    poRequest:URI:Port),
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port),
                                 miErrorNo_ConnectionFailure).
         
         /* GO! */
         do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
-                                    poRequest:URI:Host,
-                                    poRequest:URI:Port), miErrorNo_RequestWriteTimeout)
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
            stop-after iTimeout: 
             moSocketLib:WriteData(oMessageBody:GetBytes()).
         end.
@@ -180,16 +215,17 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         /* the socket object works on callbacks. these will
            populate the HttpResponse object */
         do on stop undo, return error new AppError(substitute('Request read timeout for server &1 on port &2 ',
-                                    poRequest:URI:Host,
-                                    poRequest:URI:Port), miErrorNo_RequestReadTimeout)
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestReadTimeout)
            stop-after iTimeout:
             moSocketLib:WaitForResponse(0).
         end.
         
         moResponseWriter:Close().
         
-        /* populate the entity */
-        ExtractEntity(poResponse, oMessageBody).
+        /* populate the entity if there's content (signalled by content-type) */
+        if poResponse:ContentType ne '':u then
+            ExtractEntity(poResponse, oMessageBody).
         
         finally:
             moResponseWriter = ?.
@@ -203,18 +239,20 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         @param ByteBucket The message body in plain-text form */
     method private void ExtractBody(input poRequest as IHttpRequest,
                                     input poMessageBody as ByteBucket):
-        define variable oRequestWriter as IHttpMessageWriter no-undo.
+        define variable oBodyWriter as MessageWriter no-undo.
         
-        assign oRequestWriter = RequestWriterBuilder:Build(poRequest).
-        if not valid-object(oRequestWriter) then
-            return error new AppError('Unable to buld request for transmission', 0).
+        assign oBodyWriter = RequestWriterBuilder:Build()
+                                    :WriteTo(poMessageBody)
+                                    :Writer.
+        if not valid-object(oBodyWriter) then
+            return error new AppError('Unable to build request for transmission', 0).
         
-        oRequestWriter:Open().
+        oBodyWriter:Open().
         /* writes the message's contents into the message body */
-        oRequestWriter:Write(poMessageBody).
-        oRequestWriter:Close().        
+        oBodyWriter:Write(poRequest).
+        oBodyWriter:Close().
     end method.
-    
+
     /** Constructs the Entity object for the response, based on the
         ContentType 
         
@@ -222,16 +260,42 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         @param ByteBucket The message body in plain-text form */
     method private void ExtractEntity(input poResponse as IHttpResponse,
                                       input poMessageBody as ByteBucket):
-        define variable oResponseEntityWriter as IHttpMessageWriter no-undo.
+
+        define variable oEntityWriter as MessageWriter no-undo.
+        define variable iBytesWritten as int64 no-undo.
         
-        assign oResponseEntityWriter = ContentTypeResponseWriterBuilder:Build(poResponse).
-        
-        if not valid-object(oResponseEntityWriter) then
+        assign oEntityWriter = EntityWriterBuilder:Build(poResponse):Writer.
+        if not valid-object(oEntityWriter) then
             return.
         
-        oResponseEntityWriter:Open().
-        oResponseEntityWriter:Write(poMessageBody).
-        oResponseEntityWriter:Close().
+        oEntityWriter:Open().
+        assign iBytesWritten = oEntityWriter:Write(poMessageBody).
+        oEntityWriter:Close().
+        
+        /* get the nicely-formatted/parsed body and add it to the response */
+        assign poResponse:Entity        = oEntityWriter:Entity
+               poResponse:ContentLength = iBytesWritten.
+        
+        catch oError as Error:
+            LogMessage(substitute('EXTRACT ENTITY: ERROR = &1':u, oError:ToString()), 1).
+            LogMessage('EXTRACT ENTITY: Response entity contains raw message body':u, 1).
+            
+            assign poResponse:Entity        = poMessageBody:GetBytes()
+                   poResponse:ContentLength = poMessageBody:Size.
+        end catch.
+    end method.
+    
+    /** Logs a message 
+        
+        @param character The message to log
+        @param integer  The level this message should be logged at */
+    method private void LogMessage(input pcMessage as character,
+                                   input piLogLevel as integer):
+        if log-manager:logfile-name eq ? then
+            return.
+        
+        if log-manager:logging-level ge piLogLevel then
+            log-manager:write-message(pcMessage, 'HTTPCLIB':u).
     end method.
     
 end class.

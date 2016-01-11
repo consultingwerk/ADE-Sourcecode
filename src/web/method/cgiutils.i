@@ -269,13 +269,11 @@ Input Parameter: Name of variable or ?
 Returns: Value or blank if invalid name.  If ? was specified for
   the name, the list of variables is returned.
 ****************************************************************************/
-  DEFINE VARIABLE v-value AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE i AS int NO-UNDO.
-  
   IF p_name = ? THEN
-    RETURN WEB-CONTEXT:GET-CGI-LIST("ENV":U).
-  ELSE
-    RETURN WEB-CONTEXT:GET-CGI-VALUE("ENV":U, p_name).
+      RETURN WEB-CONTEXT:GET-CGI-LIST("ENV":U).
+  ELSE  
+      RETURN WEB-CONTEXT:GET-CGI-VALUE("ENV":U, p_name).
+  
 END FUNCTION. /* get-cgi */
 &ANALYZE-RESUME
 
@@ -300,6 +298,8 @@ END FUNCTION. /* get-cgi-long */
 &ANALYZE-RESUME
 
 &ENDIF
+
+ 
 
 &IF DEFINED(EXCLUDE-get-field) = 0 &THEN
 
@@ -357,18 +357,17 @@ Global Variables: FieldList
        or double-space output. */
 
     DEFINE VARIABLE getFromForm AS LOGICAL  NO-UNDO.
-
     IF usetttWebFieldList THEN
        ASSIGN getFromForm = CAN-FIND (FIRST ttWebFieldList WHERE field-name = p_name
                                       AND field-type = "F":U).
     ELSE 
        ASSIGN getFromForm = LOOKUP(p_name, WEB-CONTEXT:GET-CGI-LIST("FORM":U)) > 0.
-
+ 
     IF getFromForm THEN
-      RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim),
+        RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("FORM":U, p_name, SelDelim),
                      "~r~n":U, "~n":U).
-    ELSE
-      RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("QUERY":U, p_name, SelDelim),
+    ELSE  
+        RETURN REPLACE(WEB-CONTEXT:GET-CGI-VALUE("QUERY":U, p_name, SelDelim),
                      "~r~n":U, "~n":U).
   END.
   RETURN v-value.
@@ -730,6 +729,20 @@ END FUNCTION. /* html-encode */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-multi-session-agent) = 0 &THEN
+
+&ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION multi-session-agent 
+FUNCTION multi-session-agent RETURNS LOGICAL
+  ():
+/****************************************************************************
+Description: Returns true if we're running in a multi-session agent (PAS) 
+****************************************************************************/
+    return session:client-type = "MULTI-SESSION-AGENT":U.
+END FUNCTION. /* multi-session-agent */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-output-content-type) = 0 &THEN
 
 &ANALYZE-SUSPEND _CODE-BLOCK _FUNCTION output-content-type 
@@ -770,11 +783,15 @@ Global Variables: output-content-type
     END.
     &ENDIF
     
+    if not multi-session-agent() then
+    do:
     /* If there are any persistent Web objects, then reset the cookie used by 
      * the web broker to identify this Agent. (The wo temp-table is 
      * defined in web/objects/web-util.p.)
+     * this is defined in stateaware -  run with no-error 
      */
-    RUN find-web-objects IN web-utilities-hdl (OUTPUT rslt).
+       RUN find-web-objects IN web-utilities-hdl (OUTPUT rslt) no-error.
+    end.
     IF rslt THEN
       set-wseu-cookie(c-new-wseu).
     ELSE
@@ -948,8 +965,9 @@ Returns: decoded string
      won't contain extra characters. */
   ASSIGN 
     out = REPLACE(p_in, "%0D%0A":U, "~n":U).
-
+  
   RETURN WEB-CONTEXT:URL-DECODE(out).
+  
 END FUNCTION.  /* url-decode */
 &ANALYZE-RESUME
 
@@ -1148,7 +1166,7 @@ Global Variables: CgiList, CgiVar
   DEFINE OUTPUT PARAMETER p_value AS CHARACTER NO-UNDO.
   
   /* Just return the function output */
-  ASSIGN p_value = get-cgi (p_name).
+  ASSIGN p_value = get-cgi (p_name).  
 END PROCEDURE.
 &ANALYZE-RESUME
 

@@ -1,19 +1,19 @@
- /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
-  /*                                                           */
-  /* all rights reserved.  no part of this program or document */
-  /* may be  reproduced in  any form  or by  any means without */
-  /* permission in writing from progress Software Corporation. */
-  /*************************************************************/
- /*------------------------------------------------------------------------
-    File        : AuthenticationSystemDataSource
-    Purpose     : 
-    Syntax      : 
-    Description : 
-    Author(s)   : hdaniels
-    Created     : feb 2011
-    Notes       : 
-  ----------------------------------------------------------------------*/
+/*************************************************************/
+/* Copyright (c) 2015 by progress Software Corporation.      */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
+/*------------------------------------------------------------------------
+   File        : AuthenticationSystemDataSource
+   Purpose     : 
+   Syntax      : 
+   Description : 
+   Author(s)   : hdaniels
+   Created     : feb 2011
+   Notes       : 
+ ----------------------------------------------------------------------*/
 
 using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataSource.DataSource from propath.
@@ -24,21 +24,23 @@ routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.DataSource.AuthenticationSystemDataSource inherits DataSource: 
     define buffer b_authenticationsystem for dictdb._Sec-Authentication-System.
-    define protected variable mBuffer as handle no-undo.
-    define variable cErrorMap as character no-undo.
-    define private variable msave as logical no-undo.
-    define private variable mMapping as char
-       init     
-"Name,_Domain-type,~
+    define protected variable mBuffer   as handle    no-undo.
+    define           variable cErrorMap as character no-undo.
+    define private   variable msave     as logical   no-undo.
+    define           variable mptr      as MEMPTR    no-undo.
+    define           variable iLength   as integer   no-undo.
+    define private   variable mMapping  as char
+        init     
+        "Name,_Domain-type,~
 Description,_Domain-type-description,~
 IsEnabled,_PAM-plug-in,~
 Callback,_PAM-callback-procedure,~
 Comments,_Custom-detail"     
-     no-undo.
-/* Names decided in discussions for the 11.1 changes   
-ModuleName,_PAM-module-name,~     
-ModuleChecksum,_PAM-library-checksum"     
-*/    
+        no-undo.
+    /* Names decided in discussions for the 11.1 changes   
+    ModuleName,_PAM-module-name,~     
+    ModuleChecksum,_PAM-library-checksum"     
+    */    
     constructor public AuthenticationSystemDataSource (pcurl as char):        
         this-object ( ).   
         url = pcURL. 
@@ -50,21 +52,20 @@ ModuleChecksum,_PAM-library-checksum"
     end constructor.
     
     method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        phBuffer:set-callback("After-Row-fill","AfterRow").
+        phBuffer:set-callback("After-Row-fill","AfterRow").       
         super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     
     method public override logical Save(phBuffer as handle):
-        define variable hBeforeBuff as handle    no-undo.     
-        define variable hquery      as handle    no-undo.
-        define variable hDataset    as handle    no-undo.
-        define variable mapper     as DataMapper no-undo.
-        define variable cMsg as character no-undo.
+        define variable hBeforeBuff as handle     no-undo.     
+        define variable hquery      as handle     no-undo.
+        define variable hDataset    as handle     no-undo.
+        define variable mapper      as DataMapper no-undo.
+        define variable cMsg        as character  no-undo.        
        
         create query hquery.
-        hBeforeBuff = phBuffer:before-buffer.
-        
+        hBeforeBuff = phBuffer:before-buffer.       
         hquery:add-buffer(hBeforeBuff).
         hQuery:query-prepare("for each ttAuthenticationSystemCopy").    
         hquery:query-open().
@@ -80,48 +81,100 @@ ModuleChecksum,_PAM-library-checksum"
                 find b_authenticationsystem where b_authenticationsystem._domain-type = hBeforeBuff::Name exclusive no-wait.
                 delete  b_authenticationsystem.
             end.
-            else do:
+            else 
+            do:
                 phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
              
                 if hBeforeBuff:row-state = row-created then 
                 do:
                     create dictdb._sec-authentication-system.
                     assign 
-                       dictdb._sec-authentication-system._Domain-type = phBuffer::Name.
+                        dictdb._sec-authentication-system._Domain-type = phBuffer::Name.
                       
-                       /* PAM plug in is currrenty not exposed in any tools or APIs, but 
-                          shopuld default to NO for now (as in DataAdmin tool ) */
-                       /* 11.1- adding new isEnabled flag and callback procedure  */     
-                       if phBuffer::IsEnabled and (phBuffer::Callback NE ? or phBuffer::Callback NE "") then 
-                            assign  dictdb._sec-authentication-system._PAM-plug-in = phBuffer::IsEnabled
-                                    dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
-                       else if phBuffer::IsEnabled = false or (phBuffer::Callback EQ ? or phBuffer::Callback EQ "") then
-                            assign  dictdb._sec-authentication-system._PAM-plug-in = false
-                                    dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
-                       else 
+                    /* PAM plug in is currrenty not exposed in any tools or APIs, but 
+                       shopuld default to NO for now (as in DataAdmin tool ) */
+                    /* 11.1- adding new isEnabled flag and callback procedure  */     
+                    if phBuffer::Callback NE ? or phBuffer::Callback NE "" then 
+                    do:
+                        assign  
+                            dictdb._sec-authentication-system._PAM-plug-in            = phBuffer::IsEnabled
+                            dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                    end.
+                    else if phBuffer::Callback EQ ? or phBuffer::Callback EQ "" then
+                            assign  dictdb._sec-authentication-system._PAM-plug-in            = false
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.                               
+                        else 
                             undo, throw new UnsupportedOperationError("Cannot have blank or unknown callback procedure if authentication enabled.").        
                 end. 
-                else do:
-                  find dictdb._sec-authentication-system
-                       where dictdb._sec-authentication-system._Domain-type = phbuffer::Name exclusive no-wait.
+                else 
+                do:
+                    find dictdb._sec-authentication-system
+                        where dictdb._sec-authentication-system._Domain-type = phbuffer::Name exclusive no-wait.
                 end.    
             
-                if dictdb._sec-authentication-system._Domain-type begins "_" then do: /* in-built types */
-                   if phBuffer::Callback NE dictdb._sec-authentication-system._PAM-callback-procedure then 
-                        assign dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.                 
+                if dictdb._sec-authentication-system._Domain-type begins "_" then 
+                do: /* in-built types */
+                
+                    if phBuffer::Callback NE dictdb._sec-authentication-system._PAM-callback-procedure then 
+                    do:                        
+                        if phBuffer::Callback eq ? or phBuffer::Callback eq "" then
+                        do: 
+                            assign 
+                                dictdb._sec-authentication-system._PAM-library-checksum   = ?
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                        end.   
+                        else 
+                        do: 
+                            assign 
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                            if phBuffer::ModuleChecksum then
+                            do:             
+                                calculateMD5(phBuffer).                             
+                                assign 
+                                    dictdb._sec-authentication-system._PAM-library-checksum = GET-BYTES(mptr,1, iLength).
+                                SET-SIZE(mptr) = 0.
+                            end.
+                        end.                                                  
+                    end. 
+                    else 
+                    do:
+                        /* there is a chance of having same callback procedure but it might be re-coomplied. when callback procedure is recompiled, 
+                        the rcode information will change. the new rcode will have a new MD5 value. */   
+                        if phBuffer::ModuleChecksum then
+                        do:
+                            calculateMD5(phBuffer).
+                            assign 
+                                dictdb._sec-authentication-system._PAM-library-checksum = GET-BYTES(mptr,1, iLength).
+                            SET-SIZE(mptr) = 0.
+                        end.
+                        else dictdb._sec-authentication-system._PAM-library-checksum = ?.
+                    end.              
                 end.
-                else do:
-                assign 
-                   dictdb._sec-authentication-system._Domain-type-description = phBuffer::Description
-                   dictdb._sec-authentication-system._Custom-detail = phBuffer::Comments. 
-                   if phBuffer::IsEnabled and (phBuffer::Callback NE ? or phBuffer::Callback NE "") then 
-                        assign  dictdb._sec-authentication-system._PAM-plug-in = phBuffer::IsEnabled
-                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
-                   else if phBuffer::IsEnabled = false or (phBuffer::Callback EQ ? or phBuffer::Callback EQ "") then
-                        assign  dictdb._sec-authentication-system._PAM-plug-in = false
-                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
-                   else
-                        undo, throw new UnsupportedOperationError("Cannot have blank or unknown callback procedure if authentication enabled.").        
+                else 
+                do:                    
+                    assign 
+                        dictdb._sec-authentication-system._Domain-type-description = phBuffer::Description
+                        dictdb._sec-authentication-system._Custom-detail           = phBuffer::Comments. 
+                    if phBuffer::Callback NE ? or phBuffer::Callback NE "" then 
+                    do:                        
+                        if phBuffer::ModuleChecksum then
+                        do:
+                            calculateMD5(phBuffer).
+                            assign 
+                                dictdb._sec-authentication-system._PAM-library-checksum = GET-BYTES(mptr,1, iLength).
+                            SET-SIZE(mptr) = 0.
+                        end.
+                        else dictdb._sec-authentication-system._PAM-library-checksum = ?.
+                        assign  
+                            dictdb._sec-authentication-system._PAM-plug-in            = phBuffer::IsEnabled
+                            dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback.
+                    end.
+                    else if phBuffer::Callback EQ ? or phBuffer::Callback EQ "" then
+                            assign  dictdb._sec-authentication-system._PAM-plug-in            = phBuffer::IsEnabled
+                                dictdb._sec-authentication-system._PAM-callback-procedure = phBuffer::Callback
+                                dictdb._sec-authentication-system._PAM-library-checksum   = ?.
+                        else
+                            undo, throw new UnsupportedOperationError("Cannot have blank or unknown callback procedure if authentication enabled.").        
                 end.  
                  
                 hdataset = phBuffer:dataset.
@@ -129,7 +182,7 @@ ModuleChecksum,_PAM-library-checksum"
                 AfterRow (dataset-handle hdataset  by-reference).
                 msave = false.
         
-           end. /* end of else row-deleted */ 
+            end. /* end of else row-deleted */ 
         end.
  
         return true.   
@@ -148,19 +201,50 @@ ModuleChecksum,_PAM-library-checksum"
     end method.    
     
     method public override void AfterRow(dataset-handle hds):
-        define variable hbuffer as handle no-undo.
-        define variable typeurl as character no-undo.
-        define variable iSource as integer no-undo.
-        
+        define variable hbuffer    as handle    no-undo.        
+        define variable typeurl    as character no-undo.
+        define variable iSource    as integer   no-undo.         
         assign
-            hBuffer       = hds:get-buffer-handle("ttAuthenticationSystem")
+            hBuffer      = hds:get-buffer-handle("ttAuthenticationSystem")
             hBuffer::Url = Url + "/authenticationsystems/" + WebUtil:UrlEncode(hBuffer::Name). 
-
+            
+        isource = lookup("_sec-authentication-system",Tables). 
+        if valid-handle(DataSourceHandle) then 
+        do:            
+            if get-string(DataSourceHandle:get-source-buffer(isource)::_PAM-library-checksum,1) eq "" or 
+                get-string(DataSourceHandle:get-source-buffer(isource)::_PAM-library-checksum,1) eq ? then
+                hBuffer::ModuleChecksum = false.
+            else hBuffer::ModuleChecksum = true.
+        end.
         if not msave then   
         do:
-             isource = lookup("_sec-authentication-system",Tables).
-             hBuffer::IsBuiltin  = DataSourceHandle:get-source-buffer(isource)::_Domain-type begins "_".
+            isource = lookup("_sec-authentication-system",Tables).
+            hBuffer::IsBuiltin  = DataSourceHandle:get-source-buffer(isource)::_Domain-type begins "_".
+             
         end.
+    end method.   
+    
+    method public void calculateMD5(hBuffer as handle):       
+       
+        define variable cFileName  as character no-undo.
+        define variable md5Value   as character no-undo.        
+       
+        cFileName = hBuffer::Callback.
+        RCODE-INFO:FILE-NAME = REPLACE(cFileName, ".p", ".r").
+        IF RCODE-INFO:CRC-VALUE = ? THEN 
+        DO:                                
+            undo, throw new UnsupportedOperationError("ERROR - did not find info for rcode in callback procedure").
+        END.
+        
+        md5Value = RCODE-INFO:MD5-VALUE.
+        IF md5Value = ? THEN 
+        DO:                                
+            undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have MD5 value").
+        END.
+        
+        iLength = LENGTH(md5Value).
+        SET-SIZE(mptr) = iLength + 1.
+        PUT-STRING(mptr,1) = md5Value.        
     end method.                 
     
 end class.

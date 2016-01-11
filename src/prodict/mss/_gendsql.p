@@ -192,6 +192,20 @@ DEFINE VARIABLE tmp_df_line_int  AS INTEGER               NO-UNDO.
 DEFINE VARIABLE sql-default      AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE dfltconname      AS CHARACTER  INITIAL ?  NO-UNDO.
 DEFINE VARIABLE misc11           AS LOGICAL               NO-UNDO INITIAL TRUE.
+
+DEFINE VARIABLE fldRecid AS RECID NO-UNDO.
+DEFINE VARIABLE idxRecid AS RECID NO-UNDO.
+DEFINE VARIABLE shadowColCount AS INTEGER NO-UNDO.
+
+DEFINE VARIABLE casesen        AS LOGICAL        NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE decrposition   AS INTEGER        NO-UNDO .
+DEFINE VARIABLE idx-shdw-drop  AS LOGICAL        NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE is-word-idx    AS LOGICAL        NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE maxidxcount    AS INTEGER        NO-UNDO.
+DEFINE VARIABLE chkfldrecid    AS RECID          NO-UNDO.
+DEFINE VARIABLE nidx           AS LOGICAL        NO-UNDO INITIAL FALSE.
+FUNCTION findShadow RETURNS INTEGER (INPUT fldRecid AS RECID) FORWARD.
+
 batch_mode = SESSION:BATCH-MODE.
 
 DEFINE TEMP-TABLE con-index NO-UNDO
@@ -343,7 +357,7 @@ IF shadowcol THEN DO:
     IMPORT ilin1.
 
 
-    IF  ilin1[1] = "ADD"  AND  ilin1[2] = "FIELD" THEN DO:
+    IF  ilin1[1] = "ADD" AND  ilin1[2] = "FIELD" THEN DO:
 
        create fld-cache.
        DO i =1 to 7:
@@ -358,6 +372,7 @@ IF shadowcol THEN DO:
             import ilin1.
             if ilin1[1] = "CASE-SENSITIVE" THEN
                  ASSIGN is-case-sensitive = yes.
+
             if ilin1[1] = "MANDATORY" THEN
                  ASSIGN is-mandatory = yes.
            
@@ -393,6 +408,10 @@ IF shadowcol THEN DO:
                          idxname1= idx-name.
                          tab-name1 = itab-name.
               end.
+
+              if ilin1[1] = "WORD" THEN
+                  ASSIGN is-word-idx =  yes.
+
               IF ilin1[1] = ? THEN
                   newline = yes.
         
@@ -415,25 +434,25 @@ PROCEDURE create_shadow:
                  NO-ERROR.                                                                              
   
   IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */ 
-                                                                              
+                                                                            
     CREATE shad-col.
     ASSIGN s-fld-name = "_S#_" + forname
            p-fld-name = fieldname
            s-tbl-name = tablename
            col-num = shw-col.                
- 
+
     CREATE new-obj.
     ASSIGN new-obj.add-type = "F"
            new-obj.tbl-name = tablename
            new-obj.n-order = new-ord
            new-ord = new-ord + 1
-           new-obj.for-name = "_S#_" + forname
-           new-obj.fld-name = "_S#_" + fieldname
+           new-obj.for-name = "_S#_" + forname 
+           new-obj.fld-name = "_S#_" + fieldname 
            new-obj.prg-name = fieldname
            new-obj.for-type = fortype. 
-    
-                                                        
-  END.                                 
+ 
+  END.
+
 END PROCEDURE.
 
 
@@ -667,7 +686,7 @@ PROCEDURE write-tbl-sql:
         /* If progress-recid not a specific field but one the user has selected. */
         IF DICTDB._File._fil-misc1[1] < 0  THEN DO:
           FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Fld-stoff = (DICTDB._File._Fil-misc1[1] * -1)
-               NO-ERROR.
+               NO-ERROR. 
           IF AVAILABLE DICTDB._Field THEN     
             ASSIGN recidname = DICTDB._Field._Field-name.
         END.
@@ -735,6 +754,7 @@ PROCEDURE write-tbl-sql:
     END.         
     DELETE sql-info.
   END.
+
 
   FOR EACH alt-info BREAK BY a-tblname BY a-line-num:
 
@@ -872,7 +892,7 @@ PROCEDURE write-idx-sql:
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
            df-info.df-tbl = s-tbl-name
-           df-line = '  SHADOW-COL "' + string(col-num) + '"'.
+           df-line = '  FIELD-MISC25 "' + string(s-fld-name) + '"'. 
     CREATE df-info.
     ASSIGN df-info.df-seq = dfseq
            dfseq = dfseq + 1
@@ -1443,7 +1463,8 @@ PROCEDURE new-obj-idx:
            new-obj.fld-name = "_S#_" + ilin[2]
            new-obj.prg-name = ilin[2]
            new-obj.for-type = fortype. 
-    
+
+  
     FIND n-obj WHERE n-obj.add-type = "t"
                  AND n-obj.tbl-name = tablename.
                               
@@ -1501,6 +1522,11 @@ PROCEDURE get-position:
              df-line = '  FOREIGN-POS ' + STRING(i).  
     END.
   END.   
+  
+   FOR EACH shad-col WHERE s-fld-name = "_S#_" + fieldname:
+    UPDATE shad-col.col-num = i - 1.
+    END.
+
 END PROCEDURE.  
 
 PROCEDURE new-for-position:
@@ -1539,7 +1565,7 @@ PROCEDURE new-for-position:
       CREATE new-position.
       ASSIGN new-position.table-np = rntbl
              new-position.field-np = recidname
-             new-position.old-pos  = DICTDB._File._Fil-Misc1[1]
+             new-position.old-pos  = (If idx-shdw-drop = TRUE THEN DICTDB._File._Fil-Misc1[1] - 1 ELSE DICTDB._File._Fil-Misc1[1]) 
              new-position.shadow   = 0
              new-position.extent#  = 0.
     END.
@@ -1554,17 +1580,21 @@ PROCEDURE new-for-position:
       CREATE new-position.
       ASSIGN new-position.table-np = rntbl
              new-position.field-np = recidident
-             new-position.old-pos  = getMaxValue(DICTDB._File._Fil-Misc2[2])
+             new-position.old-pos  = (IF idx-shdw-drop = TRUE THEN
+                                            getMaxValue(DICTDB._File._Fil-Misc2[2]) - 1 
+                                      ELSE getMaxValue(DICTDB._File._Fil-Misc2[2]))  
              new-position.shadow   = 0
              new-position.extent#  = 0.
     END.
 
-    FOR EACH DICTDB._Field OF DICTDB._File:      
+
+    FOR EACH DICTDB._Field OF DICTDB._File:
       CREATE new-position.
       ASSIGN new-position.table-np = rntbl
              new-position.field-np = DICTDB._Field._Field-name
-             new-position.old-pos  = DICTDB._Field._Fld-stoff
-             new-position.shadow   = (IF DICTDB._Field._Fld-Misc1[5] > 0 THEN
+             new-position.old-pos  = (If( decrposition > DICTDB._Field._Fld-stoff OR idx-shdw-drop = FALSE) 
+                                           THEN DICTDB._Field._Fld-stoff  ELSE DICTDB._Field._Fld-stoff - 1 )
+             new-position.shadow   = (IF DICTDB._Field._Fld-Misc1[5] > 0 AND idx-shdw-drop = FALSE THEN
                                        DICTDB._Field._Fld-Misc1[5]
                                       ELSE 0)
              new-position.extent#  = (IF DICTDB._Field._Extent > 0 THEN
@@ -1588,14 +1618,14 @@ PROCEDURE new-for-position:
                forpos = forpos + (IF new-position.extent# = 0 THEN 1
                                   ELSE new-position.extent#). 
          IF new-position.shadow <> 0 THEN
-                  forpos = forpos + 1.  
+                  forpos = forpos + 1.
       END.     
       ELSE DO:
         IF new-position.shadow <> 0 THEN
           ASSIGN new-position.shadow = new-position.shadow - forpos
                  new-position.new-pos = new-position.old-pos - forpos.
         ELSE
-          ASSIGN new-position.new-pos = new-position.old-pos - forpos.   
+          ASSIGN new-position.new-pos = new-position.old-pos - forpos.
       END.      
     END.
 
@@ -1779,7 +1809,7 @@ PROCEDURE create-idx-field:
         IF INDEX(idxline, "(") = 0 THEN
           ASSIGN idxline = idxline + "( " + DICTDB._Field._For-name.
         ELSE
-          ASSIGN idxline = idxline + ", " + DICTDB._Field._For-name.            
+          ASSIGN idxline = idxline + ", " + DICTDB._Field._For-name.
       END.
       ELSE DO: 
         IF DICTDB._Field._Data-type <> "Character" THEN DO: 
@@ -1788,8 +1818,8 @@ PROCEDURE create-idx-field:
           ELSE
            ASSIGN idxline = idxline + ", " + DICTDB._Field._For-name.  
         END.     
-        ELSE IF DICTDB._Field._Data-type = "Character" THEN DO:                                    
-          IF (DICTDB._Field._Fld-misc2[5] <> ? and DICTDB._Field._Fld-misc2[5] <> "") OR
+        ELSE IF DICTDB._Field._Data-type = "Character" THEN DO:
+          IF (DICTDB._Field._Fld-misc2[5] <> ? and DICTDB._Field._Fld-misc2[5] <> "" AND casesen EQ FALSE) OR
             CAN-FIND(new-obj where new-obj.add-type = "F"
                                AND new-obj.tbl-name = tablename
                                AND new-obj.fld-name = "_S#_" + ilin[2]) THEN DO: /* shawdow column exists in file */
@@ -1806,7 +1836,7 @@ PROCEDURE create-idx-field:
                                  AND new-obj.prg-name = ilin[2]
                                  AND new-obj.fld-name BEGINS "_S#_" 
                                  NO-ERROR.
-                                        
+           IF  DICTDB._Field._Data-type = "Character" AND DICTDB._Field._Fld-case = NO AND casesen EQ FALSE THEN DO:  /* Existing of insensitive filed */
             IF NOT AVAILABLE new-obj THEN DO:  /* need to alter the table to create field */        
               ASSIGN shw-col = 0.
                              
@@ -1832,15 +1862,13 @@ PROCEDURE create-idx-field:
 
               ASSIGN shw-col = shw-col + 1.  
              
-              FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
-             
+             FIND DICTDB._Field OF DICTDB._File WHERE DICTDB._Field._Field-name = ilin[2] NO-ERROR.
               CREATE shad-col.
               ASSIGN p-fld-name = ilin[2]
                      s-tbl-name = tablename
                      col-num = shw-col
                      s-fld-name = "_S#_" + DICTDB._Field._For-name
                      j = DICTDB._Field._Fld-Misc1[3].
-                              
               CREATE new-obj.
               ASSIGN new-obj.add-type = "F"
                      new-obj.tbl-name = tablename
@@ -1850,11 +1878,11 @@ PROCEDURE create-idx-field:
                      new-obj.prg-name = ilin[2]
                      new-obj.for-name = "_S#_" + DICTDB._Field._For-name. 
                          
-              PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner + "." + DICTDB._File._For-name SKIP.
+              PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner + "." + DICTDB._File._For-name SKIP. 
                 
-              IF j < varlngth THEN DO:                                   
+              IF DICTDB._Field._Fld-Misc1[3] < varlngth THEN DO:                                   
                 PUT STREAM tosql UNFORMATTED comment_chars "  ADD " + new-obj.fld-name + " " + /*"VARCHAR("*/
-                                             user_env[11] + "("  + STRING(j) + ");" SKIP(1).
+                                             user_env[11] + "("  + STRING(DICTDB._Field._Fld-Misc1[3]) + ");" SKIP(1).
                 ASSIGN new-obj.for-type =  /*"VARCHAR(" */ user_env[11] + "(" + STRING(j) + ")".  
               END.      
               ELSE DO:
@@ -1866,15 +1894,18 @@ PROCEDURE create-idx-field:
               IF INDEX(idxline, "(") = 0 THEN
                 ASSIGN idxline = idxline + "(" + new-obj.fld-name.
               ELSE
-                ASSIGN idxline = idxline + ", " + new-obj.fld-name.                                                  
+                ASSIGN idxline = idxline + ", " + new-obj.fld-name.
             END.                                 
             ELSE DO: /* Available new-obj for shawdow */
               ASSIGN con-fld-name = new-obj.fld-name.
               IF INDEX(idxline, "(") = 0 THEN
-                ASSIGN idxline = idxline + "(" + new-obj.fld-name.
+		  ASSIGN idxline = idxline + "(" + new-obj.fld-name.
               ELSE
-                ASSIGN idxline = idxline + ", " + new-obj.fld-name.                                                                   
-            END.                        
+                  ASSIGN idxline = idxline + ", " + new-obj.fld-name.
+            END.
+           END. /* existing of insensitive filed */ 
+          ELSE
+            ASSIGN idxline = idxline + "(" + DICTDB._Field._Field-name.
           END. /* shawdow not in existing file */
         END.
         IF ilin[3] BEGINS "DESC"  THEN
@@ -1957,7 +1988,7 @@ PROCEDURE create-idx-field:
                          new-obj.prg-name = ilin[2]
                          new-obj.for-name = "_S#_" + DICTDB._Field._For-name. 
                    
-                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner + "." + DICTDB._File._For-name SKIP.
+                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner + "." + DICTDB._File._For-name SKIP. 
 
                   IF j < varlngth THEN DO:                    
                     PUT STREAM tosql UNFORMATTED comment_chars "  ADD " new-obj.fld-name /*" VARCHAR("*/ " " user_env[11] "("
@@ -3277,7 +3308,7 @@ DO ON STOP UNDO, LEAVE:
               PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
                                " DROP COLUMN " + DICTDB._Field._For-name SKIP.
 
-              IF _fld-misc2[5] <> ? THEN
+              IF DICTDB._Field._fld-misc2[5] <> ? AND DICTDB._Field._fld-misc2[5] <> ""  AND idx-shdw-drop  = FALSE OR nidx = TRUE  THEN 
               PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
                                " DROP COLUMN " + DICTDB._Field._fld-misc2[5] SKIP.
 
@@ -3516,7 +3547,7 @@ DO ON STOP UNDO, LEAVE:
             */
             FIND FIRST DICTDB._File WHERE DICTDB._File._file-name = tablename NO-ERROR.
             IF AVAILABLE DICTDB._File THEN DO:
-               FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname NO-ERROR.
+               FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname AND DICTDB._field._extent < 0 NO-ERROR.
                IF AVAILABLE DICTDB._Field THEN DO:
                    IF NOT batch_mode THEN DO:
                 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
@@ -3927,29 +3958,26 @@ DO ON STOP UNDO, LEAVE:
               IF AVAILABLE sql-info THEN 
                 ASSIGN line = fieldname + new-obj.for-type.                        
               ELSE IF AVAILABLE alt-info THEN DO:   
-         
+
                 IF shadowcol THEN DO:
-                    FIND FIRST idxfld-cache WHERE idxfld-cache.tab-name1 = tablename AND idxfld-cache.idx-fld2 = fieldname  NO-ERROR.
-                        IF AVAILABLE idxfld-cache THEN 
-                           FIND FIRST fld-cache WHERE fld-cache.fld-name = idxfld-cache.idx-fld2 and fld-cache.tab-name = idxfld-cache.tab-name1 NO-ERROR.
-                           IF AVAILABLE fld-cache  THEN DO:
-                               IF is-case-sensitive THEN
-                               create_shadow_col = FALSE.
-                               ELSE
-                               create_shadow_col = TRUE.
-                           END.
-                    IF create_shadow_col AND fieldtype EQ "CHARACTER" THEN DO:
-                       RUN create_shadow.                       
-                       ASSIGN   a-line = new-obj.for-name + new-obj.for-type 
-                                a-tblname = tablename
-                                a-fldname = new-obj.fld-name.
-                        
-                        CREATE alt-info.
-                        ASSIGN lnum = lnum + 1
-                               a-line-num = lnum
-                               a-tblname = tablename
-                               a-fldname = fieldname.
-                    END.
+                 FIND FIRST idxfld-cache WHERE idxfld-cache.tab-name1 = tablename AND idxfld-cache.idx-fld2 = fieldname  NO-ERROR.
+		      IF AVAILABLE idxfld-cache THEN 
+                        FOR EACH fld-cache WHERE fld-cache.fld-name = fieldname and fld-cache.tab-name = tablename:
+                               IF AVAILABLE fld-cache AND fld-cache.is-case-sensitive = FALSE 
+                                    AND fld-cache.fld-typ-char = YES AND is-word-idx = NO THEN DO:
+                                RUN create_shadow. 
+
+                               ASSIGN   a-line = new-obj.for-name + new-obj.for-type 
+                                        a-tblname = tablename
+                                        a-fldname = new-obj.fld-name.
+
+                             CREATE alt-info.
+                               ASSIGN lnum = lnum + 1
+                                       a-line-num = lnum
+                                       a-tblname = tablename
+                                       a-fldname = fieldname.
+                            END.  
+                        END.
                END.
 
                 ASSIGN a-line = fieldname + new-obj.for-type .
@@ -4859,6 +4887,17 @@ DO ON STOP UNDO, LEAVE:
              IF ilin[7] <> ? THEN
                  ASSIGN df-line = df-line + ' "' + ilin[7] + '"'.
           END.
+          WHEN "CASE-SENSITIVE"  THEN DO:
+             CREATE df-info.
+             ASSIGN df-info.df-seq = dfseq
+                   dfseq = dfseq + 1
+                   df-info.df-tbl = tablename
+                   df-info.df-fld = fieldname
+                   df-line =  "  " + ilin[1].
+
+            ASSIGN casesen = TRUE
+	       dropped-fld = TRUE. 
+          END. 
         END CASE.
         ASSIGN ilin = ?.
       END. /* end update */                    
@@ -4882,15 +4921,47 @@ DO ON STOP UNDO, LEAVE:
                  idxname = ilin[3]
                  comment_chars = ""
                  comment-out = FALSE.
-       
- 
+
+        ASSIGN shadowColCount = 0.
         FIND FIRST DICTDB._File WHERE DICTDB._File._File-name = ilin[5]
-                                  AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.                                  
+                                  AND DICTDB._File._Owner = "_FOREIGN" NO-ERROR.
         IF AVAILABLE DICTDB._File THEN DO:
-          FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = ilin[3] NO-ERROR.
+         FIND DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-name = ilin[3] NO-ERROR.
+          ASSIGN idxRecid =  recid(DICTDB._Index).
           IF AVAILABLE DICTDB._Index THEN DO:
-            PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._File._For-owner "." DICTDB._File._For-name "." DICTDB._Index._For-name SKIP.
+              PUT STREAM tosql UNFORMATTED comment_chars "DROP INDEX " DICTDB._File._For-owner "." DICTDB._File._For-name "." DICTDB._Index._For-name SKIP.
+                FOR EACH DICTDB._Index-field WHERE DICTDB._Index-field._Index-recid = idxRecid:
+                    ASSIGN fldRecid = DICTDB._Index-field._Field-recid.
+                    FIND FIRST DICTDB._Field WHERE RECID(DICTDB._Field) = fldRecid.
+                       IF AVAILABLE(DICTDB._Field) AND DICTDB._Field._Fld-misc1[5] > 0 THEN DO: 
+                            ASSIGN shadowColCount = findShadow(fldRecid).
+
+                            IF shadowColCount > 1 AND chkfldrecid <> fldRecid THEN
+                                  ASSIGN chkfldrecid = fldRecid.
+
+                            IF  shadowColCount = 1 AND DICTDB._Field._fld-misc2[5] <> ? THEN  DO: 
+                                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
+                                                                             " DROP COLUMN " + DICTDB._Field._fld-misc2[5] SKIP.
+                                  ASSIGN decrposition = DICTDB._Field._Fld-stoff
+                                         idx-shdw-drop = TRUE 
+                                           dropped-fld = TRUE.
+                            END.
+                            ELSE IF shadowColCount > 1 AND chkfldrecid = fldRecid THEN DO:
+                                ASSIGN  maxidxcount = maxidxcount + 1.
+                                IF(shadowColCount = maxidxcount) THEN DO:
+                                  PUT STREAM tosql UNFORMATTED comment_chars "ALTER TABLE " + DICTDB._File._For-owner "." DICTDB._File._For-name + 
+                                                                             " DROP COLUMN " + DICTDB._Field._fld-misc2[5] SKIP.
+                                 ASSIGN nidx = FALSE
+                                        decrposition = DICTDB._Field._Fld-stoff
+                                        idx-shdw-drop = TRUE
+                                        dropped-fld = TRUE
+                                        chkfldrecid = fldRecid.
+                                 END.
+                            END. 
+                       END. 
+                END.
             PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+                  
             CREATE df-info.
             ASSIGN df-info.df-seq = dfseq
                    dfseq = dfseq + 1
@@ -4898,7 +4969,7 @@ DO ON STOP UNDO, LEAVE:
                    df-line =  "DROP INDEX " + '"' + DICTDB._Index._Index-name +
                               '"' + " ON " + '"' + ilin[5] + '"'. 
 
-             IF DICTDB._Index._idx-num EQ DICTDB._File._fil-misc1[2] then do:
+            IF DICTDB._Index._idx-num EQ DICTDB._File._fil-misc1[2] then do:
                     CREATE df-info.
                     ASSIGN df-info.df-seq = dfseq
                            dfseq = dfseq + 1
@@ -6291,5 +6362,17 @@ FUNCTION getMaxValue RETURNS INTEGER (INPUT pcInput AS CHARACTER):
     END.
 
     RETURN this_max.
+    
+END FUNCTION.
+
+/* Finding number of shadow column names exist in a filed record. */ 
+FUNCTION findShadow RETURNS INTEGER (INPUT fldRecidInput AS RECID):
+    DEFINE VARIABLE numShadowEntries AS INTEGER INIT 0 NO-UNDO.
+    
+    FOR EACH DICTDB._Index-field WHERE DICTDB._Index-field._field-recid = fldRecidInput:
+        ASSIGN numShadowEntries = numShadowEntries + 1.
+    END.
+    
+    RETURN numShadowEntries.
     
 END FUNCTION.

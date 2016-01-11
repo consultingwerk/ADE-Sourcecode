@@ -52,7 +52,8 @@ procedure exportU:
    define buffer b_p for _p.
    define buffer b_f for _F.
    
-   define variable cName   as character no-undo.
+   define variable cName       as character no-undo.
+   define variable cParentName as character no-undo.
    
    find b_p where b_P._WINDOW-HANDLE =  phwin.
       /* Should use local var instead of _wid-list */
@@ -73,13 +74,20 @@ procedure exportU:
 /*           BY b_U._NAME:                             */
      
      cName = findWidgetName(recid(b_u)).
+     cParentName = findWidgetName(recid(p_u)).  
      create ttwidget.
      assign
         ttWidget.name = cName
-        ttWidget.parentname = p_u._name    
+        ttWidget.parentname = cParentName   
         ttWidget.type = b_u._type
         ttWidget.widgetLabel = b_u._LABEL. 
-        
+/*          cParentName = findWidgetName(recid(p_u)).*/
+   
+/*     message "name: " cName  skip                  */
+/*             "parent: " cParentName  skip          */
+/*             "parent2: " findWidgetName(recid(p_u))*/
+/*     view-as alert-box.                            */
+       
    end. 
    pcfilename = if index(pcFilename,".") > 1 then pcfilename else pcfilename + ".xml":U.
 

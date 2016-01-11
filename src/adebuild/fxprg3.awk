@@ -51,7 +51,7 @@
   gsub(/#migration_source#/, "", filename)
   # Replace double slashes with single slash. There
   # may be double slashes as the result fo removing a token
-  gsub(/\/\//,"\/",filename)
+  gsub(/\/\//,"\\/",filename)
    
   # store file type/name. we don't care about ADO for compilation
   if(filetype!="ADO"){

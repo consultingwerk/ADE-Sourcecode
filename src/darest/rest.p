@@ -124,7 +124,7 @@ procedure handleStop:
     define input  parameter pErrorfile as character no-undo.
     define variable cline as character no-undo.
     define variable err as AppError no-undo.
-    err = new AppError("The service request was stopped. This could be because a schema lock exists or could not be aquired.",?).
+    err = new AppError("The service request was stopped. This could be because a schema lock exists or could not be acquired.",?).
     if session:batch-mode then output close.                               
     undo, throw err.
     catch e as Progress.Lang.Error :

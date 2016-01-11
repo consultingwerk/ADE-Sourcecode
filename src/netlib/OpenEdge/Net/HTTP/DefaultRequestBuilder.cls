@@ -17,11 +17,11 @@ using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.HTTP.RequestBuilder.
-using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.URI.
 using Progress.Lang.Object.
 
@@ -49,17 +49,34 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
         
         /* We know the signature to the default library's constructor - make sure that the type we
            get is of that type */
-        Assert:IsType(oRequestType, get-class(OpenEdge.Net.HTTP.HttpRequest)).
+        Assert:IsType(oRequestType, get-class(IHttpRequest)).
         
-        oRequest = dynamic-new string(oRequestType:TypeName)( GetOptionStringValue('method':u),
-                                                              cast(GetOptionObjectValue('uri':u), URI)).
-                
+        oRequest = dynamic-new string(oRequestType:TypeName)().
+        
         if type-of(oRequest, ISupportInitialize) then
             cast(oRequest, ISupportInitialize):Initialize().
-        
+            
+        assign oRequest:Method = GetOptionStringValue('method':u)
+               oRequest:URI    = cast(GetOptionObjectValue('uri':u), URI).
+                     
         /* version */
         if HasOption('version':u) then
-            oRequest:Version = GetOptionStringValue('version':u).
+            assign oRequest:Version = GetOptionStringValue('version':u).
+
+        /* Accept content types.
+           
+           A content type provided via one of the :Accept*()
+           methods takes precendence.
+           
+           If that doesn't exist, then take the valeu of any Accept
+           header.
+           
+           If that doesn't exist, provide a default all */
+        if HasOption('AcceptContentType':u) then
+            AddHeader('Accept':u, trim(GetOptionStringValue('AcceptContentType':u), ',':u)).
+        else
+        if not HasOption('header+Accept':u) then
+            AddHeader('Accept':u, '*/*':u).
         
         /* headers */
         for each ConfigOption where
@@ -69,18 +86,7 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
         end.
         
         /* data/entity */
-        oRequest:Entity = GetOptionObjectValue('entity':u).
-        
-        /* accept types */
-        assign cValue = trim(GetOptionStringValue('AcceptContentType':u), ',':u).
-        if cValue eq ? then
-            assign cValue = '*/*':u.
-                    
-        assign iMax = max(num-entries(cValue, ',':u), 1)
-               extent(oRequest:AcceptContentType) = iMax.
-        do iLoop = 1 to iMax:
-            assign oRequest:AcceptContentType[iLoop] = entry(iLoop, cValue, ',':u). 
-        end.
+        assign oRequest:Entity = GetOptionObjectValue('entity':u).
         
         /* proxy */
         if HasOption('supportsProxy':u) then
@@ -98,9 +104,9 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
             if HasOption('credentials':u) then
                 assign cast(oRequest, IAuthenticatedRequest):Credentials = cast(GetOptionObjectValue('credentials':u), Credentials).
             
-            if HasOption('authenticationmethod':u) then
+            if HasOption('authenticationMethod':u) then
                 cast(oRequest, IAuthenticatedRequest):SetChallenge(
-                            GetOptionStringValue('authenticationmethod':u),
+                            GetOptionStringValue('authenticationMethod':u),
                             GetOptionStringValue('challenge':u)     ).
             
             if HasOption('listener':u) then

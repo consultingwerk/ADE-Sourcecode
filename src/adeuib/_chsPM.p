@@ -184,8 +184,6 @@ DO ON STOP UNDO, LEAVE:
             (progress waiting for eclipse waiting for progress) due to save/saveas                  
              from here */ 
                 if NOT OEIDE_CanShowMessage() then                                       
-/*                ShowOkMessageInIDE("Object not added to repository.","Error",?).*/
-/*            else                                                                */
                     MESSAGE "Object not added to repository." SKIP(1)
                        gcError
                     VIEW-AS ALERT-BOX.
@@ -199,8 +197,6 @@ DO ON STOP UNDO, LEAVE:
             (progress waiting for eclipse waiting for progress) due to save/saveas                  
              from here */ 
                if NOT OEIDE_CanShowMessage() then                                       
-/*                ShowOkMessageInIDE("Object not added to repository.","Error",?).*/
-/*            else                                                                */
                     MESSAGE "Object was added to repository."
                     VIEW-AS ALERT-BOX INFORMATION.
         END.

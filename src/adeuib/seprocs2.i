@@ -641,7 +641,8 @@ procedure insertTriggerBlock.
     define input  parameter pcType      as character no-undo.
     define input  parameter pcName      as character no-undo.
     define input  parameter pcNewEvent  as character no-undo.
-    define input  parameter pcBrowseName  as character no-undo.
+    define input  parameter pcParentName  as character no-undo.
+    
     define output parameter plok        as logical no-undo.
     define variable hParent           as handle no-undo. 
     define variable new_recid         as recid  no-undo.
@@ -657,6 +658,7 @@ procedure insertTriggerBlock.
 
     define buffer _sew_bc  for  _bc.
     define buffer b_u  for  _u.
+    define buffer b_uparent  for  _u.
     
     if pcNewEvent = "" or pcNewEvent = ? then 
         undo, throw new Progress.Lang.AppError("No event passed to InsertTriggerBlock()",?).
@@ -684,7 +686,7 @@ procedure insertTriggerBlock.
         
         find _sew_u where _sew_u._window-handle = hParent 
                       and _sew_u._type          = "BROWSE" 
-                      and _sew_u._name          = pcBrowseName no-error.        
+                      and _sew_u._name          = pcParentName no-error.        
         if not avail _sew_u then
             return. 
             
@@ -751,6 +753,15 @@ procedure insertTriggerBlock.
                    next. 
                if b_u._buffer = cBufferName or b_u._table = cBufferName then 
                do:
+                  if pcParentName > ""  then
+                  do:
+                      find  b_uparent where recid(b_uparent) = b_U._PARENT-RECID no-error.
+                      if avail b_uparent then
+                      do:
+                          if b_uparent._name <> pcParentName then
+                              next. 
+                      end.
+                  end. 
                   find _sew_u where recid(_sew_u) = recid(b_u).
                   leave. 
                end.   

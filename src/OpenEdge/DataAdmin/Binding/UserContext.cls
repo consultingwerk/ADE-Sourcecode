@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2013 by Progress Software Corporation. */
+/* Copyright (c) 2010-2013,2015 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -338,6 +338,7 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
                 ttUser.DomainName      = cDomain
          /*     ttUser.Tenant          = userImpl:Tenant:Name when valid-object(userImpl:Tenant).*/
                 ttUser.Description     = userImpl:Description     
+                ttUser.Number         = userImpl:Number
                 ttUser.GivenName       = userImpl:GivenName
                 ttUser.MiddleInitial   = userImpl:MiddleInitial
                 ttUser.SurName         = userImpl:SurName

@@ -189,7 +189,7 @@ procedure setIDEpreferences:
 /*        _widgetid_custom_filename  = entry(15,prefOptions,",").                           */
      
     catch e as Progress.Lang.Error :
-    	ShowOkMessageInIDE("Unexpected error when applying AppBuilder preferences to AVM for project" + getProjectName() + "~n" 
+    	run ShowOKMessage in hOEIDEService("Unexpected error when applying AppBuilder preferences to AVM for project" + getProjectName() + "~n" 
                         	+  e:GetMessage(1),"error",?).
     end catch.             
     finally:

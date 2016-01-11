@@ -1,8 +1,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2015 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 **********************************************************************
@@ -113,7 +113,8 @@ Date      Who       Description
 2/23/00   adams     * Added decode-url(), x-2-c() functions to replace 
                       WEB-CONTEXT:URL-DECODE() method for local conversion of 
                       HTML files at design time.
-
+6/17/2015 rkumar    * Incorporate Ken Mcintosh's changes to 11.6
+ 
 Note: To find bug fix numbers, search for "Bug".
 ---------------------------------------------------------------------------- */
 
@@ -176,6 +177,9 @@ DEFINE VARIABLE line-num        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE curr-state      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE next-state      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE prev-state      AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cTopStatements  AS CHARACTER NO-UNDO.
+DEFINE VARIABLE iStatement      AS INTEGER   NO-UNDO.
+
 &GLOBAL-DEFINE INITIAL-STATE    0
 &GLOBAL-DEFINE NORMAL-STATE     1
 &GLOBAL-DEFINE STMNT-TAG-OPEN   2
@@ -569,6 +573,15 @@ DO WHILE TRUE
   /* Else, just read the next line in */
   ELSE DO:
     IMPORT STREAM instr UNFORMATTED in-buf.
+    
+    IF TRIM(in-buf) BEGINS "ROUTINE-LEVEL ON" OR
+       TRIM(in-buf) BEGINS "BLOCK-LEVEL ON" OR
+       TRIM(in-buf) BEGINS "USING " THEN
+      cTopStatements = cTopStatements + 
+                       (IF (cTopStatements GT "") EQ TRUE THEN 
+                          CHR(1) 
+                        ELSE "") +
+                       in-buf.
     ASSIGN
       start-offset = 1
       line-num = line-num + 1.  /* Line counter */
@@ -813,6 +826,10 @@ END.
 /* Open the web-object or include output file */
 OUTPUT STREAM outstr TO VALUE(p_output-file).
 
+DO iStatement = 1 TO NUM-ENTRIES(cTopStatements):
+  PUT STREAM outstr UNFORMATTED ENTRY(iStatement,cTopStatements,CHR(1)) CHR(10).
+END.
+
 /* NOTE: Any output written from here up until main-loop below must not write
    any newlines or compile errors will have the wrong line numbers. */
 
@@ -854,7 +871,10 @@ DO WHILE TRUE
     WHEN {&INITIAL-STATE} THEN DO:
       /* Print anything accumulated in the line output buffer */
       IF line-num > 0 THEN DO:
-        PUT STREAM outstr UNFORMATTED out-buf "~n":U.
+         IF NOT (TRIM(out-buf) BEGINS "ROUTINE-LEVEL ON") AND
+            NOT (TRIM(out-buf) BEGINS "BLOCK-LEVEL ON") AND
+            NOT (TRIM(out-buf) BEGINS "USING ") THEN
+            PUT STREAM outstr UNFORMATTED out-buf "~n":U.
         ASSIGN out-buf = "".
       END.
       /* Read next line in */

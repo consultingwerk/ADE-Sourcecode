@@ -887,7 +887,7 @@ PROCEDURE ProcessPage :
     DO:  
       cmsg = 'You need to supply the name of a data definition source.'.
 /*      if OEIDE_CanShowMessage() then               */
-/*          ShowOkMessageInIDE(cMsg,"INFORMATION",?).*/
+/*       run ShowMessage in hOEIDEService(cMsg,"INFORMATION",?).*/
 /*      else                                         */
           MESSAGE cMsg
           view-as alert-box information. 
@@ -911,7 +911,7 @@ PROCEDURE ProcessPage :
                     then ERROR-STATUS:GET-MESSAGE(2) 
                     else "").
 /*           if OEIDE_CanShowMessage() then         */
-/*               ShowOkMessageInIDE(cMsg,"ERROR",?).*/
+/*              run ShowMessage in hOEIDEService(cMsg,"ERROR",?).*/
 /*           else                                   */
              MESSAGE cMsg
               VIEW-AS ALERT-BOX 
@@ -924,7 +924,7 @@ PROCEDURE ProcessPage :
       cmsg =   Data_object + " is not a valid data definition source."  + "~n" 
            +  "Select a DataObject or an include file with TEMP-TABLE and PRODATASET definitions.".  
 /*      if OEIDE_CanShowMessage() then               */
-/*          ShowOkMessageInIDE(cMsg,"information",?).*/
+/*          run ShowMessage in hOEIDEService(cMsg,"information",?).*/
 /*      else                                         */
           MESSAGE cMsg
           view-as alert-box information. 
@@ -936,7 +936,7 @@ PROCEDURE ProcessPage :
       DO:  
         cMsg = 'You need to select a DataTable.'. 
 /*        if OEIDE_CanShowMessage() then               */
-/*            ShowOkMessageInIDE(cMsg,"information",?).*/
+/*            run ShowMessage in hOEIDEService(cMsg,"information",?).*/
 /*        else                                         */
           MESSAGE cMsg
             view-as alert-box information. 
@@ -955,7 +955,7 @@ PROCEDURE ProcessPage :
              +  " and cannot be used as definition source."  + "~n" 
               + "Select a DataObject or an include file with TEMP-TABLE and/or PRODATASET definitions.".  
 /*        if OEIDE_CanShowMessage() then               */
-/*            ShowOkMessageInIDE(cMsg,"information",?).*/
+/*            run ShowMessage in hOEIDEService(cMsg,"information",?).*/
 /*        else                                         */
           MESSAGE cMsg
           view-as alert-box information. 
@@ -980,7 +980,7 @@ PROCEDURE ProcessPage :
              +  "~n" 
              + "Confirm ok to continue.".
 /*        if OEIDE_CanShowMessage() then                             */
-/*            ShowMessageInIDE(cMsg,"information",?,"OK-CANCEL",lok).*/
+/*            run ShowMessage in hOEIDEService(cMsg,"information",?,"OK-CANCEL",input-output lok).*/
 /*        else                                                       */
             MESSAGE cMsg
             VIEW-AS ALERT-BOX BUTTONS OK-CANCEL UPDATE lok.
@@ -1347,7 +1347,7 @@ FUNCTION resetDataSource RETURNS LOGICAL
      lAnswer = YES.
      cMsg =  'Confirm removal of all fields selected from current data source from the list.'.
 /*     if OEIDE_CanShowMessage() then                                            */
-/*          lanswer = ShowMessageInIDE(cMsg,"Information",?,"OK-CANCEL",lanswer).*/
+/*          run ShowMessage in hOEIDEService(cMsg,"Information",?,"OK-CANCEL", input-output lanswer).*/
 /*     else                                                                      */
         MESSAGE cMsg
        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lAnswer.
@@ -1371,7 +1371,7 @@ FUNCTION resetDataSource RETURNS LOGICAL
             + "Yes, this object is to be run." + "~n" 
             + "No, this file is to be parsed".
 /*        if OEIDE_CanShowMessage() then                                     */
-/*            lanswer = ShowMessageInIDE(cMsg,"Question",?,"YES-NO",lanswer).*/
+/*            run ShowMessage in hOEIDEService(cMsg,"Question",?,"YES-NO", input-output lanswer).*/
 /*        else                                                               */
            MESSAGE cmsg 
            VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.
@@ -1391,7 +1391,7 @@ FUNCTION resetDataSource RETURNS LOGICAL
              + "Yes, this file is to be parsed."  + "~n"
              + "No, this object is to be run.".
 /*        if OEIDE_CanShowMessage() then                                     */
-/*            lanswer = ShowMessageInIDE(cMsg,"Question",?,"YES-NO",lanswer).*/
+/*            run ShowMessage in hOEIDEService(cMsg,"Question",?,"YES-NO", input-output lanswer).*/
 /*        else                                                               */
             MESSAGE cmsg
             VIEW-AS ALERT-BOX question BUTTONS yes-no update lanswer.

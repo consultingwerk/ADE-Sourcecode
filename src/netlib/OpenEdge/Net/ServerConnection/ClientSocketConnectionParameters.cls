@@ -36,10 +36,10 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         certificate for SSL */
     define public property VerifyHost as logical no-undo get. set.
     
-    /** (optional) A comma-delimited list of SSL protocols for this connection to use */
+    /** (optional) An array of SSL protocols for this connection to use */
     define public property SslProtocols as character extent no-undo get. set.
 
-    /** (optional) A comma-delimited list of SSL ciphers for this connection to use */
+    /** (optional) An array of SSL ciphers for this connection to use */
     define public property SslCiphers as character extent no-undo get. set.
     
     constructor ClientSocketConnectionParameters(input poURI as URI):
@@ -66,8 +66,8 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         
         if iPort eq ? then
         case this-object:URI:Scheme:
-            when UriSchemeEnum:Http:Name  then assign iPort = 80.
-            when UriSchemeEnum:Https:Name then assign iPort = 443.
+            when string(UriSchemeEnum:http)  then assign iPort = 80.
+            when string(UriSchemeEnum:https) then assign iPort = 443.
         end case.
         Assert:NotNullOrZero(iPort, 'Port').
         if iPort gt 65535 then
@@ -76,7 +76,7 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
                                 0).
         
         /* SSL connections only ... */
-        if this-object:URI:Scheme eq UriSchemeEnum:Https:Name then
+        if this-object:URI:Scheme eq string(UriSchemeEnum:https) then
             assign cSSL = substitute('-ssl &1 &2 &3 &4 &5':u,
                             (if this-object:VerifyHost   eq false then '-nohostverify':u else '':u),
                             (if extent(this-object:SslProtocols) eq ? then '':u else '-sslprotocols':u),

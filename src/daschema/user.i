@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2012 by Progress Software Corporation. */  
+/* Copyright (c) 2010-2012,2015 by Progress Software Corporation. */  
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -26,6 +26,7 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
     field Id            as character      serialize-name "id" format "x(30)"
     field Description   as character      serialize-name "description"
     field IsSqlOnly     as logical        serialize-name "isSqlOnly"  
+    field Number        as integer        serialize-name "number"
     field DomainName    as character      serialize-name "domainName" format "x(25)"
     field DomainId      as integer        serialize-hidden 
     field DomainUrl     as character      serialize-name "domain_url"  

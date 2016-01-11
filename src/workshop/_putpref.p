@@ -22,8 +22,6 @@
 
 DEFINE STREAM outstream.
 
-DEFINE VARIABLE dlc-path AS CHARACTER NO-UNDO.
-
 OUTPUT STREAM outstream TO wsprefs.dat.
 
 PUT STREAM outstream UNFORMATTED

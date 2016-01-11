@@ -36,6 +36,12 @@ DEFINE VARIABLE lProPathReset           AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cRealProPath            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lDevMode                AS LOGICAL    NO-UNDO.
 
+/** webstart.p */
+FUNCTION getEnv                RETURNS CHARACTER
+  (INPUT p_name                 AS CHARACTER) IN web-utilities-hdl.
+
+
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -140,7 +146,7 @@ PROCEDURE init-config :
      MultiDevPropath=developer1=/usr/dev1/apps/test;/usr/dev1/apps/test2 |
                      developer2=/usr/dev2/apps/test;/usr/dev2/apps/test2
   */
-  ASSIGN c1 = REPLACE(OS-GETENV("MULTI_DEV_PROPATH":U),";":U,",":U).
+  ASSIGN c1 = REPLACE(getEnv("MULTI_DEV_PROPATH":U),";":U,",":U).
   IF c1 NE ? AND c1 GT "" THEN
   DO i1 = 1 TO NUM-ENTRIES(c1,"|":U):
     ASSIGN

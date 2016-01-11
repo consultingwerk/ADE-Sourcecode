@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2005-2007,2015 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -3238,7 +3238,8 @@ PROCEDURE initializeObject :
         rRowid = hDataQuery:GET-BUFFER-HANDLE(1):ROWID. 
     END.
     /* The sort column used to be set here.  It is now set from the SDO initialization */
-    hBrowse:ALLOW-COLUMN-SEARCHING = TRUE.
+    IF SESSION:DISPLAY-TYPE = "GUI"  THEN 
+    	hBrowse:ALLOW-COLUMN-SEARCHING = TRUE.
     IF hBrowse:NUM-COLUMNS = 0 THEN
     DO:
       lDynamic = YES.            /* Signal to code below. */
@@ -3553,7 +3554,8 @@ PROCEDURE initializeObject :
     {get PopupActive lPopupActive}.
     &UNDEFINE xp-assign
     hBrowse:COLUMN-MOVABLE = IF lSortable THEN FALSE ELSE lMovable.
-    hBrowse:ALLOW-COLUMN-SEARCHING = lSortable.
+    IF SESSION:DISPLAY-TYPE = "GUI"  THEN 
+    	hBrowse:ALLOW-COLUMN-SEARCHING = lSortable.
     IF lSortable THEN
       {fn showSort}. 
     IF lMovable AND lSortable THEN
@@ -7736,7 +7738,7 @@ DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
 
   IF lInitialized AND VALID-HANDLE(hBrowse) THEN
   DO:
-    IF plMovable THEN hBrowse:ALLOW-COLUMN-SEARCHING = FALSE.
+    IF plMovable AND SESSION:DISPLAY-TYPE = "GUI"  THEN hBrowse:ALLOW-COLUMN-SEARCHING = FALSE.
     hBrowse:COLUMN-MOVABLE = plMovable.
   END.  /* if initialized and browse valid */
 
@@ -7776,7 +7778,8 @@ DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
   IF lInitialized AND VALID-HANDLE(hBrowse) THEN
   DO:
     IF plSortable THEN hBrowse:COLUMN-MOVABLE = FALSE.
-    hBrowse:ALLOW-COLUMN-SEARCHING = plSortable.
+    IF SESSION:DISPLAY-TYPE = "GUI"  THEN 
+    	hBrowse:ALLOW-COLUMN-SEARCHING = plSortable.
   END.  /* if initialized and browse valid */
 
   RETURN TRUE.   /* Function return value. */

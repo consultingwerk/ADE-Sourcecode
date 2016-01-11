@@ -96,8 +96,8 @@ ON MOUSE-SELECT-DBLCLICK OF _qo._find-type IN BROWSE _qrytune DO:
     IF _qo._seq-no = 1 /* AND iXternalCnt = 0 REMOVED for 95-06-28-002 DRH */
     THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("The first table in a query must be 'FOR EACH'.",
-                           "Information",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("The first table in a query must be 'FOR EACH'.",
+                           "Information",?).
       
        &else   
        MESSAGE 'The first table in a query must be "FOR EACH".'
@@ -118,8 +118,8 @@ ON ANY-PRINTABLE OF _qo._find-type IN BROWSE _qrytune DO:
   DO WITH FRAME dialog-1:
     IF _qo._seq-no = 1 AND iXternalCnt = 0 THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("The first table in a query must be 'FOR EACH'.",
-                           "Information",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("The first table in a query must be 'FOR EACH'.",
+                           "Information",?).
       
        &else  
        MESSAGE 'The first table in a query must be "FOR EACH".'
@@ -189,10 +189,10 @@ ON VALUE-CHANGED OF cShareType IN FRAME dialog-1 DO:
   THEN
   do: 
   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Opening a query with EXCLUSIVE-LOCK will cause a run-time ~n
+          run ShowOkMessage in hOEIDEService("Opening a query with EXCLUSIVE-LOCK will cause a run-time ~n
                             error unless the OPEN statement is within a DO/REPEAT ~n
                             TRANSACTION block.",
-                           "Warning",?,"OK",yes).
+                           "Warning",?).
       
   &else    
   MESSAGE "Opening a query with EXCLUSIVE-LOCK will cause a run-time"
@@ -283,8 +283,8 @@ ON CHOOSE OF bFieldFormat DO:
     IF NewType = 5 THEN 
     do:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Using numeric format as default.",
-                           "Warning","Format type missing","OK",yes).
+          run ShowOkMessage in hOEIDEService("Using numeric format as default.",
+                           "Warning","Format type missing").
       
       &else   
       MESSAGE "Using numeric format as default." 
@@ -317,9 +317,9 @@ ON GO OF FRAME DIALOG-1 DO:
   DEFINE VARIABLE chc AS LOGICAL NO-UNDO.
   IF plVisitFields and ({&TableRight}:NUM-ITEMS - iXternalCnt > 0) then do: 
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        chc =  ShowMessageInIDE("You have selected table(s) but no fields. ~n
+        run ShowMessage in hOEIDEService("You have selected table(s) but no fields. ~n
                                 Do you want to select some fields now?" ,
-                                "Warning",?,"YES-NO",chc).
+                                "Warning",?,"YES-NO",input-output chc).
       
     &else   
     MESSAGE "You have selected table(s) but no fields." SKIP
@@ -381,8 +381,8 @@ ON CHOOSE OF bCheckSyntax DO:
   IF NOT lOK THEN
   do:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         ShowMessageInIDE("Syntax is correct.":t48 ,
-                          "Information",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService("Syntax is correct.":t48 ,
+                          "Information",?).
       
     &else   
     MESSAGE "Syntax is correct.":t48 
@@ -758,9 +758,9 @@ ON VALUE-CHANGED OF tJoinable DO:
   ELSE DO:
     IF (eDisplayCode:SCREEN-VALUE  > "") THEN DO:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         lLogical = ShowMessageInIDE("This will delete the current join criteria. ~n
+          run ShowMessage in hOEIDEService("This will delete the current join criteria. ~n
                                       Do you wish to continue?" ,
-                                      "Warning",?,"YES-NO",lLogical).
+                                      "Warning",?,"YES-NO",input-output lLogical).
       
       &else    
       MESSAGE "This will delete the current join criteria." SKIP

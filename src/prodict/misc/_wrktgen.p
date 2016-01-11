@@ -260,6 +260,7 @@ DEFINE VARIABLE comment_pk          AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE n3                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE n4                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE n5                  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE n6                  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ora_lang            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ora_lang1           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE nls_upp             AS CHARACTER  NO-UNDO.
@@ -595,7 +596,6 @@ IF dbtyp = "ORACLE" THEN DO:
     IF LOGICAL(entry(3,user_env[10])) THEN
         PUT STREAM code UNFORMATTED "ALTER SESSION SET NLS_LENGTH_SEMANTICS='CHAR';" SKIP.
 END.
-
 _fileloop:
 FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                          AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
@@ -1967,7 +1967,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
      
     /* re-initialize */
     ASSIGN mandatory = TRUE 
+           idxrecidcompat = FALSE  
            uniqueness = "".
+
     n2 = DICTDB._Index._Index-name.
     uniqfyIdx = uniqCompat.
     IF INDEX(DICTDB._Index._I-MISC2[1],"c") <> 0 THEN assign idxrecidcompat = TRUE.
@@ -2224,8 +2226,13 @@ THEN DO:
       IF INDEX(n3,"m") <> 0 OR 
         (INDEX(n3,"v") <> 0 AND ((NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "1"))) 
       THEN DO:
-         IF ((migConstraint AND CcExist ) OR NOT migConstraint ) AND NOT CcCreated THEN
-            n5 = " CLUSTERED ".
+         ASSIGN a = RECID(DICTDB._Index).
+         IF ((migConstraint AND CcExist ) OR NOT migConstraint OR
+             (INDEX(n3,"r") <> 0 AND CAN-FIND ( FIRST DICTDB._Index OF DICTDB._File /*  PSC00326972 */ 
+                             WHERE INDEX(DICTDB._Index._I-MISC2[1],"p") <> 0
+                                   AND RECID(DICTDB._Index) <> a))
+            ) AND NOT CcCreated THEN
+               n5 = " CLUSTERED ".
          ELSE n5 = "".
          IF INDEX(n3,"v") <> 0 OR DICTDB._Index._Unique THEN n4 = " UNIQUE". ELSE n4 = "".
          PUT STREAM code UNFORMATTED
@@ -2269,8 +2276,15 @@ ELSE DO:
               n4 = user_library + dot + "PKCI_" + n2.
               PUT STREAM code UNFORMATTED
                   comment_chars "ALTER TABLE " user_library dot n1 SKIP.
+              ASSIGN a = RECID(DICTDB._Index).
+              IF CAN-FIND ( FIRST DICTDB._Index OF DICTDB._File
+                             WHERE INDEX(DICTDB._Index._I-MISC2[1],"r") <> 0
+                                   AND RECID(DICTDB._Index) <> a)
+              THEN n6 = "NONCLUSTERED ".
+              ELSE n6 = "".
+
               PUT STREAM code UNFORMATTED
-                  comment_chars "ADD CONSTRAINT " n4 " PRIMARY KEY NONCLUSTERED (".
+                  comment_chars "ADD CONSTRAINT " n4 " PRIMARY KEY " n6 "(".
               ASSIGN PKCreated = TRUE.
            END.
            ELSE PUT STREAM code UNFORMATTED
@@ -3813,14 +3827,15 @@ PROCEDURE setMSSOptions:
                 seqt_prefix = "_SEQT_REV_"
                 seqp_prefix = "_SEQP_REV_".
        END.
-
+     IF numEntries > 3 THEN DO:
        IF ENTRY(4,user_env[25]) BEGINS "Y" THEN
         ASSIGN lnativeSeq = TRUE.
 
        lcachesize =  (IF (NUM-ENTRIES(user_env[25]) >= 5) THEN 
                         ENTRY(5,user_env[25])
                       ELSE ?
-		     ). 
+                     ).
+     END.
    END.
 
    ASSIGN lUniExpand = (user_env[35] = "y").

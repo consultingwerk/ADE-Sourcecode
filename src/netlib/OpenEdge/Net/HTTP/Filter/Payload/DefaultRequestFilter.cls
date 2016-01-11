@@ -13,117 +13,49 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
+using OpenEdge.Core.Assertion.AssertObject.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.HashAlgorithmEnum.
-using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.String.
-using OpenEdge.Core.System.InvalidCallError.
-using OpenEdge.Net.URI.
-using OpenEdge.Net.UriEncodingTypeEnum.
+using OpenEdge.DataAdmin.Entity.
 using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
-using OpenEdge.Net.HTTP.IHttpMessage.
-using OpenEdge.Net.HTTP.IHttpMessageWriter.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.TransferEncodingEnum.
+using OpenEdge.Net.ISupportEncoding.
+using OpenEdge.Net.ISupportMultipartEntity.
+using OpenEdge.Net.ISupportTransferEncoding.
+using OpenEdge.Net.UriEncodingTypeEnum.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.TransferEncodingEnum.
 
-class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter 
-        implements IHttpMessageWriter, ISupportInitialize:
+class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWriter:
     
     /* private and immutable constant value */
-    define private property CRLF as character initial '~r~n':u no-undo get.
+    define protected property CRLF as character initial '~r~n':u no-undo get.
     
-    define protected property Request as IHttpRequest no-undo get. private set.
+    constructor public DefaultRequestFilter():
+        super(get-class(ByteBucket)).
+    end constructor.    
     
-    /** (mandatory) The message that's being written */  
-    define public property Message as IHttpMessage no-undo
-        get():
-            return this-object:Request.
-        end get.
-    
-    constructor public DefaultRequestFilter(input poMessage as IHttpRequest):
-        Assert:NotNull(poMessage, 'Http Request').
-                
-        assign this-object:Request = poMessage.
-    end method.
-    
-	method public void Write( input phData as handle ):
-		/* no-op */
-	end method.
-
-	method public void Write( input-output pcData as character ):
-	    define variable lcData as longchar no-undo.
-	    
-	    assign lcData = pcData.
-	    this-object:Write(input-output lcData).
-	end method.
-
-    /* Initializer/Startup */
-    method public void Initialize():
-    end method.
-    
-    /* Destroy/Shutdown/Anti-Initializer */
-    method public void Destroy():
-    end method.
-    
-    /**  Closes the output. See Open() */
-    method public void Close():
-        /* no-op */
-    end method.
-
-    /** Opens the writer for output. Open/Close allows us to write the same message multiple
-        times without requiring a new writer each time. */
-    method public void Open():
-        /* no-op */ 
-    end method.
-
-    /** Write data to the output location 
-    
-        @param Object Data to write */
-    method public void Write(input poData as Object):
-        Assert:IsType(poData, get-class(ByteBucket)).
+    method override public int64 Write(input poData as Object):
+        define variable iPrevSize as int64 no-undo.
         
-        WriteMessage(cast(poData, ByteBucket)).
-    end method.
+        AssertObject:IsType(poData, get-class(IHttpRequest)).
         
-    /** Write data to the output location
+        assign iPrevSize = cast(this-object:Entity, ByteBucket):Size.
+        WriteMessage(cast(poData, IHttpRequest)).
         
-        @param longchar Data to write */
-    method public void Write(input-output pcData as longchar):
-        define variable oBucket as ByteBucket no-undo.
-        
-        WriteMessage(oBucket).
-        
-        assign pcData = oBucket:GetString(1).
-    end method.
-    
-    /** Write data to the output location 
-        
-        @param memptr Data to write */
-    method public void Write(input pmData as memptr):
-        define variable oBucket as ByteBucket no-undo.
-        
-        WriteMessage(oBucket).
-        
-        if oBucket:Size gt get-size(pmData) then
-            return error new AppError(substitute('Input memptr too small (&1 bytes) to contain complete request (&2 bytes)',
-                                            get-size(pmData), oBucket:Size), 0).
-        
-        assign pmData = oBucket:GetBytes():Value.
-    end method.
-    
-    /**  Flushes data to the output location. What data is flushed depends on the implementation */
-    method public void Flush():
-        /* no-op */
-    end method.
+        /* Only return what we write here */
+        return (cast(this-object:Entity, ByteBucket):Size - iPrevSize).
+    end method.    
     
     /** Builds a complete HTTP request (ie headers, protocol etc)
         for the data in this object. */
-    method protected void WriteMessage(input poMessageData as ByteBucket):
+    method protected void WriteMessage(input poRequest as IHttpRequest):
         define variable cAcceptTypes as character extent no-undo.
         define variable cAcceptValue as character no-undo.
         define variable cDelimiter as character no-undo.
@@ -132,61 +64,22 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter
         define variable oEntity as ByteBucket no-undo.
         define variable cContentType as character no-undo.
         
-        WriteRequestLine(poMessageData).
-        WriteHeaders(poMessageData).
-        WriteCookies(poMessageData).
-        
-        /* ACCEPT-CONTENT-TYPE */
-        /* Default to all. Add to the collection in case we reuse this request */
-        assign cAcceptTypes = this-object:Request:AcceptContentType  
-               iMax = extent(cAcceptTypes)
-               cDelimiter = '':u
-               cAcceptValue = '':u.
-        
-        if iMax eq ? then
-            assign cAcceptValue = '*/*':u.
-             
-        do iLoop = 1 to iMax:
-            assign cAcceptValue = cAcceptValue
-                                + cDelimiter
-                                + cAcceptTypes[iLoop]
-                   cDelimiter = ',':u.
-        end.
-        WriteHeader(poMessageData, 'Accept':u, cAcceptValue).
-        
-        /* TRANSFER ENCODING */
-        if not this-object:Message:TransferEncoding eq TransferEncodingEnum:None:Name then
-            WriteHeader(poMessageData, 'Accept-Encoding':u, lc(this-object:Message:TransferEncoding)).
-        
         /* PAYLOAD/BODY */
-        if valid-object(this-object:Message:Entity) then
-        do:
+        if valid-object(poRequest:Entity) then
             /* Extract the Entity into the message body. Do this first because this extraction 
                will calculate the content type, charset etc. */
-            assign oEntity = ExtractEntity()
-                   /* Set the message's size, in bytes */
-                   this-object:Message:ContentLength = oEntity:Size.
-            
-            WriteHeader(poMessageData,
-                        'Content-Length':u,   string(this-object:Message:ContentLength)).
-                        
-            assign cContentType =  this-object:Message:ContentType.
-            if this-object:Message:CharacterEncoding ne '':u then
-                assign cContentType = substitute('&1; charset=&2':u,
-                                                 cContentType,
-                                                 this-object:Message:CharacterEncoding).
-            WriteHeader(poMessageData, 'Content-Type':u, cContentType).
-            
-            /* update the content'd hash */
-            assign this-object:Message:ContentMD5 = oEntity:GetHash(HashAlgorithmEnum:MD5).
-        end.
+            assign oEntity = ExtractEntity(poRequest).
+        
+        /* WRITE THE MESSAGE */
+        WriteRequestLine(poRequest).
+        WriteHeaders(poRequest).
         
         /* ALWAYS add a trailing CRLF to indicate end of headers. */
-        poMessageData:PutString(CRLF).
+        cast(this-object:Entity, ByteBucket):PutString(CRLF).
         
         /* Add Body to the end of the payload */
-        if this-object:Message:ContentLength gt 0 then
-            poMessageData:PutBytes(oEntity).
+        if poRequest:ContentLength gt 0 then
+            cast(this-object:Entity, ByteBucket):PutBytes(oEntity).
     end method.
     
     /** Extracts the contents of the Entity property, and
@@ -195,89 +88,101 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter
         This default implementation returns an empty message body. 
         
         @return Memptr A memptr object containing the extracted entity. */
-    method protected ByteBucket ExtractEntity():
-        return error new InvalidCallError(
-                            'OpenEdge.Net.HTTP.Writer.DefaultRequestFilter:ExtractEntity':u,
-                            'This is a virtual method, which should always be overridden, and never called directly.').
+    method protected ByteBucket ExtractEntity(input poRequest as IHttpRequest):
+        define variable oBodyWriter as MessageWriter no-undo.
+        define variable oMessageBody as ByteBucket no-undo.
+        define variable iBytesWritten as int64 no-undo.
+        
+        assign oMessageBody = ByteBucket:Instance()
+               oBodyWriter  = BodyWriterBuilder
+                                :Build(poRequest)
+                                :WriteTo(oMessageBody)
+                                :Writer.
+        if not valid-object(oBodyWriter) then
+            return error new AppError('Unable to build request for transmission', 0).
+        
+        oBodyWriter:Open().
+        /* writes the message's entity contents into a byte bucket */
+        assign iBytesWritten = oBodyWriter:Write(poRequest:Entity).
+        oBodyWriter:Close().
+        
+        /* Update the character encoding from the extraction */
+        if type-of(oBodyWriter, ISupportEncoding) then
+            assign poRequest:CharacterEncoding = cast(oBodyWriter, ISupportEncoding):Encoding.
+            
+        if type-of(oBodyWriter, ISupportMultipartEntity) then
+            poRequest:GetHeader('Content-Type':u)
+                     :SetParameterValue('boundary':u, quoter(cast(oBodyWriter, ISupportMultipartEntity):Boundary)).            
+
+        if type-of(oBodyWriter, ISupportTransferEncoding) then
+            assign poRequest:TransferEncoding = cast(oBodyWriter, ISupportTransferEncoding):TransferEncoding.
+        
+        assign poRequest:ContentLength = iBytesWritten
+               /* Get the Entity from the writer; we don't know whether the writer
+                  replaced the object or appended data to it, so make sure we get whatever
+                  was written to. */
+               oMessageBody            = cast(oBodyWriter:Entity, ByteBucket)
+               poRequest:ContentMD5    = oMessageBody:GetHash(HashAlgorithmEnum:MD5)
+               .
+        return oMessageBody.
     end method.
     
 /*** HELPER METHODS  ***/
     /** Writes the request line into the bucket 
     
         @param ByteBucket The target for the write operation */
-    method protected void WriteRequestLine(input poMessageData as ByteBucket):
+    method protected void WriteRequestLine(input poRequest as IHttpRequest):
         define variable cRequestURI as character no-undo.
-
-        if type-of(this-object:Request, ISupportProxy) then
+        
+        /* encode unless already encoded (via check for % in the URL) */
+        if type-of(poRequest, ISupportProxy) then
+        do:
             /* for proxies, we want http://example.com/some/data */
-            assign cRequestURI = this-object:Request:URI:Encode().
+            assign cRequestURI = poRequest:URI:ToString().
+            if index(cRequestURI, '%':u) eq 0 then
+                assign cRequestURI = poRequest:URI:Encode().
+        end.
         else
+        do:
             /* for normal request, we want /some/data */
-            assign cRequestURI = OpenEdge.Net.URI:Encode(this-object:Request:URI:RelativeURI, 
-                                                         UriEncodingTypeEnum:Default).
+            assign cRequestURI = poRequest:URI:RelativeURI.
+            if index(cRequestURI, '%':u) eq 0 then
+                assign cRequestURI = OpenEdge.Net.URI:Encode(cRequestURI, UriEncodingTypeEnum:Default).
+        end.
         
         /* We always need some path in the request line */
         if cRequestURI eq '':u then
             assign cRequestURI = '/':u.
         
-        poMessageData:PutString(substitute('&1 &2 &3':u,
-                                this-object:Request:Method,
+        cast(this-object:Entity, ByteBucket):PutString(substitute('&1 &2 &3':u,
+                                poRequest:Method,
                                 cRequestURI,
-                                this-object:Request:Version      ) + CRLF).
+                                poRequest:Version ) + CRLF).
     end method.
     
     /** Writes the HTTP headers into the bucket 
         
         @param ByteBucket The target for the write operation */
-    method protected void WriteHeaders(input poMessageData as ByteBucket):
+    method protected void WriteHeaders(input poRequest as IHttpRequest):
         define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
         define variable oHeader as HttpHeader extent no-undo.
         
-        assign iMax = this-object:Message:GetHeaders(output oHeader).
-        
-        do iLoop = 1 to iMax:
-            WriteHeader(poMessageData, oHeader[iLoop]:Name, oHeader[iLoop]:Value).  
+        do iLoop = poRequest:GetHeaders(output oHeader) to 1 by -1:
+            cast(Entity, ByteBucket):PutString(substitute('&1&2':u,
+                                    oHeader[iLoop]:ToString(),
+                                    CRLF)).
         end.    /* header */
-    end method.    
-    
-    /** Writes the HTTP cookies into the bucket 
-    
-        @param ByteBucket The target for the write operation */
-    method protected void WriteCookies(input poMessageData as ByteBucket):
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable oCookies as Cookie extent no-undo.
-        define variable cCookies as character no-undo.
-        define variable cDelimiter as character no-undo.
         
-        assign iMax = this-object:Message:GetCookies(output oCookies)
-               cDelimiter = '':u.
+        /* ACCEPT */
+        if not poRequest:HasHeader('Accept':u) then
+            /* Default to all. */
+            cast(Entity, ByteBucket):PutString('Accept: */*':u + CRLF).
         
-        /* add on to any existing cookies */
-        if this-object:Message:HasHeader('Cookie':u) then
-            assign cCookies = this-object:Message:GetHeader('Cookie':u):Value.           
-        if cCookies ne '':u then
-            assign cDelimiter = '; ':u. 
-        
-        do iLoop = 1 to iMax: 
-            assign cCookies = cCookies + cDelimiter
-                            + substitute('&1=&2':u, 
-                                    oCookies[iLoop]:Name,
-                                    oCookies[iLoop]:Value)
-                   cDelimiter = '; ':u.
-        end.
-        
-        if cCookies ne '':u then
-            WriteHeader(poMessageData, 'Cookie':u, cCookies).
-    end method.    
-
-    /* Helper method to write message headers into the http message */
-    method protected void WriteHeader(input poBody as ByteBucket,
-                                      input pcName as character,
-                                      input pcValue as character):
-        poBody:PutString(substitute('&1: &2':u, trim(pcName), pcValue) + CRLF).
+        /* TRANSFER ENCODING */
+        if not poRequest:TransferEncoding eq string(TransferEncodingEnum:None) then
+            cast(Entity, ByteBucket):PutString(substitute('Accept-Encoding: &1&2':u,
+                                            lc(poRequest:TransferEncoding),
+                                            CRLF)).
     end method.
     
 end class.
-

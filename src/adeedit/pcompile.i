@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2015 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -311,11 +311,14 @@ PROCEDURE RunFile.
                       /* look for IS_CLASS_ERROR and IS_INTERFACE_ERROR */
                       isClassError = 
                           INDEX(Compiler_Messages:SCREEN-VALUE,{&IS_CLASS_ERROR}) > 0 OR
-                          INDEX(Compiler_Messages:SCREEN-VALUE,{&IS_INTERFACE_ERROR}) > 0.
+                          INDEX(Compiler_Messages:SCREEN-VALUE,{&IS_INTERFACE_ERROR}) > 0 OR
+                          INDEX(Compiler_Messages:SCREEN-VALUE,{&IS_ENUM_ERROR}) > 0.
+
                       /* look for WRONG_CLASS_TYPE_ERROR or WRONG_INTERFACE_TYPE_ERROR */
                       isWrongClass = 
                           INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_CLASS_TYPE_ERROR}) > 0 OR
-                          INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_INTERFACE_TYPE_ERROR}) > 0.
+                          INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_INTERFACE_TYPE_ERROR}) > 0 OR
+                          INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_ENUM_TYPE_ERROR}) > 0.
                       /* if this is an untitled edit buffer */
                       IF (NOT isClass AND Edit_Buffer.hBuffer:PRIVATE-DATA BEGINS untitled) THEN
                       DO:

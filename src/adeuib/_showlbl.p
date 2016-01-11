@@ -29,6 +29,7 @@ DEFINE INPUT PARAMETER h_self           AS WIDGET            NO-UNDO.
 {adeuib/uniwidg.i}
 {adeuib/layout.i}
 {adeuib/sharvars.i}
+{adecomm/oeideservice.i}
 
 DEFINE VAR      h               AS WIDGET       NO-UNDO.
 DEFINE VAR      h_lbl           AS WIDGET       NO-UNDO.
@@ -101,7 +102,17 @@ IF frame_L._NO-LABELS OR _L._NO-LABELS OR _L._REMOVE-FROM-LAYOUT THEN DO:
   END.
   /* Notify user that colon positioning is invalid for NO-LABEL column < 3 */
   IF _U._ALIGN eq "C" AND h_self:COL < 3 THEN DO:
-    MESSAGE _U._TYPE " "
+      if OEIDE_CanShowMessage() then 
+         run ShowOkMessage in hOEIDEService(
+            _U._TYPE + " "
+            + _U._NAME + "cannot be colon-positioned this"
+            + " close to the left edge of the frame. The " 
+            + LC(_U._TYPE)
+            + " will be left-aligned instead.",
+            "information",
+            ?).
+    else  
+        MESSAGE _U._TYPE " "
             _U._NAME "cannot be colon-positioned this" {&SKP}
             "close to the left edge of the frame. The" LC(_U._TYPE)
             "will be" {&SKP}
@@ -147,9 +158,17 @@ ELSE DO:  /* Must display the label */
   /* Test Case that the label does not fit on the frame  with this label.  In
      which case we set the fill-in to no-label */
   IF f_side_labels AND (h_self:width-pixels + offset > _ivParentWidth) THEN DO:
-    MESSAGE "The Label """ + lbl + """ does not fit in the frame." {&SKP}
-            "The fill-in~'s attribute has been set to NO-LABEL."
-            view-as alert-box WARNING buttons OK.
+      if OEIDE_CanShowMessage() then 
+           ShowOkMessageInIDE(
+                  "The Label """ + lbl + """ does not fit in the frame."  
+                 + "The fill-in~'s attribute has been set to NO-LABEL.",
+                 "warning",
+                 ?).
+      else 
+           MESSAGE "The Label """ + lbl + """ does not fit in the frame." {&SKP}
+                   "The fill-in~'s attribute has been set to NO-LABEL."
+                   view-as alert-box WARNING buttons OK.
+ 
     ASSIGN h_lbl:HIDDEN        = yes
 	   h_lbl:SCREEN-VALUE  = ""
 	   h_lbl:X             = 0

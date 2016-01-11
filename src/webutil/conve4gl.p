@@ -43,7 +43,7 @@ DEFINE VARIABLE srcDir    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE subdir    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE targdir   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE webfile   AS CHARACTER  NO-UNDO.
-
+ 
 /* Define list of directories to process. This is different depending on whether
    processing is for PSC's RDLADE environment or for the POSSE environment. */
 ASSIGN

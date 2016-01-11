@@ -32,14 +32,9 @@ class OpenEdge.Core.System.UnsupportedOperationError inherits ApplicationError:
     end constructor.
 
     constructor public UnsupportedOperationError (poErr as Error, pcArgs1 as char, pcArgs2 as char):
-        this-object(poErr).
+        super(poErr).
         AddMessage(pcArgs1, 1).
         AddMessage(pcArgs2, 2).
     end constructor.
     
-    constructor public UnsupportedOperationError(poErr as Error):
-        super(poErr).
-        this-object:Severity = (ErrorSeverityEnum:Debug:Value + ErrorSeverityEnum:Warning:Value).
-    end constructor.
-  
 end class.

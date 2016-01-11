@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -437,6 +437,14 @@ PROCEDURE saveRecord :
   DEFINE VARIABLE cValue      AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE cFieldList  AS CHARACTER   NO-UNDO.
   DEFINE VARIABLE lOk         AS LOGICAL     NO-UNDO.
+  
+  define variable mPtr       as memptr      no-undo.
+  define variable md5Value   as character   no-undo.
+  define variable cFileName  as character   no-undo.
+  define variable iLength    as integer     no-undo.
+  define variable mraw       as raw         no-undo.  
+  define variable charvar    as character   no-undo.  
+  
 
   IF CAN-DO(THIS-PROCEDURE:INTERNAL-ENTRIES,"localSave") THEN DO:
     RUN localSave ( INPUT "Before" ).
@@ -524,23 +532,81 @@ PROCEDURE saveRecord :
     DO iField = 1 TO NUM-ENTRIES(gcFieldHandles):
       hField   = WIDGET-HANDLE(ENTRY(iField,gcFieldHandles)).
       hDBField = hDBBuff:BUFFER-FIELD(ENTRY(iField,gcDBFields)).
-      IF hField:SCREEN-VALUE NE hDBField:BUFFER-VALUE THEN
-        hField:MODIFIED = TRUE.
-
-      IF NOT glCreateMode AND
-         NOT hField:MODIFIED THEN NEXT.
-
-      IF hField:TYPE = "TOGGLE-BOX" THEN
-        ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField,
+      
+      if index(hField:screen-value,".p") > 0 or index(hField:screen-value,".r") > 0 then 
+	  cFileName = hField:screen-value.
+	  
+      if hDBField:data-type = "raw" then
+	  do:
+	   
+	     if hField:SCREEN-VALUE = "no" then do:	  
+	   
+	        ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField,
                                                                    gcTTFields))
-               hTTField:BUFFER-VALUE = hField:CHECKED
-               hDBField:BUFFER-VALUE = hField:CHECKED.
-      ELSE  
-        ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField,
-                                                                   gcTTFields))
+                   hTTField:BUFFER-VALUE = hField:CHECKED
+                   hDBField:BUFFER-VALUE = "". 
+                   
+            hDBField = hDBBuff:BUFFER-FIELD(ENTRY(iField - 1,gcDBFields)).
+		    hField   = WIDGET-HANDLE(ENTRY(iField - 1,gcFieldHandles)).
+	        ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField - 1, gcTTFields))
+                   hTTField:BUFFER-VALUE = hField:SCREEN-VALUE
+			       hDBField:BUFFER-VALUE = hField:SCREEN-VALUE. 
+         end.
+	     else do:
+	  
+	        RCODE-INFO:FILE-NAME = REPLACE(cFileName, ".p", ".r").
+            IF RCODE-INFO:CRC-VALUE = ? THEN DO:
+               MESSAGE "ERROR - did not find info for rcode:" cFileName view-as alert-box error.
+               RETURN "error".
+            END.
+        
+            md5Value = RCODE-INFO:MD5-VALUE.
+            IF md5Value = ? THEN DO:
+               MESSAGE "ERROR - rcode does not have MD5 value:" cFileName view-as alert-box error.
+               RETURN "error".
+            END.
+		
+            iLength = LENGTH(md5Value).
+            SET-SIZE(mptr) = iLength + 1.
+            PUT-STRING(mptr,1) = md5Value.
+		    mraw = GET-BYTES(mptr,1, iLength).
+		 
+		    charvar = quoter(mraw).
+		    charvar = SUBSTRING(charvar, 2, LENGTH(charvar) - 2).
+		    SET-SIZE(mptr) = 0.
+		    ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField, gcTTFields))
+                   hTTField:BUFFER-VALUE = hField:CHECKED.
+			       hDBField:BUFFER-VALUE = charvar.
+			       
+			hDBField = hDBBuff:BUFFER-FIELD(ENTRY(iField - 1,gcDBFields)).
+		   hField   = WIDGET-HANDLE(ENTRY(iField - 1,gcFieldHandles)).
+	       ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField - 1, gcTTFields))
                hTTField:BUFFER-VALUE = hField:SCREEN-VALUE
-               hDBField:BUFFER-VALUE = hField:SCREEN-VALUE.
- 
+			   hDBField:BUFFER-VALUE = hField:SCREEN-VALUE.
+         end.
+	  
+      end.
+      else do:
+      
+        IF hField:SCREEN-VALUE NE hDBField:BUFFER-VALUE THEN
+           hField:MODIFIED = TRUE.
+
+        IF NOT glCreateMode AND
+           NOT hField:MODIFIED THEN NEXT.
+
+        IF hField:TYPE = "TOGGLE-BOX" THEN
+           ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField,
+                                                                   gcTTFields))
+                  hTTField:BUFFER-VALUE = hField:CHECKED
+                  hDBField:BUFFER-VALUE = hField:CHECKED.
+        ELSE do:
+           if hField:name eq "callback" then next.
+           ASSIGN hTTField              = ghBuffer:BUFFER-FIELD(ENTRY(iField,
+                                                                   gcTTFields))
+                  hTTField:BUFFER-VALUE = hField:SCREEN-VALUE
+                  hDBField:BUFFER-VALUE = hField:SCREEN-VALUE.
+        end.
+      end.
     
     END. /* Field assign loop */
 

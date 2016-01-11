@@ -1342,7 +1342,7 @@ DO:
       DO:
         IF lDeleted THEN 
         DO:
-          {Set NoMessage FALSE}.
+          {set NoMessage FALSE}.
           ASSIGN cTable   = ttTempDB.ttTableID
                  cFile    = ttTempDB.ttSOurceFIle.
           DELETE ttTempDB NO-ERROR.
@@ -1360,7 +1360,7 @@ DO:
     APPLY "VALUE-CHANGED":U TO {&BROWSE-NAME}.
     IF cRecords > "" THEN 
     DO:
-       {Set NoMessage true}.
+       {set NoMessage true}.
        RUN LogFile IN TARGET-PROCEDURE 
               ( INPUT "deleteTempdb":U ,
                 INPUT IF NUM-ENTRIES(cRecords) > 1 
@@ -1454,7 +1454,7 @@ PROCEDURE entityImport :
     RUN adeuib/_tempdbEntity.w (INPUT cTableList, OUTPUT lOK, OUTPUT cErr).
     IF lOK THEN
     DO:
-       {Set NoMessage TRUE}.
+       {set NoMessage TRUE}.
        RUN LogFile IN TARGET-PROCEDURE 
            ( INPUT "_tempdbEntity":U ,
              INPUT IF cErr > "" THEN cErr
@@ -1572,7 +1572,7 @@ PROCEDURE getPreference :
              btnLog:SENSITIVE   = FALSE
              fiLog:SCREEN-VALUE = "".
 
-{Set LogFile glUseLog}.
+{set LogFile glUseLog}.
 {set LogFileName gcLogFile}.
 
 GET-KEY-VALUE SECTION cSection KEY "TempDBWindow":U VALUE cValue.

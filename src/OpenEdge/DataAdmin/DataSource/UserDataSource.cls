@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012 by Progress Software Corporation  */
+/* Copyright (c) 2011,2012,2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -35,6 +35,7 @@ class OpenEdge.DataAdmin.DataSource.UserDataSource inherits DataSource :
 	   init  	
 "Name,_Userid,~
 Description,_description,~
+Number,_User_number,~
 TenantId,_user._tenantid,~
 IsSqlOnly,_sql-only-user,~
 GivenName,_given_name,~
@@ -186,10 +187,11 @@ Email,_Email"
                     dictdb._user._given_name = phBuffer::GivenName  
                     dictdb._user._middle_initial = phBuffer::MiddleInitial 
                     dictdb._user._surname = phBuffer::SurName       
-                    dictdb._user._sql-only-user = phBuffer::IsSqlOnly  
+                    dictdb._user._sql-only-user = phBuffer::IsSqlOnly
+                    dictdb._user._User_number = phBuffer::Number  
                     dictdb._user._Telephone = phBuffer::Telephone       
                     dictdb._user._email = phBuffer::Email.
-                  
+                
                 if hBeforeBuff::password <> phBuffer::password 
                 or hBeforeBuff:row-state = row-created then
                 do:

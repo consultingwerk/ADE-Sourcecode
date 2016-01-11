@@ -65,6 +65,10 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
     constructor static CookieJar():
     end constructor.
     
+    destructor CookieJar():
+        Destroy().
+    end destructor.
+    
     /* Initializer/Startup */
     method public void Initialize():
         assign this-object:CookieJarPath = session:temp-dir + 'cookies.json':u.
@@ -182,12 +186,12 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             return -1.
                             
         if poCookie:HttpOnly and 
-           not poUri:Scheme eq UriSchemeEnum:http:Name  and
-           not poUri:Scheme eq UriSchemeEnum:https:Name then
+           not poUri:Scheme eq string(UriSchemeEnum:http)  and
+           not poUri:Scheme eq string(UriSchemeEnum:https) then
             return 0.
         
         if poCookie:Secure and
-           not poUri:Scheme eq UriSchemeEnum:https:Name then
+           not poUri:Scheme eq string(UriSchemeEnum:https) then
             return 0.           
         
         return 1.
@@ -234,7 +238,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             return.
 
         oParser = new ObjectModelParser().
-        oLoad = cast(oParser:Parse(pcCookieJarPath), JsonObject).
+        oLoad = cast(oParser:ParseFile(pcCookieJarPath), JsonObject).
         
         if oLoad:Has('cookies':u) then
             assign oArray = oLoad:GetJsonArray('cookies':u)
@@ -276,7 +280,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         end.
         
         /* write cookie file. debug-alert param is for pretty formatting or not. */
-        oDump:WriteFile(pcCookieJarPath, session:debug-alert).
+        oDump:WriteFile(pcCookieJarPath, log-manager:logging-level ge 5).
     end method.
     
     /** Adds a collection of  cookies to the jar.
@@ -351,7 +355,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             if num-entries(pcDomain, '.':u) lt iMinSlugs then
             do:
                 LogMessage(substitute('Bad domain &1 for cookie &2',
-                                pcDomain, poCookie:ToString()), 0).
+                                pcDomain, poCookie:ToString()), 5).
                 return.
             end.
         end.
@@ -361,7 +365,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         if not pcDomain matches '*':u + left-trim(poCookie:Domain, '.':u) then
         do:
             LogMessage(substitute('Bad domain &1 for cookie &2',
-                            pcDomain, poCookie:ToString()), 0).
+                            pcDomain, poCookie:ToString()), 5).
             return.
         end.
         
@@ -425,7 +429,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         /* will write an empty file */
         CookieJar:PersistCookieJar(this-object:CookieJarPath).
         
-        LogMessage(substitute('Cleared persistent cookies: &1', iso-date(now)), 0).
+        LogMessage(substitute('Cleared persistent cookies: &1', iso-date(now)), 5).
     end method. 
     
     /** Clears all session cookies */
@@ -434,16 +438,16 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         
         empty temp-table lbCookie.
         
-        LogMessage(substitute('Cleared session cookies: ', iso-date(now)), 0).
+        LogMessage(substitute('Cleared session cookies: ', iso-date(now)), 5).
     end method.
-
+    
     method private void LogMessage(input pcMessage as character,
                                    input piLogLevel as integer):
         if log-manager:logfile-name eq ? then
             return.
         
-        if piLogLevel lt log-manager:logging-level then
-            log-manager:write-message(pcMessage, 'COOKIES':u).
+        if log-manager:logging-level ge piLogLevel then
+            log-manager:write-message(pcMessage, 'COOKIJAR':u).
     end method.
 
 end class.

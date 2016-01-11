@@ -24,6 +24,7 @@ using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.Assert.
 using Progress.Lang.ParameterList.
 using Progress.Lang.Object.
+using OpenEdge.Core.DataTypeHelper.
 
 class OpenEdge.Core.Collections.Stack abstract serializable:
     define public static variable DefaultStackDepth as integer no-undo.
@@ -285,18 +286,19 @@ class OpenEdge.Core.Collections.Stack abstract serializable:
         oParams = new ParameterList(1).
         if Size eq 0 then
             oParams:SetParameter(1,
-                                 DataTypeEnum:Integer:ToString(),
+                                 DataTypeHelper:GetMask(DataTypeEnum:Integer),
                                  IOModeEnum:Input:ToString(),
                                  this-object:Depth).
         else
         if mlObjectStack then
             oParams:SetParameter(1,
-                                 substitute(DataTypeEnum:ClassArray:ToString(), DataTypeEnum:ProgressLangObject:ToString()),  
+                                 substitute(DataTypeHelper:GetMask(DataTypeEnum:ClassArray),
+                                            DataTypeHelper:GetMask(DataTypeEnum:ProgressLangObject)),
                                  IOModeEnum:Input:ToString(),
                                  this-object:ObjectToArray() ).
         else
             oParams:SetParameter(1,
-                                 DataTypeEnum:CharacterArray:ToString(),
+                                 DataTypeHelper:GetMask(DataTypeEnum:CharacterArray),
                                  IOModeEnum:Input:ToString(),
                                  this-object:PrimitiveToArray() ).
         

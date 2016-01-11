@@ -37,17 +37,11 @@ class OpenEdge.Net.HTTP.HttpRequestError  inherits ApplicationError:
                                          input pcStatusCode as character,
                                          input pcMethod as character,
                                          input pcURI as character):
-        this-object(poInnerError).
+        super(poInnerError).
         
         AddMessage(pcStatusCode, 1).
         AddMessage(pcMethod, 2).
         AddMessage(pcURI, 1).
-    end constructor.
-    
-    constructor protected HttpRequestError(input poInnerError as Error):
-        super(poInnerError).
-        
-        this-object:Severity = (ErrorSeverityEnum:Debug:Value + ErrorSeverityEnum:Warning:Value).
     end constructor.
 
 end class.

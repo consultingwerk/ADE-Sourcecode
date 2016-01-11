@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
@@ -22,10 +22,12 @@ using OpenEdge.Core.Util.MathUtil.
 using OpenEdge.Core.String.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.HashAlgorithmEnum.
+using OpenEdge.Core.ISupportInitialize.
 
-class OpenEdge.Core.ByteBucket:
-    /** The backing collection of memptr objects */
-    define private variable moMemptrArray       as class   Memptr extent no-undo.
+class OpenEdge.Core.ByteBucket implements ISupportInitialize:
+    /** The backing collection of memptrs */
+    define private variable mmMemptrArray as memptr extent no-undo.
+    
     /* Number of Memptrs under management here */    
     define private variable miArraySize         as integer no-undo.
     
@@ -59,6 +61,10 @@ class OpenEdge.Core.ByteBucket:
         this-object(3, piDefaultCapacity).
     end constructor.
     
+    destructor ByteBucket():
+        Destroy().
+    end destructor.
+    
     /** Constructor for a ByteBucket
         @param integer  The initial size of the array (ie how many extents)
         @param int64 The size of each memptr in the array */
@@ -67,7 +73,7 @@ class OpenEdge.Core.ByteBucket:
         Assert:IsPositive(piDefaultCapacity, 'Initial capacity').
         
         assign 
-            extent(moMemptrArray)    = piInitialSize
+            extent(mmMemptrArray)    = piInitialSize
             miArraySize              = piInitialSize
             extent(miMemptrPostion)  = miArraySize
             miMemptrPostion          = 1
@@ -120,6 +126,7 @@ class OpenEdge.Core.ByteBucket:
                this-object:Position = 1
                this-object:Size     = 0
                miCurrentArrayIndex  = 1.
+        set-size(mmTempBytes) = 0.
     end method.
     
     /** Default object initialization */
@@ -129,46 +136,57 @@ class OpenEdge.Core.ByteBucket:
         this-object:Clear().
         
         do iLoop = 1 to miArraySize:
-            assign moMemptrArray[iLoop] = new Memptr(this-object:DefaultCapacity).
+            set-size(mmMemptrArray[iLoop]) = this-object:DefaultCapacity.
         end.
     end method.
     
     /** Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
-        assign moMemptrArray = ?.
+        define variable iLoop as integer no-undo.
+        
+        do iLoop = 1 to miArraySize:
+            set-size(mmMemptrArray[iLoop]) = 0.
+        end.
+        
+        set-size(mmTempBytes) = 0.
     end method.
     
     /** Resizes the internal array. Note that arrays can only be enlarged.
         
         @param integer The new size (number of extents) for the array */
     method public void ResizeArray(input piSize as integer):
-        define variable oTempArray as class Memptr extent no-undo.
+        define variable mTempArray as memptr extent no-undo.
         define variable iTempPosition as integer extent no-undo.
         define variable iLoop as integer no-undo.
         
         Assert:IsZeroOrPositive(piSize - miArraySize, 'Difference between new and old size').
         
         /* no-op */
-        if piSize - extent(moMemptrArray) eq 0 then
+        if piSize - extent(mmMemptrArray) eq 0 then
             return.                       
         
-        assign oTempArray = moMemptrArray
-               iTempPosition = miMemptrPostion
-               
-               extent(moMemptrArray) = ?
-               extent(moMemptrArray) = piSize
+        assign mTempArray    = mmMemptrArray
+               iTempPosition = miMemptrPostion.
+        
+        /* clean out the memptrs */       
+        do iLoop = 1 to miArraySize:
+            set-size(mmMemptrArray[iLoop]) = 0.
+        end.
+        
+        assign extent(mmMemptrArray) = ?
+               extent(mmMemptrArray) = piSize
                
                extent(miMemptrPostion) = ?
                extent(miMemptrPostion) = piSize
                
                miMemptrPostion = 1.
-                       
+        
         do iLoop = 1 to piSize:
             if iLoop le miArraySize then
-                assign moMemptrArray[iLoop]   = oTempArray[iLoop]
+                assign mmMemptrArray[iLoop]   = mTempArray[iLoop]
                        miMemptrPostion[iLoop] = iTempPosition[iLoop].
             else
-                assign moMemptrArray[iLoop]   = new Memptr(this-object:DefaultCapacity).
+                set-size(mmMemptrArray[iLoop]) =  this-object:DefaultCapacity.
                 /* position done above */
         end.
         assign miArraySize = piSize.
@@ -276,11 +294,12 @@ class OpenEdge.Core.ByteBucket:
             /* read the number of bytes. if we need to read the whole
                memptr, then do so. otherwise just the number of remaining
                bytes. */
-            assign iNumBytes = min(poSource:moMemptrArray[iLoop]:Size, iBytesLeft).
+            assign iNumBytes  = min(get-size(poSource:mmMemptrArray[iLoop]), iBytesLeft)
+                   iBytesLeft = iBytesLeft - iNumBytes.
             
             /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
-            set-size(poTarget:mmTempBytes) = poSource:moMemptrArray[iLoop]:Size.
-            set-pointer-value(poTarget:mmTempBytes) = poSource:moMemptrArray[iLoop]:GetPointerValue().
+            set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
+            set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
             
             /* Start at the first byte of the input memptr */
             poTarget:WriteBytes(1, iNumBytes).
@@ -289,7 +308,7 @@ class OpenEdge.Core.ByteBucket:
                 /* First de-reference the mmTempBytes variable before
                    calling SET-SIZE() = 0 on it. */
                 set-pointer-value(poTarget:mmTempBytes) = 0.
-                set-size(poTarget:mmTempBytes) = 0.           
+                set-size(poTarget:mmTempBytes) = 0.
             end finally.
         end.
     end method.
@@ -315,6 +334,7 @@ class OpenEdge.Core.ByteBucket:
         define variable iNumBytes as integer no-undo.
         define variable iByteLoop as integer no-undo.
         define variable iMaxBytes as integer no-undo.
+        define variable mLocalTemp as memptr no-undo.
         
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsPositive(piBytesLeft, 'Num bytes left').
@@ -324,22 +344,22 @@ class OpenEdge.Core.ByteBucket:
                 on error undo, throw:
             /* If this Memptr is full, go to next. Will typically happen when
                we've extended the Bucket's size */
-            if moMemptrArray[iArrayLoop]:Size eq miMemptrPostion[iArrayLoop] then
+            if get-size(mmMemptrArray[iArrayLoop]) eq miMemptrPostion[iArrayLoop] then
                 next.
             
-            assign iNumBytes = min(moMemptrArray[iArrayLoop]:Size - miMemptrPostion[iArrayLoop] + 1, /* +1 'cos we're 1-based */ 
+            assign iNumBytes = min(get-size(mmMemptrArray[iArrayLoop]) - miMemptrPostion[iArrayLoop] + 1, /* +1 'cos we're 1-based */ 
                                    piBytesLeft)
                    piBytesLeft = piBytesLeft - iNumBytes.
             
             /* Only write into this memptr if we have space to do so. */
             if iNumBytes gt 0 then
             do:
-                put-bytes(moMemptrArray[iArrayLoop]:Value, miMemptrPostion[iArrayLoop]) =
+                put-bytes(mmMemptrArray[iArrayLoop], miMemptrPostion[iArrayLoop]) =
                     get-bytes(mmTempBytes, piStartPos, iNumBytes).
             
                 /* Increment */
                 assign piStartPos             = piStartPos + iNumBytes
-                       miMemptrPostion[iArrayLoop] = min(miMemptrPostion[iArrayLoop] + iNumBytes, moMemptrArray[iArrayLoop]:Size)
+                       miMemptrPostion[iArrayLoop] = min(miMemptrPostion[iArrayLoop] + iNumBytes, get-size(mmMemptrArray[iArrayLoop]))
                        this-object:Position   = this-object:Position + iNumBytes
                        this-object:Size       = this-object:Size + iNumBytes.
             end.
@@ -390,7 +410,7 @@ class OpenEdge.Core.ByteBucket:
         if iGetFrom eq 0 then
             assign iGetFrom = DefaultCapacity.
         
-        return get-byte(moMemptrArray[iStartIndex]:Value, iGetFrom).
+        return get-byte(mmMemptrArray[iStartIndex], iGetFrom).
     end method.
     
     /** Returns a string/character representation a particular number of bytes,
@@ -401,7 +421,7 @@ class OpenEdge.Core.ByteBucket:
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
-        return GetString(piStartPos, piSliceSize, 'UTF-8').                                         
+        return GetString(piStartPos, piSliceSize, 'UTF-8').         
     end method.
                                          
     /** Returns a string/character representation a particular number of bytes,
@@ -455,10 +475,10 @@ class OpenEdge.Core.ByteBucket:
                 iNumBytes = 1.
             else
                 /* we may have a get-from value somewhere in the middle */
-                iNumBytes = min(moMemptrArray[iLoop]:Size - iGetFrom + 1, iBytesLeft).
+                iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
             
             lcData = lcData 
-                   + get-string(moMemptrArray[iLoop]:Value,
+                   + get-string(mmMemptrArray[iLoop],
                                     iGetFrom,
                                     iNumBytes).
             assign iPutAt      = iPutAt     + iNumBytes
@@ -502,7 +522,7 @@ class OpenEdge.Core.ByteBucket:
         @param int64 The number of bytes to return
         @return Memptr The complete bucket data */
     method public class Memptr GetBytes(input piStartPos as int64,
-                                         input piSliceSize as int64):
+                                        input piSliceSize as int64):
         define variable oData as class Memptr no-undo.
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
@@ -516,7 +536,7 @@ class OpenEdge.Core.ByteBucket:
         
         /* return an empty Memptr */        
         if this-object:Size eq 0 then
-            return new Memptr(1).
+            return new Memptr(0).
                 
         assign oData        = new Memptr(piSliceSize)
                iBytesLeft   = piSliceSize               
@@ -542,10 +562,10 @@ class OpenEdge.Core.ByteBucket:
                 iNumBytes = 1.
             else
                 /* we may have a get-from value somewhere in the middle */
-                iNumBytes = min(moMemptrArray[iLoop]:Size - iGetFrom + 1, iBytesLeft).
+                iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
             
             put-bytes(oData:Value, iPutAt) = 
-                    get-bytes(moMemptrArray[iLoop]:Value,
+                    get-bytes(mmMemptrArray[iLoop],
                                     iGetFrom,
                                     iNumBytes).
             
@@ -562,9 +582,9 @@ class OpenEdge.Core.ByteBucket:
         define variable iLoop as integer no-undo.
         define variable mData as memptr no-undo.
         
-        if session:debug-alert then
+        if log-manager:logging-level ge 5 then
         do iLoop = 1 to miArraySize:
-            copy-lob from moMemptrArray[iLoop]:Value to file session:temp-dir + 'bytebucket-memptr-' + string(iLoop) + '.txt'.        
+            copy-lob from mmMemptrArray[iLoop] to file session:temp-dir + 'bytebucket-memptr-' + string(iLoop) + '.txt'.
         end.
     end method.
     

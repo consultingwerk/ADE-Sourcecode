@@ -73,11 +73,11 @@ class OpenEdge.Core.Assertion.AssertJson:
         AssertJson:HasProperty(poObject, pcName).
         Assert:NotNull(poPropertyType, 'Property type').
         
-        if not poObject:GetType(pcName) eq poPropertyType:Value then
+        if not poObject:GetType(pcName) eq integer(poPropertyType) then
             return error new AssertionFailedError(
                             substitute('Property ~'&1~' must be of type &2',
                                             pcName,
-                                            poPropertyType:Name) , 0).
+                                            string(poPropertyType)) , 0).
     end method.
     
 end class.

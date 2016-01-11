@@ -43,6 +43,10 @@ class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
         assign this-object:Message = poMessage.
     end constructor.
 
+    destructor AuthorizationStatusFilter():
+        Destroy().
+    end destructor.     
+
     method public void Initialize():
         assign moAuthRequest       = cast(RequestBuilder:DecorateRequest(get-class(IAuthenticatedRequest),
                                                                          cast(this-object:Message, IHttpRequest))

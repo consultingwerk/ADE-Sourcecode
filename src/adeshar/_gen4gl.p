@@ -283,7 +283,7 @@ DO ON STOP  UNDO, RETRY
   IF write-access <> "W":U THEN DO:
       if OEIDE_CanShowMessage() then 
        /* the formatting is deliberatley different.  */
-          ShowOkMessageInIDE(
+        run  ShowOkMessage in hOEIDEService(
           _save_file + "~n" +
           "Cannot save to this file. "  
           +  "File is read-only or the path specified is invalid."
@@ -309,8 +309,8 @@ DO ON STOP  UNDO, RETRY
      IF SEARCH(sdo_tmp_file) <> ? THEN
      DO:
         if OEIDE_CanShowMessage() then
-            lok = ShowMessageInIDE(SUBSTITUTE("&1 already exists. Do you want to replace it?&2",sdo_tmp_file,cReturnValue),
-                              "information":U,?,"yes-no":U,lok).
+            run ShowMessage in hOEIDEService (SUBSTITUTE("&1 already exists. Do you want to replace it?&2",sdo_tmp_file,cReturnValue),
+                              "information":U,?,"yes-no":U,input-output lok).
         
         else 
          
@@ -351,7 +351,7 @@ ELSE DO:
                     + "If the file is made writable when the text editor is active all changes in the UI Designer will be lost."
                     .
             if OEIDE_CanShowMessage() then 
-                ShowOkMessageInIDE(cErrMsg,"Warning",?). 
+                run ShowOkMessage in hOEIDEService(cErrMsg,"Warning",?). 
             else 
                 message cErrMsg
                 view-as alert-box warning buttons ok in window active-window.
@@ -2056,7 +2056,7 @@ DO ON STOP UNDO RUN-BLK, LEAVE RUN-BLK
       IF NOT OEIDEIsRunning THEN
       DO: 
           if OEIDE_CanShowMessage() then
-              ShowOkMessageInIDE("Syntax is correct" ,"Information":u,? ).
+              run ShowOKMessage in hOEIDEService("Syntax is correct" ,"Information":u,? ).
           else
               MESSAGE "Syntax is correct" 
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK TITLE "Information":u
@@ -2411,10 +2411,12 @@ PROCEDURE compile-and-load:
                   if OEIDE_CanShowMessage() then 
                   do:
                       if not lNewIDEObj then
-                         ok2Continue = ShowMessageInIDE(cErrMsg,"question",?,"yes-no",ok2Continue).
+                      do: 
+                          run ShowMessage in hOEIDEService(cErrMsg,"question",?,"yes-no",input-output ok2Continue).
+                      end.   
                       else do:
-                         ShowOkMessageInIDE(cErrMsg,"warning",?).
-                         ok2Continue = false. 
+                          run ShowOKMessage in hOEIDEService(cErrMsg,"warning",?).
+                          ok2Continue = false. 
                       end. 
                   end.
                   else do:

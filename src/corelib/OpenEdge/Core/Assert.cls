@@ -1,5 +1,6 @@
 /************************************************
-Copyright (c)  2013,2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2015 by Progress Software Corporation 
+and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Assert
@@ -19,16 +20,12 @@ using OpenEdge.Core.Assert.
 using Progress.Lang.Class.
 using Progress.Lang.Object.
 using OpenEdge.Core.AssertionFailedError.
+using OpenEdge.Core.Assertion.AssertObject.
 
 class OpenEdge.Core.Assert:
     
-    method public static void Equals(input a as Progress.Lang.Object, input b as Progress.Lang.Object):
-        define variable failMessage as character no-undo.
-        if not a:Equals(b) then
-        do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
-            return error new AssertionFailedError(failMessage, 0).
-        end.        
+    method public static void Equals(input a as Object, input b as Object):
+        AssertObject:Equals(a, b).
     end method.
     
     method public static void Equals(input a as rowid, input b as rowid):
@@ -85,7 +82,6 @@ class OpenEdge.Core.Assert:
         end.        
     end method.
     
-
     method public static void Equals(input a as integer, input b as integer):
         define variable failMessage as character no-undo.
         if not a = b then
@@ -135,9 +131,8 @@ class OpenEdge.Core.Assert:
             return error new AssertionFailedError(substitute('&1 and &2 are equal', a, b), 0).
     end method.
 
-    method public static void NotEqual(input a as Progress.Lang.Object, input b as Progress.Lang.Object):
-        if a:Equals(b) then
-            return error new AssertionFailedError(substitute('&1 and &2 are equal', a:ToString(), b:ToString()), 0).
+    method public static void NotEqual(input a as Object, input b as Object):
+        AssertObject:NotEqual(a, b).
     end method.
 
     method public static void NotEqual(input a as recid, input b as recid):
@@ -170,8 +165,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNull(input poArgument as Object , pcName as char):
-        if not valid-object(poArgument) then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
+        AssertObject:NotNull(poArgument, pcName).
     end method.
 
     method public static void NotNull(input poArgument as Object):
@@ -179,8 +173,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsNull(input poArgument as Object , input pcName as character):
-        if valid-object(poArgument) then
-            undo, throw new AssertionFailedError(substitute('&1 must be null', pcName), 0).
+        AssertObject:IsNull(poArgument, pcName).
     end method.
 
     method public static void IsNull(input poArgument as Object):
@@ -188,8 +181,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNull(input poArgument as Object extent, pcName as char):
-        if extent(poArgument) eq ? then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
+        AssertObject:NotNull(poArgument, pcName).
     end method.
 
     method public static void NotNull(input poArgument as Object extent):
@@ -197,8 +189,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsNull(input poArgument as Object extent, pcName as char):
-        if extent(poArgument) ne ? then
-            undo, throw new AssertionFailedError(substitute('&1 must be null', pcName), 0).
+        AssertObject:IsNull(poArgument, pcName).
     end method.
     
     method public static void IsNull(input poArgument as Object extent):
@@ -233,10 +224,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(input poArgument as ICollection, pcName as char):
-        Assert:NotNull(input poArgument, input pcName).
-
-        if poArgument:Size eq 0 then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be empty: collection must have at least one entry', pcName), 0).
+        AssertObject:NotNullOrEmpty(poArgument, pcName).
     end method.
 
     method public static void NotNullOrEmpty(input poArgument as ICollection):
@@ -266,10 +254,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(input poArgument as IMap, pcName as char):
-        Assert:NotNull(input poArgument, input pcName).
-
-        if poArgument:Size eq 0 then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be empty: map must have at least one entry', pcName), 0).
+        AssertObject:NotNullOrEmpty(poArgument, pcName).
     end method.
 
     method public static void NotNullOrEmpty(input poArgument as IMap):
@@ -277,10 +262,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(input poArgument as Object extent, pcName as char):
-        Assert:NotNull(input poArgument, pcName).
-
-        if not valid-object(poArgument[1]) then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be empty: array must have at least one valid extent', pcName), 0).
+        AssertObject:NotNullOrEmpty(poArgument, pcName).
     end method.
 
     method public static void NotNullOrEmpty(input poArgument as Object extent):
@@ -310,9 +292,20 @@ class OpenEdge.Core.Assert:
     method public static void NotNullOrEmpty(input pcArgument as character extent):
         NotNullOrEmpty(pcArgument, "argument").
     end method.
-       
+    
     method public static void NotEmpty(pcArgument as longchar, pcName as character):
-        if trim(pcArgument) eq '' then
+        define variable iRawLength as int64 no-undo.
+        
+        /* number of bytes in the argument */
+        assign iRawLength = length(pcArgument, 'raw':u).
+        
+           /* no characters is pretty empty */
+        if iRawLength eq 0 or
+           /* TRIM converts everything to cpinternal, which may not be able to 'see' all the characters
+              that are in the argument. So, if the lengths differ, then there's something that's not a space
+              (strong assumption) and we're OK, Jack.
+              If the lengths match, we are ok to convert and we try to trim. */
+           (iRawLength eq length(pcArgument) and trim(pcArgument) eq '':u) then
             undo, throw new AssertionFailedError(substitute('&1 cannot be empty', pcName), 0).
     end method.
 
@@ -387,90 +380,39 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsInterface(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if not poArgument:IsInterface() then
-            undo, throw new AssertionFailedError(substitute('&1 is an interface', poArgument:TypeName), 0).
+        AssertObject:IsInterface(poArgument).
     end method.
 
     method public static void NotInterface(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if poArgument:IsInterface() then
-            undo, throw new AssertionFailedError(substitute('&1 is not an interface', poArgument:TypeName), 0).
+        AssertObject:NotInterface(poArgument).
     end method.
 
     method public static void IsAbstract(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if not poArgument:IsAbstract() then
-            undo, throw new AssertionFailedError(substitute('&1 is not an abstract type', poArgument:TypeName), 0).        
+         AssertObject:IsAbstract(poArgument).        
     end method.
 
     method public static void NotAbstract(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if poArgument:IsAbstract() then
-            undo, throw new AssertionFailedError(substitute('&1 is an abstract type', poArgument:TypeName), 0).        
+        AssertObject:NotAbstract(poArgument).      
     end method.
         
     method public static void IsFinal(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if not poArgument:IsFinal() then
-            undo, throw new AssertionFailedError(substitute('&1 is not a final type', poArgument:TypeName), 0).
+        AssertObject:IsFinal(poArgument). 
     end method.
     
     method public static void NotFinal(input poArgument as Progress.Lang.Class):
-        Assert:NotNull(input poArgument, 'Type').
-        if poArgument:IsFinal() then
-            undo, throw new AssertionFailedError(substitute('&1 is a final type', poArgument:TypeName), 0).                        
+        AssertObject:NotFinal(poArgument).                       
     end method.
     
     method public static void IsType(input poArgument as Object extent, poType as Progress.Lang.Class):
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        
-        if extent(poArgument) eq ? then
-            undo, throw new AssertionFailedError('argument cannot be an indeterminate array', 0).
-        
-        iMax = extent(poArgument).
-        do iLoop = 1 to iMax:
-            Assert:IsType(poArgument[iLoop], poType).
-        end.
+        AssertObject:IsType(poArgument, poType).
     end method.
     
     method public static void IsType(input poArgument as Object, poType as Progress.Lang.Class):
-        define variable oDerivedClass as Progress.Lang.Class no-undo.
-        
-        Assert:NotNull(poArgument, 'argument').
-        Assert:NotNull(poType, 'type').
-        
-        if type-of(poArgument, Progress.Lang.Class) then 
-            oDerivedClass = cast(poArgument, Progress.Lang.Class).
-        else
-            oDerivedClass = poArgument:GetClass().
-        
-        if not oDerivedClass:IsA(poType) then
-            undo, throw new AssertionFailedError(
-                    substitute('Object &1 (of type &2) is not of type &3',
-                        poArgument:ToString(),
-                        oDerivedClass:TypeName,
-                        poType:TypeName), 0).
+        AssertObject:IsType(poArgument, poType).
     end method.
     
     method public static void NotType(input poArgument as Object, poType as Progress.Lang.Class):
-        define variable oDerivedClass as Progress.Lang.Class no-undo.
-        
-        Assert:NotNull(poArgument, 'argument').
-        Assert:NotNull(poType, 'type').
-        
-        if type-of(poArgument, Progress.Lang.Class) then 
-            oDerivedClass = cast(poArgument, Progress.Lang.Class).
-        else
-            oDerivedClass = poArgument:GetClass().
-        
-        if oDerivedClass:IsA(poType) then
-            undo, throw new AssertionFailedError(
-                    substitute('Object &1 (of type &2) is of type &3',
-                        poArgument:ToString(),
-                        oDerivedClass:TypeName,
-                        poType:TypeName), 0).
+        AssertObject:NotType(poArgument, poType).
     end method.
     
     /** Asserts that a handle is valid.
@@ -494,14 +436,7 @@ class OpenEdge.Core.Assert:
     method public static void IsType(input phArgument as handle,
                                      input poCheckType as DataTypeEnum,
                                      input pcName as character):
-        define variable cCheckType as character no-undo.
-        
-        Assert:NotNull(phArgument, pcName).
-        Assert:NotNull(poCheckType, 'Check DataType').
-        
-        cCheckType = poCheckType:ToString().
-        if phArgument:type ne cCheckType then
-            undo, throw new AssertionFailedError(substitute('&1 is not of type &2', pcName, cCheckType), 0).        
+        AssertObject:IsType(phArgument, poCheckType, pcName).        
     end method.
 
     method public static void IsType(input phArgument as handle,
@@ -517,14 +452,7 @@ class OpenEdge.Core.Assert:
     method public static void NotType(input phArgument as handle,
                                              input poCheckType as DataTypeEnum,
                                              input pcName as character):
-        define variable cCheckType as character no-undo.
-        
-        Assert:NotNull(phArgument, pcName).
-        Assert:NotNull(poCheckType, 'Check DataType').
-        
-        cCheckType = poCheckType:ToString().
-        if phArgument:type eq cCheckType then
-            undo, throw new AssertionFailedError(substitute('&1 cannot be of type &2', pcName, cCheckType), 0).
+        AssertObject:NotType(phArgument, poCheckType, pcName).
     end method.
 
     method public static void NotType(input phArgument as handle,
@@ -563,14 +491,12 @@ class OpenEdge.Core.Assert:
 
     method public static void IsIndeterminateArray(input poArgument as Object extent,
                                                            input pcName as character):
-        if extent(poArgument) ne ? then
-            undo, throw new AssertionFailedError(substitute('&1 array must be indeterminate', pcName), 0).
+        AssertObject:IsIndeterminateArray(poArgument, pcName).
     end method.
-
+    
     method public static void HasDeterminateExtent(input poArgument as Object extent,
                                                            input pcName as character):
-        if extent(poArgument) eq ? then
-            undo, throw new AssertionFailedError(substitute('&1 array cannot be indeterminate', pcName), 0).
+        AssertObject:HasDeterminateExtent(poArgument, pcName).
     end method.
     
     method public static void HasDeterminateExtent(input piArgument as integer extent,
@@ -983,4 +909,12 @@ class OpenEdge.Core.Assert:
         IsZeroOrPositive(pdArgument, "argument").
     end method.    
     
+    /** Raises an AssertionFailedError.
+        
+        @param mesg the message to be used for the AssertionFailedError
+        @throws AssertionFailedError Error thrown */
+    method public static void RaiseError(mesg as character):
+        NotNull(mesg).
+        return error new AssertionFailedError(mesg, 0).
+    end method.
 end class.

@@ -176,9 +176,16 @@ PROCEDURE reset-utilities :
     IF VALID-HANDLE(web-utilities-hdl) THEN
       DELETE PROCEDURE web-utilities-hdl.
   END.
-
-  /* Create the utilities handle as a persistent procedure. */
-  RUN webutil/webstart.p PERSISTENT SET web-utilities-hdl NO-ERROR.
+  
+  /* Create the utilities handle as a persistent procedure.*/
+  if multi-session-agent() then
+  do:
+      RUN webutil/paswebstart.p PERSISTENT SET web-utilities-hdl NO-ERROR.
+  end.
+  else do:
+      RUN webutil/webstart.p PERSISTENT SET web-utilities-hdl NO-ERROR.
+  end.
+  
   IF RETURN-VALUE GT "" OR NOT VALID-HANDLE(web-utilities-hdl) THEN DO:
     /* Write what went wrong to the log: <brokername>.server.log  */
     MESSAGE "ERROR: webstart.p did not load due to the following errors: ".
@@ -188,8 +195,9 @@ PROCEDURE reset-utilities :
     RETURN.
   END. /* error loading or invalid web-utilities-hdl */
 
-  /* Initialize the tagmap file. */
-  RUN reset-tagmap-utilities IN web-utilities-hdl.
+  /* Initialize the tagmap file if classic webSpeed (old behavior) */
+  if not multi-session-agent() then
+    RUN reset-tagmap-utilities IN web-utilities-hdl.
 
 END PROCEDURE.
 

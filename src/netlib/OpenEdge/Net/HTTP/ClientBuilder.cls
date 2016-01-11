@@ -30,6 +30,7 @@ using OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder.
 using OpenEdge.Net.HTTP.ProxyHttpClient.
 using OpenEdge.Net.HTTP.StatefulHttpClient.
 using OpenEdge.Net.URI.
+using OpenEdge.Net.HTTP.CookieJarBuilder.
 
 class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
     
@@ -134,6 +135,13 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         SetOption(get-class(ICookieJar):TypeName, poCookieJar).
         
         return this-object.
+    end method.
+    
+    /** Uses a default cookie for managing cookies.
+        
+        @return ClientBuilder */
+    method public ClientBuilder KeepCookies():
+        return this-object:KeepCookies( CookieJarBuilder:Build():CookieJar ).
     end method.
     
     /** Sets the URI to use as a proxy server for all requests

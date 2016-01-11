@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge.Core.System.ApplicationError
@@ -12,12 +12,12 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+
 using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Core.System.ErrorSeverityEnum.
 
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.IOModeEnum.
-using OpenEdge.Core.FlagsEnum.
 using OpenEdge.Core.Assert.
 
 using Progress.Lang.ParameterList.
@@ -25,6 +25,7 @@ using Progress.Lang.AppError.
 using Progress.Lang.Error.
 using Progress.Lang.Object.
 using Progress.Lang.Class.
+using OpenEdge.Core.DataTypeHelper.
 
 class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppError:
     /* Registry of error strings. These can be added via */
@@ -72,7 +73,7 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
     
     constructor public ApplicationError(input poInnerError as Error):
         /* Severity can/will be overwritten by individual Error */
-        assign this-object:Severity = ErrorSeverityEnum:Default:Value
+        assign this-object:Severity = integer(ErrorSeverityEnum:Default)
                /* may be null */
                this-object:InnerError = poInnerError.
     end constructor.
@@ -86,7 +87,7 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
         oClass = this-object:GetClass().
         oParams = new ParameterList(1).
         oParams:SetParameter(1,
-                             substitute(DataTypeEnum:Class:ToString(), 'Progress.Lang.Error'),
+                             substitute(DataTypeHelper:GetMask(DataTypeEnum:Class), 'Progress.Lang.Error':u),
                              IOModeEnum:Input:ToString(),
                              this-object:InnerError).
         oClone = cast(oClass:New(oParams), ApplicationError).
@@ -157,5 +158,9 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
                                GetMessage(8),
                                GetMessage(9)).
     end method.
-    
+
+    method override public character ToString(  ):
+        return GetShortMessage().
+    end method.
+        
 end class.

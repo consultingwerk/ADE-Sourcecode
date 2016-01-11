@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -34,7 +34,7 @@ class OpenEdge.Core.Memptr:
         get():
             return mmValue.
         end get.
-        
+    
     /** The size of the current memptr */
     define public property Size as int64 no-undo
         get():
@@ -48,7 +48,7 @@ class OpenEdge.Core.Memptr:
     /** Returns a new, empty/null Memptr */
     define static public property Empty as class Memptr no-undo
         get().
-            return new Memptr(1).
+            return new Memptr(0).
         end get.
     
     constructor protected Memptr():
@@ -134,7 +134,7 @@ class OpenEdge.Core.Memptr:
         @return raw The hashed value of the memptr. */
     method public raw GetHash(input poAlgorithm as HashAlgorithmEnum):
         Assert:NotNull(poAlgorithm, 'Algorithm').
-        return message-digest(poAlgorithm:Name, mmValue).
+        return message-digest(string(poAlgorithm), mmValue).
     end method.
     
     /** Returns a byte at the specified position
@@ -221,7 +221,7 @@ class OpenEdge.Core.Memptr:
         
         /* return an empty Memptr */
         if this-object:Size eq 0 then
-            oSlice = new Memptr(1).
+            oSlice = new Memptr(0).
         else
         do:            
             set-size(mSlice) = piSliceSize.
@@ -245,10 +245,13 @@ class OpenEdge.Core.Memptr:
                                 input piSize as int64):
         define variable iLoop as integer no-undo.
         define variable mTemp as memptr no-undo.
-                                            
+        
         Assert:IsZeroOrPositive(piPointerValue, 'Pointer').
         Assert:IsZeroOrPositive(piSize, 'Size').
         
+        if this-object:Size eq 0 then
+           assign this-object:Size = piSize.
+        else  
         if piSize gt this-object:Size then
             return error new AppError('Input memptr larger than available size', 0).
         
@@ -273,25 +276,26 @@ class OpenEdge.Core.Memptr:
         PutBytes(get-pointer-value(pmData), get-size(pmData)).
     end method.
     
-    method public void _Debug():
+    /** Debug/dump of the contents of this object on a per-byte basic. COPY-LOB 
+        can also be used for debug purposes (COPY-LOB objMemptr:Value TO FILE). */
+    method public void _Debug ():
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable iByte as integer no-undo.
         define variable cDumpFile as character no-undo.
         
-        if not session:debug-alert then
+        if log-manager:logfile-name eq ? or
+           log-manager:logging-level lt 6 then
             return.
         
-        iMax = get-size(mmValue).
-        cDumpFile = session:temp-directory + this-object:ToString() + '.txt':u.
-        
-        if log-manager:logfile-name ne ? and
-           log-manager:logging-level gt 1 then
-            log-manager:write-message('DEBUG FILE=':u + cDumpFile, 'MEMPTR':u).
+        assign iMax = get-size(mmValue)
+               cDumpFile = session:temp-directory + this-object:ToString() + '.bin':u.
+
+        log-manager:write-message('DEBUG FILE=':u + cDumpFile, 'MEMPTR':u).
         
         output to value(cDumpFile).
         do iLoop = 1 to iMax:
-            iByte = get-byte(mmValue, iLoop).
+            assign iByte = get-byte(mmValue, iLoop).
             
             put unformatted 
                 iByte '~t':u .
@@ -303,7 +307,10 @@ class OpenEdge.Core.Memptr:
              put unformatted skip. 
         end.
         output close.
-
     end method.
-                   
+    
+    method override public character ToString():
+        return substitute('&1_&2':u, this-object:GetClass():TypeName, get-pointer-value(mmValue)).
+    end method.
+    
 end class.

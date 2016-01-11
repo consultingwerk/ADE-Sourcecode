@@ -55,24 +55,23 @@ class OpenEdge.Mobile.PushNotificationService abstract
     
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
-        /* Appery/Rollbase notification service is default in 11.5.1 */
+        /* default notification service is now Telerik. */
         poRegistry:Put(get-class(PushNotificationService):TypeName,
-                       get-class(ApperyPushNotificationService)).
+                       get-class(TelerikPushNotificationService)).
         
         poRegistry:Put(get-class(PushNotificationMessageBuilder):TypeName,
-                       get-class(ApperyPushNotificationMessageBuilder)).
+                       get-class(TelerikPushNotificationMessageBuilder)).
 
-        /* default notification service is Telerik in 11.6.0.  
-           
-           To use Telerik PNS, add these lines before you call the 
-           PushNotificationService or ~MessageBuilder. They can be added anywhere in the
-           application code (on startup, say), not just in the PNS calling code.
-           
-           PushNotificationService:Registry:Put(get-class(PushNotificationService):TypeName,
-                                                get-class(TelerikPushNotificationService)).
 
-           PushNotificationService:Registry:Put(get-class(PushNotificationMessageBuilder):TypeName,
-                                                get-class(TelerikPushNotificationMessageBuilder)). 
+        /* If you want to use the Appery/Rollbase notification service,
+           add these lines before you call the PushNotificationService or ~MessageBuilder 
+        PushNotificationService:Registry
+            :Put(get-class(PushNotificationService):TypeName,
+                 get-class(ApperyPushNotificationService)).
+        
+        PushNotificationService:Registry
+            :Put(get-class(PushNotificationMessageBuilder):TypeName,
+                 get-class(ApperyPushNotificationMessageBuilder)).
         */
     end method.
 

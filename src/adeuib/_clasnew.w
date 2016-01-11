@@ -500,8 +500,8 @@ PROCEDURE isABRunning :
   END.
   IF NOT lABRunning THEN DO:
   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
-       ShowMessageInIDE("The AppBuilder is not running. You must start the AppBuilder before running the New ADM Class tool.",
-                         "Error",?,"OK",YES).   
+       run ShowOkMessage in hOEIDEService("The AppBuilder is not running. You must start the AppBuilder before running the New ADM Class tool.",
+                         "Error",?).   
    &else                           
     MESSAGE
       "The AppBuilder is not running. You must start the AppBuilder before running the New ADM Class tool."

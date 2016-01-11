@@ -1,5 +1,5 @@
 /**************************************************************************
-*Copyright (C) 2005,2010-2013,2014 by Progress Software Corporation.      *
+*Copyright (C) 2005,2010-2013,2014,2015 by Progress Software Corporation. *
 *All rights reserved.  Prior versions of this work may contain portions   *
 *contributed by participants of Possenet.                                 *
 **************************************************************************/
@@ -122,7 +122,11 @@ DO ON ERROR   UNDO main-block, LEAVE main-block
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
     ASSIGN
       AboutImage:AUTO-RESIZE = TRUE
-      result                 = AboutImage:LOAD-IMAGE(pIcon).
+      result                 = AboutImage:LOAD-IMAGE(pIcon) NO-ERROR.
+
+	/* Display a generic icon if we couldn't load the requested icon. */
+	IF NOT result THEN
+      result = AboutImage:LOAD-IMAGE("adeicon/progress":U) NO-ERROR.
 
     /* Check for WebSpeed Workshop */
     RUN adeshar/_ablic.p (INPUT NO /* ShowMsgs */ , OUTPUT ABLic, OUTPUT ABTools).
@@ -217,13 +221,13 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    cCopyright + " 1984-2014 Progress Software Corporation. "
+    cCopyright + " 1984-2015 Progress Software Corporation and/or one of its subsidiaries or affiliates. "
     + "All rights reserved.".
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2014 Vol 2. " +  
-        cCopyright + " 2014 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2015 Vol 1. " +  
+        cCopyright + " 2015 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

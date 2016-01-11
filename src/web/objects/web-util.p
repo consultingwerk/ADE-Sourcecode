@@ -1,12 +1,14 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DECLARATIONS Procedure
+&ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005-2007,2009-2011 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2015 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: web-util.p
@@ -21,6 +23,7 @@
 
 ------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WEB-UTIL_P TRUE           /* lets proto.i know where to find functions */
+
 
 { src/web/method/cgidefs.i  }            /* Basic CGI variables */
 { src/web/method/cgiarray.i }            /* Extended CGI array variables */
@@ -52,6 +55,9 @@ DEFINE VARIABLE cfg-compile-xcode    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cfg-development-mode AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cfg-no-save-rcode    AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE cfg-web-run-path     AS CHARACTER  NO-UNDO.
+
+/* OpenHTTP Handler mapping support */ 
+DEFINE VARIABLE final-match-group    AS CHARACTER  NO-UNDO.
 
 { src/web/method/proto.i}
 { src/web/method/admweb.i}
@@ -292,7 +298,6 @@ PROCEDURE destroy :
   Parameters:  <none>
   Notes:
 ------------------------------------------------------------------------------*/
-  ASSIGN web-utilities-hdl = ?.
   DELETE PROCEDURE THIS-PROCEDURE NO-ERROR.
 
 END PROCEDURE.
@@ -347,15 +352,21 @@ PROCEDURE get-transaction-state :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  define variable cMsg as character no-undo.
   IF glStateAware THEN DO:
     /* Run get-transaction-state in web/objects/stateaware.p. */
     RUN SUPER.
     RETURN RETURN-VALUE.
   END.
-  ELSE
-    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#3 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
+  ELSE DO:
+     /* The main point is to not have a message about 'STATE_AWARE_ENABLED'   */
+    if multi-session-agent() then
+        cMsg = "#3 get-transaction-state is not supported in a multi-session-agent.".
+    else 
+        cMsg = "#3 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.".
+    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,cMsg) NO-ERROR.
 
+  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -421,47 +432,57 @@ PROCEDURE init-cgi :
                  ELSE "http://":U + v-host +
                   (IF v-port = "80":U THEN "" ELSE ":":U + v-port)).
 
-  /* Server-relative URL to ourself (this program) except for optional
-       QUERY_STRING. */
-  ASSIGN
-    SelfURL = SCRIPT_NAME + PATH_INFO.
-
-  /* Check for alternate URL format used by the Messengers */
-  IF PATH_INFO BEGINS "/WService=":U THEN
-    ASSIGN
-      /* Web object filename is everything after the second "/" in PATH_INFO */
-      AppProgram = (IF NUM-ENTRIES(PATH_INFO, "/":U) >= 3 THEN
-                      SUBSTRING(PATH_INFO, INDEX(PATH_INFO, "/":U, 2) + 1)
-                    ELSE "")
-      /* Server relative URL of this Web objects's application */
-      AppURL     = SCRIPT_NAME + "/":U + ENTRY(2, PATH_INFO, "/":U).
-
-  ELSE
-    ASSIGN
-      /* Web object filename is everything after the second "/" in PATH_INFO */
-      AppProgram = SUBSTRING(PATH_INFO, 2)
-      /* Server relative URL of this Web objects's application */
-      AppURL     = SCRIPT_NAME.
-
-  /* If the ApplicationURL option was set in the Windows Registry or
-     webspeed.cnf, then use that to set AppURL instead of SCRIPT_NAME and
-     PATH_INFO.  Make sure it's prefixed with a "/" since we don't handle
-     an entire URL. */
-  IF cfg-appurl BEGINS "/":U THEN
-    ASSIGN
-      AppURL  = cfg-appurl
-      SelfURL = AppURL + "/":U + AppProgram.
-
-  /* The Alibaba 2.0 NT server upper cases SCRIPT_NAME and PATH_INFO.  This
-     is a bug.  To work around this, lower case AppURL, etc.  Otherwise
-     Cookies (which are case sensitive) will fail to match preventing
-     locking from working . */
-  IF SERVER_SOFTWARE BEGINS "Alibaba/2":U THEN
-    ASSIGN
-      HostURL    = LC(HostURL)
-      AppURL     = LC(AppURL)
-      SelfURL    = LC(SelfURL)
-      AppProgram = LC(AppProgram).
+  /* If we are mapped to an OpenHTTP handler, then we need to do some extra work */
+  IF final-match-group <> ? and final-match-group <> "" THEN DO:
+      SCRIPT_NAME = SCRIPT_NAME + REPLACE(PATH_INFO, final-match-group, "").
+      ASSIGN
+        SelfURL = SCRIPT_NAME + final-match-group
+        AppURL = SCRIPT_NAME
+        AppProgram = SUBSTRING(final-match-group, 2).
+  END.
+  ELSE DO:
+  
+      /* Server-relative URL to ourself (this program) except for optional
+           QUERY_STRING. */
+      ASSIGN
+        SelfURL = SCRIPT_NAME + PATH_INFO.
+    
+      /* Check for alternate URL format used by the Messengers */
+      IF PATH_INFO BEGINS "/WService=":U THEN
+        ASSIGN
+          /* Web object filename is everything after the second "/" in PATH_INFO */
+          AppProgram = (IF NUM-ENTRIES(PATH_INFO, "/":U) >= 3 THEN
+                          SUBSTRING(PATH_INFO, INDEX(PATH_INFO, "/":U, 2) + 1)
+                        ELSE "")
+          /* Server relative URL of this Web objects's application */
+          AppURL     = SCRIPT_NAME + "/":U + ENTRY(2, PATH_INFO, "/":U).
+       ELSE
+        ASSIGN
+          /* Web object filename is everything after the second "/" in PATH_INFO */
+          AppProgram = SUBSTRING(PATH_INFO, 2)
+          /* Server relative URL of this Web objects's application */
+          AppURL     = SCRIPT_NAME.
+      
+      /* If the ApplicationURL option was set in the Windows Registry or
+         webspeed.cnf, then use that to set AppURL instead of SCRIPT_NAME and
+         PATH_INFO.  Make sure it's prefixed with a "/" since we don't handle
+         an entire URL. */
+      IF cfg-appurl BEGINS "/":U THEN
+        ASSIGN
+          AppURL  = cfg-appurl
+          SelfURL = AppURL + "/":U + AppProgram.
+    
+      /* The Alibaba 2.0 NT server upper cases SCRIPT_NAME and PATH_INFO.  This
+         is a bug.  To work around this, lower case AppURL, etc.  Otherwise
+         Cookies (which are case sensitive) will fail to match preventing
+         locking from working . */
+      IF SERVER_SOFTWARE BEGINS "Alibaba/2":U THEN
+        ASSIGN
+          HostURL    = LC(HostURL)
+          AppURL     = LC(AppURL)
+          SelfURL    = LC(SelfURL)
+          AppProgram = LC(AppProgram).
+  END.
  
   ASSIGN
     http-newline = (IF SERVER_SOFTWARE BEGINS "Netscape-":U 
@@ -473,7 +494,7 @@ PROCEDURE init-cgi :
     /* Set cookie defaults from either configuration defaults or AppURL */
     CookiePath   = (IF cfg-cookiepath <> "" THEN cfg-cookiepath ELSE AppURL)
     CookieDomain = cfg-cookiedomain.
-  
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -503,7 +524,7 @@ PROCEDURE init-config :
      track anonymouse/unidentified user 'movements' through the system.  This is 
      the prefix of the cookie. If it is non-blank the session tracking cookie 
      will be used automatically. */
-  ASSIGN cValue = OS-GETENV("SESSION_COOKIE":U).
+  ASSIGN cValue = getEnv("SESSION_COOKIE":U).
   IF cValue > "" THEN
     setAgentSetting("Session":U,"","Cookie":U,cValue).
 
@@ -514,7 +535,7 @@ PROCEDURE init-config :
                 c:\program files\progress\tty\webedit\ *,
                 c:\program files\progress\tty\workshop.r
   */
-  ASSIGN cValue = REPLACE(OS-GETENV("WEB_RUN_PATH":U),';':U,',':U).
+  ASSIGN cValue = REPLACE(getEnv("WEB_RUN_PATH":U),';':U,',':U).
   IF cValue > "" THEN
     setAgentSetting("Path":U,"","WebRunPath":U,cValue).
   
@@ -524,7 +545,7 @@ PROCEDURE init-config :
      breaking out of WAIT-FOR we can simulate a batch procedure.  NOTE: Anything 
      that goes into the batch program should have a relatively short run time,
      otherwise agents could potentially all lock. */ 
-  ASSIGN ix = INTEGER(OS-GETENV("BATCH_INTERVAL":U)) NO-ERROR.
+  ASSIGN ix = INTEGER(getEnv("BATCH_INTERVAL":U)) NO-ERROR.
   ASSIGN ix = IF ix > 0 THEN MAXIMUM(15,ix) ELSE -1.
   setAgentSetting("Misc":U,"","BatchInterval":U,STRING(ix)).
 
@@ -532,25 +553,25 @@ PROCEDURE init-config :
      Save:  Save the r-code after the compile.
      CheckTime: Check the time difference between the source and R-code and 
      compile if source is newer. */    
-  ASSIGN cValue  = REPLACE(OS-GETENV("COMPILE_ON_FLY":U),";":U,",":U).
+  ASSIGN cValue  = REPLACE(getEnv("COMPILE_ON_FLY":U),";":U,",":U).
   IF cValue > "" THEN
     setAgentSetting("Compile":U,"", "Options":U,cValue).
 
   /* CompileXCODE -- Xcode to be used when compile code. */
-  ASSIGN cValue = OS-GETENV("COMPILE_XCODE":U).
+  ASSIGN cValue = getEnv("COMPILE_XCODE":U).
   IF cValue > "" THEN
     setAgentSetting("Compile":U,"","xcode":U,cValue).
 
   /* SessionPath configuration -- path for storing session information.
      This option is not used when using database-driven session storage 
      mechanism. */
-  ASSIGN cValue = OS-GETENV("SESSION_PATH":U).
+  ASSIGN cValue = getEnv("SESSION_PATH":U).
   IF cValue > "" THEN
     setAgentSetting("Session":U,"","StorePath":U, REPLACE(cValue,"~\":U,"~/":U)).
 
   /* Set flag that activates state-aware support code. Check for missing value
      for backward compatability. */
-  ASSIGN cValue = OS-GETENV("STATE_AWARE_ENABLED":U).
+  ASSIGN cValue = getEnv("STATE_AWARE_ENABLED":U).
   IF cValue = "yes":U OR cValue = "" OR cValue = ? THEN
     setAgentSetting("Session":U, "", "StateAware":U, "yes":U).
 
@@ -604,15 +625,15 @@ PROCEDURE init-session :
  
   /* Get configuration settings from ubroker.properties */
   ASSIGN
-    cfg-environment  = WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) 
+    cfg-environment  = get-config("srvrAppMode":U) 
     cfg-eval-mode    = check-agent-mode("Evaluation":U) /* TRUE if eval mode */
-    cfg-debugging    = WEB-CONTEXT:GET-CONFIG-VALUE("srvrDebug":U) 
-    cfg-appurl       = WEB-CONTEXT:GET-CONFIG-VALUE("applicationURL":U)
-    cfg-cookiepath   = WEB-CONTEXT:GET-CONFIG-VALUE("defaultCookiePath":U)
-    cfg-cookiedomain = WEB-CONTEXT:GET-CONFIG-VALUE("defaultCookieDomain":U)
-    RootURL          = WEB-CONTEXT:GET-CONFIG-VALUE("wsRoot":U)
+    cfg-debugging    = get-config("srvrDebug":U) 
+    cfg-appurl       = get-config("applicationURL":U)
+    cfg-cookiepath   = get-config("defaultCookiePath":U)
+    cfg-cookiedomain = get-config("defaultCookieDomain":U)
+    RootURL          = get-config("wsRoot":U)  /* getcgi(servelt context path)  */
     .
-
+ 
   /* If in Production mode and debugging is not enabled or debugging is
      disabled, then set flag to disable debugging. */
   IF (check-agent-mode("Production":U) AND 
@@ -631,11 +652,16 @@ PROCEDURE init-session :
       cfg-checktime        = CAN-DO(cfg-compile-options,"CheckTime":U)
       cfg-compile-on-fly   = cfg-compile-options > "" AND cfg-development-mode
       .
-      
-  ASSIGN
-    glStateAware = (getAgentSetting("Session":U, "", "StateAware":U) = "yes":U)
-    cfg-web-run-path     = getAgentSetting("Path":U, "","WebRunPath":U).
-
+  /** make sure no stateaware on pas (stateaware is also blocked in paswebstart GetEnv()) 
+      Binding may be supported in future , but not through this mechanism
+  */    
+  if multi-session-agent() then
+      glStateAware = false.
+  else  
+      glStateAware = (getAgentSetting("Session":U, "", "StateAware":U) = "yes":U).
+    
+  cfg-web-run-path = getAgentSetting("Path":U, "","WebRunPath":U).
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -688,7 +714,7 @@ Output:      Sets global variables defined in src/web/method/cgidefs.i
       CgiVar[ix] = REPLACE(SUBSTRING(i-pair,eql + 1,-1,"CHARACTER":U),hex-del,asc-del)
       CgiList    = CgiList + (IF CgiList = "" THEN "" ELSE ",":U ) + i-field.
   END.
-
+  
   /* Import CGI 1.1 variables into global variables */
   ASSIGN
     AUTH_TYPE               = get-cgi("AUTH_TYPE":U)
@@ -709,6 +735,10 @@ Output:      Sets global variables defined in src/web/method/cgidefs.i
     SERVER_PORT             = get-cgi("SERVER_PORT":U)
     SERVER_SOFTWARE         = get-cgi("SERVER_SOFTWARE":U) NO-ERROR.
 
+  /* If this has a value, then we are mapped to a handler */
+  final-match-group         = get-cgi("URI_FINAL_MATCH_GROUP":U) NO-ERROR.
+    
+  
   /* Import some HTTP variables into global variables */
   ASSIGN
     HTTP_ACCEPT             = get-cgi("HTTP_ACCEPT":U)
@@ -949,10 +979,9 @@ PROCEDURE run-web-object :
                          pcFilename, REMOTE_ADDR) NO-ERROR.
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U, cLog).
   END.
-   
+  
   /* Make sure the file is in the PROPATH.  Make sure we can find rcode. */
   RUN adecomm/_rsearch.p (INPUT pcFilename, OUTPUT cSearchFile).
-
   IF cSearchFile = ? THEN
     /* If there is no rcode then just make sure the file is in the propath */
     RUN webutil/_relname.p (INPUT pcFilename, "MUST-BE-REL":U, OUTPUT cSearchFile).  
@@ -967,7 +996,7 @@ PROCEDURE run-web-object :
     IF NOT cSearchFile MATCHES ('*<<*>>':U) THEN 
        RUN webutil/_relname.p (INPUT cSearchFile, "MUST-BE-REL":U, OUTPUT cSearchFile).
   END.
-
+  
   /* If the rcode or the file was not in the propath then error */
   IF cSearchFile = ? THEN DO:
       /* If we found rcode but the file was not in the propath then reject it */
@@ -985,7 +1014,6 @@ PROCEDURE run-web-object :
      running objects. */
   ASSIGN
     cSearchFile = SEARCH(cSearchFile).
-    
   IF cfg-web-run-path > "" AND NOT CAN-DO(cfg-web-run-path,cSearchFile) THEN DO:
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
                                 SUBSTITUTE ("&1 was requested by &2 but was not in the WebRunPath and was rejected. (Ref: &3)",
@@ -1010,7 +1038,7 @@ PROCEDURE run-web-object :
 
   IF cfg-compile-xcode > "" AND CAN-DO(".w,.p":U, cFileExt) THEN
     cSearchFile = SEARCH(SUBSTRING(pcFilename, 1, R-INDEX(pcFilename, ".":U),"CHARACTER") + "r":U).
-
+   
   IF cfg-checktime AND cSearchFile > "" AND NOT CAN-DO(".r,.":U, cFileExt) THEN DO:
     ASSIGN
       FILE-INFO:FILE-NAME = cSearchFile
@@ -1186,13 +1214,16 @@ PROCEDURE set-transaction-state :
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pState AS CHARACTER NO-UNDO.
+  if multi-session-agent() then 
+  do:
+      undo, throw new Progress.Lang.AppError("set-transaction-state is not supported in a multi-session-agent").
+  end.  
   
   IF glStateAware THEN
     /* Run set-transaction-state in web/objects/stateaware.p. */
     RUN SUPER (pState).
   ELSE
-    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#1 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
+    DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,"#1 StateAware support is inactive. To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
 
 END PROCEDURE.
 
@@ -1214,14 +1245,17 @@ PROCEDURE set-web-state :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER p_wo-hdl          AS HANDLE  NO-UNDO.
   DEFINE INPUT PARAMETER p_timeout         AS DECIMAL NO-UNDO.
-
+  if multi-session-agent() then 
+  do:
+      undo, throw new Progress.Lang.AppError("set-web-state is not supported in a multi-session-agent").
+  end.  
   IF glStateAware THEN
     /* Run set-web-state in web/objects/stateaware.p. */
     RUN SUPER (p_wo-hdl, p_timeout).
-  ELSE
+  ELSE  
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "Error":U,
-                      "#2 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
-                      
+        "#2 StateAware support is inactive.  To activate, create a broker 'STATE_AWARE_ENABLED' environment variable with value of 'yes'.") NO-ERROR.
+ 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1276,7 +1310,7 @@ FUNCTION devCheck RETURNS LOGICAL
   Purpose:  To check for development mode for security
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN WEB-CONTEXT:GET-CONFIG-VALUE("srvrAppMode":U) BEGINS "Dev":U.
+  RETURN get-config("srvrAppMode":U) BEGINS "Dev":U.
 
 END FUNCTION.
 
@@ -1289,13 +1323,36 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION get-config Procedure 
 FUNCTION get-config RETURNS CHARACTER
-  ( INPUT cVarName AS CHARACTER ) :
+  ( INPUT pVarName AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN WEB-CONTEXT:GET-CONFIG-VALUE(cVarName).
-
+  if multi-session-agent() then
+  do:
+      case pVarName:
+          when "wsRoot":U then
+              return get-cgi("SERVLET_WSROOT":U).
+          when "applicationURL":U then
+              return get-cgi("SERVLET_APPLICATION_URL":U).
+          when "srvrAppMode":U then
+              return get-cgi("SERVLET_SERVER_APP_MODE":U).
+          when "defaultCookiePath":U then
+              return get-cgi("SERVLET_DEFAULT_COOKIE_PATH":U).
+          when "defaultCookieDomain":U then
+              return get-cgi("SERVLET_DEFAULT_COOKIE_DOMAIN":U).
+          when "srvrDebug":U then
+              return get-cgi("SERVLET_SRVR_DEBUG":U).
+          when "workdir":U then
+              return os-getenv("CATALINA_BASE":U) . /* TODO */
+        
+          otherwise 
+              return ?.      
+      end case.
+  end.
+  else      
+      return web-context:get-config-value(pVarName).
+ 
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

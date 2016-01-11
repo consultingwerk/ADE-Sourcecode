@@ -21,25 +21,17 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IHttpRequest.
-using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.URI.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.HttpHeader.
 
-class OpenEdge.Net.HTTP.HttpRequestDecorator implements IHttpRequest: 
+class OpenEdge.Net.HTTP.HttpRequestDecorator 
+            implements IHttpRequest: 
     
     /* the decorated Request. this can be a decoration or an actual http Request */
     define protected property DecoratedHttpRequest as IHttpRequest no-undo get. private set.
     
-    define public property AcceptContentType as character extent no-undo
-       get(input piIdx as integer):
-           return DecoratedHttpRequest:AcceptContentType[piIdx].
-       end get.
-       set(input pcAcceptContentType as character, input piIdx as integer):
-           DecoratedHttpRequest:AcceptContentType[piIdx] = pcAcceptContentType.
-       end set.
-
     define public property Method as character no-undo 
        get():
            return DecoratedHttpRequest:Method.
@@ -116,7 +108,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator implements IHttpRequest:
         Assert:NotNull(poHttpRequest, 'HttpRequest').
         assign DecoratedHttpRequest = poHttpRequest.
     end constructor.       
-
+	
     method public void SetHeader( input poHeader as HttpHeader ):
         DecoratedHttpRequest:SetHeader(poHeader).
     end method.
@@ -159,14 +151,6 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator implements IHttpRequest:
 
     method public void ClearCookies():
         DecoratedHttpRequest:ClearCookies().
-    end method.
-    
-    method public void SetAcceptContentType(input pcAcceptContentType as character extent):
-        DecoratedHttpRequest:AcceptContentType = pcAcceptContentType.
-    end method.
-    
-    method public character extent GetAcceptContentType():
-        return DecoratedHttpRequest:AcceptContentType.
     end method.
     
 end class.

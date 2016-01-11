@@ -231,10 +231,10 @@ isDataEnabled,_Attributes[1],~
                         
                         if hBeforeBuff:row-state = row-created then 
                         do on error undo, throw:
-                             find bPolicy where bPolicy._Partition-Policy-Name =  phBuffer::PartitionPolicyName no-lock.
-                             create dictdb._Partition-Policy-Detail.
+                            find bPolicy where bPolicy._Partition-Policy-Name =  phBuffer::PartitionPolicyName no-lock.
+                            create dictdb._Partition-Policy-Detail.
                               /* it's a core requirement that the object-number must be assigned first */ 
-                             assign
+                            assign
                                  dictdb._Partition-Policy-Detail._Object-Number = bPolicy._Object-Number
                                  dictdb._Partition-Policy-Detail._Partition-name = phBuffer::Name
                                  dictdb._Partition-Policy-Detail._Partition-Column-value = phBuffer::StringValues
@@ -242,14 +242,14 @@ isDataEnabled,_Attributes[1],~
                                  phBuffer::ObjectNumber      = bPolicy._Object-Number.   
                                 
                              
-                             if phBuffer::IsAllocated 
+                            if phBuffer::IsAllocated 
                              /* if immediate the language takes care of the allocation, 
                                 (The correct state will be returned to client from after row) */
-                             and bPolicy._Allocation-Default  <> "Immediate"  
+                            and bPolicy._Allocation-Default  <> "Immediate"  
                               /* no point allocating a composite partiton (already is)  
                                 @todo - ? find better way to check if composite =- seems a bit scary to rely 
                                         on getting this from UI/client (supposedly read-only though) */     
-                             and phBuffer::IsComposite = false then  
+                            and phBuffer::IsComposite = false then  
                                  lAllocate = true.
                                  
                              if phBuffer::IsReadOnly = true then
@@ -291,21 +291,6 @@ isDataEnabled,_Attributes[1],~
                             and dictdb._Partition-Policy-Detail._partition-id <> 0 then
                             do:
                                 lReadOnly = phBuffer::isReadOnly.
-                            end.
-                           
-                            /* lSplit flag is set above (since we need to lock the parent policy for this operation) */
-                            if lSplit then 
-                            do:
-                                /* somewhat unlikely, but could in theory already have been changed by others */
-                                if dictdb._Partition-Policy-Detail._Attributes[2]  = false then 
-                                do:
-                                    dictdb._Partition-Policy-Detail._Attributes[2] = true.
-                                end.
-/*                                /* @todo move after validate or in Afterrow and set based on true state */ */
-/*                                                                                                           */
-/*                                phBuffer::isAllocated = lAllocate. /* true is wrong , but means we actively*/
-/*                                                                      changed it so keep it  */            */
-/*                                phBuffer::isComposite = false.                                             */
                             end.
                         end. 
                        
@@ -363,9 +348,19 @@ isDataEnabled,_Attributes[1],~
                         if avail b_lobarea and b_lobarea._area-number <>  dictdb._Partition-Policy-Detail._ianum-lob then
                             dictdb._Partition-Policy-Detail._ianum-lob = b_lobarea._area-number.
  
+                        /* do this after default area changes = data defauot area cannot be changed if split is set
+                           lSplit flag is set above if modify (since we need to lock the parent policy for this operation) */
+                        if lSplit then 
+                        do:
+                            /* somewhat unlikely, but could in theory already have been changed by others */
+                            if dictdb._Partition-Policy-Detail._Attributes[2]  = false then 
+                            do:
+                                dictdb._Partition-Policy-Detail._Attributes[2] = true.
+                            end.
+                        end.
                         /* ensure partitions are created and partition changes are seen (IsAllocated)*/
                         validate dictdb._Partition-Policy-Detail.
-                        if hBeforeBuff:row-state = row-created then
+                        if hBeforeBuff:row-state = row-created or lSplit then
                             phBuffer::Id = dictdb._Partition-Policy-Detail._partition-id.
                         
                         If lAllocate or lReadOnly <> ? then                           
@@ -421,7 +416,8 @@ isDataEnabled,_Attributes[1],~
                     undo, throw new DataAccessError("Spaces are not allowed in the partition policy detail name" ,e).
             end.
             undo, throw new DataAccessError(
-                new DataMapper("PartitionPolicyDetail,_Partition-Policy-Detail,PartitionPolicy,bPolicy",
+            
+                new DataMapper("PartitionPolicyDetail,_Partition-Policy-Detail,PartitionPolicy,bPolicy,DefaultDataArea,_ianum-Data",
                 FieldMap),
                 e). 
         end catch.       

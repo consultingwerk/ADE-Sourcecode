@@ -364,7 +364,7 @@ function gotoPage returns logical
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-viewSource) = 0 &THEN
+&IF DEFINED(EXCLUDE-keyPressed) = 0 &THEN
 
 function keyPressed returns logical 
     ( phWindow as handle,
@@ -380,6 +380,28 @@ function viewSource returns logical
       wType AS CHARACTER,
       wSection AS CHARACTER,
       wTrigger AS CHARACTER) forward.
+
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-viewSourceTrigger) = 0 &THEN
+
+function viewSourceTrigger returns logical 
+    ( phWindow as handle,
+      pEvent as character,
+      pName as character,
+      pType as character,
+      pLabel as character,
+      pParent as character) forward.
+
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-viewSourceSection) = 0 &THEN
+
+function viewSourceSection returns logical 
+    ( phWindow as handle,
+      pSection AS CHARACTER) forward.
 
 
 &ENDIF
@@ -440,7 +462,9 @@ function AddCodeSection return logical
 function AddTrigger return logical
          (phwindow   as handle,
           WidgetName as character,
-          WidgetType as character) forward.
+          WidgetText as character,
+          WidgetType as character,
+          WidgetParent as character) forward.
 &endif      
 
 &IF DEFINED(EXCLUDE-RunDesign) = 0 &THEN
@@ -2121,6 +2145,28 @@ function viewSource returns logical
           wTrigger AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose:  View source for the specified window
+    Notes:  DEPRECATED  - does not pass parent use viewSourceTrigger or viewSourceSection 
+------------------------------------------------------------------------------*/
+    if wtrigger <> "" then
+        return viewSourceTrigger(phWindow,wTrigger,wName,wType,"","").
+    else 
+        return viewSourceSection(phWindow,wSection ).
+end function.
+
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-viewSourceTrigger) = 0 &THEN
+
+function viewSourceTrigger returns logical
+         ( phWindow as handle,
+           pEvent as character, 
+           pName as character,
+           pType as character,
+           pLabel as character,
+           pParent as character) :
+/*------------------------------------------------------------------------------
+  Purpose:  View source and find/add default trigger for the specified widget
     Notes:  
 ------------------------------------------------------------------------------*/
     define variable iDesignId as int64 no-undo. 
@@ -2130,10 +2176,12 @@ function viewSource returns logical
                     (VIEW_SOURCE,
                       "IDE viewSource ":U 
                       + QUOTER(iDesignId) + PARAMETER_DELIMITER
-                      + QUOTER(wName) + PARAMETER_DELIMITER
-                      + QUOTER(wType) + PARAMETER_DELIMITER
-                      + QUOTER(wSection) + PARAMETER_DELIMITER
-                      + QUOTER(wTrigger)).
+                      + QUOTER("Trigger") + PARAMETER_DELIMITER
+                      + QUOTER(pEvent) + PARAMETER_DELIMITER
+                      + QUOTER(pName) + PARAMETER_DELIMITER
+                      + QUOTER(pType) + PARAMETER_DELIMITER
+                      + QUOTER(pLabel) + PARAMETER_DELIMITER
+                      + QUOTER(pParent)).
   
   return true.
 
@@ -2141,6 +2189,36 @@ end function.
 
 
 &ENDIF
+
+&IF DEFINED(EXCLUDE-viewSourceSection) = 0 &THEN
+
+function viewSourceSection returns logical
+         ( phWindow as handle,
+           pSection AS CHARACTER) :
+               
+/*------------------------------------------------------------------------------
+  Purpose:  View source section for the specified section (just view source if section is blank)
+    Notes:  
+------------------------------------------------------------------------------*/
+    define variable iDesignId as int64 no-undo. 
+    iDesignId = getDesignId(phWindow).  
+  
+    run sendRequest in getSocketClient()
+                    (VIEW_SOURCE,
+                      "IDE viewSource ":U 
+                      + QUOTER(iDesignId) + PARAMETER_DELIMITER
+                      + QUOTER(pSection) ).
+  
+   return true.
+
+end function.
+
+
+&ENDIF
+
+
+
+
 
 
 &IF DEFINED(EXCLUDE-findAndSelect) = 0 &THEN
@@ -2239,95 +2317,37 @@ end function.
 &ENDIF
 
 &IF DEFINED(EXCLUDE-ShowOkMessageInIDE) = 0 &THEN
-
+/** DEPRECATED - see ShowMessageInIDE */
 function ShowOkMessageInIDE returns logical
          (msgText      as character,
           MsgType      as character,
           MsgTitle     as character) :
-    return ShowMessageInIDE(msgText,MsgType,MsgTitle,"OK",true).     
+    return ShowMessageInIDE(msgText,MsgType,MsgTitle,"OK":U,true).     
 end function.
 
 &ENDIF
 
 &IF DEFINED(EXCLUDE-ShowMessageInIDE) = 0 &THEN
+
+/** DEPRECATED - has workaround for issues with NET Application.Run 
+   using a modal frame, whihc is somewhat ok since we're emulating a message box,
+    but it is better to run ShowMessage directly  */
 function ShowMessageInIDE returns logical
          (msgText      as character,
           MsgType      as character,
           MsgTitle     as character, 
           MsgButtons   as character,
           ButtonValue  as logical):
-   define variable cResult as character  no-undo.
-   define variable ButtonFocus as character no-undo.
-   define variable iReturn as integer no-undo.
-
-   If msgtitle = ? or msgTitle = "?" then 
-      msgTitle = upper(substring(MsgType,1,1)) 
-               + lower(substring(MsgType,2,length(MsgType))).
-   
-   case msgType:
-       when "Information" then msgType = "0".
-       when "Warning"     then msgType = "1".
-       when "Error"       then msgType = "2".
-       when "Question"    then msgType = "3".
-       otherwise msgType = "2".
-
-   end.
-   /* Possible button values are: YES-NO,YES-NO-CANCEL,OK,OK-CANCEL,RETRY-CANCEL. */
-   case MsgButtons:
-       when "OK" then 
-           Assign ButtonFocus = "OK"
-                  MsgButtons = "OK". /* get right case */
-       when "OK-Cancel" then
-       do:
-            if ButtonValue then ButtonFocus = "OK".
-            else ButtonFocus = "Cancel".
-            MsgButtons = "OK-Cancel". /* get right case */
-       end.
-       when "YES-NO" then
-       do:
-            if ButtonValue then ButtonFocus = "Yes".
-            else ButtonFocus = "No".
-            MsgButtons = "Yes-No". /* get right case */
-       end.
-       when "YES-NO-CANCEL" then
-       do:
-            if ButtonValue then ButtonFocus = "Yes".
-            else if not ButtonValue then ButtonFocus = "No".
-            else ButtonFocus = "Cancel".
-            MsgButtons = "Yes-No-Cancel". /* get right case */
-       end.
-       when "RETRY-CANCEL" then
-       do:
-            if ButtonValue then ButtonFocus = "Retry".
-            else ButtonFocus = "Cancel".
-            MsgButtons = "Retry-Cancel". /* get right case */
-       end.
-   end case.
-  
+   define variable lmodal as logical no-undo.           
    if getApplicationWait() then
+   do:
+       lmodal = true.
        run enterModal.
-   
-   run sendWaitRequest in getSocketClient()               
-                 (SHOW_MESSAGE_IN_IDE,
-                  "IDE ShowMessageInIDE ":U
-                  + QUOTER(msgText)      + PARAMETER_DELIMITER
-                  + QUOTER(MsgType)    + PARAMETER_DELIMITER
-                  + QUOTER(MsgTitle)   + PARAMETER_DELIMITER
-                  + QUOTER(MsgButtons) + PARAMETER_DELIMITER
-                  + QUOTER(ButtonFocus),
-                  output cResult).
-   iReturn =lookup(cResult,MsgButtons,"-").
-    /* bad return - assume last button  (cancel if possible)*/
-   if not (iReturn > 0) then
-       iReturn = num-entries(MsgButtons).
-   
-   case iReturn:
-        when 1 then return true. 
-        when 2 then return false.
-        when 3 then return ?. 
-   end.     
+   end.    
+   run ShowMessage in target-procedure(msgText,MsgType,MsgTitle,MsgButtons,input-output ButtonValue).    
+    
    finally:
-       if getApplicationWait() then
+       if lModal then
           run exitModal.
    end finally.                   
 end function.
@@ -2504,25 +2524,38 @@ end function.
 &endif       
 
 &IF DEFINED(EXCLUDE-AddTrigger ) = 0 &THEN
+ 
 function AddTrigger return logical
          (phwindow   as handle,
           WidgetName as character,
-          WidgetType as character):
-    define variable iDesignId as int64 no-undo. 
-    iDesignId = getDesignId(phWindow).          
-    if (iDesignId) > 0 then 
-    do:
-        /* ensure constant casing. _attr-ed saves with different case  */
-        if WidgetType <> "SmartObject":U then 
-             WidgetType = caps(WidgetType).
-        run sendRequest in getSocketClient() (
-                          ADD_TRIGGER,
+          WidgetText as character,
+          WidgetType as character,
+          WidgetParent as character ):
+      define variable iDesignId as int64 no-undo. 
+     /* valid check - may be called when the window itself is deleted (save all)  
+       if necessary we may use an id to manage this, but it was only encountered 
+        during a save all that deleted the window due to save outside of project... 
+      @TODO -  Maybe sanitize should be moved to getDesignId or use an id instead of handle 
+         */
+      if valid-handle(phWindow) then
+      do:      
+          iDesignId = getDesignId(phWindow).    
+          if (iDesignId) > 0 then
+          do: 
+               /* ensure constant casing. _attr-ed saves with different case  */
+               if WidgetType <> "SmartObject":U then 
+                   WidgetType = caps(WidgetType).
+               run sendRequest in getSocketClient() (
+                           ADD_TRIGGER,
                           "IDE AddTrigger ":U 
                         + QUOTER(iDesignId) + PARAMETER_DELIMITER
-                        + QUOTER(WidgetName)+ PARAMETER_DELIMITER
-                        + QUOTER(WidgetType) ).       
-    end.                      
-end function.            
+                        + QUOTER(WidgetName) + PARAMETER_DELIMITER
+                        + QUOTER(WidgetText) + PARAMETER_DELIMITER
+                        + QUOTER(WidgetType) + PARAMETER_DELIMITER
+                        + QUOTER(WidgetParent) ).     
+          end.
+      end.
+end function.          
 &endif       
 
 &IF DEFINED(EXCLUDE-RunDesign) = 0 &THEN

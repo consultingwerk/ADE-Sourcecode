@@ -33,6 +33,10 @@
   &ENDIF
 &ENDIF
 
+/** webstart.p */
+FUNCTION getEnv                RETURNS CHARACTER
+  (INPUT p_name                 AS CHARACTER) in web-utilities-hdl.
+
 /*
 ** cgiutils.i
 */
@@ -74,6 +78,8 @@ FUNCTION hidden-field-list      RETURNS CHARACTER
   (INPUT p_name-list            AS CHARACTER) {&FORWARD}.
 FUNCTION html-encode            RETURNS CHARACTER
   (INPUT p_in                   AS CHARACTER) {&FORWARD}.
+FUNCTION multi-session-agent    RETURNS LOGICAL
+  (  )                                        {&FORWARD}.
 FUNCTION output-content-type    RETURNS LOGICAL
   (INPUT p_type                 AS CHARACTER) {&FORWARD}.
 FUNCTION output-http-header     RETURNS CHARACTER

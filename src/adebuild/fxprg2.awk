@@ -63,7 +63,7 @@ BEGIN {startwriting=0; rightsetup=0}
       nodeurl=substr(nodeurl,1,length(nodeurl)-3)
       # HACK -- sometime unixes will leave an extra quote
       gsub(/\"/,"",nodeurl)    
-      ispatchfile=match(nodeurl,"patch\.xml")
+      ispatchfile=match(nodeurl,"patch\\.xml")
       if(ispatchfile>0){
         print patchlevel " " nodeurl
       }

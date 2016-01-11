@@ -298,8 +298,8 @@ PROCEDURE CheckSelect.ip:
         IF {&Table-Mode} THEN
         do:
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Select a table(s).",
-                           "Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Select a table(s).",
+                           "Warning",?).
       
           &else     
           MESSAGE "Select a table(s)." 
@@ -309,8 +309,8 @@ PROCEDURE CheckSelect.ip:
         ELSE
         do:
           &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Select a field(s).",
-                        "Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Select a field(s).",
+                        "Warning",?).
       
           &else  
           MESSAGE "Select a field(s)." 
@@ -849,8 +849,8 @@ PROCEDURE CheckDisplayWidth.ip:
     DO i = 1 TO NUM-ENTRIES ({&CurFieldData}, {&Sep1}):
       IF i > EXTENT (FldNameList) THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("The Browse interface only supports up to 50 fields. ~n Only the first 50 fields where saved.",
-                        "Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("The Browse interface only supports up to 50 fields. ~n Only the first 50 fields where saved.",
+                        "Warning",?).
       
         &else    
         MESSAGE 'The Browse interface only supports up to 50 fields.' SKIP
@@ -900,10 +900,10 @@ PROCEDURE CheckDisplayWidth.ip:
     
       IF (tot-wdth > 310) THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("The display width of the all the select fields exceeds 310. ~n
+          run ShowOkMessage in hOEIDEService("The display width of the all the select fields exceeds 310. ~n
                             The current display width is " + string(tot-wdth) + ".~n 
                             Please remove a field or fields.",
-                            "Warning",?,"OK",yes).
+                            "Warning",?).
       
         &else  
         MESSAGE 
@@ -1127,7 +1127,7 @@ DO WITH FRAME dialog-1:
 
     RUN adeshar/_qset.p ("setUpDown",application,TRUE).
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE(cText,"Error",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService(cText,"Error",?).
       
     &else
     MESSAGE cText VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -1182,7 +1182,7 @@ PROCEDURE DoChangeJoinTarget:
         ** tables to switch (used to get ENTRY n not found) - Ryan 8/94
         */
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Please select only one table at a time.","Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Please select only one table at a time.","Warning",?).
       
         &else
         MESSAGE "Please select only one table at a time." 
@@ -1197,7 +1197,7 @@ PROCEDURE DoChangeJoinTarget:
         ** way to bail out.
         */
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("You cannot switch join partners for external tables.","Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("You cannot switch join partners for external tables.","Warning",?).
       
         &else
         MESSAGE "You cannot switch join partners for external tables." 
@@ -1211,9 +1211,9 @@ PROCEDURE DoChangeJoinTarget:
         ** Last fail/safe: single tables shouldn't be allow to change partners.
         */
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("You cannot switch join partners after de-coupling. "
+          run ShowOkMessage in hOEIDEService("You cannot switch join partners after de-coupling. "
                            + cTemp +  "from another table. ~n Try removing the table and starting over." ,
-                           "Warning",?,"OK",yes).
+                           "Warning",?).
       
         &else
         MESSAGE 
@@ -1286,7 +1286,7 @@ END PROCEDURE. /* changeJoinTarget.ip */
 PROCEDURE Debug.ip:
   DO WITH FRAME dialog-1:
   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-      ShowMessageInIDE("whRight[{&table}]:PRIVATE-DATA. " + whRight[{&table}]:PRIVATE-DATA + "~n"
+      run ShowOkMessage in hOEIDEService("whRight[{&table}]:PRIVATE-DATA. " + whRight[{&table}]:PRIVATE-DATA + "~n"
                        + "whLeft[{&table}]:PRIVATE-DATA"  +  whLeft[{&table}]:PRIVATE-DATA + "~n"
                        + "{&CurLeft}:PRIVATE-DATA"        + {&CurLeft}:PRIVATE-DATA  + "~n"
                        + "{&CurData} CURRENT:"            + {&CurData} + "~n"
@@ -1294,7 +1294,7 @@ PROCEDURE Debug.ip:
                        + "{&CurFieldData} FIELD:"         + {&CurFieldData} + "~n"
                        + "cMoreData[{&Table}]"            + cMoreData[{&Table}] + "~n"
                        + "{&CurTable} CURRENT TABLE:"     + {&CurTable} + "~n",
-                         "Error",?,"OK",yes).
+                         "Error",?).
       
   &else
   message
@@ -1401,8 +1401,8 @@ PROCEDURE TableRemove.ip:
     IF NUM-ENTRIES(ENTRY(iTemp,cFldTemp,{&Sep1})," ":U) = 2 THEN DO:
       IF ENTRY(2,ENTRY(iTemp,cFldTemp,{&Sep1})," ":U) = "<External>":U THEN DO:
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("You cannot remove a reference to an external table.",
-                           "Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("You cannot remove a reference to an external table.",
+                           "Warning",?).
       
        &else    
         MESSAGE "You cannot remove a reference to an external table."

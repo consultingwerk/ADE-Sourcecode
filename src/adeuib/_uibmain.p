@@ -285,11 +285,11 @@ DO ON STOP   UNDO STOP_BLOCK, RETRY STOP_BLOCK
   /* Are we in a retry situation? */
   IF RETRY THEN DO:
       if OEIDEisRunning then 
-      ldummy = ShowMessageInIDE("OK to quit the AppBuilder? ~n~n"  
+          run ShowMessage in hOEIDEService("OK to quit the AppBuilder? ~n~n"  
                               + "WARNING: Unsaved work will be lost, but the open files may be corrupted.~n"
                               + "You should not save the open files on top of their originals.~n" 
                               + "Press ~"OK~" to quit the AppBuilder, or press ~"Cancel~" to continue.",
-                                "Question",?,"OK-CANCEL",ldummy).
+                                "Question",?,"OK-CANCEL",input-output ldummy).
       else        
           MESSAGE
               "OK to quit the AppBuilder?" SKIP (1)
@@ -514,7 +514,6 @@ PROCEDURE apply_leave:
 ------------------------------------------------------------------------------*/
     IDENotInEditor = true.
 END PROCEDURE.
-
   
 PROCEDURE initialize_uib:
   /* Create PROX.PROIDE com object to support ActiveX controls */   
@@ -526,19 +525,19 @@ PROCEDURE initialize_uib:
     IF NOT RETRY THEN
     DO msg_line = 1 TO ERROR-STATUS:NUM-MESSAGES:
       if OEIDEIsRunning then
-        ShowMessageInIDE(ERROR-STATUS:GET-MESSAGE(msg_line),
-                         "Error","{&UIB_SHORT_NAME}","OK",YES). 
+        run ShowOkMessage in hOEIDEService(ERROR-STATUS:GET-MESSAGE(msg_line),
+                         "Error","{&UIB_SHORT_NAME}"). 
       else  
       MESSAGE ERROR-STATUS:GET-MESSAGE(msg_line)
         VIEW-AS ALERT-BOX ERROR TITLE "{&UIB_SHORT_NAME}"  IN WINDOW ACTIVE-WINDOW.
     END.
     if OEIDEIsRunning then 
-    UIB_Continue = ShowMessageInIDE("{&UIB_SHORT_NAME}" + 
+       run ShowMessage in hOEIDEService("{&UIB_SHORT_NAME}" + 
                      "encountered errors and cannot support ActiveX controls. ~n
                      You may encounter further errors if you try to open or run 
                      procedure files ~n containing ActiveX controls. ~n 
                      Do you want to continue and start the " + "{&UIB_SHORT_NAME}" + " anyway? ",
-                     "Warning","{&UIB_SHORT_NAME}","OK",YES). 
+                     "Warning","{&UIB_SHORT_NAME}","YES-NO ",input-output UIB_Continue). 
     else
     MESSAGE "{&UIB_SHORT_NAME}" 
             "encountered errors and cannot support ActiveX controls." SKIP
@@ -901,8 +900,8 @@ PROCEDURE AddXFTR :
     FIND _U WHERE _U._HANDLE EQ _h_win NO-ERROR.
     IF NOT AVAILABLE (_U) THEN DO:
         if OEIDEIsRunning then
-         ShowMessageInIDE("No design window is available.",
-                          "Error",?,"OK",YES).
+         run ShowOkMessage in hOEIDEService("No design window is available.",
+                          "Error",?).
         else              
         MESSAGE "No design window is available." VIEW-AS ALERT-BOX
             ERROR BUTTONS OK.
@@ -966,8 +965,8 @@ PROCEDURE BrowseKBase :
   ELSE
   do:
     if OEIDEIsRunning then
-        ShowMessageInIDE("Please define your web browser in Preferences",
-                        "Error",?,"OK",YES).
+        run ShowOkMessage in hOEIDEService("Please define your web browser in Preferences",
+                        "Error",?).
     else  
     MESSAGE "Please define your web browser in Preferences" VIEW-AS ALERT-BOX ERROR.
   end.
@@ -1902,10 +1901,10 @@ PROCEDURE choose_assign_widgetID :
   IF _h_win = ? THEN RUN report-no-win.
   ELSE DO:
     if OEIDEIsRunning then
-      lContinue = ShowMessageInIDE("Widget IDs will be written to all frames and widgets of this container.
+       run ShowMessage in hOEIDEService("Widget IDs will be written to all frames and widgets of this container.
                                     If widget IDs have already been assigned to frames and widgets they will be overwritten. 
                                     Do you wish to continue?",
-                                    "Question",?,"YES-NO",YES).
+                                    "Question",?,"YES-NO",input-output lContinue).
     else  
     MESSAGE "Widget IDs will be written to all frames and widgets of this container. " +
             "If widget IDs have already been assigned to frames and widgets they will be overwritten. " +
@@ -2041,7 +2040,7 @@ PROCEDURE do_check_syntax :
         iErrOffset = INTEGER(ENTRY(2,ENTRY(1,RETURN-VALUE,CHR(10))," ":U)).
         
         if OEIDE_CanShowMessage() then
-            ShowMessageInIDE(SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1),"error",?,"OK",yes).
+            run ShowOkMessage in hOEIDEService(SUBSTRING(RETURN-VALUE,INDEX(RETURN-VALUE,CHR(10)),-1),"error",?).
     
         else 
             RUN adecomm/_s-alert.p (INPUT-OUTPUT lScrap, "error":U, "ok":U,
@@ -2055,7 +2054,7 @@ PROCEDURE do_check_syntax :
       ELSE
       do: 
         if OEIDE_CanShowMessage() then
-         ShowMessageInIDE("Syntax is correct.","Information",?,"OK",YES).
+         run ShowOkMessage in hOEIDEService("Syntax is correct.","Information",?).
         else  
         MESSAGE "Syntax is correct."
           VIEW-AS ALERT-BOX INFORMATION.
@@ -2199,7 +2198,7 @@ PROCEDURE choose_control_props :
   DEFINE VARIABLE multControls AS  INTEGER NO-UNDO.
   DEFINE VARIABLE s            AS  INTEGER NO-UNDO.
   DEFINE BUFFER   f_u          FOR _U.
-
+ 
   /* Set and display the Property Editor window. */
   RUN show_control_properties (1).
 
@@ -2265,7 +2264,7 @@ PROCEDURE choose_copy :
         IF ivCount = 0 THEN
         do:
            if OEIDEIsRunning then
-              ShowMessageInIDE("There is nothing selected to copy.","Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService("There is nothing selected to copy.","Information",?).
            else 
            MESSAGE "There is nothing selected to copy." VIEW-AS ALERT-BOX
               INFORMATION BUTTONS OK.
@@ -2273,9 +2272,9 @@ PROCEDURE choose_copy :
         ELSE
         do:
           if OEIDEIsRunning then
-              ShowMessageInIDE("There are selected objects with different parents. ~n
+              run ShowOkMessage in hOEIDEService("There are selected objects with different parents. ~n
                                Copy only works on objects with the same parent.",
-                               "Information",?,"OK",YES).
+                               "Information",?).
           else  
           MESSAGE "There are selected objects with different parents." SKIP
               "Copy only works on objects with the same parent."
@@ -2309,11 +2308,11 @@ PROCEDURE choose_cut :
       THEN
       do: 
           if OEIDEIsRunning then
-              ShowMessageInIDE("Objects cannot be cut from alternate layouts. ~n 
+              run ShowOkMessage in hOEIDEService("Objects cannot be cut from alternate layouts. ~n 
                                Return to the Master Layout to cut these objects, 
                                or go to their property sheets to remove them from 
                                this layout.",
-                               "Information",?,"OK",YES).
+                               "Information",?).
           else
           MESSAGE "Objects cannot be cut from alternate layouts." SKIP(1)
                    "Return to the Master Layout to cut these objects,"
@@ -2374,8 +2373,8 @@ PROCEDURE choose_cut :
         IF ivCount = 0 THEN
         do: 
            if OEIDEIsRunning then
-              ShowMessageInIDE("There is nothing selected to cut.",
-                               "Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService("There is nothing selected to cut.",
+                               "Information",?).
            else 
            MESSAGE "There is nothing selected to cut."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -2383,9 +2382,9 @@ PROCEDURE choose_cut :
         ELSE
         do: 
             if OEIDEIsRunning then
-              ShowMessageInIDE("There are selected objects with different parents. ~n
+              run ShowOkMessage in hOEIDEService("There are selected objects with different parents. ~n
                                Cut only works on objects with the same parent.",
-                               "Information",?,"OK",YES).
+                               "Information",?).
            else
            MESSAGE "There are selected objects with different parents." SKIP
                    "Cut only works on objects with the same parent."
@@ -2431,8 +2430,8 @@ PROCEDURE choose_duplicate :
   IF ivCount = 0 THEN
   do:
     if OEIDEIsRunning then
-              ShowMessageInIDE("There is nothing selected to duplicate.",
-                               "Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService("There is nothing selected to duplicate.",
+                               "Information",?).
     else  
     MESSAGE "There is nothing selected to duplicate." VIEW-AS ALERT-BOX
             INFORMATION BUTTONS OK.
@@ -2504,44 +2503,53 @@ PROCEDURE RightClick_viewSource:
 END PROCEDURE.
 
 PROCEDURE choose_viewSource:
-    DEFINE INPUT PARAMETER clickType AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE wType       AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE wName       AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE wSection    AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE wTrigger    AS CHARACTER NO-UNDO.
-    DEFINE BUFFER   buff_U      FOR _U.
-    DEFINE VARIABLE windowName  AS CHARACTER no-undo .
-    IF AVAILABLE _P THEN 
-       ASSIGN FILE-INFO:FILE-NAME = _P._save-as-file.
-        
-    IF clickType = "DoubleClick":U THEN 
-    DO:
-        FIND FIRST _U WHERE _U._HANDLE = _h_cur_widg NO-ERROR.
-        IF AVAILABLE(_U) THEN 
-        DO:
-            ASSIGN wName = _U._Name
-                   wType = _U._TYPE.
-
-            IF VALID-HANDLE(OEIDE_ABSecEd) THEN 
-                 RUN get_default_event IN OEIDE_ABSecEd(wType, OUTPUT wTrigger).
-            /* OPEN_QUERY is not a real trigger */
-            if wTrigger = "OPEN_QUERY" then 
-               wTrigger = "". 
-            IF wTrigger = "" THEN 
-                ASSIGN  wSection = "MAIN BLOCK":U.
-            ELSE   
-                ASSIGN  wSection = "TRIGGER":U.      
-        END.
-    END.      
-    else
-        ASSIGN wType    = ""
-               wName    = ""
-               wSection = ""
-               wTrigger = "". 
-    if valid-handle (hOEIDEService) and IDEIntegrated THEN 
-         viewSource(_h_win,wName,wType,wSection,wTrigger). 
+    define input parameter pclickType as character no-undo.
+    define variable cType       as character no-undo.
+    define variable cName       as character no-undo.
+    define variable cSection    as character no-undo.
+    define variable cEvent      as character no-undo.
+    define variable cParent     as character no-undo. 
+    define variable cLabel      as character no-undo.
    
-END PROCEDURE.
+    define buffer buff_U for _U.
+        
+    if pclickType = "DoubleClick":U then 
+    do:
+        find buff_U where  buff_U._HANDLE = _h_cur_widg no-error.
+        if available(buff_U) then 
+        do:
+            assign cName = findWidgetName(recid(buff_u))
+                   cType = buff_U._TYPE
+                   cLabel = buff_U._LABEL
+                   cParent = findWidgetName(buff_u._parent-recid)
+                   .
+            if valid-handle(OEIDE_ABSecEd) then 
+                 run get_default_event in OEIDE_ABSecEd(cType, output cEvent).
+            /* OPEN_QUERY is not a real trigger 
+            - freeform query and display editing is supported by PDS OETextEditor directly - not as a trigger 
+              (it is now (11.35) possible to fix this to position to the freeform query though 
+               since the freform query support  does position and also opens a dialog
+               we could just position or open the dialog  ) */
+            if cEvent = "OPEN_QUERY" then 
+               cEvent = "". 
+            
+            if cEvent = "" then 
+                assign  cSection = "MAIN BLOCK":U.
+            else   
+                assign  cSection = "TRIGGER":U.      
+        end.
+    end. 
+       
+    if valid-handle (hOEIDEService) then
+    do: 
+        if cSection = "TRIGGER":U then
+            viewSourceTrigger(_h_win,cEvent,cName,cType,cLabel,cParent). 
+         else 
+            viewSourceSection(_h_win,cSection). 
+    end.
+   
+
+end procedure.
  
 PROCEDURE choose_erase :
 /*------------------------------------------------------------------------------
@@ -2582,8 +2590,8 @@ PROCEDURE choose_erase :
     ELSE
     do:
       if OEIDEIsRunning then
-              ShowMessageInIDE("There is nothing selected for deletion.",
-                               "Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService("There is nothing selected for deletion.",
+                               "Information",?).
       else  
       MESSAGE "There is nothing selected for deletion."
           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -3115,9 +3123,9 @@ PROCEDURE choose_file_save_all :
     IF x_P._SAVE-AS-FILE = ? THEN
     do:
       if OEIDEIsRunning then
-              ShowMessageInIDE(IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME + "~n" 
+              run ShowOkMessage in hOEIDEService(IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME + "~n" 
                                + "This window has not been previously saved.",
-                               "Information",?,"OK",YES).
+                               "Information",?).
       else  
       MESSAGE IF x_U._SUBTYPE EQ "Design-Window" THEN x_U._LABEL ELSE x_U._NAME SKIP
         "This window has not been previously saved."
@@ -3239,8 +3247,8 @@ PROCEDURE choose_file_save_as_static :
      cObjectType = 'StaticDataView':u.
  ELSE DO:
    if OEIDEIsRunning then
-     ShowMessageInIDE("Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static.",
-                       "Information",?,"OK",YES).
+     run ShowOkMessage in hOEIDEService("Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static.",
+                       "Information",?).
    else  
    MESSAGE "Only Dynamic Viewers, Dynamic SDOs and Dynamic DataViews are supported for saving as static." view-as alert-box.
    RETURN.
@@ -3335,7 +3343,7 @@ END.
    IF RETURN-VALUE BEGINS "_ABORT":U THEN
    DO:
      if OEIDEIsRunning then
-     ShowMessageInIDE(RETURN-VALUE,"Information",?,"OK",YES).
+     run ShowOkMessage in hOEIDEService(RETURN-VALUE,"Information",?).
      else  
   
      MESSAGE RETURN-VALUE
@@ -3354,9 +3362,9 @@ END.
  END. /* End if SEARCH(_P._Design_template_file) */
  ELSE DO:
     if OEIDEIsRunning then
-     ShowMessageInIDE("Could not save object as static. ~n 
+     run ShowOkMessage in hOEIDEService("Could not save object as static. ~n 
                       Template file " +  _P.design_template_file + "was not found",
-                      "Information",?,"OK",YES).
+                      "Information",?).
     else 
     MESSAGE "Could not save object as static." SKIP(1)
             "Template file " +  _P.design_template_file + "was not found"
@@ -3627,8 +3635,8 @@ PROCEDURE choose_import_fields :
     IF AVAILABLE _U THEN _h_frame = _U._HANDLE.
     ELSE DO:
       if OEIDEIsRunning then
-        ShowMessageInIDE("Please select a frame in which to insert database fields.",
-                      "Information",?,"OK",YES).
+        run ShowOkMessage in hOEIDEService("Please select a frame in which to insert database fields.",
+                      "Information",?).
       else  
       MESSAGE "Please select a frame in which to insert database fields."
              VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -3702,12 +3710,27 @@ PROCEDURE choose_insert_trigger :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+  define buffer b_u for _u.
+  define variable cName       as character no-undo.
+  define variable cParentName as character no-undo.
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
-/*  IF NOT mi_insert_trigger:SENSITIVE THEN RETURN NO-APPLY.*/
+  
+  /*  IF NOT mi_insert_trigger:SENSITIVE THEN RETURN NO-APPLY.*/
   
   if IdeIntegrated then
-      AddTrigger(_h_win,cur_widg_name,cur-widget-type).
-/*      runDialog(_h_win,"insertTrigger":U).*/
+  do: 
+      find b_u where b_u._handle = _h_cur_widg no-error.
+      if avail b_u then 
+      do:
+          AddTrigger(_h_win,
+                      findWidgetName(recid(b_U)),
+                      b_U._LABEL,
+                      b_U._TYPE,
+                      findWidgetName(b_U._PARENT-RECID)). 
+      end.
+      else
+          run message_no_selected.
+  end.
   else
       run do_insert_trigger.   
    
@@ -3793,8 +3816,8 @@ PROCEDURE choose_mru_file :
         IF INDEX(RETURN-VALUE,"File not found":U) NE 0 THEN
         do:
           if OEIDEIsRunning then
-            ShowMessageInIDE(ws-get-relative-path (INPUT _mru_files._file) + " not found in WebSpeed agent PROPATH.",
-                      "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService(ws-get-relative-path (INPUT _mru_files._file) + " not found in WebSpeed agent PROPATH.",
+                      "Information",?).
           else  
           MESSAGE ws-get-relative-path (INPUT _mru_files._file) "not found in WebSpeed agent PROPATH."
             VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -3827,8 +3850,8 @@ PROCEDURE choose_mru_file :
 
       IF lFileError THEN DO:
         if OEIDEIsRunning then
-            ShowMessageInIDE(_mru_files._file + "cannot be found.",
-                      "Error",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService(_mru_files._file + "cannot be found.",
+                      "Error",?).
         else   
         MESSAGE _mru_files._file "cannot be found." VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         DELETE _mru_files.
@@ -4403,8 +4426,8 @@ PROCEDURE choose_paste :
   ASSIGN temp_file = CLIPBOARD:VALUE NO-ERROR.  /* Using temp_file */
   IF temp_file = "" OR temp_file = ? THEN
     if OEIDEIsRunning then
-            ShowMessageInIDE("The clipboard is empty, there are no objects to paste.",
-                             "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("The clipboard is empty, there are no objects to paste.",
+                             "Information",?).
     else   
     MESSAGE "The clipboard is empty, there are no objects to paste."
         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -4452,8 +4475,8 @@ PROCEDURE choose_paste :
       ELSE
       do:
          if OEIDEIsRunning then
-            ShowMessageInIDE("The contents of the clipboard cannot be pasted into the design window.",
-                             "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("The contents of the clipboard cannot be pasted into the design window.",
+                             "Information",?).
          else  
          MESSAGE "The contents of the clipboard cannot be pasted into the design window."
               VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -4535,9 +4558,9 @@ END PROCEDURE.
 
 procedure message_no_selected  :
       if OEIDEIsRunning then
-            ShowMessageInIDE("No object is currently selected. ~n
+            run ShowOkMessage in hOEIDEService("No object is currently selected. ~n
                              Please select an object and try again.",
-                             "Information",?,"OK",YES).
+                             "Information",?).
       else
       MESSAGE "No object is currently selected." {&SKP}
               "Please select an object with the pointer and try again."
@@ -4550,7 +4573,7 @@ procedure message_is_not_type  :
      define variable cMsg as character no-undo.
      cmsg = "The currently selected object is not a " + quoter(pcType) + ".".
      if OEIDE_CanShowMessage() then
-         ShowMessageInIDE(cMsg,"Information",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService(cMsg,"Information",?).
      else
         message cMsg 
             view-as alert-box information buttons ok.
@@ -4875,8 +4898,8 @@ PROCEDURE choose_uib_browser :
 
    IF NOT CAN-FIND(FIRST _U) THEN DO:
      if OEIDEIsRunning then
-            ShowMessageInIDE("There are no objects to list.",
-                             "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("There are no objects to list.",
+                             "Information",?).
      else  
      MESSAGE "There are no objects to list." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
      RETURN.
@@ -4929,8 +4952,8 @@ PROCEDURE choose_undo :
   /* This is necessary as the CTRL-Z will fire this even if there is nothing to undo */
   IF NUM-ENTRIES(_undo-menu-item:LABEL," ":U) < 2 THEN DO:
     if OEIDEIsRunning then
-       ShowMessageInIDE("There is nothing to undo.",
-                        "Information",?,"OK",YES).
+       run ShowOkMessage in hOEIDEService("There is nothing to undo.",
+                        "Information",?).
     else  
     MESSAGE "There is nothing to undo." VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     RETURN.
@@ -5811,9 +5834,9 @@ PROCEDURE do_export_file :
     END.
     ELSE DO: /* Invalid Selection */
       if OEIDEIsRunning then
-       ShowMessageInIDE("There are selected objects with different parents. ~n
+       run ShowOkMessage in hOEIDEService("There are selected objects with different parents. ~n
                         Copy to File only works on objects with the same parent.",
-                        "Information",?,"OK",YES).
+                        "Information",?).
       else    
       MESSAGE "There are selected objects with different parents." SKIP
               "Copy to File only works on objects with the same parent."
@@ -5853,8 +5876,8 @@ PROCEDURE do_goto_page :
       END.
       ELSE DO:
         if OEIDE_CanShowMessage() then
-            ShowMessageInIDE("Changing pages is not supported except in the {&Master-Layout}.",
-                        "Information",?,"OK",YES).
+            run ShowOkMessage in hOEIDEService("Changing pages is not supported except in the {&Master-Layout}.",
+                        "Information",?).
         else  
         MESSAGE "Changing pages is not supported except in the {&Master-Layout}."
                 VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -6046,8 +6069,8 @@ PROCEDURE do_tab_edit :
       IF NOT AVAILABLE _U THEN
       do:
         if OEIDEIsRunning then
-          ShowMessageInIDE("Please click on the frame you want to edit.",
-                        "Information",?,"OK",YES).
+          run ShowOkMessage in hOEIDEService("Please click on the frame you want to edit.",
+                        "Information",?).
         else  
         MESSAGE "Please click on the frame you want to edit."
           VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -6093,9 +6116,9 @@ PROCEDURE double-click :
     ELSE
     do:
       if OEIDEIsRunning then
-          ShowMessageInIDE("You may not change OCX properties in an alternate layout. ~n 
+          run ShowOkMessage in hOEIDEService("You may not change OCX properties in an alternate layout. ~n 
                            You may change the size, position and color of the Control Frame.",
-                            "Information",?,"OK",YES).
+                            "Information",?).
       else  
       MESSAGE "You may not change OCX properties in an alternate layout." SKIP
               "You may change the size, position and color of the Control Frame."
@@ -6109,8 +6132,8 @@ PROCEDURE double-click :
       IF AVAILABLE _P AND NOT _P.static_object THEN DO:
         /* A dynamic object, don't open the section editor */
         if OEIDEIsRunning then
-          ShowMessageInIDE("The Text Editor is not used for dynamic objects.",
-                            "Information",?,"OK",YES).
+          run ShowOkMessage in hOEIDEService("The Text Editor is not used for dynamic objects.",
+                            "Information",?).
         else
         MESSAGE "The Section Editor is not used for dynamic objects."
           VIEW-AS ALERT-BOX INFO BUTTONS OK.
@@ -6254,8 +6277,8 @@ PROCEDURE drawobj :
              we need to let the user know and return */
           IF NOT lRowObj AND NOT lValid THEN DO:
            if OEIDEIsRunning then
-              ShowMessageInIDE(cName + "is not a Data Source field. A SmartDataField must be dropped onto a Data Source field.",
-                               "Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService(cName + "is not a Data Source field. A SmartDataField must be dropped onto a Data Source field.",
+                               "Information",?).
             else  
             MESSAGE cName "is not a Data Source field. A SmartDataField must be dropped onto a Data Source field.".
             BELL.
@@ -6265,8 +6288,8 @@ PROCEDURE drawobj :
              know and return */
           ELSE IF NOT lValid THEN DO:
             if OEIDEIsRunning then
-              ShowMessageInIDE("A SmartDataField must be dropped onto a Data Source field.",
-                               "Information",?,"OK",YES).
+              run ShowOkMessage in hOEIDEService("A SmartDataField must be dropped onto a Data Source field.",
+                               "Information",?).
             else  
             MESSAGE "A SmartDataField must be dropped onto a Data Source field.".
             BELL.
@@ -6289,8 +6312,8 @@ PROCEDURE drawobj :
     /* Special case of TTY mode */
     IF (NOT _cur_win_type) AND CAN-DO("IMAGE,{&WT-CONTROL}",_next_draw) THEN DO:
       if OEIDEIsRunning then
-         ShowMessageInIDE("Character mode windows cannot contain " + _next_draw + " objects.",
-                               "Information",?,"OK",YES).
+         run ShowOkMessage in hOEIDEService("Character mode windows cannot contain " + _next_draw + " objects.",
+                               "Information").
       else  
       MESSAGE "Character mode windows cannot contain" _next_draw "objects."
           VIEW-AS ALERT-BOX WARNING BUTTONS OK.
@@ -6550,6 +6573,15 @@ end.
 /* call back from _drawobj  */
 procedure post_drawobj: 
     define input  parameter plDrawn as logical no-undo.
+    run objects_drawn(plDrawn).
+    if OEIDEIsRunning and avail _U then
+        run CallWidgetEvent (input recid(_U),"Add").
+end procedure.
+
+/* split from post_drawobj to be called directly from ide_select_and_draw_fields
+   which does its own calls to ide to handle multiple adds */
+procedure objects_drawn: 
+    define input  parameter plDrawn as logical no-undo.
     
     define variable hCurrent as handle no-undo. 
     
@@ -6598,9 +6630,6 @@ procedure post_drawobj:
         END.
     END.  /* if not db-fields */
     
-    if OEIDEIsRunning and avail _U then
-        run CallWidgetEvent (input recid(_U),"Add").
-  
 end procedure.
  
 /** select tables step of field selection 
@@ -6624,8 +6653,8 @@ procedure ide_select_tables_and_draw_fields:
        if lok then
        do:
            if OEIDEIsRunning then
-             ShowMessageInIDE("There are no database tables selected.",
-                               "Information",?,"OK",YES).
+             run ShowOkMessage in hOEIDEService("There are no database tables selected.",
+                               "Information",?).
            else
            MESSAGE "There are no database tables selected."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -6734,8 +6763,8 @@ procedure ide_select_and_draw_fields:
        IF NOT VALID-HANDLE(hDataSource) THEN
        DO:
            if OEIDEIsRunning then
-             ShowMessageInIDE("Unable to start data object " + _P._DATA-OBJECT + ".",
-                               "Information",?,"OK",yes).
+             run ShowOkMessage in hOEIDEService("Unable to start data object " + _P._DATA-OBJECT + ".",
+                               "Information",?).
            else
            MESSAGE "Unable to start data object " _P._DATA-OBJECT "."
                    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
@@ -6766,8 +6795,12 @@ procedure ide_select_and_draw_fields:
     
     end.
     RUN adecomm/_setcurs.p ("":U).
-    run post_drawobj(pcFields > ""). 
-    /* this is duplication of the code after run _drawobj.p */
+    
+    run send_new_fields_to_ide (_h_frame,pcfields).
+    
+    run objects_drawn(pcFields > ""). 
+    
+    /* this is duplication of the code after run _drawobj.p in drawbj */
     /* Show the current widget and reset the pointer. */
     IF goback2pntr THEN 
         RUN choose-pointer.
@@ -6782,6 +6815,75 @@ procedure ide_select_and_draw_fields:
     end finally.
 END.
 
+procedure send_new_fields_to_ide:
+    define input  parameter pFrameHandle as handle no-undo.
+    define input  parameter pcFields    as character no-undo.
+    
+    define variable widgetName as character no-undo.
+    define variable cdbname      as character no-undo.
+    define variable cBufferName  as character no-undo.
+    define variable cName        as character no-undo.
+    define variable widgetRecid  as recid no-undo.
+    define buffer frame_u for _u.
+    define buffer b_u for _u.
+
+    find frame_u where frame_u._HANDLE = pFrameHandle no-error.
+    
+    if avail frame_u then
+    do i = 1 to num-entries(pcfields):
+        assign 
+            widgetName = entry(i,pcfields)
+            cBufferName = ""
+            cDbname   = ""
+            cName = ""
+            widgetRecid = ?.
+        if num-entries(widgetName,".") = 3 then
+        do:
+            assign
+                cDbname     = entry(1,widgetName,".")  
+                cBuffername = entry(2,widgetName,".")  
+                cName       = entry(3,widgetName,".").
+            
+        end.    
+        else if num-entries(widgetName,".") = 2 then
+        do:
+            assign
+                cBuffername = entry(1,widgetName,".")  
+                cName       = entry(2,widgetName,".").
+        end.
+         
+        /* if qualified field search with parent and dbname and/or buffer or table */  
+        if cBuffername > "" then 
+        do:
+            for each b_U where b_U._WINDOW-HANDLE = _h_win 
+                           and b_U._PARENT-RECID = recid(frame_u)
+                           and b_U._NAME = trim(cName)
+                           /* search _buffer before _table */   
+                           by (if b_u._buffer <> ? then 1 else 2):
+                /* skip if field is db qualifed and different db */ 
+                if cDbName > "" and b_u._dbname <> cDbName then 
+                   next. 
+                if b_u._buffer = cBufferName or b_u._table = cBufferName then 
+                do:
+                   widgetRecid = recid(b_u).
+                end.    
+            end.   
+        end.
+        else do:
+            find b_u where b_U._WINDOW-HANDLE = _h_win 
+                       and b_U._PARENT-RECID = recid(frame_u)
+                       and b_U._NAME = widgetName 
+                       no-error.
+            
+            widgetRecid = recid(b_u).
+        
+        end.        
+        if widgetRecid <> ? then 
+            run CallWidgetEvent (widgetRecid,"Add").
+    
+    end.
+end.
+ 
 /**
   currently called from draw_obj which does FIND  _P 
 */     
@@ -6971,8 +7073,8 @@ procedure enable_widgets.
     IF ERROR-STATUS:ERROR AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
     DO c = 1 TO ERROR-STATUS:NUM-MESSAGES:  
       if OEIDEIsRunning then
-         ShowMessageInIDE(ERROR-STATUS:GET-MESSAGE(c),
-                          "Error",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService(ERROR-STATUS:GET-MESSAGE(c),
+                          "Error",?).
       else  
       MESSAGE ERROR-STATUS:GET-MESSAGE(c) VIEW-AS ALERT-BOX ERROR.
     END.
@@ -8160,8 +8262,8 @@ PROCEDURE morph_layout.
   IF NOT AVAILABLE _U THEN DO:
     BELL.
     if OEIDEIsRunning then
-         ShowMessageInIDE("To change to a different layout a window must be present.",
-                          "Information",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService("To change to a different layout a window must be present.",
+                          "Information",?).
     else
     MESSAGE "To change to a different layout a window must be present."
             VIEW-AS ALERT-BOX.
@@ -8786,9 +8888,9 @@ END PROCEDURE. /* property_sheet */
 PROCEDURE report-no-win.
   BELL.
   if OEIDEIsRunning then
-      ShowMessageInIDE("No window is selected. ~n 
+      run ShowOkMessage in hOEIDEService("No window is selected. ~n 
                        Please choose an existing window, ~n or new one. ",
-                       "Error",?,"OK",yes).
+                       "Error",?).
   else
   MESSAGE  "No window is selected." {&SKP}
            "Please choose an existing window," {&SKP}
@@ -9020,8 +9122,8 @@ PROCEDURE save_window:
       ELSE 
       do:
         if OEIDEIsRunning then
-         ShowMessageInIDE("Container not saved to the repository.  Its property sheet is not open.":U,
-                          "Error",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService("Container not saved to the repository.  Its property sheet is not open.":U,
+                          "Error",?).
         else  
         MESSAGE "Container not saved to the repository.  Its property sheet is not open.":U  VIEW-AS ALERT-BOX.
       end.  
@@ -9133,9 +9235,9 @@ PROCEDURE save_window:
           ELSE
           do:
              if OEIDEIsRunning then
-                ShowMessageInIDE("Object was not saved to the repository. ~n" +
+                run ShowOkMessage in hOEIDEService("Object was not saved to the repository. ~n" +
                                  cError,
-                                 "Warning",?,"OK",yes).
+                                 "Warning",?).
              else 
              MESSAGE "Object was not saved to the repository." SKIP(1)
                 cError
@@ -9415,11 +9517,11 @@ procedure save_file  private:
         IF _P._VBX-FILE <> ?
         THEN DO:
           if OEIDEIsRunning then
-             lOk = ShowMessageInIDE("Do you want to continue to save the ~n
+             run ShowMessage in hOEIDEService("Do you want to continue to save the ~n
                                  {&WT-CONTROL} binary file in" + _P._VBX-FILE + "? ~n
                                  Choose YES to to continue; Choose NO to ~n 
                                  reset to the default location. ~n",
-                                 "Question","Save {&WT-CONTROL} Binary File?","YES-NO",YES).
+                                 "Question","Save {&WT-CONTROL} Binary File?","YES-NO",input-output lok).
           else
           MESSAGE "Do you want to continue to save the" SKIP
                   "{&WT-CONTROL} binary file in" _P._VBX-FILE + "?" SKIP
@@ -9503,12 +9605,12 @@ procedure save_file  private:
 
     IF AVAILABLE d_P THEN DO:
       if OEIDEIsRunning then
-           ShowMessageInIDE("Another window uses ~n" +
+           run ShowOkMessage in hOEIDEService("Another window uses ~n" +
                                  (IF cFileWeb NE ? THEN ws-get-relative-path (INPUT cFileWeb) ELSE _save_file)
                                 + "to save into. ~n
                                 Either close that window or choose another filename ~n 
                                 for this window. The 'Save As...' operation has been cancelled.",
-                                 "Warning",?,"OK",YES).
+                                 "Warning",?).
       else  
       MESSAGE
         "Another window uses" 
@@ -9535,11 +9637,11 @@ procedure save_file  private:
          ON ENDKEY UNDO, LEAVE
          ON ERROR  UNDO, LEAVE:
         if OEIDEIsRunning then
-           ShowMessageInIDE(_save_file + 
+           run ShowOkMessage in hOEIDEService(_save_file + 
                             "Cannot save to this file. ~n
                             File is read-only or the path specified ~n
                             is invalid. Use a different filename.",
-                            "Warning",?,"OK",YES).
+                            "Warning",?).
         else     
         MESSAGE _save_file SKIP
           "Cannot save to this file."  SKIP(1)
@@ -9907,9 +10009,9 @@ PROCEDURE save_window_static :
                              OUTPUT cError).
          ELSE
          if OEIDEIsRunning then
-           ShowMessageInIDE("Object not saved to repository. ~n" 
+           run ShowOkMessage in hOEIDEService("Object not saved to repository. ~n" 
                             + pError,
-                            "Warning",?,"OK",yes).
+                            "Warning",?).
           else
           MESSAGE "Object not saved to repository." SKIP(1)
                   pError
@@ -9983,7 +10085,7 @@ PROCEDURE save_window_static :
       IF cCalcError > "" THEN
       DO:
         if OEIDEIsRunning then
-           ShowMessageInIDE(cCalcError,"Warning",?,"OK",yes).
+           run ShowOkMessage in hOEIDEService(cCalcError,"Warning",?).
         else  
         MESSAGE cCalcError VIEW-AS ALERT-BOX.
         DELETE _RYObject.
@@ -10003,13 +10105,13 @@ PROCEDURE save_window_static :
                     + cObjectFileName ) = ? THEN 
       DO:
          if OEIDEIsRunning then
-           ShowMessageInIDE(cObjectFileName +  " is not located in the ' " 
+           run ShowOkMessage in hOEIDEService(cObjectFileName +  " is not located in the ' " 
                            + (IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
                               THEN cCalcRelativePath
                               ELSE "default")
                            + "' directory." + CHR(10) + 
                            "The file must be located in the same directory as the product module's relative path. ":U,
-                           "Warning",?,"OK",yes).
+                           "Warning",?).
          else 
          MESSAGE cObjectFileName +  " is not located in the '" 
                         + (IF cCalcRelativePath > "" AND cCalcRelativePath <> "."
@@ -10150,8 +10252,8 @@ PROCEDURE save_window_static :
         ELSE
         do: 
           if OEIDEIsRunning then
-           ShowMessageInIDE("Object not saved to repository. ~n" 
-                            + pError,"Warning",?,"OK",yes).
+           run ShowOkMessage in hOEIDEService("Object not saved to repository. ~n" 
+                            + pError,"Warning",?).
           else    
           MESSAGE "Object not saved to repository." SKIP(1)
                   pError
@@ -10653,7 +10755,7 @@ PROCEDURE setstatus:
     RUN adecomm/_statdsp.p (_h_status_line, {&STAT-Main}, pcStatus).
 
 END PROCEDURE. /* setstatus */
-
+ 
 /* setxy saves the current value of X and Y within a frame when          */
 /*       the user clicks down (i.e. she is starting to draw a widget.)   */
 PROCEDURE setxy:
@@ -10713,7 +10815,7 @@ DEFINE VARIABLE hdlColl      AS COM-HANDLE  NO-UNDO.
 
 DEFINE BUFFER   x_U FOR _U.
 DEFINE BUFFER   y_U FOR _U.
-
+ 
   IF NOT VALID-HANDLE(_h_Controls) THEN RETURN.
 
   IF (p_Mode = 2 OR p_Mode = 3) THEN
@@ -10780,7 +10882,7 @@ DEFINE BUFFER   y_U FOR _U.
     /* Show Property Editor window if mode calls for it. */
     IF p_mode = 1 THEN _h_Controls:PropertyEditorVisible = Yes.
   END.    
-
+ 
 END PROCEDURE.
 
 /* switch_palette_menu: Toggles menu-only mode in the object palette */
@@ -11078,9 +11180,9 @@ END. /* PROCEDURE tapit */
 PROCEDURE text_message.
   /* Text widgets are not changeable in an alternative layout */
   if OEIDEIsRunning then
-     ShowMessageInIDE("Text objects may only be modified in the Master Layout. ~n
+     run ShowOkMessage in hOEIDEService("Text objects may only be modified in the Master Layout. ~n
                       Use a fill-in with the VIEW-AS-TEXT attribute instead." 
-                      ,"Warning",?,"OK",yes).
+                      ,"Warning",?).
   else
   MESSAGE "Text objects may only be modified in the Master Layout." SKIP
           "Use a fill-in with the VIEW-AS-TEXT attribute instead."
@@ -11371,9 +11473,9 @@ procedure tool_choose_with_projects:
             IF _U._LAYOUT-NAME NE "Master Layout" THEN 
             DO:
                 if OEIDEIsRunning then
-                    ShowMessageInIDE("Text objects may only be drawn in the Master Layout. ~n
+                    run ShowOkMessage in hOEIDEService("Text objects may only be drawn in the Master Layout. ~n
                                      Use a fill-in with the VIEW-AS-TEXT attribute instead.",
-                                     "Warning",?,"OK",yes).
+                                     "Warning",?).
                 else
                 MESSAGE "Text objects may only be drawn in the Master Layout." SKIP
                 "Use a fill-in with the VIEW-AS-TEXT attribute instead."
@@ -11625,11 +11727,11 @@ procedure tool_lock:
      THEN
      do: 
          if OEIDEIsRunning then
-             ShowMessageInIDE("You have already chosen the POINTER tool.  This tool ~n
+             run ShowOkMessage in hOEIDEService("You have already chosen the POINTER tool.  This tool ~n
                              allows you to select and move objects that you have ~n
                              already created. Double-clicking on an object will ~n
                              bring up the Attribute Editor for that object.",
-                             "Information","Pointer Tool","OK",yes).
+                             "Information","Pointer Tool").
          else
          MESSAGE "You have already chosen the POINTER tool.  This tool" {&SKP}
                   "allows you to select and move objects that you have" {&SKP}
@@ -11643,13 +11745,13 @@ procedure tool_lock:
                           ELSE IF _next_draw = "TOGGLE" THEN "TOGGLE BOX"
                           ELSE _next_draw.
        if OEIDEIsRunning then
-             ShowMessageInIDE("You have already chosen the " + thing + "tool. ~n
+             run ShowOkMessage in hOEIDEService("You have already chosen the " + thing + "tool. ~n
                               There are two ways to create a new " + thing + " object - ~n
                                1) Click & Drag to define a position and size; OR ~n
                                2) Click in a " + draw_in_a + " to create a default " + thing  + "~n~n" +
                               "NOTE: Clicking with MOUSE-EXTEND will ~"lock~" your ~n 
                               choice of drawing tool.",
-                              "Information",?,"OK",yes).
+                              "Information",?).
        else                   
        MESSAGE "You have already chosen the" thing "tool." {&SKP}
                "There are two ways to create a new" thing "object -" SKIP
@@ -11811,12 +11913,12 @@ procedure wind-close.
                         ELSE _U._NAME.
         
       if OEIDEIsRunning then
-          save_opt = ShowMessageInIDE((IF _P._SAVE-AS-FILE <> ? 
+          run ShowMessage in hOEIDEService((IF _P._SAVE-AS-FILE <> ? 
                               THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
                               ELSE tmp-name ) +
                               "This window has changes which have not been saved. ~n
                               Save changes before closing?",
-                              "Warning",?,"YES-NO-CANCEL",yes).
+                              "Warning",?,"YES-NO-CANCEL",input-output save_opt).
       else
       MESSAGE (IF _P._SAVE-AS-FILE <> ? 
               THEN tmp-name + " (" + _P._SAVE-AS-FILE  + ") " 
@@ -11967,9 +12069,9 @@ procedure wind-select-up.
       THEN action-string = "select".
       ELSE action-string = "create".
       if OEIDEIsRunning then
-         ShowMessageInIDE("An " + _next_draw + " object cannot be drawn outside a frame.~n
+         run ShowOkMessage in hOEIDEService("An " + _next_draw + " object cannot be drawn outside a frame.~n
                           Please " + action-string + " a frame.",
-                          "Information",?,"OK",yes).
+                          "Information",?).
       else
       MESSAGE "An" _next_draw "object cannot be drawn outside a frame." SKIP
               "Please" action-string  "a frame."
@@ -12056,8 +12158,8 @@ PROCEDURE wind-event:
     OTHERWISE
     do:
        if OEIDEIsRunning then
-         ShowMessageInIDE("Unexpected Window Event called:" + p_case,
-                          "Information",?,"OK",yes).
+         run ShowOkMessage in hOEIDEService("Unexpected Window Event called:" + p_case,
+                          "Information",?).
       else  
        MESSAGE "Unexpected Window Event called:" p_case.
     end.
@@ -12828,8 +12930,12 @@ end procedure.
 
 procedure SelectWidgetinUI:
     define buffer b_u for _u.
-     
-    define input parameter widgetName as character.
+    define buffer b_uparent for _u. 
+    
+    define input parameter widgetName as character no-undo.
+    /* only used for db fields */
+    define input parameter parentName as character no-undo.
+    
     define variable cdbname      as character no-undo.
     define variable cBufferName  as character no-undo.
     define variable cName        as character no-undo.
@@ -12849,7 +12955,7 @@ procedure SelectWidgetinUI:
             cName       = entry(2,widgetName,".").
     end. 
      
-    /* if qualified field search with dbname and/or buffer or table */  
+    /* if qualified field search with parent and dbname and/or buffer or table */  
     if cBuffername > "" then 
     do:
        for each b_U where b_U._WINDOW-HANDLE = _h_win and b_U._NAME = trim(cName)
@@ -12860,6 +12966,12 @@ procedure SelectWidgetinUI:
                next. 
            if b_u._buffer = cBufferName or b_u._table = cBufferName then 
            do:
+              find  b_uparent WHERE RECID(b_uparent) = b_U._PARENT-RECID no-error.
+              if avail b_uparent then
+              do:
+                  if findWidgetName(recid(b_uparent)) <> parentName then
+                     next. 
+              end.     
               find _U where recid(_U) = recid(b_u).
               leave. 
            end.   
@@ -12976,7 +13088,7 @@ procedure isTTY:
        childhandle = _h_win.
      
     find loc_U where loc_u._HANDLE = childhandle no-lock no-error.
-    
+
     if available loc_u then
        assign pistty  =  loc_U._WIN-TYPE = false.
          

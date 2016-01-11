@@ -159,6 +159,6 @@ else do:
             view-as alert-box error.
    end.
    else do:
-      ShowMessageInIDE(cmsg,"error",?,"ok",yes).
+      run ShowOkMessage in hOEIDEService(cmsg,"error",?).
    end.    
 end.

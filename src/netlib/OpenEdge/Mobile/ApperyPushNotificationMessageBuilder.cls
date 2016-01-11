@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014,2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ApperyPushNotificationMessageBuilder
@@ -41,18 +41,20 @@ Copyright (c)  2014,2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Mobile.ApplicationPlatformEnum.
 using OpenEdge.Mobile.PushNotificationFilterOperandEnum.
-using OpenEdge.Mobile.ApperyPushNotificationMessageBuilder.
 using OpenEdge.Mobile.PushNotificationMessageBuilder.
 using Progress.Json.ObjectModel.JsonArray.
+using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Json.ObjectModel.JsonDataType.
-using Progress.Json.ObjectModel.JsonConstruct.
 
 class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotificationMessageBuilder:
+    /* platform names per Appery */
+    define private variable mcPlatform as character extent 4 no-undo
+        init [?, ?, 'A':u,'I':u].
+        
     define override public property Payload as JsonObject no-undo
         get(): 
             if not valid-object(this-object:Payload) then
@@ -116,9 +118,9 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'device.id.':U      :
             
-            assign oFilterOperand = PushNotificationFilterOperandEnum:FromString(entry(3, ConfigOption.ConfigName, '.':U)) 
+            assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(3, ConfigOption.ConfigName, '.':U))
                    no-error.
-
+                   
             assign oChild = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax   = cast(oChild, JsonArray):Length.
             do iLoop = 1 to iMax:
@@ -132,7 +134,9 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'channels.':U       :
             
-            assign oFilterOperand = PushNotificationFilterOperandEnum:FromString(entry(2, ConfigOption.ConfigName, '.':U)) no-error.
+            assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(2, ConfigOption.ConfigName, '.':U))
+                   no-error.
+
             AddArrayFilter('channels':u,
                            cast(ConfigOption.ObjectValue, JsonArray),
                            oFilterOperand).
@@ -142,12 +146,18 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'platform.':U       :
             
-            assign oFilterOperand = PushNotificationFilterOperandEnum:FromString(entry(2, ConfigOption.ConfigName, '.':U)) no-error.
+            /* this method needs to wait until the enum changes are checked in */
+            assign oFilterOperand = PushNotificationFilterOperandEnum:GetEnum(entry(2, ConfigOption.ConfigName, '.':U))
+                   no-error.
+
             assign oChild = cast(ConfigOption.ObjectValue, JsonArray)
                    iMax   = oChild:Length.
             do iLoop = 1 to iMax:
+                assign oPlatform = ApplicationPlatformEnum:GetEnum(cast(ConfigOption.ObjectValue, JsonArray):GetCharacter(iLoop))
+                       no-error.
+                if valid-object(oPlatform) then
                     AddStringFilter('type':u,
-                                   oChild:GetCharacter(iLoop),
+                                   mcPlatform[integer(oPlatform)], 
                                    oFilterOperand).
             end.
         end.
@@ -205,14 +215,14 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], cDateValue).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], cDateValue).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], cDateValue).                
+                    oFilterObject:Add(OperandValue[integer(poOperand)], cDateValue).                
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for date filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -255,9 +265,9 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 Assert:IsType(poFilterValue, get-class(JsonObject)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
             end.
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
@@ -265,14 +275,14 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 Assert:IsType(poFilterValue, get-class(JsonArray)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for array filter',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object. 
@@ -314,21 +324,21 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], pcFilterValue).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], pcFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], pcFilterValue).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], pcFilterValue).
             end.    /* notequal/includes/notincludes  */
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName)
-                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[poOperand:Value]).
+                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[integer(poOperand)]).
                 oArrayValue:Add(pcFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for string filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -371,14 +381,14 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], plFilterValue).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], plFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], plFilterValue).                
+                    oFilterObject:Add(OperandValue[integer(poOperand)], plFilterValue).                
             end.    /* notequal/includes/notincludes  */
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for logical filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -426,21 +436,21 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], pdFilterValue).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], pdFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], pdFilterValue).                
+                    oFilterObject:Add(OperandValue[integer(poOperand)], pdFilterValue).                
             end.    /* notequal/includes/notincludes  */
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName)
-                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[poOperand:Value]).
+                       oArrayValue = GetArrayProperty(oFilterObject, OperandValue[integer(poOperand)]).
                 oArrayValue:Add(pdFilterValue).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for numeric filters',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object.
@@ -495,9 +505,9 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonObject)).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonObject)).
             end.
             when PushNotificationFilterOperandEnum:Includes or
             when PushNotificationFilterOperandEnum:NotIncludes then
@@ -505,14 +515,14 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 Assert:IsType(poFilterValue, get-class(JsonArray)).
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], cast(poFilterValue, JsonArray)).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], cast(poFilterValue, JsonArray)).
             end.
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for object filter',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object. 
@@ -600,15 +610,15 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             otherwise
                 undo, throw new AppError(
                                 substitute('&1 operand not supported for pointer filter',
-                                    poOperand:Name), 0). 
+                                    string(poOperand)), 0). 
         end case.   /* operand */
         
         /* if we got here, we passed all the validation */
         assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
         if lFieldExists then
-            oFilterObject:Set(OperandValue[poOperand:Value], poFilterValue).
+            oFilterObject:Set(OperandValue[integer(poOperand)], poFilterValue).
         else
-            oFilterObject:Add(OperandValue[poOperand:Value], poFilterValue).
+            oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
             
         return this-object. 
     end method.
@@ -668,14 +678,13 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             do:
                 assign oFilterObject = GetObjectProperty(oFilterParent, pcFilterName).
                 if lFieldExists then
-                    oFilterObject:Set(OperandValue[poOperand:Value], poFilterValue).
+                    oFilterObject:Set(OperandValue[integer(poOperand)], poFilterValue).
                 else
-                    oFilterObject:Add(OperandValue[poOperand:Value], poFilterValue).
+                    oFilterObject:Add(OperandValue[integer(poOperand)], poFilterValue).
             end.
             otherwise
-                undo, throw new AppError(
-                                substitute('&1 operand not supported for pointer filter',
-                                    poOperand:Name), 0). 
+                undo, throw new AppError(substitute('&1 operand not supported for pointer filter',
+                                         string(poOperand)), 0). 
         end case.   /* operand */
         
         return this-object. 
@@ -703,7 +712,7 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
             if poFilterParent:GetType(pcFilterName) eq JsonDataType:STRING then
                 assign extent(cNames) = 1
                        /* blank */
-                       cNames = OperandValue[PushNotificationFilterOperandEnum:Equals:Value].
+                       cNames = OperandValue[integer(PushNotificationFilterOperandEnum:Equals)].
             else
                 assign oFilterObject = GetObjectProperty(poFilterParent, pcFilterName)
                        cNames = oFilterObject:GetNames().
@@ -716,7 +725,7 @@ class OpenEdge.Mobile.ApperyPushNotificationMessageBuilder inherits PushNotifica
                 assign cOperandName = cNames[1].
             
             /* do not allow operand changes */
-            if cOperandName ne OperandValue[poOperand:Value] then
+            if cOperandName ne OperandValue[integer(poOperand)] then
                 undo, throw new AppError(
                                 substitute('Filter field &1 value already has operand &2 set',
                                             pcFilterName,

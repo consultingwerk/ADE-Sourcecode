@@ -37,23 +37,17 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
     method protected ClientSocket CreateClientSocket():
         define variable oSocket as ClientSocket no-undo.
         
-        assign oSocket = new ClientSocket().
-               
-        if HasOption('SO-KEEPALIVE':u) then
-            assign oSocket:KeepAlive = GetOptionLogicalValue('SO-KEEPALIVE':u).
-        if HasOption('TCP-NODELAY':u) then
-            assign oSocket:NoDelay = GetOptionLogicalValue('TCP-NODELAY':u).
-        if HasOption('SO-REUSEADDR':u) then
-            assign oSocket:ReuseAddress = GetOptionLogicalValue('SO-REUSEADDR':u).
-        if HasOption('SO-RCVBUF':u) then
-            assign oSocket:ReceiveBufferSize = GetOptionNumericValue('SO-RCVBUF':u).
-        if HasOption('SO-SNDBUF':u) then
-            assign oSocket:SendBufferSize = GetOptionNumericValue('SO-SNDBUF':u).              
-        if HasOption('SO-RCVTIMEO':u) then
-            assign oSocket:ReceiveTimeout = GetOptionNumericValue('SO-RCVTIMEO':u).
-        if HasOption('SO-LINGER':u) then
-            assign oSocket:LingerTime = GetOptionNumericValue('SO-LINGER':u).
-        
+        if HasOption(get-class(ClientSocket):TypeName) then
+            assign oSocket = cast(GetOptionObjectValue(get-class(ClientSocket):TypeName), ClientSocket).
+        else
+        do:
+            assign oSocket = new ClientSocket().
+            
+            /* assume a passed-in object is useable as-is. Only inititialize if new */
+            if type-of(oSocket, ISupportInitialize) then
+                cast(oSocket, ISupportInitialize):Initialize().
+        end.
+                            
         return oSocket.
     end method.
     
@@ -63,16 +57,25 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
     method protected ClientSocketConnectionParameters BuildSocketConnectionParams ():
         define variable oConnectionParams as ClientSocketConnectionParameters no-undo.
         
-        assign oConnectionParams = new ClientSocketConnectionParameters().
-        
-        if HasOption(PROP_SSL_HOSTVERIFY) then
-            oConnectionParams:VerifyHost = not GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
-        
-        if HasOption(PROP_SSL_PROTOCOLS) then
-            oConnectionParams:SslProtocols = GetOptionStringValue(PROP_SSL_PROTOCOLS).
-        
-        if HasOption(PROP_SSL_CIPHERS) then
-            oConnectionParams:SslCiphers = GetOptionStringValue(PROP_SSL_CIPHERS).
+        if HasOption(get-class(ClientSocketConnectionParameters):TypeName) then
+            assign oConnectionParams = cast(GetOptionObjectValue(get-class(ClientSocketConnectionParameters):TypeName), ClientSocketConnectionParameters).
+        else
+        do:
+            assign oConnectionParams = new ClientSocketConnectionParameters().
+
+            /* assume a passed-in object is useable as-is. These options only apply to defaults. */            
+            if HasOption(PROP_SSL_HOSTVERIFY) then
+                oConnectionParams:VerifyHost = not GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
+            
+            if HasOption(PROP_SSL_PROTOCOLS) then
+                oConnectionParams:SslProtocols = GetOptionStringArrayValue(PROP_SSL_PROTOCOLS).
+            
+            if HasOption(PROP_SSL_CIPHERS) then
+                oConnectionParams:SslCiphers = GetOptionStringArrayValue(PROP_SSL_CIPHERS).
+            
+            if type-of(oConnectionParams, ISupportInitialize) then
+                cast(oConnectionParams, ISupportInitialize):Initialize().
+        end.
         
         return oConnectionParams.
     end method.

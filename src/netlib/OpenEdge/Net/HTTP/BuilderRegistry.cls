@@ -145,4 +145,29 @@ class OpenEdge.Net.HTTP.BuilderRegistry:
         assign this-object:Size = 0.
     end method.
     
+    /** Returns an array of the key names in this registry.
+        
+        @return character[] The key values. Indeterminate array if empty. */
+    method public character extent GetKeys():
+        define variable cKeys as character extent no-undo.
+        define buffer lbRegistry for Registry.
+        define query qryRegistry for lbRegistry.
+        
+        open query qryRegistry preselect each lbRegistry. 
+        extent(cKeys) = query qryRegistry:num-results.
+        
+        get first qryRegistry.
+        do while not query qryRegistry:query-off-end:
+            assign cKeys[query qryRegistry:current-result-row] = lbRegistry.TypeKey.
+            get next qryRegistry.
+        end. 
+        
+        
+        return cKeys.
+        
+        finally:
+            close query qryRegistry.
+        end finally.
+    end method.
+    
 end class.

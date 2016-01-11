@@ -57,7 +57,7 @@ PROCEDURE show-status :
   IF OPSYS = "unix":U THEN
     {&OUT}
       '<LI>':U 'WebSpeed installation directory: '
-             '<B>':U OS-GETENV("DLC":U) '</B>~n':U.
+             '<B>':U GetEnv("DLC":U) '</B>~n':U.
 
   {&OUT}
     '<LI>':U 'WebSpeed operating system (OPSYS): '

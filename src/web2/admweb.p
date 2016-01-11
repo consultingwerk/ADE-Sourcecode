@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2015 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : admweb.p
     Purpose     : General super procedure to keep track of the state for Web objects.
@@ -452,7 +452,10 @@ FUNCTION setWebState RETURNS LOGICAL
   Parameters: pdWebTimeout (DECIMAL) - Number of minutes to remain state-aware
   Notes:    
 ------------------------------------------------------------------------------*/
-  
+  if multi-session-agent() then 
+  do:
+      undo, throw new Progress.Lang.AppError("SetWebState() is not supported in a multi-session-agent.").
+  end.    
   {set WebState 'state-aware'}.
   
   RUN set-web-state IN web-utilities-hdl (TARGET-PROCEDURE, pdWebTimeout).

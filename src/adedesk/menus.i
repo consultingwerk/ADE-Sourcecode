@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2000-2015 by Progress Software Corporation.          *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -312,7 +312,7 @@ DO:
 END.
 
 ON CHOOSE OF MENU-ITEM _About IN MENU mnu_Help
-    RUN adecomm/_about.p("Desktop", "adeicon/progress").
+    RUN adecomm/_about.p("Desktop", "adeicon/desktop").
 
 /*--------------------- OTHER TRIGGERS --------------------------*/
 ON CHOOSE OF MENU-ITEM _exit IN MENU mnu_File

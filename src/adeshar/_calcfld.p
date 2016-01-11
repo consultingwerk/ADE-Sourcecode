@@ -305,8 +305,8 @@ ON CHOOSE OF BtnSyntax IN FRAME DIALOG-1 DO: /* Syntax check */
   IF EditorBox:SCREEN-VALUE = "" THEN
   do:
      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE("You must create an expression before checking syntax.",
-                                     "Warning",?,"OK",yes).
+        run ShowOkMessage in hOEIDEService("You must create an expression before checking syntax.",
+                                     "Warning",?).
      &else
      MESSAGE "You must create an expression before checking syntax." 
        VIEW-AS ALERT-BOX WARNING.
@@ -442,7 +442,7 @@ DO ON ERROR UNDO, RETRY:
       TempString = TRIM(REPLACE(pOutputExpression,CHR(10)," ":U)).
       IF LOOKUP("@":U,TempString," ":U) = 0 THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        ShowMessageInIDE('Calculated fields in SmartBrowsers must be named fields.' +
+         run ShowOkMessage in hOEIDEService('Calculated fields in SmartBrowsers must be named fields.' +
                          ' This is achieved by specifying "@ <field-name>" after the' +
                          ' calculated field expression. "<field-name>" is a variable' +
                          ' of the correct data-type defined elsewhere (usually in the' +
@@ -450,7 +450,7 @@ DO ON ERROR UNDO, RETRY:
                          ' If you haven~'t already defined a field-name, you will' +
                          ' receive an unknown field message when you "OK" this' +
                          ' dialog, but your calculated field will be preserved.',
-                         "Error",?,"OK",yes).
+                         "Error",?).
         &else  
         MESSAGE 'Calculated fields in SmartBrowsers must be named fields.'
                 'This is achieved by specifying "@ <field-name>" after the'
@@ -472,10 +472,10 @@ DO ON ERROR UNDO, RETRY:
       IF LOOKUP("@":U,TempString," ":U) <> 0 THEN
       DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-       ShowMessageInIDE('Calculated fields in SmartDataObjects are named automatically.' +
+        run ShowOkMessage in hOEIDEService('Calculated fields in SmartDataObjects are named automatically.' +
                         ' You can not specify " @ <field-name>" after the' +
                         ' calculated field expression.',
-                        "Error",?,"OK",yes).
+                        "Error",?).
         &else  
         MESSAGE 'Calculated fields in SmartDataObjects are named automatically.'                SKIP
                 'You can not specify " @ <field-name>" after the'
@@ -555,8 +555,8 @@ PROCEDURE CheckSyntax :
       IF pCheck THEN
       do: 
          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         ShowMessageInIDE("Syntax is correct.",
-                          "Information",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Syntax is correct.",
+                          "Information",?).
          &else 
          MESSAGE "Syntax is correct." VIEW-AS ALERT-BOX INFORMATION.
          &endif
@@ -566,8 +566,8 @@ PROCEDURE CheckSyntax :
     ELSE DO:
       StreamDiff = StreamLength - INTEGER(COMPILER:FILE-OFFSET).
       &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         ShowMessageInIDE(string(error-status:get-message(1)) + " in column " + string(StreamDiff) + ".",
-                          "ERROR",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService(string(error-status:get-message(1)) + " in column " + string(StreamDiff) + ".",
+                          "ERROR",?).
       &else
       MESSAGE error-status:get-message(1) SKIP "in column" StreamDiff "." VIEW-AS ALERT-BOX ERROR.
       &endif
@@ -710,8 +710,8 @@ PROCEDURE PopulateFields:
     ELSE
     do:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-         ShowMessageInIDE("Schema Error: Fields cannot be read from " + TRIM(TablesCombo:SCREEN-VALUE) + ".",
-                          "Information",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Schema Error: Fields cannot be read from " + TRIM(TablesCombo:SCREEN-VALUE) + ".",
+                          "Information",?).
       &else 
        MESSAGE "Schema Error: Fields cannot be read from " TRIM(TablesCombo:SCREEN-VALUE) "." 
          VIEW-AS ALERT-BOX ERROR.

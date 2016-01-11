@@ -154,7 +154,7 @@ do:
      ELSE 
        ASSIGN user_env[34] = "N".	    
    END.
-   if answer THEN DO:
+   if answer or s_DictDirty THEN DO:
       /* Make sure any changes are committed or undone before disconnecting */
       s_Trans = {&TRANS_ASK_AND_DO}.
       s_ActionProc = "adedict/DB/_dconn.p".

@@ -96,7 +96,7 @@ IF NOT AVAILABLE _U THEN DO:
         +  "Please select an object with the pointer and try again.".
         
   if OEIDE_CanShowMessage() then
-       ShowOkMessageInIDE(cmsg,"INFORMATION",?).
+       run ShowOKMessage in hOEIDEService(cmsg,"INFORMATION",?).
   else     
        MESSAGE cmsg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
   RETURN.
@@ -244,9 +244,9 @@ END. /* FOR EACH ... */
    change the color of all TTY widgets. */
 IF tty_selectedib THEN DO:
   if OEIDE_CanShowMessage() then
-     ans =  ShowMessageInIDE("Some selected objects were in a Character Simulator window. ~n
+     run ShowMessage in hOEIDEService("Some selected objects were in a Character Simulator window. ~n
                               Do you want to change the Character Simulator Colors everywhere?",
-                              "Question",?,"YES-NO",ans). 
+                              "Question",?,"YES-NO",input-output ans). 
   else      
   MESSAGE "Some selected objects were in a Character Simulator window." {&SKP}
           "Do you want to change the Character Simulator Colors everywhere?"

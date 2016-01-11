@@ -113,7 +113,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
         
         /* Use looping instead of recursion to avoid deeping the call stack */
         repeat on stop undo, return error new HttpRequestError(
-                                                    string(StatusCodeEnum:RequestTimeOut:Value),
+                                                    string(integer(StatusCodeEnum:RequestTimeOut)),
                                                     poRequest:Method,
                                                     poRequest:URI:ToString())
                stop-after iTimeout:

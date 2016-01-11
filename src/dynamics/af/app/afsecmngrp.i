@@ -4275,13 +4275,18 @@ PROCEDURE userLoginOrganisations :
     DEFINE BUFFER bgsm_login_company   FOR gsm_login_company.
 
     /* if there are NO specific login companies to which this user is denied access, list all the login companies*/
+    /* PSC00328149:
+     we cann't use comma(,) in pcOrganisations assignment string, since bgsm_login_company.login_company_obj 
+     will have comma(,) as numeric-decimal-point for European settings. further where ever pcOrganisations
+     is used to get the expected output it returns wrong result. So to make it operational we will be using hash(#).
+    */
     IF NOT CAN-FIND(FIRST bgsm_user_allocation
                     WHERE bgsm_user_allocation.USER_obj               = pdUserObj
                       AND bgsm_user_allocation.login_organisation_obj = 0
                       AND bgsm_user_allocation.owning_entity_mnemonic = 'GSMLG':U) 
     THEN DO:
         FOR EACH bgsm_login_company NO-LOCK:
-            ASSIGN pcOrganisations = pcOrganisations + bgsm_login_company.login_company_name + " (" + bgsm_login_company.login_company_short_name + ")," + string(bgsm_login_company.login_company_obj) + ",".
+            ASSIGN pcOrganisations = pcOrganisations + bgsm_login_company.login_company_name + " (" + bgsm_login_company.login_company_short_name + ")#" + string(bgsm_login_company.login_company_obj) + "#".
         END.
     END.
     /* if there ARE specific login companies to which this user has restricted access, list only those login companies they have access to */
@@ -4293,12 +4298,12 @@ PROCEDURE userLoginOrganisations :
                               AND bgsm_user_allocation.owning_entity_mnemonic = 'GSMLG':U
                               AND bgsm_user_allocation.owning_obj = bgsm_login_company.login_company_obj
                               and bgsm_user_allocation.user_allocation_value1 = "no" ) THEN
-            ASSIGN pcOrganisations = pcOrganisations + bgsm_login_company.login_company_name + " (" + bgsm_login_company.login_company_short_name + ")," + string(bgsm_login_company.login_company_obj) + ",".
+            ASSIGN pcOrganisations = pcOrganisations + bgsm_login_company.login_company_name + " (" + bgsm_login_company.login_company_short_name + ")#" + string(bgsm_login_company.login_company_obj) + "#".
         END.
     END.
   &ENDIF
 
-  IF SUBSTRING(pcOrganisations,LENGTH(pcOrganisations)) = ","  THEN
+  IF SUBSTRING(pcOrganisations,LENGTH(pcOrganisations)) = "#"  THEN
       ASSIGN pcOrganisations = SUBSTRING(pcOrganisations,1,(LENGTH(pcOrganisations) - 1)).
 
   ERROR-STATUS:ERROR = NO.

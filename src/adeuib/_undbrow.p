@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2014 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _undbrow.p
@@ -35,7 +35,7 @@ DEFINE INPUT PARAMETER uRecId AS RECID NO-UNDO.
 {adeuib/brwscols.i}
 {adeuib/sharvars.i}
 {adecomm/adefext.i}
-
+{adecomm/oeideservice.i}
 DEFINE BUFFER parent_U FOR _U.
 DEFINE BUFFER parent_L FOR _L.
 
@@ -47,6 +47,8 @@ DEFINE VARIABLE explicit-nrm  AS LOGICAL        INITIAL FALSE         NO-UNDO.
 DEFINE VARIABLE height-hdl    AS WIDGET-HANDLE                        NO-UNDO.
 DEFINE VARIABLE minbrw-height AS DECIMAL                              NO-UNDO.
 DEFINE VARIABLE lpreV9        AS LOGICAL                              NO-UNDO.
+define variable cMsg          as character                            no-undo.
+
 
 FIND _U       WHERE RECID(_U)       eq uRecId.
 FIND _L       WHERE RECID(_L)       eq _U._lo-recid.
@@ -56,7 +58,6 @@ FIND parent_L WHERE RECID(parent_L) eq parent_U._lo-recid.
 
 ASSIGN _L._WIN-TYPE = parent_L._WIN-TYPE
        _h_frame     = parent_U._HANDLE.
-
 IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
   /* Generate a persistent procedure that contains triggers and methods     */
   /* necessary for design time manipulations                                */
@@ -107,9 +108,9 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
   IF _P._file-version BEGINS "UIB_v7" OR _P._file-version BEGINS "UIB_v8" THEN
       lpreV9 = TRUE.
-  IF SOURCE-PROCEDURE:FILE-NAME = "adeuib/_rdqury.p" AND lpreV9 and 
-     col-list NE ? and formt-list NE ? and DT-list NE ? THEN DO: /* we only want to do this when
-                                                                            reading in a preV9 file  */
+  IF SOURCE-PROCEDURE:FILE-NAME = "adeuib/_rdqury.p" AND lpreV9 
+  and col-list NE ? and formt-list NE ? and DT-list NE ? THEN 
+  DO: /* we only want to do this when  reading in a preV9 file  */
     CREATE BROWSE height-hdl IN WIDGET-POOL "{&AB_Pool}"
       ASSIGN FRAME = _h_frame                                  
              {adeuib/std_attr.i &NO-FRAME = YES &NO-FONT = YES}
@@ -122,13 +123,17 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
              NO-EMPTY-SPACE           = _C._NO-EMPTY-SPACE
              SEPARATORS               = _L._SEPARATORS
              TITLE                    = IF _C._TITLE THEN _U._LABEL ELSE ?
-             VISIBLE                  = TRUE
+             VISIBLE                  = FALSE
              SENSITIVE                = TRUE
              COLUMN-MOVABLE           = TRUE
              COLUMN-RESIZABLE         = TRUE.
 
     IF _L._FONT    NE ? THEN height-hdl:FONT    = _L._FONT.
-
+    
+    height-hdl:visible = true no-error.
+    if error-status:get-message (1) > "" then
+        cMsg = cmsg + chr(10) + error-status:get-message(1).
+    
     col-handle = height-hdl:FIRST-COLUMN.
     FOR EACH _BC WHERE _BC._x-recid = RECID(_U) BY _SEQUENCE:
       ON END-RESIZE OF col-handle PERSISTENT RUN adeuib/_adjcols.p (height-hdl).
@@ -153,49 +158,65 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
     END.
 
     ASSIGN height-hdl:WIDTH = _L._WIDTH * _cur_col_mult
-           minbrw-height    = height-hdl:MIN-HEIGHT-CHARS.
-
+           minbrw-height    = height-hdl:MIN-HEIGHT-CHARS no-error.
+    if error-status:get-message (1) > "" then
+        cMsg = cmsg + chr(10) + error-status:get-message(1).
+    
     ASSIGN height-hdl:HEIGHT = _L._HEIGHT * _cur_row_mult NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN DO:
-        IF (_L._HEIGHT * _cur_row_mult) < minbrw-height THEN DO:
-          MESSAGE _U._NAME "must be at least" minbrw-height
-              "characters high.  Resizing..." VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+    IF ERROR-STATUS:ERROR THEN 
+    DO:
+        IF (_L._HEIGHT * _cur_row_mult) < minbrw-height THEN 
+        DO:
+          cMsg =  cMsg + CHR(10) + _U._NAME + " must be at least " + string(minbrw-height) + " characters high.  Resizing...". 
+          
           _L._HEIGHT = minbrw-height / _cur_row_mult.
+        
         END.  /* if height less than min height */
     END.  /* if error */
 
     DELETE OBJECT height-hdl.
-  END.  /* if called from _rdqury */
-
- IF col-list NE ? and formt-list NE ? and DT-list NE ? THEN DO:
-  CREATE BROWSE _U._HANDLE IN WIDGET-POOL "{&AB_Pool}"
-    ASSIGN FRAME = _h_frame
-           {adeuib/std_attr.i &NO-FRAME = YES &NO-FONT = YES &SIZE-CHAR = YES}
-           BROWSE-COLUMN-LABELS     = TRIM(col-list,CHR(3))
-           BROWSE-COLUMN-FORMATS    = TRIM(formt-list, CHR(3))
-           BROWSE-COLUMN-DATA-TYPES = TRIM(DT-list,CHR(3))
-           ROW-MARKERS              = explicit-nrm AND NOT _C._NO-ROW-MARKERS
-           ROW-RESIZABLE            = TRUE
-           FIT-LAST-COLUMN          = _C._FIT-LAST-COLUMN
-           NO-EMPTY-SPACE           = _C._NO-EMPTY-SPACE
-           SEPARATORS               = _L._SEPARATORS
-           TITLE                    = IF _C._TITLE THEN _U._LABEL ELSE ?
-           VISIBLE                  = TRUE
-           SENSITIVE                = TRUE
-           COLUMN-MOVABLE           = TRUE
-           COLUMN-RESIZABLE         = TRUE
-       TRIGGERS:
-         {adeuib/std_trig.i}
-         ON END-ROW-RESIZE PERSISTENT RUN setBrowseRow  IN _h_uib.
-       END.
-
-  ASSIGN _U._HANDLE:HEIGHT = _L._HEIGHT * _cur_row_mult.
-  IF _C._ROW-HEIGHT NE 0.0 AND _C._ROW-HEIGHT NE ? 
-    THEN _U._HANDLE:ROW-HEIGHT = _C._ROW-HEIGHT.
-  IF _L._BGCOLOR NE ? THEN _U._HANDLE:BGCOLOR = _L._BGCOLOR.
-  IF _L._FGCOLOR NE ? THEN _U._HANDLE:FGCOLOR = _L._FGCOLOR.
-  IF _L._SEPARATOR-FGCOLOR NE ? THEN _U._HANDLE:SEPARATOR-FGCOLOR = _L._SEPARATOR-FGCOLOR.
-  IF _L._FONT    NE ? THEN _U._HANDLE:FONT    = _L._FONT.
+  END.  /* if called from _rdqury */  
+  
+ IF col-list NE ? and formt-list NE ? and DT-list NE ? THEN 
+ DO: 
+  
+    CREATE BROWSE _U._HANDLE IN WIDGET-POOL "{&AB_Pool}"
+        ASSIGN FRAME = _h_frame
+               {adeuib/std_attr.i &NO-FRAME = YES &NO-FONT = YES &SIZE-CHAR = YES}
+            BROWSE-COLUMN-LABELS     = TRIM(col-list,CHR(3))
+            BROWSE-COLUMN-FORMATS    = TRIM(formt-list, CHR(3))
+            BROWSE-COLUMN-DATA-TYPES = TRIM(DT-list,CHR(3))
+            ROW-MARKERS              = explicit-nrm AND NOT _C._NO-ROW-MARKERS
+            ROW-RESIZABLE            = TRUE
+            FIT-LAST-COLUMN          = _C._FIT-LAST-COLUMN
+            NO-EMPTY-SPACE           = _C._NO-EMPTY-SPACE
+            SEPARATORS               = _L._SEPARATORS
+            TITLE                    = IF _C._TITLE THEN _U._LABEL ELSE ?
+            VISIBLE                  = FALSE
+            SENSITIVE                = TRUE
+            COLUMN-MOVABLE           = TRUE
+            COLUMN-RESIZABLE         = TRUE
+            TRIGGERS:
+                {adeuib/std_trig.i}
+                ON END-ROW-RESIZE PERSISTENT RUN setBrowseRow  IN _h_uib.
+            END.
+      
+   _U._HANDLE:visible = true no-error. 
+    if error-status:get-message (1) > "" then
+        cMsg = cmsg + chr(10) + error-status:get-message(1).
+             
+    ASSIGN _U._HANDLE:HEIGHT = _L._HEIGHT * _cur_row_mult no-error.
+    if error-status:get-message (1) > "" then
+        cMsg = cmsg + chr(10) + error-status:get-message(1).
+      
+    IF _C._ROW-HEIGHT NE 0.0 AND _C._ROW-HEIGHT NE ? THEN 
+       _U._HANDLE:ROW-HEIGHT = _C._ROW-HEIGHT.
+ 
+       
+   IF _L._BGCOLOR NE ? THEN _U._HANDLE:BGCOLOR = _L._BGCOLOR.
+   IF _L._FGCOLOR NE ? THEN _U._HANDLE:FGCOLOR = _L._FGCOLOR.
+   IF _L._SEPARATOR-FGCOLOR NE ? THEN _U._HANDLE:SEPARATOR-FGCOLOR = _L._SEPARATOR-FGCOLOR.
+   IF _L._FONT    NE ? THEN _U._HANDLE:FONT    = _L._FONT.
   
   col-handle = _U._HANDLE:FIRST-COLUMN.
   FOR EACH _BC WHERE _BC._x-recid = RECID(_U) BY _SEQUENCE: 
@@ -218,6 +239,7 @@ IF _L._WIN-TYPE THEN DO:  /* GUI case --- create and run a persistent proc  */
       _BC._COL-HANDLE:LABEL-FONT = _BC._LABEL-FONT.
   END.
  END.
+ 
 END.  /* GUI Case */
 
 ELSE DO:  /* TTY Case -- make an edit widget */
@@ -233,17 +255,34 @@ ELSE DO:  /* TTY Case -- make an edit widget */
              {adeuib/std_trig.i}
         END TRIGGERS.
 END.  /* TTY Case */
-
 /* Assign Handles that we now know */
 ASSIGN { adeuib/std_uf.i &SECTION = "HANDLES" } .
          
+ /* hide to suppress frame size/postition errors 
+    it will be unhidden if necessary from the &_lvHidden whihc uses no-error*/
+ _U._HANDLE:hidden = true.        
+ 
 /* Place object within frame boundary. */
 {adeuib/onframe.i
    &_whFrameHandle = "parent_U._HANDLE"
    &_whObjHandle   = "_U._HANDLE"
    &_lvHIDDEN      = _L._REMOVE-FROM-LAYOUT}
-
-IF NOT _L._WIN-TYPE THEN DO:  /* Do this for the TTY version only */
+ 
+ /* hidden = <> no-error */
+if error-status:get-message (1) > "" then
+     cMsg = cmsg + chr(10) + error-status:get-message(1).
+   
+if cMsg > "" then
+do:
+    cMsg = trim(cMsg,chr(10)).
+    if OEIDE_CanShowMessage() then
+        run showOkMessage in hOEIDEService(cMsg,"Warning",?).
+    else              
+        MESSAGE cmsg VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+          
+end.
+IF NOT _L._WIN-TYPE THEN
+DO:  /* Do this for the TTY version only */
   /* Make sure the Universal Widget Record is "correct" by reading the actually
      instantiated values. */
   ASSIGN  {adeuib/std_uf.i &SECTION = "GEOMETRY"} .
@@ -251,7 +290,6 @@ IF NOT _L._WIN-TYPE THEN DO:  /* Do this for the TTY version only */
   /* Simulate the browse widget contents */
   RUN adeuib/_simbrow.p (uRecId).
 END.  /* For TTY only */
-
 /* Restore any triggers that were marked deleted */
 /* Note: we don't use rstrtrg.i because we have already defined triggers.i */
 FOR EACH _TRG WHERE _TRG._wRECID = uRECID:

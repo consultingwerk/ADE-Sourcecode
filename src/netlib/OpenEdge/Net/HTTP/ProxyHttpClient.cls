@@ -25,14 +25,18 @@ class OpenEdge.Net.HTTP.ProxyHttpClient inherits HttpClientDecorator
                 implements ISupportProxy:
 
     /** The URI to use as a proxy for this request eg. http://proxy.example.com/ */
-	define public property ProxyURI as URI no-undo get. set. 
+    define public property ProxyURI as URI no-undo get. set. 
 
     constructor public ProxyHttpClient(input poClient as IHttpClient,
                                        input poProxy  as URI):
-        super(poClient).
+        this-object(poClient).
         
-		Assert:NotNull(poProxy, 'Proxy server URI').
+        Assert:NotNull(poProxy, 'Proxy server URI').
         assign this-object:ProxyURI = poProxy.
+    end constructor.
+
+    constructor public ProxyHttpClient(input poClient as IHttpClient):
+        super(poClient).
     end constructor.
     
     method override public void Execute(input poRequest as IHttpRequest,

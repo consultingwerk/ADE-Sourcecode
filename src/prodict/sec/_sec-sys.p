@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 /*************************************************************/
-/* Copyright (c) 1984-2012 by Progress Software Corporation  */
+/* Copyright (c) 1984-2015 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -69,6 +69,7 @@ DEFINE VARIABLE hColumn AS HANDLE      NO-UNDO EXTENT 2.
 
 DEFINE VARIABLE gcSort  AS CHARACTER   NO-UNDO INITIAL "dType".
 DEFINE VARIABLE gcMods  AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE MD5Checksum  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE inbuild AS LOGICAL     NO-UNDO.
 DEFINE VARIABLE derr    AS LOGICAL     NO-UNDO.
 DEFINE TEMP-TABLE saSys NO-UNDO RCODE-INFORMATION
@@ -76,6 +77,7 @@ DEFINE TEMP-TABLE saSys NO-UNDO RCODE-INFORMATION
     FIELD dDescrip      AS CHARACTER LABEL "Description"        FORMAT "x(65)"
     FIELD dDetails      AS CHARACTER LABEL "Comments" FORMAT "x(200)"
     FIELD dAuthEnabled  AS LOGICAL   LABEL "Enable Authentication"
+    FIELD dChecksum  AS LOGICAL   LABEL "Checksum"
     FIELD dCallback  AS CHARACTER LABEL "Callback" FORMAT "x(100)"
     INDEX idxSystem AS PRIMARY UNIQUE dType.
 
@@ -100,9 +102,9 @@ DEFINE BROWSE bSystem QUERY qSystem
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS bSystem fiType edDescrip edDetails btnCreate btnSave btnCancel btnDelete btnDone ~
-authenabled  callback 
+authenabled  callback checksum
 
-&Scoped-Define DISPLAYED-OBJECTS fiType edDescrip edDetails authenabled  callback  
+&Scoped-Define DISPLAYED-OBJECTS fiType edDescrip edDetails authenabled  callback checksum
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -159,6 +161,9 @@ DEFINE VARIABLE edDescrip AS CHARACTER label "Description"
      
 DEFINE VARIABLE authenabled  AS LOGICAL label "Enable Authentication"
      VIEW-AS TOGGLE-BOX NO-UNDO.     
+     
+DEFINE VARIABLE checksum AS LOGICAL LABEL "Checksum" 
+     VIEW-AS TOGGLE-BOX NO-UNDO. 
 
 DEFINE VARIABLE callback AS CHARACTER LABEL "Callback" 
      VIEW-AS FILL-IN SIZE &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN 48 
@@ -205,29 +210,34 @@ DEFINE FRAME Dialog-Frame
      authenabled
          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN COLON 14 SKIP
          &ELSE AT ROW 11.00 COL 14.6 COLON-ALIGNED SKIP(1) &ENDIF
+         
+     checksum
+         &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN COLON 14  
+         &ELSE AT ROW 12.00 COL 14.6 COLON-ALIGNED SKIP(1) &ENDIF
+     
        
      edDetails 
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN  COLON 14  SKIP(1)
-          &ELSE AT ROW 12.25 COL 14.6 COLON-ALIGNED  &ENDIF 
+          &ELSE AT ROW 13.25 COL 14.6 COLON-ALIGNED  &ENDIF 
           
      BtnDone
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 2
-          &ELSE AT ROW 15.78 COL 2.6 &ENDIF
+          &ELSE AT ROW 16.78 COL 2.6 &ENDIF
      btnCreate
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 23
-          &ELSE AT ROW 15.78 COL 17.8 &ENDIF
+          &ELSE AT ROW 16.78 COL 17.8 &ENDIF
      btnSave
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 35
-          &ELSE AT ROW 15.78 COL 29.2 &ENDIF
+          &ELSE AT ROW 16.78 COL 29.2 &ENDIF
      btnCancel
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 47
-          &ELSE AT ROW 15.78 COL 40.8 &ENDIF
+          &ELSE AT ROW 16.78 COL 40.8 &ENDIF
      btnDelete
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT 59
-          &ELSE AT ROW 15.78 COL 52.4 &ENDIF
+          &ELSE AT ROW 16.78 COL 52.4 &ENDIF
      &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN               
-       BtnHelp AT ROW 15.78 COL 67.4 
-       RECT-1 AT ROW 15.55 COL 1.6 &ENDIF
+       BtnHelp AT ROW 16.78 COL 67.4 
+       RECT-1 AT ROW 16.55 COL 1.6 &ENDIF
      SPACE(0.00) SKIP(0.18)
     WITH &IF '{&WINDOW-SYSTEM}' <> 'TTY':U &THEN  
            VIEW-AS DIALOG-BOX &ENDIF KEEP-TAB-ORDER ROW 2 CENTERED
@@ -291,6 +301,9 @@ END.
 
 ON CHOOSE OF btnSave   IN FRAME {&frame_name} DO:
   DEFINE VARIABLE locStr AS CHARACTER NO-UNDO.
+  define variable mPtr       as memptr no-undo.
+  define variable iLength    as integer    no-undo.
+  define variable cFileName  as character   no-undo.
   ASSIGN locStr = "0123456789"
          derr   = NO.
   IF index(locstr,substring(fiType:SCREEN-VALUE,1,1)) > 0 THEN 
@@ -308,23 +321,38 @@ ON CHOOSE OF btnSave   IN FRAME {&frame_name} DO:
   DO:
      RUN saveRecord.
      IF callback:SCREEN-VALUE <> "" THEN 
-        ASSIGN authenabled:SENSITIVE    = TRUE.
+        ASSIGN authenabled:SENSITIVE    = TRUE
+               checksum:sensitive = true.
      else
-        ASSIGN authenabled:SENSITIVE    = FALSE.   
+        ASSIGN authenabled:SENSITIVE    = FALSE
+               checksum:sensitive = false.   
   END.   
   else
   DO:
       RUN localSave ( INPUT "Before" ).
       IF RETURN-VALUE NE "" THEN
          RETURN RETURN-VALUE.
+         
+      iLength = LENGTH(MD5Checksum).
+      SET-SIZE(mptr) = iLength + 1.
+      PUT-STRING(mptr,1) = MD5Checksum.
+      
       Find first DICTDB._sec-authentication-system 
          WHERE DICTDB._sec-authentication-system._domain-type = fiType:SCREEN-VALUE no-error.
-      IF AVAILABLE DICTDB._sec-authentication-system THEN 
-         ASSIGN DICTDB._sec-authentication-system._PAM-callback-procedure = callback:SCREEN-VALUE.
+      IF AVAILABLE DICTDB._sec-authentication-system THEN do:
+        if callback:SCREEN-VALUE eq ? or callback:SCREEN-VALUE eq "" then
+		   ASSIGN DICTDB._sec-authentication-system._PAM-library-checksum   = ?
+				  DICTDB._sec-authentication-system._PAM-callback-procedure = callback:SCREEN-VALUE.
+		else
+         ASSIGN DICTDB._sec-authentication-system._PAM-callback-procedure = callback:SCREEN-VALUE
+                DICTDB._sec-authentication-system._PAM-library-checksum = GET-BYTES(mptr,1, iLength).
+      end.
+      SET-SIZE(mptr) = 0.
       FIND FIRST saSys WHERE saSys.dtype = fiType:SCREEN-VALUE NO-ERROR. 
       IF AVAILABLE saSys then
       DO:
-         ASSIGN saSys.dCallBack = callback:SCREEN-VALUE.
+         ASSIGN saSys.dCallBack = callback:SCREEN-VALUE
+                saSys.dChecksum = logical(checksum:SCREEN-VALUE).
          ghBuffer   = BUFFER saSys:HANDLE.
          grwLastRowid = ghBuffer:ROWID.
       END.   
@@ -475,7 +503,101 @@ ON VALUE-CHANGED OF authenabled IN FRAME {&FRAME-NAME} DO:
   END.
       
 END.  
+
+ON VALUE-CHANGED OF checksum IN FRAME {&FRAME-NAME} DO:
+
+    if self:screen-value = "no" then
+       assign MD5Checksum = "".
+
+    if self:screen-value = "yes" then do:      
+       run checkMD5(fiType:HANDLE,callback:handle,checksum:handle).
+       if return-value = "error" then
+          assign SELF:screen-value = "no"
+                 MD5Checksum = "".
+    end.
+
+    if glCreateMode then leave.
+    
+    IF AVAILABLE saSys AND
+      saSys.dchecksum NE LOGICAL(SELF:SCREEN-VALUE) THEN DO:
+     RUN setButtonState ( INPUT "UpdateMode" ).
+     BROWSE bSystem:SENSITIVE = FALSE.
+     IF NOT CAN-DO(gcMods,SELF:NAME) THEN
+      gcMods = gcMods + (IF gcMods NE "" THEN "," ELSE "") +
+               SELF:NAME.
+    END.
+    ELSE DO:
+    gcMods = REPLACE(REPLACE(gcMods,SELF:NAME,""),",,",",").
+    IF gcMods EQ "" OR
+       gcMods EQ "," THEN DO:
+      BROWSE bSystem:SENSITIVE = TRUE.
+      gcMods = "".
+      RUN setButtonState ( "ResetMode" ).
+    END.
+  END.
+      
+END.  
+
+procedure checkMD5:
+   Define INPUT PARAMETER DomainType     as handle         NO-UNDO.
+   Define INPUT PARAMETER callback     as handle         NO-UNDO.
+   Define INPUT PARAMETER checksum     as handle         NO-UNDO.
+   DEF VAR mPtr       AS MEMPTR NO-UNDO.
+   DEF VAR md5Value   AS CHAR   NO-UNDO.
+   DEF VAR cFileName   AS CHAR   NO-UNDO.
+   DEF VAR iLength    AS INT    NO-UNDO.
+
+   cFileName = callback:screen-value.
+
+   /* replace .p with .r. If there is no extension, we default to .r, 
+      so that should be ok */
+   RCODE-INFO:FILE-NAME = REPLACE(cFileName, ".p", ".r").
+   IF RCODE-INFO:CRC-VALUE = ? THEN DO:
+      MESSAGE "ERROR - did not find rcode information:" cFileName view-as alert-box error.
+      RETURN "error".
+   END.
+        
+   md5Value = RCODE-INFO:MD5-VALUE.
+   IF md5Value = ? THEN DO:
+      MESSAGE "ERROR - rcode does not have MD5 value:" cFileName view-as alert-box error.
+      RETURN "error".
+   END.
+
+   MD5Checksum = md5Value.
+   return "".
+end procedure.
+
 ON VALUE-CHANGED OF callback IN FRAME {&FRAME-NAME} DO:
+
+  IF NOT inbuild THEN 
+  DO: 
+     IF TRIM(callback:SCREEN-VALUE) <> "" THEN
+       ASSIGN authenabled:SENSITIVE    = TRUE
+              authenabled:SCREEN-VALUE = "yes"
+              checksum:SENSITIVE    = true
+              checksum:SCREEN-VALUE = "no".
+     ELSE
+       ASSIGN authenabled:SENSITIVE    = FALSE
+              authenabled:SCREEN-VALUE = "no"
+              checksum:SENSITIVE    = false
+              checksum:SCREEN-VALUE = "no".     
+  END.
+  else
+  do:
+  IF TRIM(callback:SCREEN-VALUE) <> "" THEN
+       ASSIGN authenabled:SENSITIVE    = false
+              authenabled:SCREEN-VALUE = "no"
+              checksum:SENSITIVE    = TRUE
+              checksum:SCREEN-VALUE = "no".
+     ELSE
+       ASSIGN authenabled:SENSITIVE    = false
+              authenabled:SCREEN-VALUE = "no"
+              checksum:SENSITIVE    = FALSE
+              checksum:SCREEN-VALUE = "no". 
+  end.
+  
+  if glCreateMode then leave.
+  
   IF AVAILABLE saSys AND
      saSys.dcallback NE SELF:SCREEN-VALUE THEN DO:
      RUN setButtonState ( INPUT "UpdateMode" ).
@@ -494,17 +616,7 @@ ON VALUE-CHANGED OF callback IN FRAME {&FRAME-NAME} DO:
       gcMods = "".
       RUN setButtonState ( "ResetMode" ).
     END.
-  END.
-  
-  IF NOT inbuild THEN 
-  DO: 
-     IF TRIM(callback:SCREEN-VALUE) <> "" THEN
-       ASSIGN authenabled:SENSITIVE    = TRUE
-              authenabled:SCREEN-VALUE = "yes".
-     ELSE
-       ASSIGN authenabled:SENSITIVE    = FALSE
-              authenabled:SCREEN-VALUE = "no".     
-  END.
+  END.  
 END.     
 
 ON LEAVE OF callback IN FRAME {&FRAME-NAME} DO:
@@ -782,40 +894,46 @@ PROCEDURE initializeUI :
                                  STRING(edDescrip:HANDLE)  + "," + "&2," +
                                  STRING(edDetails:HANDLE)  + "," + "&3," +
                                  STRING(authenabled:HANDLE)  + "," + "&4," +
-                                 STRING(callback:HANDLE)  + "," + "&5"
+                                 STRING(callback:HANDLE)  + "," + "&5," +
+                                 STRING(checksum:HANDLE)  + "," + "&6"                                 
            gcFieldInits        = SUBSTITUTE(gcFieldHandles,
                                             CHR(1) + "",
                                             CHR(1) + "",
                                             CHR(1) + "",
                                             CHR(1) + "",
-                                            CHR(1) + "")
+                                            CHR(1) + "",
+											CHR(1) + "")
            gcFieldInits        = REPLACE(gcFieldInits,"," + CHR(1),CHR(1))
            gcCreateModeFields  = SUBSTITUTE(gcFieldHandles,
                                             "yes",
                                             "yes",
                                             "yes",
                                             "yes",
-                                            "yes")
+                                            "yes",
+											"yes")
            gcResetModeFields   = SUBSTITUTE(gcFieldHandles,
                                             "no",
                                             "yes",
                                             "yes",
                                             "no",
-                                            "no")
+                                            "no",
+											"yes")
            gcDisableModeFields = SUBSTITUTE(gcFieldHandles,
                                             "no",
                                             "no",
                                             "no",
                                             "no",
-                                            "no")
+                                            "no",
+											"no")
            gcFieldHandles      = REPLACE(gcFieldHandles,",&1","")
            gcFieldHandles      = REPLACE(gcFieldHandles,",&2","")
            gcFieldHandles      = REPLACE(gcFieldHandles,",&3","")
            gcFieldHandles      = REPLACE(gcFieldHandles,",&4","")
            gcFieldHandles      = REPLACE(gcFieldHandles,",&5","")
+           gcFieldHandles      = REPLACE(gcFieldHandles,",&6","")           
            gcDBFields          = "_domain-type,_domain-type-description," +
-                                 "_custom-detail,_PAM-plug-in,_PAM-callback-procedure"
-           gcTTFields          = "dType,dDescrip,dDetails,dAuthEnabled,dCallback"
+                                 "_custom-detail,_PAM-plug-in,_PAM-callback-procedure,_PAM-library-checksum"
+           gcTTFields          = "dType,dDescrip,dDetails,dAuthEnabled,dCallback,dChecksum"
            ghFrame             = FRAME {&FRAME-NAME}:HANDLE
            gcKeyField          = "_domain-type,dType,CHAR"
            gcDBBuffer          = "DICTDB._sec-authentication-system".
@@ -865,7 +983,8 @@ PROCEDURE loadSystems:
              dDescrip     = hSASys::_domain-type-description
              dDetails     = hSASys::_custom-detail
              dAuthEnabled = hSASys::_PAM-plug-in
-             dCallBack    = hSASys::_PAM-callback-procedure.
+             dChecksum    = (if get-string(hSASys::_PAM-library-checksum,1) = "" or get-string(hSASys::_PAM-library-checksum,1) = ? then no else yes)
+             dCallBack    = hSASys::_PAM-callback-procedure.             
     END.
     hQuery:GET-NEXT().
   END.
@@ -1050,6 +1169,8 @@ procedure localFieldState:
           btnFile:SENSITIVE = TRUE
           authenabled:SCREEN-VALUE = "no"
           authenabled:SENSITIVE = FALSE
+          checksum:SCREEN-VALUE = "no"
+          checksum:SENSITIVE = FALSE          
           inbuild               = no.     
   end.
   else if pcMode = "ResetMode":u then 
@@ -1067,9 +1188,11 @@ procedure localFieldState:
               edDetails:read-only = false
               inbuild               = no.  
           IF callback:SCREEN-VALUE = "" THEN 
-             authenabled:SENSITIVE = FALSE.
+             assign authenabled:SENSITIVE = FALSE
+			        checksum:SENSITIVE = FALSE.
           ELSE 
-             authenabled:SENSITIVE = TRUE.                  
+             assign authenabled:SENSITIVE = TRUE
+			        checksum:SENSITIVE = FALSE.                  
       end.     
       
       else do:
@@ -1082,7 +1205,8 @@ procedure localFieldState:
               inbuild               = yes.         
       end. 
       ASSIGN btnFile:SENSITIVE     = TRUE 
-             callback:SENSITIVE    = TRUE.
+             callback:SENSITIVE    = TRUE
+             checksum:SENSITIVE    = true.
              
   end.
 end procedure.

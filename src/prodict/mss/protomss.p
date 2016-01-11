@@ -147,7 +147,7 @@ PROCEDURE fill_long_length:
          IF unicodeTypes <> preuniTypes THEN DO:
             long-length:SCREEN-VALUE IN FRAME x = "8000".
             MESSAGE "Without Use Unicode Types, the Maximum char length has been reset to 8000 with Codepage: " mss_codepage:SCREEN-VALUE in frame x SKIP
-             VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+            VIEW-AS ALERT-BOX WARNING BUTTONS OK.
          END.
       END.
    END.
@@ -459,14 +459,6 @@ IF OS-GETENV("MAPOEPRIMARY") <> ? THEN DO:
      ASSIGN  tryPimaryForRowid = FALSE. 
 END.
 
-IF OS-GETENV("RECIDONLY") <> ? THEN DO:
-  ASSIGN tmp_str  = OS-GETENV("RECIDONLY").
-  IF tmp_str BEGINS "Y" THEN 
-     ASSIGN  recid_verify = TRUE.
-  ELSE 
-     ASSIGN  recid_verify = FALSE.
-END.
-
 IF OS-GETENV("RECIDCOMPAT") <> ? THEN DO:
   ASSIGN tmp_str  = OS-GETENV("RECIDCOMPAT").
   IF tmp_str BEGINS "Y" THEN 
@@ -488,8 +480,9 @@ IF OS-GETENV("RANKLOGLVL") <> ? THEN DO:
   OTHERWISE
        ASSIGN  genrepenv = 9.
   END CASE.
-  IF batch_mode THEN ASSIGN genreplvl = genrepenv.
-  ELSE IF genrepenv > 2 THEN ASSIGN genreplvl = 2.
+  
+  ASSIGN genreplvl = genrepenv.
+  IF NOT batch_mode AND genrepenv > 2 THEN ASSIGN genreplvl = 2.
 END.
 
 IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:

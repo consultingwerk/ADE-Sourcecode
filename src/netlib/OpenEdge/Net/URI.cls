@@ -13,6 +13,7 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Collections.IIterable.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.MapEntry.
@@ -115,7 +116,7 @@ class OpenEdge.Net.URI:
      
         @param character The host name. */    
     constructor public URI(input pcHost as character):
-        this-object(UriSchemeEnum:http:Name, pcHost).
+        this-object(string(UriSchemeEnum:http), pcHost).
     end constructor.
     
     /** Constructor.
@@ -296,6 +297,18 @@ class OpenEdge.Net.URI:
         this-object:QueryMap:Put(pcName, pcValue).
     end method.
 
+    /** Get a char query value from the query 
+        @param character The query name */
+    method public character GetQueryValue(input pcName as character):
+        define variable val as longchar no-undo.
+        
+        Assert:NotNullOrEmpty(pcName, 'Query name').
+        
+        val = QueryMap:Get(input pcName).
+
+        return string(val). 
+    end method.
+
     /* constructs a string representation */
     method private void BuildUri():
         define variable cRootURI as character no-undo.
@@ -321,7 +334,7 @@ class OpenEdge.Net.URI:
             assign cRootURI = cRootURI + substitute(':&1':u, this-object:Port).
         
         assign cPath = this-object:Path.
-        if this-object:QueryMap:Size gt 0  then
+        if this-object:QueryMap:Size gt 0 then
         do:
             assign cDelimiter = '?':u
                    oIterator = this-object:QueryMap:EntrySet:Iterator()
@@ -373,11 +386,34 @@ class OpenEdge.Net.URI:
         @param URI The URI to encode
         @param character A character representaion of the URI */
     method static public character Encode(input poURI as URI):
+        define variable cEncodedQueryString as character no-undo.
+        define variable iMax as integer no-undo.
+        define variable iLoop as integer no-undo.
+        define variable cNames as character extent no-undo.
+        define variable cDelimiter as character no-undo.
+        define variable cValue as character no-undo.
+        
         Assert:NotNull(poURI, 'URI').
         
-        return substitute('&1&2':u,
+        /* individual query values are encoded, not the names */
+        assign cDelimiter   = '?':u
+               cEncodedQueryString = '':u
+               iMax = poURI:GetQueryNames(output cNames)
+               .
+        do iLoop = 1 to iMax:
+            assign cEncodedQueryString = cEncodedQueryString 
+                                       + substitute('&1&2':u, cDelimiter, cNames[iLoop])
+                   cValue     = poURI:GetQueryValue(cNames[iLoop])
+                   cDelimiter = '&':u.
+            if cValue ne ? then 
+                assign cEncodedQueryString = cEncodedQueryString 
+                                           + substitute('=&1':u, cValue).
+        end.
+
+        return substitute('&1&2&3':u,
                         OpenEdge.Net.URI:Encode(poURI:BaseURI,     UriEncodingTypeEnum:Default),
-                        OpenEdge.Net.URI:Encode(poURI:RelativeURI, UriEncodingTypeEnum:Query)).
+                        OpenEdge.Net.URI:Encode(poURI:Path,        UriEncodingTypeEnum:Default),
+                        cEncodedQueryString).
     end method.
     
     /** Encodes a string for a particular purpose
@@ -391,7 +427,9 @@ class OpenEdge.Net.URI:
         define variable iMax as integer no-undo.
         define variable rChar as raw no-undo.
         define variable iAsc as integer no-undo.
+        define variable cChar as character no-undo.
         define variable cEncodeList as character no-undo.
+        define variable cEncodedString as character no-undo.
         
         /* Unsafe characters that must be encoded in URL's.  See RFC 1738 Sect 2.2. */
         define variable cUrlUnsafe as character no-undo 
@@ -402,7 +440,7 @@ class OpenEdge.Net.URI:
             initial "~;/?:@=&":u.
         
         /* Don't bother with blank or unknown  */
-        if length(pcString) eq 0 or pcString = ? then
+        if length(pcString) eq 0 or pcString eq ? then
             return '':u.
 
         Assert:NotNull(poEncodingType, 'Encoding Type').            
@@ -421,20 +459,94 @@ class OpenEdge.Net.URI:
         assign iloop = 0
                iMax = length(pcString, 'raw':u)
                length(rChar) = 1.
+               
         do iLoop = 1 to iMax:
             assign /* ASCII value of character using single byte codepage */
-                   iAsc = asc(substring(pcString, iLoop, 1, "RAW":U), "1252":U, "1252":U).
+                   cChar = substring(pcString, iLoop, 1, "RAW":U)
+                   iAsc  = asc(cChar, "1252":U, "1252":U).
+            
             /* 32 < lower, upper alphas, numbers < 127*/
             if iAsc le 31 or iAsc ge 127 or index(cEncodeList, chr(iAsc)) gt 0 then 
             do:
                 /* use put-byte so as not to have a null terminator */
                 put-byte(rChar, 1) = iAsc.
+                
                 /* Replace character with %hh hexidecimal triplet */
-                substring(pcString, iLoop, 1, "RAW":U) = '%' + hex-encode(rChar).  
+                assign cChar = substitute('%&1', hex-encode(rChar)).
             end.
+            
+            /* add/create a new string because replacing 1 character with 2 messes up our math */            
+            assign cEncodedString = cEncodedString + cChar.
         end.
         
-        return pcString.
+        return cEncodedString.
+    end method.
+
+    /** Attempts to decode a previously-encoded URL.        
+        
+        @return character A decoded URL */
+    method public character Decode():
+        return OpenEdge.Net.URI:Decode(this-object:ToString()).
+    end method.
+    
+    /** Attempts to decode a previously-encoded URL.
+        
+        @param  character The URL to decode
+        @return character A decoded URL */
+    method static public character Decode(input pcURI as character):
+        define variable cDecodedURI as character no-undo.
+        define variable iStart as integer no-undo.
+        define variable iPos as integer no-undo.
+        define variable iAsc as integer no-undo.
+        define variable cHex as character no-undo.
+        define variable rDecoded as raw no-undo.
+        define variable cAscChar as character no-undo.
+        
+        Assert:NotNullOrEmpty(pcURI, 'URI').
+        
+        assign iStart = 1
+               iPos   = index(pcURI, '%':u, iStart).
+               . 
+        do while iPos gt 0:
+            assign cHex     = substring(pcURI, iPos + 1, 2)
+                   rDecoded = hex-decode(cHex)
+                   iAsc     = get-byte(rDecoded, 1)
+                   cAscChar = chr(iAsc, '1252':u, '1252':u)
+                   
+                   cDecodedURI = cDecodedURI 
+                               + substring(pcURI, iStart, (iPos - iStart)) 
+                               + cAscChar                   
+                   
+                   iStart = iPos + 3
+                   iPos   = index(pcURI, '%':u, iStart).
+        end.
+        
+        /* add anycharacters that appear after the last % */
+        assign cDecodedURI = cDecodedURI + substring(pcURI, iStart).
+        
+        return cDecodedURI.
+    end method.
+    
+    /** Returns an array of query names 
+        @param character[] An array
+        @return integer The number */
+    method public integer GetQueryNames(output pcNames as character extent):
+        define variable iCount as integer no-undo.
+        define variable oIterator as IIterator no-undo.
+        
+        assign iCount = this-object:QueryMap:Size
+               oIterator = cast(this-object:QueryMap:KeySet, IIterable):Iterator().
+        
+        if iCount gt 0 then
+            extent(pcNames) = iCount.
+        
+        assign iCount = 0.
+        do while oIterator:HasNext():
+            assign pcNames[iCount + 1] = oIterator:Next():ToString()
+                   iCount = iCount + 1. 
+        end.
+        
+        return iCount.
     end method.
     
 end class.

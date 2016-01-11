@@ -44,13 +44,13 @@ class OpenEdge.Net.HTTP.Filter.Writer.AuthenticationRequestWriterBuilder:
     
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):    
-        poRegistry:Put(AuthenticationMethodEnum:Basic:Name, 
+        poRegistry:Put(string(AuthenticationMethodEnum:Basic), 
                        get-class(BasicAuthenticationFilter)).
         
-        poRegistry:Put(AuthenticationMethodEnum:Digest:Name, 
+        poRegistry:Put(string(AuthenticationMethodEnum:Digest), 
                        get-class(DigestAuthenticationFilter)).
         
-        poRegistry:Put(AuthenticationMethodEnum:None:Name, 
+        poRegistry:Put(string(AuthenticationMethodEnum:None), 
                        get-class(NoAuthenticationFilter)).
     end method.
     

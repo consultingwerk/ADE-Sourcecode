@@ -88,7 +88,7 @@ do i = 1 to num-entries(propath):
                             + "   No to use full path (not recommended)."  + "~n" 
                             + "   Cancel to select a different file.".
                 if OEIDE_CanShowMessage() then 
-                    lok = ShowMessageInIDE(cMsg,"Question":U,MSG_TITLE,"yes-no-cancel":U,lok).
+                    run ShowMessage in hOEIDEService(cMsg,"Question":U,MSG_TITLE,"yes-no-cancel":U,input-output lok).
                 else 
                     message cMsg       
                         view-as alert-box question buttons yes-no-cancel title MSG_TITLE update lok .

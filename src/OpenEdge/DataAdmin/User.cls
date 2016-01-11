@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011,2015 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -198,6 +198,23 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
                 mdefaultbuffer::Telephone = pTelephone.
             end.
             Telephone = pTelephone.
+        end. 
+    
+    /** A User number for the user (optional) */
+    define public property Number as integer no-undo     
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::Number.
+            else
+                return Number. 
+        end.
+        set(pNumber as integer):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::Number = pNumber.
+            end.
+            Number = pNumber.
         end. 
         
     /** An email address for the user (optional) */

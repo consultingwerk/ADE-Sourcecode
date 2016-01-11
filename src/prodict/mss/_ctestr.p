@@ -257,13 +257,12 @@ IF genreplvl > 0 THEN DO :
                        " +Ranking - a:Automatically Selectable, u:User-definable," +
                        "x:Non-V7.3 compatible, v:Uniqueness Enforced." + CHR(10) + 
                        " +Ranking - n:Uniqueness missing, m:Mandatory missing," +
-                       " c-RECID compatible index.".
+                       " c-RECID compatible index, p-Primary Key Candidate.".
      PUT STREAM s_rank_rep UNFORMATTED disptext.
   END.
 
   FOR EACH DICTDB._File WHERE NOT DICTDB._FILE._Hidden AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN"):
     assign disptext = " ".
-
     PUT STREAM s_rank_rep UNFORMATTED SKIP(2) "    =========================================================    " SKIP.
 
     IF NOT CAN-FIND( FIRST DICTDB._INDEX WHERE DICTDB._INDEX._File-recid = RECID(DICTDB._FILE) AND 
@@ -281,7 +280,7 @@ IF genreplvl > 0 THEN DO :
                        " MISC2[4]:" + (IF DICTDB._FILE._Fil-misc2[4] <> ? THEN DICTDB._FILE._Fil-misc2[4]  ELSE "        ") + FILL(" ",5) + 
                        " MISC2[5]:" + (IF DICTDB._FILE._Fil-misc2[5] <> ? THEN DICTDB._FILE._Fil-misc2[5] ELSE "   ") + CHR(10) +
                        " MISC1[5]:" + (IF DICTDB._FILE._Fil-misc1[5] <> ? THEN  STRING(DICTDB._FILE._Fil-misc1[5]) ELSE " ") + CHR(10).
-    assign sumtxt = "Summary (" .
+    assign sumtxt = "Summary " .
     IF DICTDB._FILE._Fil-misc1[1] > 0 THEN
        Assign disptext = disptext + "This table has PROGRESS_RECID column as ROWID" + CHR(10). 
     ELSE IF DICTDB._File._Fil-misc1[2] > 0 THEN DO:
@@ -289,7 +288,7 @@ IF genreplvl > 0 THEN DO :
       FIND FIRST DICTDB._INDEX WHERE DICTDB._INDEX._File-recid = RECID(DICTDB._FILE) AND 
                                      DICTDB._INDEX._idx-num = DICTDB._FILE._Fil-misc1[2] NO-ERROR.
       IF AVAILABLE DICTDB._INDEX THEN DO:
-         assign sumtxt = sumtxt + "SELECTED ROWID".
+         assign sumtxt = sumtxt + "( SELECTED ROWID".
          IF INDEX(DICTDB._INDEX._I-misc2[1],"c") <> 0 THEN
 	    assign sumtxt = sumtxt + "/RECID".
          assign sumtxt = sumtxt + " IS:""" + DICTDB._Index._Index-name + """):".
@@ -298,7 +297,7 @@ IF genreplvl > 0 THEN DO :
     END.	  
     ELSE DO:
        Assign disptext = disptext + "      ******  NO ROWID Designated  ****** " + CHR(10). 
-       assign sumtxt = sumtxt + "UNSELECTED):".
+       assign sumtxt = sumtxt + "(UNSELECTED):".
     END.
     PUT STREAM s_rank_rep UNFORMATTED SKIP disptext.
 
@@ -306,7 +305,7 @@ IF genreplvl > 0 THEN DO :
        FIND FIRST DICTDB._INDEX WHERE DICTDB._INDEX._File-recid = RECID(DICTDB._FILE) AND DICTDB._Index._Index-name <> "default" NO-ERROR. 
        IF AVAILABLE DICTDB._INDEX THEN DO: 
           Assign disptext = "-----------   ALL INDEXES of table " + UPPER(DICTDB._FILE._File-name) + "  ----------------------" + CHR(10).
-          Assign disptext = disptext + "Index Sr#  Unique  Index-recid    Index Name          Column#  Ranking+" .
+          Assign disptext = disptext + "Index Sr#  Unique  Index-recid    Index Name               Column#  Ranking+" .
           PUT STREAM s_rank_rep UNFORMATTED disptext.
           PUT STREAM s_rank_rep UNFORMATTED myline .
 
@@ -318,11 +317,13 @@ IF genreplvl > 0 THEN DO :
              ELSE ASSIGN disptext = disptext + "no" + FILL(" ",6). 
        
              assign disptext = disptext + FILL (" ", 11 - LENGTH(STRING(RECID(DICTDB._INDEX)))) + STRING(RECID(DICTDB._INDEX)) + FILL(" ",4) +
-                               DICTDB._INDEX._Index-name  + FILL (" ", 15 - LENGTH(DICTDB._INDEX._Index-name)) + FILL(" ",2) +   
-			       FILL (" ", 6 - LENGTH(STRING(DICTDB._INDEX._num-comp))) + STRING(DICTDB._INDEX._num-comp) + FILL(" ",6) +  
-                               DICTDB._INDEX._I-misc2[1].
-             IF substring(DICTDB._INDEX._I-misc2[1],1,1) EQ "r" THEN
-                assign disptext = disptext + "- Designated ROWID.".
+                               DICTDB._INDEX._Index-name  + FILL (" ", 20 - LENGTH(DICTDB._INDEX._Index-name)) + FILL(" ",2) +   
+			       FILL (" ", 6 - LENGTH(STRING(DICTDB._INDEX._num-comp))) + STRING(DICTDB._INDEX._num-comp) + FILL(" ",6).   
+             IF DICTDB._INDEX._I-misc2[1] <> ? THEN DO:
+                disptext = disptext + DICTDB._INDEX._I-misc2[1]. 
+                IF substring(DICTDB._INDEX._I-misc2[1],1,1) EQ "r" THEN
+                   assign disptext = disptext + "- Designated ROWID.".
+             END.
 
 	     PUT STREAM s_rank_rep UNFORMATTED disptext SKIP.
           END.

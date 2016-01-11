@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : AbstractTTCollection
@@ -109,7 +109,8 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
     end method.
     
     method public void Clear(  ):
-        mhTempTable:default-buffer-handle:empty-temp-table.        
+        mhTempTable:default-buffer-handle:empty-temp-table.
+        assign this-object:Size = 0.        
     end method.
     
     method public logical Contains( checkObject as Object ):

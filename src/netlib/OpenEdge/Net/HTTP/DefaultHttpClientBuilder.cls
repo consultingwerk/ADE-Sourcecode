@@ -36,7 +36,11 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
 
     constructor public DefaultHttpClientBuilder():
         super().
-    end method.
+    end constructor.
+    
+    destructor public DefaultHttpClientBuilder():
+        Destroy().
+    end destructor.  
 
     method public void Initialize():
         Named('OpenEdge-HttpClient':u, '0.3.0':u).

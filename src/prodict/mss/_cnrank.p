@@ -50,7 +50,6 @@ s_ttb_tbl.ds_msc16 = ( if ( (s_ttb_idx.hlp_fld# > 1 and
                          s_ttb_idx.hlp_dtype# > 2  or
                          (s_ttb_idx.hlp_dtype# = 2 and
                          INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
-                         INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
                          s_ttb_idx.proxy_key))
 ---------------------------------------------------------------------
 
@@ -205,7 +204,10 @@ END PROCEDURE.
                ELSE IF s_ttb_idx.hlp_dtype# = 1 THEN assign s_ttb_idx.hlp_dtype# = s_ttb_idx.hlp_dtype# + 6.
                ELSE assign s_ttb_idx.hlp_dtype# = s_ttb_idx.hlp_dtype# + 5.
             end.
-         IF s_ttb_idx.pro_uniq = TRUE THEN Adjustlevel = uniquifyAddon.
+         IF s_ttb_idx.pro_uniq = TRUE THEN DO:
+            IF uniquifyAddon = 0 AND s_ttb_idx.proxy_key THEN  Adjustlevel = 22.
+            ELSE Adjustlevel = uniquifyAddon.
+         END.
          ELSE Adjustlevel = 44.
          assign
            s_ttb_idx.hlp_level  = ( if ( s_ttb_idx.hlp_mand = TRUE )
@@ -229,6 +231,7 @@ END PROCEDURE.
          if not s_ttb_idx.hlp_mand then
            s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "m". /* mandatory missing */
        end. /* for each s_ttb_idx */
+
 
        /* assign correct i-misc2[1]-values and select index */
        for each s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
@@ -285,20 +288,19 @@ END PROCEDURE.
              * function support.
              */
           IF s_ttb_idx.hlp_fld# <= 2 and (s_ttb_idx.hlp_level <= 3 OR
-             (s_ttb_idx.hlp_level >= 12 AND s_ttb_idx.hlp_level <= 14 )) THEN 
+             (s_ttb_idx.hlp_level >= 12 AND s_ttb_idx.hlp_level <= 14 )) THEN DO:
             assign s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "c".  /* RECID compatible index */
+            IF s_ttb_idx.hlp_fld# = 2 THEN assign s_ttb_tbl.ds_msc16 = 2.
+          END.
 
-            IF s_ttb_idx.pro_uniq THEN DO:
-             IF s_ttb_idx.hlp_mand AND NOT pkfound THEN DO:
+          IF s_ttb_idx.pro_uniq THEN DO:
+             IF s_ttb_idx.hlp_mand AND NOT pkfound THEN 
                 assign pkfound = TRUE
                        s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "p". /* Primary key candidate */
-                /* 2-int ROWID, but not RECID compatible due to surrogate PROGRESS_RECID_UNIQUE */
-                IF (s_ttb_idx.hlp_dtype# = 2) THEN 
-                    assign s_ttb_tbl.ds_msc16 = 1.
-             END.
              IF s_ttb_idx.pro_prim AND s_ttb_idx.pro_uniq_bkp <> s_ttb_idx.pro_uniq AND
-                s_ttb_idx.ds_idx_typ = 1 AND index(s_ttb_idx.ds_msc21,"v") = 0 THEN 
-                  s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "v". /*enforced uniqness on OE PK */
+                s_ttb_idx.ds_idx_typ = 1 AND index(s_ttb_idx.ds_msc21,"v") = 0 AND 
+                s_ttb_idx.proxy_key 
+             THEN s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "v". /*enforced uniqness on OE PK */
           END.
 
        end.     /* for each s_ttb_idx */
@@ -318,7 +320,6 @@ END PROCEDURE.
                                                  s_ttb_idx.hlp_dtype# > 2  or
                                                  (s_ttb_idx.hlp_dtype# = 2 and
                                                  INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
-                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
                                                  s_ttb_idx.proxy_key))
                                            then 1
                                            else if (s_ttb_idx.hlp_dtype# = 2)
@@ -350,7 +351,6 @@ END PROCEDURE.
                                                  s_ttb_idx.hlp_dtype# > 2  or
                                                  (s_ttb_idx.hlp_dtype# = 2 and
                                                  INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
-                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
                                                  s_ttb_idx.proxy_key))
                                            then 1
                                            else if (s_ttb_idx.hlp_dtype# = 2)
@@ -380,7 +380,6 @@ END PROCEDURE.
                                                  s_ttb_idx.hlp_dtype# > 2  or
                                                  (s_ttb_idx.hlp_dtype# = 2 and
                                                  INDEX(s_ttb_idx.ds_msc21,"v") <> 0 or
-                                                 INDEX(s_ttb_idx.ds_msc21,"p") <> 0 or
                                                  s_ttb_idx.proxy_key))
                                            then 1
                                            else if (s_ttb_idx.hlp_dtype# = 2 and
@@ -396,5 +395,13 @@ END PROCEDURE.
          LEAVE.
        END.
    END.
+
+find first s_ttb_idx 
+     where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid and
+           INDEX(s_ttb_idx.ds_msc21,"r") <> 0 and
+           INDEX(s_ttb_idx.ds_msc21,"c") = 0 
+           NO-LOCK NO-ERROR.
+IF AVAILABLE s_ttb_idx AND  s_ttb_tbl.ds_msc16 <> 2 THEN /* RECID incompatible index */
+   ASSIGN s_ttb_tbl.ds_msc16 = 1.
 
 /*------------------------------------------------------------------*/

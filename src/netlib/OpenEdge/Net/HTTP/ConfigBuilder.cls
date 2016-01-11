@@ -117,6 +117,42 @@ class OpenEdge.Net.HTTP.ConfigBuilder use-widget-pool abstract:
         
         return ?.
     end method.
+    
+    /** Returns an option's character array value 
+    
+        @param character The option name
+        @return character[] the value    */
+    method protected character extent GetOptionStringArrayValue(input pcName as character):
+        define variable cValue as character extent no-undo.
+        define variable oArray as JsonArray no-undo.
+        define variable iLoop as integer no-undo.
+        define variable iMax as integer no-undo.
+        
+        define buffer ConfigOption for ConfigOption.
+         
+        Assert:NotNullOrEmpty(pcName, 'Config name').
+
+        find ConfigOption where
+             ConfigOption.ParentBuilder eq integer(this-object) and
+             ConfigOption.ConfigName    eq pcName 
+             no-error.
+        if available ConfigOption then
+        do:
+            Assert:Equals(ConfigOption.ValueType, 'object':u).
+            Assert:IsType(ConfigOption.ObjectValue, get-class(JsonArray)).
+            
+            assign oArray = cast(ConfigOption.ObjectValue, JsonArray).
+            if valid-object(oArray) then
+                assign iMax = oArray:Length
+                       extent(cValue) = iMax.
+            do iLoop = 1 to iMax:
+                assign cValue[iLoop] = oArray:GetCharacter(iloop).
+            end.
+        end.
+        
+        return cValue.
+    end method.
+
 
     /** Returns an option's character value
     

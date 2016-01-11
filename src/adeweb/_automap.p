@@ -498,7 +498,7 @@ PROCEDURE MapFields :
        msg2 =  Msg + "~n~n" +
                "Choose OK to accept the mappings or Cancel to undo them.".
        if OEIDE_CanShowMessage() then
-           Ok = ShowMessageInIDE(msg2,"QUESTION",?,"OK-Cancel",ok).
+           run ShowMessage in hOEIDEService (msg2,"QUESTION",?,"OK-Cancel",input-output ok).
        
        else      
            MESSAGE msg2
@@ -526,7 +526,7 @@ PROCEDURE MapFields :
   IF NumMapped = 0 THEN
   do:
       if OEIDE_CanShowMessage() then
-          ShowOkMessageInIDE(Msg,"INFORMATION",?).
+          run ShowOkMessage in hOEIDEService(Msg,"INFORMATION",?).
       else       
           MESSAGE Msg VIEW-AS ALERT-BOX INFORMATION IN WINDOW ACTIVE-WINDOW.
    end.

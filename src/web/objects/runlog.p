@@ -38,6 +38,9 @@ DEFINE VARIABLE lNoCache  AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE iEtime    AS INTEGER    NO-UNDO.
 
 DEFINE STREAM logger.
+/** webstart.p */
+FUNCTION getEnv                RETURNS CHARACTER
+  (INPUT p_name                 AS CHARACTER) IN web-utilities-hdl.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -221,13 +224,13 @@ PROCEDURE init-config :
   /* Logging.  Not just a canadian thing anymore
   */ 
   ASSIGN 
-    c1      = REPLACE(OS-GETENV("LOG_TYPES":U),";":U,",":U)
+    c1      = REPLACE(getEnv("LOG_TYPES":U),";":U,",":U)
     c1      = (IF c1 EQ "" OR c1 = ? THEN "*":U ELSE c1)
     lRetVal = DYNAMIC-FUNCTION("setAgentSetting":U IN web-utilities-hdl,
                 "Logging":U,"","LogTypes":U,c1).
 
   ASSIGN 
-    c1                  = OS-GETENV("LOG_PATH":U)
+    c1                  = getEnv("LOG_PATH":U)
     FILE-INFO:FILE-NAME = c1 NO-ERROR.
   IF FILE-INFO:FULL-PATHNAME         EQ ? OR 
     INDEX(FILE-INFO:FILE-TYPE,"D":U) LT 1 THEN

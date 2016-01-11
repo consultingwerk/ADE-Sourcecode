@@ -175,9 +175,6 @@ DEFINE FRAME DEFAULT-FRAME
          AT COL 1 ROW 1
     VIEW-AS DIALOG-BOX TITLE "OpenEdge To MS SQL Server Conversion Advanced Options".
 
-IF not recid_verify THEN
-  ASSIGN recidCompat:hidden in frame DEFAULT-FRAME = TRUE.
-
 
 ON CHOOSE OF butt-ok IN FRAME DEFAULT-FRAME 
 DO:
@@ -412,7 +409,7 @@ IF NOT batch_mode THEN
    UPDATE
         migConstraint
         tryPimaryForRowid
-        recidCompat WHEN recid_verify = TRUE
+        recidCompat 
         iRecidOption
         ForRow  WHEN ForRowidUniq = FALSE
         choiceRowid WHEN ForRow = TRUE

@@ -291,9 +291,9 @@ PROCEDURE CheckDupeItem :
         IF p_Duplicate = TRUE THEN
         do:
            &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-               ShowMessageInIDE("This Method Library reference is already in the list and ~n 
+               run ShowOkMessage in hOEIDEService("This Method Library reference is already in the list and ~n 
                                  cannot be added again.",
-                                 "Warning",?,"OK",yes).
+                                 "Warning",?).
     
            &else    
            MESSAGE p_File_Spec SKIP(1)

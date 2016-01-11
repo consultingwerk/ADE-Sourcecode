@@ -1624,9 +1624,12 @@ end procedure.
 procedure SelectWidgetinUI:
     define input parameter pcFile as char no-undo.
     define variable widgetName as char no-undo.
+    define variable parentName as character no-undo.
     assign widgetName = entry(2,pcFile,PARAMETER_DELIMITER)
+           parentName = entry(3,pcFile,PARAMETER_DELIMITER)
            pcFile     = entry(1,pcFile,PARAMETER_DELIMITER).
-    run selectWidgetinUI in FUIB(WidgetName). 
+    
+    run selectWidgetinUI in FUIB(WidgetName, parentName). 
     return "ok".   
 end procedure.
 

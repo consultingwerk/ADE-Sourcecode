@@ -46,8 +46,8 @@ DEFINE VARIABLE old-dictdb    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i             AS INTEGER NO-UNDO.
 DEFINE VARIABLE redo          AS LOGICAL NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL NO-UNDO.
-DEFINE VARIABLE prelCharSem AS LOGICAL NO-UNDO.
-DEFINE VARIABLE preuniTypes AS LOGICAL NO-UNDO.
+DEFINE VARIABLE prelCharSem   AS LOGICAL NO-UNDO.
+DEFINE VARIABLE preuniTypes   AS LOGICAL NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                            INITIAL "For field widths use:"
                            FORMAT "x(20)" NO-UNDO.
@@ -92,7 +92,7 @@ FORM
   ora_collname FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
      LABEL "Collation Name" COLON 38 SKIP({&VM_WID})
   ora_varlen FORMAT ">>>9" 
-    VALIDATE (INPUT ora_varlen > 0,
+    VALIDATE (INPUT ora_varlen > 0, 
               "Maximum char length must be a positive value.") 
          LABEL "Maximum char length"  COLON 38
  /* space(1) lExpandClob view-as toggle-box label "Expand to CLOB"*/ SKIP({&VM_WID})
@@ -174,7 +174,7 @@ PROCEDURE fill_utf:
          ASSIGN ora_varlen:SCREEN-VALUE in frame x = "1000".
    END.
  END.
- ELSE DO:
+ ELSE DO: 
      IF prelCharSem <> lCharSemantics OR preuniTypes <> unicodeTypes THEN DO:  /* PSC00321497 */
      /*  UTF- codepage without UseUnicode or CharSemantics is a valid scenario */
        IF ora_varlen:SCREEN-VALUE in frame x <> "4000" THEN DO:
@@ -182,7 +182,7 @@ PROCEDURE fill_utf:
           MESSAGE "Without Char Semantics OR Use Unicode Types, the Maximum char length has been reset to 4000 with Codepage: " ora_codepage:SCREEN-VALUE in frame x SKIP
                 VIEW-AS ALERT-BOX WARNING BUTTONS OK.
        END.
-     END. 
+     END.
  END.
 END PROCEDURE.
 

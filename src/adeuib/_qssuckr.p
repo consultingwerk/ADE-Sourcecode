@@ -199,7 +199,7 @@ ASSIGN
 /* If import mode is Window-Silent or Synch-Silent turn notVisual to true.  */
 /* This supports the reading in of windows that don't visualize for batch */
 /* processing of multiple windows. */
-/* Synch-Silent is set to also avoid database connect check when opening */
+/* Synch-Silent is set to also avoid database connect check when opening (adeuib/vrfyimp.i) */
 /* as part of _uibmain.p ide_syncFromAppbuilder (when not open in design)  */
 IF import_mode = "Window-Silent":U or import_mode = "Synch-Silent":U THEN 
 DO:
@@ -457,6 +457,7 @@ IF file_version BEGINS "WDT_v2":U THEN DO:
   /* If Treeview design window, refresh the Treeview. */
   RUN TreeViewUpdate.
   _h_win:VISIBLE = TRUE.
+  
   IF _h_win:MOVE-TO-TOP() THEN 
     APPLY "ENTRY":U TO _h_win.
     
@@ -1243,7 +1244,7 @@ RUN TreeviewUpdate.
 RUN setRepositoryObject.
 
 RETURN.
-
+   
 /****************************** Internal Procedures ***************************/
 
 

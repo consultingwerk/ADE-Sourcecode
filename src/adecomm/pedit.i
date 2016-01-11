@@ -46,7 +46,7 @@ PROCEDURE EditUndo.
   
 END PROCEDURE.  /* EditUndo. */
 
-&ENDIF
+&ENDIF 
 
 
 PROCEDURE EditCut.

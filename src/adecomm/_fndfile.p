@@ -352,8 +352,8 @@ DO:
   /* Make sure the file name is valid. */
   IF SEARCH(pAbsoluteFileName) EQ ? AND pfilename NE "" THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("The file does not exist or cannot be located.",
-                           "Warning",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("The file does not exist or cannot be located.",
+                           "Warning",?).
       
     &else  
     MESSAGE pFileName SKIP
@@ -404,8 +404,8 @@ DO:
   DO i = 1 TO ItemCnt:
     IF i > 10 THEN DO:
        &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-          ShowMessageInIDE("Only first ten file types will be used as filters.",
-                           "Information",?,"OK",yes).
+          run ShowOkMessage in hOEIDEService("Only first ten file types will be used as filters.",
+                           "Information",?).
       
       &else   
       MESSAGE "Only first ten file types will be used as filters." 
@@ -566,9 +566,9 @@ DO:
         IF FILE-INFO:FULL-PATHNAME EQ ? THEN DO:
             IF VALID-HANDLE(h) AND (h:NAME NE "btn_OK" OR h:NAME NE "btn_Help") THEN LEAVE.
              &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-                ShowMessageInIDE(TestValue + "~n Cannot find this file.~n
+                run ShowOkMessage in hOEIDEService(TestValue + "~n Cannot find this file.~n
                                  Please verify that the correct path and filename are given.",
-                                 "Error",?,"OK",yes).
+                                 "Error",?).
       
            &else 
             MESSAGE TestValue SKIP 
@@ -871,8 +871,8 @@ DO WITH FRAME {&FRAME-NAME}:
     DO:
       IF LENGTH(ENTRY(2,FileName,".":U),"raw") > 3 THEN DO:
          &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-                ShowMessageInIDE(ENTRY(2,FileName,".":U) + " file filter is too long for DOS.",
-                                 "Error",?,"OK",yes).
+                run ShowOkMessage in hOEIDEService(ENTRY(2,FileName,".":U) + " file filter is too long for DOS.",
+                                 "Error",?).
       
         &else   
         MESSAGE ENTRY(2,FileName,".":U) "file filter is too long for DOS."
@@ -1240,8 +1240,8 @@ DO WITH FRAME {&FRAME-NAME}:
     RUN ClearContents.
     BELL.
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        ShowMessageInIDE(TRIM(FullFileName) + " could not be loaded successfully.",
-                         "Error",?,"OK",yes).
+        run ShowOkMessage in hOEIDEService(TRIM(FullFileName) + " could not be loaded successfully.",
+                         "Error",?).
       
     &else
     MESSAGE TRIM(FullFileName) "could not be loaded successfully."
@@ -1369,8 +1369,8 @@ PROCEDURE PopulateFileList :
         RUN adecomm/_setcurs.p ("":U).
         SET-SIZE(list-mem) = 0.
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        ShowMessageInIDE("Error in directory search.",
-                         "Error",?,"OK",yes).
+        run ShowOkMessage in hOEIDEService("Error in directory search.",
+                         "Error",?).
       
         &else
         MESSAGE "Error in directory search." 
@@ -1381,9 +1381,9 @@ PROCEDURE PopulateFileList :
       
       IF missed-file > 0 THEN DO:
         &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-        ShowMessageInIDE("Too many files in your directory.~n
+        run ShowOkMessage in hOEIDEService("Too many files in your directory.~n
                           The file list may not be inclusive.",
-                         "Information",?,"OK",yes).
+                         "Information",?).
       
         &else  
         MESSAGE "Too many files in your directory." SKIP

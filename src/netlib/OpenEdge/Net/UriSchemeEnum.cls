@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
  /*------------------------------------------------------------------------
     File        : UriSchemeEnum
@@ -12,21 +12,9 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Net.UriSchemeEnum.
-using OpenEdge.Core.EnumMember.
-
-class OpenEdge.Net.UriSchemeEnum serializable inherits EnumMember:
-    &global-define EnumMembers 
-    
-    {Consultingwerk/EnumMember.i http    0        UriSchemeEnum}
-    {Consultingwerk/EnumMember.i https   1        UriSchemeEnum}
-    {Consultingwerk/EnumMember.i file    2        UriSchemeEnum}
-    {Consultingwerk/EnumMember.i ftp     3        UriSchemeEnum}
-    
-    constructor protected UriSchemeEnum( input piValue as integer, input pcName as character ):
-        super (input piValue, input pcName).
-    end constructor.
-    
-    {Consultingwerk/EnumFromString.i OpenEdge.Net.UriSchemeEnum}
-    
-end class.
+enum OpenEdge.Net.UriSchemeEnum:
+    define enum       http  =  0
+                      https
+                      file
+                      ftp.
+end enum.

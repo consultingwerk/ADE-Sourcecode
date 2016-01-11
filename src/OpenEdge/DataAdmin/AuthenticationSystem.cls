@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2015 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -67,6 +67,22 @@ class OpenEdge.DataAdmin.AuthenticationSystem inherits Entity implements IAuthen
             end.
             isEnabled = isEnabledValue.
         end. 
+        
+        define public property ModuleChecksum as logical no-undo  
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::ModuleChecksum.
+            else
+                return ModuleChecksum. 
+        end.
+        set(checksumValue as logical):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::ModuleChecksum = checksumValue.
+            end.
+            ModuleChecksum = checksumValue.
+        end.
         
         define public property Comments as char no-undo  
         get():

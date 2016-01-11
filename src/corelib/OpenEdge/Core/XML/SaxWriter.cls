@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /* ------------------------------------------------------------------------
     File        : SaxWriter
@@ -31,7 +31,7 @@ class OpenEdge.Core.XML.SaxWriter use-widget-pool:
     define public property WriteStatus as SaxWriteStatusEnum no-undo
         get():
             if valid-handle(mhSaxWriter) then
-                return SaxWriteStatusEnum:EnumFromValue(mhSaxWriter:write-status).
+                return SaxWriteStatusEnum:GetEnum(/* STRING() because of PSC00330756 */ string(mhSaxWriter:write-status)).
         end get.
     
     /** Maps to SAX-WRITER ENCODING attribute. See the ABL documentation for more details. */

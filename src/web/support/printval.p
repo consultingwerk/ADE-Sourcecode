@@ -252,13 +252,17 @@ PROCEDURE PrintAgent:
   /* Agent Specific Information */
   DEFINE VARIABLE state-aware       AS LOGICAL    NO-UNDO FORMAT "YES/NO":U.
   DEFINE VARIABLE transaction-state AS CHARACTER  NO-UNDO.
-
-  RUN find-web-objects IN web-utilities-hdl (OUTPUT state-aware).
-  RUN get-transaction-state IN web-utilities-hdl.
-
-  ASSIGN
-    transaction-state   = RETURN-VALUE
-    FILE-INFO:FILE-NAME = ".":U.
+  
+  if multi-session-agent() then
+  do:
+      RUN find-web-objects IN web-utilities-hdl (OUTPUT state-aware) no-error.
+      if not error-status:error then
+      do:
+          RUN get-transaction-state IN web-utilities-hdl.
+          transaction-state   = RETURN-VALUE.
+      end.
+  end.  
+  FILE-INFO:FILE-NAME = ".":U.
 
   {&OUT}
     "<H2>Agent Specific Information</H2>~n":U

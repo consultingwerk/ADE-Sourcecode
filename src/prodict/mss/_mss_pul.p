@@ -447,6 +447,10 @@ ELSE DO:
     assign mssrecidCompat = s_recidcompat
            mapmssdatetime = s_datetime.
     IF s_primary OR s_recidcompat THEN assign useLegacyRanking = FALSE.
+    /* Indicate to runtime that this is an independent PULL */
+    DO TRANS:
+     RUN STORED-PROC DICTDBG.SendInfo ("msspul-init").
+    END.
 END.
 
 assign
@@ -1756,11 +1760,15 @@ ELSE IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
 
 IF NOT batch-mode
  then SESSION:IMMEDIATE-DISPLAY = no.
-
 RUN adecomm/_setcurs.p ("").
 
 IF NOT batch-mode
  then HIDE FRAME ds_make NO-PAUSE.
+
+ /* Indicate to runtime that this is an independent PULL */
+ DO TRANS:
+   RUN STORED-PROC DICTDBG.SendInfo ("msspul-end").
+ END.
 
 RETURN.
 

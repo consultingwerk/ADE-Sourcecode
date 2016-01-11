@@ -41,6 +41,10 @@ class OpenEdge.Net.HTTP.ResponseBuilder abstract
     /** Each concrete builder will implement this differently */
     define abstract public property Response as IHttpResponse no-undo get.
     
+    destructor public ResponseBuilder():
+        Destroy().
+    end destructor.  
+    
     /** Adds initial values into the registry 
     
         @param BuilderRegistry The registry to populate */

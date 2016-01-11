@@ -17,6 +17,7 @@ using OpenEdge.Core.TimeStamp.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.URI.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
+using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Cookie:
     define public property Name as character no-undo get. private set.
@@ -58,8 +59,8 @@ class OpenEdge.Net.HTTP.Cookie:
         
         if piMaxAge ne ? then
         do:
-            Assert:IsPositive(piMaxAge, 'Cookie max age').
-            assign this-object:ExpiresAt = add-interval(now, piMaxAge, DateTimeAddIntervalEnum:Seconds:Name).
+            Assert:IsZeroOrPositive(piMaxAge, 'Cookie max age').
+            assign this-object:ExpiresAt = add-interval(now, piMaxAge, string(DateTimeAddIntervalEnum:Seconds)).
         end.
         else
             assign this-object:ExpiresAt = ptExpiresAt.
@@ -71,6 +72,18 @@ class OpenEdge.Net.HTTP.Cookie:
         end.
     end constructor.
     
+    method override public logical Equals( input p0 as Object):
+        define variable lEquals as logical no-undo.
+        
+        assign lEquals = super:Equals(input p0).
+        
+        assign lEquals = p0:GetClass() ne get-class(Cookie).
+        if lEquals then    
+           assign lEquals = (cast(p0, Cookie):Name eq this-object:Name).
+        
+        return lEquals.           
+    end method.
+
     /** Creates a Cookie object from the string representation of a cookie.
     
         @param character The cookie in string form, typically from a HTTP
@@ -152,8 +165,7 @@ class OpenEdge.Net.HTTP.Cookie:
                                 cCookie, Timestamp:ToHttpDateFromABL(this-object:ExpiresAt)).
                                 
         if this-object:MaxAge ne ? then
-            assign cCookie = substitute('&1; MaxAge=&2':u,
-                                cCookie, this-object:MaxAge).
+            assign cCookie = substitute('&1; Max-Age=&2':u, cCookie, this-object:MaxAge).
                                 
         if this-object:Secure eq true then
             assign cCookie = substitute('&1; Secure':u, cCookie).
@@ -162,10 +174,9 @@ class OpenEdge.Net.HTTP.Cookie:
             assign cCookie = substitute('&1; HttpOnly':u, cCookie).
         
         if this-object:Version ne ? then
-            assign cCookie = substitute('&1; Version=&2':u,
-                                        cCookie, this-object:Version).
+            assign cCookie = substitute('&1; Version=&2':u, cCookie, this-object:Version).
             
         return cCookie.
     end method.
-      
+    
 end class.

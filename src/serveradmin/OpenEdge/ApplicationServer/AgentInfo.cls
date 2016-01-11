@@ -73,6 +73,16 @@ class OpenEdge.ApplicationServer.AgentInfo :
         else retval = no.
         return retval.
     end method.
+
+    method public logical getAgentStacks (output mptr as memptr):
+      return Progress.ApplicationServer.AgentInfo:GetAgentStacks(output mptr).
+    end method.
+
+    method public logical getAgentSessionStack (input sessid as char,
+                                                output mptr as memptr):
+      return Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid,
+                                                                 output mptr).
+    end method.
     
 end class.
 

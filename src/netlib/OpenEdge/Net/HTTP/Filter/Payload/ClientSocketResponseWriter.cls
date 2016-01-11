@@ -15,9 +15,9 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Util.MathUtil.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpResponse.
@@ -25,18 +25,22 @@ using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
 using Progress.Lang.Object.
-using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 
 class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
-        implements IHttpMessageWriter, ISupportInitialize:
+            implements IHttpMessageWriter:
     
     /* transient variables used to keep parts-of-a-line that span responses */
     define private variable mlcCurrentLine as longchar no-undo.
     define private variable moChunk as ByteBucket no-undo.
-    define private variable miChunkSize as integer no-undo.
-    define private variable miChunkBytesRemaining as integer no-undo.
+    define private variable miChunkSize as int64 no-undo.
+    define private variable miChunkBytesRemaining as int64 no-undo.
     define private variable mlStatusLineRead as logical no-undo.
     define private variable mlHeadersRead as logical no-undo.
+    define private variable miPrevByte as integer no-undo.
+    
+    /* magic numbers */
+    define private property CR as integer init 13 no-undo get.
+    define private property LF as integer init 10 no-undo get.
     
     /* the message body, passed-in */
     define protected property MessageBody as ByteBucket no-undo get. private set.
@@ -55,34 +59,31 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         Assert:NotNull(poMessage, 'Http Response').
         Assert:NotNull(poMessageBody, 'Message body').
         
-        assign Response = poMessage
+        assign this-object:Response    = poMessage
                this-object:MessageBody = poMessageBody
-               moChunk = ByteBucket:Instance().
-    end method.
-    
-    /* Initializer/Startup */
-    method public void Initialize():
-        assign mlStatusLineRead = false
-               mlHeadersRead    = false
-               mlcCurrentLine   = '':u
-               miChunkSize      = ?
+               moChunk                 = ByteBucket:Instance()
                .
-        fix-codepage(mlcCurrentLine) = 'utf-8':u.
-    end method.
-    
-    /* Destroy/Shutdown/Anti-Initializer */
-    method public void Destroy():
-        moChunk:Clear().
+        /* http://tools.ietf.org/html/rfc2616#page-27
+           Section 3.7.1 Canonicalization and Text Defaults says to use ISO-8859-1 */
+        fix-codepage(mlcCurrentLine) = 'ISO8859-1':u.
     end method.
     
     /**  Closes the output. See Open() */
     method public void Close():
-        /* no-op */
+        moChunk:Clear().
     end method.
 
     /** Opens the writer for output. Open/Close allows us to write the same message multiple
         times without requiring a new writer each time. */
     method public void Open():
+        assign mlcCurrentLine        = '':u
+               miChunkSize           = 0
+               miChunkBytesRemaining = 0
+               mlStatusLineRead      = false
+               mlHeadersRead         = false
+               miPrevByte            = 0
+               .
+        moChunk:Clear().
         this-object:MessageBody:Clear().
     end method.
     
@@ -90,14 +91,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         
         @param Object Data to write */
     method public void Write(input poData as Object):
-        define variable iBytesRead as integer no-undo.
-        define variable iLoop as integer no-undo.
+        define variable iBytesRead as int64 no-undo.
+        define variable iLoop as int64 no-undo.
         define variable iByte as integer no-undo.
-        define variable iStartByte as integer no-undo.
-        define variable iPrevByte as integer no-undo.
-        define variable iNumBytes as integer no-undo.
-        define variable iChunkSize as integer no-undo.
-        define variable iPos as integer no-undo.
+        define variable iStartByte as int64 no-undo.
+        define variable iNumBytes as int64 no-undo.
+        define variable iPos as int64 no-undo.
         define variable oTempData as class Memptr no-undo.
         define variable cName as character no-undo.
         define variable cValue as character no-undo.
@@ -111,15 +110,15 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             Per the HTTP 1.1 spec at http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6,
             it has the following format.
             
-            Response      = Status-Line               ; Section 6.1
+            Response      = Status-Line              ; Section 6.1
                            *(( general-header        ; Section 4.5
                             | response-header        ; Section 6.2
                             | entity-header ) CRLF)  ; Section 7.1
                            CRLF
                            [ message-body ]          ; Section 7.2      */        
         assign oSocketArgs = cast(poData, SocketReadEventArgs)
-               iBytesRead = oSocketArgs:BytesRead
-               iStartByte = 1.
+               iBytesRead  = oSocketArgs:BytesRead
+               iStartByte  = 1.
         
         /* first line is the status line */
         do while not mlStatusLineRead:
@@ -135,18 +134,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 assign iByte     = oSocketArgs:Data:GetByte(iLoop)
                        iNumBytes = iNumBytes + 1.
                 /* don't count the CR/LF as bytes */
-                if iByte eq 13 or iByte eq 10 then
+                if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
                                        
                 /* if we're at the end of our chunk of data, or we have hit 
                    the carriage return */
-                if (iPrevByte eq 13 /*CR*/ and iByte eq 10 /*LF*/ ) or 
+                if (miPrevByte eq CR and iByte eq LF ) or 
                    iLoop eq iBytesRead then
                     assign mlStatusLineRead = true
                            mlcCurrentLine   = mlcCurrentLine 
                                             + oSocketArgs:Data:GetString(iStartByte, iNumBytes)
                            iNumBytes = 0.
-                assign iPrevByte = iByte.
+                assign miPrevByte = iByte.
             end. /* byte loop */
             
             assign iStartByte = iLoop.
@@ -154,15 +153,13 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             if mlStatusLineRead then
             do:
                 /* assumption is that we're getting at least the status line in a chunk */
-                assign cValue = substring(mlcCurrentLine, 1, 8).             
-                Response:Version = cValue.
-                
-                Response:StatusCode = integer(substring(mlcCurrentLine, 10, 3)).
-                assign cValue = substring(mlcCurrentLine, 14).
-                Response:StatusReason = cValue.
-                assign mlcCurrentLine = '':u
+                assign this-object:Response:Version      = substring(mlcCurrentLine, 1, 8)
+                       this-object:Response:StatusCode   = integer(substring(mlcCurrentLine, 10, 3))
+                       this-object:Response:StatusReason = substring(mlcCurrentLine, 14)
+                       
+                       mlcCurrentLine = '':u
                        /* read the status line again? */
-                       mlStatusLineRead = (not Response:StatusCode eq StatusCodeEnum:Continue:Value).
+                       mlStatusLineRead = (not Response:StatusCode eq integer(StatusCodeEnum:Continue)).
             end.
         end. /* do while not read */
         
@@ -175,19 +172,19 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                        iNumBytes = iNumBytes + 1.
                 
                 /* don't count the CR/LF as bytes */
-                if iByte eq 13 or iByte eq 10 then
+                if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
                 
                 /* if we're at the end of our chunk of data, or we have hit 
                    the carriage return */
-                if (iPrevByte eq 13 /*CR*/ and iByte eq 10 /*LF*/ ) or 
+                if (miPrevByte eq CR and iByte eq LF ) or 
                    iLoop eq iBytesRead then
                 assign mlcCurrentLine = mlcCurrentLine
                                       /* start at the beginning of this word/token. */
                                       + oSocketArgs:Data:GetString(iLoop - (iNumBytes + 1), iNumBytes).
                 
                 /* if we're at the end of the line, add the header to the response */
-                if iByte eq 10 and iNumBytes gt 0 then
+                if iByte eq LF and iNumBytes gt 0 then
                 do:
                     assign iPos   = index(mlcCurrentLine, ':':u)
                            cName  = substring(mlcCurrentLine, 1, iPos - 1)
@@ -204,10 +201,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                    NOTE: usually we check for line ending by having CR+LF. Here we
                    check for LF then CR since that means the first byte following a
                    LF is another line ending (CR). */
-                if iByte eq 13 /*CR*/ and iPrevByte eq 10 /*LF*/ then
+                if iByte eq CR and miPrevByte eq LF then
                     assign mlHeadersRead = true.
                             
-                assign iPrevByte = iByte.
+                assign miPrevByte = iByte.
             end. /* byte loop */
             
             /* start on the next (non-CR character) */
@@ -222,7 +219,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         if mlHeadersRead then
         do:
             case Response:TransferEncoding:
-                when TransferEncodingEnum:Chunked:Name then
+                when string(TransferEncodingEnum:Chunked) then
                 do:
                     /** From http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1, the
                         HTTP Server returns chunked data in the following format: 
@@ -243,7 +240,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         
                         /* if we're at the end of our incoming chunk of data, or we have hit 
                            the carriage return, cache the data until we actually have
-                           jit the line end */
+                           hit the line end */
                            
                            /* we only care about line endings for the case where we 
                               need to figure out the chunk size (ie miChunkSize eq 0).
@@ -257,20 +254,29 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         do:
                             /* don't count the CR/LF as bytes for calculating the
                                chunk size. */
-                            if iByte eq 13 or iByte eq 10 then
+                            if iByte eq CR or iByte eq LF then
                                 assign iNumBytes = iNumBytes - 1.
                             
                             /* gather data */
-                            if ((iPrevByte eq 13 /*CR*/ and iByte eq 10 /*LF*/) or
+                            if ((miPrevByte eq CR and iByte eq LF) or
                                  /* end of input data */
-                                 iLoop eq iBytesRead) and iNumBytes gt 0 then
-                                /* this data does not contain CR+LF */
-                                moChunk:PutBytes(
-                                            oSocketArgs:Data:GetBytes(iLoop - (iNumBytes + 1), iNumBytes)).
-                            
-                            /* figure out how big the chunk is */
-                            if iByte eq 10 /* LF */ and iNumBytes gt 0 then
+                                 iLoop eq iBytesRead) and 
+                               iNumBytes gt 0 then
                             do:
+                                /* If the few chars are CR or LF then discard those characters. */
+                                assign iPos = iLoop - iNumBytes + 1.
+                                if iByte eq LF or iByte eq CR then
+                                    assign iPos = iPos - 1.
+                                
+                                if miPrevByte eq CR then
+                                    assign iPos = iPos - 1.
+                                
+                                moChunk:PutBytes(oSocketArgs:Data:GetBytes(iPos, iNumBytes)).
+                            end.
+                                                                        
+                            /* figure out how big the chunk is */
+                            if iByte eq LF and moChunk:Size gt 0 then
+                            do on error undo, throw:
                                 assign cValue       = moChunk:GetString(1, moChunk:Size)
                                        /* we dont care about the chunk-extension */
                                        cValue       = entry(1, cValue, ';':u)
@@ -299,47 +305,51 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                                input data, or the data of the chunk size */
                             assign iNumBytes = min(miChunkBytesRemaining, iBytesRead - iStartByte + 1).
                             if iNumBytes gt 0 then
+                            do:
                                 assign oTempData = oSocketArgs:Data:GetBytes(iStartByte, iNumBytes)
                                        /* only a few more bytes to go ... */
                                        miChunkBytesRemaining = miChunkBytesRemaining - oTempData:Size
                                        /* we don't need to loop through this chunk any more. start
                                           at the first byte after the chunk */
-                                       iLoop = iLoop + iNumBytes
-                                       .
+                                       iLoop = iLoop + iNumBytes.
+                                
+                                /* add to the main body */
+                                MessageBody:PutBytes(oTempData).
+                                Response:ContentLength = integer(MessageBody:Size).
+                            end.
+                            
                             if miChunkBytesRemaining eq 0 then
                                 assign /* reset the num bytes read for the chunk-size line */
                                        iNumBytes = 0.
-                            
-                            /* add to the main body */
-                            MessageBody:PutBytes(oTempData).
-                            Response:ContentLength = integer(MessageBody:Size).
                         end.
                         
-                        assign iPrevByte = iByte.
+                        assign miPrevByte = iByte.
                     end.    /* byte loop */
                 end.    /* TransferEncodingEnum:Chunked */         
                 otherwise
                 do:
                     /* we know this isn't chunked data. some responses have no body,
                        so stop right here. */
-                    assign oSocketArgs:ReadComplete = (Response:ContentLength eq 0).
+                    assign oSocketArgs:ReadComplete = (Response:ContentLength eq 0) or 
+                                                      (iBytesRead eq 0) or
+                                                      /* certain requests - I'm lookin' at you, HEAD - have a positive 
+                                                         Content-Length but not body. Deal with it by making sure there's 
+                                                         data beyond where we currently are. */
+                                                      (iStartByte gt iBytesRead)
+                                                      .
                     if not oSocketArgs:ReadComplete then
                     do:
-                        if iBytesRead eq 0 then
-                            oSocketArgs:ReadComplete = true.                                
-                        else
-                        do:
-                            /* get it all in one fell swoop (not chunked) */
-                            oTempData = oSocketArgs:Data:GetBytes(
-                                              iStartByte, 
-                                              iBytesRead - iStartByte + 1).
-                            
-                            MessageBody:PutBytes(oTempData).
-                            /* done if the ContentLength property matches the size of the data */                                
-                            oSocketArgs:ReadComplete = (MessageBody:Size eq Response:ContentLength).                                
-                        end.
+                        /* get it all in one fell swoop (not chunked) */
+                        oTempData = oSocketArgs:Data:GetBytes(
+                                          iStartByte, 
+                                          iBytesRead - iStartByte + 1).
+                        
+                        MessageBody:PutBytes(oTempData).
+                        
+                        /* done if the ContentLength property matches the size of the data */                                
+                        oSocketArgs:ReadComplete = (MessageBody:Size eq Response:ContentLength).                                
                     end.
-                end.
+                end.    /* no Transfer-Encoding */
             end case.   /* body: iByte */
         end.    /* read body */
     end method.

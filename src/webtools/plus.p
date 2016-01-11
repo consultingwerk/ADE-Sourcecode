@@ -242,7 +242,7 @@ FUNCTION fTrim RETURNS CHARACTER
 
 /* ***************************  Main Block  *************************** */
 ASSIGN
-  cDLC      = OS-GETENV('DLC').
+  cDLC      = getEnv('DLC').
 IF (cDLC = "" OR cDLC = ? ) AND OPSYS = "win32" THEN 
   GET-KEY-VALUE SECTION "Startup" KEY "DLC" VALUE cDlc.
 IF cDLC = "" OR cDLC = ? THEN 
@@ -411,7 +411,6 @@ FUNCTION fFooter RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-
   {&OUT} 
     '</FORM></BODY></HTML>~n'.
 
@@ -431,6 +430,7 @@ FUNCTION fHeader RETURNS CHARACTER
   Purpose:  Generic look and feel
     Notes:  
 ------------------------------------------------------------------------------*/
+ 
   {&OUT} 
     '<HTML>~n<HEAD>~n<TITLE>' cFormTitle '</TITLE>~n'
     '<META NAME="author" CONTENT="POSSE Developer">~n'

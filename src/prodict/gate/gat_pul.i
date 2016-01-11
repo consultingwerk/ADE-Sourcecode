@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2015 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -181,6 +181,7 @@ DEFINE VARIABLE s               AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_tmp           AS CHARACTER NO-UNDO INIT ?.
+DEFINE VARIABLE opstype         AS CHARACTER NO-UNDO INIT ?.
 
 /*define variable shadow_col    as character no-undo.*/
 define variable spclvar         as character no-undo.
@@ -376,6 +377,7 @@ assign
   l_logi-types     = "LOGICAL"
   l_tmst-types     = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
   l_link           = user_env[25]
+  opstype          = user_env[37]
   user_env         = "" /* yes this is destructive, but we need the -l space */
   user_env[25]     = l_link
   l_link           = s_ttb_link.master + s_ttb_link.name
@@ -900,7 +902,13 @@ for each gate-work
    
 /*---------------------------- CONSTRAINTS -----------------------------*/
 
+   /* 
+    * PSC00336284:Pull the disable constraint only during migration,
+    * Do not pull if its independent pull because it will not have
+    * crossponding index.
+    */
    FOR EACH ds_cons WHERE ds_cons.OBJ# = onum:
+     IF opstype = "IP" AND ds_cons.enabled = ? THEN NEXT. 
      FIND FIRST ds_constraint WHERE ds_constraint.CON# = ds_cons.CON# no-lock no-error. 
     
      FOR EACH ds_cons-fld WHERE ds_cons-fld.CON# = ds_cons.CON#:

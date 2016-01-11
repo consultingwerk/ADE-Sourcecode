@@ -107,8 +107,8 @@ DO:
   IF NOT AVAILABLE _P THEN
   DO:
       if OEIDEisRunning then
-      ShowMessageInIDE("Unable to start Property sheet.",
-                       "Error","?","OK",YES).
+      run ShowOkMessage in hOEIDEService("Unable to start Property sheet.",
+                       "Error",?).
       else                 
          MESSAGE "Unable to start Property sheet."
          VIEW-AS ALERT-BOX ERROR.
@@ -175,8 +175,8 @@ DO:
     ELSE
     do:
       if OEIDEisRunning then
-      ShowMessageInIDE("Property sheet cannot be displayed. There are no objects in this design window.",
-                       "Information","?","OK",YES).
+      run ShowOkMessage in hOEIDEService("Property sheet cannot be displayed. There are no objects in this design window.",
+                       "Information",?).
       else                   
       MESSAGE "Property sheet cannot be displayed. There are no objects in this design window."
              VIEW-AS ALERT-BOX INFORMATION.
@@ -199,8 +199,8 @@ DO:
   IF CAN-FIND (_TRG WHERE _TRG._wRecid = RECID(_U) AND _TRG._tEvent = "OPEN_QUERY") THEN
   DO:
     if OEIDEisRunning then
-      ShowMessageInIDE("A freeform query can only be modified via the Text Editor.",
-                       "Information","?","OK",YES).
+      run ShowOkMessage in hOEIDEService("A freeform query can only be modified via the Text Editor.",
+                       "Information",?).
     else                     
     MESSAGE "A freeform query can only be modified via the Section Editor."
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.

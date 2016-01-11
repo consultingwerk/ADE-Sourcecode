@@ -18,8 +18,12 @@ using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.DefaultHeaderBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
+using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Net.HTTP.SemicolonParamHeaderBuilder.
 
-class OpenEdge.Net.HTTP.HttpHeaderBuilder abstract: 
+class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder 
+            abstract: 
+                
     define protected property HeaderName as character no-undo get. private set.
                 
     /** Registry for mapping build types to their implementations */
@@ -43,6 +47,10 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder abstract:
         
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
+        poRegistry:Put('Content-Type':u, get-class(SemicolonParamHeaderBuilder)).
+        poRegistry:Put('Content-Disposition':u, get-class(SemicolonParamHeaderBuilder)).
+        poRegistry:Put('Cookie':u, get-class(SemicolonParamHeaderBuilder)).
+        
         /* default builder */
         poRegistry:Put('*':u, get-class(DefaultHeaderBuilder)).
     end method.
@@ -79,6 +87,24 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder abstract:
         
         @param character The complete (unparsed) header value
         @return HttpHeaderBuilder The current builder object. */
-    method abstract public HttpHeaderBuilder Value(input pcValue as character).
-    
+    method public HttpHeaderBuilder Value(input pcValue as character):
+        Assert:NotNull(pcValue, 'Header value').
+        
+        SetOption('hdrValue':u, pcValue). 
+        
+        return this-object.
+    end method.
+
+    /* Sets the header's parameter delimiter
+       
+       @param character The delimter to use between parameters
+       @return HttpHeaderBuilder The current builder object. */
+    method public HttpHeaderBuilder ParametersDelimitedBy(input pcDelim as character):
+        Assert:NotNullOrEmpty(pcDelim, 'Parameter delimiter').
+        
+        SetOption('paramDelimiter':u, pcDelim).
+        
+        return this-object.
+    end method.
+     
 end class.
