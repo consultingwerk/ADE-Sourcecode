@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -84,6 +84,7 @@ History:
     fernando    06/11/07 Unicode support for ORACLE
     fernando    04/08/08 Datetime support for ORACLE
     knavneet    08/14/08 OE00170417
+    rkumar      24/06/08 OE00178256- iSeries Access ODBC driver
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -1037,7 +1038,8 @@ if user_env[25] begins "AUTO"
     IF user_dbtype = "ODBC" THEN DO:
         FIND FIRST DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db NO-ERROR.
         IF AVAILABLE DICTDB._Db THEN
-            is_as400 = INDEX(DICTDB._Db._Db-misc2[5],"AS/400") > 0.
+            is_as400 = INDEX(DICTDB._Db._Db-misc2[5],"AS/400") > 0 OR
+                       INDEX(DICTDB._Db._Db-misc2[5],"DB2/400") > 0.
     END.
 
     RUN "prodict/gui/_guigge1.p" (INPUT edbtyp, INPUT "Compare", is_as400).

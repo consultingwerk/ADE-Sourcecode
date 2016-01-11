@@ -2932,7 +2932,7 @@ ACCESS_LEVEL=PRIVATE
                         assign ttProperty.PropertyName = 'ObjectName'
                                ttProperty.PropertyOwner = ttInstance.InstanceName
                                ttProperty.ForceSet = no
-                               ttProperty.UseInList = yes
+                               ttProperty.UseInList = no    /* OE00187820 */
                                ttProperty.PropertyValue = ttInstance.InstanceName
                                ttProperty.DataType = 'Character'.
                     end.    /* Has ObjectName attribute */
@@ -3725,6 +3725,17 @@ ACCESS_LEVEL=PUBLIC
            However, we must pass in LogicalObjectName so that pgen'ed objects
            are run. */
         cValue = 'LogicalObjectName' + chr(4) + ttInstance.ObjectName.
+        
+        /* OE00187820: ObjectName is required for setting the InstanceNames property on the container.
+           Since we now always set ObjectName here (pass in to constructObject), there's no need
+           to have it in the instance setters. */
+        find ttProperty where
+             ttProperty.PropertyOwner = ttInstance.InstanceName and
+             ttProperty.PropertyName = 'ObjectName'
+             no-error.
+        if available ttProperty then
+            cValue = cValue + chr(3) + 'ObjectName' + chr(4) + ttProperty.PropertyValue.
+        
         dynamic-function('setTokenValue' in target-procedure,
                          'InstanceInstanceProperties',
                          quoter(cValue)).

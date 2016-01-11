@@ -71,7 +71,8 @@ DEFINE VARIABLE broker_url        AS CHAR    FORMAT "X(256)" NO-UNDO.
 DEFINE VARIABLE OCX-file          AS CHAR    FORMAT "X(256)" NO-UNDO.
 DEFINE VARIABLE save_name         AS CHAR    FORMAT "X(256)" NO-UNDO.
 DEFINE VARIABLE short_name        AS CHAR    FORMAT "X(256)" NO-UNDO.
-
+DEFINE VARIABLE button_diff       AS DECIMAL NO-UNDO.
+  
 DEFINE VARIABLE l_can-run         AS LOGICAL NO-UNDO.
 DEFINE VARIABLE l_OCX-file        AS LOGICAL NO-UNDO.
 
@@ -94,6 +95,7 @@ DEFINE VARIABLE h_btn_pproc       AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_pages       AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_ttbls       AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_btn_userfields  AS WIDGET-HANDLE           NO-UNDO.
+DEFINE VARIABLE h_btn_declarative AS WIDGET-HANDLE           NO-UNDO.
 DEFINE VARIABLE h_side_label      AS WIDGET-HANDLE           NO-UNDO.
 
 DEFINE VARIABLE isSmartData	      AS LOGICAL NO-UNDO.
@@ -134,7 +136,9 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
                          CAN-FIND(FIRST _TRG WHERE _TRG._pRECID   eq RECID(_P) 
                                                AND _TRG._tSECTION eq "_PROCEDURE":U
                                                AND _TRG._tEVENT   eq "process-web-request":U)).
-      
+  
+  button_diff = IF isWebObject THEN .25 ELSE .75.
+
   IF NOT RETRY THEN DO:
     DEFINE FRAME {&FRAME-NAME}
          rect-pal          AT ROW 1.13  COL 70
@@ -175,6 +179,7 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
                               VIEW-AS TOGGLE-BOX LABEL "App&Server Aware"
          _P._partition   VIEW-AS COMBO-BOX SIZE 30.8 BY 1 COLON 36 
                                    FORMAT "X(25)" LABEL "Partition"
+  
        WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER
             SIDE-LABELS SIZE 79.5 BY 16
             TITLE "Procedure Settings" THREE-D.
@@ -202,7 +207,8 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
            icon-wp = btn_libraries:WIDTH-P IN FRAME {&FRAME-NAME}.
 
     /* *************************** Generate Needed Widgets ************************** */
-
+ 
+     
     /* Set up the stuff at the top of the property sheet --- NON-toggle stuff         */         
     RUN create_top_stuff.
 
@@ -225,7 +231,10 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
     IF h_btn_userfields NE ? THEN
       ASSIGN stupid   = h_btn_userfields:MOVE-AFTER(last-tab)
              last-tab = h_btn_userfields.
-
+    IF h_btn_declarative NE ? THEN
+      ASSIGN stupid   = h_btn_declarative:MOVE-AFTER(last-tab)
+             last-tab = h_btn_declarative.
+        
     {adecomm/okbar.i}
 
     ASSIGN b_adv:ROW = btn_cancel:ROW
@@ -235,6 +244,7 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
            
     ASSIGN FRAME {&FRAME-NAME}:DEFAULT-BUTTON = btn_OK:HANDLE IN FRAME {&FRAME-NAME}
            rect-pal:HEIGHT                    = btn_ok:ROW - 2. 
+
 
   END.  /* IF NOT RETRY */
 
@@ -602,7 +612,7 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
           _P._DESC    
           OCX-file     WHEN l_OCX-file
           _P._app-srv-aware
-      WITH FRAME {&FRAME-NAME}.
+     WITH FRAME {&FRAME-NAME}.
   IF l_can-run 
   THEN DISPLAY compile-into _P._compile WITH FRAME {&FRAME-NAME}.
 
@@ -614,7 +624,7 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   RUN adecomm/_setcurs.p ("").
   
   WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.  
-    
+  
   /* Check that any paging information that was changed */
   IF lPagesEditted THEN RUN Check_Page_Change.
   IF isSmartData THEN DO WITH FRAME {&FRAME-NAME}:
@@ -682,9 +692,6 @@ END PROCEDURE.
 
 /* Generate the non-toggle attribute widgets           */
 PROCEDURE create_top_stuff:        
-  DEFINE VARIABLE button_diff AS DECIMAL NO-UNDO.
-  
-  ASSIGN button_diff = IF isWebObject THEN .25 ELSE .75.
 
   /* Create all the buttons */
       /* Edit Preprocessor Variables Button */
@@ -764,6 +771,22 @@ PROCEDURE create_top_stuff:
             END TRIGGERS.
       ASSIGN stupid = h_btn_userfields:LOAD-IMAGE({&ADEICON-DIR} + "userflds" +
                                                   "{&BITMAP-EXT}",0,0,28,28).
+                                                  
+                                                  /* User Fields Button */
+      CREATE BUTTON h_btn_declarative
+           ASSIGN FRAME       = FRAME {&FRAME-NAME}:HANDLE
+                  ROW         = h_btn_pages:ROW + h_btn_pages:HEIGHT + button_diff
+                  X           = btn_libraries:X
+                  HEIGHT-P    = icon-hp
+                  WIDTH-P     = icon-wp
+                  SENSITIVE   = TRUE  
+                  LABEL       = "&Declarative statements"
+                  TOOLTIP     = "Declarative statements that must come before definitions and executable statements."
+            TRIGGERS:
+              ON CHOOSE PERSISTENT RUN adeuib/_editdecl.w (ph_win).
+            END TRIGGERS.
+      ASSIGN stupid = h_btn_declarative:LOAD-IMAGE({&ADEICON-DIR} + "declarations" +
+                                                  "{&BITMAP-EXT}",0,0,28,28).
 END. /* PROCEDURE create_top_stuff */
 
 PROCEDURE sensitize:
@@ -776,7 +799,6 @@ PROCEDURE sensitize:
      know enough to set DB-AWARE in their templates will know enough how to
      properly set AppServer-Aware in their templates.                       */
   _P._app-srv-aware:SENSITIVE IN FRAME {&FRAME-NAME} = NOT _P._DB-Aware.
-
   IF isSmartData THEN DO WITH FRAME {&FRAME-NAME}:
     DISPLAY _P._partition.
     _P._partition:SENSITIVE = TRUE.
@@ -844,43 +866,48 @@ PROCEDURE Adjust_Persist:
 END.
 
 PROCEDURE Adjust_Buttons:   
- DO WITH FRAME {&FRAME-NAME}:    
-
-  /* Both to be hidden */
-  IF NOT CAN-DO(_P._links,"Page-Target") AND NOT CAN-DO (_P._ALLOW,"Smart") THEN DO: 
-    ASSIGN h_btn_pages:HIDDEN  = yes
-           h_btn_link:HIDDEN   = yes
-    .          
-  END.
-  /* Hide Links - move up Pages and Advanced button */
-  ELSE IF CAN-DO(_P._links,"Page-Target") AND NOT CAN-DO (_P._ALLOW,"Smart") THEN DO:
-    ASSIGN h_btn_link:HIDDEN   = yes
-           h_btn_pages:ROW     = h_btn_link:ROW
-           h_btn_pages:HIDDEN  = no.
-  END.
-  /* Hide Pages - move up Adv */
-  ELSE IF NOT CAN-DO(_P._links,"Page-Target") AND CAN-DO (_P._ALLOW,"Smart") THEN DO:
-    ASSIGN h_btn_pages:HIDDEN  = yes
-           h_btn_link:HIDDEN   = no
-    .           
-  END.      
-  /* Both to be displayed */
-  ELSE IF CAN-DO(_P._links,"Page-Target") AND CAN-DO (_P._ALLOW,"Smart") THEN DO: 
-    ASSIGN h_btn_link:HIDDEN   = no
-           h_btn_pages:ROW     = h_btn_link:ROW + h_btn_link:HEIGHT + 1
-           h_btn_pages:HIDDEN  = no.
-  END.
-
-  ASSIGN h_btn_userfields:HIDDEN = (isWebObject = NO).
-  IF isWebObject THEN
-  DO:
-    IF h_btn_link:HIDDEN AND h_btn_pages:HIDDEN THEN
-        ASSIGN h_btn_userfields:ROW = h_btn_link:ROW.
-    ELSE IF h_btn_pages:HIDDEN THEN
-        ASSIGN h_btn_userfields:ROW = h_btn_pages:ROW.
-  END.
-  
- END. /* DO WITH FRAME */
+  DEFINE VARIABLE dRow AS DECIMAL NO-UNDO.
+  DO WITH FRAME {&FRAME-NAME}:    
+      dRow = h_btn_ttbls:ROW.
+      /* Both to be hidden */
+      IF NOT CAN-DO(_P._links,"Page-Target") AND NOT CAN-DO (_P._ALLOW,"Smart") THEN 
+      DO: 
+        ASSIGN h_btn_pages:HIDDEN  = yes
+               h_btn_link:HIDDEN   = yes.            
+      END.
+      /* Hide Links - move up Pages and Advanced button */
+      ELSE IF CAN-DO(_P._links,"Page-Target") AND NOT CAN-DO (_P._ALLOW,"Smart") THEN DO:
+        ASSIGN h_btn_link:HIDDEN   = yes
+               h_btn_pages:ROW     = h_btn_link:ROW
+               h_btn_pages:HIDDEN  = no.
+               dRow = h_btn_pages:ROW.
+      END.
+      /* Hide Pages - move up Adv */
+      ELSE IF NOT CAN-DO(_P._links,"Page-Target") AND CAN-DO (_P._ALLOW,"Smart") THEN DO:
+        ASSIGN h_btn_pages:HIDDEN  = yes
+               h_btn_link:HIDDEN   = no
+               dRow = h_btn_link:ROW.                   
+      END.      
+      /* Both to be displayed */
+      ELSE IF CAN-DO(_P._links,"Page-Target") AND CAN-DO (_P._ALLOW,"Smart") THEN DO: 
+        ASSIGN h_btn_link:HIDDEN   = no
+               h_btn_pages:ROW     = h_btn_link:ROW + h_btn_link:HEIGHT + 1
+               h_btn_pages:HIDDEN  = no.
+               dRow = h_btn_pages:ROW.                   
+     
+      END.
+      dRow = dRow + h_btn_ttbls:HEIGHT + button_diff.
+    
+      ASSIGN h_btn_userfields:HIDDEN = (isWebObject = NO).
+      IF isWebObject THEN
+      DO:
+         ASSIGN 
+            h_btn_userfields:ROW = dRow
+            dRow = dRow + h_btn_userfields:HEIGHT + button_diff.
+      END.
+      ASSIGN h_btn_declarative:ROW = dRow.
+     
+  END. /* DO WITH FRAME */
 END PROCEDURE.   
 
 
@@ -889,9 +916,11 @@ PROCEDURE Adjust_Other.
     DO WITH FRAME {&FRAME-NAME}:
       IF isWebObject THEN DO:
         HIDE {&NOT-WEB-OPTIONS} IN FRAME {&FRAME-NAME}.
+        /* increasing height of desc for appearance */
+        ASSIGN _P._desc:height = _P._DESC:HEIGHT + 3.
         ASSIGN _P._compile:ROW = _P._DESC:ROW + _P._DESC:HEIGHT + 0.25 NO-ERROR.
         ASSIGN _P._compile:X   = save_name:X NO-ERROR.
-        ASSIGN rect-pal:HEIGHT = h_btn_userfields:ROW.
+        ASSIGN rect-pal:HEIGHT = h_btn_declarative:ROW + h_btn_declarative:HEIGHT - rect-pal:ROW.
         ASSIGN btn_OK:ROW      = rect-pal:HEIGHT + 2.25 NO-ERROR.
         ASSIGN btn_Cancel:ROW  = btn_OK:ROW NO-ERROR.
         ASSIGN btn_Help:ROW    = btn_OK:ROW NO-ERROR.
@@ -903,7 +932,8 @@ PROCEDURE Adjust_Other.
                  _P._DESC:ROW     = broker_url:ROW
                  h_side_label     = _P._DESC:SIDE-LABEL-HANDLE
                  h_side_label:ROW = _P._DESC:ROW
-                 _P._compile:ROW  = _P._compile:ROW - adjust.
+                 _P._compile:ROW  = _P._compile:ROW - adjust 
+                 .
       END.
     END.                         
   END.

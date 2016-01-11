@@ -76,6 +76,7 @@ Last Modifed:
 {src/adm2/globals.i}   /* Dynamics global variables                          */
 
 
+
 /* FUNCTION PROTOTYPES */
 FUNCTION db-fld-name RETURNS CHARACTER
   (INPUT rec-type AS CHARACTER, INPUT rec-recid AS RECID) IN _h_func_lib.
@@ -203,6 +204,27 @@ DO:
     END.
 END.
 
+/* First of all, output the users custom DECLARATION code if any
+   This is for statements like using and routine level error that must come 
+   before any other statements like defintions and executions 
+   NOTE: No XFTR block will currently be written before this 
+   (The current block ordering is implemented in a way that 
+    nests blocks using recids for xftr and predefined negative 
+    numbers (adeuib/pre_proc.i) for supported sections. This is a 
+    bit complicated (although possible) to use for a block that 
+    is optional and the need for an xftr before this is rather 
+    unlikely (could in theory be needed if xftr code 
+    should write THIS section, but one might as well replace  
+    this with the xftr in that case)  */
+FIND _TRG  WHERE _TRG._wRECID = RECID(_U) AND
+                 _TRG._tSECTION = "_CUSTOM" AND
+                 _TRG._tEVENT = "_DECLARATIONS" AND
+                 _TRG._STATUS EQ u_status NO-ERROR.
+IF AVAILABLE _TRG THEN DO:
+   PUT STREAM P_4GL UNFORMATTED SKIP(1).
+   RUN put_code_block.
+END. /* If we have the trigger */
+
 /* Write out include and AppServer handles if this is AppServer Aware */
 IF _P._app-srv-aware THEN DO:
   PUT STREAM P_4GL UNFORMATTED "~{adecomm/appserv.i}" SKIP.
@@ -263,7 +285,7 @@ IF CAN-FIND(FIRST _UF WHERE _UF._p-recid = RECID(_P)) THEN DO:
      SKIP
      def-line SKIP (1).
 END.
-
+ 
 /* First Output the users custom DEFINITIONS code (if any)                      */
 FIND _TRG  WHERE _TRG._wRECID = RECID(_U) AND
                  _TRG._tSECTION = "_CUSTOM" AND

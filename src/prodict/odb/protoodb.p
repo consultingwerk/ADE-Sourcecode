@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -39,6 +39,8 @@
                       08/22/07  For db2/400, changing label from Library to Collection/Library and defaulting it to what is specified in the DSN.
           fernando    10/18/07  Make sure pcompatible is mantain disabled after error - OE00134723           
           fernando    08/18/08  Allow COLLECTION for batch - DB2/400
+          rkumar      06/24/09  Added code for iSeries driver- OE00178256
+          rkumar      06/26/09  Added default values for ODBC DataServer- OE00177724
 */            
 
 
@@ -67,6 +69,8 @@ DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand             AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE lCompatible_enabled AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE def_libraries AS CHARACTER INITIAL ""           NO-UNDO.
+DEFINE VARIABLE lodbdef_visible     AS LOGICAL                  NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -118,6 +122,7 @@ FORM
  /*&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
  &ELSE SPACE(23) &ENDIF */
   movedata view-as toggle-box label "Move Data" COLON 38 SKIP({&VM_WID})
+  SPACE(2) odbdef VIEW-AS TOGGLE-BOX label "Include Defaults" SKIP({&VM_WID})
   SPACE(2) cFormat VIEW-AS TEXT NO-LABEL 
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
@@ -167,6 +172,13 @@ END PROCEDURE.
         VIEW-AS ALERT-BOX ERROR.
      RETURN NO-APPLY.
    END.
+
+/* if not changing value, nothing to be done and can't go through or 
+   we will end up undoing the user changes and changing stuff back to
+   their default values */
+   IF codb_type = SELF:SCREEN-VALUE THEN
+      RETURN.
+
    IF input codb_type BEGINS "DB2" OR
       input codb_type BEGINS "MS Acc" OR
       input codb_type BEGINS "MSAcc" OR
@@ -180,6 +192,15 @@ END PROCEDURE.
             pcompatible:screen-value in frame x = "yes".   
 
    ASSIGN lCompatible_enabled = pcompatible.
+
+  IF input codb_type EQ "DB2/400" and lodbdef_visible THEN 
+     ASSIGN odbdef:screen-value in frame x = "no"
+            odbdef = FALSE
+            odbdef:sensitive in frame x = yes.
+   ELSE
+     ASSIGN odbdef:sensitive in frame x = no
+            odbdef = FALSE
+            odbdef:screen-value in frame x = "no".   
 
    IF codb_type:SCREEN-VALUE BEGINS "Oth" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
@@ -210,18 +231,28 @@ END PROCEDURE.
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
+
+/* Retain screen value */
+    odb_type = SELF:SCREEN-VALUE.
  END.
 
  ON ENTRY OF pro_dbname IN FRAME X DO:
-
-   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN
+   IF codb_type:SCREEN-VALUE IN FRAME X EQ "DB2/400" THEN DO:
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
             odb_library:SENSITIVE IN FRAME X = TRUE.
-   ELSE
+     IF  lodbdef_visible THEN 
+         ASSIGN odbdef:SENSITIVE IN FRAME X = TRUE.
+   END. 
+   ELSE DO:
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
+     IF  lodbdef_visible THEN 
+         ASSIGN  odbdef:SENSITIVE         IN FRAME X = FALSE
+                 odbdef:SCREEN-VALUE      IN FRAME X = "NO"
+                 odbdef                              =  no.
+   END.
  END.
 &ENDIF  
 
@@ -229,6 +260,13 @@ END PROCEDURE.
 
  ON VALUE-CHANGED of odb_type IN FRAME x OR
     LEAVE of odb_type IN FRAME x DO :
+
+    /* if not changing value, nothing to be done and can't go through or 
+   we will end up undoing the user changes and changing stuff back to
+   their default values */
+   IF odb_type = SELF:SCREEN-VALUE THEN
+      RETURN.
+
    IF odb_type:screen-value BEGINS "DB2" OR
       odb_type:screen-value BEGINS "MS Acc" OR
       odb_type:screen-value BEGINS "Oth" THEN
@@ -241,6 +279,15 @@ END PROCEDURE.
             pcompatible = TRUE.  
 
    ASSIGN lCompatible_enabled = pcompatible.
+
+  IF odb_type:SCREEN-VALUE EQ "DB2/400" and lodbdef_visible THEN 
+     ASSIGN odbdef:screen-value in frame x = "no"
+            odbdef = FALSE
+            odbdef:sensitive in frame x = yes.
+   ELSE
+     ASSIGN odbdef:sensitive in frame x = no
+            odbdef = FALSE
+            odbdef:screen-value in frame x = "no".   
 
    IF odb_type:SCREEN-VALUE BEGINS "Other(G" THEN
        ASSIGN shadowcol:SENSITIVE IN FRAME X = NO
@@ -258,17 +305,28 @@ END PROCEDURE.
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
+
+    /* Retain screen value */
+    odb_type = SELF:SCREEN-VALUE.
  END.
 
  ON ENTRY OF pro_dbname IN FRAME X DO:
-   IF odb_type EQ "DB2/400" THEN
+   IF odb_type EQ "DB2/400" THEN DO:
      ASSIGN odb_library:HIDDEN    IN FRAME X = FALSE
             odb_library:SENSITIVE IN FRAME X = TRUE.
-   ELSE
+     IF  lodbdef_visible THEN
+         ASSIGN  odbdef:SENSITIVE IN FRAME X = TRUE.
+   END.
+   ELSE DO:
      ASSIGN odb_library:HIDDEN       IN FRAME X = TRUE
             odb_library:SENSITIVE    IN FRAME X = FALSE
             odb_library:SCREEN-VALUE IN FRAME X = ""
             odb_library                         = "".
+     IF  lodbdef_visible THEN
+         ASSIGN  odbdef:SENSITIVE         IN FRAME X = FALSE
+                 odbdef:SCREEN-VALUE      IN FRAME X = "NO"
+                 odbdef                              =  no.
+   END.
  END.
 &ENDIF
   
@@ -280,18 +338,33 @@ END PROCEDURE.
    Also Note: The registry keys & values for SQL qualifier are specific to DataDirect drivers.
    The process for obtaining the appropriate qualifier may change if access to DB2 native
    drivers through the ODBC DataServer is considered in the future */
+ /* OE00178256- In case of iSeries Access ODBC driver, the registry entry with the key 
+    "DefaultLibraries" specifies the iSeries libraries to add to the server job's library list
+    The libraries are delimited by commas or spaces, and *USRLIBL may be used as a 
+    place holder for the server job's current library list. */
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN"
 &THEN
   ON LEAVE of odb_dbname in frame X DO:
   dsn_name = odb_dbname:SCREEN-VALUE.
-  default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
+  IF INDEX(getRegEntry(dsn_name,"Driver"),"cwbodbc.dll") EQ 0 THEN
+       default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
                    getRegEntry(dsn_name,"AlternateID")
                  ELSE (IF getRegEntry(dsn_name,"Collection") <> ? THEN
                    getRegEntry(dsn_name,"Collection")
                  ELSE (IF getRegEntry(dsn_name,"LogOnID") <> ? THEN
                    getRegEntry(dsn_name,"LogOnID")
                  ELSE "" ))).
+  ELSE DO:
+         ASSIGN def_libraries = getRegEntry(dsn_name,"DefaultLibraries").
+                default_lib = (IF def_libraries <> ? AND index(def_libraries,",") EQ 1 THEN
+                                  SUBSTRING(def_libraries,2,index(def_libraries," ") - 1) 
+                               ELSE (IF def_libraries <> ? AND index(def_libraries," ") GE 0 THEN
+                                  SUBSTRING(def_libraries,1,index(def_libraries," ") - 1) 
+                               ELSE (IF def_libraries EQ ? AND getRegEntry(dsn_name,"UserID") <> ? THEN 
+                                  getRegEntry(dsn_name,"UserID")
+                               ELSE ""))).
+  END.
   ASSIGN odb_library:SCREEN-VALUE IN FRAME X = default_lib
          odb_library                         = default_lib.
   END. 
@@ -323,6 +396,13 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
   END.   
 END.  
 
+ON VALUE-CHANGED of odbdef IN FRAME x DO:
+  IF SELF:screen-value = "yes" THEN 
+     ASSIGN odbdef = TRUE.
+  ELSE
+     ASSIGN odbdef = FALSE.
+END.  
+
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
 /*----- HELP in Progress DB to Oracle Database -----*/
 on CHOOSE of btn_Help in frame x
@@ -348,6 +428,8 @@ END.
 
 ASSIGN pcompatible = YES
     lCompatible_enabled = YES.
+ASSIGN odbdef = NO
+    lodbdef_visible = NO.
 
 main-blk:
 DO ON ERROR UNDO main-blk, RETRY main-blk:
@@ -413,6 +495,18 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   ELSE 
     shadowcol = FALSE.
 
+  IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
+    tmp_str      = OS-GETENV("CRTDEFAULT").
+    IF tmp_str BEGINS "Y" then odbdef = TRUE.
+    ELSE odbdef = FALSE.
+  END. 
+
+ /* environment variable OE_SP_CRTDEFAULT enables default values in ODBC */
+  IF OS-GETENV("OE_SP_CRTDEFAULT") <> ? THEN DO:
+    tmp_str      = OS-GETENV("OE_SP_CRTDEFAULT").
+    IF tmp_str BEGINS "Y" then lodbdef_visible = TRUE.
+  END. 
+
   /* Initialize field width choice */
   IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
     tmp_str      = OS-GETENV("SQLWIDTH").
@@ -472,6 +566,11 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
+    IF NOT lodbdef_visible THEN 
+       ASSIGN odbdef:VISIBLE   IN FRAME X =  NO.
+    ELSE
+       ASSIGN odbdef:SENSITIVE IN FRAME X =  YES.
+
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
     
       DISPLAY cFormat lExpand WITH FRAME x.
@@ -490,6 +589,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         shadowcol
         loadsql
         movedata WHEN mvdta
+        odbdef when lodbdef_visible
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
@@ -514,6 +614,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
         shadowcol
         loadsql
         movedata
+        odbdef when lodbdef_visible
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel

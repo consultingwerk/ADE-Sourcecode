@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _cdsuckr.p
@@ -480,7 +480,12 @@ CASE _TRG._tSECTION:
   /* _CUSTOM sections */
   WHEN "_CUSTOM" THEN DO:
     _TRG._tEVENT = _inp_line[3].
-    IF _TRG._tEVENT = "_DEFINITIONS" THEN DO:
+    IF _TRG._tEVENT = "_DECLARATIONS" THEN DO:
+      /* we're not supporting any XFTR before this, so we don't set cur_sect 
+        (see comments where "_DECLARATIONS" is written in gendefs.p ) */    
+      IMPORT STREAM _P_QS UNFORMATTED _inp_line[1].
+    END.
+    ELSE IF _TRG._tEVENT = "_DEFINITIONS" THEN DO:
       def_found = TRUE.
       ASSIGN cur_sect = {&DEFINITIONS}.
       IMPORT STREAM _P_QS UNFORMATTED _inp_line[1].

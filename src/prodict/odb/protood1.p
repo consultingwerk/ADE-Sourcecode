@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2005-2006,2008-2009 by Progress Software Corporation *
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -48,7 +48,7 @@
                D. Slutz  08/10/05 Set dft ext char to __ for DB2 20050531-001
                K. McIntosh  10/25/05 Fixed x8override functionality 20051018-006
                fernando     01/04/06 Handle decimals for DB2/400 20051214-009
-
+               rkumar       06/26/09 Added default values for ODBC DataServer- OE00177724
 */           
 
 { prodict/user/uservar.i }
@@ -65,6 +65,7 @@ DEFINE VARIABLE l_i           AS INTEGER             NO-UNDO.
 DEFINE VARIABLE run_time      AS INTEGER             NO-UNDO.
 DEFINE VARIABLE schname       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE clctn_output  AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE def_enabled   AS LOGICAL             NO-UNDO.
 
 DEFINE STREAM strm.
 
@@ -77,6 +78,12 @@ assign batch_mode    = SESSION:BATCH-MODE
                           "DB2/400 Library:                    " + 
                           odb_library + CHR(10)
                         ELSE "").
+
+ /* environment variable OE_DEFAULT_OPT enables default values in ODBC */
+  IF OS-GETENV("OE_SP_CRTDEFAULT") <> ? THEN DO:
+    tmp_str      = OS-GETENV("OE_SP_CRTDEFAULT").
+    IF tmp_str BEGINS "Y" then def_enabled = TRUE.
+  END. 
 
 IF batch_mode THEN DO:
    PUT STREAM logfile UNFORMATTED
@@ -97,7 +104,12 @@ IF batch_mode THEN DO:
                                                   SKIP
        "Compatible structure:          " pcompatible skip
        "Create objects in ODBC:                " loadsql skip
-       "Moved data to ODBC:                    " movedata skip(2).
+       "Moved data to ODBC:                    " movedata skip.
+   IF def_enabled THEN 
+      PUT STREAM logfile UNFORMATTED 
+       "Include Defaults:                      " odbdef skip(2).
+   ELSE
+      PUT STREAM logfile UNFORMATTED  skip.
 END.
 
 IF loadsql THEN DO:
@@ -184,7 +196,7 @@ ASSIGN user_env[1]   = "ALL"
        user_env[3]   = ""
        user_env[4]   = "n"
        user_env[6]   = "y"
-       user_env[7]   = "n"
+       user_env[7]   = (if odbdef then "y" else "n")
        user_env[8]   = "y"
        user_env[9]   = "ALL"
        user_env[22]  = "ODBC"

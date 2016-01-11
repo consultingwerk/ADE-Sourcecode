@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -37,6 +37,7 @@ History:  DLM 01/28/98 Added call for stored procedures.
      knavneet 08/22/07 For DB2/400, if Db-misc2[1] has no 2nd entry, s_owner is assigned the default Collection specified in DSN reading from registry 
      fernando 05/27/08 Fixing code that looks for existing stored-proc - OE00130417
      fernando 09/24/08 Allow synonyms to be pulled - OE00175227     
+     rkumar   06/24/09 OE00178256- iSeries driver
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -87,6 +88,7 @@ DEFINE VARIABLE sh_max_ver          AS INTEGER NO-UNDO.
 DEFINE VARIABLE is_db2              AS LOGICAL NO-UNDO.
 DEFINE VARIABLE is_as400            AS LOGICAL NO-UNDO.
 DEFINE VARIABLE default_lib         AS CHARACTER NO-UNDO INITIAL "*".
+DEFINE VARIABLE def_libraries       AS CHARACTER NO-UNDO INITIAL "" .
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
   DEFINE VARIABLE dsn_name            AS CHARACTER NO-UNDO.
@@ -305,10 +307,15 @@ FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.
    Also Note: The registry keys & values for SQL qualifier are specific to DataDirect drivers.
    The process for obtaining the appropriate qualifier may change if access to DB2 native
    drivers through the ODBC DataServer is considered in the future */
+/* OE00178256- In case of iSeries Access ODBC driver, the registry entry with the key 
+    "DefaultLibraries" specifies the iSeries libraries to add to the server job's library list
+    The libraries are delimited by commas or spaces, and *USRLIBL may be used as a 
+    place holder for the server job's current library list. */
 
 RUN STORED-PROC DICTDBG.GetInfo (0).
   for each DICTDBG.GetInfo_buffer:
-    is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name), "AS/400") > 0 .
+    is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name), "AS/400") > 0 OR
+               INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name), "DB2/400") > 0.
     if is_as400 THEN
     DO:  
       if NUM-ENTRIES(DICTDB._Db._DB-misc2[1]) > 1 THEN 
@@ -317,13 +324,24 @@ RUN STORED-PROC DICTDBG.GetInfo (0).
       DO:
         &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
           ASSIGN dsn_name    = DICTDB._Db._Db-addr.
-          ASSIGN default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
+          IF INDEX(getRegEntry(dsn_name,"Driver"),"cwbodbc.dll") EQ 0 THEN
+             ASSIGN default_lib = (IF getRegEntry(dsn_name,"AlternateID") <> ? THEN
                      getRegEntry(dsn_name,"AlternateID")
                    ELSE (IF getRegEntry(dsn_name,"Collection") <> ? THEN
                     getRegEntry(dsn_name,"Collection")
                    ELSE (IF getRegEntry(dsn_name,"LogOnID") <> ? THEN
                     getRegEntry(dsn_name,"LogOnID")
                    ELSE "*" ))).
+          ELSE DO:
+             ASSIGN def_libraries = getRegEntry(dsn_name,"DefaultLibraries").
+                    default_lib = (IF def_libraries <> ? AND index(def_libraries,",") EQ 1 THEN
+                                     SUBSTRING(def_libraries,2,index(def_libraries," ") - 1) 
+                                   ELSE (IF def_libraries <> ? AND index(def_libraries," ") GE 0 THEN
+                                     SUBSTRING(def_libraries,1,index(def_libraries," ") - 1) 
+                                   ELSE (IF def_libraries EQ ? AND getRegEntry(dsn_name,"UserID") <> ? THEN 
+                                     getRegEntry(dsn_name,"UserID")
+                                   ELSE "*"))).
+          END.
         &ENDIF
          s_owner = default_lib.
       END. /* END DO: */

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2006,2008,2009 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,6 +41,8 @@
               12/02/08 fernando  Fix for logical and sqlwidth, plus fix for field-misc22  - OE00177587
                                  Properly handle sql-width for extent fields - OE00176198
                                  Handle case where index is re-added - OE00177558
+              07/17/09 nmanchal Trigger changes for MSS(OE00178470)
+              07/17/09 nmanchal Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -543,13 +545,18 @@ PROCEDURE write-tbl-sql:
     
     PUT STREAM tosql UNFORMATTED   
       comment_chars "create trigger " trigname " ON " mss_username "." recididx " for insert as" SKIP
+      comment_chars " RAISERROR (N'PSC-init',0,1) " SKIP    
+      comment_chars " SET XACT_ABORT ON " SKIP    
+      comment_chars " SET LOCK_TIMEOUT -1 " SKIP    
       comment_chars "    if  ( select PROGRESS_RECID from inserted) is NULL " SKIP
       comment_chars "    begin" SKIP
       comment_chars "        update t set PROGRESS_RECID = i.IDENTITYCOL " SKIP
       comment_chars "         from " recididx " t  JOIN inserted i ON " skip
       comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
       comment_chars "        select convert (bigint, @@identity)" SKIP
-      comment_chars "    end" SKIP.    
+      comment_chars "    end" SKIP    
+      comment_chars " SET XACT_ABORT OFF " SKIP    
+      comment_chars " RAISERROR (N'PSC-end',0,1) " SKIP.    
     
     PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
     PUT STREAM tosql UNFORMATTED comment_chars

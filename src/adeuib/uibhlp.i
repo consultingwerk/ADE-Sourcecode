@@ -515,6 +515,9 @@
 /* Help on User Fields (adeuib/_ufmaint.w) */
 &GLOBAL-DEFINE Help_on_User_Fields 28
 
+/* Help on User Fields (adeuib/_editdecl.w) */
+&GLOBAL-DEFINE Help_On_Declarative_Statements  0 /* for patching while waiting for help ..*/
+
 /* Help on DataSource (adeuib/_dlgdsrc.w) */
 &GLOBAL-DEFINE Help_on_DataSource 29
 

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2009 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -179,6 +179,11 @@ prevent future-bugs resulting out of default behaviour <hutegger>
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
   knavneet 09/28/08   Added error handling code to the sequence generator - OE00172741
   rkumar   12/20/08   Added code to generate correct DROP TABLE SQL for ODBC DataServer - OE00177726
+  rkumar   12/20/08   Corrected error-handling code in new-sequence generator- OE00182302
+  rkumar   06/26/09   Added support for default values in ODBC DataServer- OE00177724
+  nmanchal 07/17/09   Trigger changes for MSS(OE00178470)
+  nmanchal 07/20/09   Trigger changes for MSS(OE00178470) to remove WITH NOWAIT
+  nmanchal 07/29/09   To fix MSS unicode migration issues for trigger creation (OE00188693)
 */
 
 { prodict/dictvar.i }
@@ -780,7 +785,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   END.
  /* ELSE IF ( dbtyp <> "Informix" AND dbtyp <> "DB2" AND dbtyp <> "MS ACCESS" )  THEN DO: */
   ELSE DO:
-      PUT STREAM code UNFORMATTED comment_chars "DROP TABLE " n1.
+      PUT STREAM code UNFORMATTED comment_chars "DROP TABLE " user_library dot n1.
       IF skptrm THEN
           PUT STREAM code UNFORMATTED SKIP.
       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
@@ -1157,6 +1162,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                ASSIGN c = "SYSDATE".
              ELSE IF dbtyp = "MSSQLSRV7" THEN
                ASSIGN c = "GETDATE()".
+             ELSE IF dbtyp = "DB2" and db2type = "DB2/400" THEN 
+               ASSIGN c = "CURRENT DATE".
              ELSE IF dbtyp = "PROGRESS" THEN.  /* OK to leave TODAY/NOW for OpenEdge */
              ELSE
                ASSIGN c = "".
@@ -1318,13 +1325,18 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     PUT STREAM code UNFORMATTED
       comment_chars " "  skip    
       comment_chars "create trigger " n2 " ON " n1 " for insert as" SKIP
+      comment_chars " RAISERROR ('PSC-init',0,1) " SKIP    
+      comment_chars " SET XACT_ABORT ON " SKIP    
+      comment_chars " SET LOCK_TIMEOUT -1 " SKIP    
       comment_chars "    if  ( select " prowid_col " from inserted) is NULL" SKIP
       comment_chars "    begin" SKIP
       comment_chars "        update t set " prowid_col " = i.IDENTITYCOL " SKIP
       comment_chars "         from " n1 " t  JOIN inserted i ON " skip
       comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
       comment_chars "        select convert (bigint, @@identity)" SKIP
-      comment_chars "    end" SKIP.    
+      comment_chars "    end" SKIP    
+      comment_chars " SET XACT_ABORT OFF " SKIP    
+      comment_chars " RAISERROR ('PSC-end',0,1) " SKIP.    
 
     IF skptrm THEN
       PUT STREAM code UNFORMATTED SKIP.
@@ -2054,7 +2066,7 @@ IF doseq THEN DO:
                "    begin " SKIP
                "      begin transaction " SKIP
                "      update _SEQT_" n1 " set current_value = @val" SKIP
-               "      SET @err = @err " skip
+               "      SET @err = @@error " skip
                "      if @err <> 0 goto Err " skip
                "      commit transaction " SKIP
                "      return 0 " SKIP
@@ -2080,7 +2092,7 @@ IF doseq THEN DO:
            "    begin" skip
            "     BEGIN TRAN " skip
            "       set @val = ident_current('_SEQT_REV_" n1 "')" skip 
-           "       SET @err = @err " skip
+           "       SET @err = @@error " skip
            "       if @err <> 0 goto Err " skip
            "       commit transaction " skip
            "       return " skip
@@ -2103,7 +2115,7 @@ IF doseq THEN DO:
            "          @cycle = cycle, " skip
            "          @ini_val = initial_value " skip 
            "          from _seqt_rev_seqtmgr where seq_name = '" n1 "'" skip
-           "    SET @err = @err " skip
+           "    SET @err = @@error " skip
            "    if @err <> 0 goto Err " skip
            " " skip 
            "        /*" skip 
@@ -2111,17 +2123,17 @@ IF doseq THEN DO:
            "         */" skip 
            " " skip
            "       set @val = ident_current('_SEQT_REV_" n1 "')" skip 
-           "       SET @err = @err " skip
+           "       SET @err = @@error " skip
            "       if @err <> 0 goto Err " skip
            "        if (@inc_val > 0 and @upper_limit - @val < @inc_val) or (@inc_val < 0 and @upper_limit + @val > @inc_val) " skip  
            "     begin " skip 
            "         if @cycle != 0 " skip 
            "           begin " skip 
            "             DBCC CHECKIDENT ('_SEQT_REV_" n1 "', RESEED, @ini_val) " SKIP
-           "             SET @err = @err " skip
+           "             SET @err = @@error " skip
            "             if @err <> 0 goto Err " skip
            "             set @val = ident_current('_SEQT_REV_" n1 "')" skip
-           "             SET @err = @err " skip
+           "             SET @err = @@error " skip
            "             if @err <> 0 goto Err " skip
            "           end" skip 
            "         else " skip 
@@ -2133,13 +2145,13 @@ IF doseq THEN DO:
            "        else " skip 
            "     begin" skip
            "        insert into _SEQT_REV_" n1 " (seq_val) values (@val) " skip
-           "        SET @err = @err " skip
+           "        SET @err = @@error " skip
            "        if @err <> 0 goto Err " skip
            "        set @val = scope_identity() " skip
-           "        SET @err = @err " skip
+           "        SET @err = @@error " skip
            "        if @err <> 0 goto Err " skip
            "        delete from _SEQT_REV_" n1 skip 
-           "        SET @err = @err " skip
+           "        SET @err = @@error " skip
            "        if @err <> 0 goto Err " skip
            "     end" skip 
            "   commit transaction " skip
@@ -2153,7 +2165,7 @@ IF doseq THEN DO:
            "    begin " skip
            "     BEGIN TRAN " skip
            "      DBCC CHECKIDENT ('_SEQT_REV_" n1 "', RESEED, @val) " skip
-           "      SET @err = @err " skip
+           "      SET @err = @@error " skip
            "      if @err <> 0 goto Err " skip
            "     COMMIT TRAN " skip
            "     return  " skip

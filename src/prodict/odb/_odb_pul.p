@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2009 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -56,6 +56,7 @@ History:
                         _BUFFER_ - 20060425-009
     fernando   10/06/06 Check object name in case it has underscore - 20031205-003                        
     knavneet   07/25/07 For DB2/400, append Library name to _Db-misc2[1]
+    rkumar     06/24/09 OE00178256
 */
 
 /*
@@ -384,7 +385,8 @@ RUN prodict/odb/_odb_typ.p
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
        assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name )
-              is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"AS/400") > 0.  
+              is_as400 = INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"AS/400") > 0 OR  
+                         INDEX(UPPER(DICTDBG.GetInfo_buffer.dbms_name),"DB2/400") > 0.
     end.
 
     CLOSE STORED-PROC DICTDBG.GetInfo.

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006, 2008 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006, 2008-2009 by Progress Software Corporation. All*
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -32,6 +32,9 @@ History:
 	                     and should not come up during migration - 20051230-006.
     nmanchal    11/06/08 setting initial value as 0 for numbers and Empty string for 
 	                     character column, reg. OE00176741 (DB2 - ODBC dataservers)
+    rkumar      06/26/09 Added default values for ODBC DataServer- OE00177724
+    rkumar      07/17/09 Default values support for ODBC DataServer- prefixed 
+                         syscolumns call with qsys2 to get rid of userid privileges
 
 --------------------------------------------------------------------*/
 
@@ -51,6 +54,10 @@ History:
 /* this code gets executed only for the first element of array-field  */
 /* so extent-code of field is always ##1 or __1 or some other suffix  */
 /* character for array extent mapping (even with real extent >= 10).  */
+DEFINE VARIABLE sqlq     AS CHARACTER NO-UNDO. /* OE00177724 */
+DEFINE VARIABLE dfth1    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE def_enabled       AS LOGICAL NO-UNDO.
+DEFINE VARIABLE tmp_str  AS CHARACTER NO-UNDO.
 
 ASSIGN
   pnam = TRIM(DICTDBG.SQLColumns_buffer.Column-name).
@@ -160,6 +167,49 @@ assign
             )
   l_dcml  = 0.
 
+ /* environment variable OE_SP_CRTDEFAULT enables default values in ODBC */
+  IF OS-GETENV("OE_SP_CRTDEFAULT") <> ? THEN DO:
+    tmp_str      = OS-GETENV("OE_SP_CRTDEFAULT").
+    IF tmp_str BEGINS "Y" then def_enabled = TRUE.
+  END. 
+
+IF def_enabled THEN DO: /* switch ON for ODBC */
+  IF (INDEX(UPPER(_Db._Db-misc2[5]), "DB2/400") <> 0 OR INDEX(UPPER(_Db._Db-misc2[5]), "AS/400") <> 0) THEN DO: 
+    ASSIGN sqlq = "select column_default from qsys2.syscolumns where " + 
+       " column_name = '" + DICTDBG.SQLColumns_buffer.column-name +
+       "' and table_name  = '" + DICTDBG.SQLColumns_buffer.NAME +
+       "' and table_schema = '" + DICTDBG.SQLColumns_buffer.OWNER +
+       "' and has_default = 'Y' ".
+    RUN STORED-PROC DICTDBG.send-sql-statement dfth1 = PROC-HANDLE NO-ERROR ( sqlq ).
+
+  IF ERROR-STATUS:ERROR THEN. /*Don't do anything inital value already set to unknown */
+  ELSE DO:
+    FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
+        ASSIGN l_init = proc-text.
+    END.
+    CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.
+  END.
+
+ IF l_init <> ? THEN DO: 
+  ASSIGN l_init = TRIM(TRIM(l_init),"'").
+       
+ IF (ntyp = "DATE") AND INDEX(l_init,"CURRENT_DATE") = 0 THEN
+      ASSIGN l_init = ?. 
+  ELSE IF ntyp = "DATE" THEN 
+      ASSIGN l_init = "TODAY".
+ END.
+
+      IF ntyp = "CHARACTER" and l_init = "NULL" THEN 
+          ASSIGN l_init = "". 
+      ELSE IF (ntyp = "LOGICAL" and (l_init = "NULL" OR l_init EQ "0")) THEN
+          ASSIGN l_init = "NO". 
+      ELSE IF (ntyp = "LOGICAL" and l_init NE "0") THEN
+          ASSIGN l_init = "YES". 
+      ELSE IF ((ntyp = "DECIMAL" OR ntyp = "INTEGER" OR ntyp = "INT64" ) AND (l_init = "NULL")) THEN 
+          ASSIGN l_init = "0". 
+  END.
+END. /* END of IF def_enabled EQ TRUE */
+ELSE DO:
   IF INDEX(UPPER(_Db._Db-misc2[8]), "DB2") <> 0 THEN DO:
       IF (ntyp = "CHARACTER") THEN
           ASSIGN l_init = "". 
@@ -168,6 +218,7 @@ assign
       ELSE IF (ntyp = "DECIMAL" OR ntyp = "INTEGER" OR ntyp = "INT64" ) THEN 
           ASSIGN l_init = "0". 
   END.
+END.
 
 CREATE s_ttb_fld.
 
