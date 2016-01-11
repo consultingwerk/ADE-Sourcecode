@@ -1045,6 +1045,8 @@ DEFINE VARIABLE lAuto      AS LOGICAL    NO-UNDO.
   hQuery:QUERY-OPEN().
   hQuery:GET-FIRST().
   DO WHILE NOT hQuery:QUERY-OFF-END:
+  /* Rohit- Added NO-ERROR and IF hRowObjUpd:AVAILABLE check- trying to fix PSC00262510 based on the stack trace */
+  /* 7/1/2014 undid previous changes made in 11.3.2 */
       hRowObjUpd:FIND-FIRST('WHERE RowNum = ':U + 
                             STRING(hRowObject:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
       hRowObjUpd:BUFFER-COPY(hRowObject).
@@ -2815,6 +2817,7 @@ END FUNCTION.
 
 &ENDIF
 
+
 &IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFields Procedure 
@@ -2967,6 +2970,53 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 &ENDIF
+
+
+&IF DEFINED(EXCLUDE-getKeyWhere) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyWhere Procedure 
+function  getKeyWhere return character ():
+    define variable cKeyFields    as character no-undo.
+    define variable cQueryFields  as character no-undo.
+    define variable pcValues      as character no-undo.
+    define variable cQueryString  as character no-undo.
+    define variable cntr          as integer   no-undo.
+    define variable cForName      as character no-undo.
+    define variable cValue        as character no-undo. 
+      
+    {get KeyFields cKeyFields}.
+        
+    if cKeyFields = "" or cKeyFields = ? then 
+       return ?.
+     
+    do cntr = 1 to num-entries(cKeyFields):
+       cForName = entry(cntr,cKeyFields).
+       if cntr > 1 then 
+          assign pcValues = pcValues +  CHR(1)
+                 cQueryFields = cQueryFields +  ",":U.
+       cValue = {fnarg columnValue cForName }.         
+       pcValues = pcValues + if cValue <> ? then cValue else "?":U.
+       if cForName = ? then
+          return ?.
+       if num-entries(cForName,".":U) = 1 then 
+          cForName = "RowObject." + cForName.
+       
+       cQueryFields = cQueryFields + cForName.
+    end.     
+    cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                     cQueryFields,
+                                     pcValues,
+                                     "=":U,
+                                     ?,
+                                     ?).
+    return cQueryString.                                   
+end function.   
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 &IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
 
@@ -3694,6 +3744,35 @@ FUNCTION getRunDataLogicProxy RETURNS LOGICAL
 
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+
+&IF DEFINED(EXCLUDE-getUseKeyOnRefresh) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseKeyOnRefresh Procedure 
+function getUseKeyOnRefresh return logical 
+    ():
+    define variable cOperatingMode as character no-undo.
+    define variable cASDivision    as character no-undo.
+    define variable cDBNames       as character no-undo.
+    define variable cKeyFields     as character no-undo.
+    &SCOP xp-assign
+    {get serverOperatingMode cOperatingMode}
+    {get ASDivision cASDivision}
+    {get DBNames cDBNames}
+    {get KeyFields cKeyFields}
+    .
+    &undefine xp-assign
+
+    if cKeyFields > "" and cASdivision = "client" and cOperatingMode = "stateless" and cDBNames = "PROGRESST" then
+        return true.
+    else
+        return false.
+end function.    
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -4793,29 +4872,3 @@ END FUNCTION.
 &ENDIF
 
 
-&IF DEFINED(EXCLUDE-getUseKeyOnRefresh) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUseKeyOnRefresh Procedure 
-function getUseKeyOnRefresh return logical 
-    ():
-    define variable cOperatingMode as character no-undo.
-    define variable cASDivision    as character no-undo.
-    define variable cDBNames       as character no-undo.
-
-    &SCOP xp-assign
-    {get serverOperatingMode cOperatingMode}
-    {get ASDivision cASDivision}
-    {get DBNames cDBNames}
-    .
-    &undefine xp-assign
-
-    if cASdivision = "client" and cOperatingMode = "stateless" and cDBNames = "PROGRESST" then
-        return true.
-    else
-        return false.
-end function.    
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF

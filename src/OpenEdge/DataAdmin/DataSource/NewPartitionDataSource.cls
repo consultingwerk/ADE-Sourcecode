@@ -249,12 +249,16 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
             case ccolumn:
                 when "DefaultAllocation" then
                 do:
-                    iVal = lookup(pcVal,ValidAllocationList).
-                    if iVal = 0 then
-                         undo, throw new IllegalArgumentError("Invalid AllocationState value " 
-                                                               + quoter(pcVal) + " in new partition request."). 
-                   /* use the value from the list to get consistent values */
-                    mAllocation = entry(iVal,ValidAllocationList).
+                    if pcVal = "Immediate" then 
+                        mAllocation = "Allocated".
+                    else do:    
+                        iVal = lookup(pcVal,ValidAllocationList).
+                        if iVal = 0 then
+                             undo, throw new IllegalArgumentError("Invalid AllocationState value " 
+                                                                   + quoter(pcVal) + " in new partition request."). 
+                       /* use the value from the list to get consistent values */
+                        mAllocation = entry(iVal,ValidAllocationList).
+                    end.
                 end.
                 when "DefaultDataArea" then
                      mDataArea = pcval.

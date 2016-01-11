@@ -54,7 +54,8 @@
               07/18/12 musingh  Fix issue with FOREIGN-POS generatation (OE00222952)
               08/03/13 ushrivas Fix for Delta .DF sets FOREIGN-POS 0 causing Load Aborted error(OE00230825)
               07/05/13 sdash    Added Logical DB validation in a Schema Holder while using delta SQL utility.
-	                        Supported batch mode delta SQL Utility.
+                                Supported batch mode delta SQL Utility.
+              12/04/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
 
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -158,6 +159,7 @@ DEFINE VARIABLE other-seq-tab        AS CHARACTER      NO-UNDO. /* OE00170189 */
 DEFINE VARIABLE other-seq-proc       AS CHARACTER      NO-UNDO. /* OE00170189 */
 DEFINE VARIABLE isSQLNCLI     AS LOGICAL               NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE blankdefault  AS LOGICAL               NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE useoedflt     AS LOGICAL               NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str       AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE maxValue      AS INTEGER               NO-UNDO.
 DEFINE VARIABLE useComputedColumn AS LOGICAL            NO-UNDO.
@@ -2433,6 +2435,9 @@ IF OS-GETENV("BLANKDEFAULT") <> ? THEN
 IF tmp_str BEGINS "Y" THEN
   ASSIGN blankdefault = TRUE.
 
+IF OS-GETENV("_USE_OE_CHAR_DFLT_INIT") BEGINS "Y" THEN
+  ASSIGN useoedflt = TRUE.
+
 ASSIGN ilin = ?
        ipos = 0
        dfout = osh_dbname + ".df"
@@ -4099,9 +4104,24 @@ DO ON STOP UNDO, LEAVE:
  
                   ASSIGN for-init = "".
 
-                  IF blankdefault AND (new-obj.For-type BEGINS " VARCHAR" OR new-obj.For-type BEGINS " NVARCHAR") AND
-                     (ilin[2] = "" OR ilin[2] = ? OR ilin[2] = "?") THEN DO:
-                       ASSIGN for-init = " DEFAULT ' '".
+                  /* If BLANKDEFAULT env. variable is not set, then add a  DEFAULT '' phrase in
+                   * the SQL for empty string INITIAL value. This will make sure that the existing
+                   * records are not set to NULL. Keep BLANKDEFAULT for backward compatibility.
+                   */
+                  IF (ilin[2] = "" OR ilin[2] = ? OR ilin[2] = "?") AND
+                     (new-obj.For-type BEGINS " VARCHAR" OR new-obj.For-type BEGINS " NVARCHAR") THEN DO:
+                     IF blankdefault THEN 
+                        ASSIGN for-init = " DEFAULT ' '".
+                     ELSE DO:
+                        IF (ilin[2] = "" AND useoedflt) THEN
+                             ASSIGN for-init = " DEFAULT ''".
+                        /*
+                        No need to make changes for ? INITIAL value, as existing records are 
+                        always filled with NULLs
+                        ELSE IF (ilin[2] = ? OR ilin[2] = "?") THEN
+                              ASSIGN for-init = " DEFAULT NULL".
+                        */
+                     END.
                   END.
                   ELSE IF ilin[2] <> "" AND ilin[2] <> ? AND ilin[2] <> "?" THEN DO:
 

@@ -35,6 +35,7 @@ Modified:
    03/07/02  jep  IZ 4098 AppBuilder undoes code changes wrong.
 ----------------------------------------------------------------------------*/
 
+
 /* Function Prototypes. */
 FUNCTION GetProcFuncSection RETURNS CHARACTER
   (INPUT p_name AS CHARACTER) FORWARD.
@@ -961,11 +962,12 @@ PROCEDURE build_widget_list.
   
   DEFINE BUFFER x_U  FOR _U.
   DEFINE BUFFER x_BC FOR _BC.
+  DEFINE BUFFER p_U  FOR _U.
   
   DEFINE VAR list_item    AS CHAR NO-UNDO.
   DEFINE VAR object_name  AS CHAR NO-UNDO.
   DEFINE VAR Has_Freeform AS LOGI NO-UNDO.
-  
+
   IF NOT VALID-HANDLE(h_win_trig) THEN DO:
     /* Get the window (and its save-as-file) for this trigger */
     IF AVAILABLE _SEW_U THEN
@@ -1006,9 +1008,20 @@ PROCEDURE build_widget_list.
                                    x_U._NAME)
                . /* END ASSIGN */
 
+        /* Rohit- if dbfield is part of FRAME, getWidgetListName requires <FRAME> in label. */
+        if INDEX( object_name , "." ) NE 0 THEN DO:
+	FIND p_U WHERE RECID(p_U) = x_U._PARENT-RECID NO-ERROR.
+	  IF AVAILABLE p_U THEN RUN GetWidgetListName ( INPUT Object_Name , INPUT "<":U + p_U._NAME + " FRAME>" ,
+                                OUTPUT list_item ).
+	  else
+	  RUN GetWidgetListName ( INPUT Object_Name , INPUT x_U._LABEL ,
+                                OUTPUT list_item ).
+
+        END.
+        else 
         RUN GetWidgetListName ( INPUT Object_Name , INPUT x_U._LABEL ,
                                 OUTPUT list_item ).
-         
+
         ASSIGN dummy = wname:ADD-LAST(list_item).
         IF object_name = ENTRY( 1 , init_value , " ")
            AND wname:SCREEN-VALUE <> list_item
@@ -1026,6 +1039,7 @@ PROCEDURE build_widget_list.
             ASSIGN dummy = wname:ADD-LAST(list_item).
             IF (list_item = init_value) AND (wname:SCREEN-VALUE <> list_item)
             THEN wname:SCREEN-VALUE = list_item.
+
           END. /* FOR EACH BROWSE */
         END. /* If a Browse */
       END.
@@ -1083,7 +1097,6 @@ PROCEDURE Has_Trigger .
   DEFINE OUTPUT PARAMETER p_has_trigger AS LOGICAL NO-UNDO.
 
   DEFINE BUFFER x_SEW_TRG FOR _SEW_TRG.
-
   FIND x_SEW_TRG WHERE x_SEW_TRG._tSECTION = Type_Trigger
                  AND   x_SEW_TRG._wRECID = p_sew_recid
                  AND   x_SEW_TRG._tEVENT = p_event
@@ -1197,7 +1210,6 @@ PROCEDURE GetWidgetListName .
   DEFINE OUTPUT PARAMETER p_List_Item AS CHARACTER NO-UNDO.
 
   DEFINE VARIABLE col_stop AS INTEGER NO-UNDO.
-  
   DO WITH FRAME f_edit:
     ASSIGN col_stop = INTEGER( MAX(.33 * wname:WIDTH, 15) ).
     ASSIGN p_list_item = p_Name.
@@ -1209,7 +1221,6 @@ PROCEDURE GetWidgetListName .
           ASSIGN p_list_item = (p_list_item + " ":U + p_Label).
     END.
   END.
-  
 END PROCEDURE.
         
 
@@ -1520,7 +1531,6 @@ PROCEDURE GetNextSearchSection.
   Created : 14 Nov 1996
   Modified:
 -----------------------------------------------------------------------------*/
-
 /* Define Parameters. */
 DEFINE INPUT        PARAMETER  h_trg_win    AS WIDGET   NO-UNDO.
 DEFINE INPUT        PARAMETER  p_Sect-List  AS CHAR     NO-UNDO.
@@ -1532,6 +1542,7 @@ DEFINE       OUTPUT PARAMETER  p_ok         AS LOGICAL  NO-UNDO.
 
 /* Local Buffers. */
 DEFINE BUFFER x_U  FOR _U.
+DEFINE BUFFER p_U  FOR _U.
 DEFINE BUFFER x_BC FOR _BC.
 
 /* Local Variable Definitions. */
@@ -1586,16 +1597,34 @@ DO:
     
     /* Get the name and check to see if its a dbfield (db.table.name). */
     ASSIGN object_name = TRIM(ENTRY( 4, p_Sect-Curr, " ")).
-    IF INDEX( object_name , "." ) = 0 THEN
+    
+    /* special case- frame contains multiple db fields */
+    if INDEX( object_name , "." ) NE 0 and num-entries(p_Sect-Curr," ") GT 5 and ENTRY(6, p_Sect-Curr, " ") = "FRAME":U THEN DO:
+      FOR EACH x_U WHERE x_U._WINDOW-HANDLE = h_trg_win
+              AND x_U._STATUS <> "DELETED"
+                  AND x_U._NAME          = ENTRY(3,object_name,".")
+                  AND x_U._DBNAME        = ENTRY(1,object_name,".")
+                  AND x_U._TABLE         = ENTRY(2,object_name,".") :
+	  FIND p_U WHERE p_U._DBNAME <> ? and RECID(p_U) = x_U._PARENT-RECID NO-ERROR.
+          IF AVAILABLE p_U and p_U._NAME EQ ENTRY(7, p_Sect-Curr, " ") THEN DO:
+   	      ASSIGN p_section = "_CONTROL"
+                     p_recid   = RECID (x_U)
+                     p_event   = ENTRY (2, p_Sect-Curr," ")
+		     p_ok = true.
+		     leave.
+          end.
+      end.
+    end.
+    else IF INDEX( object_name , "." ) = 0 THEN
         FIND x_U WHERE x_U._WINDOW-HANDLE = h_trg_win
                    AND x_U._NAME          = object_name
                    AND x_U._STATUS        <> "DELETED" NO-ERROR.
-    ELSE
+   /* ELSE
         FIND x_U WHERE x_U._WINDOW-HANDLE = h_trg_win
                    AND x_U._NAME          = ENTRY(3,object_name,".")
                    AND x_U._DBNAME        = ENTRY(1,object_name,".")
                    AND x_U._TABLE         = ENTRY(2,object_name,".")
-                   AND x_U._STATUS        <> "DELETED" NO-ERROR.
+                   AND x_U._STATUS        <> "DELETED" NO-ERROR.*/
                       
     IF NOT AVAILABLE x_U AND ENTRY(6, p_Sect-Curr, " ") = "BROWSE":U THEN
     DO:
@@ -1676,7 +1705,8 @@ DEF  VAR item         AS CHAR                                    NO-UNDO.
          /* store 1 item of sel-list                                  */
 DEF  VAR object_name  AS CHAR                                    NO-UNDO.
 DEF  VAR rule_char    AS CHAR    INIT "-":u                      NO-UNDO.
-
+DEFINE BUFFER p_U FOR _U.
+DEF  VAR s  AS CHAR                                              NO-UNDO.
 
 /* Get the window record */
 FIND _U WHERE _U._HANDLE = h_trg_win NO-ERROR.
@@ -1691,6 +1721,12 @@ IF (p_section = "_CUSTOM" AND p_event = "_DEFINITIONS") THEN
 /* Controls */
 FOR EACH _U WHERE _U._WINDOW-HANDLE = h_trg_win
               AND _U._STATUS <> "DELETED":
+  FIND p_U WHERE RECID(p_U) = _U._PARENT-RECID NO-ERROR.
+  IF AVAILABLE p_U and p_U._DBNAME <> ? THEN 
+        s = " IN" + " FRAME":U + " " + p_u._name .
+     else
+        s = "".
+
   FOR EACH _TRG WHERE _TRG._wRECID = RECID (_U)
                   AND _TRG._STATUS <> "DELETED"
                   AND _TRG._tSECTION = "_CONTROL":
@@ -1701,7 +1737,7 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = h_trg_win
     ELSE
         ASSIGN object_name = _U._DBNAME + "." + _U._TABLE + "." + _U._NAME.
     
-    ASSIGN item        = ("TRIGGER " + _TRG._tEVENT + " OF " + object_name)
+    ASSIGN item        = ("TRIGGER " + _TRG._tEVENT + " OF " + object_name + s)
            p_Sect-List = p_Sect-List + "," + item.
            
     IF p_section = "_CONTROL" AND p_recid = RECID(_U)  AND p_event = _TRG._tEVENT THEN
@@ -1813,7 +1849,6 @@ PROCEDURE change_trg.
       IF NOT change_ok THEN RETURN.
     END.
     ELSE change_ok = YES. /* If we don't store the code, we always change */
-    
     /* Find the new Trigger (or just initialize the text editor).  If this
        is a control, then make sure that new_event is a member of the 
        valid events. */
@@ -2927,7 +2962,8 @@ PROCEDURE display_trg.
   DEFINE VARIABLE lOK           AS LOGICAL   NO-UNDO.
 
   DEFINE BUFFER x_U FOR _U.
-  
+  DEFINE BUFFER p_U FOR _U.
+
   /* Assign current SEW status to _SEW record. - jep. */
   IF AVAILABLE _SEW_U THEN
     ASSIGN window-handle = _SEW_U._WINDOW-HANDLE.
@@ -2999,7 +3035,14 @@ PROCEDURE display_trg.
                               ELSE _SEW_BC._DISP-NAME
                list_label   = IF AVAILABLE _SEW_U
                                 THEN _SEW_U._LABEL
-                                ELSE "<":U + x_U._NAME + " Column>".
+				ELSE "<":U + x_U._NAME + " Column>".
+     if available _SEW_U and _SEW_U._DBNAME NE ?   THEN DO:
+     FIND p_U WHERE p_U._TYPE EQ "FRAME" and RECID(p_U) = _sew_U._PARENT-RECID NO-ERROR.
+      IF AVAILABLE p_U THEN
+        list_label = "<":U  + p_U._NAME + " Frame>".
+     END.
+
+
         RUN GetWidgetListName ( INPUT list_item ,
                                 INPUT list_label ,
                                 OUTPUT list_item ).

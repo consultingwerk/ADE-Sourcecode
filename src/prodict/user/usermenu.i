@@ -721,7 +721,8 @@ Procedure Do_Menu_Item_Db_Change:
                appropriate even when there's no db connected (a "N" in the "N"
                slot) leave it alone - it will never be grayed.
       */
-      code = ENTRY(p_item_ix, Gray_Table[p_sub_ix]).
+      IF NUM-ENTRIES(Gray_Table[p_sub_ix]) >= p_item_ix THEN
+         code = ENTRY(p_item_ix, Gray_Table[p_sub_ix]).
 
       if INDEX(code, "N") = 0 then
          p_hdl:sensitive = (if user_dbname = "" then no else yes).

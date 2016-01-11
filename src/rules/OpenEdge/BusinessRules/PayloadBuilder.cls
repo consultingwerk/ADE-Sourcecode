@@ -172,6 +172,12 @@ class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
                             mhSaxWriter:write-characters(TimeStamp:ToISODateFromABL(datetime-tz(hField:buffer-value))).
                         when 'logical' then
                             mhSaxWriter:write-characters(trim(string(hField:buffer-value, 'true/false'))).
+                        when 'decimal' then
+                            /* Corticon Server uses American numeric formats */
+                            mhSaxWriter:write-characters(
+                                replace(string(hField:buffer-value),
+                                        session:numeric-decimal-point,
+                                        '.')).
                         otherwise
                             mhSaxWriter:write-characters(string(hField:buffer-value)).                        
                     end case.

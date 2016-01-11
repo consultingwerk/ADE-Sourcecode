@@ -465,13 +465,15 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
     method public override void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
         define variable iPos as integer no-undo.
-       
+        define variable cExt as character no-undo.
+        
         /* The code writer support this, but it writes tenants, so externally 
             we give error if actually asking for it (see below) */ 
         iPos = lookup("TenantGroupMembers",pcCollectionList).
         if iPos > 0 then
         do:
-            if GetFileExtension(pcfile) = "p" then
+            cExt = GetFileExtension(pcfile).
+            if cExt = "p" or cExt = "download" then
                undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use TenantGroups instead.").
         end.
         
@@ -480,7 +482,8 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
         iPos = lookup("TenantGroups",pcCollectionList).
         if iPos > 0 then
         do:
-            if GetFileExtension(pcfile) = "p" then
+            cExt = GetFileExtension(pcfile).
+            if cExt = "p" or cExt = "download" then
                 entry(iPos,pcCollectionList) = "TenantGroupMembers".
         end.
         
@@ -501,7 +504,7 @@ class OpenEdge.DataAdmin.Tenant inherits Entity implements ITenant:
         define variable fileext as character no-undo.
         fileExt = GetFileExtension(pcFile).
         case fileExt:
-            when "p" then
+            when "p" or when "download" then
                 return new CodeWriter().
             when "json" then  
                 return new JSONWriter().

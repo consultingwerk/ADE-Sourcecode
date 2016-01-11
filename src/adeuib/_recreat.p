@@ -296,7 +296,12 @@ IF _U._TYPE = "DIALOG-BOX" THEN DO:
         TRIGGERS:
           {adeuib/dialtrig.i &SECTION = WINDOW}
         END TRIGGERS.
-        
+  
+  if not OEIDEIsRunning then 
+  do:     
+     {adeuib/grptrig.i &of-widget-list="OF h_dlg_win"}   
+  end.
+          
   /* The GREAT MOTIF SHUFFLE */
   &IF "{&WINDOW-SYSTEM}" = "OSF/MOTIF" &THEN
     ASSIGN h_dlg_win:COL = h_dlg_win:COL + (tmp_col - h_dlg_win:COL)

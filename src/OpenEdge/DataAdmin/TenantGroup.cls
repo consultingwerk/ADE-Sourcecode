@@ -410,14 +410,16 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
     method public override void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
         define variable iPos as integer no-undo.
+        define variable cExt as character no-undo.
        
         /* The code writer support this, but it writes tenants, so externally 
             we give error if actually asking for it (see below) */ 
         iPos = lookup("TenantGroupMembers",pcCollectionList).
         if iPos > 0 then
         do:
-            if GetFileExtension(pcfile) = "p" then
-               undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use Tenants instead.").
+            cExt = GetFileExtension(pcfile).
+            if cExt = "p" or cExt = "download" then
+                undo, throw new UnsupportedOperationError("Cannot generate code for TenantGroupMembers. Use Tenants instead.").
         end.
         
         /* This will give error in writeTree, but code writer actually exports 
@@ -425,8 +427,9 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
         iPos = lookup("Tenants",pcCollectionList).
         if iPos > 0 then
         do:
-            if GetFileExtension(pcfile) = "p" then
-                entry(iPos,pcCollectionList) = "TenantGroupMembers".
+            cExt = GetFileExtension(pcfile).
+            if cExt = "p" or cExt = "download" then
+               entry(iPos,pcCollectionList) = "TenantGroupMembers".
         end.
         
         writer = GetExporter(pcfile).
@@ -471,7 +474,7 @@ class OpenEdge.DataAdmin.TenantGroup inherits Entity implements ITenantGroup:
         define variable fileext as character no-undo.
         fileExt = GetFileExtension(pcFile).
         case fileExt:
-            when "p" then
+            when "p" or when "download" then
                 return new CodeWriter().
             when "json" then  
                 return new JSONWriter().

@@ -200,16 +200,20 @@ END.
 
 RUN control_load.
 
+&IF "{&OPSYS}" = "WIN32":U AND "{&WINDOW-SYSTEM}" NE "TTY":U &THEN
+IF PROCESS-ARCHITECTURE = 32 THEN DO:
 /* The control has logic to add missing parts to the URL */  
-ASSIGN
-  chCtrlFrame:CIHTTP:ParseURL  = TRUE    
-  chCtrlFrame:CIHTTP:URL       = WebBroker.
+    ASSIGN
+      chCtrlFrame:CIHTTP:ParseURL  = TRUE    
+      chCtrlFrame:CIHTTP:URL       = WebBroker.
 
-RUN adeweb/_runbrws.p (WebBrowser,
-                       chCtrlFrame:CIHTTP:URL + "/":U + pProc,
-                       NewBrowser).
+    RUN adeweb/_runbrws.p (WebBrowser,
+                           chCtrlFrame:CIHTTP:URL + "/":U + pProc,
+                           NewBrowser).
 
-RUN adecomm/_setcurs.p("":U).
+    RUN adecomm/_setcurs.p("":U).
+ END.
+&ENDIF
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -230,6 +234,7 @@ PROCEDURE control_load :
 DEFINE VARIABLE UIB_S    AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE OCXFile  AS CHARACTER  NO-UNDO.
 
+IF PROCESS-ARCHITECTURE = 32 THEN DO:
 OCXFile = SEARCH( "_abrunwb.wrx":U ).
 IF OCXFile = ? THEN
   OCXFile = SEARCH(SUBSTRING(THIS-PROCEDURE:FILE-NAME, 1,
@@ -246,7 +251,13 @@ END.
 ELSE MESSAGE "_abrunwb.wrx":U SKIP(1)
              "The binary control file could not be found. The controls cannot be loaded."
              VIEW-AS ALERT-BOX TITLE "Controls Not Loaded".
-
+END.
+ELSE DO:
+    MESSAGE " WebTools only runs in the 32-bit Windows GUI client."
+        VIEW-AS ALERT-BOX.
+    /*STOP.*/
+    RETURN.
+END.
 &ENDIF
 
 END PROCEDURE.

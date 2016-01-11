@@ -33,13 +33,12 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     {OpenEdge/BusinessRules/ttRulesMessage.i}
     
     /* Schema cache table for mapping message href ID values to app data tables */
-    define static private temp-table ttTables no-undo
-        field TableCrc as integer
-        field TableName as character
-        field XmlNodeName as character
-        field FieldXmlName as character
+    define private temp-table ttTables no-undo
+        field TableName       as character
+        field XmlNodeName     as character
+        field FieldXmlName    as character
         
-        index idx1 as primary unique TableName TableCrc
+        index idx1 as primary unique TableName
         index idx2 XmlNodeName.
         
     /* Cross-reference table for storing cross-references between the 
@@ -151,6 +150,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     end method.
     
     method protected void DestroyComponent():
+        empty temp-table ttTables.
         empty temp-table RulesMessage.
         
         moSaxReader:SaxReaderCharacters:Unsubscribe(this-object:SaxReaderCharactersHandler).        
@@ -241,7 +241,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         Assert:ArgumentIsNull(phAppData:default-buffer-handle:dataset, 
                     substitute ('Temp-table &1~'s dataset handle', phAppData:name)).
         
-        /* create a temporary dataset to hold the input temp-table.
+        /* Create a temporary dataset to hold the input temp-table.
            datasets let us use more sophisticated structures for 
            data comparisons etc */
         create dataset hAppDataset.
@@ -413,16 +413,12 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         do iloop = 1 to iMax:
             hBuffer = phAppData:get-buffer-handle(iLoop).
             
-            find ttTables where
-                 ttTables.TableName eq hBuffer:name and 
-                 ttTables.TableCrc eq hBuffer:crc-value
-                 no-error.
+            find ttTables where ttTables.TableName eq hBuffer:name no-error.
             if not available ttTables then
             do:
                 create ttTables.
                 assign ttTables.TableName = hBuffer:name
                        ttTables.XmlNodeName = hBuffer:xml-node-name
-                       ttTables.TableCrc = hBuffer:crc-value
                        
                        iMax2 = hBuffer:num-fields
                        cDelim = ''.
@@ -495,6 +491,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable cValue as character no-undo.
+        define variable cBufferAttributeName as character no-undo.
         
         define buffer lbMessage for RulesMessage.
         
@@ -544,20 +541,35 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                 end case.
                 else
                 do:
-                    /* If there's a 'tt' attribute, then this is a buffer.
-                       PayloadBuilder wrote the 'tt' attribute. 
-                       Child records are always written last (after any fields
-                       for a buffer). */
-                    if valid-handle(phAttributes) and phAttributes:get-index-by-qname('tt') gt 0 then
-                       CreateOrFindRecord(phAttributes:get-value-by-qname('tt'),
-                                          phAttributes:get-value-by-qname('id') ).
+                    if valid-handle(phAttributes) and phAttributes:num-items gt 0 then
+                    do:
+                        /* If there's a 'tt' or 'xsi:type' attribute, then this 
+                           is a buffer. PayloadBuilder wrote the 'tt' attribute,
+                           the decision service writes the xsi:type attribute for
+                           records it creates.
+                           
+                           Child records are always written last (after any fields
+                           for a buffer). */
+                        cBufferAttributeName = 'tt'.
+                        if phAttributes:get-index-by-qname(cBufferAttributeName) eq ? then
+                            cBufferAttributeName = 'xsi:type'.
+                        
+                        if phAttributes:get-index-by-qname(cBufferAttributeName) gt 0 then
+                            CreateOrFindRecord(phAttributes:get-value-by-qname(cBufferAttributeName),
+                                               phAttributes:get-value-by-qname('id') ).
+                    end.
                     else
                     /* Find the field name that maps to the element */
-                    if mhDataBuffer:available then
+                    if valid-handle(mhDataBuffer) and mhDataBuffer:available then
+                    do:
                         /* ttTables was found when we created the record */
-                        assign iIdx = lookup(pcLocalName, ttTables.FieldXmlName)
-                               mhBufferField = mhDataBuffer:buffer-field(iIdx)                                    
-                               mcCurrentFieldValue = ''.
+                        assign iIdx          = lookup(pcLocalName, ttTables.FieldXmlName)
+                               mhBufferField = ?.
+                        /* make sure the element exists as a field in the temp-table */
+                        if iIdx gt 0 then
+                            assign mhBufferField = mhDataBuffer:buffer-field(iIdx)
+                                   mcCurrentFieldValue = ''.
+                    end.
                     else
                         assign mhBufferField = ?
                                mcCurrentFieldValue = ?.
@@ -583,16 +595,29 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         if valid-handle(mhDataBuffer) and mhDataBuffer:available then
             mhDataBuffer:buffer-release().
         
-        /* find new buffer & create record */
-        assign mhDataBuffer = mhAppData:get-buffer-handle(pcBufferName)
-               mhBufferField = ?.
+        /* This method will only execute if we have a new buffer/entity.
+           In this case, we want to unset the buffer and field holders */        
+        assign mhBufferField = ?
+               mhDataBuffer  = ?.
+               
+        /* We look in the meta-data temp-table for the existence of a
+           buffer. The buffer name may be a "tt" attribute value or a 
+           "xsi:type" value. The former is exactly a table name, written 
+           by us when creating the payload; the latter is an identifier
+           added by the Decision Service for elements that it creates (ie
+           new rows).
+           
+           Alas, XML-NODE-NAMEs are not unique within a dataset and 
+           so we simply pick the first one we find. */
+        find ttTables where ttTables.TableName eq pcBufferName no-error.
+        if not available ttTables then
+           find first ttTables where ttTables.XmlNodeName eq pcBufferName no-error.
+        if available ttTables then
+            assign mhDataBuffer = mhAppData:get-buffer-handle(ttTables.TableName).
+        
         if valid-handle(mhDataBuffer) then
         do:
-            find ttTables where 
-                 ttTables.TableName eq pcBufferName and
-                 ttTables.TableCrc eq mhDataBuffer:crc-value.
-            
-            /* we may have multiple nodes representing the a record.
+            /* we may have multiple nodes representing the record.
                if so, last value in wins. */
             find ttXref where ttXref.HrefId eq pcHrefId no-error.
             
@@ -609,6 +634,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
             end.
         end.
         else
+            /* make sure there's nothing available */
             find ttTables where rowid(ttTables) eq ? no-error.
     end method.
     
@@ -643,7 +669,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                     available RulesMessage) then
                 case mhBufferField:data-type:
                     when 'decimal' then
-                        mhBufferField:buffer-value = decimal(mcCurrentFieldValue).
+                        mhBufferField:buffer-value = decimal(replace(mcCurrentFieldValue, '.', session:numeric-decimal-point)).
                     when 'integer' then
                         mhBufferField:buffer-value = integer(mcCurrentFieldValue).
                     when 'int64' then

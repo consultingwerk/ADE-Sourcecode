@@ -336,7 +336,7 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         define variable fileext as character no-undo.
         fileExt = GetFileExtension(pcFile).
         case fileExt:
-            when "p" then
+            when "p" or when "download" then
                 return new CodeWriter().
             when "json" then  
                 return new JSONWriter().

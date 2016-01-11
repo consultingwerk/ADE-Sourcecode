@@ -70,8 +70,11 @@ DEFINE       OUTPUT PARAMETER  p_ok         AS LOGICAL           NO-UNDO.
 {adeuib/xftr.i}                /* eXtended Features definition              */
 {adeuib/uibhlp.i}     	   /* Help pre-processor directives             */
 
+DEF  VAR s         AS CHAR                                    NO-UNDO.
+
 /* Local Variable Definitions. */
 DEFINE BUFFER b_U FOR _U.
+DEFINE BUFFER p_U FOR _U.
 
 DEF  VAR win_recid    AS RECID                                   NO-UNDO.
          /* RECID of window for the triggers and code                 */
@@ -181,6 +184,12 @@ ASSIGN item = "".
 /* Now controls */
 FOR EACH b_U WHERE b_U._WINDOW-HANDLE = p_trg_win
               AND b_U._STATUS <> "DELETED":
+  FIND p_U WHERE RECID(p_U) = b_U._PARENT-RECID NO-ERROR.
+  IF AVAILABLE p_U and p_U._TYPE EQ "FRAME":U THEN 
+        s = " IN " + "Frame":U + " " + p_u._name.
+     else
+        s = "".
+
   FOR EACH _TRG WHERE _TRG._wRECID = RECID (b_U)
                   AND _TRG._STATUS <> "DELETED"
                   AND _TRG._tSECTION = "_CONTROL":
@@ -190,7 +199,7 @@ FOR EACH b_U WHERE b_U._WINDOW-HANDLE = p_trg_win
     ELSE
         ASSIGN object_name = b_U._DBNAME + "." + b_U._TABLE + "." + b_U._NAME.
     
-    ASSIGN item    = ("Trigger " + _TRG._tEVENT + " Of " + object_name)
+    ASSIGN item    = ("Trigger " + _TRG._tEVENT + " Of " + object_name + s)
            l_dummy = sel-list:ADD-LAST(item).
     IF p_section = "_CONTROL" AND p_recid = RECID(b_U)  AND p_event = _TRG._tEVENT 
     THEN sel-list = item.
@@ -398,16 +407,33 @@ PROCEDURE Return-Section.
     
     /* Get the name and check to see if its a dbfield (db.table.name). */
     ASSIGN object_name = TRIM(ENTRY( 4, sel-list, " ")).
-    IF INDEX( object_name , "." ) = 0 THEN
+
+    if INDEX( object_name , "." ) NE 0 and num-entries(sel-list," ") GT 5 and ENTRY(6, sel-list, " ") EQ "FRAME":U THEN DO:
+       FOR EACH b_U WHERE b_U._WINDOW-HANDLE = p_trg_win
+              AND b_U._STATUS <> "DELETED"
+                  AND b_U._NAME          = ENTRY(3,object_name,".")
+                  AND b_U._DBNAME        = ENTRY(1,object_name,".")
+                  AND b_U._TABLE         = ENTRY(2,object_name,".") :
+	  FIND p_U WHERE /*p_U._TYPE EQ "FRAME":U  and */ RECID(p_U) = b_U._PARENT-RECID NO-ERROR.
+          IF AVAILABLE p_U and p_U._NAME EQ ENTRY(7, sel-list, " ") THEN DO:	  
+   	      ASSIGN p_section = "_CONTROL"
+                     p_recid   = RECID (b_U)
+                     p_event   = ENTRY (2, sel-list," ")
+		     p_ok = true.
+	      leave.
+           end.
+	end.
+    end.
+    ELSE IF INDEX( object_name , "." ) = 0 THEN DO:
         FIND b_U WHERE b_U._WINDOW-HANDLE = p_trg_win
                   AND b_U._NAME          = object_name
                   AND b_U._STATUS        <> "DELETED" NO-ERROR.
-    ELSE
+   /* ELSE
         FIND b_U WHERE b_U._WINDOW-HANDLE = p_trg_win
                   AND b_U._NAME          = ENTRY(3,object_name,".")
                   AND b_U._DBNAME        = ENTRY(1,object_name,".")
                   AND b_U._TABLE         = ENTRY(2,object_name,".")
-                  AND b_U._STATUS        <> "DELETED" NO-ERROR.
+                  AND b_U._STATUS        <> "DELETED" NO-ERROR.*/
                       
     IF NOT AVAILABLE b_U AND ENTRY(6, sel-list, " ") = "BROWSE":U THEN DO:
       /* Handle the browse-column case */
@@ -426,6 +452,7 @@ PROCEDURE Return-Section.
       ASSIGN p_section = "_CONTROL"
              p_recid   = RECID (b_U)
              p_event   = ENTRY (2, sel-list," ").
+    END. /* RK- check */
   END.
 END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */

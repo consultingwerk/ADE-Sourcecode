@@ -59,7 +59,12 @@ class prodict.pro._pro-sel-dialog-tty inherits _pro-sel-dialog:
       
          /* set frame height to take all available space 
             and adjust buttons and browse accordingly */
-         frame Dialog-Frame:height = 21 - Presenter:Row.
+         /* If tty screen is maximised, adjust the frame height to display the records */
+         if Presenter:Row GT 6 then
+             frame Dialog-Frame:height = 35 - Presenter:Row.
+	 else 
+	     frame Dialog-Frame:height = 21 - Presenter:Row.
+
          mb:Height = frame Dialog-Frame:height - 4.
          btnOk:row = frame Dialog-Frame:height - 2.
          btnCancel:row = frame Dialog-Frame:height - 2.

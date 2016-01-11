@@ -134,7 +134,7 @@ class OpenEdge.DataAdmin.Error.DataAdminErrorHandler:
              
          put stream ErrorStream unformatted GetHTTPHeader(iHttp).
          FillError(e).
-         FillStack(e).
+         FillStack(e). 
          dataset dsError:write-json ("stream","ErrorStream",yes).
          finally:
             output stream ErrorStream close.
@@ -200,7 +200,8 @@ class OpenEdge.DataAdmin.Error.DataAdminErrorHandler:
         define variable c as character no-undo.
         if cStack <> "" then
           c = c + cStack + chr(10).
-        c = c + e:CallStack.
+        c = c + e:CallStack. 
+        if c = ? then return "".
         return right-trim(c,chr(10)). 
     end method.
     

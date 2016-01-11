@@ -1211,6 +1211,7 @@ DO:
   DEFINE VAR ok2change  AS LOGICAL NO-UNDO.
   DEFINE VAR new_wname  AS CHAR    NO-UNDO.
   DEFINE BUFFER ipU     FOR _U.
+  DEFINE BUFFER p_U     FOR _U.
 
   IF NOT VALID-HANDLE(h_win_trig) THEN DO:
     /* Get the window (and its save-as-file) for this trigger */
@@ -1225,9 +1226,8 @@ DO:
     new_wname = ENTRY(1, wname:SCREEN-VALUE, " ").
     
     RUN setToolTip.
-    
     /* Get this new widget */
-    IF LOOKUP("Column>", wname:SCREEN-VALUE," ":U) = 0 THEN DO:
+    IF LOOKUP("Column>", wname:SCREEN-VALUE," ":U) = 0 and  LOOKUP("frame>", wname:SCREEN-VALUE," ":U) = 0 THEN DO:
       /* Check that the object is not a database field. Database fields
          in the Section Editor wname combo-box display as
          "dbname.table.field Label"
@@ -1235,19 +1235,36 @@ DO:
       IF INDEX(new_wname , ".") = 0 THEN
         FIND ipU WHERE ipU._NAME = new_wname AND
                        ipU._WINDOW-HANDLE = h_win_trig  NO-ERROR.
-      ELSE
+      ELSE DO:
         FIND ipU WHERE ipU._NAME   = ENTRY(3, new_wname, ".")
                    AND ipU._DBNAME = ENTRY(1, new_wname, ".")
                    AND ipU._TABLE  = ENTRY(2, new_wname, ".") 
-                   AND ipU._WINDOW-HANDLE = h_win_trig  NO-ERROR.
-
+                   AND ipU._WINDOW-HANDLE = h_win_trig NO-ERROR.
+      END.
       IF AVAILABLE ipU
       THEN RUN change_trg ("_CONTROL", RECID(ipU), editted_event,
                            FALSE, TRUE,
                            OUTPUT ok2change).
     END. /* If NOT a BROWSE COLUMN */       
     
-    ELSE DO:  /* Handle the browse column */
+    ELSE  IF LOOKUP("Column>", wname:SCREEN-VALUE," ":U) = 0 and LOOKUP("frame>", wname:SCREEN-VALUE," ":U) NE 0 then do: /* Rohit */
+      IF INDEX(new_wname , ".") = 0 THEN
+        FIND ipU WHERE ipU._NAME = new_wname AND
+                       ipU._WINDOW-HANDLE = h_win_trig  NO-ERROR.
+      ELSE DO:
+        FOR EACH ipU WHERE ipU._NAME   = ENTRY(3, new_wname, ".")
+                   AND ipU._DBNAME = ENTRY(1, new_wname, ".")
+                   AND ipU._TABLE  = ENTRY(2, new_wname, ".") 
+                   AND ipU._WINDOW-HANDLE = h_win_trig  :
+		   FIND p_U WHERE RECID(p_U) = ipU._PARENT-RECID and p_U._NAME EQ ENTRY(1,ENTRY(2,wname:SCREEN-VALUE,"<":U)," ":U) NO-ERROR.
+          IF AVAILABLE p_U  THEN 
+	  RUN change_trg ("_CONTROL", RECID(ipU), editted_event,
+                           FALSE, TRUE,
+                           OUTPUT ok2change).
+        end.
+      end.
+    END. /* Rohit */       
+    else DO:  /* Handle the browse column */
       FIND ipU WHERE ipU._NAME = ENTRY(1,ENTRY(2,wname:SCREEN-VALUE,"<":U)," ":U) AND
                      ipU._WINDOW-HANDLE = h_win_trig NO-ERROR.
       IF AVAILABLE ipU THEN DO:

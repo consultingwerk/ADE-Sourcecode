@@ -218,7 +218,11 @@ ELSE IF _U._TYPE = "DIALOG-BOX" THEN DO:
                 {adeuib/dialtrig.i &SECTION = WINDOW}
              END TRIGGERS.
 
-  IF OEIDEIsRunning THEN
+  if not OEIDEIsRunning then 
+  do:     
+     {adeuib/grptrig.i &of-widget-list="OF h_dlg_win"}   
+  end.
+  else  
   DO:
       RUN displayDesignWindow IN hOEIDEService (_save_file, h_dlg_win).
       run positionDesignWindow in hOEIDEService (h_dlg_win).

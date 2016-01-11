@@ -202,6 +202,7 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   fernando 02/11/10   Fix issue with sql generated for old sequence generator
   sgarg    06/03/10   Support for CLOB for MSS (OE00193877)
   kmayur   06/21/11   Support for migration of constraint - OE00195067
+  sgarg    12/05/13   Default INITIAL value for character field w/ env. variable (OE00241307)
 */
 
 { prodict/dictvar.i }
@@ -307,6 +308,7 @@ DEFINE VARIABLE comment_all_objects AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE sqlwidth            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE maxidxcollen        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE blankdefault        AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE useoedflt           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE tmp_str             AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE tmpfile             AS CHARACTER  NO-UNDO.
@@ -398,6 +400,11 @@ IF OS-GETENV("BLANKDEFAULT")   <> ? THEN
   tmp_str   = OS-GETENV("BLANKDEFAULT").
 IF tmp_str BEGINS "Y" THEN
   ASSIGN blankdefault = TRUE.
+
+IF OS-GETENV("_USE_OE_CHAR_DFLT_INIT")   <> ? THEN
+  tmp_str   = OS-GETENV("_USE_OE_CHAR_DFLT_INIT").
+IF tmp_str BEGINS "Y" THEN
+  ASSIGN useoedflt = TRUE.
 
 ASSIGN
   pfmt   = (user_env[4]  BEGINS "y") /* progress-format */
@@ -1293,10 +1300,13 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       END.
 
       IF DICTDB._Field._Data-type = "character" AND sdef AND defaultfld eq "1" AND
-          (dbtyp = "ORACLE" OR dbtyp = "MSSQLSRV7") AND blankdefault AND
-         (DICTDB._Field._Initial = ? OR Dictdb._field._Initial = " " OR DICTDB._Field._Initial = "?") THEN
+          (dbtyp = "ORACLE" OR dbtyp = "MSSQLSRV7") AND
+         (DICTDB._Field._Initial = ? OR Dictdb._field._Initial = " " OR DICTDB._Field._Initial = "?") THEN DO:
+         IF blankdefault THEN
             PUT STREAM code UNFORMATTED " DEFAULT ' ' ".
-  
+           ELSE IF (DICTDB._Field._Data-type = "character" AND Dictdb._field._Initial = "") AND useoedflt THEN
+              PUT STREAM code UNFORMATTED " DEFAULT '' ".
+      END.
       /* Put default values */
       IF sdef AND (DICTDB._Field._Initial <> ? AND Dictdb._field._Initial <> " " AND DICTDB._Field._Initial <> "?" )THEN DO:      
           c = DICTDB._Field._Initial. 

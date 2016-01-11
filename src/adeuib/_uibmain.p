@@ -5390,10 +5390,10 @@ PROCEDURE display_current_action :
        WITH FRAME action_icons.
   -------------------------------------------------------------------- */
   define input  parameter pcAction as character no-undo.
-  DEFINE VARIABLE cs-char       AS CHARACTER CASE-SENSITIVE NO-UNDO.
-  DEFINE VARIABLE l_master      AS LOGICAL                  NO-UNDO.
-  DEFINE VARIABLE l_DynLabel    AS LOGICAL                  NO-UNDO.
-  
+  DEFINE VARIABLE cs-char          AS CHARACTER CASE-SENSITIVE NO-UNDO.
+  DEFINE VARIABLE l_master         AS LOGICAL                  NO-UNDO.
+  DEFINE VARIABLE l_DynLabel       AS LOGICAL                  NO-UNDO.
+  define variable lDontApplyEntry  as logical                  no-undo.
   DEFINE BUFFER ipU FOR _U.
 
   DEFINE BUFFER b_U FOR _U.
@@ -5441,7 +5441,28 @@ PROCEDURE display_current_action :
     IF AVAILABLE b_U AND _next_draw EQ ? THEN DO:
       /* Menus don't have _L's */
       FIND _L WHERE RECID(_L) = b_U._lo-recid NO-ERROR.
-      IF FOCUS EQ ? and valid-handle(_h_win) THEN APPLY "ENTRY":U TO _h_win.
+  
+      IF FOCUS EQ ? and valid-handle(_h_win) THEN 
+      do:
+          /** HACK 
+              avoid applying entry for webobject window to avoid loosing the menu
+              when this is called from/during outline view dropdown. 
+              The problem is probably caused by the lose of focus 
+              (not entirely certain as the issue does not occur with regular windows 
+               even when they are similar and has no frame)
+             @TODO - this should be fixed on java side 
+             Difficult since the menu drop and this call happens in different threads
+             even if they origiante from the same user event        
+          */ 
+          if OEIDEIsRunning then 
+          do:
+              find _p where _p._WINDOW-HANDLE = _h_win.
+              lDontApplyEntry = valid-handle(_p._tv-proc).
+          end.
+          if lDontApplyEntry = false then     
+              APPLY "ENTRY":U TO _h_win.
+      end.     
+   
       /* Show it selected */
       IF CAN-SET(_h_cur_widg,"SELECTED":U) AND b_U._TYPE NE "DIALOG-BOX":U
       THEN ASSIGN b_U._SELECTEDib       = YES
@@ -6327,10 +6348,12 @@ PROCEDURE drawobj-in-box :
     ASSIGN itemp            = _frmy
            _frmy            = _second_corner_y
            _second_corner_y = itemp.
-
   /* Now draw the widget. */
         ASSIGN hOldFrame = _h_frame
-               _h_frame = SELF.
+               /* _h_frame is used to include grid-snap and border sizes in 
+                  size calculation. So set it to ? when dropping in a window, which 
+                  does not have grid-snap and border attributes  */    
+               _h_frame  = if self:type = "frame":U then self else ?.
         RUN drawobj.
         ASSIGN _h_frame = hOldFrame.
 END PROCEDURE.  /* drawobj-in-box */

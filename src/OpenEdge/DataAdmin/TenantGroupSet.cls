@@ -123,7 +123,8 @@ class OpenEdge.DataAdmin.TenantGroupSet inherits DataAdminCollection implements 
         fileExt = GetFileExtension(pcFile).
         case fileExt:
             /* deal with current limitations that does not handle the TenantGroups collection */  
-            when "p" then do:
+            when "p" or when "download" then 
+            do:
                 /* The code writer actually support this, but it writes tenants, so externally 
                    we give error if actually asking for it (see below) */ 
                 iPos = lookup("TenantGroupMembers",pcCollectionList).

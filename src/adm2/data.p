@@ -3921,7 +3921,7 @@ PROCEDURE refreshRow :
        {get keyWhere cRowIdent}.    
        if cRowIdent = ? then
        do:
-            message "Refresh failed due to an unexpected error when building the refresh query."
+            message "Refresh of row failed due to an unexpected error when building the refresh query."
             view-as alert-box error.
             return.
        end.  
@@ -10507,46 +10507,3 @@ END FUNCTION.
 
 &ENDIF
 
-
-&IF DEFINED(EXCLUDE-getKeyWhere) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyWhere Procedure 
-function  getKeyWhere return character ():
-    define variable cKeyFields    as character no-undo.
-    define variable cQueryFields  as character no-undo.
-    define variable pcValues      as character no-undo.
-    define variable cQueryString  as character no-undo.
-    define variable cntr          as integer   no-undo.
-    define variable cForName      as character no-undo.
-    
-    {get KeyFields cKeyFields}.
-        
-    if cKeyFields = "" or cKeyFields = ? then 
-       return ?.
-     
-    do cntr = 1 to num-entries(cKeyFields):
-       cForName = entry(cntr,cKeyFields).
-       if cntr > 1 then 
-          assign pcValues = pcValues +  CHR(1)
-                 cQueryFields = cQueryFields +  ",".
-       pcValues = pcValues + {fnarg columnValue cForName }.
-       if cForName = ? then
-          return ?.
-       if num-entries(cForName,".") = 1 then 
-          cForName = "RowObject." + cForName.
-       
-       cQueryFields = cQueryFields + cForName.
-    end.     
-    cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
-                                     cQueryFields,
-                                     pcValues,
-                                     "=",
-                                     ?,
-                                     ?).
-    return cQueryString.                                   
-end function.   
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
