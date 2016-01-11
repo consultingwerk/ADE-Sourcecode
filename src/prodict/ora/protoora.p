@@ -182,11 +182,9 @@ ON VALUE-CHANGED OF ora_version IN FRAME x DO:
     /* when ora_version is 9 and up, we support Unicode data types */
     IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 9 THEN DO:
         ASSIGN unicodeTypes:SENSITIVE = YES
-                     lCharSemantics:SENSITIVE = YES
-                     lExpandClob:SENSITIVE = YES.
+                     lCharSemantics:SENSITIVE = YES.
 
         /* keep tab order right */
-        lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.
         lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
         unicodeTypes:move-after-tab-item(lCharSemantics:HANDLE) in frame X.
     END.
@@ -209,8 +207,6 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
     IF SELF:screen-value = "yes" THEN DO:
         ASSIGN lCharSemantics:SENSITIVE = NO
                lCharSemantics:SCREEN-VALUE = "NO"
-               lExpandClob:SENSITIVE = NO
-               lExpandClob:SCREEN-VALUE = "no"
                ora_codepage = 'UTF-8'
                ora_codepage:SCREEN-VALUE = 'UTF-8'.
 
@@ -228,14 +224,12 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
     END.
     ELSE DO:
         ASSIGN lCharSemantics:SENSITIVE = YES
-               lExpandClob:SENSITIVE = YES
                ora_codepage = session:cpinternal
                ora_codepage:SCREEN-VALUE = session:cpinternal.
 
         ASSIGN ora_varlen = 4000
                ora_varlen:SCREEN-VALUE = "4000".
 
-        lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame X.
         lCharSemantics:move-after-tab-item(crtdefault:HANDLE) in frame X.
     END.
 END.
@@ -398,8 +392,7 @@ ELSE IF ora_version >= 9 AND ora_codepage = "utf-8" THEN
 
 IF OS-GETENV("EXPANDCLOB") <> ? THEN DO:
     ASSIGN tmp_str  = OS-GETENV("EXPANDCLOB").
-    IF tmp_str BEGINS "Y" THEN 
-        ASSIGN lExpandClob = TRUE.
+    IF tmp_str BEGINS "Y" THEN.
 END.
 
 /* Unicode Types only support for ORACLE 9 and up */
@@ -409,8 +402,7 @@ IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 9 THEN DO:
 
   IF tmp_str BEGINS "Y" THEN DO:
       ASSIGN unicodeTypes = TRUE
-             lCharSemantics = NO  /* irrelevant */
-             lExpandClob = NO. /* irrelevant */
+             lCharSemantics = NO.  /* irrelevant */
 
       IF OS-GETENV("ORACODEPAGE") = ? THEN
          ASSIGN ora_codepage = 'UTF-8'.
@@ -492,7 +484,6 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       ora_codepage
       ora_collname
       ora_varlen
-      lExpandClob
       ora_tspace
       ora_ispace
       pcompatible

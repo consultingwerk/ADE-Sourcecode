@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright (c) 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : afdeployds.i
     Purpose     : Defines the Deployment dataset for Deployment Automation

@@ -83,7 +83,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 {af/sup2/afxmlcfgtt.i
   &session-table = YES}
 {checkerr.i &define-only = yes}

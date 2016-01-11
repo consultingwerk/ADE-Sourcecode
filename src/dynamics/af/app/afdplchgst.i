@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright (C) 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : afdplchgst.i
     Purpose     : Defines ttChangset table for Deployment Automation

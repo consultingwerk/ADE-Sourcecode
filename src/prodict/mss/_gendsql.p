@@ -29,6 +29,7 @@
               01/28/08 fernando  Fix foreign attributes for logical field. Made foreign-owner and
                                  foreign-name lowercase - OE00164229
               02/22/08 fernando  Support for datetime
+              05/12/08 fernando  Handle duplicate field names being added - OE00166402              
 */              
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -2270,8 +2271,25 @@ DO ON STOP UNDO, LEAVE:
                             NO-ERROR.
           IF AVAILABLE rename-obj THEN 
             ASSIGN fieldname = "a##" + SUBSTRING(ilin[3], 1, (INTEGER(user_env[29]) - 3)).             
-          ELSE                  
+          ELSE DO:
             ASSIGN fieldname = ilin[3].
+
+            /* if not a renamed field, check if it's not a field name that already exists
+               in the schema.
+            */
+            FIND FIRST DICTDB._File WHERE DICTDB._File._file-name = tablename NO-ERROR.
+            IF AVAILABLE DICTDB._File THEN DO:
+               FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname NO-ERROR.
+               IF AVAILABLE DICTDB._Field THEN DO:
+                   MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                           "and field already exists in the schema holder." SKIP
+                           "This process is being aborted."  SKIP (1)
+                   VIEW-AS ALERT-BOX ERROR.
+                   RETURN.
+               END.
+            END.
+
+          END.
           
           IF xlate THEN DO:           
             IF LENGTH(fieldname) > INTEGER(user_env[29]) THEN DO: 

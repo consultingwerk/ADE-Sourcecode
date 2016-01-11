@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2006,2008 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions             *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+**************************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -34,6 +34,7 @@ History:
     mcmann      02/09/10    Added check for num-entries for Synonyms
                             20020820-004               
     04/19/06    fernando    Oracle 10g - skip BIN$* tables
+    07/08/08    ashukla     LDAP support (CR#OE00170689)
    
 --------------------------------------------------------------------*/
 /*h-*/
@@ -59,6 +60,7 @@ define variable l_syst-names    AS character no-undo.
 define variable l_type          AS character no-undo.
 define variable l_unspprtd      AS character no-undo.
 DEFINE VARIABLE batch_mode      AS LOGICAL   no-undo.
+DEFINE VARIABLE ldaph1          AS INTEGER   NO-UNDO. /*ldap CR#OE00170689 */
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 
@@ -180,6 +182,12 @@ if index(l_owner,"@") <> 0
  then assign
   l_owner = substring(l_owner,1,index(l_owner,"@") - 1,"character").
 
+/* In case l_owner is null, we are using external authentication 
+ * Get user name from database.
+ * CR#OE00170689.Begin
+ */
+IF (l_owner EQ "" OR l_owner EQ ?) THEN 
+   RUN getOwner.
      
 /* Skip remote packages, functions and procedures */
 if s_qual <> ?
@@ -264,14 +272,18 @@ for each DICTDBG.oracle_users
       if ENTRY(DICTDBG.oracle_objects.type + 1, oobjects) = "SYNONYM" then do:  /* synonym */
         find first DICTDB._Sequence
           where DICTDB._Sequence._Db-recid    = drec_db
-            and   DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
+            and (DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
+            /* OE00170417 - string may be quoted */
+            OR    DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
             and   DICTDB._Sequence._Seq-misc[2] = ""
             and   DICTDB._Sequence._Seq-misc[8] = s_qual
             no-error.
         if not available DICTDB._Sequence
          then find first DICTDB._File
             where DICTDB._File._Db-recid     = drec_db
-              and   DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
+              and  ( DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
+              /* OE00170417 - string may be quoted */
+              OR    DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
               and   DICTDB._File._For-Owner    = ""
               and   DICTDB._File._Fil-misc2[8] = s_qual
               no-error.
@@ -279,7 +291,9 @@ for each DICTDBG.oracle_users
      
       else if ENTRY(DICTDBG.oracle_objects.type + 1, oobjects) = "SEQUENCE" then do:  /* sequence */
         find first DICTDB._Sequence where DICTDB._Sequence._Db-recid    = drec_db
-          and   DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
+          and  (DICTDB._Sequence._Seq-misc[1] = DICTDBG.oracle_objects.name
+           /* OE00170417 - string may be quoted */
+          OR DICTDB._Sequence._Seq-misc[1] = QUOTER(DICTDBG.oracle_objects.NAME))
           and   DICTDB._Sequence._Seq-misc[2] = DICTDBG.oracle_users.name
           and   DICTDB._Sequence._Seq-misc[8] = s_qual
           no-error.
@@ -290,12 +304,16 @@ for each DICTDBG.oracle_users
          then find first DICTDB._File
            where DICTDB._File._Db-recid     = drec_db
              and DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
-             and DICTDB._File._Fil-misc2[1] = DICTDBG.oracle_objects.name
+             and (DICTDB._File._Fil-misc2[1] = DICTDBG.oracle_objects.name
+             /* OE00170417 - string may be quoted */
+             OR  DICTDB._File._Fil-misc2[1] = QUOTER(DICTDBG.oracle_objects.NAME))
              and DICTDB._File._Fil-misc2[8] = s_qual
              no-error.
          else find first DICTDB._File
             where DICTDB._File._Db-recid     = drec_db
-              and DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
+              and (DICTDB._File._For-Name     = DICTDBG.oracle_objects.name
+              /* OE00170417 - string may be quoted */
+              OR  DICTDB._File._For-Name = QUOTER(DICTDBG.oracle_objects.NAME))
               and DICTDB._File._For-Owner    = DICTDBG.oracle_users.name
               and DICTDB._File._Fil-misc2[8] = s_qual
               no-error.
@@ -644,3 +662,22 @@ IF NOT batch_mode THEN
 
 /*------------------------------------------------------------------*/
 
+/* PROCEDURE getOwner
+   We get called when l_owner is null, so we check if we are using external
+   authentication, in which case we try to get user name from database.
+   Fix for OE00170689.
+ */
+PROCEDURE getOwner:
+
+   RUN STORED-PROC DICTDBG.send-sql-statement 
+       ldaph1 = PROC-HANDLE NO-ERROR 
+       ("SELECT USER FROM DUAL").
+
+   IF NOT ERROR-STATUS:ERROR AND ldaph1 <> ? THEN DO: 
+     FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = ldaph1:
+           l_owner = TRIM(proc-text).
+     END.
+     CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = ldaph1.
+   END. 
+
+END.       

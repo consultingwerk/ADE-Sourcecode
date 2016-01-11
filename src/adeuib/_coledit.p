@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -2418,9 +2418,13 @@ PROCEDURE add-fields.ip:
                                OUTPUT valmsg,
                                OUTPUT valmsg-sa, 
                                OUTPUT _BC._MANDATORY).
-        IF CAN-DO("BLOB,CLOB":U, _BC._data-type) THEN 
+ 
+        /*If isQuery and isSmartData are TRUE, it is because we are in a
+          SDO, so we have to show the BLOB and CLOB fields.*/
+        IF NOT isQuery AND NOT isSmartData AND
+           CAN-DO("BLOB,CLOB":U, _BC._data-type) THEN 
         DO:
-            MESSAGE _BC._NAME + ' is defined as a large object and cannot be added to a SmartDataBrowser.':U
+             MESSAGE _BC._NAME + ' is defined as a large object and cannot be added to a SmartDataBrowser.':U
              VIEW-AS ALERT-BOX ERROR BUTTONS OK.
             DELETE _BC.
             NEXT AddFieldLoop.

@@ -83,6 +83,7 @@ History:
                          for MSS and ODBC
     fernando    06/11/07 Unicode support for ORACLE
     fernando    04/08/08 Datetime support for ORACLE
+    knavneet    08/19/08 OE00170417
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -388,7 +389,9 @@ for each gate-work where gate-work.gate-slct = TRUE
       then find first DICTDB._Sequence
           where DICTDB._Sequence._Db-Recid    = drec_db
             and DICTDB._Sequence._Seq-Name    = s_ttb_seq.pro_name
-            and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl no-error.
+            and DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
+            /* OE00170417 - check the foreign name too */
+            and DICTDB._Sequence._Seq-misc[1] = s_ttb_seq.ds_name no-error.
     else if can-do(odbtyp,user_dbtype)
       then find first DICTDB._Sequence
         where DICTDB._Sequence._Db-Recid    = drec_db

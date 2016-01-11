@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright (c) 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : afdcusetds.i
     Purpose     : Defines the Setups dataset for the DCU

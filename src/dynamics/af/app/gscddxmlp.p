@@ -27,7 +27,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright © 2000-2007 by Progress Software Corporation.  All rights 
+/* Copyright (C) 2000-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */
 /*---------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 &scop   mip-notify-user-on-plip-close   NO
 
-{adm2/globals.i}
+{src/adm2/globals.i}
 
 
 /* The following include contains the replaceCtrlChar function */

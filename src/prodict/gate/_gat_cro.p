@@ -67,6 +67,7 @@ History:
     fernando    05/26/06 Added support for int64
     fernando    06/11/07 Unicode and clob support   
     fernando    02/14/08 Support for datetime 
+    knavneet    08/10/08  OE00170417 - Quoting object names if it has special chars.
 --------------------------------------------------------------------*/
 
 
@@ -104,7 +105,7 @@ define variable oldf  	         as logical   no-undo. /* old file definition */
 define variable scrap            as logical   no-undo.
 define variable def-ianum        as integer initial 6 no-undo.
 DEFINE VARIABLE fld-dif          AS LOGICAL   NO-UNDO.
-
+DEFINE VARIABLE for_name         AS CHARACTER NO-UNDO. /* OE00170417 */
 
 /*------------------------------------------------------------------*/
 /* These variables/workfile are so we can save the Progress-only
@@ -539,13 +540,20 @@ for each gate-work
   if s_ttb_seq.pro_recid = ?
    then do:  /* s_ttb_seq.pro_recid = ? */
 
-    if user_dbtype = "ORACLE"
-     then find first DICTDB._Sequence
+ if user_dbtype = "ORACLE"
+     then 
+     DO:
+      ASSIGN for_name = s_ttb_seq.ds_name.
+      IF for_name begins '"' then /* OE00170417: string may be quoted */
+        ASSIGN for_name = TRIM(s_ttb_seq.ds_name,'"').
+      find first DICTDB._Sequence
       where DICTDB._Sequence._Db-Recid    = drec_db
-      and   DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
+      and  (DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name 
+            OR DICTDB._Sequence._Seq-Misc[1]  = for_name )/* OE00170417: string may be quoted */
       and   DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
       and   DICTDB._Sequence._Seq-misc[8] = s_ttb_seq.ds_spcl
       no-error.
+     END.
     else if can-do(odbtyp,user_dbtype)
      then find first DICTDB._Sequence
       where DICTDB._Sequence._Db-Recid    = drec_db
@@ -631,20 +639,34 @@ for each gate-work
     else if user_dbtype = "ORACLE"
      and s_ttb_tbl.ds_msc21 <> ?
      and s_ttb_tbl.ds_msc21 <> ""
-     then find first DICTDB._File
+     then 
+     DO:
+        ASSIGN for_name = s_ttb_tbl.ds_name.
+        IF for_name begins '"' then /* OE00170417: string may be quoted */
+           ASSIGN for_name = TRIM(s_ttb_tbl.ds_name,'"').
+        find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
-        and   DICTDB._File._For-name     = s_ttb_tbl.ds_name
+        and  (DICTDB._File._For-name     = s_ttb_tbl.ds_name
+              OR DICTDB._File._For-name      = for_name )/* OE00170417: string may be quoted */
         and   DICTDB._File._For-owner    = s_ttb_tbl.ds_user
         and   DICTDB._File._Fil-misc2[8] = s_ttb_tbl.ds_spcl
         and   DICTDB._File._Fil-misc2[1] = s_ttb_tbl.ds_msc21
         no-error.
+     END.
     else if user_dbtype = "ORACLE"
-     then find first DICTDB._File
+     then 
+     DO:
+        ASSIGN for_name = s_ttb_tbl.ds_name.
+        IF for_name begins '"' then /* OE00170417: string may be quoted */
+           ASSIGN for_name = TRIM(s_ttb_tbl.ds_name,'"').
+        find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
-        and   DICTDB._File._For-name     = s_ttb_tbl.ds_name
+        and  (DICTDB._File._For-name     = s_ttb_tbl.ds_name
+             OR DICTDB._File._For-name     = for_name) /* OE00170417: string may be quoted */
         and   DICTDB._File._For-owner    = s_ttb_tbl.ds_user
         and   DICTDB._File._Fil-misc2[8] = s_ttb_tbl.ds_spcl
         no-error.
+     END.
     else if can-do(odbtyp,user_dbtype)
      then find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
@@ -846,6 +868,10 @@ for each gate-work
                                 and w_field.ds_type = s_ttb_fld.ds_type no-error.
       if not available w_field then 
         find first w_field where w_field.ds_name = s_ttb_fld.ds_name no-error.
+
+      /* OE00170417: name may be quoted for ORACLE */
+      if not available w_field and user_dbtype = "ORACLE" and s_ttb_fld.ds_name begins '"' then 
+         find first w_field where w_field.ds_name = TRIM(s_ttb_fld.ds_name,'"') no-error.
 
       if available w_field and w_field.ds_type begins "date"
                            and s_ttb_fld.pro_type = "integer" THEN DO:
@@ -1110,6 +1136,10 @@ for each gate-work
         where w_index.pro_for-name = s_ttb_idx.ds_name
         no-error.
 
+      /* OE00170417 name may be quoted for ORACLE */
+      if not available w_index and user_dbtype = "ORACLE" and s_ttb_idx.ds_name begins '"' then 
+          find first w_index  where w_index.pro_for-name = TRIM(s_ttb_idx.ds_name,'"')  no-error.
+
     /* We have two index-lists with each unique names within itself.
      * However, these two list are connected by foreign-name and not by 
      * PROGRESS-name!
@@ -1244,9 +1274,14 @@ for each gate-work
                                     )
         DICTDB._Index._I-misc2[1] = s_ttb_idx.ds_msc21.
 
-      if s_ttb_idx.ds_msc21 begins "r"
-       then assign
-         tab_recidNew = s_ttb_idx.ds_name.
+      if s_ttb_idx.ds_msc21 begins "r" then do:
+       assign  tab_recidNew = s_ttb_idx.ds_name.
+         /* OE00170417: name may be quoted for ORACLE */
+         if user_dbtype = "ORACLE" and tab_recidNew begins '"' then do:
+            if QUOTER(tab_recidOld) = tab_recidNew then
+              tab_recidOld = QUOTER(tab_recidOld).
+         end.
+      end.
 
       if available w_index
        then do:  /* available w_index */

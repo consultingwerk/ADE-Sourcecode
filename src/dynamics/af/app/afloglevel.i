@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright (C) 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : afloglevel.i
     Purpose     : Dumps sequence values for a 

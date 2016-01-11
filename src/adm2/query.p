@@ -6103,7 +6103,8 @@ FUNCTION newQuerySort RETURNS CHARACTER
  DEFINE VARIABLE cNewSort          AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE lDiffColumns      AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE lToggled          AS LOGICAL    NO-UNDO.
-
+ DEFINE VARIABLE cTmpQuery         AS CHARACTER  NO-UNDO. 
+  
  IF pcQuery = '':U THEN
    RETURN '':U.
 
@@ -6304,31 +6305,9 @@ FUNCTION newQuerySort RETURNS CHARACTER
  
  /* Skip sort if Same as old unless a sort option was toggled */ 
  IF lDiffColumns OR lToggled THEN
-   ASSIGN          /* check for  indexed-reposition  */
-      iIdxPos = INDEX(RIGHT-TRIM(pcQuery,". ") + " ":U,
-                      " INDEXED-REPOSITION ":U)          
-    
-      /* If no INDEX-REPOSITION is found, set the iLength (where to end insert)
-         to the end of where-clause. (right-trim periods and blanks to find 
-         the true end of the expression) Otherwise iLength is the position of 
-         INDEX-REPOSITION. */
-      iLength = (IF iIdxPos = 0 
-                 THEN LENGTH(RIGHT-TRIM(pcQuery,". ":U)) + 1     
-                 ELSE iIdxPos)    
-          
-      /* Any By ? */ 
-      iByPos  = INDEX(pcQuery," BY ":U)                   
-      /* Now find where we should start the insert; 
-         We might have both a BY and an INDEXED-REPOSITION or only one of them 
-         or none. So we make sure we use the MINIMUM of whichever of those 
-         unless they are 0. */
-      iByPos  = MIN(IF iByPos  = 0 THEN iLength ELSE iByPos,
-                    IF iIdxPos = 0 THEN iLength ELSE iIdxPos) 
-          
-      SUBSTR(pcQuery,iByPos,iLength - iByPos) = IF cNewSort <> '':U 
-                                                THEN " ":U + cNewSort
-                                                ELSE "":U.  
-    
+    pcQuery = DYNAMIC-FUNCTION("replaceQuerySort" IN TARGET-PROCEDURE,
+                                pcQuery,
+                                cNewSort).    
  RETURN pcQuery. 
 
 END FUNCTION.

@@ -63,6 +63,7 @@
      06/11/07 Unicode and clob support for ORACLE
      04/07/08 Datetime support
      04/14/08 Removed unnecessary type check in write-tbl-sql - OE00166674
+     05/12/08 Handle duplicate field names being added - OE00166402
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -2992,8 +2993,25 @@ DO ON STOP UNDO, LEAVE:
                               NO-ERROR.
             IF AVAILABLE rename-obj THEN 
               ASSIGN fieldname = "a##" + SUBSTRING(ilin[3], 1, (INTEGER(user_env[29]) - 3)).             
-            ELSE                  
+            ELSE DO:
               ASSIGN fieldname = ilin[3].
+
+              /* if not a dropped or renamed field, check if it's not a field name that
+                 already exists in the schema.
+              */
+              FIND FIRST DICTDB._File WHERE DICTDB._File._file-name = tablename NO-ERROR.
+              IF AVAILABLE DICTDB._File THEN DO:
+                 FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname NO-ERROR.
+                 IF AVAILABLE DICTDB._Field THEN DO:
+                     MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                             "and field already exists in the schema holder." SKIP
+                             "This process is being aborted."  SKIP (1)
+                     VIEW-AS ALERT-BOX ERROR.
+                     RETURN.
+                 END.
+              END.
+
+            END.
           END.
         
           IF xlate THEN DO:           

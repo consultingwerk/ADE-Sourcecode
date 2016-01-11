@@ -197,8 +197,6 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
     IF SELF:screen-value = "yes" THEN DO:
        ASSIGN lCharSemantics:SENSITIVE = NO
               lCharSemantics:SCREEN-VALUE = "NO"
-               lExpandClob:SENSITIVE = NO
-               lExpandClob:SCREEN-VALUE = "no"
                ora_varlen = 2000
                ora_varlen:SCREEN-VALUE = "2000".
 
@@ -215,11 +213,9 @@ ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
     END.
     ELSE DO:
        ASSIGN lCharSemantics:SENSITIVE = YES
-              lExpandClob:SENSITIVE = YES
               ora_varlen = 4000
               ora_varlen:SCREEN-VALUE = "4000".
 
-       lExpandClob:move-after-tab-item(ora_varlen:HANDLE) in frame read-df.
        lCharSemantics:move-after-tab-item(shadowcol:HANDLE) in frame read-df.
     END.
 
@@ -281,7 +277,6 @@ UPDATE df-file
        ora_tspace
        ora_ispace
        ora_varlen
-       lExpandClob
        pcompatible
        crtdefault        
        create_df
@@ -311,7 +306,7 @@ ASSIGN user_env[1]  = df-file
        user_env[8]  = "y"
        user_env[9]  = "ALL"
        user_env[10] = string(ora_varlen) /* maximum char column length */
-                             + "," + STRING(lExpandClob)  /* expand to clob */
+                             + "," + "no"  /* expand to clob */
                              + "," + STRING(lCharSemantics) /* use char semantics */
        user_env[11] = (IF unicodeTypes THEN "nvarchar2" ELSE "varchar2") 
        user_env[12] = "date"

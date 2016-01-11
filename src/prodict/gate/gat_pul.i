@@ -92,6 +92,8 @@ History:
     fernando    06/12/06  Support for large sequences
     fernando    06/11/07  Unicode and clob support
     fernando    04/07/08  Datetime support for ORACLE
+    ashukla     07/08/08  LDAP support (CR#OE00170689)
+    knavneet    08/12/08  OE00170417 - Quoting object names if it has special chars.
 */
 
 /*
@@ -195,6 +197,8 @@ DEFINE VARIABLE dsname          AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE isasc           AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE upperfld        AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE col-property	AS INTEGER                NO-UNDO.
+/* OE00170417 */
+FUNCTION scanSplCharacter RETURN INTEGER (INPUT name as CHARACTER)  FORWARD.
 /*------------------------------------------------------------------*/
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
@@ -466,6 +470,8 @@ for each gate-work
   FOR first ds_users
     where ds_users.name = uservar
     no-lock.
+    /* To leave the record in scope after leaving this block */
+    LEAVE.
   END.
 
   case typevar-s:
@@ -1205,6 +1211,42 @@ for each gate-work
 &IF "{&db-type}" = "oracle"
  &THEN 
 
+/* OE00170417:Quoting objects when they have special character *
+ * CR#OE00169024: Quoting user when they have special char slash *
+*/
+for each s_ttb_tbl:
+   if scanSplCharacter(s_ttb_tbl.ds_name) = 1 then
+      s_ttb_tbl.ds_name = QUOTER(s_ttb_tbl.ds_name).
+   if (INDEX(s_ttb_tbl.ds_user,'~\') > 0) then
+      s_ttb_tbl.ds_user = QUOTER(s_ttb_tbl.ds_user).
+
+   if s_ttb_tbl.ds_msc21 ne "" AND s_ttb_tbl.ds_msc21 ne ? and 
+     LOOKUP(s_ttb_tbl.ds_msc21,"PROCEDURE,FUNCTION,PACKAGE") > 0 THEN DO:
+           if scanSplCharacter(s_ttb_tbl.ds_msc21) = 1 then 
+               s_ttb_tbl.ds_msc21 =QUOTER(s_ttb_tbl.ds_name).
+           if (INDEX(s_ttb_tbl.ds_user,'~\') > 0) then 
+               s_ttb_tbl.ds_user =QUOTER(s_ttb_tbl.ds_user).
+   end.
+end.
+ 
+for each s_ttb_fld:
+   if scanSplCharacter(s_ttb_fld.ds_name) = 1 then
+      s_ttb_fld.ds_name = QUOTER(s_ttb_fld.ds_name).
+end.
+ 
+for each s_ttb_idx:
+   if scanSplCharacter(s_ttb_idx.ds_name) = 1 then
+      s_ttb_idx.ds_name = QUOTER(s_ttb_idx.ds_name).
+end.
+
+for each s_ttb_seq:
+   if scanSplCharacter(s_ttb_seq.ds_name) = 1 then
+      s_ttb_seq.ds_name = QUOTER(s_ttb_seq.ds_name).
+   if (INDEX(s_ttb_seq.ds_user,'~\') > 0) then
+      s_ttb_seq.ds_user = QUOTER(s_ttb_seq.ds_user).
+end.
+/* END of Quoting code for OE00170417 / CR#OE00169024 */
+
 /*--------------------- PREPARE FOR NEXT LINK  ---------------------*/
 
 /* we are done with this link, lets do the next one (srchd = false)
@@ -1355,6 +1397,64 @@ RUN adecomm/_setcurs.p ("").
 
 if NOT batch-mode
  then HIDE FRAME ds_make NO-PAUSE.
+
+ &SCOPED-DEFINE SPL_CHAR_SUPPORTED 32
+/* Function : scanSplCharacter
+   Purpose  : Scan if there is any special character
+   Input    : string to be scanned
+   RETURN   : 1 if there is a special character found else 0 */
+/* OE00170417 */
+/* NOTE: In oracle if an object name has to have a character that's not
+alpha-numeric, underscore, # or $ then we need to quote it while creating
+it in Oracle and also quote it while referring to such objects in any SQL.
+On the contrary if an object name is created without quotes in Oracle 
+(like most names that are alpha-numeric ) then quoting them will give error */
+
+FUNCTION scanSplCharacter RETURN INTEGER
+ (INPUT name as CHARACTER):
+DEFINE VARIABLE splchar AS CHARACTER EXTENT {&SPL_CHAR_SUPPORTED} INIT [
+    '/',      /* 1  */
+    '~\',     /* 2  */
+    ' ',      /* 3  */
+    '	',    /* 4  */ /* tab character*/
+    '!',      /* 5  */
+    '@',      /* 6  */
+    '%',      /* 7  */
+    '&',      /* 8  */
+    '*',      /* 9  */
+    '(',      /* 10 */
+    ')',      /* 11 */
+    '-',      /* 12 */
+    '+',      /* 13 */
+    '=',      /* 14 */
+    '~{',     /* 15 */
+    '~}',     /* 16 */
+    '~[',     /* 17 */
+    '~]',     /* 18 */
+    '|',      /* 19 */
+    ':',      /* 20 */
+    ';',      /* 21 */
+    '~"',     /* 22 */
+    '~'',     /* 23 */
+    '<',      /* 24 */
+    ',',      /* 25 */
+    '>',      /* 26 */
+    '.',      /* 27 */
+    '?',      /* 28 */
+    '`',      /* 29 */
+    '~~',     /* 30 */
+    '^'       /* 31 */
+/* Last element is a LINE FEED */
+    ].
+splchar[{&SPL_CHAR_SUPPORTED}] = STRING(CHR(10)). /*LINE FEED */
+
+  DEFINE VARIABLE i AS INTEGER NO-UNDO INIT 0.
+  REPEAT i = 1 TO {&SPL_CHAR_SUPPORTED}:
+    IF INDEX(name, splchar[i]) > 0 THEN
+     RETURN 1.
+  END.
+  RETURN 0.
+END FUNCTION.
 
 RETURN.
 

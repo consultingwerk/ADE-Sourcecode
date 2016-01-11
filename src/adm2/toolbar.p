@@ -3508,8 +3508,8 @@ PROCEDURE initAction :
                 "PUBLISH":U  {&dlmt}
                 "startFilter":U {&dlmt}
                 "READ":U {&dlmt}
-                "FUNCTION":U {&dlmt}
-                "FilterAvailable=yes and RecordState=RecordAvailable,NoRecordAvailable":U {&dlmt}
+                "FUNCTION":U {&dlmt}     
+                "FilterAvailable=yes and QueryPosition=NoRecordAvailable,RecordAvailable,FirstRecord,LastRecord,OnlyRecord,NotFirstOrLast":U {&dlmt}
                 "navigation-target":U
                 ).
                                                                                        

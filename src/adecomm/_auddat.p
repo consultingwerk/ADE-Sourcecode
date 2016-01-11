@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -46,6 +46,7 @@
                              20051116-043.
       fernando Apr  10, 2006 Adjust reports - _event-detail may now be empty 20060404-014
       fernando Sep  21, 2006 Fixing issue with client session report
+      fernando Aug  11, 2008 Fixing _Transaction-id format
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -128,10 +129,10 @@ FORM SKIP(1)
      audData._audit-data-guid FORMAT "x(45)" 
                               COLON 28 
                               VIEW-AS TEXT SKIP
-     audData._transaction-id  FORMAT ">>>>9" 
+     audData._transaction-id  FORMAT "->>>>>>>9" 
                               COLON 28 
                               VIEW-AS TEXT SKIP
-     audData._transaction-seq FORMAT "ZZZ"   
+     audData._transaction-seq FORMAT ">>>>>ZZZ"
                               COLON 28 
                               VIEW-AS TEXT SKIP
      audData._audit-date-time FORMAT "99/99/9999 HH:MM:SS AM" 
@@ -244,9 +245,14 @@ IF glWriteXml THEN DO:
   ghDataSet:WRITE-XML("FILE",pcFileName,TRUE,"UTF-8",?,TRUE,TRUE).
 END.
 ELSE DO:
-  DISPLAY "Building report file..." @ audData._event-name
-      WITH FRAME statusFrame.
-  RUN printReport.
+  /* OE00125768 -don't print report if custom report to terminal
+     (in which case file name is blank)
+  */
+  IF NOT (piReport EQ 12 AND pcFileName EQ "") THEN DO:
+      DISPLAY "Building report file..." @ audData._event-name
+          WITH FRAME statusFrame.
+      RUN printReport.
+  END.
 END.
 
 DISPLAY "Restoring default settings..." @ audData._event-name

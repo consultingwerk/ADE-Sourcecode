@@ -514,6 +514,9 @@ on choose of btn_select or "S","s" of bgate-work in frame gtbl_get do:
      then assign usrpatt = substring(usrpatt, 1, i - 1,"character").
     end.     /* initialize user-pattern */
 
+  if user_dbtype = "ORACLE" AND usrpatt begins "/@" then
+     usrpatt = "".
+
   display pprompt with frame tbl_patt.
 
   do ON ENDKEY UNDO, LEAVE:

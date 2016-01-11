@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2008 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -28,6 +28,7 @@
 
   DEFINE VARIABLE hAppServer  AS HANDLE    NO-UNDO.
   DEFINE VARIABLE cASDivision AS CHARACTER NO-UNDO.
+  define variable cRetVal     as character no-undo.
 
   {get ASDivision cASDivision}.
   IF cASDivision = 'Client':U THEN
@@ -36,16 +37,18 @@
     {get ASHandle hAppServer}.
     IF VALID-HANDLE(hAppServer) AND hAppServer NE TARGET-PROCEDURE THEN 
     DO:
-      &IF "{3}":U NE "":U &THEN
-        RETURN ( DYNAMIC-FUNCTION("{1}":U IN hAppServer, {3} )) .
-      &ELSE
-        RETURN ( DYNAMIC-FUNCTION("{1}":U IN hAppServer)) .
-      &ENDIF
+      &IF "{3}":U NE "":U &THEN 
+        cRetVal = ( DYNAMIC-FUNCTION("{1}":U IN hAppServer, {3} )) .
+      &ELSE 
+        cRetVal = ( DYNAMIC-FUNCTION("{1}":U IN hAppServer)) .
+      &ENDIF 
        /* unbind if this call did the bind (getASHandle) */
       RUN unbindServer IN TARGET-PROCEDURE (?). 
+      
+      return cRetVal. 
     END. /* If we have a valid hAppServer handle */
     ELSE RETURN &IF "{2}":U = "Log":U &THEN FALSE &ELSE ? &ENDIF.
   END.    /* END DO IF Client */
-  &IF "{4}":U NE "No":U &THEN
+  &IF "{4}":U NE "No":U &THEN 
   ELSE RETURN SUPER({3}). /* Get query.p's version of this function. */
   &ENDIF

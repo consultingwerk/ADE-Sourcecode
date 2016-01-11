@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2004-2007 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***************************************************************************
+* Copyright (C) 2000,2004-2008 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions                *
+* contributed by participants of Possenet.                                  *
+*                                                                           *
+*****************************************************************************/
 /* _dmpdefs.p - Dump Data Definitions for *all* DBTYPEs */
 /*
 
@@ -33,6 +33,9 @@ history:
                                 ISO-Latin-1   =now=>  ISO8859-1
                                 ISO 8859-1    =now=>  ISO8859-1
                                 Codepage 850  =now=>  IBM850
+   knavneet    08/20/22    OE00170417 - Changed the dump of FOREIGN_NAME for Sequences
+                           Also changed the dump for FOREIGN_OWNER for Sequences (in case of 
+                           LDAP it may be quoted, so we must take care of that)
 */
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.
@@ -340,10 +343,16 @@ ELSE IF pi_method BEGINS "s" THEN DO: /*-------------------------*/ /* sequences
       PUT STREAM ddl UNFORMATTED "  MIN-VAL " _Sequence._Seq-Min SKIP.
     IF _Sequence._Seq-Max <> ? THEN
       PUT STREAM ddl UNFORMATTED "  MAX-VAL " _Sequence._Seq-Max SKIP.
-    IF _Sequence._Seq-Misc[1] <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-NAME " _Sequence._Seq-Misc[1] SKIP.
-    IF _Sequence._Seq-Misc[2] <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-OWNER " _Sequence._Seq-Misc[2] SKIP.
+    IF _Sequence._Seq-Misc[1] <> ?  THEN /* OE00170417: Name may be quoted */
+    DO:
+      PUT STREAM ddl UNFORMATTED "  FOREIGN-NAME ".
+      EXPORT STREAM ddl _Sequence._Seq-Misc[1].
+    END.
+    IF _Sequence._Seq-Misc[2] <> ? THEN /* Owner name may be quoted in case of LDAP */
+    DO:
+          PUT STREAM ddl UNFORMATTED "  FOREIGN-OWNER ". 
+          EXPORT STREAM ddl _Sequence._Seq-Misc[2].
+    END.
     IF _Sequence._Seq-Misc[3] <> ? THEN
       PUT STREAM ddl UNFORMATTED "  SEQ-MISC3 " _Sequence._Seq-Misc[3] SKIP.
     IF _Sequence._Seq-Misc[4] <> ? THEN

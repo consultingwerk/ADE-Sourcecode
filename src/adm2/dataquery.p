@@ -848,6 +848,18 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-replaceQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD replaceQuerySort Procedure 
+FUNCTION replaceQuerySort RETURNS CHARACTER
+  ( pcQuery       AS CHAR,
+    pcSort        AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-repositionRowObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD repositionRowObject Procedure 
@@ -5349,8 +5361,7 @@ FUNCTION newQuerySort RETURNS CHARACTER
  DEFINE VARIABLE cSort             AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iNum              AS INTEGER    NO-UNDO.
  DEFINE VARIABLE iByPos            AS INTEGER    NO-UNDO.
- DEFINE VARIABLE iIdxPos           AS INTEGER    NO-UNDO.
- DEFINE VARIABLE iLength           AS INTEGER    NO-UNDO.
+ 
  DEFINE VARIABLE iCase             AS INTEGER    NO-UNDO.
  DEFINE VARIABLE iNumWords         AS INTEGER    NO-UNDO.
  DEFINE VARIABLE cSortEntry        AS CHARACTER  NO-UNDO.
@@ -5364,7 +5375,7 @@ FUNCTION newQuerySort RETURNS CHARACTER
  DEFINE VARIABLE lDiffColumns      AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE lToggled          AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cDataColumns      AS CHARACTER  NO-UNDO.
-
+ 
  IF pcQuery = '':U THEN
    RETURN '':U.
 
@@ -5521,31 +5532,9 @@ FUNCTION newQuerySort RETURNS CHARACTER
  
  /* Skip sort if Same as old unless a sort option was toggled */ 
  IF lDiffColumns OR lToggled THEN
-   ASSIGN          /* check for  indexed-reposition  */
-      iIdxPos = INDEX(RIGHT-TRIM(pcQuery,". ") + " ":U,
-                      " INDEXED-REPOSITION ":U)          
-    
-      /* If no INDEX-REPOSITION is found, set the iLength (where to end insert)
-         to the end of where-clause. (right-trim periods and blanks to find 
-         the true end of the expression) Otherwise iLength is the position of 
-         INDEX-REPOSITION. */
-      iLength = (IF iIdxPos = 0 
-                 THEN LENGTH(RIGHT-TRIM(pcQuery,". ":U)) + 1     
-                 ELSE iIdxPos)    
-          
-      /* Any By ? */ 
-      iByPos  = INDEX(pcQuery," BY ":U)                   
-      /* Now find where we should start the insert; 
-         We might have both a BY and an INDEXED-REPOSITION or only one of them 
-         or none. So we make sure we use the MINIMUM of whichever of those 
-         unless they are 0. */
-      iByPos  = MIN(IF iByPos  = 0 THEN iLength ELSE iByPos,
-                    IF iIdxPos = 0 THEN iLength ELSE iIdxPos) 
-          
-      SUBSTR(pcQuery,iByPos,iLength - iByPos) = IF cNewSort <> '':U 
-                                                THEN " ":U + cNewSort
-                                                ELSE "":U.  
-    
+    pcQuery = DYNAMIC-FUNCTION("replaceQuerySort" IN TARGET-PROCEDURE,
+                                pcQuery,
+                                cNewSort).    
  RETURN pcQuery. 
 
 END FUNCTION.
@@ -6058,6 +6047,64 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
   &UNDEFINE xp-assign
   
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-replaceQuerySort) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION replaceQuerySort Procedure 
+FUNCTION replaceQuerySort RETURNS CHARACTER
+  ( pcQuery       AS CHAR,
+    pcSort        AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose   :  Replace/Insert sort criteria (BY phrase) in a QueryString.
+  Parameters:
+    pcQuery    - Query to add sort to (current sort will be replaced)        
+    pcSort     - new sort expression.                
+                                      
+ Notes:   Intended for internal use by newQuerySort   
+-------------------------------------------------------------------------------*/ 
+ DEFINE VARIABLE iByPos            AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iIdxPos           AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE cTmpQuery         AS CHARACTER  NO-UNDO. 
+ DEFINE VARIABLE iLength           AS INTEGER    NO-UNDO.
+ 
+ ASSIGN 
+   /* We mask quoted strings to ensure the following keyword lookup
+     only finds stuff in the expression(in lack of parsing) */ 
+   cTmpQuery   = DYNAMIC-FUNCTION("maskQuotes":U IN TARGET-PROCEDURE,
+                                   pcQuery,'':U)
+   /* check for  indexed-reposition  */
+   iIdxPos = INDEX(RIGHT-TRIM(cTmpQuery,". ") + " ":U," INDEXED-REPOSITION ":U)          
+
+   /* If no INDEX-REPOSITION is found, set the iLength (where to end insert)
+      to the end of where-clause. (right-trim periods and blanks to find 
+      the true end of the expression) Otherwise iLength is the position of 
+      INDEX-REPOSITION. */
+   iLength = (IF iIdxPos = 0 
+              THEN LENGTH(RIGHT-TRIM(cTmpQuery,". ":U)) + 1     
+              ELSE iIdxPos)    
+      
+   /* Any By ? */ 
+   iByPos  = INDEX(cTmpQuery," BY ":U)   
+      
+   /* Now find where we should start the insert; 
+      We might have both a BY and an INDEXED-REPOSITION or only one of them 
+      or none. So we make sure we use the MINIMUM of whichever of those 
+      unless they are 0. */
+   iByPos  = MIN(IF iByPos  = 0 THEN iLength ELSE iByPos,
+                 IF iIdxPos = 0 THEN iLength ELSE iIdxPos) 
+      
+   SUBSTR(pcQuery,iByPos,iLength - iByPos) = IF pcSort <> '':U 
+                                             THEN " ":U + pcSort
+                                             ELSE "":U.  
+
+ RETURN pcQuery.  
 
 END FUNCTION.
 
@@ -7375,8 +7422,8 @@ FUNCTION setQuerySort RETURNS LOGICAL
    {get QueryStringDefault cQueryString}.
 
  cQueryString = DYNAMIC-FUNCTION('newQuerySort':U IN TARGET-PROCEDURE,
-                                cQueryString,
-                                pcSort). /* db columns */
+                                 cQueryString,
+                                 pcSort).  
  IF cQueryString > '':U THEN
  DO:
    {set QueryString cQueryString}.

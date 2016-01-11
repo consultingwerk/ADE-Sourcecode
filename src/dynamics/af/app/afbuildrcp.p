@@ -6,7 +6,7 @@ Use this template to create a new Structured Procedure file to compile and run P
 */
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright (c) 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : afbuildrcp.p
     Purpose     : 
@@ -29,7 +29,7 @@ define input parameter plCompileMinSize        as logical            no-undo.
 define input parameter plCompileMD5            as logical            no-undo.
 define input parameter plStreamIO              as logical            no-undo.
 define input parameter plDebugListingEnable    as logical            no-undo.
-define input parameter pcDebugListFile         as character          no-undo.                        
+define input parameter pcDebugListFile         as character          no-undo.
 define input parameter plListingEnable         as logical            no-undo.
 define input parameter pcListingFile           as character          no-undo.
 define input parameter plListingAppend         as logical            no-undo.
@@ -315,7 +315,8 @@ PROCEDURE compileDirectory :
     define variable iLoop                    as integer                    no-undo.
     define variable cFullFilename            as character                  no-undo.
     define variable lIsDir                   as logical                    no-undo.
-    define variable lMatchesMask             as logical                    no-undo.
+    define variable lMatchesMask             as logical                    no-undo.
+
     define buffer lbFile for ttFilename.
     
     /* Make sure the source directory exists */
