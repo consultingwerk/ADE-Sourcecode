@@ -642,8 +642,13 @@ FIND ttLinkedFile WHERE ttLinkedFile.fileName = pcFullPathName NO-ERROR.
 IF AVAILABLE ttLinkedFile THEN
     pcProjectName = ttLinkedFile.projectName.
 ELSE
+DO:
+    DEFINE VARIABLE cCurrentProjectName AS CHARACTER   NO-UNDO.
+    cCurrentProjectName = getProjectName().
     RUN sendRequest("IDE getProjectOfFile ":U 
+                    + QUOTER(cCurrentProjectName) + " "    
                     + QUOTER(pcFullPathName), TRUE, OUTPUT pcProjectName).
+END.                    
 
 IF pcProjectName = "FALSE":U THEN
     pcProjectName = "".

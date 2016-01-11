@@ -29,9 +29,11 @@ History:
                        and mark _Field._Fld-Misc2[4] as "identity"
                        
    D. McMann  01/08/03 Added logic to find default value for initial value
+   fernando   09/11/07 Fixing issue with Initial when not Unicode case - OE00157726
 
 --------------------------------------------------------------------*/
 
+DEFINE VARIABLE my_typ_unicode AS LOGICAL.
 
 /* this code gets executed only for the first element of array-field   */
 /* so extent-code of field is always ##1 (even with real extent >= 10) */
@@ -57,7 +59,6 @@ if NOT SESSION:BATCH-MODE
    TRIM(DICTDBG.SQLColumns_buffer.Column-name) @ msg[3]
    pnam                                        @ msg[4]
    WITH FRAME ds_make.
-
 assign
   dtyp    = LOOKUP({&data-type},user_env[12])
   l_init  = ?
@@ -67,8 +68,19 @@ assign
             )
   l_dcml  = 0.
 
+/* check if the column type is any of the Unicode data types */
+ASSIGN my_typ_unicode =  ({&data-type} = "NVARCHAR" 
+                          OR {&data-type} = "NCHAR"
+                          OR {&data-type} = "NLONGVARCHAR").
+
 /* To get the default value for the field, we need to see if one has been created in SQL Server */
-ASSIGN sqlstate = "select CAST(text AS nvarchar(60)) from syscomments where id = (select cdefault from syscolumns " + 
+/* only cast it to NVARCHAR if this is a Unicode type column, in which case
+   we are assumed to have utf-8 as the schema codepage. Otherwise, we will only
+   be able to read the first character out of the proc-text
+*/
+ASSIGN sqlstate = "select CAST(text AS " + 
+      (IF my_typ_unicode THEN "nvarchar" ELSE "varchar") +
+       "(60)) from syscomments where id = (select cdefault from syscolumns " + 
        "where syscolumns.id = (OBJECT_ID('" + DICTDBG.SQLColumns_buffer.OWNER + "." + 
        DICTDBG.SQLColumns_buffer.NAME + "')) and syscolumns.name = '" + 
        DICTDBG.SQLColumns_buffer.column-name + "')".
@@ -81,17 +93,17 @@ IF ERROR-STATUS:ERROR THEN. /*Don't do anything inital value already set to unkn
 ELSE DO:
   FOR EACH DICTDBG.proc-text-buffer WHERE PROC-HANDLE = dfth1:
 
-     esc-idx1 = INDEX(proc-text, "'(N''").
+     IF my_typ_unicode THEN /* check if initial has Unicode chars */
+        esc-idx1 = INDEX(proc-text, "'(N''").
+
      IF esc-idx1 = 1 THEN DO:
          esc-idx1 = esc-idx1 + 5.
          esc-idx2 = R-INDEX(proc-text, "'')'").
          IF esc-idx1 > 0  AND esc-idx2 > esc-idx1 THEN 
                  l_init = SUBSTR(proc-text, esc-idx1, esc-idx2 - esc-idx1, "character").
      END. 
-     ELSE DO:
+     ELSE /* non-Unicode case */
          ASSIGN l_init = proc-text. 
-         esc-idx1 = 0.
-     END.
 
   END.
   CLOSE STORED-PROC DICTDBG.send-sql-statement WHERE PROC-HANDLE = dfth1.

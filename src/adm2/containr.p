@@ -22,14 +22,14 @@
 &SCOP ADMSuper containr.p
 
   {src/adm2/custom/containrexclcustom.i}
-  
+
 /* This variable is needed at least temporarily in 9.1B so that a called
    fn can tell who the actual source was.  */
 DEFINE VARIABLE ghTargetProcedure    AS HANDLE    NO-UNDO.
 
 DEFINE VARIABLE gcCurrentObjectName  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE giPrevPage           AS INTEGER   NO-UNDO.
-DEFINE VARIABLE ghDataContainer      AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghDataContainer      AS HANDLE    NO-UNDO.
   {src/adm2/tttranslate.i}
 
 /* This is currently only used for the dynmaic server container, but 
@@ -1822,7 +1822,7 @@ PROCEDURE bufferFetchContainedData :
   DEFINE VARIABLE hSource          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cSkipList        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hMaster          AS HANDLE     NO-UNDO.
-    
+
   &SCOPED-DEFINE xp-assign
   /* all SDOs in container including those inside an SBO */
   {get ContainedDataObjects cObjects}                      
@@ -2260,10 +2260,10 @@ PROCEDURE changePage :
   DEFINE VARIABLE cObjects    AS CHARACTER NO-UNDO. 
   DEFINE VARIABLE iPageNum    AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lInitted    AS LOGICAL   NO-UNDO.
-  
-  DEFINE VARIABLE cRequiredPages             AS CHARACTER                NO-UNDO.  
-  DEFINE VARIABLE iPageLoop                AS INTEGER                  NO-UNDO.
-  
+
+  DEFINE VARIABLE cRequiredPages AS CHARACTER                NO-UNDO.  
+  DEFINE VARIABLE iPageLoop      AS INTEGER                  NO-UNDO.
+
   /* Let folder know, if any*/
   PUBLISH 'changeFolderPage':U FROM TARGET-PROCEDURE.  /* IN page-source */
   {get CurrentPage iPageNum}.
@@ -2274,14 +2274,14 @@ PROCEDURE changePage :
   DO:
     {get ObjectInitialized lInitted}.
     cObjects = pageNTargets(TARGET-PROCEDURE, iPageNum).
-    
+
     IF cObjects = "":U THEN 
     DO:                            /* Page hasn't been created yet: */
       RUN changeCursor IN TARGET-PROCEDURE('WAIT':U) NO-ERROR.
-      
+
       /* Get objects on the new page created. */
       RUN createObjects IN TARGET-PROCEDURE.
-      
+
       /* If the current container object has been initialized already,
          then initialize the new objects. Otherwise wait to let it happen
          when the container is init'ed. */                          
@@ -2293,12 +2293,12 @@ PROCEDURE changePage :
           */
           RUN packWindow IN TARGET-PROCEDURE ( INPUT iPageNum, INPUT YES) NO-ERROR.
           RUN resizewindow IN TARGET-PROCEDURE NO-ERROR.
-          
+
           /* Initialise all linked pages before init'ing the current
              page.
            */
           ASSIGN cRequiredPages = {fnarg pageNRequiredPages iPageNum}.   
-          
+
           IF cRequiredPages NE "":U AND cRequiredPages NE "?":U THEN
           DO:
               DO iPageLoop = 1 TO NUM-ENTRIES(cRequiredPages):
@@ -2306,14 +2306,14 @@ PROCEDURE changePage :
                      so that it is init'ed
                    */
                   {set CurrentPage "INTEGER(ENTRY(iPageLoop, cRequiredPages))"}.
-                  
+
                   /* Ensure that everything is nicely init'ed ... */
                   RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
-                  
+
                   /* ... and make sure that we never see it. */
                   RUN notifyPage IN TARGET-PROCEDURE ("hideObject":U).
               END.    /* loop through other pages */
-           
+
               /* Reset the CurrentPage to the actual current page.
                */
               {set CurrentPage iPageNum}.
@@ -2321,16 +2321,16 @@ PROCEDURE changePage :
                     
           RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
       END.    /* container has been initted. */
-      
+
       RUN changeCursor IN TARGET-PROCEDURE("":U) NO-ERROR.
     END.    /* END DO if page not created yet */
     ELSE 
     DO:
-      /* If the container has been init'ed, then view its contents.
+        /* If the container has been init'ed, then view its contents.
          If not, 'view' will have no effect yet  */
       IF lInitted THEN
         RUN notifyPage IN TARGET-PROCEDURE ("viewObject":U).
-   
+
     END.     /* END DO if page had been created */
   END.       /* END DO if PageNum NE 0 */
 
@@ -2873,7 +2873,7 @@ Parameters: <none>
   DEFINE VARIABLE iPage           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER    NO-UNDO.
- 
+
   {get CurrentPage iPage}.
   IF iPage = 0 THEN
     {get ObjectsCreated lObjectsCreated}.
@@ -2886,7 +2886,7 @@ Parameters: <none>
        which can do any work that must be done after all the contained objects
        have been created and the links established, but before initializeObject.*/
     RUN postCreateObjects IN TARGET-PROCEDURE NO-ERROR.
-    
+
     /* if page 0 then this is the start up so ensure that we run the startpage */
     IF iPage = 0 THEN
     DO:
@@ -4234,7 +4234,6 @@ PROCEDURE initializeObject :
   define variable cObjectType                   as character              no-undo.
   DEFINE VARIABLE hContainerHandle              AS HANDLE     NO-UNDO.
 
-
   &SCOPED-DEFINE xp-assign
   {get ContainerType cType}
   {get ObjectInitialized lInitialized}
@@ -4269,7 +4268,7 @@ PROCEDURE initializeObject :
   IF cType NE "VIRTUAL":U THEN    /* Skip for non-visual contaioners. */
   DO:
      RUN initializeVisualContainer IN TARGET-PROCEDURE.
-    
+   
     &SCOPED-DEFINE xp-assign
     {get HideOnInit lHideOnInit}
     {get DisableOnInit lDisableOnInit}
@@ -4279,24 +4278,19 @@ PROCEDURE initializeObject :
     /* ensure child frame realization in this window or this container's window */
     CURRENT-WINDOW = hContainerHandle:WINDOW NO-ERROR. 
      
-    /* For containers, we need to propogate the HideOnInit and
-       DisableOnInit attributes to children before initializing them. */   
-    IF lHideOnInit OR lDisableOnInit THEN
-    DO:
-       /* Tell all the objects on the page to come up hidden,
-          so the page doesn't flash on the screen. */
-       IF lHideOnInit THEN  
-          dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
-            'CONTAINER-TARGET':U, 'HideOnInit':U, 'yes':U).
-       IF lDisableOnInit THEN
-          dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
-            'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
+    /* For containers, we propogate the DisableOnInit attributes to children
+       before initializing them. (this is very old behavior that possibly is 
+       unnecessary) */      
+    IF lDisableOnInit THEN
+      dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
+                        'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
+    
+    else if lHideOnInit then 
        /* For containers, whether DISABLE is explicitly set or not, we
           need to set it for the container itself if HideOnInit is true,
-          because otherwise the 'enable' below will force the container
+         otherwise the 'enable' below will force the container
           to be viewed if it contains any simple objects. */
        lDisableOnInit = yes.
-    END.    
   END. /* cType <> 'VIRTUAL' */
 
   IF cType = "WINDOW":U THEN
@@ -5947,7 +5941,7 @@ PROCEDURE viewObject :
          INPUT 'HideOnInit':U,
          INPUT 'no':U ).
       END.   /* END DO IF UIBMODE = "" */
-
+      
       /* Ensure that child object is parented to this window */
       IF valid-handle(hContainer) then 
       do:

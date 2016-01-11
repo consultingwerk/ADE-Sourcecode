@@ -1,9 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: bld_tbls.i
@@ -67,7 +66,7 @@ DO WHILE i < NUM-ENTRIES(pcQuery," ":U):
       DO:  /* Get the db name from the specified table name */
          RUN adecomm/_gttbldb.p (INPUT cFullName, OUTPUT db_name, 
                                  OUTPUT rRecid, OUTPUT rRecid).
-         ASSIGN ctmptbl =  db_name + "." + cFullName.
+         ASSIGN ctmptbl =  db_name + (IF db_name NE "" THEN "." ELSE "") + cFullName.
       END.
       ELSE IF NUM-ENTRIES(cFullName,".") = 2 AND NOT plqualify THEN
          ASSIGN ctmptbl = ENTRY(2,cFullname,".").

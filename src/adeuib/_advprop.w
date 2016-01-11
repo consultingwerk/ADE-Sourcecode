@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME     adv-dial
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS adv-dial 
 /************************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* Copyright (C) 2005-2007 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                              *
 ************************************************************************/
@@ -1547,8 +1547,8 @@ procedure make-valid-items.
     DO i = 1 TO NUM-ENTRIES(_F._LIST-ITEM-PAIRS,CHR(10)):
       item = ENTRY(2,ENTRY(i,_F._LIST-ITEM-PAIRS,CHR(10))).
       CASE _F._DATA-TYPE:
-          WHEN "INTEGER":U  THEN 
-            item = STRING (INTEGER(item), "->>>>>>>>>9":U).
+          WHEN "INTEGER":U OR WHEN "INT64":U THEN 
+            item = TRIM(STRING(INT64(item), "->>>>>>>>>9":U)).
           WHEN "DATE":U     THEN 
             item = STRING (DATE(item),"99/99/9999":U).
           WHEN "DECIMAL":U  THEN 
@@ -1586,8 +1586,8 @@ procedure make-valid-items.
       IF TRIM(item) eq "?" THEN item = "?".
       ELSE DO:
         CASE _F._DATA-TYPE:
-          WHEN "INTEGER":U  THEN 
-            item = STRING (INTEGER(item), "->>>>>>>>>9":U).
+          WHEN "INTEGER":U OR WHEN "INT64":U THEN 
+            item = TRIM(STRING (INT64(item), "->>>>>>>>>9":U)).
           WHEN "DATE":U     THEN 
             item = STRING (DATE(item),"99/99/9999":U).
           WHEN "DECIMAL":U  THEN 

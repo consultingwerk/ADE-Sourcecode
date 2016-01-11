@@ -5244,10 +5244,11 @@ FUNCTION colValues RETURNS CHARACTER
   DEFINE VARIABLE cColumnRef  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumn     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQueryOpen  AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE cDataTable  AS CHARACTER  NO-UNDO. 
   &SCOPED-DEFINE xp-assign
   {get RowObject hRowObject}     
   {get QueryOpen lQueryOpen}
+  {get DataTable cDataTable}
   .
   &UNDEFINE xp-assign
   
@@ -5265,7 +5266,7 @@ FUNCTION colValues RETURNS CHARACTER
         ASSIGN
           cBuffer = (IF NUM-ENTRIES(cColumnRef ,'.':U) > 1 THEN
                      ENTRY(1,cColumnRef ,'.':U)
-                     ELSE '':U)
+                     ELSE cDataTable)
           cColumn = (IF NUM-ENTRIES(cColumnRef ,'.':U) > 1 THEN
                      ENTRY(2,cColumnRef ,'.':U)
                      ELSE cColumnRef ).
@@ -5274,6 +5275,8 @@ FUNCTION colValues RETURNS CHARACTER
         IF cBuffer = hRowObject:NAME THEN
         DO:
           hColumn = hRowObject:BUFFER-FIELD(cColumn) NO-ERROR.
+          if not valid-handle(hColumn) then
+            return ?.
           IF hColumn:DATA-TYPE = 'CLOB':U OR hColumn:DATA-TYPE = 'BLOB':U THEN
           DO:
             /* Design time error .. */

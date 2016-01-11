@@ -1223,10 +1223,18 @@ FOR EACH ttTable
     END.
 
     WHEN "CHARACTER":U THEN
-      ASSIGN ttTable.cCell = REPLACE(ttTable.cCell,'"':U, "'":U)
-             ttTable.cCell = SUBSTRING(ttTable.cCell, 1, 319) WHEN LENGTH(ttTable.cCell) > 319 
+    DO:
+      /*The way to escape double quotes in Excel, is to add another double quote before it.*/
+      ASSIGN ttTable.cCell = REPLACE(ttTable.cCell,'"':U, '~"~"':U).
+
+      /*This is a fix for OE00132366. Excel interprets "<?xml" as a XML header.
+        Only double quotes are allow in that header, so we convert single quoutes into double quotes.*/
+      IF ttTable.cCell BEGINS "<?xml":U THEN          ASSIGN ttTable.cCell = REPLACE(ttTable.cCell,"'":U, '~"~"':U).
+
+      ASSIGN ttTable.cCell = SUBSTRING(ttTable.cCell, 1, 319) WHEN LENGTH(ttTable.cCell) > 319 
              ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
              NO-ERROR.
+    END.
 
     WHEN "DATETIME":U OR WHEN "DATETIME-TZ":U THEN
       ASSIGN ttTable.cCell = '"':U + ttTable.cCell + '"':U.

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _genproc.i
@@ -396,7 +396,8 @@ PROCEDURE put_query_preproc_vars:
   DEFINE VAR cSourceFileList  AS CHARACTER  NO-UNDO.
   DEFINE VAR lFound           AS LOGICAL    NO-UNDO.
   DEFINE VAR lValid           AS LOGICAL    NO-UNDO.
-  
+  DEFINE VARIABLE cTmpCode    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTmpCode    AS DECIMAL    NO-UNDO.
   DEFINE BUFFER ipU for _U.
   DEFINE BUFFER ipF for _F.
   DEFINE BUFFER ipL for _L.
@@ -471,7 +472,7 @@ PROCEDURE put_query_preproc_vars:
           IF ENTRY(j,tmp_code," ":U) = "" THEN DO: END.
           ELSE IF NOT CAN-DO(
        "FORMAT,FORM,LABEL,COLUMN-LABEL,WIDTH,WIDTH-CHARS,WIDTH-PIXELS,~
-COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
+COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT,VIEW-AS":U,
              ENTRY(j,tmp_code," ":U))
             THEN tc = tc + " " + ENTRY(j,tmp_code," ":U).
           ELSE DO:
@@ -498,6 +499,34 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
             END.  /* If expression starts with a quote */
             ELSE j = j + 1.  /* No quote but skip token anyway.
                                 This is like a 25 as in WIDTH 25 */
+
+            /*If we got a VIEW-AS field, we have to loop into all the
+              VIEW-AS option and skip them.*/
+            IF ENTRY(j - 1,tmp_code," ":U) = "VIEW-AS":U THEN
+            DO:
+                REPEAT jj = (j + 1) TO n-ent:
+                    ASSIGN cTmpCode = ENTRY(jj,tmp_code," ":U).
+                
+                    ASSIGN iTmpCode = DECIMAL(cTmpCode) NO-ERROR.
+                    /*If the value is integer or decimal, is because we are value for a view-as option*/
+                    IF NOT ERROR-STATUS:ERROR 
+                        THEN NEXT.
+                    /*Check for all the available keywords for the VIEW-AS option.*/
+                    IF CAN-DO("SORT,INNER-LINES,LIST-ITEMS,LIST-ITEM-PAIRS,TOGGLE-BOX,COMBO-BOX,DROP-DOWN,~
+    	            		  DROP-DOWN-LIST,MAX-CHARS,UNIQUE-MATCH,AUTO-COMPLETION":U, cTmpCode)
+                    /*The following options need a value after them, so skip that value too.*/
+                    THEN DO:
+                        IF cTmpCode = "INNER-LINES":U     OR
+                           cTmpCode = "LIST-ITEMS":U      OR 
+                           cTmpCode = "LIST-ITEM-PAIRS":U OR
+                           cTmpCode = "MAX-CHARS":U
+                        THEN ASSIGN jj = jj + 1.
+                        NEXT.
+                    END.
+                    ELSE LEAVE.
+                END. /*REPEAT jj = (j + 1) TO n-ent:*/
+                j = jj - 1.
+            END. /*IF ENTRY(j - 1,tmp_code," ":U) = "VIEW-AS":U THEN*/
           END. /* Have something to be stripped */
           j = j + 1.
         END.  /* While j <= n-ent */         
@@ -1123,8 +1152,7 @@ COLUMN-FGC*,COLUMN-BGC*,COLUMN-FONT,LABEL-FGC*,LABEL-BGC*,LABEL-FONT",
                               ",":U,", ~~" + CHR(10) + FILL(" ":U,6)).
     /* IF we had a freeform qury (from _TRG) then load _Q._TblList FROM tmp_item */
     run build_table_list (INPUT tmp_item, INPUT ",":U, 
-                          INPUT NO, /* If this flag is set to yes, temp-tables
-                                       do not work. */
+                          INPUT YES,
                           INPUT-OUTPUT _Q._TblList). 
   END. 
   ELSE IF _Q._TblList ne "" THEN DO:

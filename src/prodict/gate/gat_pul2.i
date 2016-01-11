@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* Copyright (C) 2000,2007 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -146,9 +146,9 @@ else if CAN-DO(l_dcml-types,s_ttb_fld.ds_type)      /**** DECIMALS ****/
            l_frmt  = "-"
                    + FILL(">",MINIMUM(29,l_prec) - i - 1)
                    + FILL("9",i).
-          else assign    /* 15,2  =>  ->>>>>>>>>>>9.99 [->(11)9.9(2)] */
+          else assign    /* 15,2  =>  ->>>>>>>>>>>>9.99 [->(12)9.9(2)] */
            l_frmt = "-"
-                  + FILL(">",MINIMUM(29,l_prec) - l_dcml - 2)
+                  + FILL(">",MINIMUM(29,l_prec) - l_dcml - 1) 
                   + "9." 
                   + FILL("9",l_dcml).
          end.     /* format to generate out of ora-info */

@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -2612,11 +2612,8 @@ END. /* End if cResultCode > "" */
     RUN curframe IN THIS-PROCEDURE (_h_cur_widg).
  END.
 
-
- 
  FIND _P WHERE RECID(_P) = r_PRecid.
  FIND _U WHERE RECID(_U) = r_URecid.
-    
 
  RUN save_window IN THIS-PROCEDURE (YES, OUTPUT lCancel).
 
@@ -3480,6 +3477,7 @@ PROCEDURE choose_uib_browser :
    /* SEW call to store current trigger code for specific window. */
    RUN call_sew ("SE_STORE_WIN":U).
    RUN adeuib/_uibrows.p.
+
    IF VALID-HANDLE(_h_cur_widg) THEN DO:
      FIND _U WHERE _U._HANDLE = _h_cur_widg.
      IF _U._LAYOUT-NAME NE "Master Layout"  AND _U._TYPE = "TEXT" THEN DO:
@@ -3492,7 +3490,9 @@ PROCEDURE choose_uib_browser :
                                 NOT _L._REMOVE-FROM-LAYOUT) AND
                                 NOT CAN-DO("MENU,MENU-ITEM,SUB-MENU",_U._TYPE) AND
                                 _U._STATUS = "NORMAL" THEN RUN choose_erase.
+
      RUN display_current.
+
      /* Pop the window with the current widget to the top and make it active. */
      ldummy = _h_win:MOVE-TO-TOP ().
      APPLY "ENTRY":U TO _h_win.  /* See bug #94-06-13-04 */
@@ -3647,7 +3647,7 @@ PROCEDURE curframe :
                _h_cur_widg     = ?
                 h_display_widg = ?
                NO-ERROR.
-        RUN changewidg (hFrame, yes).
+        RUN changewidg (hFrame, no).
         RETURN "ERROR":U.
       END.
     END.

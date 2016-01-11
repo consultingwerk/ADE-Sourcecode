@@ -1041,12 +1041,9 @@ PROCEDURE cancelRecord :
      present, so we will skip this step; it's done only in the Source. */
   IF VALID-HANDLE(hUpdateTarget) THEN
   DO:
-    IF cNew <> 'NO':U THEN
-    DO:
       ghTargetProcedure = TARGET-PROCEDURE.
       cErrors = dynamic-function("cancelRow":U IN hUpdateTarget).
       ghTargetProcedure = ?.
-    END.
   END.      /* END DO IF UpdateTarget */
   ELSE DO:
     {get GroupAssignSource hGroupSource}.
@@ -1078,12 +1075,9 @@ PROCEDURE cancelRecord :
                    'no':U). 
 
    /* NOTE: set DataModifed/updateState must happen AFTER cancelRow() because 
-     at the end of the events (depending of the toolbar mode) updatestate may 
-     fire back from the toolbar to disable and if this is a viewer the focus 
-     will be set to the browse and if 'add' or 'copy' the previous record will 
-     become available. When this was done BEFORE cancelRow the 'add' or 'copy'
-     would not be undone and these rowObject records would cause error messages
-     with the next save */                 
+            it might reach the toolbar before the sdo and cancelRow() 
+            set DataModified false (this is an issue also with updatemode
+            not only new records) */                 
   {get DataModified lModified}.
   IF NOT lModified THEN
     PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('updateComplete':U).

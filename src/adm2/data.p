@@ -59,6 +59,17 @@
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-repositionRowObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD repositionRowObject Procedure
+FUNCTION repositionRowObject RETURNS LOGICAL
+	( pcRowIdent AS CHARACTER ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-addRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addRow Procedure 
@@ -1314,7 +1325,6 @@ PROCEDURE dataAvailable :
     ELSE
       pcRelative = "VALUE-CHANGED":U.  /* no need to do anything with the DB query */
   END.
- 
   IF cForeignFields <> '':U AND pcRelative <> 'VALUE-CHANGED':U THEN 
   DO:
     RUN SUPER(pcRelative).
@@ -1716,7 +1726,7 @@ PROCEDURE fetchBatch :
                query appended to the RowObject temp-table query (when the 
                browser scrolls to the end).
                fetchBatch does some checking and sets up the proper parameters
-               to sendRows, but sendRows is called to do the actual work.  
+               to sendRows, but sendRows is called to do the actual work.
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER plForwards  AS LOGICAL NO-UNDO.
@@ -4938,8 +4948,14 @@ PROCEDURE submitCommit :
     RETURN "ADM-ERROR":U.    /* If there were any Data messages */
   END.
   ELSE DO:
+    rRowObject = TO-ROWID(pcRowIdent).   
+    {get RowObject hRowObject}.
+
+    /* RowObjectValidate might have lost current position*/
+    IF NOT hRowObject:AVAILABLE OR rRowObject <> hRowObject:ROWID THEN
+      hRowObject:FIND-BY-ROWID(rRowObject).
+      
     /* Tell others the update is done and to redisplay the rec if appropriate */
-    
     RUN dataAvailable IN TARGET-PROCEDURE ("SAME":U).  /* not a different row. */    
     
     {get AutoCommit lAutoCommit}.
@@ -4953,10 +4969,6 @@ PROCEDURE submitCommit :
       cReturn = "":U.              /* success pending final Commit */
       {set RowObjectState 'RowUpdated':U}.
     END.  /* END ELSE DO IF Not AutoCommit */
-    
-    rRowObject = TO-ROWID(pcRowIdent).
-    
-    {get RowObject hRowObject}.
     
     IF cReturn = '':U THEN
     DO: 
@@ -4991,7 +5003,6 @@ PROCEDURE submitCommit :
                      will reset panels and only reopen if child has 
                      no changes */
                   ELSE                     'RESET':U).  
-
         /* Note that submitForeignKey currently still is getting
            the ForeignFields from the parent instead of from the ForeignValues 
            if the source is NewRow and RowObjectState is 'RowUpdated'.
@@ -5635,6 +5646,25 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+&IF DEFINED(EXCLUDE-repositionRowObject) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION repositionRowObject Procedure
+FUNCTION repositionRowObject RETURNS LOGICAL
+   ( pcRowIdent AS CHARACTER ): 
+
+/*------------------------------------------------------------------------------
+  Purpose: Override in order to handle a comma separated Rowident.
+    Notes: A comma separated RowIdent with secondary entries for physical 
+           rowids should have been eliminated, but is supported for backwards 
+           compatibility.
+------------------------------------------------------------------------------*/
+  return super(entry(1,pcRowident)).
+END FUNCTION.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-addRow) = 0 &THEN
 
@@ -6208,15 +6238,19 @@ Note date: 2002/04/11
  DEFINE VARIABLE lNew          AS LOG       NO-UNDO.
 
  {get NewMode lNew}.
- RUN doUndoUpdate IN TARGET-PROCEDURE.
  {set DataModified FALSE}.
-
- /* If cancel new tell the data-targets that we're back in business, if we're NOT in a SBO  */
- IF NOT {fn getQueryContainer} AND lNew THEN 
- DO:
-   PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE('DIFFERENT':U).
-   {set NewBatchInfo '':U}.
- END.
+  /* if not new then we're just going out of updatemode (no saved changes) and
+     all we needed was to setDataModified false */
+ if lNew then
+ do:  
+   RUN doUndoUpdate IN TARGET-PROCEDURE.
+   /* If cancel new tell the data-targets that we're back in business, if we're NOT in a SBO  */
+   IF NOT {fn getQueryContainer} THEN 
+   DO:
+     PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE('DIFFERENT':U).
+     {set NewBatchInfo '':U}.
+   END.
+ end.
    
  RETURN '':U. /* This used to return a cError variable for some forgotten reason*/
 
@@ -6425,7 +6459,6 @@ FUNCTION commit RETURNS LOGICAL
      .
      &UNDEFINE xp-assign
    
-    
     RUN adm2/commit.p ON hAppService
          (cServerFileName 
           + (IF cLogicalname > '' THEN ':' + cLogicalName ELSE ''),
@@ -7544,8 +7577,7 @@ Parameters: pcQueryData
               - Rowident - semi colon separated list of rowids for each table. 
      Notes: This is the wrapper for the call to the server and should be called 
             from code that first checks if the record is on the client.            
-         
-          - Used by fetchRowident and findRowWhere  
+          - Used by fetchRowident, findRowWhere and refreshQuery 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cRowObjectState  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lRebuild         AS LOGICAL    NO-UNDO.
@@ -9623,9 +9655,14 @@ FUNCTION refreshQuery RETURNS LOGICAL
     IF cRowIdent > "":U THEN
       lOk =  {fnarg fetchRowWhere cRowIdent}.
    
-    if lok then  /* different, since we refresh children repositions to first 
-                  (server only reads children for one parent record) */
+    if lok then  
+    do:
+      run updateQueryPosition in target-procedure.            
+     /* different, since we refreshed children and repositioned to first 
+       (server only reads children for one parent record) */
       publish "dataAvailable" from target-procedure ('different').
+      {set NewBatchInfo '':U}.
+    end.  
     else     
       RUN fetchFirst IN TARGET-PROCEDURE. 
     
@@ -10034,7 +10071,6 @@ FUNCTION submitRow RETURNS LOGICAL
       RETURN FALSE.
     END.
   END. /* not avail or passed rowid mismatch */ 
-
   {get UpdatableColumns cUpdColumns}.
   /* Assign Foreign Key values if needed for new records. */
   RUN submitForeignKey IN TARGET-PROCEDURE
@@ -10051,7 +10087,6 @@ FUNCTION submitRow RETURNS LOGICAL
 
   IF cErrorMessages NE "":U THEN
     RETURN FALSE.  
-
   /* Perform any validation on individual columns. */
   RUN submitValidation In TARGET-PROCEDURE (pcValueList, cUpdColumns).
   

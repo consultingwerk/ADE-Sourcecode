@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation.          *
+* Copyright (C) 2005-2007 by Progress Software Corporation.          *
 * All rights reserved. Prior versions of this work may contain       *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -4546,7 +4546,10 @@ ACCESS_LEVEL=PUBLIC
             IF phParentWindow <> ? THEN
                 {set CallerWindow phParentWindow phProcedureHandle} NO-ERROR.
             
-            /* Initialize the run object */
+            /* Initialize the newly run object or view the old  */
+            if plOnceOnly and lAlreadyrunning then  
+              run viewObject IN phProcedureHandle no-error.
+            else   
             RUN initializeObject IN phProcedureHandle NO-ERROR.
                         
             /* There may be code in the container that forces a shutdown while the
