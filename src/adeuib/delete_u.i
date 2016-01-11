@@ -340,7 +340,14 @@ ELSE DO:  /* 'destroy' SmartObjects instead of deleting them. */
         VALIDATE _S.
       END. /* VALID-HANDLE (_S._HANDLE) */                   
     END. /* IF a valid-object... */
-
+      /* This file is only available and needed if webspeed is installed 
+      ( NO-ERROR will still give error). */
+    IF AVAILABLE X_P AND VALID-HANDLE(X_P._tv-proc) THEN
+    do: 
+       IF SEARCH('adeweb/_unmapal.r') <> ? OR SEARCH('adeweb/_unmapal.p') <> ? THEN
+           RUN adeweb/_unmapal.p(RECID(X_P),"*":U).
+ 
+    END.
     /* Note that some Code-only SmartObjects have a dynamic realization
        that must also be deleted. (Note: hide any remaining "orphan"
        static widgets left over once the object is deleted.) */ 
@@ -469,7 +476,7 @@ DO:
        RUN DeleteObject IN X_P._tv-proc (RECID(_U)).
   END.
   &IF DEFINED(OEIDESERVICE_I) <> 0 &THEN
-    if OEIDEIsRunning then 
+  else if OEIDEIsRunning then 
        run CallWidgetEvent in _h_uib(input recid(_U),"DELETE").
   &endif             
   /*

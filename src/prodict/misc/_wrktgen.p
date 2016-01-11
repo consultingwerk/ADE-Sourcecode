@@ -241,10 +241,12 @@ DEFINE VARIABLE mandatory           AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE idxrecidcompat      AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE NonUnikCC           AS LOGICAL    NO-UNDO INITIAL FALSE. 
-DEFINE VARIABLE NoCC                AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE CcExist             AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE CcCreated           AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE uniqCompat          AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE uniqfyIdx           AS LOGICAL    NO-UNDO INITIAL TRUE. 
 DEFINE VARIABLE keyCreated          AS LOGICAL    NO-UNDO INITIAL FALSE. 
+DEFINE VARIABLE PKCreated           AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE uniqueness          AS CHARACTER  NO-UNDO INITIAL "".
 DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE useNewRanking       AS LOGICAL    NO-UNDO INITIAL TRUE.
@@ -1536,7 +1538,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          END.    
        END.  
         
-        
 	   IF (ConType <> "D" or ConType <> "C") THEN
 	   DO:
 	     FIND FIRST DICTDB._INDEX of DICTDB._Constraint NO-LOCK NO-ERROR.
@@ -1555,36 +1556,36 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
             DO:
 	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
 	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY NONCLUSTERED( " + AllConsFields + ")" . 
+                    PKCreated = TRUE.
             
             END. /* IF ConType = "P" */
 	        
-	        IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
+	    IF  (ConType = "P" AND dbtyp = "ORACLE") THEN                  
             DO:
 	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
 	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" . 
             
             END. /* IF ConType = "P" */
 	        
-	        IF  (ConType = "PC" OR ConType = "MP") THEN                  
+	    IF  (ConType = "PC" OR ConType = "MP") THEN                  
             DO:
-	            if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-	            AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
-	            
+	      if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+	      AllCons = AllCons + " CONSTRAINT  " +  ConName  + " PRIMARY KEY( " + AllConsFields + ")" .
+              PKCreated = TRUE.
             END. /* IF ConType = "PC" */
                     
-            IF  (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
+            IF (ConType = "M" and dbtyp = "MSSQLSRV7") THEN                  
             DO:
-            
-	            if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
-	            ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
+	       if ClustCons <> "" then ClustCons = ClustCons + ",~n" + comment_chars.
+	          ClustCons = ClustCons + " CLUSTERED INDEX " + ConName + " ON " + DICTDB._File._File-Name + " ( "
 	             + AllConsFields + ")".
 
             END. /* IF ConType = "M" */
             
-	        IF ConType = "U" THEN
+	    IF ConType = "U" THEN
             DO:	       
-	              if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
-                  AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
+	      if AllCons <> "" then AllCons = AllCons + ",~n" + comment_chars.
+              AllCons = AllCons +  " CONSTRAINT " +  ConName  + " UNIQUE( " + AllConsFields + ")" .
             END. /* IF ConType = "U" */
 	       	      
        END. /* IF ConType <> "D" or ConType <> "C" */
@@ -1657,22 +1658,25 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         PUT STREAM code UNFORMATTED n2 (IF LAST(_Index-seq) THEN ")" ELSE ",").
     END. /* end of each _index_field */
   END. /* FOR EACH DICTDB._Index of DICTDB._File WHERE DICTDB._Index._Index-name BEGINS "sql-uniq" */
-  
   IF (dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" ) THEN DO: 
-    keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
-                               (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR 
-                                DICTDB._Constraint._Con-Type = "MP" )). 
+    keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE 
+                              DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND 
+                              DICTDB._Constraint._Con-Active AND 
+                             ( DICTDB._Constraint._Con-Type = "P" OR 
+                               DICTDB._Constraint._Con-Type = "PC" OR 
+                               DICTDB._Constraint._Con-Type = "MP" )
+                       ). 
 
     FIND FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = RECID (DICTDB._File) AND
-         DICTDB._Constraint._Con-Type = "M" NO-ERROR. 
+         DICTDB._Constraint._Con-Active AND DICTDB._Constraint._Con-Type = "M" NO-ERROR. 
     IF AVAILABLE DICTDB._CONSTRAINT THEN DO:
        FIND FIRST DICTDB._Index OF DICTDB._File 
                   WHERE RECID (DICTDB._Index) = DICTDB._CONSTRAINT._Index-recid AND 
                         DICTDB._Index._Unique <> TRUE NO-ERROR.
        IF AVAILABLE DICTDB._Index THEN ASSIGN NonUnikCC = TRUE.
-       ASSIGN keyExist = TRUE.
+       ASSIGN keyExist = TRUE
+              CCExist  = TRUE.
     END.
-    ELSE ASSIGN NoCC = TRUE.
     IF CAN-FIND (DICTDB._INDEX WHERE RECID (DICTDB._Index) = DICTDB._File._Prime-index
                     AND DICTDB._Index._Unique = TRUE ) THEN 
        ASSIGN pk_unique = TRUE.
@@ -1766,7 +1770,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF mssOptRowid EQ "P" AND NOT keyCreated THEN DO:
            PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
                n2 " PRIMARY KEY (" prowid_col ")".
-           Assign keyCreated = TRUE.
+           Assign keyCreated = TRUE
+                  PKCreated  = TRUE.
         END.
         ELSE
            PUT STREAM code UNFORMATTED comment_chars "  CONSTRAINT "
@@ -1846,7 +1851,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   END.
 
   /* Create unique progress_recid index */
- 
   IF  compatible AND uniqCompat THEN DO:
     IF dbtyp = "ORACLE"  THEN DO:
       IF LENGTH(n1) < 15 THEN
@@ -1872,7 +1876,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                "CREATE UNIQUE CLUSTERED INDEX " n2 SKIP.
            PUT STREAM code UNFORMATTED comment_chars 
                " ON " n1 " (" prowid_col ")".
-           Assign keyCreated = TRUE.
+           Assign keyCreated = TRUE
+                  CcCreated  = TRUE.
         END.
         ELSE 
             PUT STREAM code UNFORMATTED comment_chars "CREATE INDEX "
@@ -1908,7 +1913,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
     ELSE 
         PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
   END.
-
 
   _idxloop:
   FOR EACH DICTDB._Index OF DICTDB._File
@@ -2138,7 +2142,6 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
          pindex = comment_chars + "sp_primarykey " + n1.
       
       /* Primary key code */
-
       IF DICTDB._File._Prime-index = RECID (DICTDB._Index) AND msstryp
       THEN DO:  
          Assign userPKexist = TRUE.
@@ -2152,18 +2155,16 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
                IF NOT DICTDB._Field._Mandatory THEN ASSIGN mandatory = FALSE.
            END.
          END.
-         IF NOT migConstraint OR (migConstraint AND NOT keyExist) THEN DO:
+         IF NOT keyCreated AND ((migConstraint = FALSE) OR (migConstraint AND NOT keyExist)) THEN DO:
             RUN createKey.
             if keyCreated THEN NEXT  _idxloop.
          END.
       END.
-      
       assign n3 = DICTDB._Index._I-MISC2[1].
       IF (INDEX(n3,"v") = 0 OR mssrecidCompat OR INDEX(n3,"r") = 0) AND mssOptRowid EQ "U" THEN assign uniqfyIdx = FALSE. 
-
 IF dbtyp = "MSSQLSRV7" AND useNewRanking AND NOT KeyCreated AND 
    n3 begins "r" AND INDEX(n3,"n") = 0 AND NOT ( migConstraint AND   
-         CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+         CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
                     AND DICTDB._Constraint._Con-Active = TRUE 
                     AND ( DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "P"
                           OR DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP"
@@ -2172,19 +2173,34 @@ IF dbtyp = "MSSQLSRV7" AND useNewRanking AND NOT KeyCreated AND
        )
 THEN DO:
 
-      IF INDEX(n3,"m") <> 0 THEN DO:
-       
+      IF INDEX(n3,"m") <> 0 OR 
+        (INDEX(n3,"v") <> 0 AND ((NUM-ENTRIES(user_env[27]) >= 2) AND (entry(2,user_env[27]) EQ "1"))) 
+      THEN DO:
+         IF ((migConstraint AND CcExist ) OR NOT migConstraint ) AND NOT CcCreated THEN
+            n5 = " CLUSTERED ".
+         ELSE n5 = "".
+         IF INDEX(n3,"v") <> 0 OR DICTDB._Index._Unique THEN n4 = " UNIQUE". ELSE n4 = "".
          PUT STREAM code UNFORMATTED
-                    comment_chars "CREATE " (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
-                   " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+             comment_chars "CREATE" n4
+             n5 " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+         ASSIGN keyCreated = TRUE.
+         IF n5 <> "" THEN CcCreated = TRUE.
       END.
       ELSE DO:
+        IF NOT PKCreated THEN DO:
          /* Generate Alter table add PK constraint */
+         IF migConstraint AND NonUnikCC THEN n5 = " NONCLUSTERED".
+         ELSE n5 = "".
+         n4 = user_library + dot + "PKCI_" + n2.
          PUT STREAM code UNFORMATTED comment_chars "ALTER TABLE " user_library dot n1 " ADD CONSTRAINT "
-                         user_library dot n2 " PRIMARY KEY (".
-       
+                         n4 " PRIMARY KEY" n5 "(".
+         ASSIGN PKCreated = TRUE.
+                keyCreated = TRUE.
+        END.
+        ELSE PUT STREAM code UNFORMATTED
+             comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
+             " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
       END.
-      Assign keyCreated = TRUE.
 
 END.
 ELSE DO:
@@ -2199,11 +2215,22 @@ ELSE DO:
           PUT STREAM code UNFORMATTED
               comment_chars "CREATE " uniqueness
               " CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+          CcCreated = TRUE.
         END. 
-        ELSE PUT STREAM code UNFORMATTED
+        ELSE DO:
+           IF n3 <> ? AND INDEX(n3,"p") <> 0 AND NOT PKCreated THEN  DO:
+              n4 = user_library + dot + "PKCI_" + n2.
+              PUT STREAM code UNFORMATTED
+                  comment_chars "ALTER TABLE " user_library dot n1 SKIP.
+              PUT STREAM code UNFORMATTED
+                  comment_chars "ADD CONSTRAINT " n4 " PRIMARY KEY NONCLUSTERED (".
+              ASSIGN PKCreated = TRUE.
+           END.
+           ELSE PUT STREAM code UNFORMATTED
               comment_chars "CREATE" (IF DICTDB._Index._Unique THEN " UNIQUE" ELSE "")
               " INDEX " user_library dot n2 " ON " user_library dot n1 " (".
-      END.
+        END.
+      END. /* IF (uniqueindx eq "1") */
       ELSE DO:
         IF DICTDB._Index._Unique THEN DO:
            FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
@@ -2211,9 +2238,11 @@ ELSE DO:
               DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" OR DICTDB._Constraint._Con-Type = "U" )NO-LOCK NO-ERROR.
            IF AVAILABLE (DICTDB._Constraint)  AND migConstraint
            THEN DO:
-            IF DICTDB._Constraint._Con-Type = "M" 
-            THEN PUT STREAM code UNFORMATTED
+            IF DICTDB._Constraint._Con-Type = "M" THEN DO:
+             PUT STREAM code UNFORMATTED
              comment_chars "CREATE UNIQUE CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+             CcCreated = TRUE.
+            END.
             ELSE PUT STREAM code UNFORMATTED
              comment_chars "CREATE UNIQUE INDEX " user_library dot n2 " ON " user_library dot n1 " (".
            END.
@@ -2240,7 +2269,7 @@ ELSE DO:
            END.
         END.
         ELSE DO:
-        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index)
+        IF migConstraint AND CAN-FIND (FIRST DICTDB._constraint WHERE DICTDB._Constraint._Index-Recid = RECID(DICTDB._Index) 
              AND DICTDB._Constraint._Con-Active = TRUE AND DICTDB._Constraint._Con-Type = "M") AND dbtyp = "MSSQLSRV7" THEN DO:         
              Assign uniqueness = "".
              IF (NonUnikCC AND ((NUM-ENTRIES(user_env[27]) >= 3) AND (mssOptRowid EQ "U"))) THEN 
@@ -2248,6 +2277,7 @@ ELSE DO:
              PUT STREAM code UNFORMATTED
                comment_chars "CREATE" uniqueness
                "CLUSTERED INDEX " user_library dot n2 " ON " user_library dot n1 " (".
+             CcCreated = TRUE.
         END.
         ELSE     
           PUT STREAM code UNFORMATTED
@@ -2365,10 +2395,12 @@ END.
   ASSIGN pk_unique = FALSE
          userPKexist = FALSE
          keyCreated = FALSE
+         PKCreated  = FALSE
+         CcCreated  = FALSE
          FieldList  = ""
          keyExist   = FALSE
          NonUnikCC  = FALSE
-         NoCC       = FALSE
+         CcExist    = FALSE
          uniqCompat = TRUE.
 
 
@@ -3170,6 +3202,7 @@ PROCEDURE createPrimaryKey:
           comment_chars "ADD CONSTRAINT " pindex2 " PRIMARY KEY".
       PUT STREAM code UNFORMATTED SKIP
           comment_chars "(" + FieldList + ")" SKIP.
+      ASSIGN PKCreated = TRUE.
 END PROCEDURE.
 
 PROCEDURE createClusteredKey:
@@ -3182,4 +3215,5 @@ PROCEDURE createClusteredKey:
           comment_chars "ON " user_library dot n1 SKIP.
       PUT STREAM code UNFORMATTED SKIP
           comment_chars "(" + FieldList + ")" SKIP.
+      CcCreated = TRUE.
 END PROCEDURE.

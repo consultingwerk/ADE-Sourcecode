@@ -448,8 +448,29 @@ PROCEDURE connect_dbs:
                err_msgs = "Not connected to database " + _inp_line[1] + ".":U.
         LEAVE.
       END.
-      choice = "_CONNECT":U.
-      RUN adeuib/_advisor.w (
+     
+      /* if running from ide and we have need a connection and already have a connection then a restart is required \
+         (if num-dbs = 0 ide connection will be handled as _connect in next case since it does not requre a restart ) */
+      if OEIDE_CanShowMessage() and num-dbs > 0 then
+      do:
+          choice = "_IDECONNECT":U.  
+          RUN adeuib/_advisor.w (
+           "The database '" + _inp_line[1] + "' was used by " +
+                dot-w-file + " when it was last opened." + CHR(10) +
+                CHR(10) + "Would you like to reconnect to this database?",
+"&Define the connection in the workbench and restart.,_IDECONNECT," 
++ "&Connect now and define the connection later.,_CONNECT,"
++ "&Open. Try to open the file without connecting.,_LOAD,"
++ "&Cancel. Do not open the file.,_CANCEL" ,
+          FALSE,
+          "{&UIB_SHORT_NAME}",
+          {&Advisor_DB_Connect_on_Open},
+          INPUT-OUTPUT choice,
+          OUTPUT ldummy ).
+      end.
+      else  do:
+         choice = "_CONNECT":U.     
+        RUN adeuib/_advisor.w (
           INPUT "The database '" + _inp_line[1] + "' was used by " +
                 dot-w-file + " when it was last opened." + CHR(10) +
                 CHR(10) + "Would you like to reconnect to this database?",
@@ -462,6 +483,7 @@ PROCEDURE connect_dbs:
           INPUT {&Advisor_DB_Connect_on_Open},
           INPUT-OUTPUT choice,
           OUTPUT ldummy ).
+      end.
       CASE choice:
         WHEN "_CONNECT":U THEN DO:
           ASSIGN Db_Pname = _inp_line[1]
@@ -469,6 +491,17 @@ PROCEDURE connect_dbs:
                  Db_Type  = _inp_line[2].
           IF Db_Type = "" OR Db_Type = ? THEN Db_type = "PROGRESS".
           RUN adecomm/_dbconn.p
+             (INPUT-OUTPUT  Db_Pname,
+              INPUT-OUTPUT  Db_Lname,
+              INPUT-OUTPUT  Db_Type).
+          ASSIGN AbortImport = (Db_Pname = ?) AND (Db_Lname = ?).
+        END. /* _CONNECT */   
+        WHEN "_IDECONNECT":U THEN DO:
+          ASSIGN Db_Pname = _inp_line[1]
+                 Db_Lname = ?
+                 Db_Type  = _inp_line[2].
+          IF Db_Type = "" OR Db_Type = ? THEN Db_type = "PROGRESS".
+          RUN adecomm/_dbconnide.p
              (INPUT-OUTPUT  Db_Pname,
               INPUT-OUTPUT  Db_Lname,
               INPUT-OUTPUT  Db_Type).

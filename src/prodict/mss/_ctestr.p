@@ -21,21 +21,12 @@ Included in:
 History:
     Anil Shukla  05/29/13   Created
 --------------------------------------------------------------------*/
-
-
-
-&SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
-&SCOPED-DEFINE DATASERVER                 YES
-&SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
-{ prodict/dictvar.i }
-&UNDEFINE DATASERVER
-&UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
-
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
 
 /* ----------------------------- DEFINES -----------------------------*/
 DEFINE INPUT PARAMETER outfile as CHARACTER no-undo.
+DEFINE INPUT PARAMETER RankDesc as CHARACTER no-undo.
 
 DEFINE stream s_rank_rep.
 DEFINE  VARIABLE i1 AS INTEGER INITIAL 0.
@@ -63,31 +54,31 @@ PUT STREAM s_rank_rep UNFORMATTED "Codepage:   " mss_codepage SKIP.
 PUT STREAM s_rank_rep UNFORMATTED "Collation:  " mss_collname SKIP.
 PUT STREAM s_rank_rep UNFORMATTED "Insensitive:" mss_incasesen SKIP(1).
 
-IF loadsql THEN PUT STREAM s_rank_rep UNFORMATTED "(X) " .
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) " .
+IF loadsql THEN PUT STREAM s_rank_rep UNFORMATTED "[X] " .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] " .
 PUT STREAM s_rank_rep UNFORMATTED "Load SQL       ".
-IF genrep THEN PUT STREAM s_rank_rep UNFORMATTED "(X) " .
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) " .
+IF genrep THEN PUT STREAM s_rank_rep UNFORMATTED "[X] " .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] " .
 PUT STREAM s_rank_rep UNFORMATTED "Generate Rank Report" SKIP.
-IF movedata THEN PUT STREAM s_rank_rep UNFORMATTED "(X) " .
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) " .
+IF movedata THEN PUT STREAM s_rank_rep UNFORMATTED "[X] " .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] " .
 PUT STREAM s_rank_rep UNFORMATTED "Move Data" SKIP.
 PUT STREAM s_rank_rep UNFORMATTED "--------------------------------------------------------------  " SKIP(2).
 
 /* dump "Advanced" screen options for reference */
 PUT STREAM s_rank_rep UNFORMATTED SKIP "  ********* Advanced window selections *********  " SKIP.
 
-IF (UPPER(ENTRY(1,user_env[36])) = "Y") THEN PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "(X) " .
-ELSE PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "( ) " .
+IF (UPPER(ENTRY(1,user_env[36])) = "Y") THEN PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "[X] " .
+ELSE PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "[ ] " .
 PUT STREAM s_rank_rep UNFORMATTED "Migrate Constraints" SKIP.
 
 PUT STREAM s_rank_rep UNFORMATTED "-------------------------------------------------------------  " SKIP.
-IF (UPPER(ENTRY(2,user_env[36])) = "Y") THEN PUT STREAM s_rank_rep UNFORMATTED  "(X) ".
-ELSE PUT STREAM s_rank_rep UNFORMATTED  "( ) ".
+IF (UPPER(ENTRY(2,user_env[36])) = "Y") THEN PUT STREAM s_rank_rep UNFORMATTED  "[X] ".
+ELSE PUT STREAM s_rank_rep UNFORMATTED  "[ ] ".
 PUT STREAM s_rank_rep UNFORMATTED "Try Primary for ROWID    ".
 
 IF (UPPER(ENTRY(3,user_env[36])) = "Y") THEN PUT STREAM s_rank_rep UNFORMATTED "(X) " .
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) " .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] " .
 PUT STREAM s_rank_rep UNFORMATTED "Maintain RECID compatibility" SKIP.
 
 IF user_env[27] = ?  OR user_env[27] = "" THEN ASSIGN lcompatible = true.
@@ -103,22 +94,22 @@ IF lcompatible THEN DO:
     PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "Create RECID Field using  ( ) Trigger   (X) Computed Column" SKIP.
   IF NUM-ENTRIES(user_env[27]) >= 3 THEN DO:
     IF ((ENTRY(3,user_env[27]) EQ "D" ) OR (ENTRY(3,user_env[27]) EQ "P") ) THEN DO:
-       PUT STREAM s_rank_rep UNFORMATTED "  (X) For " .
+       PUT STREAM s_rank_rep UNFORMATTED "  [X] For " .
        IF (ENTRY(3,user_env[27]) EQ "D" ) THEN 
          PUT STREAM s_rank_rep UNFORMATTED "   (X) ROWID   ( ) Prime ROWID " SKIP.
        ELSE
          PUT STREAM s_rank_rep UNFORMATTED "   ( ) ROWID   (X) Prime ROWID " SKIP.
-       PUT STREAM s_rank_rep UNFORMATTED "  ( ) For ROWID Uniqueness" SKIP. 
+       PUT STREAM s_rank_rep UNFORMATTED "  [ ] For ROWID Uniqueness" SKIP. 
     END.
     ELSE DO:
-       PUT STREAM s_rank_rep UNFORMATTED "  ( ) For  ( ) ROWID   ( ) Prime ROWID " SKIP.
-       PUT STREAM s_rank_rep UNFORMATTED "  (X) For ROWID Uniqueness" SKIP. 
+       PUT STREAM s_rank_rep UNFORMATTED "  [ ] For  ( ) ROWID   ( ) Prime ROWID " SKIP.
+       PUT STREAM s_rank_rep UNFORMATTED "  [X] For ROWID Uniqueness" SKIP. 
     END.
   END.
 END. 
 
 IF NUM-ENTRIES(user_env[36]) >= 4 AND (UPPER(ENTRY(4,user_env[36])) EQ "Y" ) THEN DO: 
-  PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "(X) Select Best ROWID Index"  SKIP.
+  PUT STREAM s_rank_rep UNFORMATTED SKIP(1) "[X] Select Best ROWID Index"  SKIP.
   PUT STREAM s_rank_rep UNFORMATTED "    USING     " .
   IF ENTRY(5,user_env[36]) EQ "1" THEN
      PUT STREAM s_rank_rep UNFORMATTED "(X) OE Schema  ( ) Foreign Schema" SKIP.
@@ -127,31 +118,34 @@ IF NUM-ENTRIES(user_env[36]) >= 4 AND (UPPER(ENTRY(4,user_env[36])) EQ "Y" ) THE
 END.
 
 PUT STREAM s_rank_rep UNFORMATTED "--------------------------------------------------------------  " SKIP.
-IF user_env[12]  = "datetime" THEN PUT STREAM s_rank_rep UNFORMATTED "(X) Map to MSS 'Datetime' Type".
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) Map to MSS 'Datetime' Type".
+IF user_env[12]  = "datetime" THEN PUT STREAM s_rank_rep UNFORMATTED "[X] Map to MSS 'Datetime' Type".
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Map to MSS 'Datetime' Type".
 
-IF UPPER(user_env[21]) = "Y" THEN PUT STREAM s_rank_rep UNFORMATTED "    (X) Create Shadow Column" SKIP.
-ELSE PUT STREAM s_rank_rep UNFORMATTED "    ( ) Create Shadow Column" SKIP.
+IF UPPER(user_env[21]) = "Y" THEN PUT STREAM s_rank_rep UNFORMATTED "    [X] Create Shadow Column" SKIP.
+ELSE PUT STREAM s_rank_rep UNFORMATTED "    [ ] Create Shadow Column" SKIP.
 
 IF NUM-ENTRIES(user_env[25]) >= 2 AND (UPPER(ENTRY(2,user_env[25])) EQ "Y" ) THEN 
-     PUT STREAM s_rank_rep UNFORMATTED "(X) Use revised sequence Generator" SKIP.
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) Use revised sequence Generator" SKIP.
+     PUT STREAM s_rank_rep UNFORMATTED "[X] Use revised sequence Generator" SKIP.
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Use revised sequence Generator" SKIP.
 
 PUT STREAM s_rank_rep UNFORMATTED "--------------------------------------------------------------  " SKIP.
-IF user_env[11]  = "nvarchar" THEN PUT STREAM s_rank_rep UNFORMATTED "(X) Use Unicode Types".
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) Use Unicode Types".
-IF UPPER(user_env[35]) = "Y" THEN PUT STREAM s_rank_rep UNFORMATTED "      (X) Expand Width(utf-8)" SKIP.
-ELSE PUT STREAM s_rank_rep UNFORMATTED "      ( ) Expand Width(utf-8)" SKIP.
+IF user_env[11]  = "nvarchar" THEN PUT STREAM s_rank_rep UNFORMATTED "[X] Use Unicode Types".
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Use Unicode Types".
+IF UPPER(user_env[35]) = "Y" THEN PUT STREAM s_rank_rep UNFORMATTED "      [X] Expand Width(utf-8)" SKIP.
+ELSE PUT STREAM s_rank_rep UNFORMATTED "      [ ] Expand Width(utf-8)" SKIP.
 IF UPPER(user_env[33]) = "Y" THEN 
-   PUT STREAM s_rank_rep UNFORMATTED "For field widths use  (X) Width  ( ) ABL Format" SKIP.
-ELSE PUT STREAM s_rank_rep UNFORMATTED "For field widths use  ( ) Width  (X) ABL Format" SKIP.
+   PUT STREAM s_rank_rep UNFORMATTED "For field widths use  (X) Width  ( ) ABL Format" .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "For field widths use  ( ) Width  (X) ABL Format" .
+IF lExpand THEN PUT STREAM s_rank_rep UNFORMATTED "   [X] Expand x(8) to 30" SKIP.
+ELSE PUT STREAM s_rank_rep UNFORMATTED "   [ ] Expand x(8) to 30" SKIP.
 PUT STREAM s_rank_rep UNFORMATTED "--------------------------------------------------------------  " SKIP.
+
 IF UPPER(user_env[38]) = "1" THEN 
    PUT STREAM s_rank_rep UNFORMATTED "Apply Uniqueness as: (X) Index Attributes  ( ) Constraints" SKIP.
 ELSE PUT STREAM s_rank_rep UNFORMATTED "Apply Uniqueness as: ( ) Index Attributes  (X) Constraints" SKIP.
 
 IF UPPER(user_env[7]) = "Y" THEN PUT STREAM s_rank_rep UNFORMATTED "(X) Include Default" SKIP.
-ELSE PUT STREAM s_rank_rep UNFORMATTED "( ) Include Default" SKIP.
+ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Include Default" SKIP.
 
 IF UPPER(user_env[39]) = "1" THEN 
    PUT STREAM s_rank_rep UNFORMATTED "Apply Defaults as: (X) Field Attributes  ( ) Constraints" SKIP.
@@ -225,11 +219,8 @@ IF AVAILABLE DICTDB._INDEX THEN DO:
    PUT STREAM s_rank_rep UNFORMATTED " +Ranking - n:Uniqueness missing, m:Mandatory missing, c-RECID compatible index." SKIP(2).
 END.
 
- FIND FIRST s_ttb_tbl WHERE s_ttb_tbl.tmp_recid = RECID(DICTDB._FILE) NO-ERROR.
- IF AVAILABLE s_ttb_tbl THEN DO: /* Print description and clean up temp table. */
-    PUT STREAM s_rank_rep UNFORMATTED s_ttb_tbl.rank_desc SKIP.
-    DELETE s_ttb_tbl.
- END. 
+IF ((NUM-ENTRIES(user_env[42]) >= 2) AND UPPER(ENTRY(2,user_env[42])) = "N" ) THEN 
+   PUT STREAM s_rank_rep UNFORMATTED RankDesc SKIP.
   
 END.
 END.

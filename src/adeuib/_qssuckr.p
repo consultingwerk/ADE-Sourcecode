@@ -434,7 +434,15 @@ IF file_version BEGINS "WDT_v2":U THEN DO:
     _P._events       = "web.output,web.input":U.
 
   /* Create a design window for a 2.x file. */
-  RUN adeweb/_mkwind.p (RECID(_P)).
+  /** oe4ideisrunning _rdwind is NOT tested... 
+     looking for a true wdt_v2 file...  
+     (it is possibly one attached to a bug somewhere, problem with disappearing code )
+      It is certain that _mkwind will not work, so let's give it a try   
+      11.3.1 is release noted as not supported.  */
+  if OEIDEIsRunning then 
+      RUN adeweb/_rdwind.p (RECID(_P)).
+  else
+      RUN adeweb/_mkwind.p (RECID(_P)).
   FIND _U WHERE _U._HANDLE = _h_win.
   _U._PARENT-RECID = RECID(_U).
   

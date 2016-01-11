@@ -327,13 +327,22 @@ THEN ASSIGN _L._BGCOLOR        = ?
 ** the treeview. A window will be created for the object so the user can give
 ** this window focus and bring up the Section Editor to modify the procedure.
 */
-IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) AND
-   PROCESS-ARCHITECTURE = 32 THEN
+IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) 
+AND (PROCESS-ARCHITECTURE = 32 or OEIDEIsRunning)  THEN
 DO ON STOP UNDO, LEAVE ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
   /* Create Treeview design window for code-only files. */
   DEFINE VAR h_TreeProc AS HANDLE NO-UNDO.
-  RUN adeuib/_tview.w PERSISTENT SET h_TreeProc.
-  RUN createTree IN h_TreeProc (RECID(_P)).
+  
+  if OEIDEIsRunning then
+  do:
+      RUN adeuib/ide/_treeview.p PERSISTENT SET h_TreeProc.
+      /* we RUN createTree below after sizing */ 
+  end.    
+  else do:   
+      RUN adeuib/_tview.w PERSISTENT SET h_TreeProc. 
+  
+      RUN createTree IN h_TreeProc (RECID(_P)).
+  end.
   ASSIGN _h_win = DYNAMIC-FUNCTION("getWinHandle" IN h_TreeProc).
 END.
 
@@ -362,13 +371,14 @@ DO:
         TRIGGERS:
             {adeuib/windtrig.i}
         END TRIGGERS.
-  IF not OEIDEIsRunning THEN  
-  do:    
-     {adeuib/grptrig.i &of-widget-list="OF _h_win"}  
-  end. 
+   
 END.
 
-IF OEIDEIsRunning THEN
+IF not OEIDEIsRunning THEN  
+do:    
+    {adeuib/grptrig.i &of-widget-list="OF _h_win"}  
+end.
+else
 DO:
    /* TODO deal with temp windows from save super of gendyn - 
    set flag if no parent and don't call positionDesign below */   
@@ -436,6 +446,9 @@ END.
 /* position the design window based on IDE preferences */
 IF OEIDEIsRunning THEN
 DO: 
+    if valid-handle( h_TreeProc)  then
+        RUN createTree IN h_TreeProc (RECID(_P)).
+    
     run positionDesignWindow in hOEIDEService (_h_win).
 END.  /* oeide */  
 ELSE DO:

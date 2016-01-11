@@ -393,7 +393,7 @@ procedure rebuild-menus.
   IF NOT AVAILABLE mi OR mi.is-extra
   THEN _M._child-recid = ?.
   ELSE DO:
-    RUN build-menu (RECID(mi) , parent_recid).
+    RUN build-menu (RECID(mi) , RECID(_U)).
     _M._child-recid = mi.u-recid.
   END.
    
@@ -450,7 +450,7 @@ PROCEDURE build-menu.
   	      ipU._SUBTYPE     = this_mi.type.
   ELSE DO:
     /* Build the child _U and _M -- this sets next_mi.u-recid to RECID(_U). */
-    run build-menu (RECID(next_mi), parent-rec).
+    run build-menu (RECID(next_mi), RECID(ipU)).
     ASSIGN ipM._child    = next_mi.u-recid
     	   ipU._TYPE    = "SUB-MENU"
     	   ipU._SUBTYPE = ?.
@@ -1162,7 +1162,6 @@ END.
 ELSE ASSIGN menu-title = ""
             menu-name  = dflt-menu-name.
 RUN make-extra-mi.
-
 enable all except mi.accel with frame menu_edit.
 &scoped-define CANCEL-EVENT U2
 {adeuib/ide/dialogstart.i b_ok b_cancel caption} 

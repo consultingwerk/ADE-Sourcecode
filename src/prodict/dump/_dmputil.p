@@ -121,7 +121,8 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    FIND DICTDB._StorageObject WHERE
         DICTDB._StorageObject._Db-recid = db1recid AND
         DICTDB._StorageObject._Object-type = 2 AND
-            DICTDB._Storageobject._Object-number = db1IndexNo NO-ERROR.
+        DICTDB._Storageobject._Object-number = db1IndexNo and
+        DICTDB._Storageobject._Partitionid = 0 NO-ERROR.
    IF AVAILABLE DICTDB._StorageObject THEN
       FIND DICTDB._Area WHERE
            DICTDB._Area._Area-number = DICTDB._StorageObject._Area-number
@@ -133,7 +134,8 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    FIND DICTDB2._StorageObject WHERE
         DICTDB2._StorageObject._db-recid = db2recid AND
         DICTDB2._StorageObject._Object-type = 2 AND
-        DICTDB2._Storageobject._Object-number = db2IndexNo NO-ERROR.
+        DICTDB2._Storageobject._Object-number = db2IndexNo and
+        DICTDB2._Storageobject._Partitionid = 0 NO-ERROR.
    IF AVAILABLE DICTDB2._StorageObject THEN
       FIND DICTDB2._Area WHERE
            DICTDB2._Area._Area-number = DICTDB2._StorageObject._Area-number
@@ -148,9 +150,9 @@ FUNCTION indexAreaMatch RETURNS LOGICAL(INPUT db1IndexNo AS INT,
    END.
    /* Assuming if nothing is available then dictdb and dictdb2 index areas are same */
    IF NOT AVAIL DICTDB._StorageObject AND NOT AVAIL DICTDB2._StorageObject
-      AND NOT AVAIL DICTDB._Area AND NOT AVAIL DICTDB._Area THEN 
+      AND NOT AVAIL DICTDB._Area AND NOT AVAIL DICTDB2._Area THEN 
       RETURN TRUE.
-      
+    
    RETURN FALSE.
 
 END FUNCTION.

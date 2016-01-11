@@ -39,14 +39,16 @@ History:
 /*h-*/
 
 /*----------------------------  DEFINES  ---------------------------*/
+{ prodict/user/uservar.i }
+
+&SCOPED-DEFINE NOTTCACHE 1
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG /**/
 &SCOPED-DEFINE DATASERVER                 YES
 &SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
 { prodict/dictvar.i }
 &UNDEFINE DATASERVER
 &UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
-
-{ prodict/user/uservar.i }
+&UNDEFINE NOTTCACHE
 
 define input parameter tmp_best as INTEGER no-undo.
 define input parameter tbl_recid as RECID no-undo.
@@ -62,6 +64,7 @@ define variable Adjustlevel as INTEGER no-undo INITIAL 0.
 define variable expday as INTEGER no-undo INITIAL 0.
 define variable remainder as INTEGER no-undo INITIAL 0.
 define variable multiplr as INTEGER no-undo INITIAL 0.
+define variable pkfound  as LOGICAL no-undo INITIAL FALSE.
 define variable V3compat as CHARACTER no-undo INITIAL 
        "1,2,3,7,8,12,13,14,18,19,23,24,25,29,30,34,35,36,40,41,45,46,47,51,52,56,57,58,62,63".
 
@@ -136,11 +139,8 @@ END PROCEDURE.
 		s_ttb_idx.hlp_idxsize = 0
 		s_ttb_idx.ds_msc21 = ""
 		s_ttb_idx.key_wt# = 0.
-            IF s_ttb_idx.pro_uniq_bkp = FALSE AND uniquifyAddon = 22 THEN
-               ASSIGN s_ttb_idx.hlp_fld# = 1
-                      s_ttb_idx.hlp_idxsize# = 8
-                      s_ttb_idx.hlp_dtype# = 1.
        end.
+
 
 /* Calculate field sizes of the table fields */
      IF callerid = 2 THEN DO:
@@ -159,10 +159,6 @@ END PROCEDURE.
            find first s_ttb_fld 
               where s_ttb_fld.tmpfld_recid = s_ttb_idf.ttb_fld.
                   
-           IF s_ttb_idx.hlp_dtype# = 1 AND 
-              s_ttb_fld.ds_type = "integer" AND
-              uniquifyAddon = 22 THEN assign s_ttb_idx.hlp_dtype# = 3.
-
            assign
               s_ttb_idx.hlp_fld#   = s_ttb_idx.hlp_fld# + 1
               s_ttb_idx.hlp_dtype# = maximum(s_ttb_idx.hlp_dtype#,
@@ -218,7 +214,8 @@ END PROCEDURE.
 
        /* assign correct i-misc2[1]-values and select index */
        for each s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
-             break by s_ttb_idx.ds_idx_typ
+             break by s_ttb_idx.pro_uniq descending
+                   by s_ttb_idx.ds_idx_typ
                    by s_ttb_idx.hlp_slctd descending
                    by s_ttb_idx.hlp_level
                    by s_ttb_idx.key_wt#
@@ -278,13 +275,22 @@ END PROCEDURE.
              * index but non binary type are not eligible for RECID 
              * function support.
              */
-          IF s_ttb_idx.hlp_fld# = 1 and (s_ttb_idx.hlp_level <= 3 OR
+          IF s_ttb_idx.hlp_fld# <= 2 and (s_ttb_idx.hlp_level <= 3 OR
              (s_ttb_idx.hlp_level >= 12 AND s_ttb_idx.hlp_level <= 14 )) THEN 
             assign s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "c".  /* RECID compatible index */
+          IF s_ttb_idx.pro_uniq THEN DO:
+             IF s_ttb_idx.hlp_mand AND NOT pkfound THEN
+                assign pkfound = TRUE
+                       s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "p". /* Primary key candidate */
+             IF s_ttb_idx.pro_prim AND s_ttb_idx.pro_uniq_bkp <> s_ttb_idx.pro_uniq AND
+                s_ttb_idx.ds_idx_typ = 1 AND index(s_ttb_idx.ds_msc21,"v") = 0 THEN 
+                  s_ttb_idx.ds_msc21 = s_ttb_idx.ds_msc21 + "v". /*enforced uniqness on OE PK */
+          END.
        end.     /* for each s_ttb_idx */
 
    FOR EACH s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
-             break by s_ttb_idx.ds_idx_typ
+             break by s_ttb_idx.pro_uniq descending
+                   by s_ttb_idx.ds_idx_typ
                    by s_ttb_idx.hlp_level
                    by s_ttb_idx.key_wt#
                    by s_ttb_idx.pro_prim descending:
@@ -321,7 +327,7 @@ END PROCEDURE.
        END.
        ELSE DO:
          IF substring(s_ttb_idx.ds_msc21,1,1) <> "r" THEN DO: 
-           IF( s_ttb_idx.ds_idx_typ = 1 OR 
+           IF( ( s_ttb_idx.ds_idx_typ = 1 AND s_ttb_idx.pro_uniq ) OR 
                INDEX(s_ttb_idx.ds_msc21,"n") = 0 OR  /* is Unique already */
                INDEX(s_ttb_idx.ds_msc21,"v") <> 0 )  /* OR uniqueness enforced */
            THEN DO:

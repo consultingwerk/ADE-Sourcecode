@@ -16,7 +16,7 @@
 /* Program Definition Comment Block Wizard
 Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
 af/cod/aftemwizpw.w
-*/
+*/ 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -43,6 +43,7 @@ af/cod/aftemwizpw.w
                 Date:   05/19/2003  Author:     
 
   Update Notes: Created from Template viewv
+  rkamboj 11/30/2012. User was able to create users in unauthorized company.
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -69,7 +70,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
-
+DEFINE VARIABLE dLoginUser        AS DECIMAL    NO-UNDO.
+define variable cAllowedCompany   as character no-undo.
+define variable h_fiAllowedCompany as handle no-undo.    /* fiAllowedCompany */
+define variable h_default_login_company_obj as handle    no-undo.
 /*  object identifying preprocessor */
 &glob   AstraProcedure    yes
 
@@ -164,7 +168,7 @@ PROCEDURE addRecord :
 
   /* Default save window pos and sizes to yes for new user */
   assignWidgetValue('create_user_profile_data':U, 'yes':U).
-
+  run setAllowedCompany.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -277,14 +281,16 @@ PROCEDURE dataAvailable :
 ------------------------------------------------------------------------------*/
 
   DEFINE INPUT PARAMETER pcRelative AS CHARACTER NO-UNDO.
+  
   /* Code placed here will execute PRIOR to standard behavior. */
-
+  
+  
   RUN SUPER( INPUT pcRelative).
 
   /* Code placed here will execute AFTER standard behavior.    */
   
   RUN valueChangedProfileUser IN TARGET-PROCEDURE.
-
+  run setAllowedCompany.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -309,6 +315,7 @@ PROCEDURE leaveLoginName :
   IF cNewRecord EQ "ADD":U AND widgetValue("user_full_name":U) EQ "":U THEN
       assignWidgetValue("user_full_name":U, widgetValue("user_login_name":U)).
   
+  run setAllowedCompany.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -359,6 +366,34 @@ PROCEDURE updateRecord :
    define variable cSecurityValue2     as character no-undo.
    define variable cButtonPressed      as character no-undo.
                                        
+  dLoginUser        = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                INPUT "currentUserObj":U,
+                                                INPUT NO)) NO-ERROR.
+                                                
+  dEnteredCompany =  widgetValue("default_login_company_obj":U).  
+  RUN userSecurityCheck IN gshSecurityManager (INPUT dLoginUser,
+                                               INPUT 0,                      /* All companies */
+                                               INPUT "gsmlg":U,              /* login company FLA */
+                                               INPUT decimal(dEnteredCompany),
+                                               INPUT NO,                     /* Return security values - NO */
+                                               OUTPUT lSecurityRestricted,   /* Restricted yes/no ? */
+                                               OUTPUT cSecurityValue1,       /* clearance value 1 */
+                                               OUTPUT cSecurityValue2).      /* clearance value 2 */    
+   IF lSecurityRestricted THEN 
+   DO:
+       run showMessages in gshSessionManager ({errortxt.i 'AF' '40' '?' '?' '"User does not have access to selected login company"'},
+                                              'INF',
+                                              '&Ok',
+                                              '&Ok',
+                                              '&Ok',
+                                              '',
+                                              Yes,
+                                              ?,
+                                              output cButtonPressed) no-error.
+       RETURN.
+   END.                                                                        
+                                                
+
   RUN SUPER.
  
   /* Code placed here will execute AFTER standard behavior.    */
@@ -391,7 +426,7 @@ PROCEDURE valueChangedProfileUser :
     RUN enableFolderPage IN hFolderHandle (INPUT 5).
   ELSE
     RUN disableFolderPage IN hFolderHandle (INPUT 5).
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -399,7 +434,8 @@ END PROCEDURE.
 
 &ENDIF
 
-/*&IF DEFINED(EXCLUDE-createObject) = 0 &THEN
+
+&IF DEFINED(EXCLUDE-createObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects  Procedure 
 procedure createObjects:    
@@ -440,9 +476,11 @@ procedure createObjects:
     define variable cFieldSecurity as character no-undo.
     define variable lKeepChildPositions as logical no-undo.
     define variable lHideOnInit as logical no-undo.
-    define variable h_default_login_company_obj as handle no-undo.
-   
-    run super. 
+
+      
+      
+    run super.
+    
     cProperties = dynamic-function('getPropertyList':U IN gshSessionManager,
                                    'TranslationEnabled,CurrentLanguageCode,SecurityEnabled',
                                     No).
@@ -479,7 +517,7 @@ procedure createObjects:
     .
     &undefine xp-Assign
   
-  run adm-create-h_fiAllowedCompany
+    run adm-create-h_fiAllowedCompany
       ( input       lShowPopup,
        input        lHideOnInit,
        input        lKeepChildPositions,
@@ -500,42 +538,12 @@ procedure createObjects:
        input-output cEnabledObjHdls,
        input-output cFieldHandles).
       
-     
-
-/*            /* Ensure that the viewer is disabled if it is an update-target without tableio-source (? will enable ) */*/
-/*            {set SaveSource NO}.                                                                                      */
-
-     
-    DEFINE VARIABLE cTempData AS CHARACTER NO-UNDO.                          
-    {get FieldSecurity cFieldSecurity}.
-    cFieldSecurity =  cTempData + "," + cFieldSecurity.                           
-    {set FieldSecurity cFieldSecurity}.
-    {get AllFieldHandles cTempData}.
-     cAllFieldHandles =  cTempData + "," + cAllFieldHandles.      
-    {set AllFieldHandles cAllFieldHandles}.
-    {get FieldHandles cTempData}.
-    cFieldHandles =  cTempData + "," + cFieldHandles.
-    {set FieldHandles cFieldHandles}.
-    {get AllFieldNames cTempData}.
-     cAllFieldNames =  cTempData + "," + cAllFieldNames.
-    {set AllFieldNames cAllFieldNames}.
-     
-     {get DisplayedFields cTempData}.
-     cDisplayedFields =  cTempData + "," + cDisplayedFields. 
-     {set DisplayedFields cDisplayedFields}.
-     {get FieldHandles cTempData}.  
-     cFieldHandles =  cTempData + "," + cFieldHandles.
-     {set FieldHandles cFieldHandles}.
-     {get EnabledFields cTempData}.
-      cEnabledFields =  cTempData + "," + cEnabledFields.
-     {set EnabledFields cEnabledFields}.
-     {get EnabledHandles cTempData}.
-     cEnabledHandles =  cTempData + "," + cEnabledHandles.
-     {set EnabledHandles cEnabledHandles}.
-
-     h_default_login_company_obj = widgetHandle("default_login_company_obj").       
-     {set ParentField 'fiAllowedCompany' h_default_login_company_obj}.
-     {set ParentFilterQuery '"lookup(string(gsm_login_company.login_company_obj), ""&1"","","")  > 0"' h_default_login_company_obj}.
+    
+    dLoginUser = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                           INPUT "currentUserObj":U,
+                                           INPUT NO)) NO-ERROR.
+    h_default_login_company_obj = widgetHandle("default_login_company_obj").                                                
+    run setAllowedCompany.
  
 END PROCEDURE.
 
@@ -744,4 +752,17 @@ procedure adm-create-h_fiAllowedCompany :
     error-status:error = no.
     return.
 end procedure.    /* adm-create-h_fiAllowedCompany */
-*/
+
+procedure setAllowedCompany:
+   define variable Cntr                        as Integer   no-undo.
+   define variable cLoginCompanyObject         as character no-undo.
+   define variable cAllowedCompany             as character no-undo.     
+    run userLoginOrganisations IN gshSecurityManager (INPUT dLoginUser, output cAllowedCompany).
+    do Cntr = 2 to num-entries(cAllowedCompany) by 2:
+        if Cntr > 2 then cLoginCompanyObject = cLoginCompanyObject + ",".
+           cLoginCompanyObject = cLoginCompanyObject + entry(Cntr,cAllowedCompany).
+    end.
+           
+    {set ParentField 'fiAllowedCompany' h_default_login_company_obj}.
+    {set ParentFilterQuery '"lookup(string(gsm_login_company.login_company_obj), ""' + cLoginCompanyObject + '"","","")  > 0"' h_default_login_company_obj}.
+end procedure.    

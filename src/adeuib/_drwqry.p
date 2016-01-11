@@ -75,8 +75,15 @@ DO TRANSACTION ON STOP UNDO,LEAVE:
   /* Create the Visualization of the Query object */
   RUN adeuib/_undqry.p (RECID(_U)).
 END.
+
 if OEIDEIsRunning and avail _U then
+do:
+    FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
+    /* treeview handles add event later   */
+    if not valid-handle(_P._tv-proc) then 
         run CallWidgetEvent in _h_uib(input recid(_U),"Add").
+end.
+    
 RUN adeuib/_callqry.p ("_U":U, RECID(_U), "QUERY-ONLY":U).
  
 /* FOR EACH layout other than the current layout, populate _L records for them */

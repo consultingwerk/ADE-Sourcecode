@@ -26,6 +26,18 @@ class adeuib._abstractdialogservice abstract inherits _ideeventservice implement
         get.
         protected set.
         
+    define public property OK as logical no-undo 
+        init true
+        get.   
+        set. 
+    
+    define public property ReturnValue as character no-undo 
+        get.
+        set(pcval as char):
+            ReturnValue = pcVal.
+            this-object:ok = true.
+        end.      
+        
     define protected abstract property CancelHandle as handle no-undo get.  
     
 	define public abstract property Title as char no-undo get. set.

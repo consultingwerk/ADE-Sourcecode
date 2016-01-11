@@ -6,7 +6,7 @@
 *********************************************************************/
 /*----------------------------------------------------------------------------
 
-File: _recreate.p
+File: _recreat.p
 
 Description:
     Recreate a widget.  This version just does a DELETE/Undo Delete.  This was
@@ -130,7 +130,6 @@ ASSIGN i                  = _undo-seq-num
        _action._operation = "StartDelete"
        _undo-seq-num      = _undo-seq-num + 1.
 
-
 /* Delete selected FRAMEs */
 RUN DeleteSelectedComposite.
 
@@ -146,6 +145,7 @@ FOR EACH _U WHERE _U._SELECTEDib:
   END.
   RUN adeuib/_delet_u.p (INPUT RECID(_U), INPUT no  /* no trash */ ).
 END.  /* For each selected widget */
+
 CREATE _action.
 _action._seq-num = _undo-seq-num.
 _action._operation = "EndDelete".
@@ -485,5 +485,5 @@ IF (_U._TYPE = "WINDOW" OR _U._TYPE = "DIALOG-BOX") AND
     END.
   END.
 END.
-
-{adeuib/uibdel.i}
+/* IGNORE-IDE ensures that deletes are not published to PDS/IDE */ 
+{adeuib/uibdel.i &IGNORE-IDE}

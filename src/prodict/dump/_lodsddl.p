@@ -1502,7 +1502,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
 
         IF AVAILABLE wdbs AND imod <> ? THEN DO:
           RUN "prodict/dump/_lod_dbs.p".
-          IF drec_db <> RECID(_Db) THEN 
+          IF imod <> "d" and drec_db <> RECID(_Db) THEN 
             FIND _Db WHERE RECID(_Db) = drec_db.
         END.
             
@@ -2821,7 +2821,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
       IF AVAILABLE wdbs AND imod <> ? THEN 
       DO:
          RUN "prodict/dump/_lod_dbs.p".
-         IF drec_db <> RECID(_Db) THEN 
+         IF imod <> "d" and drec_db <> RECID(_Db) THEN 
             FIND _Db WHERE RECID(_Db) = drec_db.
       END.
 

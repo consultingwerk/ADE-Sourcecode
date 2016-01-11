@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2013 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*--------------------------------------------------------------------------
     File        : _automap.p
@@ -71,7 +71,7 @@
 {adeuib/uniwidg.i}
 {adeweb/htmwidg.i}
 {adeuib/sharvars.i}
-
+{adecomm/oeideservice.i}
 /* local global variables */
 DEFINE VARIABLE gSourceHdl     AS HANDLE    NO-UNDO.
 DEFINE VARIABLE gUHdl          AS HANDLE    NO-UNDO.
@@ -85,7 +85,7 @@ DEFINE VARIABLE gDataObject    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE gDataObjectHdl AS HANDLE    NO-UNDO.
 DEFINE VARIABLE gcurrentProc   AS INTEGER   NO-UNDO.
 DEFINE VARIABLE gUseDB         AS LOGICAL   NO-UNDO.
-
+define variable gideErrorFlag as logical no-undo.
 /* Reusable local variables */
 DEFINE VARIABLE ok           AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE i            AS INTEGER   NO-UNDO.
@@ -183,7 +183,6 @@ FUNCTION GetNext RETURNS LOGICAL
   
 /* The function getQueryhandle must exist in the caller 
    if we shall get its buffers from the query */   
-
 ASSIGN 
   gQueryHdl  = DYNAMIC-FUNCTION("getQueryHandle":U IN SOURCE-PROCEDURE)
   NO-ERROR.
@@ -209,7 +208,6 @@ ELSE
    gRecidList = DYNAMIC-FUNCTION("getFieldRecids":U IN SOURCE-PROCEDURE)
    NO-ERROR
  .
-
 /* 
 We will have an error if getqueryhandle or getfieldrecid does not exist.
 If that's the case get out of here */
@@ -267,15 +265,93 @@ DO:
    IF ERROR-STATUS:ERROR THEN RETURN.
  END.  
  gSDOColumns = DYNAMIC-FUNC('getDataColumns' IN gDataObjectHdl).
+ 
+ RUN MapFields.
 END.
 
-RUN MapFields.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-chooseTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseTable Procedure
+procedure chooseTable:
+   define variable ideevent as adeuib.iideeventservice no-undo.
+   if OEIDE_CanLaunchDialog() then    
+   do:
+       ideevent = new adeuib._ideeventservice(). 
+       ideevent:SetCurrentEvent(this-procedure,"doChooseTable").
+       run runChildDialog in hOEIDEService (ideevent) .
+       wait-for "u2" of this-procedure.
+       if gideErrorFlag then 
+          return error. 
+   end.
+   else do:
+       run doChooseTable no-error.
+       if error-status:error then
+           return error. 
+   end.
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
+
+&IF DEFINED(EXCLUDE-doChooseTable) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE doChooseTable Procedure
+procedure doChooseTable:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+     if OEIDE_CanLaunchDialog() then 
+     do:
+         RUN adeuib/ide/_dialog_tblsel.p 
+                  (TRUE, /* Multi */
+                   ?, 
+                   INPUT-OUTPUT gDbName, /* _db_name */  
+                   INPUT-OUTPUT gTables, /* _fl_name */
+                   OUTPUT Ok).
+         IF NOT OK OR gTables = ? THEN
+         do:
+             gideErrorFlag = true.
+         end.           
+     end.    
+     else do:
+         RUN adecomm/_tblsel.p
+                 (TRUE, /* Multi */
+                   ?, 
+                   INPUT-OUTPUT gDbName, /* _db_name */  
+                   INPUT-OUTPUT gTables, /* _fl_name */
+                   OUTPUT Ok).
+    
+        IF NOT OK OR gTables = ? THEN
+        do:
+            RETURN ERROR.
+        end.  
+    end.  
+    run MapFields.
+    
+    finally:
+       if OEIDE_CanLaunchDialog() then 
+           apply "u2" to this-procedure.
+    end.   
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ENDIF
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE MapFields Procedure 
 PROCEDURE MapFields :
@@ -299,8 +375,8 @@ PROCEDURE MapFields :
   DEFINE VARIABLE HandleList  AS CHAR      NO-UNDO. 
   DEFINE VARIABLE MapDataType AS CHAR      NO-UNDO. 
   DEFINE VARIABLE Msg         AS CHAR      NO-UNDO. 
+  define variable Msg2        as character no-undo.
   DEFINE VARIABLE i           AS INT       NO-UNDO. 
-  
   RUN adecomm/_setcurs.p ("WAIT"). /* Set the cursor pointer in all windows */
   
   Transblock:
@@ -419,9 +495,13 @@ PROCEDURE MapFields :
        ON ENDKEY UNDO, LEAVE:
     
        PUBLISH "AB_RefreshFields":U.
-    
-       MESSAGE Msg SKIP(1)
-               "Choose OK to accept the mappings or Cancel to undo them."
+       msg2 =  Msg + "~n~n" +
+               "Choose OK to accept the mappings or Cancel to undo them.".
+       if OEIDE_CanShowMessage() then
+           Ok = ShowMessageInIDE(msg2,"QUESTION",?,"OK-Cancel",ok).
+       
+       else      
+           MESSAGE msg2
               VIEW-AS ALERT-BOX QUESTION BUTTONS OK-Cancel
                       UPDATE OK IN WINDOW ACTIVE-WINDOW.
        IF NOT OK THEN 
@@ -440,11 +520,16 @@ PROCEDURE MapFields :
   END. /* Do trans */
   RUN adecomm/_setcurs.p ("":U).  
   
-  IF NumMapped  = ? THEN    
+  IF NumMapped  = ? THEN   
     PUBLISH "AB_RefreshFields":U.
+     
   IF NumMapped = 0 THEN
-    MESSAGE Msg VIEW-AS ALERT-BOX INFORMATION IN WINDOW ACTIVE-WINDOW.
-   
+  do:
+      if OEIDE_CanShowMessage() then
+          ShowOkMessageInIDE(Msg,"INFORMATION",?).
+      else       
+          MESSAGE Msg VIEW-AS ALERT-BOX INFORMATION IN WINDOW ACTIVE-WINDOW.
+   end.
   
 END PROCEDURE.
 
@@ -508,16 +593,13 @@ PROCEDURE SetTables :
   
   IF gTables eq "" THEN
   DO:
-    RUN adecomm/_tblsel.p
-      (TRUE, /* Multi */
-       ?, 
-       INPUT-OUTPUT gDbName, /* _db_name */  
-       INPUT-OUTPUT gTables, /* _fl_name */
-       OUTPUT Ok).
-       
-    IF NOT OK OR gTables = ? THEN
-      RETURN ERROR.
+     run chooseTable no-error.
+     if error-status:error then
+         return error. 
   END.
+  else 
+     run MapFields.
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

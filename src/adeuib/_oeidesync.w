@@ -55,6 +55,12 @@ DEFINE VARIABLE hProc AS HANDLE     NO-UNDO.
 {adeuib/advice.i}
 {adeuib/brwscols.i}  
 
+/* get overrides may call web object - tagmap is required not sure of the others */
+{ src/web/method/cgidefs.i  NEW } /* standard WS cgidefs.i: functions,vars */
+{ src/web/method/cgiarray.i NEW } /* standard WS cgiarray.i: vars          */ 
+{ src/web/method/tagmap.i   NEW } /* standard WS tagmap.i: TT tagmap       */
+{ src/web/method/webutils.i NEW }
+
 /* Common - routine to check whether a links are valid */
 {adeuib/_chkrlnk.i}
 
@@ -531,6 +537,10 @@ DEFINE BUFFER buf_P FOR _P.
             hNewWindow = hNewWindow:PARENT.
         IF AVAILABLE _SEW_U THEN
             RUN adeuib/_wintitl.p (hNewWindow, _SEW_U._LABEL, ? , cFileName).
+        /* reOpen exists only in the ide subclass version _treeview.p
+           so no-error is perhaps questionable  */
+        if valid-handle(b_P._tv-proc) then 
+             run reopened in b_P._tv-proc no-error.
         
         /* View new window */           
         hNewWindow:VISIBLE = TRUE.

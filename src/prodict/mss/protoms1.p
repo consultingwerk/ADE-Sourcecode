@@ -70,6 +70,7 @@ DEFINE VARIABLE ClustAsROWID  AS LOGICAL             NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE mdrec_db      AS RECID               NO-UNDO.    
 DEFINE VARIABLE lcompatible   AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE useLegacyRanking    AS LOGICAL    NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE RankDesc      AS CHARACTER           NO-UNDO.
 
 DEFINE STREAM strm.
 
@@ -107,15 +108,16 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = mdrec_db
                              ELSE
                                DICTDB._File._File-name = user_filename
                             ):
+    Assign RankDesc = "".
     IF useLegacyRanking AND lcompatible THEN
        ASSIGN DICTDB._FILE._Fil-misc1[1] = 1. /* assign positive to indicate PROGRESS_RECID as ROWID */
-    ELSE
+    ELSE 
        RUN prodict/mss/_rankpdb.p ( INPUT RECID(DICTDB._File),
-                               INPUT ClustAsROWID).
+                               INPUT ClustAsROWID, INPUT RankDesc).
 END.
 IF ((NUM-ENTRIES(user_env[42]) >= 2) AND 
     UPPER(ENTRY(1,user_env[42])) = "Y" ) THEN
- RUN prodict/mss/_ctestr.p(INPUT "rnkreppdb.out").
+ RUN prodict/mss/_ctestr.p(INPUT "rnkreppdb.out",INPUT RankDesc).
 
 END PROCEDURE.
 

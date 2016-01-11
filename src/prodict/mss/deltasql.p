@@ -13,9 +13,10 @@
 { prodict/mss/mssvar.i new }
 { prodict/misc/filesbtn.i new }
 
-DEFINE NEW SHARED VARIABLE select_dbname  AS CHARACTER  NO-UNDO.
-DEFINE NEW SHARED VARIABLE dflt_dbname      AS CHARACTER           NO-UNDO.
-/*DEFINE VARIABLE dflt_dbname      AS CHARACTER           NO-UNDO.*/
+DEFINE NEW SHARED VARIABLE select_dbname  AS CHARACTER    NO-UNDO.
+DEFINE NEW SHARED VARIABLE dflt_dbname    AS CHARACTER    NO-UNDO.
+DEFINE NEW SHARED VARIABLE envshadowcol   AS CHARACTER    NO-UNDO.
+DEFINE NEW SHARED VARIABLE scol      AS LOGICAL           NO-UNDO.
 DEFINE VARIABLE old_oshdbname   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE old_connparms   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE ientry           AS INTEGER             NO-UNDO.
@@ -51,7 +52,6 @@ DEFINE VARIABLE seqgen        AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE sqlwdth       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE expnd8        AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE crtdflt       AS CHARACTER              NO-UNDO.
-DEFINE VARIABLE shdcl         AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE cmptble       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE ucodetypes    AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE ucodeexpnd    AS CHARACTER              NO-UNDO.
@@ -108,7 +108,6 @@ FORM
   &THEN VIEW-AS DIALOG-BOX &ENDIF
   TITLE "Delta df to MS SQL Server Conversion".
  
-
 /*=============================Triggers===============================*/
 
 /*----- ON GO or OK -----*/
@@ -157,12 +156,14 @@ DO:
          VALUE(LDBNAME(osh_dbname:SCREEN-VALUE IN FRAME read-df)).
     END.
   END.
+
   IF NOT schdbcon THEN DO:
-      CONNECT VALUE(osh_dbname:SCREEN-VALUE IN FRAME read-df) 
-            VALUE(mss_conparms) NO-ERROR.
-   RUN prodict/mss/deltaconnect.p.
-    IF NOT CONNECTED(LDBNAME(osh_dbname:SCREEN-VALUE IN FRAME read-df)) THEN DO:
-      MESSAGE osh_dbname:SCREEN-VALUE IN FRAME read-df
+   ASSIGN osh_dbname = osh_dbname:SCREEN-VALUE IN FRAME read-df
+          mss_dbname = mss_dbname:SCREEN-VALUE IN FRAME read-df.
+      CONNECT VALUE(osh_dbname) VALUE(mss_conparms) NO-ERROR.
+      RUN prodict/mss/deltaconnect.p.
+      IF NOT CONNECTED(LDBNAME(osh_dbname:SCREEN-VALUE IN FRAME read-df)) THEN DO:
+        MESSAGE osh_dbname:SCREEN-VALUE IN FRAME read-df
          " can not be connected using entered connect parameters."
         VIEW-AS ALERT-BOX ERROR.
       APPLY "ENTRY" to osh_dbname IN FRAME read-df.
@@ -170,15 +171,18 @@ DO:
      END.
   END.
 
-  l = no.
+ IF mss_dbname <> ? THEN DO:
+   ASSIGN mss_dbname:SCREEN-VALUE = mss_dbname.
+   APPLY "ENTRY" TO mss_dbname IN FRAME read-df.
+ END.
+
   IF mss_dbname:screen-value IN FRAME read-df = ? OR 
      mss_dbname:screen-value IN FRAME read-df = "" THEN DO:
-       MESSAGE "Logical database cannot be left blank.  Default will be restored." 
-         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-	 ASSIGN mss_dbname:SCREEN-VALUE = mss_dbname.
-       RETURN NO-APPLY.
-   END.
- END.
+     ASSIGN mss_dbname:SCREEN-VALUE = mss_dbname.
+     APPLY "ENTRY" TO mss_dbname IN FRAME read-df.
+  END.
+
+END.  /*End of ON GO trigger */
 
 ON CHOOSE OF btn_File in frame read-df DO:
    RUN "prodict/misc/_filebtn.p"
@@ -187,6 +191,12 @@ ON CHOOSE OF btn_File in frame read-df DO:
         INPUT "*.df"                 /*Filter*/,
         INPUT yes                /*Must exist*/).
 END.
+
+     IF shadowcol = TRUE THEN DO:
+        ASSIGN shadowcol:CHECKED   = TRUE
+               shadowcol:SENSITIVE = TRUE.
+         RETURN NO-APPLY.
+     END.
 
 ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
   IF SELF:SCREEN-VALUE = "1" THEN
@@ -318,7 +328,7 @@ IF OS-GETENV("EXPANDX8") <> ? THEN DO:
            lFormat = FALSE.
 END. 
 ELSE
-  ASSIGN lExpand = FALSE
+   ASSIGN lExpand = FALSE
          lFormat = TRUE.
 
 IF OS-GETENV("CRTDEFAULT") <> ? THEN DO:
@@ -400,15 +410,9 @@ IF batch_mode THEN DO:
   END.
 
  IF (mss_conparms = ?)  OR (mss_conparms  ="") THEN DO:
- PUT STREAM logfile UNFORMATTED " can	not be connected 
-       using entered connect parameters." skip(1).
+ PUT STREAM logfile UNFORMATTED " Can not be connected using entered connect parameters." skip(1).
   RETURN NO-APPLY.
  END.
-
- IF (mss_dbname = ?)  OR (mss_dbname  ="") THEN DO:
-  PUT STREAM logfile UNFORMATTED "Logical Database name is required." skip(1).
-  RETURN NO-APPLY.
-  END.
 
  IF mss_username  = ? OR mss_username  = "" THEN DO: 
   PUT STREAM logfile UNFORMATTED "MSS Object Owner Name is required." skip(1).
@@ -423,13 +427,8 @@ IF batch_mode THEN DO:
   RUN prodict/mss/deltaconnect.p.
 END.
 
-IF OS-GETENV("SHADOWCOL") <> ? THEN DO:
-  ASSIGN shdcl  = OS-GETENV("SHADOWCOL").
-  IF shdcl BEGINS "Y" THEN
-    ASSIGN shadowcol = TRUE. 
-  ELSE 
-    ASSIGN shadowcol = FALSE.
-END. 
+IF OS-GETENV("SHADOWCOL") <> ? THEN 
+  ASSIGN envshadowcol  = OS-GETENV("SHADOWCOL").
 
 IF OS-GETENV("MAPMSSDATETIME") <> ? THEN DO:
 mssdttime = OS-GETENV("MAPMSSDATETIME").
@@ -454,7 +453,7 @@ ELSE
        create_df
        cFormat
        cRecid
-       unicodeTypes WHEN hasUniSupport			
+       unicodeTypes WHEN hasUniSupport
        lUniExpand WHEN unicodeTypes
        mapMSSDatetime WHEN has2008Support
        newseq

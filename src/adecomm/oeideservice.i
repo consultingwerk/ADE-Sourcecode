@@ -243,7 +243,7 @@ function ShowCueCard return logical
           CueCardMessage as character) in hOEIDEService.   
 
 function OpenDBConnectionDialog return logical
-         (ProjectName as character) in hOEIDEService.          
+         (pmessage as character) in hOEIDEService.          
                            
 &ENDIF
 

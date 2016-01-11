@@ -899,12 +899,14 @@ DO WITH FRAME {&FRAME-NAME}:
     ** See if the current file type is in the list of file types.
     ** if not, add it
     */
-    IF LOOKUP(FileType,CurFilter) = 0 THEN
-      ASSIGN
-        Result                = FileType:ADD-LAST(FileType) IN FRAME {&FRAME-NAME}
-        FileType:SCREEN-VALUE = FileType.
-    ELSE
-      FileType:SCREEN-VALUE = FileType:ENTRY(i).
+    IF curFilter NE "*.*" THEN DO:
+        IF LOOKUP(FileType,CurFilter) = 0 THEN
+          ASSIGN
+            Result                = FileType:ADD-LAST(FileType) IN FRAME {&FRAME-NAME}
+            FileType:SCREEN-VALUE = FileType.
+        ELSE
+          FileType:SCREEN-VALUE = FileType:ENTRY(i).
+    END.
   END.
 END PROCEDURE.
 

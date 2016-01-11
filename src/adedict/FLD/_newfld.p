@@ -362,7 +362,6 @@ do:
              UNDO.
          END.
       END.
-
       assign
 	 b_Field._File-recid = Record_Id
 	 b_Field._Data-Type = s_Fld_Protype /*WHEN s_Fld_Protype <> "CLOB"*/
@@ -397,8 +396,16 @@ do:
                 RELEASE dictdb._Area.
 
             END.
-            ELSE MESSAGE "Area " s_lob_area:SCREEN-VALUE IN FRAME newfld " is not valid"
-                 VIEW-AS ALERT-BOX.
+            ELSE do:
+                if s_lob_area:SCREEN-VALUE IN FRAME newfld = "" then
+                   MESSAGE "Area cannot be blank."
+                     VIEW-AS ALERT-BOX.
+                
+                else    
+                   MESSAGE "Area " s_lob_area:SCREEN-VALUE IN FRAME newfld " is not valid"
+                    VIEW-AS ALERT-BOX.
+                 undo, leave.
+            end.    
          end.
          
             
@@ -443,6 +450,7 @@ do:
       display "Field Created" @ s_Status with frame newfld.
       added = yes.
       run adecomm/_setcurs.p ("").
+      /* ok */
       return.
    end.
 
@@ -937,7 +945,6 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
    end.
    else do:
       create b_Field.
-
       /* default a unique order # */
       if Last_Order = ? then
       do:
@@ -992,17 +999,18 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
                          ( dictdb._File._Owner = "PUB"  OR dictdb._File._Owner = "FOREIGN").
       	 find dictdb._Field where dictdb._Field._File-recid = recid(dictdb._File) 
       	                    and   dictdb._Field._Field-name = copyfld.
-         
-      	 assign
+          assign
       	    b_Field._Field-name = dictdb._Field._Field-name
       	    b_Field._Data-type  = dictdb._Field._Data-type
       	    b_Field._Format     = dictdb._Field._Format
       	    b_Field._Initial    = dictdb._Field._Initial
       	    b_Field._Order    	= Last_Order.
-      	 {prodict/dump/copy_fld.i &from=dictdb._Field &to=b_Field &all=false}
+      	    
+      	 {prodict/dump/copy_fld.i &copyarea=false &from=dictdb._Field &to=b_Field &all=false}
 
          IF (b_field._Data-type = "BLOB" OR b_Field._Data-type = "CLOB") then
          DO:
+            isLob = true.
             if not NoDefaultArea  THEN 
                 s_lob_Area:SCREEN-VALUE IN FRAME newfld = "".
     
@@ -1017,30 +1025,24 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
                 IF dictdb._Field._Field-rpos <> ? THEN DO: /* if the field was commited */
                    FIND dictdb._storageobject WHERE dictdb._Storageobject._Db-recid = s_DbRecId
                                               AND dictdb._Storageobject._Object-type = 3
-                                              AND dictdb._Storageobject._Object-number = b_Field._Fld-stlen
+                                              AND dictdb._Storageobject._Object-number = dictdb._Field._Fld-stlen
                                               and dictdb._Storageobject._Partitionid = 0
                                               NO-LOCK.
-    
-                   /* _Fld-stlen contains the unique object number once the field is created by the Progress
-                      client. For new fields, we pass the area number in _Fld-stlen, so reset it now. Once
-                      this field is created by the Progress client, it will reassign it to the object number
-                   */
-                   ASSIGN b_field._Fld-stlen = dictdb._StorageObject._Area-number.
-    
                    FIND b_Area WHERE b_Area._Area-number = dictdb._StorageObject._Area-number NO-LOCK.
                 END.
                 ELSE
-                   FIND b_Area WHERE b_Area._Area-number = b_Field._Fld-stlen NO-LOCK.
-    
+                   FIND b_Area WHERE b_Area._Area-number = dictdb._Field._Fld-stlen NO-LOCK.
+              
                ASSIGN s_lob_size:SCREEN-VALUE IN FRAME newfld = dictdb._Field._Fld-Misc2[1]
                       s_lob_wdth = dictdb._Field._Width
-                      s_lob_Area:SCREEN-VALUE IN FRAME newfld = b_Area._Area-name.
-    
+                      s_lob_Area:SCREEN-VALUE IN FRAME newfld = b_Area._Area-name
+                      s_lob_Area = b_Area._Area-name.
                RELEASE dictdb._storageobject NO-ERROR.
                RELEASE b_Area.
            end.
          END.
-
+         else
+             islob = false.
          IF b_field._Data-type = "CLOB" THEN DO:
 
            /* set code page and collation just like copied field */
@@ -1100,10 +1102,7 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	 assign
       	    copytbl = ""
       	    copyfld = "".
-
-          /* force trigger to fire on blobs and clobs*/
-         IF s_fld_Dtype = "BLOB" OR s_fld_Dtype = "CLOB" THEN
-            ASSIGN islob = TRUE.
+ 
 
          /* make sure we enable/disable the proper fields */
          RUN setlob.
@@ -1115,11 +1114,12 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       	       	     	 s_btn_Fld_Copy in frame newfld OR
       	       GO of frame newfld
       	       FOCUS b_Field._Field-Name in frame newfld.
-       
       /* Undo the create of b_Field so that when we repeat we don't end up
 	 with a bogus field with all unknown values. */
       if Copy_Hit then
-	 undo add_subtran, next add_subtran.
+      do:
+	       undo add_subtran, next add_subtran.
+	  end.     
    end.
 end.
 hide frame newfld. 

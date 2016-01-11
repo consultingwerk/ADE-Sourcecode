@@ -86,6 +86,10 @@
         <_Audit-identifying-field>0</_Audit-identifying-field>
       </audit-field>
     </audit-table>
+    <audit-event Event-id="10218">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="11700">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -127,6 +131,14 @@
       <_Event-criteria></_Event-criteria>
     </audit-event>
     <audit-event Event-id="11719">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11720">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11721">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
@@ -580,6 +592,10 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="10300">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="10301">
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -600,8 +616,52 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="10306">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="10400">
       <_Event-level>0</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+  </Policy>
+  <Policy GUID="2JcMnvNDnJfZES67SXctUQ" Name="PSC-UserAccounts">
+    <policy-properties>
+      <_Audit-policy-description>Internal accounts maintenance (_user)</_Audit-policy-description>
+      <_Audit-data-security-level>0</_Audit-data-security-level>
+      <_Audit-custom-detail-level>0</_Audit-custom-detail-level>
+      <_Audit-policy-active>YES</_Audit-policy-active>
+    </policy-properties>
+    <audit-table Name="_user" Owner="PUB">
+      <_Audit-create-level>12</_Audit-create-level>
+      <_Create-event-id>100</_Create-event-id>
+      <_Audit-update-level>13</_Audit-update-level>
+      <_Update-event-id>101</_Update-event-id>
+      <_Audit-delete-level>12</_Audit-delete-level>
+      <_Delete-event-id>102</_Delete-event-id>
+      <audit-field Name="_Domain-Name">
+        <_Audit-create-level>0</_Audit-create-level>
+        <_Audit-update-level>0</_Audit-update-level>
+        <_Audit-delete-level>0</_Audit-delete-level>
+        <_Audit-identifying-field>2</_Audit-identifying-field>
+      </audit-field>
+      <audit-field Name="_Userid">
+        <_Audit-create-level>0</_Audit-create-level>
+        <_Audit-update-level>0</_Audit-update-level>
+        <_Audit-delete-level>0</_Audit-delete-level>
+        <_Audit-identifying-field>1</_Audit-identifying-field>
+      </audit-field>
+    </audit-table>
+    <audit-event Event-id="100">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="101">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="102">
+      <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
   </Policy>
@@ -1255,46 +1315,6 @@
       <_Event-criteria></_Event-criteria>
     </audit-event>
   </Policy>
-  <Policy GUID="2JcMnvNDnJfZES67SXctUQ" Name="PSC-UserAccounts">
-    <policy-properties>
-      <_Audit-policy-description>Internal accounts maintenance (_user)</_Audit-policy-description>
-      <_Audit-data-security-level>0</_Audit-data-security-level>
-      <_Audit-custom-detail-level>0</_Audit-custom-detail-level>
-      <_Audit-policy-active>YES</_Audit-policy-active>
-    </policy-properties>
-    <audit-table Name="_user" Owner="PUB">
-      <_Audit-create-level>12</_Audit-create-level>
-      <_Create-event-id>100</_Create-event-id>
-      <_Audit-update-level>13</_Audit-update-level>
-      <_Update-event-id>101</_Update-event-id>
-      <_Audit-delete-level>12</_Audit-delete-level>
-      <_Delete-event-id>102</_Delete-event-id>
-      <audit-field Name="_Domain-Name">
-        <_Audit-create-level>0</_Audit-create-level>
-        <_Audit-update-level>0</_Audit-update-level>
-        <_Audit-delete-level>0</_Audit-delete-level>
-        <_Audit-identifying-field>2</_Audit-identifying-field>
-      </audit-field>
-      <audit-field Name="_Userid">
-        <_Audit-create-level>0</_Audit-create-level>
-        <_Audit-update-level>0</_Audit-update-level>
-        <_Audit-delete-level>0</_Audit-delete-level>
-        <_Audit-identifying-field>1</_Audit-identifying-field>
-      </audit-field>
-    </audit-table>
-    <audit-event Event-id="100">
-      <_Event-level>1</_Event-level>
-      <_Event-criteria></_Event-criteria>
-    </audit-event>
-    <audit-event Event-id="101">
-      <_Event-level>1</_Event-level>
-      <_Event-criteria></_Event-criteria>
-    </audit-event>
-    <audit-event Event-id="102">
-      <_Event-level>1</_Event-level>
-      <_Event-criteria></_Event-criteria>
-    </audit-event>
-  </Policy>
   <Policy GUID="kyuAW8cenLzZEVPCzRhVbw" Name="Application">
     <policy-properties>
       <_Audit-policy-description>Application events (context and event groups)</_Audit-policy-description>
@@ -1368,4 +1388,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=mddjOJ6PYqHgEYPf5ChWPw;E22Xg5gQVRO8+k2I5fAjgA== -->
+<!-- SealID=4A8xAMDXpKUT0myf26nrcA;OYEr4CB3XxUr9CjqduG/0A== -->

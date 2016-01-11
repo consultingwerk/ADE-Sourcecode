@@ -195,6 +195,9 @@ PROCEDURE unique :
 END PROCEDURE.
 
 PROCEDURE unique_save:
+ IF index(trim(temp.uni),"I") = 0 THEN
+    MESSAGE "Only Unique indexes are eligible candidates." VIEW-AS ALERT-BOX ERROR.
+ ELSE DO:
     IF NOT CAN-FIND (FIRST DICTDB._Constraint WHERE DICTDB._Constraint._Con-Name = name:SCREEN-VALUE IN FRAME frame_unique 
                      AND DICTDB._Constraint._Db-Recid = DbRecId AND DICTDB._constraint._Con-Status <> "O" AND
                              DICTDB._constraint._Con-Status <> "D") 
@@ -221,6 +224,7 @@ PROCEDURE unique_save:
     END.       
     ELSE
       MESSAGE "Constraint with this name already exists in the DB" VIEW-AS ALERT-BOX ERROR.                 
+  END.
 END.          
           
 PROCEDURE unique_validate:

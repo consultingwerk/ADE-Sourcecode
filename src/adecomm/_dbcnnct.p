@@ -30,7 +30,6 @@ Date Created: 06/3/93
 
 Define INPUT  parameter pi_msg as char    NO-UNDO.
 Define OUTPUT parameter po_OK  as logical NO-UNDO.
-
 /* Database Parameters */
 Define var PName         as char    NO-UNDO. /* Physical DB Name */
 Define var LName         as char    NO-UNDO. /* Logical DB Name  */
@@ -47,45 +46,67 @@ Define var dummy_6       as char    NO-UNDO.
 Define var dummy_7       as char    NO-UNDO.
 Define var dummy_8       as char    NO-UNDO.
 Define var dummy_9       as char    NO-UNDO.
-
+define variable luseide as logical no-undo.
 {adecomm/oeideservice.i}
 
 /* Define a SKIP for alert-boxes that only exists under Motif */
 &Global-define SKP ""
-
 /*----------------------------Mainline code----------------------------------*/
-
 /* Should we ask if user wants to connect ? */
 IF pi_msg eq ? THEN po_OK = YES.
 ELSE
 do: 
     if OEIDEIsRunning then
-       po_OK = ShowMessageInIDE(pi_msg + " ~n Do you want to connect to a database?",
-                         "Question","?","OK-CANCEL",YES).
-    else                     
-       MESSAGE pi_msg {&SKP} "Do you want to connect to a database?"
+    do:         
+       if OEIDE_CanShowMessage() then
+       do: 
+           po_OK =  OpenDBConnectionDialog(pi_msg). 
+           if po_ok = ? then 
+              po_ok = no.
+           luseide = true.
+       end.
+       else do:
+           pi_msg = pi_msg + "~n" 
+                   +  "The current ABL Dialog is not managed by the current workbench."
+                   +  " You can connect to a database from here, but the connection will not be defined in the current project."
+                   + "~n~n". 
+       end.
+    end.
+    if not luseide then                     
+        MESSAGE pi_msg {&SKP} "Do you want to connect to a database?"
              VIEW-AS ALERT-BOX QUESTION BUTTONS OK-CANCEL UPDATE po_OK.
-end.
-IF po_OK THEN DO:
-  /* Set defaults for the db connect dialog. */
-  ASSIGN DB_Multi_User = no
-         DB_Type       = "PROGRESS":U.
 
-  RUN adecomm/_dbconnx.p ( YES,   /* whether to connect the database spec'd */
-                        INPUT-OUTPUT PName,
-                        INPUT-OUTPUT LName,
-                        INPUT-OUTPUT DB_Type,
-                        INPUT-OUTPUT Db_Multi_User,
-                        INPUT-OUTPUT dummy_1,
-                        INPUT-OUTPUT dummy_2,
-                        INPUT-OUTPUT dummy_3,
-                        INPUT-OUTPUT dummy_4,
-                        INPUT-OUTPUT dummy_5,
-                        INPUT-OUTPUT dummy_6,
-                        INPUT-OUTPUT dummy_7,
-                        INPUT-OUTPUT dummy_8,
-                        OUTPUT       dummy_9  ).
-   
-   /* Was a database connected */
-   IF PName eq ? THEN po_OK = no.
+end.
+
+IF po_OK and not luseide THEN 
+DO:
+     if pi_msg eq ? and OEIDE_CanShowMessage() then
+     do: 
+           po_OK =  OpenDBConnectionDialog(?). 
+           if po_ok = ? then 
+              po_ok = no.
+     end. 
+     else do:
+      /* Set defaults for the db connect dialog. */
+        ASSIGN DB_Multi_User = no
+               DB_Type       = "PROGRESS":U.
+    
+        RUN adecomm/_dbconnx.p ( YES,   /* whether to connect the database spec'd */
+                            INPUT-OUTPUT PName,
+                            INPUT-OUTPUT LName,
+                            INPUT-OUTPUT DB_Type,
+                            INPUT-OUTPUT Db_Multi_User,
+                            INPUT-OUTPUT dummy_1,
+                            INPUT-OUTPUT dummy_2,
+                            INPUT-OUTPUT dummy_3,
+                            INPUT-OUTPUT dummy_4,
+                            INPUT-OUTPUT dummy_5,
+                            INPUT-OUTPUT dummy_6,
+                            INPUT-OUTPUT dummy_7,
+                            INPUT-OUTPUT dummy_8,
+                            OUTPUT       dummy_9  ).
+       
+            /* Was a database connected */
+        IF PName eq ? THEN po_OK = no.
+    end.
 END.

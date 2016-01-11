@@ -257,9 +257,8 @@ END PROCEDURE.
 
 PROCEDURE check_primary_save:
          
-    IF temp.man <> "  I" 
-    THEN MESSAGE "All columns of the Index should be Mandatory" VIEW-AS ALERT-BOX ERROR.
-    
+    IF trim(temp.man) <> "I"  OR index(trim(temp.uni),"I") = 0 THEN
+      MESSAGE "All columns of the Index should be Mandatory and Only Unique indexes are eligible candidates." VIEW-AS ALERT-BOX ERROR. 
     ELSE DO: 
     FIND FIRST DICTDB._Constraint WHERE DICTDB._Constraint._File-Recid = file_rec
          AND (DICTDB._Constraint._Con-Type = "P"  OR DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )

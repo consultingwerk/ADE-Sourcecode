@@ -105,7 +105,7 @@ DEFINE FRAME DEFAULT-FRAME
         "ROWID", 1,
         "Prime ROWID", 2
         HORIZONTAL AT 17 NO-LABEL SKIP({&VM_WID})
-     forRowidUniq view-as toggle-box LABEL "For ROWID Uniqueness" AT 8 SKIP({&VM_WID})
+     ForRowidUniq view-as toggle-box LABEL "For ROWID Uniqueness" AT 8 SKIP({&VM_WID})
      selBestRowidIdx view-as toggle-box LABEL "Select 'Best' ROWID Index"  AT 2 SKIP({&VM_WID})
      text3 VIEW-AS TEXT NO-LABEL AT 8
      choiceSchema VIEW-AS RADIO-SET RADIO-BUTTONS
@@ -168,15 +168,15 @@ DO:
    ASSIGN tryPimaryForRowid  = (tryPimaryForRowid:SCREEN-VALUE  = "yes").
    ASSIGN recidCompat = (recidCompat:SCREEN-VALUE  = "yes").
    ASSIGN ForRow  = (ForRow:SCREEN-VALUE  = "yes").
-   ASSIGN forRowidUniq  = (forRowidUniq:SCREEN-VALUE  = "yes").
+   ASSIGN ForRowidUniq  = (ForRowidUniq:SCREEN-VALUE  = "yes").
    ASSIGN selBestRowidIdx  = (selBestRowidIdx:SCREEN-VALUE  = "yes").
    ASSIGN choiceRowid = INTEGER(choiceRowid:SCREEN-VALUE).
    ASSIGN iRecidOption = INTEGER(iRecidOption:SCREEN-VALUE).
    ASSIGN choiceSchema = INTEGER(choiceSchema:SCREEN-VALUE).
-   IF NOT (forRowidUniq OR ForRow) THEN 
+   IF NOT (ForRowidUniq OR ForRow) THEN 
    ASSIGN iRecidOption = 0
             pcompatible = FALSE.
-   IF (forRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
+   IF (ForRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
    Assign dflt = (dflt:SCREEN-VALUE = "yes").
    Assign mapMSSDatetime = (mapMSSDatetime:SCREEN-VALUE = "yes" ).
    Assign newseq = (newseq:SCREEN-VALUE = "yes" ). 
@@ -267,12 +267,12 @@ END.
 ON VALUE-CHANGED OF tryPimaryForRowid IN FRAME DEFAULT-FRAME DO:
   IF SELF:SCREEN-VALUE = "no" THEN DO:
     IF selBestRowidIdx:SCREEN-VALUE = "no" THEN
-       ASSIGN forRowidUniq:SENSITIVE   = FALSE
-           forRowidUniq:SCREEN-VALUE   = "no".
+       ASSIGN ForRowidUniq:SENSITIVE   = FALSE
+           ForRowidUniq:SCREEN-VALUE   = "no".
   END.
   ELSE DO:
        IF ForRow:screen-value   = "no"  THEN 
-          ASSIGN forRowidUniq:SENSITIVE   = TRUE.
+          ASSIGN ForRowidUniq:SENSITIVE   = TRUE.
        IF ForRowidUniq:screen-value   = "no"  THEN 
           ASSIGN forRow:SENSITIVE   = TRUE.
   END.
@@ -299,8 +299,8 @@ END.
 /* Initialize RECID logic */
 ON VALUE-CHANGED OF ForRow IN FRAME DEFAULT-FRAME DO:
  IF SELF:screen-value = "yes" THEN DO:
-     ASSIGN forRowidUniq:SCREEN-VALUE   = "no"
-            forRowidUniq:SENSITIVE   = FALSE
+     ASSIGN ForRowidUniq:SCREEN-VALUE   = "no"
+            ForRowidUniq:SENSITIVE   = FALSE
             iRecidOption:SENSITIVE   = TRUE
             choiceRowid:SENSITIVE   = TRUE
             selBestRowidIdx:SENSITIVE   = FALSE
@@ -314,7 +314,7 @@ ON VALUE-CHANGED OF ForRow IN FRAME DEFAULT-FRAME DO:
          choiceSchema:SENSITIVE   = TRUE
          iRecidOption:SENSITIVE   = FALSE
          choiceRowid:SCREEN-VALUE   = "0"
-         forRowidUniq:SENSITIVE   = TRUE.
+         ForRowidUniq:SENSITIVE   = TRUE.
          choiceRowid:SENSITIVE   = FALSE.
  END.
 END.
@@ -346,15 +346,15 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
            choiceRowid:SENSITIVE   = FALSE
            choiceSchema:SENSITIVE   = TRUE
            forRow:SCREEN-VALUE   = "no"
-           forRowidUniq:SENSITIVE = TRUE.
-    IF forRowidUniq:screen-value = "yes"  THEN
+           ForRowidUniq:SENSITIVE = TRUE.
+    IF ForRowidUniq:screen-value = "yes"  THEN
        ASSIGN choiceSchema:SENSITIVE    = FALSE
               choiceSchema:SCREEN-VALUE = "1".
  END.
  ELSE DO:
     ASSIGN selBestRowidIdx:SENSITIVE   = FALSE
-           forRowidUniq:SCREEN-VALUE   = "no"
-           forRowidUniq:SENSITIVE   = FALSE
+           ForRowidUniq:SCREEN-VALUE   = "no"
+           ForRowidUniq:SENSITIVE   = FALSE
            ForRow:SENSITIVE   = TRUE
            ForRow:SCREEN-VALUE   = "yes"
            choiceRowid:SENSITIVE   = TRUE
@@ -371,11 +371,11 @@ IF NOT batch_mode THEN
         tryPimaryForRowid
         recidCompat WHEN recid_verify = TRUE
         iRecidOption
-        ForRow  WHEN forRowidUniq = FALSE
+        ForRow  WHEN ForRowidUniq = FALSE
         choiceRowid WHEN ForRow = TRUE
-        forRowidUniq WHEN ForRow = FALSE
-        selBestRowidIdx WHEN pcompatible = FALSE
-        choiceSchema WHEN pcompatible = FALSE 
+        ForRowidUniq WHEN ForRow = FALSE
+        selBestRowidIdx WHEN ForRow = FALSE
+        choiceSchema WHEN selBestRowidIdx = TRUE 
               
         mapMSSDatetime
         shadowcol WHEN shdcol = YES  
@@ -394,18 +394,17 @@ IF NOT batch_mode THEN
         &ENDIF              	        
         WITH FRAME DEFAULT-FRAME. 
         
-        
         ASSIGN recidCompat = (recidCompat:SCREEN-VALUE  = "yes").
         ASSIGN iRecidOption = INTEGER(iRecidOption:SCREEN-VALUE).
         ASSIGN ForRow  = (ForRow:SCREEN-VALUE  = "yes").
-        ASSIGN forRowidUniq  = (forRowidUniq:SCREEN-VALUE  = "yes").
+        ASSIGN ForRowidUniq  = (ForRowidUniq:SCREEN-VALUE  = "yes").
         ASSIGN selBestRowidIdx  = (selBestRowidIdx:SCREEN-VALUE  = "yes").
         ASSIGN choiceRowid = INTEGER(choiceRowid:SCREEN-VALUE).
         ASSIGN choiceSchema = INTEGER(choiceSchema:SCREEN-VALUE).
-        IF NOT (forRowidUniq OR ForRow) THEN 
+        IF NOT (ForRowidUniq OR ForRow) THEN 
         ASSIGN iRecidOption = 0
               pcompatible = FALSE.
-        IF (forRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
+        IF (ForRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
    
         ASSIGN choiceDefault = choiceDefault:screen-value.
         ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2012 by Progress Software Corporation. All rights    *
+* Copyright (C) 2013 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,18 +27,21 @@ History:
 
 --------------------------------------------------------------------*/
 /*h-*/
-
-&SCOPED-DEFINE xxDS_DEBUG                   DEBUG 
-&SCOPED-DEFINE DATASERVER                 YES
+&SCOPED-DEFINE NOTTCACHE 1
+&SCOPED-DEFINE xxDS_DEBUG                 DEBUG 
+&SCOPED-DEFINE DATASERVER                 YES 
 &SCOPED-DEFINE FOREIGN_SCHEMA_TEMP_TABLES INCLUDE
-{ prodict/dictvar.i }
+ { prodict/dictvar.i NEW }
 &UNDEFINE DATASERVER
 &UNDEFINE FOREIGN_SCHEMA_TEMP_TABLES
+&UNDEFINE NOTTCACHE
 
 { prodict/user/uservar.i }
+
 /*----------------------------  DEFINES  ---------------------------*/
 define input parameter itbl_recid as RECID no-undo.
 define input parameter ClustAsROWID as LOGICAL no-undo.
+define input parameter RankDesc as CHARACTER no-undo.
 
 DEFINE VARIABLE compatible          AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE migConstraint       AS LOGICAL    NO-UNDO INITIAL FALSE.
@@ -54,6 +57,11 @@ DEFINE VARIABLE keyCreated          AS LOGICAL    NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE parse2              AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE RecidAsRowid        AS LOGICAL    NO-UNDO INITIAL FALSE. 
 DEFINE VARIABLE uniquifyAddon       as INTEGER    NO-UNDO INITIAL 0.
+DEFINE VARIABLE keyExist            AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE NonUnikCC           AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE pk_unique           AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE restorReqd          AS LOGICAL    NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE mdrec_db            AS RECID      NO-UNDO.
 
 DEFINE VARIABLE s_tmp_best          AS INTEGER    NO-UNDO INITIAL 0. 
 
@@ -147,8 +155,10 @@ CASE UPPER(s_ttb_fld.pro_type):
                ELSE
                   ASSIGN j = lngth.
           END.
+          FIND FIRST DICTDB._Db WHERE _Db-local NO-LOCK NO-ERROR.
+          ASSIGN mdrec_db = RECID(DICTDB._Db).
           IF DICTDB._Field._Decimals > 0
-             AND can-find(first DICTDB._Db where RECID(DICTDB._Db) = drec_db
+             AND can-find(first DICTDB._Db where RECID(DICTDB._Db) = mdrec_db
                           and DICTDB._Db._Db-type <> "PROGRESS" ) THEN
              ASSIGN j = DICTDB._Field._Decimals.
 
@@ -233,7 +243,7 @@ END.
 ELSE FIND FIRST s_ttb_tbl WHERE s_ttb_tbl.tmp_recid = itbl_recid.
 
   /* Check if User will have PROGRESS_RECID as ROWID, if no indexes */  
-  IF compatible AND (mssOptRowid EQ "D") AND 
+  IF compatible AND (mssOptRowid NE "U") AND 
      NOT CAN-FIND(FIRST DICTDB._index WHERE DICTDB._index._file-recid = s_ttb_tbl.tmp_recid AND
                         DICTDB._Index._Index-name <> "default" AND
                         DICTDB._Index._Wordidx <> 1 ) THEN
@@ -263,43 +273,15 @@ _idxloop:
       END.
       ELSE FIND FIRST s_ttb_idx WHERE s_ttb_idx.idx_recid = RECID(DICTDB._INDEX) AND
                                       s_ttb_idx.ttb_tbl = DICTDB._index._file-recid. 
-      FIND FIRST DICTDB._Constraint 
+      IF migConstraint AND CAN-FIND(FIRST DICTDB._Constraint 
               WHERE DICTDB._Constraint._Index-Recid = s_ttb_idx.idx_recid  AND
                     DICTDB._Constraint._Con-Active = TRUE AND 
                    (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
-                    DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" OR
-                    DICTDB._Constraint._Con-Type = "M" 
-                   ) NO-LOCK NO-ERROR.
-         IF AVAILABLE (DICTDB._Constraint) AND migConstraint THEN 
-         DO:
-            ASSIGN s_ttb_idx.ds_idx_typ = 1
-                   keyCreated = TRUE.
-            IF (compatible AND (mssOptRowid EQ "U")) AND 
-                s_ttb_idx.ds_uniq = FALSE THEN assign s_ttb_idx.ds_uniq = TRUE.
-      
-         END.
-         ELSE IF msstryp AND (RECID (DICTDB._Index) = s_ttb_tbl.pk_idx_recid ) AND
-                 NOT keyCreated THEN DO:
-              /* Check - either Progress PK should be Uniq or 
-                         non uniq Progress PK is supplimented with "For ROWID uniqueness"
-              */ 
-               IF DICTDB._Index._Unique OR (compatible AND (mssOptRowid EQ "U")) THEN 
-                  ASSIGN s_ttb_idx.ds_idx_typ = 1
-                         s_ttb_idx.ds_uniq = TRUE
-                         keyCreated = TRUE.
-         END.
-         ELSE ASSIGN s_ttb_idx.ds_idx_typ = 2.
-
-         /* Check if User will have PROGRESS_RECID as ROWID, if so exit _idxloop */  
-         IF NOT keyCreated AND compatible AND (mssOptRowid EQ "D") 
-         THEN DO:
-           ASSIGN RecidAsRowid = TRUE.
-           UPDATE DICTDB._INDEX._I-misc2[1] = ?.
-           LEAVE. 
-         END.
-
-         for each DICTDB._Index-field 
-            where DICTDB._Index-field._index-recid = s_ttb_idx.idx_recid:
+                    DICTDB._Constraint._Con-Type = "MP" OR DICTDB._Constraint._Con-Type = "M" )
+         ) THEN ASSIGN s_ttb_idx.ds_idx_typ = 1.
+      ELSE ASSIGN s_ttb_idx.ds_idx_typ = 2.
+      for each DICTDB._Index-field 
+          where DICTDB._Index-field._index-recid = s_ttb_idx.idx_recid:
 
             IF NOT CAN-FIND(FIRST s_ttb_idf WHERE s_ttb_idf.ttb_idx = s_ttb_idx.idx_recid 
                                               AND s_ttb_idf.ttb_fld = DICTDB._Index-field._Field-recid) 
@@ -311,7 +293,6 @@ _idxloop:
             END.
             IF NOT CAN-FIND(FIRST s_ttb_fld WHERE s_ttb_fld.tmpfld_recid = s_ttb_idf.ttb_fld)
             THEN DO:
-             
               find first DICTDB._Field 
                    where RECID(DICTDB._Field) = s_ttb_idf.ttb_fld.
                  CREATE s_ttb_fld.
@@ -324,10 +305,49 @@ _idxloop:
                                s_ttb_fld.ds_name  = DICTDB._Field._Field-Name.
                  IF UPPER(s_ttb_fld.pro_type) = "INT64" THEN assign s_ttb_fld.ds_type = "BIGINT".
                  RUN calc-fldsize ( OUTPUT s_ttb_fld.fld_size ). 
-
             END.
-         end.
+         end. /* for each DICTDB._Index-field  */
   end.  /* for each _INDEX */
+
+  keyExist = CAN-FIND(FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = itbl_recid AND
+                            DICTDB._Constraint._Con-Active = TRUE AND
+                           (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "PC" OR
+                            DICTDB._Constraint._Con-Type = "MP" )).
+
+  FIND FIRST DICTDB._CONSTRAINT WHERE DICTDB._CONSTRAINT._File-Recid = itbl_recid AND
+       DICTDB._Constraint._Con-Active = TRUE AND
+       DICTDB._Constraint._Con-Type = "M" NO-ERROR.
+  IF AVAILABLE DICTDB._CONSTRAINT THEN DO:
+       FIND FIRST s_ttb_idx 
+                  WHERE s_ttb_idx.idx_recid = DICTDB._CONSTRAINT._Index-recid AND
+                        s_ttb_idx.pro_uniq <> TRUE NO-ERROR.
+       IF AVAILABLE s_ttb_idx THEN ASSIGN NonUnikCC = TRUE.
+       ELSE ASSIGN keyExist = TRUE.
+  END.
+  FIND FIRST s_ttb_idx WHERE s_ttb_idx.ttb_tbl = itbl_recid AND 
+             s_ttb_idx.pro_prim = TRUE NO-ERROR.
+  IF AVAILABLE s_ttb_idx THEN DO:
+     IF s_ttb_idx.pro_uniq = TRUE THEN ASSIGN pk_unique = TRUE.
+     ELSE ASSIGN pk_unique = FALSE.
+  END.
+
+  IF ( migConstraint AND keyExist) THEN 
+     ASSIGN keyCreated   = TRUE.
+  ELSE IF msstryp AND ( pk_unique OR ( NOT pk_unique AND (compatible AND (mssOptRowid EQ "U")))) THEN DO:
+     FIND FIRST s_ttb_idx WHERE s_ttb_idx.ttb_tbl = itbl_recid AND 
+                                s_ttb_idx.pro_prim = TRUE NO-ERROR.
+     IF AVAILABLE s_ttb_idx AND NOT pk_unique THEN DO:
+        ASSIGN s_ttb_idx.pro_uniq_bkp = s_ttb_idx.pro_uniq /* save original */
+               s_ttb_idx.pro_uniq = TRUE /* Fake it as Unique */
+               s_ttb_idx.ds_idx_typ = 1
+               restorReqd = TRUE.
+     END.
+     ASSIGN keyCreated   = TRUE
+            s_ttb_idx.ds_idx_typ = 1.
+  END.
+  ELSE IF (compatible AND (mssOptRowid NE "U")) THEN 
+     ASSIGN RecidAsRowid = TRUE
+            keyCreated   = TRUE.
 
 IF RecidAsRowid THEN DO:
    ASSIGN DICTDB._FILE._Fil-misc1[1] = 1  /* assign positive to indicate PROGRESS_RECID as ROWID */
@@ -367,13 +387,16 @@ ELSE DO:
           uniqifying those mandatory indexes.
         */
           IF mssOptRowid EQ "U" AND NOT mssrecidCompat AND 
-            NOT CAN-FIND(FIRST s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
+             NOT keyCreated AND
+             NOT CAN-FIND(FIRST s_ttb_idx where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid
                                    AND s_ttb_idx.hlp_level <= 22)
           THEN RUN Uniquify-Non-UniqIdx-and-retry. 
 
 
        FOR EACH s_ttb_idx  where s_ttb_idx.ttb_tbl = s_ttb_tbl.tmp_recid:
           IF parse2 THEN ASSIGN s_ttb_idx.pro_uniq = s_ttb_idx.pro_uniq_bkp. /* restore original */
+ 
+          IF s_ttb_idx.pro_prim AND restorReqd THEN ASSIGN s_ttb_idx.pro_uniq = TRUE.
 
          /* Update ranking info irrespective of rowid designation */
 	  FIND FIRST DICTDB._INDEX  where RECID(DICTDB._INDEX) = s_ttb_idx.Idx_recid. 
@@ -414,10 +437,6 @@ ELSE DO:
 
 END. /* end of else part of - IF RecidAsRowid */
 
-/* Temp table s_ttb_tbl has ranking description for reporting purposes
- * If user has  not requested the report then clean temp table record
- *  else clean after report generation.
-*/
-IF ((NUM-ENTRIES(user_env[42]) >= 2) AND
-    UPPER(ENTRY(1,user_env[42])) = "N" ) THEN DELETE s_ttb_tbl. 
+Assign RankDesc = s_ttb_tbl.rank_desc.
+DELETE s_ttb_tbl. 
 /*------------------------------------------------------------------*/

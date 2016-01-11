@@ -100,8 +100,8 @@ function getRequestContext returns character        () in fContextHandle.
 function registerObject returns logical            (piHwnd as int64,pObject as Object) in fContextHandle.
 function removeHwnd returns logical                (piHwnd as int64) in fContextHandle.
 function setCurrentEventObject returns logical     (pobj as Object) in fContextHandle.              
-
-function setLinkFileTimeStamp returns logical     (pcLinkFile as char,dt as datetime) in fContextHandle. 
+function setLinkFileTimeStamp returns logical      (pcLinkFile as char,dt as datetime) in fContextHandle. 
+function setNextEventObject returns logical        (pobj as Object) in fContextHandle.              
 /** not yet
 /* not implemented - exposes context to abl 
    must be specifically declared - not defined in oeideservice.i */
@@ -453,7 +453,7 @@ function ShowCueCard return logical
 
 &IF DEFINED(EXCLUDE-OpenDBConnectionDialog) = 0 &THEN
 function OpenDBConnectionDialog return logical
-         (ProjectName as character)   forward.
+         (pmessage as character)   forward.
 &endif                      
 /* *********************** Procedure Settings ************************ */
 
@@ -937,6 +937,24 @@ end procedure.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setNextChildDialog) = 0 &THEN
+
+procedure setNextChildDialog :
+/*------------------------------------------------------------------------------
+  Purpose: Sets the next dialog.
+           Sets HasNextDialog to true.
+           Caller must check and return signal to the IDE to call again from 
+           current runchildDialog request. 
+  Parameters:
+  Notes: 
+------------------------------------------------------------------------------*/
+    /* the object that knows who and what to call  */
+    define input parameter Object as Object  no-undo.
+    /* store handle for call back to the uib service */
+    setNextEventObject(Object).
+end procedure.
+
+&ENDIF
 
 /*&IF DEFINED(EXCLUDE-runWizard) = 0 &THEN                                   */
 /*                                                                                */
@@ -2175,7 +2193,11 @@ function WidgetEvent return logical
       if valid-handle(phWindow) then
       do:      
           iDesignId = getDesignId(phWindow).    
-          if (iDesignId) > 0 then 
+          if (iDesignId) > 0 then
+          do: 
+               /* ensure constant casing. _attr-ed saves with different case  */
+               if WidgetType <> "SmartObject":U then 
+                   WidgetType = caps(WidgetType).
                run sendRequest in getSocketClient() (
                           WIDGET_EVENT,
                           "IDE WidgetEvent ":U 
@@ -2185,6 +2207,7 @@ function WidgetEvent return logical
                         + QUOTER(WidgetType) + PARAMETER_DELIMITER
                         + QUOTER(WidgetParent) + PARAMETER_DELIMITER
                         + QUOTER(WidgetAction) ).     
+          end.
       end.
 end function.                               
 &endif             
@@ -2215,7 +2238,12 @@ function RenameWidget return logical
           WidgetAction as character ):
       define variable iDesignId as int64 no-undo. 
       iDesignId = getDesignId(phWindow).    
+     
       if (iDesignId) > 0 then
+      do:
+           /* ensure constant casing. _attr-ed saves with different case  */
+           if WidgetType <> "SmartObject":U then 
+               WidgetType = caps(WidgetType).
            run sendRequest in getSocketClient() (
                       RENAME_WIDGET_NAME,
                       "IDE RenameWidgetName ":U
@@ -2226,6 +2254,7 @@ function RenameWidget return logical
                     + QUOTER(WidgetType) + PARAMETER_DELIMITER
                     + QUOTER(WidgetParent) + PARAMETER_DELIMITER
                     + QUOTER(WidgetAction) ).
+     end.              
 end function.                               
 &endif       
 
@@ -2237,12 +2266,17 @@ function AddTrigger return logical
     define variable iDesignId as int64 no-undo. 
     iDesignId = getDesignId(phWindow).          
     if (iDesignId) > 0 then 
-    run sendRequest in getSocketClient() (
-                      ADD_TRIGGER,
-                      "IDE AddTrigger ":U 
-                    + QUOTER(iDesignId) + PARAMETER_DELIMITER
-                    + QUOTER(WidgetName)+ PARAMETER_DELIMITER
-                    + QUOTER(WidgetType) ).             
+    do:
+        /* ensure constant casing. _attr-ed saves with different case  */
+        if WidgetType <> "SmartObject":U then 
+             WidgetType = caps(WidgetType).
+        run sendRequest in getSocketClient() (
+                          ADD_TRIGGER,
+                          "IDE AddTrigger ":U 
+                        + QUOTER(iDesignId) + PARAMETER_DELIMITER
+                        + QUOTER(WidgetName)+ PARAMETER_DELIMITER
+                        + QUOTER(WidgetType) ).       
+    end.                      
 end function.            
 &endif       
 
@@ -2287,10 +2321,16 @@ end function.
 
 &IF DEFINED(EXCLUDE-OpenDBConnectionDialog) = 0 &THEN
 function OpenDBConnectionDialog return logical
-         (ProjectName as character):
-       run sendRequest in getSocketClient() (
-                      OPEN_DB_CONNECTION,
-                      "IDE OpenDBConnectionDialog ":U 
-                      + QUOTER(ProjectName)). 
+         (pmessage as character):
+    define variable pcOk as character no-undo.        
+    if pmessage = ? then 
+        pmessage = "".    
+    run sendWaitRequest in getSocketClient()
+          (OPEN_DB_CONNECTION,
+          "IDE OpenDBConnectionDialog ":U 
+          +  quoter(GetProjectName()) + PARAMETER_DELIMITER
+          +  quoter(pmessage) ,
+          output pcOk).  
+    return logical(pcOk) .            
 end function.                               
 &endif             

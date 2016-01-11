@@ -4287,11 +4287,12 @@ PROCEDURE userLoginOrganisations :
     /* if there ARE specific login companies to which this user has restricted access, list only those login companies they have access to */
     ELSE DO:
         FOR EACH bgsm_login_company NO-LOCK:
-            IF NOT CAN-FIND(FIRST bgsm_user_allocation
+            IF  CAN-FIND(FIRST bgsm_user_allocation
                             WHERE bgsm_user_allocation.USER_obj = pdUserObj
                               AND bgsm_user_allocation.login_organisation_obj = 0
                               AND bgsm_user_allocation.owning_entity_mnemonic = 'GSMLG':U
-                              AND bgsm_user_allocation.owning_obj = bgsm_login_company.login_company_obj) THEN
+                              AND bgsm_user_allocation.owning_obj = bgsm_login_company.login_company_obj
+                              and bgsm_user_allocation.user_allocation_value1 = "no" ) THEN
             ASSIGN pcOrganisations = pcOrganisations + bgsm_login_company.login_company_name + " (" + bgsm_login_company.login_company_short_name + ")," + string(bgsm_login_company.login_company_obj) + ",".
         END.
     END.

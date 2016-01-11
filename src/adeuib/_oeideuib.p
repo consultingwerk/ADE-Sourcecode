@@ -91,6 +91,7 @@ function clearNewFileName returns logical () in fContextHandle.
 function getCurrentEventObject returns Object () in fContextHandle. 
 function getDesignHwnd returns int64 (pcFile as char) in fContextHandle. 
 function getDesignWindow returns handle (piHwnd as int64) in fContextHandle. 
+function getHasNextDialog returns logical () in fContextHandle.
 function getLinkFileWindow returns handle  (pcLinkedFile as char) in fContextHandle.
 function getNewFileName returns character (  ) in fContextHandle.  
 function getObject returns Object (piHwnd as int64) in fContextHandle.  
@@ -160,8 +161,9 @@ procedure getCurrentDialogInfo:
     define variable dialogService as adeuib.idialogservice no-undo.
     dialogService = cast(getObject(int64(pcHwnd)),adeuib.idialogservice). 
     if not valid-object(dialogService) then
+    do:
         return "ERROR:NoDialogAvail":U.  
-    
+    end.
     return 
        quoter(dialogService:title) + PARAMETER_DELIMITER +
        quoter(dialogService:WidthPixels) + PARAMETER_DELIMITER +
@@ -428,12 +430,19 @@ end.
 
 procedure exportWidgets:
     define input  parameter pcInfo as char no-undo.
+    define variable cEditFile as character no-undo.
     define variable cDir as character no-undo.
     define variable cFname as character no-undo.
-    assign 
-        cDir = entry(2,pcInfo,PARAMETER_DELIMITER).
-        cFname = entry(3,pcInfo,PARAMETER_DELIMITER).        
-    run ExportCurrentWidgetTree in fuib(cDir,cFname ).
+    define variable ihwnd as int64 no-undo.
+    define variable hwin as handle no-undo.
+    
+    cEditFile =  entry(1,pcInfo,PARAMETER_DELIMITER).
+    cDir = entry(2,pcInfo,PARAMETER_DELIMITER).
+    cFname = entry(3,pcInfo,PARAMETER_DELIMITER).        
+    
+    ihwnd = getDesignHwnd(cEditFile).
+    hwin = getDesignWindow(ihwnd).    
+    run ExportCurrentWidgetTree in fuib(hwin, cDir,cFname ).
    
     return "OK":U. 
 end. 
@@ -592,6 +601,89 @@ procedure duplicate:
     return.
 end.    
 
+/*  No dialog handle passed CURRENTLY, since uibmain currently calls chooseDataObject 
+    in  _tv-proc, which calls runChildDialog in PDS again.  
+    The reason is that we want the shared avm info passed to runchildDialog from PDS */
+procedure chooseSmartDataObject:
+    define input  parameter pcFile as char no-undo.
+    run chooseSmartDataObject in fUib.
+    return "OK".
+end.   
+ 
+procedure chooseDataSource:
+    define input  parameter pcFile as char no-undo.
+    define variable ihwnd  as int64 no-undo.
+    ihwnd = int64(entry(2,pcFile,PARAMETER_DELIMITER)).
+    setOpenDialogHwnd(ihwnd).
+  
+    run chooseDataSource in fUib.
+    return "OK".
+    finally:
+        removeHwnd(ihwnd).    
+    end.
+end.    
+
+procedure htmlAutomapAll:
+    define input  parameter pcFile as char no-undo.
+    define variable hwin as handle no-undo.
+    define variable ihwnd as int64 no-undo.
+    ihwnd = getDesignHwnd(pcFile).
+    hwin = getDesignWindow(ihwnd).    
+    run htmlAutomapAll in fUib (hwin).
+end.    
+
+procedure htmlUnmapAll:
+    define input  parameter pcFile as char no-undo.
+    define variable hwin as handle no-undo.
+    define variable ihwnd as int64 no-undo.
+    ihwnd = getDesignHwnd(pcFile).
+    hwin = getDesignWindow(ihwnd).    
+    run htmlUnmapAll in fUib (hwin).
+end.    
+
+procedure htmlMapField:
+    define input  parameter pcFile as char no-undo.
+/*    define variable ihwnd  as int64 no-undo.           */
+/*    ihwnd = int64(entry(2,pcFile,PARAMETER_DELIMITER)).*/
+/*    setOpenDialogHwnd(ihwnd).                          */
+    define variable hwin as handle no-undo.
+    define variable ihwnd as int64 no-undo.
+    ihwnd = getDesignHwnd(pcFile).
+    hwin = getDesignWindow(ihwnd).  
+    run htmlMapField in fUib (hwin).
+    return "OK".
+/*    finally:              */
+/*        removeHwnd(ihwnd).*/
+/*    end.                  */
+end.    
+
+procedure htmlUnmapField:
+    define input  parameter pcFile as char no-undo.
+    define variable hwin as handle no-undo.
+    define variable ihwnd as int64 no-undo.
+    ihwnd = getDesignHwnd(pcFile).
+    hwin = getDesignWindow(ihwnd).  
+    run htmlUnmapField in fUib(hwin).
+end.    
+
+procedure editMaster:
+    define input  parameter pcFile as char no-undo.
+    run editMaster in fUib.
+    return "OK".
+end.   
+
+procedure smartInstanceProperties:
+    define input  parameter pcFile as char no-undo.
+    run smartInstanceProperties in fUib.
+    return "OK".
+end.  
+
+procedure smartInfo:
+    define input  parameter pcFile as char no-undo.
+    run choose_smartInfo in fUib.
+    return "OK".
+end.  
+
 procedure closeWindow:
     define input  parameter pcFile as char no-undo.
     define variable cfile as character no-undo.
@@ -610,10 +702,14 @@ procedure closeWindow:
     hwin = getDesignWindow(ihwnd).
     if valid-handle(hwin) then
     do:
+        run setSendFocustoUI in fUIB (no).
         run wind-close in fUIB (hwin).   
     end.
-    removeHwnd(ihwnd).    
     return "OK".
+    finally:
+        run setSendFocustoUI in fUIB (yes).
+        removeHwnd(ihwnd).    
+    end.
 end.
 
 procedure openDesignWindow:
@@ -869,7 +965,11 @@ end.
  
 procedure enterWindow:
     define input parameter pcFile as char no-undo.
-    run WinIDEChoose in fUIB(getDesignHwnd(pcFile)).
+    define variable ihwnd as int64 no-undo.
+    define variable hwin as handle no-undo.
+    ihwnd = getDesignHwnd(pcfile).
+    hwin = getDesignWindow(ihwnd).
+    run WinIDEChoose in fUIB(hwin).
 end.
 
 procedure editCustomFiles:
@@ -1278,6 +1378,7 @@ procedure runChildDialog:
     define variable iHand     as int64 no-undo.
     define variable cProjInfo as character no-undo. 
     define variable ideService as adeuib.iideeventservice no-undo.
+    define variable dialogService as adeuib.idialogservice no-undo.
     
     iHand = int64(entry(1,pcRequest,PARAMETER_DELIMITER)).
     
@@ -1291,14 +1392,28 @@ procedure runChildDialog:
      
     ideService = cast(getCurrentEventObject(),adeuib.iideeventservice). 
     if not valid-object(ideService) then
-        return "ERROR:NoDialogAvail":U.  
+        return "ERROR:NoEventHandlerAvail":U.  
         
     setOpenDialogHwnd(iHand). 
     ideService:RunEvent().
-/*    if return-value = "cancel":U then*/
-/*        return "CANCEL":U.            */
-/*                                   */
-    return "OK":U. 
+    dialogService = cast(getObject(iHand),adeuib.idialogservice). 
+    if not valid-object(dialogService) then
+        return "ERROR:NoDialogAvail":U.  
+   
+    if dialogService:OK then
+    do:
+        if getHasNextDialog() then 
+        do:
+            return "CONTINUE":U.
+        end.    
+        if dialogService:ReturnValue > "" then
+        do:
+             return dialogService:ReturnValue .
+        end.    
+        return "OK":U. 
+    end.
+    else
+        return ".".
     finally:
         removeHwnd(iHand).
     end finally.
@@ -1506,6 +1621,35 @@ procedure RunTempdbMaintenance:
      run choose_tempdb_maint in FUIB.
 end procedure.  
 
+/*procedure RunAdvisor:                                                                                                                               */
+/*    define input parameter pcFile as char no-undo.                                                                                                  */
+/*    define variable pc_text         as char no-undo.                                                                                                */
+/*    define variable pc_options      as char no-undo.                                                                                                */
+/*    define variable pl_never_toggle as logical no-undo.                                                                                             */
+/*    define variable pc_help_tool    as char no-undo.                                                                                                */
+/*    define variable pi_help_context as integer no-undo.                                                                                             */
+/*    define variable pc_choice       as char no-undo.                                                                                                */
+/*    define variable pl_never_again  as logical no-undo.                                                                                             */
+/*    define variable iHand as int64 no-undo.                                                                                                         */
+/*                                                                                                                                                    */
+/*    assign                                                                                                                                          */
+/*        iHand = int64(entry(1,pcFile,PARAMETER_DELIMITER)) .                                                                                        */
+/*        pc_text = entry(1,pcfile,PARAMETER_DELIMITER).                                                                                              */
+/*        pc_options = entry(1,pcfile,PARAMETER_DELIMITER).                                                                                           */
+/*        pl_never_toggle = logical(entry(1,pcfile,PARAMETER_DELIMITER)).                                                                             */
+/*        pc_help_tool = entry(1,pcfile,PARAMETER_DELIMITER).                                                                                         */
+/*        pi_help_context = int(entry(1,pcfile,PARAMETER_DELIMITER)).                                                                                 */
+/*        pc_choice = entry(1,pcfile,PARAMETER_DELIMITER).                                                                                            */
+/*                                                                                                                                                    */
+/*    setOpenDialogHwnd(iHand).                                                                                                                       */
+/*    run adeuib/ide/_dialog_advisor.p(pc_Text,pc_Options,pl_never_toggle,pc_help_tool,pi_help_context,input-output pc_Choice, output pl_never_again).*/
+/*    return pc_Choice + PARAMETER_DELIMITER + string(pl_never_again).                                                                                */
+/*    finally:                                                                                                                                        */
+/*        removeHwnd(iHand).                                                                                                                          */
+/*    end finally.                                                                                                                                    */
+/*                                                                                                                                                    */
+/*end procedure.                                                                                                                                      */
+
 procedure RunNewAdmClass:
     define input parameter pcFile as char no-undo.
     define variable iHand as int64 no-undo.
@@ -1520,7 +1664,6 @@ procedure RunNewAdmClass:
         removeHwnd(iHand).          
     end finally.
 end procedure. 
-
 
 procedure syncFromAppbuilder:
     define input parameter pcParam  as char no-undo.

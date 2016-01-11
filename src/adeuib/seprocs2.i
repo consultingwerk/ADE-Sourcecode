@@ -650,7 +650,13 @@ procedure insertTriggerBlock.
     define variable lok               as logical no-undo.
 /*    define variable new_spcl          as character no-undo.*/
     define variable cSection          as character no-undo.
-    define buffer _sew_bc for  _bc.
+    
+    define variable cdbname      as character no-undo.
+    define variable cBufferName  as character no-undo.
+    define variable cName        as character no-undo.
+
+    define buffer _sew_bc  for  _bc.
+    define buffer b_u  for  _u.
     
     if pcNewEvent = "" or pcNewEvent = ? then 
         undo, throw new Progress.Lang.AppError("No event passed to InsertTriggerBlock()",?).
@@ -665,6 +671,7 @@ procedure insertTriggerBlock.
     end.
     else 
         hParent = phWin.
+    
     if pcType= "CONTROL-FRAME":U then
         pcType = "{&WT-CONTROL}":U.
     
@@ -718,9 +725,42 @@ procedure insertTriggerBlock.
     end.
     else 
     do:    
-        find _sew_u where _sew_u._window-handle = hParent 
-                      and _sew_u._type          = pcType
-                      and _sew_u._name          = pcName no-error.
+        if num-entries(pcName,".") = 3 then
+        do:
+            assign
+              cDbname     = entry(1,pcName,".")  
+              cBuffername = entry(2,pcName,".")  
+              cName       = entry(3,pcName,".").
+            
+        end.    
+        else if num-entries(pcName,".") = 2 then
+        do:
+            assign
+              cBuffername = entry(1,pcName,".")  
+              cName       = entry(2,pcName,".").
+        end. 
+        
+        /* if qualified field search with dbname and/or buffer or table */  
+        if cBuffername > "" then 
+        do:
+            for each b_U where b_U._WINDOW-HANDLE = _h_win and b_U._NAME = trim(cName)
+                                                  /* search _buffer before _table */   
+                                                  by (if b_u._buffer <> ? then 1 else 2):
+               /* skip if field is db qualifed and different db */ 
+               if cDbName > "" and b_u._dbname <> cDbName then 
+                   next. 
+               if b_u._buffer = cBufferName or b_u._table = cBufferName then 
+               do:
+                  find _sew_u where recid(_sew_u) = recid(b_u).
+                  leave. 
+               end.   
+            end.    
+        end.
+        else do:
+            find _sew_u where _sew_u._window-handle = hParent 
+                          and _sew_u._type          = pcType
+                          and _sew_u._name          = pcName no-error.
+        end.
         
         if not avail _sew_u then
             return. 
@@ -757,12 +797,18 @@ procedure insertTriggerBlock.
            _sew_trg._wRECID   = new_recid
            _sew_trg._tEVENT   = pcNewEvent
            _sew_trg._tCODE    = ?.
+    
     /* For all special events (e.g., OCX.event), store it in _tSPECIAL. */
     if num-entries(pcNewEvent, ".":u) > 1 then
     do:
+        /* upper case may be passed from IDE. Keep old behavior  */
+        if pcNewEvent begins "web." then 
+            pcNewEvent = lc(pcNewEvent).
+           
         assign _sew_trg._tSPECIAL = pcNewEvent
                _sew_trg._tTYPE    = "_CONTROL-PROCEDURE" NO-ERROR. /* what if error? */
     end.
+    
     if available _SEW_U and _SEW_U._TYPE eq "{&WT-CONTROL}" then
     do:
         run adeshar/_ocxdflt.p(pcNewEvent, cSection, new_recid, output _sew_trg._tCODE). 
@@ -774,6 +820,7 @@ procedure insertTriggerBlock.
         else if (_sew_trg._tTYPE <> "") then
             assign code_type = pcNewEvent.
         run adeshar/_coddflt.p (code_type, new_recid, output _sew_trg._tCODE).
+        
         /* not necessary,  _gen4gl does not delete empty triggers when ide is running
         /* Add comment to trigger block to force adeshar/_gen4gl.p to save it. */
         strt = index(_sew_trg._tCODE,":") + 1.

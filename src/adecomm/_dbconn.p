@@ -29,7 +29,7 @@ Author: Laura Stern
 Date Created: 03/24/92
 
 ----------------------------------------------------------------------------*/
-
+{adecomm/oeideservice.i}
 
 Define INPUT-OUTPUT parameter p_PName  as char NO-UNDO.
 Define INPUT-OUTPUT parameter p_LName  as char NO-UNDO.
@@ -45,13 +45,21 @@ Define var dummy_7       as char    NO-UNDO.
 Define var dummy_8       as char    NO-UNDO.
 Define var dummy_9       as char    NO-UNDO.
 Define var Db_Multi_User as logical NO-UNDO.
-
-
+define var lok           as logical no-undo.
+define variable inum as integer no-undo.
 /*----------------------------Mainline code----------------------------------*/
 
 DB_Multi_User = no.
- 
-RUN adecomm/_dbconnx.p ( YES,   /* whether to connect the database spec'd */
+
+if OEIDE_CanShowMessage() and num-dbs = 0 then
+do: 
+    RUN adecomm/_dbconnide.p ( 
+                        INPUT-OUTPUT p_PName,
+                        INPUT-OUTPUT p_LName,
+                        INPUT-OUTPUT p_Type).        
+end. 
+else 
+    RUN adecomm/_dbconnx.p ( YES,   /* whether to connect the database spec'd */
                         INPUT-OUTPUT p_PName,
                         INPUT-OUTPUT p_LName,
                         INPUT-OUTPUT p_Type,

@@ -80,7 +80,7 @@ DEFINE VARIABLE  name         AS    CHAR    NO-UNDO.
 DEFINE VARIABLE  hDataObject  AS    HANDLE  NO-UNDO.
 
 DEFINE VARIABLE  gSourceHdl   AS    HANDLE  NO-UNDO.
-
+define variable  gIdeErrorFlag       as    logical no-undo.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -132,9 +132,30 @@ DEFINE VARIABLE  gSourceHdl   AS    HANDLE  NO-UNDO.
 
 ASSIGN gSourceHdl = SOURCE-PROCEDURE.
 
-RUN FieldSelection NO-ERROR.
+define variable ideevent as adeuib.iideeventservice no-undo.
+define variable mans as logical no-undo.
+if p_Option = "_SELECT":U and OEIDE_CanLaunchDialog() then    
+do:
+    IF NUM-DBS > 0 Or _remote_file THEN mans = YES.
+    ELSE RUN adecomm/_dbcnnct.p
+              (INPUT  "You must have at least one connected database to select a field.",
+               OUTPUT mans).
+    if mans then
+    do:           
+        ideevent = new adeuib._ideeventservice(). 
+        ideevent:SetCurrentEvent(this-procedure,"ideFieldSelection").
+        run runChildDialog in hOEIDEService (ideevent).
+        wait-for "u2" of this-procedure.
+        if gIdeErrorFlag then 
+           RETURN ERROR.
+    end.
+end.
+else do:
+    RUN FieldSelection NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN 
+        RETURN ERROR.
+end.
 
-IF ERROR-STATUS:ERROR THEN RETURN ERROR.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -228,7 +249,6 @@ PROCEDURE FieldSelection :
   
   IF p_Option BEGINS "_SELECT":U THEN
   DO:
-    
     IF NUM-DBS > 0 Or _remote_file THEN ans = YES.
     ELSE RUN adecomm/_dbcnnct.p
               (INPUT  "You must have at least one connected database to select a field.",
@@ -525,6 +545,28 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-ideFieldSelection) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ideFieldSelection Procedure
+procedure ideFieldSelection:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+
+   RUN FieldSelection NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN 
+        gIdeErrorFlag = true.
+   apply "u2" to this-procedure.
+   
+end procedure.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 &ENDIF
 

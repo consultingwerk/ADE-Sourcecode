@@ -1140,8 +1140,10 @@ PROCEDURE change_datatype :
     
     RUN adeuib/_recreat.p (RECID(_U)).
     
-    /* Redisplay the current widget */
-    RUN display_current IN _h_UIB.
+    /* Redisplay the current widget - 
+       Update is currently not necessary as we do not pass data-type to IDE
+       but no one will look here if that changes  */
+    RUN display_current_action IN _h_UIB ("UPDATE":U).
 
   END.
         
@@ -1188,7 +1190,8 @@ PROCEDURE change_label :
   IF CAN-SET(_U._HANDLE, "LABEL") THEN DO:  
     /* Get the parent. */
     FIND parent_U WHERE RECID(parent_U) = _U._PARENT-RECID.
-    FIND _C WHERE RECID(_C) eq parent_U._x-recid.
+    /* no-error for menus */
+    FIND _C WHERE RECID(_C) eq parent_U._x-recid no-error.
   
     IF new-lbl EQ "?" OR new-lbl EQ ? THEN DO:      
       /* Label is "unknown", so use "D"efault -- note: for DB fields, we
@@ -1232,9 +1235,8 @@ PROCEDURE change_label :
     END CASE.
   END.
 
-  /* Redisplay the current widget */
-  RUN display_current IN _h_UIB.
-
+  /* Redisplay the current widget and update pds if applicable */
+  RUN display_current_action IN _h_UIB ("UPDATE":U).
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1250,13 +1252,16 @@ PROCEDURE change_name :
   DEFINE INPUT PARAMETER new-name AS CHAR NO-UNDO.
 
   DEFINE VARIABLE valid_name AS LOGICAL NO-UNDO.
-  
+  define variable coldname as character no-undo.
   RUN adeuib/_ok_name.p (new-name, RECID(_U), OUTPUT valid_name).
   IF valid_name THEN DO:
+    coldname = _U._NAME.
     _U._NAME = new-name.
     
     IF _U._TYPE = "{&WT-CONTROL}" THEN _U._HANDLE:NAME = _U._NAME.
-
+    if OEIDEIsRunning then
+        run CallRenameWidget in _h_uib (Recid(_U),coldname). 
+   
     /* Redisplay the current widget */
     RUN display_current IN _h_UIB.
 
@@ -1922,9 +1927,9 @@ PROCEDURE metamorph :
   IF _U._l-recid ne ? AND _U._ALIGN = "C":U 
   THEN _U._ALIGN = "L":U.
 
-  /* Redisplay the current widget (which will call back into this procedure).
+   /* Redisplay the current widget (which will call back into this procedure).
      This must be the LAST line in this routine. */
-  RUN display_current IN _h_UIB.
+  RUN display_current_action IN _h_UIB ("UPDATE":U).
 
 END PROCEDURE.
 

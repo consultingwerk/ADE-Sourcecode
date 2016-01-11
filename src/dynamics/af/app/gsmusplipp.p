@@ -274,6 +274,17 @@ FUNCTION calculateoldPasswordExpiryDate RETURNS CHARACTER
 
 {&DB-REQUIRED-START}
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnValue DataLogicProcedure  _DB-REQUIRED
+FUNCTION columnValue RETURNS CHARACTER
+  (input cFieldName as character)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createTypesTT DataLogicProcedure  _DB-REQUIRED
 FUNCTION createTypesTT RETURNS HANDLE
   ( /* parameter-definitions */ )  FORWARD.
@@ -1829,6 +1840,45 @@ FUNCTION calculateoldPasswordExpiryDate RETURNS CHARACTER
   hDate      = hRowObject:BUFFER-FIELD("password_expiry_date":U).
 
   RETURN STRING(hDate:BUFFER-VALUE).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+{&DB-REQUIRED-END}
+
+{&DB-REQUIRED-START}
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnValue DataLogicProcedure  _DB-REQUIRED
+FUNCTION columnValue RETURNS CHARACTER
+  ( input cFieldName as character ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ 
+  if cFieldName = "fiAllowedCompany" then
+  do:
+      DEFINE VARIABLE Cntr                AS INTEGER   NO-UNDO.
+      DEFINE VARIABLE cLoginCompanyObject AS CHARACTER NO-UNDO.
+      DEFINE VARIABLE dLoginUser          AS decimal   NO-UNDO.
+      DEFINE VARIABLE cAllowedCompany     AS CHARACTER NO-UNDO.
+      
+      dLoginUser        = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                   INPUT "currentUserObj":U,
+                                                   INPUT NO)) NO-ERROR.
+                                                    
+      RUN userLoginOrganisations IN gshSecurityManager (INPUT dLoginUser, output cAllowedCompany).
+      do Cntr = 2 to num-entries(cAllowedCompany) by 2:
+          if Cntr > 2 then cLoginCompanyObject = cLoginCompanyObject + ",".
+          cLoginCompanyObject = cLoginCompanyObject + entry(Cntr,cAllowedCompany).
+      end.
+      return cLoginCompanyObject.
+  end.  
+  else
+     RETURN super(cFieldName).   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

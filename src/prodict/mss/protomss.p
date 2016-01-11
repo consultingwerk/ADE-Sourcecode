@@ -382,6 +382,14 @@ IF OS-GETENV("RECIDCOMPAT") <> ? THEN DO:
      ASSIGN  recidCompat = FALSE.
 END.
 
+IF OS-GETENV("GENRANKRPT") <> ? THEN DO:
+  ASSIGN tmp_str  = OS-GETENV("GENRANKRPT").
+  IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN 
+     ASSIGN  genrep = TRUE.
+  ELSE 
+     ASSIGN  genrep = FALSE.
+END.
+
 IF OS-GETENV("COMPATIBLE") <> ?  THEN DO:
    tmp_str      = OS-GETENV("COMPATIBLE").
    IF ((tmp_str = "1") OR (tmp_str BEGINS "Y")) THEN DO:

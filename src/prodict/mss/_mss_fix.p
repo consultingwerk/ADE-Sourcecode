@@ -599,7 +599,7 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
           find a corresponding Progress index and pass the rowid designation to it *
        */
        FIND FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
-                               AND (DICTDB._Constraint._Con-Type = "P" OR
+                               AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
                                     DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
                                AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
                                AND DICTDB._constraint._con-name = DICTDB._Index._Index-Name 
@@ -607,7 +607,7 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
                                NO-LOCK NO-ERROR.
       IF NOT AVAILABLE DICTDB._constraint THEN 
              FIND FIRST DICTDB._constraint WHERE DICTDB._Constraint._File-Recid = RECID(DICTDB._File)
-                               AND (DICTDB._Constraint._Con-Type = "P" OR
+                               AND (DICTDB._Constraint._Con-Type = "P" OR DICTDB._Constraint._Con-Type = "U" OR
                                     DICTDB._Constraint._Con-Type = "PC" OR DICTDB._Constraint._Con-Type = "MP" )
                                AND DICTDB._constraint._Con-Status <> "D" AND DICTDB._constraint._Con-Status <> "O"
                                AND substr(DICTDB._constraint._con-name,2,LENGTH(DICTDB._constraint._con-name)) = 
@@ -615,7 +615,8 @@ FOR EACH DICTDB2._File WHERE DICTDB2._File._Owner = "PUB"
                                AND DICTDB._constraint._Con-Active = TRUE
                                NO-LOCK NO-ERROR.
 
-      ASSIGN con_recid =  RECID(DICTDB._CONSTRAINT).
+      IF AVAILABLE DICTDB._constraint THEN
+         ASSIGN con_recid =  RECID(DICTDB._CONSTRAINT).
     END.
     FOR EACH DICTDB._Index-field OF DICTDB._Index:
       DELETE DICTDB._Index-field.
@@ -757,9 +758,17 @@ END. /* Migrate constraint */
   
   IF con_recid <> 0 THEN DO:
      FIND FIRST DICTDB._constraint WHERE RECID(DICTDB._constraint) = con_recid NO-LOCK NO-ERROR.
-     FIND FIRST i_dictdb WHERE RECID(i_dictdb) = DICTDB._Constraint._Index-recid NO-LOCK NO-ERROR.
+     FIND FIRST i_dictdb WHERE RECID(i_dictdb) = DICTDB._Constraint._Index-recid EXCLUSIVE-LOCK NO-ERROR.
      ASSIGN DICTDB._File._Fil-misc1[2] = i_dictdb._idx-num
             con_recid = 0.  /* re-initialize */
+
+     IF substring(i_dictdb._I-misc2[1],1,1) <> "r" THEN DO:
+        IF index(i_dictdb._I-misc2[1],"u") = 0 THEN
+          ASSIGN i_dictdb._I-misc2[1] = "r" + i_dictdb._I-misc2[1].
+        ELSE i_dictdb._I-misc2[1] = REPLACE(i_dictdb._I-misc2[1],"u","r").
+        IF NOT i_dictdb._Unique AND index(i_dictdb._I-misc2[1],"v") = 0 THEN
+           ASSIGN i_dictdb._I-misc2[1] = i_dictdb._I-misc2[1] + "v".
+     END.
   END.
 
   IF TERMINAL <> "" and NOT SESSION:BATCH-MODE THEN

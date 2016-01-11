@@ -741,8 +741,7 @@ RUN adecomm/_setcurs.p ("").
    dialogService:Title = dialogTitle.
    WAIT-FOR "GO" OF FRAME prop_sht or "u3" of FRAME prop_sht. 
 &else
-  WAIT-FOR "GO" OF FRAME prop_sht.
-
+   WAIT-FOR "GO" OF FRAME prop_sht.
  &endif
  
 
@@ -1015,7 +1014,18 @@ IF update_menu THEN DO:
   RUN adeuib/_updmenu.p (delete_menu, popup_recid, OUTPUT h_menu).
   _U._popup-recid = IF delete_menu THEN ? ELSE popup_recid.
   IF h_self:TYPE NE "TEXT" THEN
-    IF h_menu <> h_self:POPUP-MENU THEN h_self:POPUP-MENU = h_menu.
+  IF h_menu <> h_self:POPUP-MENU THEN h_self:POPUP-MENU = h_menu.
+ &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+  if update_menu-bar or update_menu then
+  do:
+         WidgetEvent(_h_win,
+                      "",
+                      "",
+                      "",
+                      "",
+                     if delete_menu then "DELETE" else "MENUUPDATE").
+  end.  
+  &ENDIF 
 END.
   
 /* Update the Menu-bar if necessary */
@@ -1023,8 +1033,18 @@ IF update_menu-bar THEN DO:
   RUN adeuib/_updmenu.p (delete_menu-bar, menu-bar_recid, OUTPUT h_menu-bar).
   _C._menu-recid = IF delete_menu-bar THEN ? ELSE menu-bar_recid.
   IF h_menu-bar NE h_self:MENUBAR THEN h_self:MENUBAR = h_menu-bar.
+   &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+  if update_menu-bar or update_menu then
+  do:
+         WidgetEvent(_h_win,
+                      "",
+                      "",
+                      "",
+                      "",
+                     if delete_menu-bar then "DELETE" else "MENUUPDATE").
+  end.  
+  &ENDIF 
 END. 
-
 /* ***************** PERSISTENT TRIGGERS FOR DYNAMIC WIDGETS  **************** */
 
 PROCEDURE alignment_change:
@@ -1562,15 +1582,41 @@ PROCEDURE widget_id_change.
   _U._WIDGET-ID = INTEGER(SELF:SCREEN-VALUE).
 END PROCEDURE.  /* widget_id_change */
 
+
+procedure choose_field_selection:
+    define variable ans as logical no-undo.
+    ans = true.
+    IF _U._DBNAME = ? THEN 
+    DO: /* Select a DB field for this varaible */
+        IF UsesDataObject = NO THEN 
+        DO:      
+            /* Report Error -- no databases */
+            IF NUM-DBS = 0 THEN  
+              RUN adecomm/_dbcnnct.p
+              (INPUT  "You must have at least one connected database to select a field.",
+               OUTPUT ans).
+       end.
+    end.
+    if ans then
+    do:
+           &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
+       IF OEIDE_CanLaunchDialog() THEN
+       DO:  
+            dialogService:SetCurrentEvent(this-procedure,"db_field_selection").
+            run runChildDialog in hOEIDEService (dialogService) .
+       end. 
+       else 
+          &endif
+          run db_field_selection.
+    end.
+end.
+
 PROCEDURE db_field_selection.
    
-  define input  parameter pState as character no-undo.
-  
-  DEFINE VAR ans           AS LOGICAL              NO-UNDO.
-  DEFINE VAR a-line        AS CHARACTER EXTENT 100 NO-UNDO.
-  DEFINE VAR a-out         AS CHARACTER            NO-UNDO.
-  DEFINE VAR dbf_temp_file AS CHARACTER            NO-UNDO.
-  DEFINE VAR done          AS LOGICAL              NO-UNDO.
+/*  DEFINE VAR a-line        AS CHARACTER EXTENT 100 NO-UNDO.*/
+/*  DEFINE VAR a-out         AS CHARACTER            NO-UNDO.*/
+/*  DEFINE VAR dbf_temp_file AS CHARACTER            NO-UNDO.*/
+/*  DEFINE VAR done          AS LOGICAL              NO-UNDO.*/
   DEFINE VAR use_Prefix    AS INTEGER              NO-UNDO.
   DEFINE VAR def_var       AS CHAR                 NO-UNDO  INITIAL
              "CHARACTER,DATE,DECIMAL,LOGICAL,INTEGER,INT64,RECID":U.
@@ -1598,8 +1644,8 @@ PROCEDURE db_field_selection.
   DEFINE VAR old-nm        AS CHARACTER            NO-UNDO.
   DEFINE VAR p_index       AS INTEGER              NO-UNDO.
   DEFINE VAR show_items    AS CHARACTER            NO-UNDO.
-  DEFINE VAR size-and-type AS LOGICAL              NO-UNDO.
-  DEFINE VAR tmp-name      AS CHARACTER            NO-UNDO.
+/*  DEFINE VAR size-and-type AS LOGICAL              NO-UNDO.*/
+/*  DEFINE VAR tmp-name      AS CHARACTER            NO-UNDO.*/
   DEFINE VAR tt-info       AS CHARACTER            NO-UNDO.
 
   DEFINE VAR fld_description AS CHARACTER          NO-UNDO.
@@ -1608,17 +1654,17 @@ PROCEDURE db_field_selection.
   DEFINE VAR fld_valmsg-sa   AS CHARACTER          NO-UNDO.
   DEFINE VAR fld_mandatory   AS LOGICAL            NO-UNDO.
   DEFINE VAR i               AS INTEGER            NO-UNDO.
-  DEFINE VAR include-name    AS CHARACTER          NO-UNDO.
+/*  DEFINE VAR include-name    AS CHARACTER          NO-UNDO.*/
   DEFINE VAR hRepDesignMgr   AS HANDLE             NO-UNDO.
   DEFINE VAR cDataSourceType AS CHARACTER          NO-UNDO.
   DEFINE VAR cObjectName     AS CHARACTER          NO-UNDO.
   DEFINE VAR cCalculatedCols AS CHARACTER          NO-UNDO.
   DEFINE VAR cTable          AS CHARACTER          NO-UNDO.
-  DEFINE VAR cLikeButton     AS CHARACTER          NO-UNDO.
+/*  DEFINE VAR cLikeButton     AS CHARACTER          NO-UNDO.*/
   DEFINE VAR iNum            AS INTEGER            NO-UNDO.
   DEFINE VAR cLocalField     AS CHARACTER          NO-UNDO.
   DEFINE VAR cObjectType     AS CHARACTER  NO-UNDO.
-
+  define variable lTriedFirst     as logical no-undo.
   DEFINE BUFFER ip_U FOR _U.
   DEFINE BUFFER f_U  FOR _U.
 
@@ -1632,23 +1678,8 @@ PROCEDURE db_field_selection.
          cObjectType = _U._class-name.
 
   IF _U._DBNAME = ? THEN DO: /* Select a DB field for this varaible */
-    
+    lTriedFirst = TRUE.
     IF UsesDataObject = NO THEN DO:      
-      
-      /* Report Error -- no databases */
-      IF NUM-DBS > 0 THEN ans = yes.
-      ELSE RUN adecomm/_dbcnnct.p
-              (INPUT  "You must have at least one connected database to select a field.",
-               OUTPUT ans).
-      IF ans THEN DO:
-        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
-            if pState = {&ABL_STATE} then
-            do:
-                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
-                run runChildDialog in hOEIDEService (dialogService) .
-                return.
-            end.
-        &ENDIF 
         FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
         IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P)) THEN DO:
           FOR EACH _TT WHERE _TT._p-recid = RECID(_P):
@@ -1680,25 +1711,11 @@ PROCEDURE db_field_selection.
                               INPUT-OUTPUT tbl_name,
                               INPUT-OUTPUT fld_name,
                               OUTPUT pressed_ok).
-        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
-        /* next prompt must be issued from ide again */
-        pState = {&ABL_STATE}. 
-        &endif
         
-      END.  /* IF ans (there is at least one DB connected */
     END.  /* IF UsesDataObject = NO */
 
     ELSE DO:  /* UsesDataObject */
-        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
-            if pState = {&ABL_STATE} then
-            do:
-                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
-                run runChildDialog in hOEIDEService (dialogService) .
-                return.
-            end.
-        &ENDIF 
-       
-
+    
 
       ASSIGN db_name = "Temp-Tables":U.
       /* Build the temp-table info to pass to the field picker. */
@@ -1764,10 +1781,6 @@ PROCEDURE db_field_selection.
              INPUT IF NUM-ENTRIES(def_var) > 1 THEN ? ELSE def_var /* data-type */,
              INPUT-OUTPUT fld_name).
         
-        &if DEFINED(IDE-IS-RUNNING) <> 0 &THEN
-        /* next prompt must be issued from ide again */
-        pState = {&ABL_STATE}. 
-        &endif
     
         num_ent = NUM-ENTRIES(fld_name).
         ASSIGN pressed_ok = (RETURN-VALUE <> "CANCEL":U) AND (num_ent > 0).
@@ -2048,7 +2061,80 @@ PROCEDURE db_field_selection.
       END.  /* Else not all ready in the frame */
     END.  /* pressed OK and have a field with a valid length */
   END.  /* IF _U._DBNAME = ? */
+  
+  IF _U._DBNAME NE ? then
+  do:
+      /*
+         split out to handle dialog from ide. 
+         - without this split the rerun of this from ide caused
+           1. dialog on top of the old in ide, but not here 
+           - gives wrong ui since cancel does not go back to old  
+           2. problems with variables being set on top here
+              possibly changed and needed in second dialog also
+              when not changed.
+      */
+      &if DEFINED(IDE-IS-RUNNING) <> 0 &then
+      /* if triedfirst we have already opened the dialog from ide */
+      if lTriedFirst and OEIDE_CanLaunchDialog() then 
+      do:
+          define variable choosedefaults as adeuib.ide._choosefielddefaults  no-undo.
+          assign
+             choosedefaults = new adeuib.ide._choosefielddefaults ()
+             choosedefaults:MustBeLike = must-be-like
+             choosedefaults:OldName = old-nm 
+             choosedefaults:ObjectType = cObjectType
+             .
+          
+          choosedefaults:SetCurrentEvent(this-procedure,"do-select-defaults").
+          /* Ask the caller to returns a state to ide to send a new run 
+             dialog request for another dialog  
+             (Sets context HasNextDialog() to true, which caller checks)  */
+          run setNextChildDialog in hOEIDEService (choosedefaults).
+      end.
+      else
+      &ENDIF   
+          run do-select-defaults(must-be-like,old-nm,cObjectType).
+  
+  
+  end.
+  
+   
+end procedure.
 
+procedure do-select-defaults:
+  define input  parameter must-be-like as logical no-undo.  
+  define input  parameter old-nm as character no-undo.
+  define input  parameter cObjectType as character no-undo.
+  
+    DEFINE VAR size-and-type AS LOGICAL              NO-UNDO.
+    DEFINE VAR dbf_temp_file AS CHARACTER            NO-UNDO.
+    DEFINE VAR a-out         AS CHARACTER            NO-UNDO.
+    DEFINE VAR done          AS LOGICAL              NO-UNDO.
+    DEFINE VAR include-name    AS CHARACTER          NO-UNDO.
+    DEFINE VAR a-line        AS CHARACTER EXTENT 100 NO-UNDO.
+    DEFINE VAR cLikeButton     AS CHARACTER          NO-UNDO.
+    DEFINE VAR tmp-name      AS CHARACTER            NO-UNDO.
+    DEFINE VAR db_name       AS CHAR                 NO-UNDO.
+    DEFINE VAR tbl_name      AS CHAR                 NO-UNDO.
+  
+   DEFINE VAR fld_type      AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_help      AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_help_sa   AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_label     AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_label_sa  AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_format    AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_format_sa AS CHAR                 NO-UNDO.
+  DEFINE VAR fld_extent    AS INTEGER              NO-UNDO.
+/*  DEFINE VAR fld_index     AS INTEGER              NO-UNDO. */
+/*                                                            */
+    DEFINE VAR fld_initial   AS CHARACTER            NO-UNDO.
+  
+  DEFINE VAR fld_description AS CHARACTER          NO-UNDO.
+  DEFINE VAR fld_valexp      AS CHARACTER          NO-UNDO.
+  DEFINE VAR fld_valmsg      AS CHARACTER          NO-UNDO.
+  DEFINE VAR fld_valmsg-sa   AS CHARACTER          NO-UNDO.
+  DEFINE VAR fld_mandatory   AS LOGICAL            NO-UNDO.
+  
   IF _U._DBNAME NE ? THEN DO:  /* We have a DB field here, have the use specify
                                   what is explicit and what is implicit        */
  
@@ -2105,17 +2191,8 @@ PROCEDURE db_field_selection.
     ASSIGN FRAME db-defaults:PARENT = ACTIVE-WINDOW.
        &else
             define variable defaultsService as adeuib.idialogservice no-undo.
-            if pState = {&ABL_STATE} then
-            do:
-                dialogService:SetCurrentEvent(this-procedure,"ide_db_field_selection").
-                run runChildDialog in hOEIDEService (dialogService) .
-                return.
-            end.
-            else 
-            do:
-                run CreateDialogService in hOEIDEService(frame db-defaults:HANDLE,output defaultsService). 
-                defaultsService:View().
-            end.
+            run CreateDialogService in hOEIDEService(frame db-defaults:HANDLE,output defaultsService). 
+            defaultsService:View().
        &endif
     
     IF _U._DBNAME NE ? THEN
@@ -2126,7 +2203,7 @@ PROCEDURE db_field_selection.
                              OUTPUT viewas).
                         
     
-    {adecomm/okrun.i &FRAME = "FRAME db-defaults"} 
+/*    {adecomm/okrun.i &FRAME = "FRAME db-defaults"}*/
 
     ASSIGN def_label  = (_U._LABEL-SOURCE = "D")
            def_format = (_F._FORMAT-SOURCE = "D")
@@ -2217,7 +2294,7 @@ PROCEDURE db_field_selection.
                _F._UNDO        = NO
                sav_height      = _L._HEIGHT
                sav_width       = _L._WIDTH.
-        IF _U._NAME NE old-nm THEN
+        IF _U._NAME NE old-nm THEN  
           ASSIGN _F._LIKE-FIELD  = _U._NAME
                  _U._NAME        = old-nm
                  size-and-type   = TRUE.
@@ -4878,7 +4955,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SENSITIVE        = TRUE
                   TOOLTIP          = "Database Field"
            TRIGGERS:
-             ON CHOOSE PERSISTENT RUN db_field_selection({&ABL_STATE}).
+             ON CHOOSE PERSISTENT RUN choose_field_selection.
            END TRIGGERS.
            
       ASSIGN stupid = h_btn_dbfld:LOAD-IMAGE({&ADEICON-DIR} + "flds-u" +
@@ -6427,7 +6504,4 @@ procedure ide_choose_tab_order:
     run adeuib/ide/_dialog_tabedit.p (RECID(_U)).
 end procedure.
 
-procedure ide_db_field_selection:   
-    RUN  db_field_selection({&IDE_STATE}).
-end procedure. 
     

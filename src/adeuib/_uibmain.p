@@ -115,7 +115,6 @@ DEFINE VARIABLE IDEEnterWindow    AS HANDLE  NO-UNDO.
 DEFINE VARIABLE IDEOpenUntitled   AS LOGICAL NO-UNDO.
 /* Used by getContext and setContext  */
 define variable fContext          as character no-undo extent.
-define variable WidgetAction      as character no-undo.
 
 define variable SendFocustoUI      as logical   no-undo initial yes.
 
@@ -1552,13 +1551,13 @@ procedure RunIDEAction:
     define variable lok as logical no-undo.
     define variable lDyn as logical no-undo.
     define variable lNat as logical  no-undo.
-  
     lok = true.
     if plCheckSensitive then 
     do: 
         run isCurrentWindowDynamic(output lDyn, output lNat).
         lok = isActionEnabled(pcAction,lDyn). 
-    end.        
+    end.    
+    
     if lok then 
     do:
         case pcAction :
@@ -2459,11 +2458,9 @@ PROCEDURE choose_duplicate :
         ELSE _h_frame = _U._HANDLE.  /* Parent duplicate to frame or dialog. */
       END.
     END.
-    RUN adeuib/_qssuckr.p (dup_file, "", "IMPORT", FALSE).
+    RUN adeuib/_qssuckr.p (dup_file, "", "IMPORT":U, FALSE).
     SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-    WidgetAction = "Add".
-    RUN display_current.
-    WidgetAction = "".
+    RUN display_current_action("Add":U).
     /* SEW Update after adding widgets in UIB. */
     RUN call_sew ("SE_ADD":U).
 
@@ -3721,7 +3718,6 @@ PROCEDURE choose_insert_procedure :
   Notes:       
 ------------------------------------------------------------------------------*/
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
-  IF NOT mi_insert_procedure:SENSITIVE THEN RETURN NO-APPLY.
   if IdeIntegrated then   
       AddCodeSection(_h_win,"PROCEDURE").
 /*      runDialog(_h_win,"insertProcedure":U).*/
@@ -3737,7 +3733,6 @@ PROCEDURE choose_insert_function :
   Notes:       
 ------------------------------------------------------------------------------*/
   IF NOT OEIDEIsRunning THEN RETURN NO-APPLY.
-  IF NOT mi_insert_function:SENSITIVE THEN RETURN NO-APPLY.
   if IdeIntegrated then  
        AddCodeSection(_h_win,"FUNCTION").
 /*       runDialog(_h_win,"insertFunction":U).*/
@@ -4427,9 +4422,7 @@ PROCEDURE choose_paste :
 
       RUN adeuib/_qssuckr.p(temp_file, "", "IMPORT":U, FALSE).
       SESSION:SET-NUMERIC-FORMAT(_numeric_separator,_numeric_decimal).
-      WidgetAction = "Add".
-      RUN display_current.
-      WidgetAction = "".
+      RUN display_current_action("Add":U).
       /* SEW Update after adding widgets in UIB. */
       RUN call_sew ("SE_ADD":U).
 
@@ -4521,21 +4514,36 @@ PROCEDURE do_choose_prop_sheet :
       APPLY "ENTRY" TO _h_cur_widg.
       RUN do_property_sheet (_h_cur_widg).
       APPLY "ENTRY" TO _h_cur_widg.
-      
-    
   end.    
   ELSE 
   do:
+      run message_no_selected.
+  end.          
+END PROCEDURE.
+
+procedure message_no_selected  :
       if OEIDEIsRunning then
             ShowMessageInIDE("No object is currently selected. ~n
-                             Please select an object with the pointer and try again.",
+                             Please select an object and try again.",
                              "Information",?,"OK",YES).
       else
       MESSAGE "No object is currently selected." {&SKP}
               "Please select an object with the pointer and try again."
             VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-  end.          
-END PROCEDURE.
+ 
+end.
+
+procedure message_is_not_type  :
+     define input  parameter pcType as character no-undo.
+     define variable cMsg as character no-undo.
+     cmsg = "The currently selected object is not a " + quoter(pcType) + ".".
+     if OEIDE_CanShowMessage() then
+         ShowMessageInIDE(cMsg,"Information",?,"OK",yes).
+     else
+        message cMsg 
+            view-as alert-box information buttons ok.
+ 
+end.
 
 procedure choose_reg_in_repos :
     run choose_reg_in_repos in _h_menubar_proc.
@@ -4647,6 +4655,151 @@ PROCEDURE choose_tempdb_maint :
     RUN MoveToTop IN hTempDB.
 
 END PROCEDURE.
+
+/* added to support edit master for html mapping object from eclipse - can be used by anyone  */
+procedure editMaster:
+    if valid-handle(_h_cur_widg) then 
+    do:
+       find _U where _U._HANDLE = _h_cur_widg no-error.
+       if avail(_U) and _u._type = "SmartObject":U then
+           run adeuib/_edtmstr.p (integer(recid(_U))).
+       else
+           run message_is_not_type("SmartObject":U).
+    end.
+    else
+        run message_no_selected.
+end.   
+
+
+/* choose SmartDataObject for html mapping object from eclipse  */
+procedure chooseSmartDataObject:
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win no-error.
+    if avail _P then
+    do:
+       if valid-handle(_P._tv-proc) then 
+           RUN chooseDataObject IN _P._tv-proc.
+    end.
+    
+end.  
+
+/* choose choose data source for html mapping object from eclipse  */
+procedure chooseDataSource:
+    FIND _P WHERE _P._WINDOW-HANDLE EQ _h_win no-error.
+    if avail _P then
+    do:
+       if valid-handle(_P._tv-proc) then 
+           RUN doChooseDataSource  IN _P._tv-proc.
+    end.
+    
+    
+end.
+
+/* automap All for html mapping object from eclipse  */
+procedure htmlAutomapAll:
+    define input  parameter phwin as handle no-undo.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ phwin no-error.
+    if avail _P then
+    do:
+       if valid-handle(_P._tv-proc) then 
+           RUN AutomapAll  IN _P._tv-proc.
+    end.
+    
+end.
+
+/* unmap All for html mapping object from eclipse  */
+procedure htmlUnmapAll:
+    define input  parameter phwin as handle no-undo.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ phwin no-error.
+    if avail _P then
+    do:
+       if valid-handle(_P._tv-proc) then 
+           RUN UnmapAll  IN _P._tv-proc ("*":U).
+    end.
+end.
+
+/* map field html mapping object from eclipse  */
+procedure htmlMapField:
+    define input  parameter phwin as handle no-undo.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ phwin no-error.
+    if avail _P and valid-handle(_P._tv-proc) then
+    do:
+        if valid-handle(_h_cur_widg) then 
+        do:
+            find _U where _U._HANDLE = _h_cur_widg no-error.
+            if avail(_U) then
+            do:
+                run doFieldMap IN _P._tv-proc(_U._HANDLE).        
+            end.
+            else 
+                run message_no_selected.
+        end.  
+        else 
+            run message_no_selected.
+    end.
+end.
+
+/* unmap field for html mapping object from eclipse  */
+procedure htmlUnmapField:
+    define input  parameter phwin as handle no-undo.
+    FIND _P WHERE _P._WINDOW-HANDLE EQ phwin no-error.
+    
+    if avail _P and valid-handle(_P._tv-proc) then
+    do:
+        if valid-handle(_h_cur_widg) then 
+        do:
+            find _U where _U._HANDLE = _h_cur_widg no-error.
+            if avail(_U) then
+            do:
+                RUN doUnmapField  IN _P._tv-proc(_U._HANDLE).         
+            end.
+            else 
+                run message_no_selected.
+        end.  
+        else 
+            run message_no_selected.
+    end.
+    
+end.
+
+/* added to support smart info for html mapping object from eclipse - can be used by anyone  */
+procedure choose_smartInfo:
+    define variable cSOInfoFile as character no-undo.
+    define variable cadmversion as character no-undo.
+    if valid-handle(_h_cur_widg) then 
+    do:
+        find _U where _U._HANDLE = _h_cur_widg no-error.
+        if avail(_U) and _u._type = "SmartObject":U then
+        do:
+             /* Determine the version of the object */
+            {adeuib/admver.i _S._HANDLE cadmversion}.
+            FIND _S WHERE RECID(_S) eq _U._x-recid.
+            cSOInfoFile = IF cadmversion LT "ADM2":U 
+                          THEN  "adm/support/_so-info.w":U
+                          ELSE  "adm2/support/_so-info.w":U.
+            RUN VALUE(cSOInfoFile) (_S._HANDLE,"":U).              
+        end.
+        else
+            run message_is_not_type("SmartObject":U).
+    end. 
+    else
+        run message_no_selected.
+end.    
+
+
+/* added to support edit smartInstanceProperties for html mapping object from eclipse   */
+procedure smartInstanceProperties:
+    if valid-handle(_h_cur_widg) then 
+    do:
+       find _U where _U._HANDLE = _h_cur_widg no-error.
+       if avail(_U) and _u._type = "SmartObject":U then
+           run adeuib/_edtsmar.p (integer(recid(_U))).
+       else
+           run message_is_not_type("SmartObject":U).
+    end.
+    else
+        run message_no_selected.
+end. 
+
 
 PROCEDURE ide_choose_template :
 /*------------------------------------------------------------------------------
@@ -4775,9 +4928,7 @@ PROCEDURE choose_undo :
                           "...":U).   /* Show the wait-cursor  */
   RUN adeuib/_undo.p.
   RUN setstatus ("":U, " ":U).        /* Clear the wait-cursor */
-  WidgetAction = "Add".
-  RUN display_current.  /* Show the last widget undone */
-  WidgetAction = "".
+  RUN display_current_action("Add":U). /* Show the last widget undone */
   /* SEW Update after adding/deleting widgets in UIB. */
   RUN call_sew ("SE_UNDO":U).
 
@@ -4964,12 +5115,17 @@ PROCEDURE curwidg :
       APPLY "SELECTION":U TO _h_cur_widg.
   END.
   
-  if IDENotInEditor and IDEIntegrated and valid-handle(hOEIDEService) then
-      activateWindow(_h_win).
- 
-  IDENotInEditor = false.
+  run activateIDEWindow.
     
 END PROCEDURE. /* curwidg */
+
+PROCEDURE activateIDEWindow : 
+    if valid-handle(hOEIDEService) and IDENotInEditor and IDEIntegrated and SendFocustoUI then
+    do:
+        IDENotInEditor = false.
+        activateWindow(_h_win).
+   end. 
+end procedure. 
 
 
 PROCEDURE delselected :
@@ -4980,7 +5136,6 @@ PROCEDURE delselected :
 ------------------------------------------------------------------------------*/
   /* Delete selected FRAME and DIALOG-BOX first. */
   RUN DeleteSelectedComposite.
-
   /* Now delete all other selected field-level widgets. */
   FOR EACH _U WHERE _U._SELECTEDib:
     /* Do not put menus on the UNDO stack */
@@ -5216,6 +5371,11 @@ PROCEDURE disable_widgets :
 END PROCEDURE. /* disable_widgets */
 
 PROCEDURE display_current :
+    run display_current_action("FOCUS":U).
+END PROCEDURE. /* disable_widgets */    
+    
+ /* parameter for ide */    
+PROCEDURE display_current_action :
 /*------------------------------------------------------------------------------
   Purpose: shows the name and label of the current widget in in the menu window.    
   Parameters:  <none>
@@ -5229,6 +5389,7 @@ PROCEDURE display_current :
            AT ROW 2.8 COL 38 BGC 1 FGC 15 FORMAT "X(30)"  VIEW-AS TEXT
        WITH FRAME action_icons.
   -------------------------------------------------------------------- */
+  define input  parameter pcAction as character no-undo.
   DEFINE VARIABLE cs-char       AS CHARACTER CASE-SENSITIVE NO-UNDO.
   DEFINE VARIABLE l_master      AS LOGICAL                  NO-UNDO.
   DEFINE VARIABLE l_DynLabel    AS LOGICAL                  NO-UNDO.
@@ -5447,9 +5608,11 @@ PROCEDURE display_current :
     IF NOT PROGRAM-NAME(2) BEGINS "DesignFrame.ControlNameChanged":U THEN
       RUN show_control_properties (0).
       
-    if WidgetAction = "" then WidgetAction = "FOCUS".
-    if OEIDEIsRunning and cur_widg_name <> "" then
-       run CallWidgetEvent (input recid(b_U),WidgetAction).
+     if OEIDEIsRunning and cur_widg_name <> "" and SendFocustoUI then
+     do:
+         if pcAction = "" then pcAction = "FOCUS":U.
+             run CallWidgetEvent (input recid(b_U),pcAction).
+     end.  
         
   END. /* If not mouse-select-down. */
 END PROCEDURE. /* display_current */
@@ -6402,7 +6565,6 @@ procedure post_drawobj:
     
     if OEIDEIsRunning and avail _U then
         run CallWidgetEvent (input recid(_U),"Add").
-      
   
 end procedure.
  
@@ -8508,7 +8670,6 @@ PROCEDURE do_property_sheet:
   define variable h_current_win as handle no-undo.
   DEFINE VAR   cType            AS CHARACTER                    NO-UNDO.
   DEFINE VAR   ldummy           AS LOGICAL                      NO-UNDO.
-  DEFINE VAR   r_U              AS ROWID                        NO-UNDO.
   
   /* Deselect All widgets (except h_self) */
   RUN deselect_all (h_self, ?).
@@ -8531,13 +8692,18 @@ PROCEDURE do_property_sheet:
   /* WEB: */
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
   IF _P._TYPE BEGINS "WEB":U THEN
-    RUN choose_attributes.
+  DO:
+     IF valid-handle(_P._tv-proc) and  _U._TYPE = "query" then
+     do:
+         run doChooseQuery in _P._tv-proc(_U._HANDLE) .
+     end.    
+     else
+         RUN choose_attributes.
+  
+  END.
   ELSE DO:
-    
-    ASSIGN r_U = ROWID(_U).
     h_current_win = _h_win.
     RUN adeuib/_proprty.p (h_self).
-    FIND _U WHERE ROWID(_U) = r_U.     
   END.
   /* For menus, the property sheet may have deleted the widget. */
   IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",cTYPE) THEN DO:
@@ -10098,17 +10264,17 @@ PROCEDURE sensitize_main_window :
              mi_color:SENSITIVE        = _h_button_bar[10]:SENSITIVE
                                              WHEN VALID-HANDLE(mi_color).
                                              
-    /* OpenEdge IDE - Edit->Insert->Procedure,
-                      Edit->Insert->Function */
-    IF OEIDEIsRunning AND 
-       VALID-HANDLE(m_insert) AND 
-       VALID-HANDLE(mi_insert_procedure) AND
-       VALID-HANDLE(mi_insert_function) THEN DO:
-      l = VALID-HANDLE(_h_win).
-      ASSIGN m_insert:SENSITIVE            = l 
-             mi_insert_procedure:SENSITIVE = l
-             mi_insert_function:SENSITIVE  = l.  
-    END.    
+/*    /* OpenEdge IDE - Edit->Insert->Procedure,  */
+/*                      Edit->Insert->Function */ */
+/*    IF OEIDEIsRunning AND                       */
+/*       VALID-HANDLE(m_insert) AND               */
+/*       VALID-HANDLE(mi_insert_procedure) AND    */
+/*       VALID-HANDLE(mi_insert_function) THEN DO:*/
+/*      l = VALID-HANDLE(_h_win).                 */
+/*      ASSIGN m_insert:SENSITIVE            = l  */
+/*             mi_insert_procedure:SENSITIVE = l  */
+/*             mi_insert_function:SENSITIVE  = l. */
+/*    END.                                        */
 
   END.  /* IF window-check...*/
   
@@ -11843,11 +12009,9 @@ PROCEDURE wind-event:
         RUN curwidg.
         RUN show_control_properties (INPUT 0).
       END.
-      else if IDENotInEditor AND IDEIntegrated and valid-handle(hOEIDEService) then
+      else 
       do:
-           IDENotInEditor = false.
-           if SendFocustoUI then   
-              activateWindow(_h_win).
+          run activateIDEWindow.
       end.
     END.
     WHEN "WINDOW-MINIMIZED" THEN DO:
@@ -12021,12 +12185,9 @@ END PROCEDURE.
 /*        in the IDE    */
 
 PROCEDURE WinIDEChoose :
-  DEFINE INPUT PARAMETER pHWND AS INT NO-UNDO.
-  DEFINE VARIABLE hWindow      AS HANDLE         NO-UNDO.
+  DEFINE INPUT PARAMETER phWindow  AS HANDLE NO-UNDO.
   define buffer i_p for _p.
-  run GetWindowHandleFromIDEParent(pHwnd,output hWindow).
- 
-  if hWindow = ? then 
+  if phWindow = ? then 
      return.
        
   /* We've found the window to make active. */
@@ -12034,8 +12195,8 @@ PROCEDURE WinIDEChoose :
 /*         hWindow:VISIBLE      = true.                                                     */
 /*  hWindow:MOVE-TO-TOP().                                                                  */
   IDENotInEditor = false.
-  IDEEnterWindow = hWindow.
-  apply "ENTRY" to hWindow.
+  IDEEnterWindow = phWindow.
+  apply "ENTRY" to phWindow.
   
   FIND i_P WHERE i_p._WINDOW-HANDLE = _h_win NO-ERROR.
   if avail i_P and  VALID-HANDLE(i_p._tv-proc) THEN
@@ -12043,52 +12204,6 @@ PROCEDURE WinIDEChoose :
       run refreshCurrent in i_p._tv-proc.
   end.      
 END PROCEDURE.        
-
-/*     Get the _P window that belongs to a parent in the IDE */ 
-/*     Assumes one design window per IDE    */
-
-PROCEDURE GetWindowHandleFromIDEParent:
-  DEFINE INPUT  PARAMETER pHWND   AS INT NO-UNDO.
-  DEFINE OUTPUT PARAMETER pHandle AS HANDLE NO-UNDO.
-  
-  DEFINE BUFFER x_P FOR _P.
-  
-  DEFINE VARIABLE hWindow      AS HANDLE         NO-UNDO.
-
-  if pHWND = ? or pHWND = 0 then return. 
- 
-  for each x_p:
-      assign hWindow = x_P._WINDOW-HANDLE.
-       
-      if hWindow:TYPE = "FRAME":U then
-      do:
-          pHandle = hWindow.
-          leave. 
-      end.
-      else
-      do:   
-          hWindow = (IF hWindow:TYPE = "WINDOW":U THEN hWindow ELSE hWindow:PARENT). 
-      if not valid-handle(hWindow) or hWindow:IDE-PARENT-HWND <> pHWND then
-         next.   
-      pHandle = hWindow.
-      LEAVE.
-      end.      
-  end. /* FOR EACH x_P */
-   
-  /*
-  for each x_p:
-      assign hWindow = x_P._WINDOW-HANDLE.
-             hWindow = (IF hWindow:TYPE = "WINDOW":U THEN hWindow ELSE hWindow:PARENT).
-              
-      if not valid-handle(hWindow) or hWindow:IDE-PARENT-HWND <> pHWND then
-         next.   
-      pHandle = hWindow.
-      LEAVE.
-            
-  end.
-  */
-END PROCEDURE.
-
 
 PROCEDURE copyPaletteCustom:
   FOR EACH _save_palette_item: DELETE _save_palette_item. END.
@@ -12642,9 +12757,38 @@ procedure RunDynamicPropertySheet:
 end procedure.                      
 
 procedure ExportCurrentWidgetTree  :
+    define buffer b_u for _U.
+    define buffer b_p for _P.
+ 
+    define input  parameter phwin as handle no-undo.
     define input parameter pcPath as character no-undo.
     define input parameter pcFile as character no-undo.
-    run adeuib/_oeidewidgets.p (pcPath,pcfile,_h_win).
+    
+    find b_u where b_U._HANDLE = phwin no-error.
+    
+    if not avail b_U then
+    do:
+        if phwin:type = "WINDOW":U then
+             phwin = phwin:first-child.
+        find b_U where b_U._HANDLE = phwin no-error.   
+    end.
+    if avail b_U then
+    do:
+        FIND b_P WHERE b_P._u-recid EQ RECID(b_U).
+      
+        pcPath = replace(pcPath,"~\":U,"/":U).
+
+        if r-index(pcPath,"/":U) <> length(pcPath) then
+           pcPath = pcPath + "/":U.
+
+        if search(pcPath) = ? then
+            os-create-dir value(pcPath).
+        
+        if valid-handle(b_P._tv-proc) then 
+            run exportWidgets in b_P._tv-proc(pcPath,pcfile).
+        else     
+            run adeuib/_oeidewidgets.p (pcPath,pcfile,b_P._WINDOW-HANDLE).
+    end.
 end procedure.                      
 
 procedure SelectWidgetinUI:
@@ -12687,8 +12831,11 @@ procedure SelectWidgetinUI:
        end.    
     
     end.
-    else 
+    else if widgetname > "" then
        find _U where _U._WINDOW-HANDLE = _h_win and _U._NAME = trim(widgetName) no-error.
+    else
+       find _U where _U._HANDLE = _h_win no-error.
+    
     IF AVAILABLE _U THEN 
     DO:
         ASSIGN _h_cur_widg  = _U._HANDLE
@@ -12705,7 +12852,7 @@ procedure SelectWidgetinUI:
         RUN curframe  IN _h_uib (_h_cur_widg).
         RUN display_current IN _h_uib.
         SendFocustoUI = yes. /* Activate this flag to set focus for other events from outline view */
-  END.
+   END.
 end procedure.    
 
 procedure choose_compile:
@@ -12725,7 +12872,7 @@ function findWidgetName return character(pRecId as recid):
     /** if db ref then we may need to qualify the field to make it unique */
     if b_U._DBNAME > "" then 
     do:
-       /* don;t qualify rowobject - TODO find out if it is in buffer ot table */ 
+       /* don't qualify rowobject - TODO find out if it is in buffer ot table */ 
        if b_u._buffer <> "RowObject" and b_u._table <> "RowObject" then 
        do:        
            find b_F where recid(b_F) = b_U._x-recid no-error.
