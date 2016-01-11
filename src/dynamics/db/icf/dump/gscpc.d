@@ -2,6 +2,7 @@
 1003546818 1003546819 "FilterSet" "Filter Settings" ""
 1003588530 1380.38 "DispRepos" "Display Repository" "Whether to display repository data (databases and/or product modules) for a user."
 1003588530 25675.409 "Preference" "User Preferences" "The first use of the is for Object Generation preferences"
+1003588530 97623.48 "UpdCustCls" "Update Custom Class" "Whether to create a custom class when customising a class. Valid values: Always, Never."
 1003588530 1003588632 "ReportDir" "ReportDir" "ReportDir"
 1003588530 1003588633 "EmailProf" "EmailProf" "EmailProf"
 1003588530 2000000106.82 "SLanguage" "Source Language" "Used to store a users source language obj number"
@@ -21,12 +22,12 @@
 .
 PSC
 filename=gsc_profile_code
-records=0000000000020
+records=0000000000021
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:38
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000002045
+0000002191

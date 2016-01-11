@@ -6,7 +6,7 @@ PSC
 filename=gst_password_history
 records=0000000000003
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:41
+timestamp=2004/07/16-15:10:16
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

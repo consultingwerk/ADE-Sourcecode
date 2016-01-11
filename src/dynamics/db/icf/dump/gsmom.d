@@ -1,3 +1,4 @@
+98738.48 1003695948 0 98757.48 0 yes 1
 1000000943.48 50793.9875 0 50796.9875 0 yes 1
 1003554199 99018 0 1003576845 0 yes 2
 1003599905 99018 0 1003606427 0 yes 5
@@ -28,12 +29,12 @@
 .
 PSC
 filename=gsm_object_menu_structure
-records=0000000000027
+records=0000000000028
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:39
+timestamp=2004/07/16-15:10:16
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000001378
+0000001418

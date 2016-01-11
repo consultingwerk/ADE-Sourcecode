@@ -1,41 +1,41 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-/* Class Definition for <class-name> - <class-def> - <today> 
-   Class Type: <class-type>	
-   Class Name: <class-name>
-   Class DeriveFrom: <class-derive>
-   Class SourcePath: <class-src>
-   Class RcodePath: <class-run>
-   Class TemplatePath: <class-tpl>   
-   Class Method: <class-meth>
-   Class Property: <class-prop>
-   Class Super: <class-super>
-   Class Prototype: <class-prto>
-   Class Template: <class-template>
-   Custom Method: <custom-meth>
-   Custom Property: <custom-prop>
-   Custom Super: <custom-super>
-   Custom Prototype: <custom-prto>
-   Custom Exclude: <custom-excl>
-   Custom Instance: <custom-defs>
- */
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/* Class Definition for <class-name> - <class-def> - <today> 
+   Class Type: <class-type>	
+   Class Name: <class-name>
+   Class DeriveFrom: <class-derive>
+   Class SourcePath: <class-src>
+   Class RcodePath: <class-run>
+   Class TemplatePath: <class-tpl>   
+   Class Method: <class-meth>
+   Class Property: <class-prop>
+   Class Super: <class-super>
+   Class Prototype: <class-prto>
+   Class Template: <class-template>
+   Custom Method: <custom-meth>
+   Custom Property: <custom-prop>
+   Custom Super: <custom-super>
+   Custom Prototype: <custom-prto>
+   Custom Exclude: <custom-excl>
+   Custom Instance: <custom-defs>
+ */

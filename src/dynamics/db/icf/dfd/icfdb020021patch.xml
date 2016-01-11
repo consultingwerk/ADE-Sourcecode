@@ -1,83 +1,83 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<SetupInclude>
-	<Patch PatchLevel="020021">
- 		<PatchStage Stage="PreDelta">
-	        <Program>
-	            <FileType>p</FileType>
-	            <FileName>db/icf/dfd/ensureattributesmartobjectvalid.p</FileName>
-	            <Description>Validating attributes on smartobjects</Description>
-	            <Rerunnable>yes</Rerunnable>
-	            <NewDB>no</NewDB>
-	            <ExistingDB>yes</ExistingDB>
-	            <UpdateMandatory>yes</UpdateMandatory>
-	         </Program>
-	         <Program>
-	            <FileType>p</FileType>
-	            <FileName>db/icf/dfd/ensureuieventsmartobjectvalid.p</FileName>
-	            <Description>Validating UI events on smartobjects</Description>
-	            <Rerunnable>yes</Rerunnable>
-	            <NewDB>no</NewDB>
-	            <ExistingDB>yes</ExistingDB>
-	            <UpdateMandatory>yes</UpdateMandatory>
-	         </Program>
-	         <Program>
-	            <FileType>p</FileType>
-	            <FileName>db/icf/dfd/ensurevalidobjecttype.p</FileName>
-	            <Description>Validating attributes on object types</Description>
-	            <Rerunnable>yes</Rerunnable>
-	            <NewDB>no</NewDB>
-	            <ExistingDB>yes</ExistingDB>
-	            <UpdateMandatory>yes</UpdateMandatory>
-	         </Program>
-	         <Program>
-	            <FileType>p</FileType>
-	            <FileName>db/icf/dfd/ensurevaliduieventobjecttype.p</FileName>
-	            <Description>Validating UI events on object types</Description>
-	            <Rerunnable>yes</Rerunnable>
-	            <NewDB>no</NewDB>
-	            <ExistingDB>yes</ExistingDB>
-	            <UpdateMandatory>yes</UpdateMandatory>
-	         </Program>
-		</PatchStage>
-		<PatchStage Stage="Delta">
-			<Program>
-				<FileType>df</FileType>
-				<FileName>db/icf/dfd/icfdb020021delta.df</FileName>
-				<Description>Applying 020021 Delta</Description>
-				<Rerunnable>no</Rerunnable>
-				<NewDB>no</NewDB>
-				<ExistingDB>yes</ExistingDB>
-				<UpdateMandatory>yes</UpdateMandatory>
-			</Program>
-		</PatchStage>
-		<PatchStage Stage="PostDelta">
-			<Program>
-				<FileType>p</FileType>
-				<FileName>db/icf/dfd/updateruntimeattributeflag.p</FileName>
-				<Description>Updating applies_at_run_time instance attribute flag.</Description>
-				<Rerunnable>yes</Rerunnable>
-				<NewDB>no</NewDB>
-				<ExistingDB>yes</ExistingDB>
-				<UpdateMandatory>yes</UpdateMandatory>
-			</Program>
-			<Program>
-				<FileType>p</FileType>
-				<FileName>db/icf/dfd/ensureuniqueinstancename.p</FileName>
-				<Description>Ensuring uniqueness in the instance names.</Description>
-				<Rerunnable>yes</Rerunnable>
-				<NewDB>no</NewDB>
-				<ExistingDB>yes</ExistingDB>
-				<UpdateMandatory>yes</UpdateMandatory>
-			</Program>
-			<Program>
-				<FileType>p</FileType>
-				<FileName>db/icf/dfd/migratepagetoinstance.p</FileName>
-				<Description>Migrating page object records to instances.</Description>
-				<Rerunnable>yes</Rerunnable>
-				<NewDB>no</NewDB>
-				<ExistingDB>yes</ExistingDB>
-				<UpdateMandatory>yes</UpdateMandatory>
-			</Program>
-		</PatchStage>
-	</Patch>
+<?xml version="1.0" encoding="utf-8" ?>
+<SetupInclude>
+	<Patch PatchLevel="020021">
+ 		<PatchStage Stage="PreDelta">
+	        <Program>
+	            <FileType>p</FileType>
+	            <FileName>db/icf/dfd/ensureattributesmartobjectvalid.p</FileName>
+	            <Description>Validating attributes on smartobjects</Description>
+	            <Rerunnable>yes</Rerunnable>
+	            <NewDB>no</NewDB>
+	            <ExistingDB>yes</ExistingDB>
+	            <UpdateMandatory>yes</UpdateMandatory>
+	         </Program>
+	         <Program>
+	            <FileType>p</FileType>
+	            <FileName>db/icf/dfd/ensureuieventsmartobjectvalid.p</FileName>
+	            <Description>Validating UI events on smartobjects</Description>
+	            <Rerunnable>yes</Rerunnable>
+	            <NewDB>no</NewDB>
+	            <ExistingDB>yes</ExistingDB>
+	            <UpdateMandatory>yes</UpdateMandatory>
+	         </Program>
+	         <Program>
+	            <FileType>p</FileType>
+	            <FileName>db/icf/dfd/ensurevalidobjecttype.p</FileName>
+	            <Description>Validating attributes on object types</Description>
+	            <Rerunnable>yes</Rerunnable>
+	            <NewDB>no</NewDB>
+	            <ExistingDB>yes</ExistingDB>
+	            <UpdateMandatory>yes</UpdateMandatory>
+	         </Program>
+	         <Program>
+	            <FileType>p</FileType>
+	            <FileName>db/icf/dfd/ensurevaliduieventobjecttype.p</FileName>
+	            <Description>Validating UI events on object types</Description>
+	            <Rerunnable>yes</Rerunnable>
+	            <NewDB>no</NewDB>
+	            <ExistingDB>yes</ExistingDB>
+	            <UpdateMandatory>yes</UpdateMandatory>
+	         </Program>
+		</PatchStage>
+		<PatchStage Stage="Delta">
+			<Program>
+				<FileType>df</FileType>
+				<FileName>db/icf/dfd/icfdb020021delta.df</FileName>
+				<Description>Applying 020021 Delta</Description>
+				<Rerunnable>no</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+		<PatchStage Stage="PostDelta">
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/updateruntimeattributeflag.p</FileName>
+				<Description>Updating applies_at_run_time instance attribute flag.</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/ensureuniqueinstancename.p</FileName>
+				<Description>Ensuring uniqueness in the instance names.</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+			<Program>
+				<FileType>p</FileType>
+				<FileName>db/icf/dfd/migratepagetoinstance.p</FileName>
+				<Description>Migrating page object records to instances.</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+		</PatchStage>
+	</Patch>
 </SetupInclude>

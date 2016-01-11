@@ -1,269 +1,282 @@
-/* icfsmart.cst - ICF customized SmartObject file - 10/02/01 */
-
-
-*NEW-CONTAINER  Static SmartWindow
-NEW-TEMPLATE    ry/uib/rysttbconw.w
-
-*NEW-CONTAINER  Static SmartDialog
-NEW-TEMPLATE    ry/uib/rysttdilgd.w
-
-*NEW-CONTAINER  Static Smart&Frame
-NEW-TEMPLATE    ry/uib/rysttbfrmw.w
-
-*NEW-CONTAINER  Static Simple Smart&Container
-NEW-TEMPLATE    src/adm2/template/cntnrsimpl.w
-
-#SmartObject.   &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,336
-DOWN-IMAGE-FILE adeicon/wp_down 24,336
-LABEL           Static Smart&Object
-NEW-TEMPLATE    src/adm2/template/smart.w
-DIRECTORY-LIST  .,adm2
-FILTER          *.w,*.r,*.*,b*.*,d*.*,v*.*
-TITLE           Choose a SmartObject
-
-*NEW-SMARTOBJECT Static Simple Smart&Object
-TYPE            SmartObject.
-NEW-TEMPLATE    src/adm2/template/smart.w
-
-#SmartFolder    &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,144
-DOWN-IMAGE-FILE adeicon/wp_down 24,144
-LABEL           SmartFol&der
-USE             adm2/folder.w
-
-#SmartPanel     &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,168
-DOWN-IMAGE-FILE adeicon/wp_down 0,168
-LABEL           Smart&Panel
-DIRECTORY-LIST  adm2,.
-FILTER          p*.r,p*.w,p*.*,*.*
-TITLE           Choose SmartPanel
-
-*SmartPanel     Navigation Panel (&Icons)
-USE             adm2/pnavico.w
-*SmartPanel     Navigation Panel (&Labels)
-USE             adm2/pnavlbl.w
-*SmartPanel     Update Panel (&Standard)
-USE             adm2/pupdsav.w
-*SmartPanel     C&ommit Panel 
-USE             adm2/pcommit.w
-
-*NEW-SMARTOBJECT Static Smart&DataObject
-TYPE		 SmartDataObject
-NEW-TEMPLATE     ry/obj/rysttasdoo.w
-
-*NEW-SMARTOBJECT Static Smart&BusinessObject
-TYPE		 SmartBusinessObject
-NEW-TEMPLATE     ry/obj/rysttasboo.w
-
-*NEW-SMARTOBJECT Static SmartData&Browser
-TYPE		 SmartDataBrowser
-NEW-TEMPLATE     ry/obj/rysttbrowb.w
-
-*NEW-SMARTOBJECT Static SmartData&Viewer
-TYPE		 SmartDataViewer
-NEW-TEMPLATE     ry/obj/rysttviewv.w
-
-*NEW-SMARTOBJECT Static SmartData&Field
-TYPE		 StaticSDF
-NEW-TEMPLATE     ry/obj/rysttdatfv.w
-
-*NEW-SMARTOBJECT Static Decimal Combo SmartData&Field
-TYPE		 StaticSDF
-NEW-TEMPLATE     ry/obj/rysttdcsfv.w
-
-*NEW-SMARTOBJECT Static Filtered Combo SmartData&Field
-TYPE		 StaticSDF
-NEW-TEMPLATE     ry/obj/rysttfcsfv.w
-
-*NEW-SMARTOBJECT Static Master Combo SmartData&Field
-TYPE		 StaticSDF
-NEW-TEMPLATE     ry/obj/rysttcmsfv.w
-
-*NEW-SMARTOBJECT Static Child Combo SmartData&Field
-TYPE		 StaticSDF
-NEW-TEMPLATE     ry/obj/rysttccsfv.w
-
-*NEW-SMARTOBJECT Static Simple Smart&Object (viewer)
-TYPE            SmartObject.
-NEW-TEMPLATE    ry/obj/rysttsimpv.w
-
-#SmartDataBrowser   &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,264
-DOWN-IMAGE-FILE adeicon/wp_down 24,264
-LABEL           Static SmartData&Browser
-NEW-TEMPLATE    ry/obj/rysttbrowb.w
-DIRECTORY-LIST  .,adm2
-FILTER          b*.w,b*.r,b*.*,*.*
-TITLE           Choose Static SmartDataBrowser
-
-*NEW-SMARTOBJECT Static SmartData&Browser
-TYPE            SmartDataBrowser
-NEW-TEMPLATE    ry/obj/rysttbrowb.w
-
-*SmartDataBrowser   &Dynamic SmartDataBrowser
-USE             adm2/dynbrowser.w
-
-#SmartDataViewer    &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,288
-DOWN-IMAGE-FILE adeicon/wp_down 0,288
-LABEL           Static SmartDataViewer
-NEW-TEMPLATE    ry/obj/rysttviewv.w
-DIRECTORY-LIST  .,adm2
-FILTER          v*.w,v*.r,v*.*,*.*
-TITLE           Choose Static SmartDataViewer
-
-#SmartDataField &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,360
-DOWN-IMAGE-FILE adeicon/wp_down 0,360
-LABEL           SmartDataField
-NEW-TEMPLATE    src/adm2/template/field.w
-DIRECTORY-LIST  .,adm2
-FILTER          sdf*.w,sdf*.r,sdf*.*,*.*
-TITLE           Choose SmartDataField
-
-*NEW-SMARTOBJECT SmartData&Field
-TYPE            SmartDataField
-NEW-TEMPLATE    src/adm2/template/field.w
-
-*SmartDataField Smart&Select
-USE             adm2/dynselect.w
-
-*SmartDataField Dynamic&Lookup
-USE             adm2/dynlookup.w
-EDIT-ON-DROP
-
-*SmartDataField Dynamic&Combo
-USE             adm2/dyncombo.w
-EDIT-ON-DROP
-
-*SmartDataField &Time Field
-USE             adm2/timesdfv.w
-
-#SmartFilter    &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,360
-DOWN-IMAGE-FILE adeicon/wp_down 24,360
-LABEL           SmartFi&lter
-USE             adm2/dynfilter.w 
-
-#SmartToolBar   &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,384
-DOWN-IMAGE-FILE adeicon/wp_down 0,384
-LABEL           Smart&ToolBar
-USE             adm2/dyntoolbar.w
-
-#SmartTreeView  &Default
-UP-IMAGE-FILE   adeicon/treeview_up
-DOWN-IMAGE-FILE adeicon/treeview_down
-LABEL           Smart&TreeView
-USE             adm2/dyntreeview.w
-
-#SmartContainer &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,264
-DOWN-IMAGE-FILE adeicon/wp_down 0,264
-LABEL           Static SmartCo&ntainer
-DB-CONNECT
-DIRECTORY-LIST  .,adm2
-FILTER          f*.*,w*.*,g*.*,*.w,*.r,*.*
-TITLE           Choose SmartContainer
-
-#SmartBusinessObject &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,384
-DOWN-IMAGE-FILE adeicon/wp_down 24,384
-LABEL           Smart&BusinessObject
-NEW-TEMPLATE    ry/obj/rysttasboo.w
-DIRECTORY-LIST  .,adm2
-FILTER          sbo*.w,sbo*.r,sbo*.*,*.*
-TITLE           Choose SmartBusinessObject
-
-#SmartProducer  &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,432
-DOWN-IMAGE-FILE adeicon/wp_down 0,432
-LABEL           Smart&Producer
-USE             adm2/dynproducer.w
-
-#SmartConsumer  &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,408
-DOWN-IMAGE-FILE adeicon/wp_down 24,408
-LABEL           Smart&Consumer
-USE             adm2/dynconsumer.w
-
-#SmartRouter    &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,456
-DOWN-IMAGE-FILE adeicon/wp_down 24,456
-LABEL           Smart&Router
-USE             adm2/dynrouter.w
-
-*NEW-SMARTOBJECT SmartB2BObject
-TYPE            SmartB2BObject
-NEW-TEMPLATE    src/adm2/template/b2b.w
-
-#SmartB2BObject &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,408
-DOWN-IMAGE-FILE adeicon/wp_down 0,408
-LABEL           SmartB&2BObject
-NEW-TEMPLATE    src/adm2/template/b2b.w
-DIRECTORY-LIST  .,adm2
-FILTER          sbb*.w,sbb*.r,sbb*.*,*.*
-TITLE           Choose SmartB2BObject
-
-*SmartB2BObject &Dynamic SmartB2BObject
-USE             adm2/dynb2b.w
-
-#SmartSender    &Default
-UP-IMAGE-FILE   adeicon/wp_up 24,432
-DOWN-IMAGE-FILE adeicon/wp_down 24,432
-LABEL           Smart&Sender
-NEW-TEMPLATE    src/adm2/template/sender.w
-DIRECTORY-LIST  .,adm2
-FILTER          sms*.w,sms*.r,sms*.*,*.*
-TITLE           Choose SmartSender
-
-*NEW-SMARTOBJECT Smart&Sender
-TYPE            SmartSender
-NEW-TEMPLATE    src/adm2/template/sender.w
-
-#SmartReceiver  &Default
-UP-IMAGE-FILE   adeicon/wp_up 0,456
-DOWN-IMAGE-FILE adeicon/wp_down 0,456
-LABEL           Smart&Receiver
-NEW-TEMPLATE    src/adm2/template/receiver.w
-DIRECTORY-LIST  .,adm2
-FILTER          smr*.w,smr*.r,smr*.*,*.*
-TITLE           Choose SmartReceiver
-
-*NEW-SMARTOBJECT Smart&Receiver
-TYPE            SmartReceiver
-NEW-TEMPLATE    src/adm2/template/receiver.w
-
-*RADIO-SET      &Select Page
-DESCRIPTION     Radio-Set to select page on paging object
-DATA-TYPE       INTEGER
-NAME            RaSelectPage
-FONT            4
-TRIGGER VALUE-CHANGED
-DO:
-  /* Ask the SmartContainer to show a different page.  NOTE: this will only
-     work if this procedure contains the method procedures to handle multi-
-     paged applications.  Otherwise there will be an error. */
-  ASSIGN {&SELF-NAME}.
-  RUN SelectPage ({&SELF-NAME}).
-END.
-END TRIGGER
-
-*BUTTON         &View Page
-DESCRIPTION     Button to view page 1 on paging object
-LABEL           &View Page
-NAME            BuViewPage
-FONT            4
-HEIGHT          1.125
-TRIGGER CHOOSE
-DO:
-  /* Ask the SmartContainer to view a different page.  
-     NOTE: this will only work if this procedure contains the method 
-     procedures to handle multi- paged applications.  Otherwise there will 
-     be an error. */
-  RUN ViewPage (1).
-END.
-END TRIGGER
+/* icfsmart.cst - ICF customized SmartObject file - 10/02/01 */
+
+
+*NEW-CONTAINER  Static SmartWindow
+NEW-TEMPLATE    ry/uib/rysttbconw.w
+
+*NEW-CONTAINER  Static SmartDialog
+NEW-TEMPLATE    ry/uib/rysttdilgd.w
+
+*NEW-CONTAINER  Static Smart&Frame
+NEW-TEMPLATE    ry/uib/rysttbfrmw.w
+
+*NEW-CONTAINER  Static Simple Smart&Container
+NEW-TEMPLATE    src/adm2/template/cntnrsimpl.w
+
+#SmartObject.   &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,336
+DOWN-IMAGE-FILE adeicon/wp_down 24,336
+LABEL           Static Smart&Object
+NEW-TEMPLATE    src/adm2/template/smart.w
+DIRECTORY-LIST  .,adm2
+FILTER          *.w,*.r,*.*,b*.*,d*.*,v*.*
+TITLE           Choose a SmartObject
+
+*NEW-SMARTOBJECT Static Simple Smart&Object
+TYPE            SmartObject.
+NEW-TEMPLATE    src/adm2/template/smart.w
+
+#SmartFolder    &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,144
+DOWN-IMAGE-FILE adeicon/wp_down 24,144
+LABEL           SmartFol&der
+USE             adm2/folder.w
+
+#SmartPanel     &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,168
+DOWN-IMAGE-FILE adeicon/wp_down 0,168
+LABEL           Smart&Panel
+DIRECTORY-LIST  adm2,.
+FILTER          p*.r,p*.w,p*.*,*.*
+TITLE           Choose SmartPanel
+
+*SmartPanel     Navigation Panel (&Icons)
+USE             adm2/pnavico.w
+*SmartPanel     Navigation Panel (&Labels)
+USE             adm2/pnavlbl.w
+*SmartPanel     Update Panel (&Standard)
+USE             adm2/pupdsav.w
+*SmartPanel     C&ommit Panel 
+USE             adm2/pcommit.w
+
+*NEW-SMARTOBJECT Static Smart&DataObject
+TYPE		 SmartDataObject
+NEW-TEMPLATE     ry/obj/rysttasdoo.w
+
+*NEW-SMARTOBJECT Static Smart&BusinessObject
+TYPE		 SmartBusinessObject
+NEW-TEMPLATE     ry/obj/rysttasboo.w
+
+*NEW-SMARTOBJECT Static SmartData&Browser
+TYPE		 SmartDataBrowser
+NEW-TEMPLATE     ry/obj/rysttbrowb.w
+
+*NEW-SMARTOBJECT Static SmartData&Viewer
+TYPE		 SmartDataViewer
+NEW-TEMPLATE     ry/obj/rysttviewv.w
+
+*NEW-SMARTOBJECT Static SmartData&Field
+TYPE		 StaticSDF
+NEW-TEMPLATE     ry/obj/rysttdatfv.w
+
+*NEW-SMARTOBJECT Static Decimal Combo SmartData&Field
+TYPE		 StaticSDF
+NEW-TEMPLATE     ry/obj/rysttdcsfv.w
+
+*NEW-SMARTOBJECT Static Filtered Combo SmartData&Field
+TYPE		 StaticSDF
+NEW-TEMPLATE     ry/obj/rysttfcsfv.w
+
+*NEW-SMARTOBJECT Static Master Combo SmartData&Field
+TYPE		 StaticSDF
+NEW-TEMPLATE     ry/obj/rysttcmsfv.w
+
+*NEW-SMARTOBJECT Static Child Combo SmartData&Field
+TYPE		 StaticSDF
+NEW-TEMPLATE     ry/obj/rysttccsfv.w
+
+*NEW-SMARTOBJECT Static Simple Smart&Object (viewer)
+TYPE            SmartObject.
+NEW-TEMPLATE    ry/obj/rysttsimpv.w
+
+#SmartDataBrowser   &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,264
+DOWN-IMAGE-FILE adeicon/wp_down 24,264
+LABEL           Static SmartData&Browser
+NEW-TEMPLATE    ry/obj/rysttbrowb.w
+DIRECTORY-LIST  .,adm2
+FILTER          b*.w,b*.r,b*.*,*.*
+TITLE           Choose Static SmartDataBrowser
+
+*NEW-SMARTOBJECT Static SmartData&Browser
+TYPE            SmartDataBrowser
+NEW-TEMPLATE    ry/obj/rysttbrowb.w
+
+*SmartDataBrowser   &Dynamic SmartDataBrowser
+USE             adm2/dynbrowser.w
+
+#SmartDataViewer    &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,288
+DOWN-IMAGE-FILE adeicon/wp_down 0,288
+LABEL           Static SmartDataViewer
+NEW-TEMPLATE    ry/obj/rysttviewv.w
+DIRECTORY-LIST  .,adm2
+FILTER          v*.w,v*.r,v*.*,*.*
+TITLE           Choose Static SmartDataViewer
+
+#SmartDataField &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,360
+DOWN-IMAGE-FILE adeicon/wp_down 0,360
+LABEL           SmartDataField
+NEW-TEMPLATE    src/adm2/template/field.w
+DIRECTORY-LIST  .,adm2
+FILTER          sdf*.w,sdf*.r,sdf*.*,*.*
+TITLE           Choose SmartDataField
+
+*NEW-SMARTOBJECT SmartData&Field
+TYPE            SmartDataField
+NEW-TEMPLATE    src/adm2/template/field.w
+
+*SmartDataField Smart&Select
+USE             adm2/dynselect.w
+
+*SmartDataField Dynamic&Lookup
+USE             adm2/dynlookup.w
+EDIT-ON-DROP
+
+*SmartDataField Dynamic&Combo
+USE             adm2/dyncombo.w
+EDIT-ON-DROP
+
+*SmartDataField &Time Field
+USE             adm2/timesdfv.w
+
+#SmartLOBField  &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,480
+DOWN-IMAGE-FILE adeicon/wp_down 0,480
+LABEL           Smart&LOBField
+NEW-TEMPLATE    src/adm2/template/lobfield.w
+DIRECTORY-LIST  .,adm2
+FILTER          lob*.w,lob*.r,lob*.*,*.*
+TITLE           Choose SmartLOB
+
+*NEW-SMARTOBJECT Smart&LOBField
+TYPE            SmartLOBField
+NEW-TEMPLATE    src/adm2/template/lobfield.w
+
+#SmartFilter    &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,360
+DOWN-IMAGE-FILE adeicon/wp_down 24,360
+LABEL           SmartFi&lter
+USE             adm2/dynfilter.w 
+
+#SmartToolBar   &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,384
+DOWN-IMAGE-FILE adeicon/wp_down 0,384
+LABEL           Smart&ToolBar
+USE             adm2/dyntoolbar.w
+
+#SmartTreeView  &Default
+UP-IMAGE-FILE   adeicon/treeview_up
+DOWN-IMAGE-FILE adeicon/treeview_down
+LABEL           Smart&TreeView
+USE             adm2/dyntreeview.w
+
+#SmartContainer &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,264
+DOWN-IMAGE-FILE adeicon/wp_down 0,264
+LABEL           Static SmartCo&ntainer
+DB-CONNECT
+DIRECTORY-LIST  .,adm2
+FILTER          f*.*,w*.*,g*.*,*.w,*.r,*.*
+TITLE           Choose SmartContainer
+
+#SmartBusinessObject &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,384
+DOWN-IMAGE-FILE adeicon/wp_down 24,384
+LABEL           Smart&BusinessObject
+NEW-TEMPLATE    ry/obj/rysttasboo.w
+DIRECTORY-LIST  .,adm2
+FILTER          sbo*.w,sbo*.r,sbo*.*,*.*
+TITLE           Choose SmartBusinessObject
+
+#SmartProducer  &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,432
+DOWN-IMAGE-FILE adeicon/wp_down 0,432
+LABEL           Smart&Producer
+USE             adm2/dynproducer.w
+
+#SmartConsumer  &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,408
+DOWN-IMAGE-FILE adeicon/wp_down 24,408
+LABEL           Smart&Consumer
+USE             adm2/dynconsumer.w
+
+#SmartRouter    &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,456
+DOWN-IMAGE-FILE adeicon/wp_down 24,456
+LABEL           Smart&Router
+USE             adm2/dynrouter.w
+
+*NEW-SMARTOBJECT SmartB2BObject
+TYPE            SmartB2BObject
+NEW-TEMPLATE    src/adm2/template/b2b.w
+
+#SmartB2BObject &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,408
+DOWN-IMAGE-FILE adeicon/wp_down 0,408
+LABEL           SmartB&2BObject
+NEW-TEMPLATE    src/adm2/template/b2b.w
+DIRECTORY-LIST  .,adm2
+FILTER          sbb*.w,sbb*.r,sbb*.*,*.*
+TITLE           Choose SmartB2BObject
+
+*SmartB2BObject &Dynamic SmartB2BObject
+USE             adm2/dynb2b.w
+
+#SmartSender    &Default
+UP-IMAGE-FILE   adeicon/wp_up 24,432
+DOWN-IMAGE-FILE adeicon/wp_down 24,432
+LABEL           Smart&Sender
+NEW-TEMPLATE    src/adm2/template/sender.w
+DIRECTORY-LIST  .,adm2
+FILTER          sms*.w,sms*.r,sms*.*,*.*
+TITLE           Choose SmartSender
+
+*NEW-SMARTOBJECT Smart&Sender
+TYPE            SmartSender
+NEW-TEMPLATE    src/adm2/template/sender.w
+
+#SmartReceiver  &Default
+UP-IMAGE-FILE   adeicon/wp_up 0,456
+DOWN-IMAGE-FILE adeicon/wp_down 0,456
+LABEL           Smart&Receiver
+NEW-TEMPLATE    src/adm2/template/receiver.w
+DIRECTORY-LIST  .,adm2
+FILTER          smr*.w,smr*.r,smr*.*,*.*
+TITLE           Choose SmartReceiver
+
+*NEW-SMARTOBJECT Smart&Receiver
+TYPE            SmartReceiver
+NEW-TEMPLATE    src/adm2/template/receiver.w
+
+*RADIO-SET      &Select Page
+DESCRIPTION     Radio-Set to select page on paging object
+DATA-TYPE       INTEGER
+NAME            RaSelectPage
+FONT            4
+TRIGGER VALUE-CHANGED
+DO:
+  /* Ask the SmartContainer to show a different page.  NOTE: this will only
+     work if this procedure contains the method procedures to handle multi-
+     paged applications.  Otherwise there will be an error. */
+  ASSIGN {&SELF-NAME}.
+  RUN SelectPage ({&SELF-NAME}).
+END.
+END TRIGGER
+
+*BUTTON         &View Page
+DESCRIPTION     Button to view page 1 on paging object
+LABEL           &View Page
+NAME            BuViewPage
+FONT            4
+HEIGHT          1.125
+TRIGGER CHOOSE
+DO:
+  /* Ask the SmartContainer to view a different page.  
+     NOTE: this will only work if this procedure contains the method 
+     procedures to handle multi- paged applications.  Otherwise there will 
+     be an error. */
+  RUN ViewPage (1).
+END.
+END TRIGGER

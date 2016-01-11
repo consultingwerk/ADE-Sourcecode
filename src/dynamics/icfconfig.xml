@@ -4,8 +4,12 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>APP</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -18,6 +22,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -25,11 +30,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -38,6 +48,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -83,8 +97,12 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>APP</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -97,6 +115,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -104,11 +123,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -117,6 +141,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -158,8 +186,12 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -173,6 +205,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -180,11 +213,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -193,6 +231,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -238,11 +280,15 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -257,6 +303,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -264,11 +311,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -277,6 +329,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -326,11 +382,15 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>NO</run_local>
 <session_date_format>mdy</session_date_format>
@@ -345,6 +405,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -352,11 +413,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -365,6 +431,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -414,9 +484,13 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <MaxHiddenContainers>10</MaxHiddenContainers>
 <physical_session_list>GUI,WBC</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <session_date_format>mdy</session_date_format>
 <session_year_offset>1950</session_year_offset>
@@ -429,11 +503,16 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -442,6 +521,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -487,10 +570,14 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <image_path>ry/img,../img/</image_path>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <menu_images>disabled</menu_images>
 <physical_session_list>WBS,APP</physical_session_list>
+<print_preview_preference>HTML</print_preview_preference>
+<print_preview_stylesheet>../dhtml/webreport.css</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -504,6 +591,7 @@
 <cPhysicalService>ICFDevAS</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService icfrepos</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 <service><cServiceType>Database</cServiceType>
@@ -511,11 +599,16 @@
 <cPhysicalService>ICFDBn</cPhysicalService>
 <cConnectParams>-db icfdb -N TCP -H localhost -S icfdb</cConnectParams>
 <lDefaultService>no</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -524,6 +617,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -573,10 +670,14 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -589,11 +690,16 @@
 <cPhysicalService>asb_090dyndep</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_090dyndep</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -602,6 +708,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -651,10 +761,14 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -667,11 +781,16 @@
 <cPhysicalService>asb_091dyndep</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_091dyndep</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -680,6 +799,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -729,10 +852,14 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -745,11 +872,16 @@
 <cPhysicalService>asb_091dyndev</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_091dyndev</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -758,6 +890,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>
@@ -807,10 +943,14 @@
 <DynamicsVersion>2.1A</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
 <IDEPalette>PaletteDynamics</IDEPalette>
 <IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
 <login_procedure>af/cod2/aftemlognw.w</login_procedure>
 <physical_session_list>GUI</physical_session_list>
+<print_preview_preference>XML</print_preview_preference>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
 <root_directory>.</root_directory>
 <run_local>YES</run_local>
 <session_date_format>mdy</session_date_format>
@@ -823,11 +963,16 @@
 <cPhysicalService>asb_091dyntst</cPhysicalService>
 <cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_091dyntst</cConnectParams>
 <lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
 </service>
 </services>
 <managers><manager><cManagerName>ConnectionManager</cManagerName>
 <cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>AppServerConnectionManager</cManagerName>
@@ -836,6 +981,10 @@
 </manager>
 <manager><cManagerName>DatabaseConnectionManager</cManagerName>
 <cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
 <cHandleName>NON</cHandleName>
 </manager>
 <manager><cManagerName>SessionManager</cManagerName>

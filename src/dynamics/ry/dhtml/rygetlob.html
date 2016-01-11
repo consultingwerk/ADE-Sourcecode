@@ -1,0 +1,54 @@
+<!--wss
+/* Main block */
+{af/sup2/afglobals.i NEW GLOBAL }
+
+DEFINE VARIABLE cScriptName         AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcLogicalObjectName AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcSDOName           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcColumnName        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcRowIdent          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE gcContentType       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE ghRequestManager    AS HANDLE    NO-UNDO.
+
+/* Parse the Input Data */
+ASSIGN cScriptName         = get-cgi('SCRIPT_NAME')
+       gcLogicalObjectName = (IF NUM-ENTRIES(cScriptName, ".") > 1 THEN ENTRY(2,cScriptName,'.') ELSE "")
+       gcSDOName           = (IF NUM-ENTRIES(cScriptName, ".") > 2 THEN ENTRY(3,cScriptName,'.') ELSE "")
+       gcSDOName           = REPLACE(gcSDOName, "+", ".")
+       gcColumnName        = (IF NUM-ENTRIES(cScriptName, ".") > 3 THEN ENTRY(4,cScriptName,'.') ELSE "")
+       gcColumnName        = REPLACE(gcColumnName, "+", ".")
+       gscSessionID        = (IF NUM-ENTRIES(cScriptName, ".") > 4 THEN ENTRY(1,ENTRY(5,cScriptName,'.')) ELSE "")
+       gcRowIdent          = (IF NUM-ENTRIES(cScriptName, ".") > 5 THEN ENTRY(6,cScriptName,'.') ELSE "").
+
+IF (gcLogicalObjectName = "" OR gcSDOName = "" OR gcRowIdent = "") THEN
+  RETURN.
+
+/* Get the request Manager Handle */
+ASSIGN ghRequestManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                           "RequestManager":U).
+
+set-user-field("logicalobjectname":U,gcLogicalObjectName).      /* Set the container */
+set-user-field("sdoname":U,gcSDOName).           /* Set the sdo name */
+set-user-field("sessionid":U,gscSessionID).      /* Set the session id */
+set-user-field("columnname":U, gcColumnName).    /* Set the column name */
+set-user-field("rowident":U, gcRowIdent).        /* Set the Rowident  */
+set-user-field("exportlob":U, '1').              /* Set the export flag to yes */
+
+
+/* Run the Process Request in the Request Manager */
+RUN processRequest IN ghRequestManager (gcLogicalObjectName).
+
+/* Header information */
+
+PROCEDURE output-headers:
+
+  DEFINE VARIABLE cScriptName  AS CHARACTER NO-UNDO.
+  ASSIGN cScriptName         = get-cgi('SCRIPT_NAME')
+         gcContentType       = (IF NUM-ENTRIES(cScriptName, ".") > 6 THEN ENTRY(7,cScriptName,'.') ELSE "application/blob")
+         gcContentType       = REPLACE(gcContentType, "+", "/").
+
+  output-content-type(gcContentType).
+END PROCEDURE.
+
+
+-->

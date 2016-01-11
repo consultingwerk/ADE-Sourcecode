@@ -1,0 +1,23 @@
+/* Dynamics HTML Report Stylesheet */
+
+/* Other information on page settings - e.g. date and time */
+.otherInfo {
+ font-family: 'times new roman', arial, 'sans-serif';
+}
+
+/* Default settings for the column labels of the report */
+TH {
+ font-family: 'times new roman', arial, 'sans-serif';
+ font-weight: bold;
+ text-decoration: underline;
+ color: #000000;
+}
+
+/* Default setting for the rows in the report */
+TR {
+ font-family: 'times new roman', arial, 'sans-serif';
+ font-style: normal;
+ color: #000000;  /* Black */
+ background-color: FFFFFF; /* White */
+}
+

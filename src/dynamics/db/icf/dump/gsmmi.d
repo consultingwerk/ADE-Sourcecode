@@ -41,6 +41,7 @@
 48549.9875 0 0 0 0 "Node Maintenance" "Node Maintenance" no "" "" no no yes no "NodeMaintenance" "" "" "Node Maintenance" "ry/img/treeview_up.bmp" "" "" "" "" "" "PUBLISH" "toolbar" "" "nodemaintenance" "" "" "" "" "" "" "Action" "Icon only" "" "" 426
 50791.9875 0 50377.9875 0 0 "&Preferences..." "Preferences" no "" "" no no yes no "OGPreferences" "" "" "Preferences" "" "" "" "" "" "" "LAUNCH" "" "run-source" "" "" "" "" "" "" "" "Action" "" "" "" 426
 90241.9875 0 0 0 0 "Save &As" "Save As" no "Save As" "SHIFT-F6" no no no no "cbSaveAs" "" "SaveAs" "Save &As" "" "" "" "" "" "" "PUBLISH" "toolbar" "containertoolbar-target" "SaveAs" "" "" "" "" "" "" "Action" "Icon only" "" "" 426
+98758.48 0 98738.48 0 0 "Preferences" "Preferences" no "Preferences" "" no no yes no "ICF84_00000301" "" "" "Preferences" "" "" "" "" "" "" "LAUNCH" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 99019 0 0 0 1000709352.09 "&Links" "Dynamics menu" no "" "" no no yes no "ASMNU_00000350" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "Label" "" "" "" 426
 99023 0 243052 0 0 "Database Viewer" "Database Viewer" no "Database Viewer" "" no no yes no "ASMNU_00000354" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 300002.24 1004874679.09 300004.24 0 0 "Reset Data Modified Status" "Reset Data Modified Status" no "Reset Data Modified Status" "" no no yes no "ICF42_00000204" "" "" "Reset Data Modified Status" "" "" "" "" "" "" "LAUNCH" "" "" "" "" "" "" "" "" "" "Action" "Icon only" "" "This option will allows for the Data Modified Status on all objects to be reset." 426
@@ -85,7 +86,7 @@
 1000708135.09 0 0 0 0 "&View record" "View record" no "View record" "ALT-V" no no no no "View" "" "View" "&View" "ry/img/viewrecord.gif" "ry/img/toolclip.bmp,64,0,16,16" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "View" "" "" "canLaunchDetailWindow() and RecordState=RecordAvailable and CanNavigate()" "" "" "" "ACTION" "" "" "" 426
 1000708136.09 0 0 0 0 "Fi&nd record..." "Find record..." no "Find record" "ALT-N" no no no no "Find" "" "Find" "Fi&nd..." "ry/img/affind.gif" "ry/img/toolclip.bmp,0,16,16,16" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "Find" "" "" "" "" "" "" "ACTION" "" "" "" 426
 1000708137.09 0 0 0 0 "Fil&ter records..." "Filter records..." no "Filter records" "ALT-T" no no no no "Filter2" "" "Filter" "Fil&ter..." "ry/img/affunnel.gif" "ry/img/toolclip.bmp,16,16,16,16" "" "ry/img/affuntick.gif" "ry/img/toolclip.bmp,32,16,16,16" "" "PUBLISH" "toolbar" "toolbar-target" "Filter" "" "" "" "" "FilterActive" "" "ACTION" "" "" "" 426
-1000708138.09 0 0 0 0 "Print Pre&view" "Print Preview" no "Print Preview" "" no no no no "Preview" "" "Preview" "Pre&view" "ry/img/afprintpre.gif" "ry/img/toolclip.bmp,96,32,16,16" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "Preview" "" "" "PrintPreviewActive=yes and RecordState=RecordAvailable" "" "" "" "ACTION" "" "" "" 426
+1000708138.09 0 0 0 0 "Print Pre&view" "Print Preview" no "Print Preview" "" no no no no "Preview" "" "Preview" "Pre&view" "ry/img/afprintpre.gif" "ry/img/toolclip.bmp,96,32,16,16" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "Preview" "" "" "RecordState=RecordAvailable" "" "" "" "ACTION" "" "" "" 426
 1000708139.09 0 0 0 0 "&Export..." "Export..." no "Export" "" no no no no "Export" "" "Export" "&Export..." "ry/img/aftoexcel.gif" "ry/img/toolclip.bmp,112,32,16,16" "" "" "" "" "PUBLISH" "toolbar" "toolbar-target" "Export" "" "" "RecordState=RecordAvailable" "" "" "" "ACTION" "" "" "" 426
 1000708140.09 0 0 0 0 "&Audit..." "Audit..." no "Audit" "" no no no no "Audit" "" "Audit" "&Audit..." "ry/img/afauditlog.gif" "ry/img/toolclip.bmp,0,48,16,16" "" "ry/img/afaudtick.gif" "ry/img/toolclip.bmp,16,48,16,16" "" "PUBLISH" "toolbar" "toolbar-target" "Audit" "" "" "RecordState=RecordAvailable and AuditEnabled" "" "hasActiveAudit()" "" "ACTION" "" "" "" 426
 1000708141.09 0 0 0 0 "Co&mments..." "Comments..." no "Comments" "" no no no no "Comments" "" "Comments" "Co&mments..." "ry/img/afcomment.gif" "ry/img/toolclip.bmp,32,48,16,16" "" "ry/img/afcomtick.gif" "ry/img/toolclip.bmp,48,48,16,16" "" "PUBLISH" "toolbar" "toolbar-Target" "Comments" "" "" " RecordState=RecordAvailable" "" "hasActiveComments()" "" "ACTION" "" "" "" 426
@@ -159,7 +160,7 @@
 1003700174 0 0 0 0 "" "" no "" "" no no yes yes "RULE" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "Separator" "" "" "" 426
 1003700292 0 1003500211 0 0 "&Connection Status" "Connection Status" no "" "" no no yes no "ASMNU_00001886" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1003764285 0 0 0 1000709352.09 "&Objects" "Objects" no "" "" no no no no "ASMNU_00002051" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "Label" "" "" "" 426
-1003764286 0 2000000876.28 0 0 "Object &Type Control" "Object Type Control" no "" "" no no no no "ASMNU_00002044" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
+1003764286 0 2000000876.28 0 0 "C&lass Maintenance" "Class Maintenance" no "" "" no no no no "ASMNU_00002044" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1003764342 0 0 0 1000709352.09 "&Attributes" "Attributes" no "" "" no no no no "ASMNU_00002054" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "Label" "" "" "" 426
 1003764344 0 1004926880 0 0 "Attribute &Group Control" "Attribute Group Control" no "" "" no no no no "ASMNU_00002053" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1003764377 0 1003574037 0 0 "&Attribute Control" "Attribute Control" no "" "" no no no no "ASMNU_00002055" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
@@ -200,7 +201,6 @@
 1004919027.09 0 1004900936.09 0 0 "&Logical Service Control" "Logical Service Control" no "" "" no no yes no "ICF_00000077" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1004919028.09 0 1004904130.09 0 0 "&Physical Service Control" "Physical Service Control" no "" "" no no yes no "ICF_00000078" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1004919029.09 0 1004894575.09 0 0 "P&rofile Control" "Profile Control" no "" "" no no yes no "ICF_00000079" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
-1004919030.09 0 1004883883.09 0 0 "Security &Allocation" "Security Allocation" no "" "" no no yes no "ICF_00000080" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1004919032.09 0 1004837652.09 0 0 "&Context Help Control" "Context Help Control" no "" "" no no yes no "ICF_00000082" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1004919033.09 0 1004859335.09 0 0 "&Message Control" "Message Control" no "" "" no no yes no "ICF_00000083" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 1004919035.09 0 1004870754.09 0 0 "Se&quence Control" "Sequence Control" no "" "" no no yes no "ICF_00000085" "" "" "" "" "" "" "" "" "" "Launch" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
@@ -241,10 +241,10 @@ PSC
 filename=gsm_menu_item
 records=0000000000238
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:39
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000054888
+0000054854

@@ -1,300 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="158"><dataset_header DisableRI="yes" DatasetObj="1007600196.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCEM" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600196.08</deploy_dataset_obj>
-<dataset_code>GSCEM</dataset_code>
-<dataset_description>gsc_entity_mnemonic - Entity Mnemon</dataset_description>
-<disable_ri>yes</disable_ri>
-<source_code_data>no</source_code_data>
-<deploy_full_data>yes</deploy_full_data>
-<xml_generation_procedure></xml_generation_procedure>
-<default_ado_filename></default_ado_filename>
-<deploy_additions_only>no</deploy_additions_only>
-<enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
-<dataset_entity><dataset_entity_obj>1007600197.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600196.08</deploy_dataset_obj>
-<entity_sequence>1</entity_sequence>
-<entity_mnemonic>GSCEM</entity_mnemonic>
-<primary_entity>yes</primary_entity>
-<join_entity_mnemonic></join_entity_mnemonic>
-<join_field_list>entity_mnemonic</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>gsc_entity_mnemonic</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<dataset_entity><dataset_entity_obj>1007600198.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600196.08</deploy_dataset_obj>
-<entity_sequence>2</entity_sequence>
-<entity_mnemonic>GSCED</entity_mnemonic>
-<primary_entity>no</primary_entity>
-<join_entity_mnemonic>GSCEM</join_entity_mnemonic>
-<join_field_list>entity_mnemonic,entity_mnemonic</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>gsc_entity_display_field</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<table_definition><name>gsc_entity_mnemonic</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_entity_mnemonic,1,0,0,entity_mnemonic_obj,0</index-1>
-<index-2>XIE1gsc_entity_mnemonic,0,0,0,entity_mnemonic_short_desc,0</index-2>
-<index-3>XIE2gsc_entity_mnemonic,0,0,0,entity_mnemonic_description,0</index-3>
-<index-4>XIE3gsc_entity_mnemonic,0,0,0,deploy_data,0,entity_mnemonic,0</index-4>
-<index-5>XIE4gsc_entity_mnemonic,0,0,0,replicate_entity_mnemonic,0</index-5>
-<index-6>XIE5gsc_entity_mnemonic,0,0,0,version_data,0,entity_mnemonic,0</index-6>
-<index-7>XPKgsc_entity_mnemonic,1,1,0,entity_mnemonic,0</index-7>
-<field><name>entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Entity</label>
-<column-label>Entity</column-label>
-</field>
-<field><name>entity_mnemonic_short_desc</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Entity short desc.</label>
-<column-label>Entity short desc.</column-label>
-</field>
-<field><name>entity_mnemonic_description</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Entity description</label>
-<column-label>Entity description</column-label>
-</field>
-<field><name>auto_properform_strings</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Auto properform strings</label>
-<column-label>Auto properform strings</column-label>
-</field>
-<field><name>entity_mnemonic_label_prefix</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(28)</format>
-<initial></initial>
-<label>Entity label prefix</label>
-<column-label>Entity label prefix</column-label>
-</field>
-<field><name>entity_mnemonic_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Entity obj</label>
-<column-label>Entity obj</column-label>
-</field>
-<field><name>entity_description_field</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Entity description field</label>
-<column-label>Entity description field</column-label>
-</field>
-<field><name>entity_description_procedure</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Entity description procedure</label>
-<column-label>Entity description procedure</column-label>
-</field>
-<field><name>entity_narration</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Entity narration</label>
-<column-label>Entity narration</column-label>
-</field>
-<field><name>entity_object_field</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Entity object field</label>
-<column-label>Entity object field</column-label>
-</field>
-<field><name>table_has_object_field</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Table has object field</label>
-<column-label>Table has object field</column-label>
-</field>
-<field><name>entity_key_field</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Entity key field</label>
-<column-label>Entity key field</column-label>
-</field>
-<field><name>table_prefix_length</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>-&gt;9</format>
-<initial>  0</initial>
-<label>Table prefix length</label>
-<column-label>Table prefix length</column-label>
-</field>
-<field><name>field_name_separator</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(10)</format>
-<initial></initial>
-<label>Field name separator</label>
-<column-label>Field name separator</column-label>
-</field>
-<field><name>auditing_enabled</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Auditing enabled</label>
-<column-label>Auditing enabled</column-label>
-</field>
-<field><name>version_data</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Version data</label>
-<column-label>Version data</column-label>
-</field>
-<field><name>deploy_data</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Deploy data</label>
-<column-label>Deploy data</column-label>
-</field>
-<field><name>entity_dbname</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Entity DB name</label>
-<column-label>Entity DB name</column-label>
-</field>
-<field><name>replicate_entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Replicate entity</label>
-<column-label>Replicate entity</column-label>
-</field>
-<field><name>replicate_key</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Replicate key</label>
-<column-label>Replicate key</column-label>
-</field>
-<field><name>scm_field_name</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>SCM field name</label>
-<column-label>SCM field name</column-label>
-</field>
-<field><name>reuse_deleted_keys</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Reuse deleted keys</label>
-<column-label>Reuse deleted keys</column-label>
-</field>
-</table_definition>
-<table_definition><name>gsc_entity_display_field</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_entity_display_field,1,0,0,entity_mnemonic,0,display_field_name,0</index-1>
-<index-2>XAK2gsc_entity_display_field,1,0,0,entity_mnemonic,0,display_field_order,0,display_field_name,0</index-2>
-<index-3>XPKgsc_entity_display_field,1,1,0,entity_display_field_obj,0</index-3>
-<field><name>entity_display_field_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Entity display field obj</label>
-<column-label>Entity display field obj</column-label>
-</field>
-<field><name>entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Entity</label>
-<column-label>Entity</column-label>
-</field>
-<field><name>display_field_name</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Display field name</label>
-<column-label>Display field name</column-label>
-</field>
-<field><name>display_field_order</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;9</format>
-<initial>      0</initial>
-<label>Display field order</label>
-<column-label>Display field order</column-label>
-</field>
-<field><name>display_field_label</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(28)</format>
-<initial></initial>
-<label>Display field label</label>
-<column-label>Display field label</column-label>
-</field>
-<field><name>display_field_column_label</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(28)</format>
-<initial></initial>
-<label>Display field column label</label>
-<column-label>Display field column label</column-label>
-</field>
-<field><name>display_field_format</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(35)</format>
-<initial></initial>
-<label>Display field format</label>
-<column-label>Display field format</column-label>
-</field>
-</table_definition>
-</dataset_header>
+<dataset Transactions="164"><dataset_header DisableRI="yes" DatasetObj="1007600196.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCEM" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record version_date="09/22/2002" version_time="33805" version_user="admin" deletion_flag="yes" entity_mnemonic="gscem" key_field_value="0" record_version_obj="3000005414.09" version_number_seq="1.09" secondary_key_value="GSTTO" import_version_number_seq="1.09"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record version_date="09/22/2002" version_time="40306" version_user="admin" deletion_flag="yes" entity_mnemonic="gscem" key_field_value="1004924350.09" record_version_obj="3000005436.09" version_number_seq="1.09" secondary_key_value="RVCCT" import_version_number_seq="1.09"/>
@@ -375,12 +80,12 @@
 <entity_mnemonic_obj>41</entity_mnemonic_obj>
 <entity_description_field>custom_procedure_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table is contained in Dynamics for backward compatibility and will likely be dropped at a later stage. It will be replaced with flows and events when these are fully implemented.
-
-The purpose of this table is to provide a mechanism to define alternate procedures for custom specific business logic.
-
-This table contains a list of all the system supported procedures that satisfy these business rules, categorised by entity and procedure type. A number of variations for each process may exist - the procedure to use in each case must be selected from this list.
-
+<entity_narration>This table is contained in Dynamics for backward compatibility and will likely be dropped at a later stage. It will be replaced with flows and events when these are fully implemented.
+
+The purpose of this table is to provide a mechanism to define alternate procedures for custom specific business logic.
+
+This table contains a list of all the system supported procedures that satisfy these business rules, categorised by entity and procedure type. A number of variations for each process may exist - the procedure to use in each case must be selected from this list.
+
 The programs that these procedures exist in will run persistently when required.</entity_narration>
 <entity_object_field>custom_procedure_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -445,12 +150,12 @@ The programs that these procedures exist in will run persistently when required.
 <entity_mnemonic_obj>1004947239.09</entity_mnemonic_obj>
 <entity_description_field>field_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table makes provision for any number of parameters or system defaults that need be specified to the system, without neccessitating structural database changes.
-
-How these parameters / defaults are used needs to be hard coded into the application.
-
-These records can be grouped into sets under gsc_default_set, to facilitate different parameter / defaults sets. Again, the selection of a default set would be coded into the application.
-
+<entity_narration>This table makes provision for any number of parameters or system defaults that need be specified to the system, without neccessitating structural database changes.
+
+How these parameters / defaults are used needs to be hard coded into the application.
+
+These records can be grouped into sets under gsc_default_set, to facilitate different parameter / defaults sets. Again, the selection of a default set would be coded into the application.
+
 An example would be different parameter sets for warehouse control, different controls per administration group etc.</entity_narration>
 <entity_object_field>default_code_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -523,20 +228,20 @@ An example would be different parameter sets for warehouse control, different co
 <entity_mnemonic_obj>1004927719.09</entity_mnemonic_obj>
 <entity_description_field>dataset_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the sets of data that need to be deployed to end-user sites and migrated to different workspace databases. Usually it is static data that needs to be deployed. This table with its child table gsc_dataset_entity identify which data must be deployed as a set, i.e. has dependancies. For example, in order to deploy menu items, objects on the menu item would also need to be deployed.
-
-These tables also define the dataset for deployment of logical objects managed by the scm tool, e.g. the ryc_smartobject and related tables.
-
-To deploy and load the data, xml files will be generated for the dataset.
-
-The dataset must always have a main table that is being deployed, plus all related tables that need to be deployed with it, together with appropriate join information.
-
-Example datasets could be for SmartObjects, menus, objects, etc. It is likely that a seperate dataset will be defined for most data tables that need to be deployed, but that these datasets will include a parent dataset that includes this dataset.
-
-When automatically generating triggers from ERWin an entity-level UDP (DeployData) is used to indicate whether trigger code should be generated for the static tables to support data deployment. A flag also exists in the entity mnemonic table called deploy_data for the same purpose.
-
-For customer sites that receive a dataset deployment, the last deployment loaded for this dataset is record here. This helps identify at what version the current static data is for a particular database.
-
+<entity_narration>This table defines the sets of data that need to be deployed to end-user sites and migrated to different workspace databases. Usually it is static data that needs to be deployed. This table with its child table gsc_dataset_entity identify which data must be deployed as a set, i.e. has dependancies. For example, in order to deploy menu items, objects on the menu item would also need to be deployed.
+
+These tables also define the dataset for deployment of logical objects managed by the scm tool, e.g. the ryc_smartobject and related tables.
+
+To deploy and load the data, xml files will be generated for the dataset.
+
+The dataset must always have a main table that is being deployed, plus all related tables that need to be deployed with it, together with appropriate join information.
+
+Example datasets could be for SmartObjects, menus, objects, etc. It is likely that a seperate dataset will be defined for most data tables that need to be deployed, but that these datasets will include a parent dataset that includes this dataset.
+
+When automatically generating triggers from ERWin an entity-level UDP (DeployData) is used to indicate whether trigger code should be generated for the static tables to support data deployment. A flag also exists in the entity mnemonic table called deploy_data for the same purpose.
+
+For customer sites that receive a dataset deployment, the last deployment loaded for this dataset is record here. This helps identify at what version the current static data is for a particular database.
+
 Customers should not modify or deploy from datasets sent by suppliers. The customer can however create their own datasets containing the same tables and deploy from these datasets. As a dataset deployment includes an xml file registered as part of the deployment, the customer can simply utilise this xml file for their database and any subsequent databases and sites they wish to pass the data on to.</entity_narration>
 <entity_object_field>deploy_dataset_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -641,10 +346,10 @@ Customers should not modify or deploy from datasets sent by suppliers. The custo
 <entity_mnemonic_obj>1004927718.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains a complete list of tables that need to be deployed with the  dataset.
-
-One of the tables in the dataset must be marked as primary, i.e. the main table in the dataset. The join information between the tables must also be specified.
-
+<entity_narration>This table contains a complete list of tables that need to be deployed with the  dataset.
+
+One of the tables in the dataset must be marked as primary, i.e. the main table in the dataset. The join information between the tables must also be specified.
+
 The data in this table can be filtered using the filter where clause.</entity_narration>
 <entity_object_field>dataset_entity_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -861,10 +566,10 @@ The data in this table can be filtered using the filter where clause.</entity_na
 <entity_mnemonic_obj>1004924362.09</entity_mnemonic_obj>
 <entity_description_field>default_set_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table is used to associate a set of parameters / defaults i.e. a set of gsc_default_code records.
-
-For example, there could be a general set of defaults applicable to the system in general, and other sets of defaults to be used in certain circumstances e.g. for a specific department.
-
+<entity_narration>This table is used to associate a set of parameters / defaults i.e. a set of gsc_default_code records.
+
+For example, there could be a general set of defaults applicable to the system in general, and other sets of defaults to be used in certain circumstances e.g. for a specific department.
+
 The way these sets are used must be hard coded into the application.</entity_narration>
 <entity_object_field>default_set_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -905,14 +610,14 @@ The way these sets are used must be hard coded into the application.</entity_nar
 <entity_mnemonic_obj>1004924365.09</entity_mnemonic_obj>
 <entity_description_field>document_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>The document types supported by the system. Certain document types will be hard coded as they form an integral part of the application, e.g. membership cards, etc.
-
-Each document type will have one or more document formats associated with a customised formatting procedure.
-
-A document type should be set up for any outgoing documents.
-
-We need to know the document_type_tla for system owned document types as this will be used in any print_option_tlas fields to determine where certain data should be printed.
-
+<entity_narration>The document types supported by the system. Certain document types will be hard coded as they form an integral part of the application, e.g. membership cards, etc.
+
+Each document type will have one or more document formats associated with a customised formatting procedure.
+
+A document type should be set up for any outgoing documents.
+
+We need to know the document_type_tla for system owned document types as this will be used in any print_option_tlas fields to determine where certain data should be printed.
+
 </entity_narration>
 <entity_object_field>document_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -977,8 +682,8 @@ We need to know the document_type_tla for system owned document types as this wi
 <entity_mnemonic_obj>1004924363.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table associates default sets with objects in the application.
-
+<entity_narration>This table associates default sets with objects in the application.
+
 For example, in property administration, a default set could be for a specific administration company. In medical aid, a default set could be for a specific scheme option, employer group etc.</entity_narration>
 <entity_object_field>default_set_usage_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1019,17 +724,17 @@ For example, in property administration, a default set could be for a specific a
 <entity_mnemonic_obj>1005079469.09</entity_mnemonic_obj>
 <entity_description_field>display_field_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the fields for a table that should be used when building generic objects for it, e.g. a dynamic browser.
-
-It identifies the fields that should be used, the sequence of the fields, plus allows the label and format of the fields to be overridden.
-
-This is actually used in the generic data security used by the framework. 
-
-If no entries exist in this table, then all the fields other than any object fields will be used, in the standard field order as defined in the database.
-
-This table should initially be populated automatically from the metaschema but may then be modified accordingly.
-
-This table does not support joined fields.
+<entity_narration>This table defines the fields for a table that should be used when building generic objects for it, e.g. a dynamic browser.
+
+It identifies the fields that should be used, the sequence of the fields, plus allows the label and format of the fields to be overridden.
+
+This is actually used in the generic data security used by the framework. 
+
+If no entries exist in this table, then all the fields other than any object fields will be used, in the standard field order as defined in the database.
+
+This table should initially be populated automatically from the metaschema but may then be modified accordingly.
+
+This table does not support joined fields.
 </entity_narration>
 <entity_object_field>entity_display_field_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1102,8 +807,8 @@ This table does not support joined fields.
 <entity_mnemonic_obj>1004924406.09</entity_mnemonic_obj>
 <entity_description_field>entity_mnemonic</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table stores all the hard coded entity mnemonics allocated to every table in the application. It defines a meaningful short code and identifies the table name for each table.
-
+<entity_narration>This table stores all the hard coded entity mnemonics allocated to every table in the application. It defines a meaningful short code and identifies the table name for each table.
+
 It also defines generic information about the entity used when generating dynamic or generic objects based on the table, auto generating triggers, etc.</entity_narration>
 <entity_object_field>entity_mnemonic_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1296,14 +1001,14 @@ It also defines generic information about the entity used when generating dynami
 <entity_mnemonic_obj>1004924366.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains pointers to procedures which may be automatically run by the system before and after table create, write and delete triggers.
-
-The procedures would exist under a single category type with 6 category groups:
-Before create
-After create
-Before write
-After write
-Before delete
+<entity_narration>This table contains pointers to procedures which may be automatically run by the system before and after table create, write and delete triggers.
+
+The procedures would exist under a single category type with 6 category groups:
+Before create
+After create
+Before write
+After write
+Before delete
 After delete.</entity_narration>
 <entity_object_field>entity_mnemonic_procedure_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1344,23 +1049,23 @@ After delete.</entity_narration>
 <entity_mnemonic_obj>1004924407.09</entity_mnemonic_obj>
 <entity_description_field>error_summary_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines all the application errors that can occur, together with summary and full descriptions.
-
-The summary description will be shown first, with an option to display a fuller description if available.
-
-The use of error codes from this table facilitates the customisation of error messages.
-
-This table now supports any kind of message to the user. No messages should be hard coded in the application at all, every message to the user should be channelled through here. Supported message types are:
-
-MES = Message
-INF = Information
-ERR = Error
-WAR = Warning
-QUE = Question
-
-The default is ERR for Error if nothing is set-up.
-
-Errors in multiple langages are also supported if required.
+<entity_narration>This table defines all the application errors that can occur, together with summary and full descriptions.
+
+The summary description will be shown first, with an option to display a fuller description if available.
+
+The use of error codes from this table facilitates the customisation of error messages.
+
+This table now supports any kind of message to the user. No messages should be hard coded in the application at all, every message to the user should be channelled through here. Supported message types are:
+
+MES = Message
+INF = Information
+ERR = Error
+WAR = Warning
+QUE = Question
+
+The default is ERR for Error if nothing is set-up.
+
+Errors in multiple langages are also supported if required.
 </entity_narration>
 <entity_object_field>error_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1441,7 +1146,7 @@ Errors in multiple langages are also supported if required.
 <entity_mnemonic_obj>1004924367.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines system wide defaults. It contains a single record within which to hold the current system defaults.
+<entity_narration>This table defines system wide defaults. It contains a single record within which to hold the current system defaults.
 </entity_narration>
 <entity_object_field>global_control_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1482,10 +1187,10 @@ Errors in multiple langages are also supported if required.
 <entity_mnemonic_obj>1004924368.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains global default values across the entire application. It differes from the parameter file in that the parameter file is specific to a user, whereas entries in this table are system wide.
-
-Standard entries exist in the gsc_global_control table. This table facilitates the generic addition of other defaults without the need for database change. The entries in this table will be system owned by ther nature, and the only fields that may change are the owning_obj and the default_value. The changing of any of these values will create a new record for the owning_entity_mnemonic and default_type, efffective as of the new date with the new values.
-
+<entity_narration>This table contains global default values across the entire application. It differes from the parameter file in that the parameter file is specific to a user, whereas entries in this table are system wide.
+
+Standard entries exist in the gsc_global_control table. This table facilitates the generic addition of other defaults without the need for database change. The entries in this table will be system owned by ther nature, and the only fields that may change are the owning_obj and the default_value. The changing of any of these values will create a new record for the owning_entity_mnemonic and default_type, efffective as of the new date with the new values.
+
 Entries may not therefore be deleted from this table, other than by a system administrator.</entity_narration>
 <entity_object_field>global_default_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1542,16 +1247,16 @@ Entries may not therefore be deleted from this table, other than by a system adm
 <entity_mnemonic_obj>1004924408.09</entity_mnemonic_obj>
 <entity_description_field>attribute_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains instance attributes used in the application. Instance attributes change the behaviour of generic objects. For example, a generic object could be developed that behaved differently in a creditors and debtors system. An instance attribute of creditor or debtor could be posted to the program when run to determine its instance specific functionality.
-
-The instance attribute will be posted to the program either via the menu option the program was run from, as setup in the menu option, or hard coded in a program if the program was run from a button, etc.
-
-For this reason, certain instance attributes will be system owned and cannot be maintained / deleted by users.
-
-When security structures e.g. field security are setup, they may be defined globally, for a specific product, product module or down to individual program level. The instance attribute is a level below the program level that permits security settings per instance of a program.
-
-Instance attributes will also be used for reporting to allow reports to be printed direct from menu options. The instance attribute code must map to the report_procedure_name in the report_definition table. Whenever a report definition is created, an instance attribute should automatically be created to facilitate this functionality.
-
+<entity_narration>This table contains instance attributes used in the application. Instance attributes change the behaviour of generic objects. For example, a generic object could be developed that behaved differently in a creditors and debtors system. An instance attribute of creditor or debtor could be posted to the program when run to determine its instance specific functionality.
+
+The instance attribute will be posted to the program either via the menu option the program was run from, as setup in the menu option, or hard coded in a program if the program was run from a button, etc.
+
+For this reason, certain instance attributes will be system owned and cannot be maintained / deleted by users.
+
+When security structures e.g. field security are setup, they may be defined globally, for a specific product, product module or down to individual program level. The instance attribute is a level below the program level that permits security settings per instance of a program.
+
+Instance attributes will also be used for reporting to allow reports to be printed direct from menu options. The instance attribute code must map to the report_procedure_name in the report_definition table. Whenever a report definition is created, an instance attribute should automatically be created to facilitate this functionality.
+
 </entity_narration>
 <entity_object_field>instance_attribute_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1728,10 +1433,10 @@ Instance attributes will also be used for reporting to allow reports to be print
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="55" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24171" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924409.09" record_version_obj="3000005578.09" version_number_seq="12.09" secondary_key_value="GSCLS" import_version_number_seq="12.09"><entity_mnemonic>GSCLS</entity_mnemonic>
-<entity_mnemonic_short_desc>logical service</entity_mnemonic_short_desc>
+<dataset_transaction TransactionNo="55" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="04/26/2004" version_time="49264" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924409.09" record_version_obj="3000005578.09" version_number_seq="14.19" secondary_key_value="GSCLS" import_version_number_seq="14.19"><entity_mnemonic>GSCLS</entity_mnemonic>
+<entity_mnemonic_short_desc>gsc_logical_service</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsc_logical_service</entity_mnemonic_description>
-<auto_properform_strings>yes</auto_properform_strings>
+<auto_properform_strings>no</auto_properform_strings>
 <entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
 <entity_mnemonic_obj>1004924409.09</entity_mnemonic_obj>
 <entity_description_field>logical_service_description</entity_description_field>
@@ -1747,12 +1452,15 @@ The physical service will determine the actual connection parameters.
 Which physical service is used is determined by combining the session type with the logical service.
 
 Logical services for appserver service types would in fact be appserver partition names. Logical services for database connection service types would be the logical database name.
+
+This table supports the registration of services and whether they are connected at start of a session is controlled by the connect_at_startup flag. This would typically be set to YES unless the service type is a webservice, in which case it would be NO typically due to the potential slow connection performance of webservices.
+
 </entity_narration>
 <entity_object_field>logical_service_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
 <entity_key_field>logical_service_code</entity_key_field>
-<table_prefix_length>4</table_prefix_length>
-<field_name_separator>_</field_name_separator>
+<table_prefix_length>0</table_prefix_length>
+<field_name_separator></field_name_separator>
 <auditing_enabled>?</auditing_enabled>
 <version_data>yes</version_data>
 <deploy_data>yes</deploy_data>
@@ -1811,7 +1519,7 @@ Logical services for appserver service types would in fact be appserver partitio
 <entity_mnemonic_obj>54</entity_mnemonic_obj>
 <entity_description_field>physical_file_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Totally generic text file for all supported languages. Text&apos;s may be associated with another entity (via owning_obj) or may be simply generic text of a certain type. Numbers enclosed in {} are for parameter substitution.
+<entity_narration>Totally generic text file for all supported languages. Text&apos;s may be associated with another entity (via owning_obj) or may be simply generic text of a certain type. Numbers enclosed in {} are for parameter substitution.
 E.g. Scheme option names, transaction narrations, valid people titles, etc.</entity_narration>
 <entity_object_field>language_text_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -1956,22 +1664,22 @@ E.g. Scheme option names, transaction narrations, valid people titles, etc.</ent
 <entity_mnemonic_obj>1004924410.09</entity_mnemonic_obj>
 <entity_description_field>manager_type_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains the definition of the standard manager types that are used in the framework.
-
-A predefined set of manager types will exist in this table that support the framework functionality. Only managers that directly affect the core functionality of the framework need to be defined as manager types.
-
-For example, without a session manager we cannot start any other code, without a security manager we cannot do user authentication, etc.
-
-The physical procedures to run for this manager type are defined in this tables and two standard ones are supported;
-
-The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
-
-The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
-
-In order to support overrides of standard manager functionality, the super procedure attribute can be used against the manager object to define a super procedure stack of override functionality. It would point at a specific procedure to add as a super procedure, which in turn could have a super procedure, etc.
-
-The bound and unbound manager fields may need to be customized to point at the last procedure in the super procedure stack, so these fields need to be defined as fields that do not get overridden by new deployments to ensure that the customizations do not get lost. This is defined in the axclude fields field of the gsc_dataset_entity table.
-
+<entity_narration>This table contains the definition of the standard manager types that are used in the framework.
+
+A predefined set of manager types will exist in this table that support the framework functionality. Only managers that directly affect the core functionality of the framework need to be defined as manager types.
+
+For example, without a session manager we cannot start any other code, without a security manager we cannot do user authentication, etc.
+
+The physical procedures to run for this manager type are defined in this tables and two standard ones are supported;
+
+The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
+
+The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
+
+In order to support overrides of standard manager functionality, the super procedure attribute can be used against the manager object to define a super procedure stack of override functionality. It would point at a specific procedure to add as a super procedure, which in turn could have a super procedure, etc.
+
+The bound and unbound manager fields may need to be customized to point at the last procedure in the super procedure stack, so these fields need to be defined as fields that do not get overridden by new deployments to ensure that the customizations do not get lost. This is defined in the axclude fields field of the gsc_dataset_entity table.
+
 The manager objects specified here are always started for any session type that includes this manager type as a required manager type, via the gsm_required_manager table. We therefore do not support the ability to start different manager objects for different session types. If this is required, then different manager types must be defined.</entity_narration>
 <entity_object_field>manager_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2084,17 +1792,17 @@ The manager objects specified here are always started for any session type that 
 <entity_mnemonic_obj>1004924413.09</entity_mnemonic_obj>
 <entity_description_field>object_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the types of programs supported. A record will need to exist for the various support templates, e.g. &quot;Object Controller&quot;, &quot;Menu Controller&quot;, &quot;SmartFolder&quot;, smartbrowser, smartviewer, smartdataobject, etc.
-
-When objects are created, they must be assigned an object type.
-
-The object type is used as a grouping mechanism for security, to allow restrictions to be created for certain types of objects, rather than having to setup security for every object.
-
-A recursive join exists for the object type to facilitate definition of object type hierarchies (class hieararchies). This is then useful for attribute inheritance at multiple levels of object type.
-
-For example, an object type could be defined for a fill-in, then a child of this may be an integer fill-in, then a child of this may be an object id, etc.
-
-the extends object type means the inherit from object type.
+<entity_narration>This table defines the types of programs supported. A record will need to exist for the various support templates, e.g. &quot;Object Controller&quot;, &quot;Menu Controller&quot;, &quot;SmartFolder&quot;, smartbrowser, smartviewer, smartdataobject, etc.
+
+When objects are created, they must be assigned an object type.
+
+The object type is used as a grouping mechanism for security, to allow restrictions to be created for certain types of objects, rather than having to setup security for every object.
+
+A recursive join exists for the object type to facilitate definition of object type hierarchies (class hieararchies). This is then useful for attribute inheritance at multiple levels of object type.
+
+For example, an object type could be defined for a fill-in, then a child of this may be an integer fill-in, then a child of this may be an object id, etc.
+
+the extends object type means the inherit from object type.
 </entity_narration>
 <entity_object_field>object_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2167,8 +1875,8 @@ the extends object type means the inherit from object type.
 <entity_mnemonic_obj>1004924373.09</entity_mnemonic_obj>
 <entity_description_field>profile_code</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the codes that exist for each profile type, and the structure of the key / data value fields when this code is allocated against a user in the gsm_profile_data table.
-
+<entity_narration>This table defines the codes that exist for each profile type, and the structure of the key / data value fields when this code is allocated against a user in the gsm_profile_data table.
+
 An example profile type would be filter settings, and example profile codes for filter settings would be filter from values, filter to values, filtering enabled, filter field names, etc.</entity_narration>
 <entity_object_field>profile_code_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2257,13 +1965,13 @@ An example profile type would be filter settings, and example profile codes for 
 <entity_mnemonic_obj>1004924374.09</entity_mnemonic_obj>
 <entity_description_field>profile_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the types of profile codes supported for allocation to users.
-
-Records will exist for any type of profile information stored against a user between sessions. Examples include browser filter settings, report filter settings, Toolbar cusomisation settings, window positions and sizes, system wide settings such as tooltips on/off, etc.
-
-
-
-
+<entity_narration>This table defines the types of profile codes supported for allocation to users.
+
+Records will exist for any type of profile information stored against a user between sessions. Examples include browser filter settings, report filter settings, Toolbar cusomisation settings, window positions and sizes, system wide settings such as tooltips on/off, etc.
+
+
+
+
 </entity_narration>
 <entity_object_field>profile_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2328,8 +2036,8 @@ Records will exist for any type of profile information stored against a user bet
 <entity_mnemonic_obj>1004924415.09</entity_mnemonic_obj>
 <entity_description_field>product_module_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains information about the installed product modules with appropriate license details.
-
+<entity_narration>This table contains information about the installed product modules with appropriate license details.
+
 A recursive join has been added to support product module hierarchies.</entity_narration>
 <entity_object_field>product_module_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2666,12 +2374,12 @@ A recursive join has been added to support product module hierarchies.</entity_n
 <entity_mnemonic_obj>3000049705.09</entity_mnemonic_obj>
 <entity_description_field>scm_tool_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines possible software configuration management tools that could be integrated with Dynamics. The tool currently in use is identified via the gsc_security_control table.
-
-An example of an integrated SCM tool is Roundtable (RTB).
-
-The primary purpose of this table is to link together xref information between the Dynamics repository and the SCM tool for data such as product modules, object types, etc. as specified in the gsm_scm_xref table.
-
+<entity_narration>This table defines possible software configuration management tools that could be integrated with Dynamics. The tool currently in use is identified via the gsc_security_control table.
+
+An example of an integrated SCM tool is Roundtable (RTB).
+
+The primary purpose of this table is to link together xref information between the Dynamics repository and the SCM tool for data such as product modules, object types, etc. as specified in the gsm_scm_xref table.
+
 </entity_narration>
 <entity_object_field>scm_tool_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2688,7 +2396,7 @@ The primary purpose of this table is to link together xref information between t
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="68" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24173" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924372.09" record_version_obj="3000002303.09" version_number_seq="5.09" secondary_key_value="GSCSN" import_version_number_seq="5.09"><entity_mnemonic>GSCSN</entity_mnemonic>
+<dataset_transaction TransactionNo="68" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="07/16/2004" version_time="54024" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924372.09" record_version_obj="3000002303.09" version_number_seq="7.24" secondary_key_value="GSCSN" import_version_number_seq="7.24"><entity_mnemonic>GSCSN</entity_mnemonic>
 <entity_mnemonic_short_desc>next sequence</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsc_next_sequence</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -2698,7 +2406,15 @@ The primary purpose of this table is to link together xref information between t
 <entity_description_procedure></entity_description_procedure>
 <entity_narration>This table is used to allocate sequence numbers where it is possible that multiple sequence numbers may be requested by multiple transactions simultaneously - it is intended to avoid deadly embrace record locks.
 
+
+
+
+
 When a gsc_sequence is created / updated with multi_transaction set to YES, number_of_sequences records are created in this table starting from gsc-sequence.next_value.
+
+
+
+
 
 When a sequence number is requested, the first record in this table for the gsc_sequence is found, saved and deleted. At the same time, a new gsc_next_sequence record is tagged on the end i.e. with the sequence number just found plus number_of_sequences.</entity_narration>
 <entity_object_field>next_sequence_obj</entity_object_field>
@@ -2713,7 +2429,7 @@ When a sequence number is requested, the first record in this table for the gsc_
 <replicate_entity_mnemonic></replicate_entity_mnemonic>
 <replicate_key></replicate_key>
 <scm_field_name></scm_field_name>
-<reuse_deleted_keys>yes</reuse_deleted_keys>
+<reuse_deleted_keys>no</reuse_deleted_keys>
 <contained_record DB="icfdb" Table="gsc_entity_display_field"><entity_display_field_obj>3000012934.09</entity_display_field_obj>
 <entity_mnemonic>GSCSN</entity_mnemonic>
 <display_field_name>next_sequence_value</display_field_name>
@@ -2732,9 +2448,9 @@ When a sequence number is requested, the first record in this table for the gsc_
 <entity_mnemonic_obj>1004924418.09</entity_mnemonic_obj>
 <entity_description_field>session_property_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains the list of valid properties that may be specified in the &quot;properties&quot; node of the ICF configuration file (ICFCONFIG.XML).
-
-These property values can be set and retrieved using calls to the Session Manager. They can thus be used to alter the way that the session performs depending on the session type.
+<entity_narration>This table contains the list of valid properties that may be specified in the &quot;properties&quot; node of the ICF configuration file (ICFCONFIG.XML).
+
+These property values can be set and retrieved using calls to the Session Manager. They can thus be used to alter the way that the session performs depending on the session type.
 </entity_narration>
 <entity_object_field>session_property_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2791,7 +2507,7 @@ These property values can be set and retrieved using calls to the Session Manage
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="70" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48995" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924376.09" record_version_obj="3000002429.09" version_number_seq="29.09" secondary_key_value="GSCSQ" import_version_number_seq="29.09"><entity_mnemonic>GSCSQ</entity_mnemonic>
+<dataset_transaction TransactionNo="70" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="07/16/2004" version_time="54024" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924376.09" record_version_obj="3000002429.09" version_number_seq="31.24" secondary_key_value="GSCSQ" import_version_number_seq="31.24"><entity_mnemonic>GSCSQ</entity_mnemonic>
 <entity_mnemonic_short_desc>sequence</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsc_sequence</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -2801,9 +2517,21 @@ These property values can be set and retrieved using calls to the Session Manage
 <entity_description_procedure></entity_description_procedure>
 <entity_narration>This is a generic sequence number / format table. All entries in this table will be system owned by their nature.
 
+
+
+
+
 When a sequence number is required to be generated, it will be done at the end of the update as part of the transaction. This table is a potential bottle neck and so locks should be kept to an absolute minimum, i.e. no locks during user interaction.
 
+
+
+
+
 If the sequence number is to be automatically generated, then there can be no holes in the sequence numbers, which is why a Progress sequence will not be used.
+
+
+
+
 
 Example uses for this table would be for the automatic generation of document numbers, transaction references, etc.</entity_narration>
 <entity_object_field>sequence_obj</entity_object_field>
@@ -2812,13 +2540,13 @@ Example uses for this table would be for the automatic generation of document nu
 <table_prefix_length>4</table_prefix_length>
 <field_name_separator>_</field_name_separator>
 <auditing_enabled>?</auditing_enabled>
-<version_data>yes</version_data>
+<version_data>no</version_data>
 <deploy_data>yes</deploy_data>
 <entity_dbname>ICFDB</entity_dbname>
 <replicate_entity_mnemonic></replicate_entity_mnemonic>
 <replicate_key></replicate_key>
 <scm_field_name></scm_field_name>
-<reuse_deleted_keys>yes</reuse_deleted_keys>
+<reuse_deleted_keys>no</reuse_deleted_keys>
 <contained_record DB="icfdb" Table="gsc_entity_display_field"><entity_display_field_obj>3000014288.09</entity_display_field_obj>
 <entity_mnemonic>GSCSQ</entity_mnemonic>
 <display_field_name>auto_generate</display_field_name>
@@ -2925,16 +2653,16 @@ Example uses for this table would be for the automatic generation of document nu
 <entity_mnemonic_obj>1004924417.09</entity_mnemonic_obj>
 <entity_description_field>service_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This entity describes the different types of services available to applications and provides the management procedures for the different types of connections.
-
-To illustrate, database services, AppServer services and JMS partitions are all different service types. The Database and AppServer services are system owned.
-
-The maintenance object defines the datafield object used to maintain the physical connection parameter attribute on the physical service table. For example, if this is a service type for database connections, then the datafield may allow the specifiction of -S -N and -H prompts independantly and then put the result as 1 field into the connection parameter.
-
-The management object is the api procedure that is responsible for making the physical connections to the service.
-
-In the case of an appserver partition, the default logical service could point at the default logical appserver partition to use.
-
+<entity_narration>This entity describes the different types of services available to applications and provides the management procedures for the different types of connections.
+
+To illustrate, database services, AppServer services and JMS partitions are all different service types. The Database and AppServer services are system owned.
+
+The maintenance object defines the datafield object used to maintain the physical connection parameter attribute on the physical service table. For example, if this is a service type for database connections, then the datafield may allow the specifiction of -S -N and -H prompts independantly and then put the result as 1 field into the connection parameter.
+
+The management object is the api procedure that is responsible for making the physical connections to the service.
+
+In the case of an appserver partition, the default logical service could point at the default logical appserver partition to use.
+
 </entity_narration>
 <entity_object_field>service_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -2967,7 +2695,43 @@ In the case of an appserver partition, the default logical service could point a
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="72" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924388.09" record_version_obj="3000002780.09" version_number_seq="12.09" secondary_key_value="GSMAV" import_version_number_seq="12.09"><entity_mnemonic>GSMAV</entity_mnemonic>
+<dataset_transaction TransactionNo="72" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="02/03/2004" version_time="56114" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="2496.38" record_version_obj="2497.38" version_number_seq="3.38" secondary_key_value="GSCTG" import_version_number_seq="3.38"><entity_mnemonic>GSCTG</entity_mnemonic>
+<entity_mnemonic_short_desc>data tag</entity_mnemonic_short_desc>
+<entity_mnemonic_description>gsc_data_tag</entity_mnemonic_description>
+<auto_properform_strings>yes</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>2496.38</entity_mnemonic_obj>
+<entity_description_field>data_tag_description</entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration>This table defines generic tags that may be assigned to data via the gsm_tagged_data table.
+
+The core Dynamics framework utilises the tag mechanism to identify which data belongs to and is shipped with the core product using a tag &quot;ry-own&quot;, e.g. to identify which object classes and related data belong to the core Dynamics product and should not be modified by users of the framework.
+
+Applications could use the tag mechanism to tag data that belongs to specific applications, or for any other generic purpose.
+
+The data in this table would need to be deployed as part of Dynamics and would typically only be relevant at design and deployment time rather than used as part of the runtime application. For example, rules could be applied to tagged data to prevent unauthorized or accidental modification of the data as design time, and tags could be used to help identify what data to deploy as part of an application.
+
+A generic mechanism is required in the framework to be able to easily attach data tags to data, typically from a browse view but also from within viewers when maintaining a specific record. Additionally, a central tool is required to maintain and manage multiple tags together.
+
+API&apos;s also need to be provided to make it easy to identify and work with tagged data as necessary.
+
+Session / configuration data will be required to configure how to operate on specific tags for specific purposes, e.g. to disable certain data due to ownership rules.</entity_narration>
+<entity_object_field>data_tag_obj</entity_object_field>
+<table_has_object_field>yes</table_has_object_field>
+<entity_key_field>data_tag_code</entity_key_field>
+<table_prefix_length>4</table_prefix_length>
+<field_name_separator>_</field_name_separator>
+<auditing_enabled>?</auditing_enabled>
+<version_data>yes</version_data>
+<deploy_data>yes</deploy_data>
+<entity_dbname>ICFDB</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>yes</reuse_deleted_keys>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="73" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924388.09" record_version_obj="3000002780.09" version_number_seq="12.09" secondary_key_value="GSMAV" import_version_number_seq="12.09"><entity_mnemonic>GSMAV</entity_mnemonic>
 <entity_mnemonic_short_desc>profile alpha value</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_alpha_value</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3023,7 +2787,7 @@ In the case of an appserver partition, the default logical service could point a
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="73" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24178" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924377.09" record_version_obj="3000002475.09" version_number_seq="34.09" secondary_key_value="GSMCA" import_version_number_seq="34.09"><entity_mnemonic>GSMCA</entity_mnemonic>
+<dataset_transaction TransactionNo="74" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24178" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924377.09" record_version_obj="3000002475.09" version_number_seq="34.09" secondary_key_value="GSMCA" import_version_number_seq="34.09"><entity_mnemonic>GSMCA</entity_mnemonic>
 <entity_mnemonic_short_desc>category</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_category</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3031,10 +2795,10 @@ In the case of an appserver partition, the default logical service could point a
 <entity_mnemonic_obj>1004924377.09</entity_mnemonic_obj>
 <entity_description_field>category_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>A multi-purpose grouping mechanism for generic entities. Certain categories may be system owned / generated and may not be deleted. These are usually hard coded into programs.
-
-Additionally, some categories may not be associated with another generic entity. These are used to store hard coded valid value lists, lookup lists, etc. Where ever we have made use of hard coded mnemonics within the application, their usage and description will be defined in this table. 
-
+<entity_narration>A multi-purpose grouping mechanism for generic entities. Certain categories may be system owned / generated and may not be deleted. These are usually hard coded into programs.
+
+Additionally, some categories may not be associated with another generic entity. These are used to store hard coded valid value lists, lookup lists, etc. Where ever we have made use of hard coded mnemonics within the application, their usage and description will be defined in this table. 
+
 Refer to the &quot;Generic Table Usage&quot; document for a detailed description and sample instance data.</entity_narration>
 <entity_object_field>category_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3171,7 +2935,7 @@ Refer to the &quot;Generic Table Usage&quot; document for a detailed description
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="74" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924378.09" record_version_obj="3000002497.09" version_number_seq="10.09" secondary_key_value="GSMCL" import_version_number_seq="10.09"><entity_mnemonic>GSMCL</entity_mnemonic>
+<dataset_transaction TransactionNo="75" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924378.09" record_version_obj="3000002497.09" version_number_seq="10.09" secondary_key_value="GSMCL" import_version_number_seq="10.09"><entity_mnemonic>GSMCL</entity_mnemonic>
 <entity_mnemonic_short_desc>control code</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_control_code</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3179,9 +2943,9 @@ Refer to the &quot;Generic Table Usage&quot; document for a detailed description
 <entity_mnemonic_obj>1004924378.09</entity_mnemonic_obj>
 <entity_description_field>control_short_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This is a generic table for holding device control codes. The category is used to define what the code is for, and the owning_obj is optionally to define the device the code relates to. If the owning_obj is left as 0, then it applies to all devices.
-
-An example use is in a point of sale system where codes must be sent to a pole for various reasons, e.g. to reset the poll, to make the message scroll, etc. Different categories would be defined for each action. The owning_entity_mnemonic on the category would determine which table the owning_obj related to. This will usually be some sort of application specific device table.
+<entity_narration>This is a generic table for holding device control codes. The category is used to define what the code is for, and the owning_obj is optionally to define the device the code relates to. If the owning_obj is left as 0, then it applies to all devices.
+
+An example use is in a point of sale system where codes must be sent to a pole for various reasons, e.g. to reset the poll, to make the message scroll, etc. Different categories would be defined for each action. The owning_entity_mnemonic on the category would determine which table the owning_obj related to. This will usually be some sort of application specific device table.
 </entity_narration>
 <entity_object_field>control_code_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3222,7 +2986,7 @@ An example use is in a point of sale system where codes must be sent to a pole f
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="75" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24178" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="87" record_version_obj="3000002490.09" version_number_seq="22.09" secondary_key_value="GSMCM" import_version_number_seq="22.09"><entity_mnemonic>GSMCM</entity_mnemonic>
+<dataset_transaction TransactionNo="76" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24178" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="87" record_version_obj="3000002490.09" version_number_seq="22.09" secondary_key_value="GSMCM" import_version_number_seq="22.09"><entity_mnemonic>GSMCM</entity_mnemonic>
 <entity_mnemonic_short_desc>comment</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_comment</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3318,7 +3082,7 @@ An example use is in a point of sale system where codes must be sent to a pole f
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="76" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24180" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924380.09" record_version_obj="3000005714.09" version_number_seq="12.09" secondary_key_value="GSMCR" import_version_number_seq="12.09"><entity_mnemonic>GSMCR</entity_mnemonic>
+<dataset_transaction TransactionNo="77" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24180" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924380.09" record_version_obj="3000005714.09" version_number_seq="12.09" secondary_key_value="GSMCR" import_version_number_seq="12.09"><entity_mnemonic>GSMCR</entity_mnemonic>
 <entity_mnemonic_short_desc>currency</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_currency</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3382,7 +3146,7 @@ An example use is in a point of sale system where codes must be sent to a pole f
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="77" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24179" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924379.09" record_version_obj="3000005701.09" version_number_seq="26.09" secondary_key_value="GSMCY" import_version_number_seq="26.09"><entity_mnemonic>GSMCY</entity_mnemonic>
+<dataset_transaction TransactionNo="78" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24179" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924379.09" record_version_obj="3000005701.09" version_number_seq="26.09" secondary_key_value="GSMCY" import_version_number_seq="26.09"><entity_mnemonic>GSMCY</entity_mnemonic>
 <entity_mnemonic_short_desc>country</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_country</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3502,7 +3266,7 @@ An example use is in a point of sale system where codes must be sent to a pole f
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="78" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24180" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924381.09" record_version_obj="3000002534.09" version_number_seq="6.09" secondary_key_value="GSMDR" import_version_number_seq="6.09"><entity_mnemonic>GSMDR</entity_mnemonic>
+<dataset_transaction TransactionNo="79" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24180" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924381.09" record_version_obj="3000002534.09" version_number_seq="6.09" secondary_key_value="GSMDR" import_version_number_seq="6.09"><entity_mnemonic>GSMDR</entity_mnemonic>
 <entity_mnemonic_short_desc>default report format</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_default_report_format</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3510,8 +3274,8 @@ An example use is in a point of sale system where codes must be sent to a pole f
 <entity_mnemonic_obj>1004924381.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table provides an override mechanism for default report layouts. For example, specific organisations or people can specify a different default report format for a specific document type.
-
+<entity_narration>This table provides an override mechanism for default report layouts. For example, specific organisations or people can specify a different default report format for a specific document type.
+
 This would typically be used for login company organisations, where for each of the different login companies, a different statement print layout or cheque layout , etc. could be used by default.</entity_narration>
 <entity_object_field>default_report_format_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3536,7 +3300,7 @@ This would typically be used for login company organisations, where for each of 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="79" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924382.09" record_version_obj="3000002541.09" version_number_seq="11.09" secondary_key_value="GSMEF" import_version_number_seq="11.09"><entity_mnemonic>GSMEF</entity_mnemonic>
+<dataset_transaction TransactionNo="80" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924382.09" record_version_obj="3000002541.09" version_number_seq="11.09" secondary_key_value="GSMEF" import_version_number_seq="11.09"><entity_mnemonic>GSMEF</entity_mnemonic>
 <entity_mnemonic_short_desc>entity field</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_entity_field</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3544,8 +3308,8 @@ This would typically be used for login company organisations, where for each of 
 <entity_mnemonic_obj>1004924382.09</entity_mnemonic_obj>
 <entity_description_field>entity_field_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table facilitates securing any application specific or generic data against any entity.
-
+<entity_narration>This table facilitates securing any application specific or generic data against any entity.
+
 For example, if there is a requirement to secure access to specific companies, then the company entity, with the company code field could be set-up in this table. The valid values could then be setup in the entity field values table, and users allocated access to the specific values.</entity_narration>
 <entity_object_field>entity_field_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3586,7 +3350,7 @@ For example, if there is a requirement to secure access to specific companies, t
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="80" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924383.09" record_version_obj="3000002544.09" version_number_seq="6.09" secondary_key_value="GSMEV" import_version_number_seq="6.09"><entity_mnemonic>GSMEV</entity_mnemonic>
+<dataset_transaction TransactionNo="81" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924383.09" record_version_obj="3000002544.09" version_number_seq="6.09" secondary_key_value="GSMEV" import_version_number_seq="6.09"><entity_mnemonic>GSMEV</entity_mnemonic>
 <entity_mnemonic_short_desc>entity field value</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_entity_field_value</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3618,7 +3382,7 @@ For example, if there is a requirement to secure access to specific companies, t
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="81" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24181" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924384.09" record_version_obj="3000002557.09" version_number_seq="15.09" secondary_key_value="GSMEX" import_version_number_seq="15.09"><entity_mnemonic>GSMEX</entity_mnemonic>
+<dataset_transaction TransactionNo="82" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24181" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924384.09" record_version_obj="3000002557.09" version_number_seq="15.09" secondary_key_value="GSMEX" import_version_number_seq="15.09"><entity_mnemonic>GSMEX</entity_mnemonic>
 <entity_mnemonic_short_desc>external xref</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_external_xref</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3626,15 +3390,15 @@ For example, if there is a requirement to secure access to specific companies, t
 <entity_mnemonic_obj>1004924384.09</entity_mnemonic_obj>
 <entity_description_field>external_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines generic cross reference information to details in external tables.
-
-For example, an organisation whose accounts are held in this database, may have other account codes in an external database where these account codes originated from. This table could be used to define which internal accounts point to which external accounts for xref and reporting purposes. In this example, the fields would be setup as follows:
-related entity = The gsm_organisation table in this database
-related object = Specific organisations
-Internal entity = The gsm_account table in this database
-internal object = specific account codes
-
-If an external table is available, then the external entity and object can be defined, otherwise the external details can be keyed directly into this table.
+<entity_narration>This table defines generic cross reference information to details in external tables.
+
+For example, an organisation whose accounts are held in this database, may have other account codes in an external database where these account codes originated from. This table could be used to define which internal accounts point to which external accounts for xref and reporting purposes. In this example, the fields would be setup as follows:
+related entity = The gsm_organisation table in this database
+related object = Specific organisations
+Internal entity = The gsm_account table in this database
+internal object = specific account codes
+
+If an external table is available, then the external entity and object can be defined, otherwise the external details can be keyed directly into this table.
 </entity_narration>
 <entity_object_field>external_xref_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3699,7 +3463,7 @@ If an external table is available, then the external entity and object can be de
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="82" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="59493" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049736.09" record_version_obj="3000049737.09" version_number_seq="5.09" secondary_key_value="GSMFD" import_version_number_seq="5.09"><entity_mnemonic>GSMFD</entity_mnemonic>
+<dataset_transaction TransactionNo="83" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="59493" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049736.09" record_version_obj="3000049737.09" version_number_seq="5.09" secondary_key_value="GSMFD" import_version_number_seq="5.09"><entity_mnemonic>GSMFD</entity_mnemonic>
 <entity_mnemonic_short_desc>filter data</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_filter_data</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3707,17 +3471,17 @@ If an external table is available, then the external entity and object can be de
 <entity_mnemonic_obj>3000049736.09</entity_mnemonic_obj>
 <entity_description_field>expression_field_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the filters that are applicable to a filter set, and a filter set can have many filters that apply. 
-
-By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems.
-The table can be read as meaning to exclude all specified data except the data that is specifically included back in. For example, exclude all objects in all repository modules, except for objects where the template flag is true or the object type is a toolbar.
-
-If a specific record is to be specified, then the owning_reference field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
-
-Alternatively a more generic expression can be specified, by supplying a fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. &quot;standardtoolbar&quot;.
-
-It is not possible to specify a generic expression and a specific record, one or the other must be specified in a single filter data record.
-
+<entity_narration>This table defines the filters that are applicable to a filter set, and a filter set can have many filters that apply. 
+
+By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems.
+The table can be read as meaning to exclude all specified data except the data that is specifically included back in. For example, exclude all objects in all repository modules, except for objects where the template flag is true or the object type is a toolbar.
+
+If a specific record is to be specified, then the owning_reference field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
+
+Alternatively a more generic expression can be specified, by supplying a fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. &quot;standardtoolbar&quot;.
+
+It is not possible to specify a generic expression and a specific record, one or the other must be specified in a single filter data record.
+
 This table provides significant flexibility in the specification of what data to filter. It will be possible for example to specify a list of product modules to exclude, but to re-include specific objects from some of the excluded product modules.</entity_narration>
 <entity_object_field>filter_data_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3734,7 +3498,7 @@ This table provides significant flexibility in the specification of what data to
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="83" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="103" record_version_obj="3000002566.09" version_number_seq="13.09" secondary_key_value="GSMFF" import_version_number_seq="13.09"><entity_mnemonic>GSMFF</entity_mnemonic>
+<dataset_transaction TransactionNo="84" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="103" record_version_obj="3000002566.09" version_number_seq="13.09" secondary_key_value="GSMFF" import_version_number_seq="13.09"><entity_mnemonic>GSMFF</entity_mnemonic>
 <entity_mnemonic_short_desc>field</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_field</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3742,13 +3506,13 @@ This table provides significant flexibility in the specification of what data to
 <entity_mnemonic_obj>103</entity_mnemonic_obj>
 <entity_description_field>field_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Fields that require secured access in the software. Not many fields required security, but those that do should be defined in this table. Users can only be given restricted access to fields specified in this table.
-
-If a user is given restricted access to a field specified in this table, then the access granted to the user may be view only, hidden, or update.
-
-For field security to be activated, entries must be created in the security structure table, as it is this table that is allocated to users, and allows the field security to be restricted or different in various parts of the application.
-
-Usually developers will create appropriate fields, and users may then assign them to certain parts of the application via the security structure table.
+<entity_narration>Fields that require secured access in the software. Not many fields required security, but those that do should be defined in this table. Users can only be given restricted access to fields specified in this table.
+
+If a user is given restricted access to a field specified in this table, then the access granted to the user may be view only, hidden, or update.
+
+For field security to be activated, entries must be created in the security structure table, as it is this table that is allocated to users, and allows the field security to be restricted or different in various parts of the application.
+
+Usually developers will create appropriate fields, and users may then assign them to certain parts of the application via the security structure table.
 </entity_narration>
 <entity_object_field>field_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3797,7 +3561,7 @@ Usually developers will create appropriate fields, and users may then assign the
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="84" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049748.09" record_version_obj="3000049749.09" version_number_seq="4.09" secondary_key_value="GSMFI" import_version_number_seq="4.09"><entity_mnemonic>GSMFI</entity_mnemonic>
+<dataset_transaction TransactionNo="85" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049748.09" record_version_obj="3000049749.09" version_number_seq="4.09" secondary_key_value="GSMFI" import_version_number_seq="4.09"><entity_mnemonic>GSMFI</entity_mnemonic>
 <entity_mnemonic_short_desc>filter set</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_filter_set</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3805,9 +3569,9 @@ Usually developers will create appropriate fields, and users may then assign the
 <entity_mnemonic_obj>3000049748.09</entity_mnemonic_obj>
 <entity_description_field>filter_set_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table is a grouping mechanism for numerous filter settings that make up a single filter definition. A standard filter set will be defined called &quot;Repository&quot; that contains all the filter records required to be able to filter out repository data. Filter sets can then be modified and extended to filter out additional data or include data that was previously excluded.
-
-We use user profile codes to assign a filter set to a user, rather than setting the flag, display repository data yes or no. If no filter set is allocated to a user, then no filters apply. Only a single filter set may be applied at any one time. 
+<entity_narration>This table is a grouping mechanism for numerous filter settings that make up a single filter definition. A standard filter set will be defined called &quot;Repository&quot; that contains all the filter records required to be able to filter out repository data. Filter sets can then be modified and extended to filter out additional data or include data that was previously excluded.
+
+We use user profile codes to assign a filter set to a user, rather than setting the flag, display repository data yes or no. If no filter set is allocated to a user, then no filters apply. Only a single filter set may be applied at any one time. 
 </entity_narration>
 <entity_object_field>filter_set_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3824,7 +3588,7 @@ We use user profile codes to assign a filter set to a user, rather than setting 
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="85" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924420.09" record_version_obj="3000002582.09" version_number_seq="10.09" secondary_key_value="GSMFS" import_version_number_seq="10.09"><entity_mnemonic>GSMFS</entity_mnemonic>
+<dataset_transaction TransactionNo="86" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924420.09" record_version_obj="3000002582.09" version_number_seq="10.09" secondary_key_value="GSMFS" import_version_number_seq="10.09"><entity_mnemonic>GSMFS</entity_mnemonic>
 <entity_mnemonic_short_desc>flow step</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_flow_step</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3832,23 +3596,23 @@ We use user profile codes to assign a filter set to a user, rather than setting 
 <entity_mnemonic_obj>1004924420.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains the steps that have to be followed to complete a flow.
-
-Each step may involve the running of an object, the running of an internal procedure within an object, or the execution of another complete flow.
-
-The flow steps may be customised for specific login organisations so that entire steps may be replaced with custom specific code. 
-
-The standard flow steps will be specified with a 0 login company. Within a single flow the login company can either be 0 or a specific company. When running each step it will first check for a customisation for the login company and if not found will just run the standard step. 
-
-If a customisation is found, this may either be an additional step in which case the custom step will be run first, or else it will be a complete replacement of the standard step.
-
-It is also possible to add custom steps that do not have any standard code at all, i.e. no step with a 0 login company exists. This facilitates adding customisations after the standard behaviour.
-
-
-
-
-
- and so setting up company specific steps would involve copying the default flow steps to a specific login company in full and then customising the specific steps as required. If the standard flow is modified, customised steps would also need to be manually modified as appropriate.
+<entity_narration>This table contains the steps that have to be followed to complete a flow.
+
+Each step may involve the running of an object, the running of an internal procedure within an object, or the execution of another complete flow.
+
+The flow steps may be customised for specific login organisations so that entire steps may be replaced with custom specific code. 
+
+The standard flow steps will be specified with a 0 login company. Within a single flow the login company can either be 0 or a specific company. When running each step it will first check for a customisation for the login company and if not found will just run the standard step. 
+
+If a customisation is found, this may either be an additional step in which case the custom step will be run first, or else it will be a complete replacement of the standard step.
+
+It is also possible to add custom steps that do not have any standard code at all, i.e. no step with a 0 login company exists. This facilitates adding customisations after the standard behaviour.
+
+
+
+
+
+ and so setting up company specific steps would involve copying the default flow steps to a specific login company in full and then customising the specific steps as required. If the standard flow is modified, customised steps would also need to be manually modified as appropriate.
 </entity_narration>
 <entity_object_field>flow_step_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3889,7 +3653,7 @@ It is also possible to add custom steps that do not have any standard code at al
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="86" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924419.09" record_version_obj="3000002575.09" version_number_seq="12.09" secondary_key_value="GSMFW" import_version_number_seq="12.09"><entity_mnemonic>GSMFW</entity_mnemonic>
+<dataset_transaction TransactionNo="87" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924419.09" record_version_obj="3000002575.09" version_number_seq="12.09" secondary_key_value="GSMFW" import_version_number_seq="12.09"><entity_mnemonic>GSMFW</entity_mnemonic>
 <entity_mnemonic_short_desc>flow</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_flow</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3897,15 +3661,15 @@ It is also possible to add custom steps that do not have any standard code at al
 <entity_mnemonic_obj>1004924419.09</entity_mnemonic_obj>
 <entity_description_field>flow_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>A flow is a set of steps that have to be performed in a certain order to result in certain desired behavior. 
-
-This table groups the steps that have to be performed.
-
-af/sup2/afrun2.i takes a parameter (&amp;FLOW) which maps to one of these flows and then executes the steps that make up the flow.
-
-A flow must ultimately map to a single transaction and therefore must be executed on a single physical partition or service.
-
-Example flows may be shipOrder, completeOrder, postTransaction, etc.
+<entity_narration>A flow is a set of steps that have to be performed in a certain order to result in certain desired behavior. 
+
+This table groups the steps that have to be performed.
+
+af/sup2/afrun2.i takes a parameter (&amp;FLOW) which maps to one of these flows and then executes the steps that make up the flow.
+
+A flow must ultimately map to a single transaction and therefore must be executed on a single physical partition or service.
+
+Example flows may be shipOrder, completeOrder, postTransaction, etc.
 </entity_narration>
 <entity_object_field>flow_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3954,7 +3718,7 @@ Example flows may be shipOrder, completeOrder, postTransaction, etc.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="87" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049755.09" record_version_obj="3000049756.09" version_number_seq="4.09" secondary_key_value="GSMGA" import_version_number_seq="4.09"><entity_mnemonic>GSMGA</entity_mnemonic>
+<dataset_transaction TransactionNo="88" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049755.09" record_version_obj="3000049756.09" version_number_seq="4.09" secondary_key_value="GSMGA" import_version_number_seq="4.09"><entity_mnemonic>GSMGA</entity_mnemonic>
 <entity_mnemonic_short_desc>group allocation</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_group_allocation</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3962,8 +3726,8 @@ Example flows may be shipOrder, completeOrder, postTransaction, etc.
 <entity_mnemonic_obj>3000049755.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines which groups a user belongs to - for security purposes. It is also possible to set up groups that belong to groups. If the login company is specified, this indicates that security for this group only applies when logged into the specified company.
-
+<entity_narration>This table defines which groups a user belongs to - for security purposes. It is also possible to set up groups that belong to groups. If the login company is specified, this indicates that security for this group only applies when logged into the specified company.
+
 </entity_narration>
 <entity_object_field>group_allocation_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -3980,7 +3744,7 @@ Example flows may be shipOrder, completeOrder, postTransaction, etc.
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="88" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924421.09" record_version_obj="3000002593.09" version_number_seq="15.09" secondary_key_value="GSMHE" import_version_number_seq="15.09"><entity_mnemonic>GSMHE</entity_mnemonic>
+<dataset_transaction TransactionNo="89" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24182" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924421.09" record_version_obj="3000002593.09" version_number_seq="15.09" secondary_key_value="GSMHE" import_version_number_seq="15.09"><entity_mnemonic>GSMHE</entity_mnemonic>
 <entity_mnemonic_short_desc>help</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_help</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -3988,12 +3752,12 @@ Example flows may be shipOrder, completeOrder, postTransaction, etc.
 <entity_mnemonic_obj>1004924421.09</entity_mnemonic_obj>
 <entity_description_field>help_filename</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines help contexts for containers, objects on containers, and fields on obejcts if required.
-
-When context sensitive help is requested, the context and help file will be retrieved from this file if available.
-
-Help may be specified in multiple languages if required.
-
+<entity_narration>This table defines help contexts for containers, objects on containers, and fields on obejcts if required.
+
+When context sensitive help is requested, the context and help file will be retrieved from this file if available.
+
+Help may be specified in multiple languages if required.
+
 An entry in this table for a specific language but no container, object or field specified will override the standard help file used systemwide for the specified language from gsc_security_control.</entity_narration>
 <entity_object_field>help_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4050,7 +3814,7 @@ An entry in this table for a specific language but no container, object or field
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="89" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24185" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600157.08" record_version_obj="3000005797.09" version_number_seq="4.09" secondary_key_value="GSMIT" import_version_number_seq="4.09"><entity_mnemonic>GSMIT</entity_mnemonic>
+<dataset_transaction TransactionNo="90" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24185" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600157.08" record_version_obj="3000005797.09" version_number_seq="4.09" secondary_key_value="GSMIT" import_version_number_seq="4.09"><entity_mnemonic>GSMIT</entity_mnemonic>
 <entity_mnemonic_short_desc>menu structure item</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_menu_structure_item</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4058,9 +3822,9 @@ An entry in this table for a specific language but no container, object or field
 <entity_mnemonic_obj>1007600157.08</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table associates menu items with menu structures. A menu structure may contain many menu items and a menu item can be used by many menu structures.
-
-This tables also defines the sequence that menu items appear within a menu structure.
+<entity_narration>This table associates menu items with menu structures. A menu structure may contain many menu items and a menu item can be used by many menu structures.
+
+This tables also defines the sequence that menu items appear within a menu structure.
 </entity_narration>
 <entity_object_field>menu_structure_item_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4085,7 +3849,7 @@ This tables also defines the sequence that menu items appear within a menu struc
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="90" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924385.09" record_version_obj="3000005747.09" version_number_seq="13.09" secondary_key_value="GSMLG" import_version_number_seq="13.09"><entity_mnemonic>GSMLG</entity_mnemonic>
+<dataset_transaction TransactionNo="91" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924385.09" record_version_obj="3000005747.09" version_number_seq="13.09" secondary_key_value="GSMLG" import_version_number_seq="13.09"><entity_mnemonic>GSMLG</entity_mnemonic>
 <entity_mnemonic_short_desc>login company</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_login_company</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4093,15 +3857,15 @@ This tables also defines the sequence that menu items appear within a menu struc
 <entity_mnemonic_obj>1004924385.09</entity_mnemonic_obj>
 <entity_description_field>login_company_short_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This framework table defines login companies (organisations) and is used to provide a list of valid companies the user may log into at runtime.
-
-It is intended that this table will link into an external application database where additional details will be stored for the login company, e.g. address and contact information. The code or the object field could be used as the xref into the external application database.
-
-The table is required in the framework to facilitate the generic set-up of framework data specific to login companies, e.g. security allocations, automatic reference numbers, etc.
-
-The existence of a login company in the framework supports the concept of holding multiple company application data in a single database as apposed to having separate databases for each company. Application databases would further have to link to this table or a corresponding table in their database design to filter appropriate data for each login company.
-
-We only hold on this table the minimum details as required by the framework. Applications that also have an organisation table will need to replicate modifications from their full organisation table into this table in order to simplify and syncrhonise maintenance of this data.
+<entity_narration>This framework table defines login companies (organisations) and is used to provide a list of valid companies the user may log into at runtime.
+
+It is intended that this table will link into an external application database where additional details will be stored for the login company, e.g. address and contact information. The code or the object field could be used as the xref into the external application database.
+
+The table is required in the framework to facilitate the generic set-up of framework data specific to login companies, e.g. security allocations, automatic reference numbers, etc.
+
+The existence of a login company in the framework supports the concept of holding multiple company application data in a single database as apposed to having separate databases for each company. Application databases would further have to link to this table or a corresponding table in their database design to filter appropriate data for each login company.
+
+We only hold on this table the minimum details as required by the framework. Applications that also have an organisation table will need to replicate modifications from their full organisation table into this table in order to simplify and syncrhonise maintenance of this data.
 </entity_narration>
 <entity_object_field>login_company_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4158,7 +3922,7 @@ We only hold on this table the minimum details as required by the framework. App
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="91" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24183" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="124" record_version_obj="3000005753.09" version_number_seq="68.09" secondary_key_value="GSMMI" import_version_number_seq="68.09"><entity_mnemonic>GSMMI</entity_mnemonic>
+<dataset_transaction TransactionNo="92" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24183" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="124" record_version_obj="3000005753.09" version_number_seq="68.09" secondary_key_value="GSMMI" import_version_number_seq="68.09"><entity_mnemonic>GSMMI</entity_mnemonic>
 <entity_mnemonic_short_desc>menu item</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_menu_item</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4166,7 +3930,7 @@ We only hold on this table the minimum details as required by the framework. App
 <entity_mnemonic_obj>124</entity_mnemonic_obj>
 <entity_description_field>menu_item_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the dynamic menu items that may belong to either a menu structure or a toolbar.  An &apos;item&apos; can be visualized as a menu item in a menubar (or submenu, ruler) , or a control (button, combo box) in a toolbar. A menu item may launch an actual program, publish an event to an object, or set a property.
+<entity_narration>This table defines the dynamic menu items that may belong to either a menu structure or a toolbar.  An &apos;item&apos; can be visualized as a menu item in a menubar (or submenu, ruler) , or a control (button, combo box) in a toolbar. A menu item may launch an actual program, publish an event to an object, or set a property.
 </entity_narration>
 <entity_object_field>menu_item_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4447,7 +4211,7 @@ We only hold on this table the minimum details as required by the framework. App
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="92" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24186" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924386.09" record_version_obj="3000002700.09" version_number_seq="12.09" secondary_key_value="GSMMM" import_version_number_seq="12.09"><entity_mnemonic>GSMMM</entity_mnemonic>
+<dataset_transaction TransactionNo="93" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24186" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924386.09" record_version_obj="3000002700.09" version_number_seq="12.09" secondary_key_value="GSMMM" import_version_number_seq="12.09"><entity_mnemonic>GSMMM</entity_mnemonic>
 <entity_mnemonic_short_desc>multi media</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_multi_media</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4495,7 +4259,7 @@ We only hold on this table the minimum details as required by the framework. App
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="93" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24185" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924422.09" record_version_obj="3000002690.09" version_number_seq="23.09" secondary_key_value="GSMMS" import_version_number_seq="23.09"><entity_mnemonic>GSMMS</entity_mnemonic>
+<dataset_transaction TransactionNo="94" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24185" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924422.09" record_version_obj="3000002690.09" version_number_seq="23.09" secondary_key_value="GSMMS" import_version_number_seq="23.09"><entity_mnemonic>GSMMS</entity_mnemonic>
 <entity_mnemonic_short_desc>menu structure</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_menu_structure</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4503,8 +4267,8 @@ We only hold on this table the minimum details as required by the framework. App
 <entity_mnemonic_obj>1004924422.09</entity_mnemonic_obj>
 <entity_description_field>menu_structure_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the dynamic menu structues available. A menu structure must belong to a product, and can optionally also be associated with a product module if required - for sorting purposes.
-
+<entity_narration>This table defines the dynamic menu structues available. A menu structure must belong to a product, and can optionally also be associated with a product module if required - for sorting purposes.
+
 The menu structure code will be referenced in source code to build any dynamic menu items associated with the menu structure.</entity_narration>
 <entity_object_field>menu_structure_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4601,7 +4365,7 @@ The menu structure code will be referenced in source code to build any dynamic m
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="94" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24186" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1005103085.101" record_version_obj="3000002731.09" version_number_seq="36.09" secondary_key_value="GSMND" import_version_number_seq="36.09"><entity_mnemonic>GSMND</entity_mnemonic>
+<dataset_transaction TransactionNo="95" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24186" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1005103085.101" record_version_obj="3000002731.09" version_number_seq="36.09" secondary_key_value="GSMND" import_version_number_seq="36.09"><entity_mnemonic>GSMND</entity_mnemonic>
 <entity_mnemonic_short_desc>node</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_node</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4609,17 +4373,17 @@ The menu structure code will be referenced in source code to build any dynamic m
 <entity_mnemonic_obj>1005103085.101</entity_mnemonic_obj>
 <entity_description_field>node_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains a parent-child relationship of node behaviour for the TreeView controller.
-
-This table includes support for structured nodes. A structured node is a node where each new level is created infinitely from the same SDO, thus meaning that a node can be expanded infinite times and these nodes does not have to be set up for each level in node control.
-
-An example of the structured node field values for setting up a structured node treeview on this table would be;
-
-structured_node - YES
-parent_node_filter - parent_node_obj = 0
-parent_field - parent_node_obj
-child_field -  node_obj
-datatype - DECIMAL
+<entity_narration>This table contains a parent-child relationship of node behaviour for the TreeView controller.
+
+This table includes support for structured nodes. A structured node is a node where each new level is created infinitely from the same SDO, thus meaning that a node can be expanded infinite times and these nodes does not have to be set up for each level in node control.
+
+An example of the structured node field values for setting up a structured node treeview on this table would be;
+
+structured_node - YES
+parent_node_filter - parent_node_obj = 0
+parent_field - parent_node_obj
+child_field -  node_obj
+datatype - DECIMAL
 </entity_narration>
 <entity_object_field>node_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4756,7 +4520,7 @@ datatype - DECIMAL
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="95" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924393.09" record_version_obj="3000002829.09" version_number_seq="12.09" secondary_key_value="GSMNV" import_version_number_seq="12.09"><entity_mnemonic>GSMNV</entity_mnemonic>
+<dataset_transaction TransactionNo="96" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924393.09" record_version_obj="3000002829.09" version_number_seq="12.09" secondary_key_value="GSMNV" import_version_number_seq="12.09"><entity_mnemonic>GSMNV</entity_mnemonic>
 <entity_mnemonic_short_desc>profile numeric value</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_numeric_value</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4764,9 +4528,9 @@ datatype - DECIMAL
 <entity_mnemonic_obj>1004924393.09</entity_mnemonic_obj>
 <entity_description_field>description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>List of valid numeric values / ranges for a profile.
-
-For other systems, this table is also used for determining contribution rule values e.g. for age or income ranges in conjunction with a hard coded category. The rule value used would be the numeric_value_to.
+<entity_narration>List of valid numeric values / ranges for a profile.
+
+For other systems, this table is also used for determining contribution rule values e.g. for age or income ranges in conjunction with a hard coded category. The rule value used would be the numeric_value_to.
 </entity_narration>
 <entity_object_field>profile_numeric_value_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4815,7 +4579,7 @@ For other systems, this table is also used for determining contribution rule val
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="96" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24187" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924423.09" record_version_obj="3000005817.09" version_number_seq="6.09" secondary_key_value="GSMOM" import_version_number_seq="6.09"><entity_mnemonic>GSMOM</entity_mnemonic>
+<dataset_transaction TransactionNo="97" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24187" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924423.09" record_version_obj="3000005817.09" version_number_seq="6.09" secondary_key_value="GSMOM" import_version_number_seq="6.09"><entity_mnemonic>GSMOM</entity_mnemonic>
 <entity_mnemonic_short_desc>object menu structure</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_object_menu_structure</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4823,12 +4587,12 @@ For other systems, this table is also used for determining contribution rule val
 <entity_mnemonic_obj>1004924423.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the dynamic menu structures used by the object - if applicable. Only container objects may have dynamic menu structures.
-
-If an instance attribute is specified, then the menu structure will only be dynamically built if the instance attribute is passed in from the previous menu option.
-
-This facilitates pulling in different dynamic menu options for a specific object based on its use, e.g. creditors, debtors, etc. having different options.
-
+<entity_narration>This table defines the dynamic menu structures used by the object - if applicable. Only container objects may have dynamic menu structures.
+
+If an instance attribute is specified, then the menu structure will only be dynamically built if the instance attribute is passed in from the previous menu option.
+
+This facilitates pulling in different dynamic menu options for a specific object based on its use, e.g. creditors, debtors, etc. having different options.
+
 </entity_narration>
 <entity_object_field>object_menu_structure_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -4861,7 +4625,7 @@ This facilitates pulling in different dynamic menu options for a specific object
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="97" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924387.09" record_version_obj="3000002771.09" version_number_seq="13.09" secondary_key_value="GSMPA" import_version_number_seq="13.09"><entity_mnemonic>GSMPA</entity_mnemonic>
+<dataset_transaction TransactionNo="98" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924387.09" record_version_obj="3000002771.09" version_number_seq="13.09" secondary_key_value="GSMPA" import_version_number_seq="13.09"><entity_mnemonic>GSMPA</entity_mnemonic>
 <entity_mnemonic_short_desc>profile alpha options</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_alpha_options</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4917,7 +4681,7 @@ This facilitates pulling in different dynamic menu options for a specific object
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="98" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924390.09" record_version_obj="3000002796.09" version_number_seq="12.09" secondary_key_value="GSMPD" import_version_number_seq="12.09"><entity_mnemonic>GSMPD</entity_mnemonic>
+<dataset_transaction TransactionNo="99" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924390.09" record_version_obj="3000002796.09" version_number_seq="12.09" secondary_key_value="GSMPD" import_version_number_seq="12.09"><entity_mnemonic>GSMPD</entity_mnemonic>
 <entity_mnemonic_short_desc>profile date value</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_date_value</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4973,7 +4737,7 @@ This facilitates pulling in different dynamic menu options for a specific object
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="99" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24188" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924389.09" record_version_obj="3000002787.09" version_number_seq="9.09" secondary_key_value="GSMPF" import_version_number_seq="9.09"><entity_mnemonic>GSMPF</entity_mnemonic>
+<dataset_transaction TransactionNo="100" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24188" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924389.09" record_version_obj="3000002787.09" version_number_seq="9.09" secondary_key_value="GSMPF" import_version_number_seq="9.09"><entity_mnemonic>GSMPF</entity_mnemonic>
 <entity_mnemonic_short_desc>profile data</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_data</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -4981,10 +4745,10 @@ This facilitates pulling in different dynamic menu options for a specific object
 <entity_mnemonic_obj>1004924389.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table is used to store profile information for specific users, e.g. browser filter settings, window positions and sizes, report filtter settings, etc.
-
-The nature of the data key and data value fields is determined by the profile type and code.
-
+<entity_narration>This table is used to store profile information for specific users, e.g. browser filter settings, window positions and sizes, report filtter settings, etc.
+
+The nature of the data key and data value fields is determined by the profile type and code.
+
 Data can be stored permannently, or only for the current session, depending on the context_id field.</entity_narration>
 <entity_object_field>profile_data_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5025,7 +4789,7 @@ Data can be stored permannently, or only for the current session, depending on t
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="100" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24189" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924391.09" record_version_obj="3000002811.09" version_number_seq="17.09" secondary_key_value="GSMPH" import_version_number_seq="17.09"><entity_mnemonic>GSMPH</entity_mnemonic>
+<dataset_transaction TransactionNo="101" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24189" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924391.09" record_version_obj="3000002811.09" version_number_seq="17.09" secondary_key_value="GSMPH" import_version_number_seq="17.09"><entity_mnemonic>GSMPH</entity_mnemonic>
 <entity_mnemonic_short_desc>profile history</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_history</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5033,8 +4797,8 @@ Data can be stored permannently, or only for the current session, depending on t
 <entity_mnemonic_obj>1004924391.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>History of profiles relating to an object from the effective date onwards.
-
+<entity_narration>History of profiles relating to an object from the effective date onwards.
+
 In other systems, in the case where a profile is related to contribution rule value determination, the value fields are not applicable.</entity_narration>
 <entity_object_field>profile_history_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5107,7 +4871,7 @@ In other systems, in the case where a profile is related to contribution rule va
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="101" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924392.09" record_version_obj="3000002820.09" version_number_seq="13.09" secondary_key_value="GSMPN" import_version_number_seq="13.09"><entity_mnemonic>GSMPN</entity_mnemonic>
+<dataset_transaction TransactionNo="102" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924392.09" record_version_obj="3000002820.09" version_number_seq="13.09" secondary_key_value="GSMPN" import_version_number_seq="13.09"><entity_mnemonic>GSMPN</entity_mnemonic>
 <entity_mnemonic_short_desc>profile numeric options</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile_numeric_options</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5163,7 +4927,7 @@ In other systems, in the case where a profile is related to contribution rule va
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="102" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="143" record_version_obj="3000002762.09" version_number_seq="23.09" secondary_key_value="GSMPR" import_version_number_seq="23.09"><entity_mnemonic>GSMPR</entity_mnemonic>
+<dataset_transaction TransactionNo="103" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="143" record_version_obj="3000002762.09" version_number_seq="23.09" secondary_key_value="GSMPR" import_version_number_seq="23.09"><entity_mnemonic>GSMPR</entity_mnemonic>
 <entity_mnemonic_short_desc>profile</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_profile</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5171,8 +4935,8 @@ In other systems, in the case where a profile is related to contribution rule va
 <entity_mnemonic_obj>143</entity_mnemonic_obj>
 <entity_description_field>profile_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Generic profiles that can be attached to any entity or may stand alone to be used as control information or lookup lists. Profiles could be utilised for user defined fields e.g. smoking and drinking habits of members.
-
+<entity_narration>Generic profiles that can be attached to any entity or may stand alone to be used as control information or lookup lists. Profiles could be utilised for user defined fields e.g. smoking and drinking habits of members.
+
 For other systems, the modification of a profile and it&apos;s related tables must be inhibited where it exists in any s_contribution_type.rule_code_profile_objs with existing s_contribution_rules records.</entity_narration>
 <entity_object_field>profile_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5261,7 +5025,7 @@ For other systems, the modification of a profile and it&apos;s related tables mu
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="103" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24187" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924424.09" record_version_obj="3000005820.09" version_number_seq="8.09" secondary_key_value="GSMPY" import_version_number_seq="8.09"><entity_mnemonic>GSMPY</entity_mnemonic>
+<dataset_transaction TransactionNo="104" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24187" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924424.09" record_version_obj="3000005820.09" version_number_seq="8.09" secondary_key_value="GSMPY" import_version_number_seq="8.09"><entity_mnemonic>GSMPY</entity_mnemonic>
 <entity_mnemonic_short_desc>physical service</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_physical_service</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5269,13 +5033,13 @@ For other systems, the modification of a profile and it&apos;s related tables mu
 <entity_mnemonic_obj>1004924424.09</entity_mnemonic_obj>
 <entity_description_field>physical_service_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>A physical service provides the specific connection parameters that are required to connect a physical service to a session.
-
-The physical service is connected to a logical service and session type via the session service.
-
-The maintenance object on the service type defines the datafield object used to maintain the physical connection parameters attribute. For example, if this is a service type for database connections, then the datafield may allow the specifiction of -S -N and -H prompts independantly and then put the result as 1 field into the connection parameters.
-
-The management object on the service type is the api procedure that is responsible for making the physical connections to the service.
+<entity_narration>A physical service provides the specific connection parameters that are required to connect a physical service to a session.
+
+The physical service is connected to a logical service and session type via the session service.
+
+The maintenance object on the service type defines the datafield object used to maintain the physical connection parameters attribute. For example, if this is a service type for database connections, then the datafield may allow the specifiction of -S -N and -H prompts independantly and then put the result as 1 field into the connection parameters.
+
+The management object on the service type is the api procedure that is responsible for making the physical connections to the service.
 </entity_narration>
 <entity_object_field>physical_service_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5316,7 +5080,7 @@ The management object on the service type is the api procedure that is responsib
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="104" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="146" record_version_obj="3000005863.09" version_number_seq="11.09" secondary_key_value="GSMRA" import_version_number_seq="11.09"><entity_mnemonic>GSMRA</entity_mnemonic>
+<dataset_transaction TransactionNo="105" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="146" record_version_obj="3000005863.09" version_number_seq="11.09" secondary_key_value="GSMRA" import_version_number_seq="11.09"><entity_mnemonic>GSMRA</entity_mnemonic>
 <entity_mnemonic_short_desc>range</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_range</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5324,15 +5088,15 @@ The management object on the service type is the api procedure that is responsib
 <entity_mnemonic_obj>146</entity_mnemonic_obj>
 <entity_description_field>range_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>These are range structures that control what data a user may view. When allocated to a user, the ranges of permitted data will be specified.
-
-Sample range structures could include &quot;Nominal Codes&quot;, &quot;Cost Centres&quot;, or &quot;Member Codes&quot;, etc.
-
-The appropriate data will be hidden from the user.
-
-For range security to be activated, entries must be created in the security structure table, as it is this table that is allocated to users, and allows the range security to be restricted or different in various parts of the application.
-
-Usually developers will create appropriate ranges, and users may then assign them to certain parts of the application via the security structure table.
+<entity_narration>These are range structures that control what data a user may view. When allocated to a user, the ranges of permitted data will be specified.
+
+Sample range structures could include &quot;Nominal Codes&quot;, &quot;Cost Centres&quot;, or &quot;Member Codes&quot;, etc.
+
+The appropriate data will be hidden from the user.
+
+For range security to be activated, entries must be created in the security structure table, as it is this table that is allocated to users, and allows the range security to be restricted or different in various parts of the application.
+
+Usually developers will create appropriate ranges, and users may then assign them to certain parts of the application via the security structure table.
 </entity_narration>
 <entity_object_field>range_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5381,7 +5145,7 @@ Usually developers will create appropriate ranges, and users may then assign the
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="105" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="147" record_version_obj="3000005872.09" version_number_seq="64.09" secondary_key_value="GSMRD" import_version_number_seq="64.09"><entity_mnemonic>GSMRD</entity_mnemonic>
+<dataset_transaction TransactionNo="106" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="147" record_version_obj="3000005872.09" version_number_seq="64.09" secondary_key_value="GSMRD" import_version_number_seq="64.09"><entity_mnemonic>GSMRD</entity_mnemonic>
 <entity_mnemonic_short_desc>report definition</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_report_definition</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5389,12 +5153,12 @@ Usually developers will create appropriate ranges, and users may then assign the
 <entity_mnemonic_obj>147</entity_mnemonic_obj>
 <entity_description_field>report_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains control and default  information about all the reports produced by the system.
-
-Note that all reports will be created by initially extracting a delimited data file which could then be printed using any reporting tool.
-
-This table actually defines the report extract procedure and default report options. The extract can the be printed in various formats as defined by the gsm_report_format table.
-
+<entity_narration>This table contains control and default  information about all the reports produced by the system.
+
+Note that all reports will be created by initially extracting a delimited data file which could then be printed using any reporting tool.
+
+This table actually defines the report extract procedure and default report options. The extract can the be printed in various formats as defined by the gsm_report_format table.
+
 The name of the extract file(s) produced will be hard coded in the extract procedure, but will be derived from the extract procedure name. The extension will be .rpd suffixed with the date and time down to seconds for multi-user support. The actual names used will be recorded in the gst_extract_log.</entity_narration>
 <entity_object_field>report_definition_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5659,7 +5423,7 @@ The name of the extract file(s) produced will be hard coded in the extract proce
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="106" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924425.09" record_version_obj="3000005868.09" version_number_seq="8.09" secondary_key_value="GSMRE" import_version_number_seq="8.09"><entity_mnemonic>GSMRE</entity_mnemonic>
+<dataset_transaction TransactionNo="107" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924425.09" record_version_obj="3000005868.09" version_number_seq="8.09" secondary_key_value="GSMRE" import_version_number_seq="8.09"><entity_mnemonic>GSMRE</entity_mnemonic>
 <entity_mnemonic_short_desc>reporting tool</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_reporting_tool</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5667,11 +5431,11 @@ The name of the extract file(s) produced will be hard coded in the extract proce
 <entity_mnemonic_obj>1004924425.09</entity_mnemonic_obj>
 <entity_description_field>reporting_tool_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains information about the reporting tools available to the system. These would be:
-Progress
-Results
-Crystal reports
-Actuate
+<entity_narration>This table contains information about the reporting tools available to the system. These would be:
+Progress
+Results
+Crystal reports
+Actuate
 etc.</entity_narration>
 <entity_object_field>reporting_tool_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5712,7 +5476,7 @@ etc.</entity_narration>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="107" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24192" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="149" record_version_obj="3000005904.09" version_number_seq="24.09" secondary_key_value="GSMRF" import_version_number_seq="24.09"><entity_mnemonic>GSMRF</entity_mnemonic>
+<dataset_transaction TransactionNo="108" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24192" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="149" record_version_obj="3000005904.09" version_number_seq="24.09" secondary_key_value="GSMRF" import_version_number_seq="24.09"><entity_mnemonic>GSMRF</entity_mnemonic>
 <entity_mnemonic_short_desc>report format</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_report_format</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5720,10 +5484,10 @@ etc.</entity_narration>
 <entity_mnemonic_obj>149</entity_mnemonic_obj>
 <entity_description_field>report_format_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Once data for a report has been extracted, it may be printed in different formats using different reporting tools.
-
-This table defines the report procedures that may be used to format the extracted data. If printing to Crystal, the report fromat procedure is the name of the Crystal Report definition file.
-
+<entity_narration>Once data for a report has been extracted, it may be printed in different formats using different reporting tools.
+
+This table defines the report procedures that may be used to format the extracted data. If printing to Crystal, the report fromat procedure is the name of the Crystal Report definition file.
+
 The extract files to send as data to the report will be hard coded in the report extract procedure.</entity_narration>
 <entity_object_field>report_format_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5828,7 +5592,7 @@ The extract files to send as data to the report will be hard coded in the report
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="108" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049785.09" record_version_obj="3000049786.09" version_number_seq="4.09" secondary_key_value="GSMRL" import_version_number_seq="4.09"><entity_mnemonic>GSMRL</entity_mnemonic>
+<dataset_transaction TransactionNo="109" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24190" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049785.09" record_version_obj="3000049786.09" version_number_seq="4.09" secondary_key_value="GSMRL" import_version_number_seq="4.09"><entity_mnemonic>GSMRL</entity_mnemonic>
 <entity_mnemonic_short_desc>release</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_release</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5836,15 +5600,15 @@ The extract files to send as data to the report will be hard coded in the report
 <entity_mnemonic_obj>3000049785.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table provides a mechanism to record what versions of an object belong to a release, when used in conjunction with the child table, gst_release_version.
-
-This table identifies an actual release, giving the release a specific reference, summary and detailed notes of the reason for the release, and details of when the release was created and by whom.
-
-The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
-
-When creating the release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
-
-This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
+<entity_narration>This table provides a mechanism to record what versions of an object belong to a release, when used in conjunction with the child table, gst_release_version.
+
+This table identifies an actual release, giving the release a specific reference, summary and detailed notes of the reason for the release, and details of when the release was created and by whom.
+
+The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
+
+When creating the release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
+
+This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
 </entity_narration>
 <entity_object_field>release_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5861,7 +5625,7 @@ This can then be used to determine what data needs to be deployed between releas
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="109" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924426.09" record_version_obj="3000002932.09" version_number_seq="15.09" secondary_key_value="GSMRM" import_version_number_seq="15.09"><entity_mnemonic>GSMRM</entity_mnemonic>
+<dataset_transaction TransactionNo="110" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924426.09" record_version_obj="3000002932.09" version_number_seq="15.09" secondary_key_value="GSMRM" import_version_number_seq="15.09"><entity_mnemonic>GSMRM</entity_mnemonic>
 <entity_mnemonic_short_desc>required manager</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_required_manager</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5869,10 +5633,10 @@ This can then be used to determine what data needs to be deployed between releas
 <entity_mnemonic_obj>1004924426.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table contains a list of the manager types that are required to be started during the startup of the session and the order in which they must be started. Any manager types which need to be written to the config file must always be started first. 
-
-The write_to_config attribute of the manager will cause this procedure name to be written to the config.xml file so that it can be started up before the session makes a connection to the runtime repository.
-
+<entity_narration>This table contains a list of the manager types that are required to be started during the startup of the session and the order in which they must be started. Any manager types which need to be written to the config file must always be started first. 
+
+The write_to_config attribute of the manager will cause this procedure name to be written to the config.xml file so that it can be started up before the session makes a connection to the runtime repository.
+
 The framework supports a standard set of manager types that are required but specific applications may require the startup of additional manager types for performance reasons, e.g. a financial system may require a frequently referenced financial manager api to be pre-started.</entity_narration>
 <entity_object_field>required_manager_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5921,7 +5685,7 @@ The framework supports a standard set of manager types that are required but spe
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="110" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924427.09" record_version_obj="3000002946.09" version_number_seq="15.09" secondary_key_value="GSMSC" import_version_number_seq="15.09"><entity_mnemonic>GSMSC</entity_mnemonic>
+<dataset_transaction TransactionNo="111" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924427.09" record_version_obj="3000002946.09" version_number_seq="15.09" secondary_key_value="GSMSC" import_version_number_seq="15.09"><entity_mnemonic>GSMSC</entity_mnemonic>
 <entity_mnemonic_short_desc>server context</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_server_context</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5929,10 +5693,10 @@ The framework supports a standard set of manager types that are required but spe
 <entity_mnemonic_obj>1004924427.09</entity_mnemonic_obj>
 <entity_description_field>context_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table is a generic table to stored context information between stateless appserver connections.
-
-The type of information that is required includes user information, security information, possibly SCM workspace and task information, web page field values, etc.
-
+<entity_narration>This table is a generic table to stored context information between stateless appserver connections.
+
+The type of information that is required includes user information, security information, possibly SCM workspace and task information, web page field values, etc.
+
 This is a child table of the context scope, gst_context_scope and could be context data scope to a session, or to a user.</entity_narration>
 <entity_object_field>server_context_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -5981,7 +5745,7 @@ This is a child table of the context scope, gst_context_scope and could be conte
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="111" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924429.09" record_version_obj="3000005926.09" version_number_seq="14.09" secondary_key_value="GSMSE" import_version_number_seq="14.09"><entity_mnemonic>GSMSE</entity_mnemonic>
+<dataset_transaction TransactionNo="112" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924429.09" record_version_obj="3000005926.09" version_number_seq="14.09" secondary_key_value="GSMSE" import_version_number_seq="14.09"><entity_mnemonic>GSMSE</entity_mnemonic>
 <entity_mnemonic_short_desc>session type</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_session_type</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -5989,24 +5753,24 @@ This is a child table of the context scope, gst_context_scope and could be conte
 <entity_mnemonic_obj>1004924429.09</entity_mnemonic_obj>
 <entity_description_field>session_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>A session type is a namespace for grouping specific types of sessions together.
-
-For example, a &quot;receipting workstation&quot; would be a specific session type while a &quot;salesman&apos;s web agent&quot; could be another.
-
-Each session type is combined with a physical session type that maps to a list of known Progress 4GL run-time environments. 
-
-Thus, &quot;receipting workstation&quot; may be mapped to a 4GL GUI client while &quot;salesman&apos;s web agent&quot; could be mapped to a WebSpeed Transaction Agent.
-
-Thus you could create any number of session types mapping them to specific 4GL session types.
-
-Where different managers, etc. need to be pre-started for different applications, then the different applications would be defined as new session types.
-
-In order to run locally without appserver connections, etc. you would need to define a new session type that connects to appropriate databases and has no session service records for the appserver logical services thereby forcing them to not connect and rather simply use the session handle for code portability. Also, this new session type would define a different set of managers to run, i.e. run the server side managers locally.
-
-We will provide a facility to change the session type on the fly (if possible).
-
-We have a recursive join to the gsc_session_type table to support inheritance of settings across multiple session types. This will make the modification, re-use and creation of session types much simpler. The program that generates the icfconfig.xml file will simply read the extra details from the linked session types and write out an accumulated set of configuration details.
-
+<entity_narration>A session type is a namespace for grouping specific types of sessions together.
+
+For example, a &quot;receipting workstation&quot; would be a specific session type while a &quot;salesman&apos;s web agent&quot; could be another.
+
+Each session type is combined with a physical session type that maps to a list of known Progress 4GL run-time environments. 
+
+Thus, &quot;receipting workstation&quot; may be mapped to a 4GL GUI client while &quot;salesman&apos;s web agent&quot; could be mapped to a WebSpeed Transaction Agent.
+
+Thus you could create any number of session types mapping them to specific 4GL session types.
+
+Where different managers, etc. need to be pre-started for different applications, then the different applications would be defined as new session types.
+
+In order to run locally without appserver connections, etc. you would need to define a new session type that connects to appropriate databases and has no session service records for the appserver logical services thereby forcing them to not connect and rather simply use the session handle for code portability. Also, this new session type would define a different set of managers to run, i.e. run the server side managers locally.
+
+We will provide a facility to change the session type on the fly (if possible).
+
+We have a recursive join to the gsc_session_type table to support inheritance of settings across multiple session types. This will make the modification, re-use and creation of session types much simpler. The program that generates the icfconfig.xml file will simply read the extra details from the linked session types and write out an accumulated set of configuration details.
+
 This table also holds parameter details for the session, such as whether to support failover and inactivity timeouts for sessions.</entity_narration>
 <entity_object_field>session_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6071,7 +5835,7 @@ This table also holds parameter details for the session, such as whether to supp
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="112" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924432.09" record_version_obj="3000002965.09" version_number_seq="6.09" secondary_key_value="GSMSF" import_version_number_seq="6.09"><entity_mnemonic>GSMSF</entity_mnemonic>
+<dataset_transaction TransactionNo="113" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924432.09" record_version_obj="3000002965.09" version_number_seq="6.09" secondary_key_value="GSMSF" import_version_number_seq="6.09"><entity_mnemonic>GSMSF</entity_mnemonic>
 <entity_mnemonic_short_desc>startup flow</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_startup_flow</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6103,7 +5867,7 @@ This table also holds parameter details for the session, such as whether to supp
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="113" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24195" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924396.09" record_version_obj="3000002985.09" version_number_seq="7.09" secondary_key_value="GSMSH" import_version_number_seq="7.09"><entity_mnemonic>GSMSH</entity_mnemonic>
+<dataset_transaction TransactionNo="114" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24195" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924396.09" record_version_obj="3000002985.09" version_number_seq="7.09" secondary_key_value="GSMSH" import_version_number_seq="7.09"><entity_mnemonic>GSMSH</entity_mnemonic>
 <entity_mnemonic_short_desc>status history</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_status_history</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6143,7 +5907,7 @@ This table also holds parameter details for the session, such as whether to supp
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="114" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924394.09" record_version_obj="3000002937.09" version_number_seq="9.09" secondary_key_value="GSMSS" import_version_number_seq="9.09"><entity_mnemonic>GSMSS</entity_mnemonic>
+<dataset_transaction TransactionNo="115" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924394.09" record_version_obj="3000002937.09" version_number_seq="9.09" secondary_key_value="GSMSS" import_version_number_seq="9.09"><entity_mnemonic>GSMSS</entity_mnemonic>
 <entity_mnemonic_short_desc>security structure</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_security_structure</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6151,15 +5915,15 @@ This table also holds parameter details for the session, such as whether to supp
 <entity_mnemonic_obj>1004924394.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>The parts of the application where security restrictions are applicable to. Currently access tokens, fields, and ranges are supported. The owning_obj will refer either to a gsm_token record, a gsm_field record, or a gsm_range record.
-
-One table is used rather than a usage table for each of the above as the fields are identical, and if another type is introduced, no major rewrites will be required as this table will automatically support it.
-
-The security restriction may be assigned globally, in which case the product module, object and instance attribute will be 0.
-
-Alternatively the restriction may be allocated to a product module, a specific program object, or even an insance attribute for a program.
-
-A restriction must be assigned to this table for it to be active at all. It is entries in this table that are allocated to users.
+<entity_narration>The parts of the application where security restrictions are applicable to. Currently access tokens, fields, and ranges are supported. The owning_obj will refer either to a gsm_token record, a gsm_field record, or a gsm_range record.
+
+One table is used rather than a usage table for each of the above as the fields are identical, and if another type is introduced, no major rewrites will be required as this table will automatically support it.
+
+The security restriction may be assigned globally, in which case the product module, object and instance attribute will be 0.
+
+Alternatively the restriction may be allocated to a product module, a specific program object, or even an insance attribute for a program.
+
+A restriction must be assigned to this table for it to be active at all. It is entries in this table that are allocated to users.
 </entity_narration>
 <entity_object_field>security_structure_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6192,7 +5956,7 @@ A restriction must be assigned to this table for it to be active at all. It is e
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="115" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="160" record_version_obj="3000002980.09" version_number_seq="19.09" secondary_key_value="GSMST" import_version_number_seq="19.09"><entity_mnemonic>GSMST</entity_mnemonic>
+<dataset_transaction TransactionNo="116" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="160" record_version_obj="3000002980.09" version_number_seq="19.09" secondary_key_value="GSMST" import_version_number_seq="19.09"><entity_mnemonic>GSMST</entity_mnemonic>
 <entity_mnemonic_short_desc>status</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_status</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6200,23 +5964,23 @@ A restriction must be assigned to this table for it to be active at all. It is e
 <entity_mnemonic_obj>160</entity_mnemonic_obj>
 <entity_description_field>status_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>The actual valid status codes are set-up in the category table. For example:
-
-related entity mnemonic = GSMST for gsm_status
-category type = STS for Status
-category group = HST for History
-category subgroup = COD for Code
-
-The category subgroup is the actual status in this case. The categories of status will always be system owned and mandatory. The category mandatory flag will be used to indicate whether an object at this status may be modified.
-
-At least 1 record must exist in this table for every category subgroup that has a related entity mnemonic of status (GSMST). This record will be system owned, have a sequence of 0 and may not be deleted. It will always be the default status for this category subgroup.
-
-This table allows users to modify the narrative of the status, and add extra status&apos;s within the same category subgroup to represent their internal business processes.
-
-From a business logic point of view, when the status changes within the same category, we do not need to do anything and the user may do this manually via a combo box. The change of status from 1 category to the next within a category group will usually be done via a business logic process.
-
-We will always need to join back to the category table to determine what status an object is at from a business logic point of view.
-
+<entity_narration>The actual valid status codes are set-up in the category table. For example:
+
+related entity mnemonic = GSMST for gsm_status
+category type = STS for Status
+category group = HST for History
+category subgroup = COD for Code
+
+The category subgroup is the actual status in this case. The categories of status will always be system owned and mandatory. The category mandatory flag will be used to indicate whether an object at this status may be modified.
+
+At least 1 record must exist in this table for every category subgroup that has a related entity mnemonic of status (GSMST). This record will be system owned, have a sequence of 0 and may not be deleted. It will always be the default status for this category subgroup.
+
+This table allows users to modify the narrative of the status, and add extra status&apos;s within the same category subgroup to represent their internal business processes.
+
+From a business logic point of view, when the status changes within the same category, we do not need to do anything and the user may do this manually via a combo box. The change of status from 1 category to the next within a category group will usually be done via a business logic process.
+
+We will always need to join back to the category table to determine what status an object is at from a business logic point of view.
+
 The status an object is at effective from a specific date is determined by an entry in the status history table, which means the status does not need to be added to every table it is used for. However, in some cases we have linked objects directly to the status table to show the current status for performance reasons.</entity_narration>
 <entity_object_field>status_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6289,7 +6053,7 @@ The status an object is at effective from a specific date is determined by an en
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="116" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924428.09" record_version_obj="3000002947.09" version_number_seq="4.09" secondary_key_value="GSMSV" import_version_number_seq="4.09"><entity_mnemonic>GSMSV</entity_mnemonic>
+<dataset_transaction TransactionNo="117" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924428.09" record_version_obj="3000002947.09" version_number_seq="4.09" secondary_key_value="GSMSV" import_version_number_seq="4.09"><entity_mnemonic>GSMSV</entity_mnemonic>
 <entity_mnemonic_short_desc>session service</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_session_service</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6297,11 +6061,11 @@ The status an object is at effective from a specific date is determined by an en
 <entity_mnemonic_obj>1004924428.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>The session service table defines the different physical services for each session type in order to establish the logical service.
-
-For example, an AppServer may require a shared memory connection to the repository database whereas a client session would require a network connection to the same databases. The physical connection parameters are different for each of these. Therefore the logical service identifies the database that needs to be connected and the physical service describes the mechanism for the connection dependant on the session type.
-
-If no session service record exists then the logical service can only run locally.
+<entity_narration>The session service table defines the different physical services for each session type in order to establish the logical service.
+
+For example, an AppServer may require a shared memory connection to the repository database whereas a client session would require a network connection to the same databases. The physical connection parameters are different for each of these. Therefore the logical service identifies the database that needs to be connected and the physical service describes the mechanism for the connection dependant on the session type.
+
+If no session service record exists then the logical service can only run locally.
 </entity_narration>
 <entity_object_field>session_service_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6318,7 +6082,7 @@ If no session service record exists then the logical service can only run locall
 <reuse_deleted_keys>yes</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="117" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049804.09" record_version_obj="3000049805.09" version_number_seq="4.09" secondary_key_value="GSMSX" import_version_number_seq="4.09"><entity_mnemonic>GSMSX</entity_mnemonic>
+<dataset_transaction TransactionNo="118" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24193" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049804.09" record_version_obj="3000049805.09" version_number_seq="4.09" secondary_key_value="GSMSX" import_version_number_seq="4.09"><entity_mnemonic>GSMSX</entity_mnemonic>
 <entity_mnemonic_short_desc>scm xref</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_scm_xref</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6326,13 +6090,13 @@ If no session service record exists then the logical service can only run locall
 <entity_mnemonic_obj>3000049804.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the mapping between data in the Dynamics repository and an external SCM tool, with mapping being defined per SCM tool in use.
-
-Examples of the types of data that is mapped includes object types and product modules. This facilitates the external SCM tool using different codes than those used in Dynamics. It also allows mutiple codes in Dynamics to share a common code in the external SCM tool, e.g. many product modules and object types in Dynamics could point at common modules and subtypes in an SCM tool such as Roundtable.
-
-The scm foreign key field is the field in the external SCM tool. This is a character field for maximum portability. API&apos;s should be used to provide lookup lists for values in the external SCM tool.
-
-Data must be set up in this table for SCM integration to function, so that it is clear what data is mapped to what. If it is a one to one mapping, then tools can be used to synchronize the data and set it up automatically.
+<entity_narration>This table defines the mapping between data in the Dynamics repository and an external SCM tool, with mapping being defined per SCM tool in use.
+
+Examples of the types of data that is mapped includes object types and product modules. This facilitates the external SCM tool using different codes than those used in Dynamics. It also allows mutiple codes in Dynamics to share a common code in the external SCM tool, e.g. many product modules and object types in Dynamics could point at common modules and subtypes in an SCM tool such as Roundtable.
+
+The scm foreign key field is the field in the external SCM tool. This is a character field for maximum portability. API&apos;s should be used to provide lookup lists for values in the external SCM tool.
+
+Data must be set up in this table for SCM integration to function, so that it is clear what data is mapped to what. If it is a one to one mapping, then tools can be used to synchronize the data and set it up automatically.
 </entity_narration>
 <entity_object_field>scm_xref_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6349,7 +6113,7 @@ Data must be set up in this table for SCM integration to function, so that it is
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="118" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924430.09" record_version_obj="3000002962.09" version_number_seq="6.09" secondary_key_value="GSMSY" import_version_number_seq="6.09"><entity_mnemonic>GSMSY</entity_mnemonic>
+<dataset_transaction TransactionNo="119" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24194" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924430.09" record_version_obj="3000002962.09" version_number_seq="6.09" secondary_key_value="GSMSY" import_version_number_seq="6.09"><entity_mnemonic>GSMSY</entity_mnemonic>
 <entity_mnemonic_short_desc>session type property</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_session_type_property</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6357,10 +6121,10 @@ Data must be set up in this table for SCM integration to function, so that it is
 <entity_mnemonic_obj>1004924430.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table resolves the many-to-many relationship between gsc_session_property and gsm_session_type.
-
-If a record is found in this table for a property and a session type, the value specified in that record is written to the ICF configuration file for the parameter.
-
+<entity_narration>This table resolves the many-to-many relationship between gsc_session_property and gsm_session_type.
+
+If a record is found in this table for a property and a session type, the value specified in that record is written to the ICF configuration file for the parameter.
+
 If no record exists for a given property and session type, the always_used flag on the gsc_session_property table is checked. If the flag is on, the default value in the default_property_value field on the gsc_session_property table is used.</entity_narration>
 <entity_object_field>session_type_property_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6385,7 +6149,37 @@ If no record exists for a given property and session type, the always_used flag 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="119" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24196" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003009.09" record_version_obj="3000003010.09" version_number_seq="27.09" secondary_key_value="GSMTI" import_version_number_seq="27.09"><entity_mnemonic>GSMTI</entity_mnemonic>
+<dataset_transaction TransactionNo="120" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="02/03/2004" version_time="56114" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="2503.38" record_version_obj="2504.38" version_number_seq="4.38" secondary_key_value="GSMTD" import_version_number_seq="4.38"><entity_mnemonic>GSMTD</entity_mnemonic>
+<entity_mnemonic_short_desc>tagged data</entity_mnemonic_short_desc>
+<entity_mnemonic_description>gsm_tagged_data</entity_mnemonic_description>
+<auto_properform_strings>yes</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>2503.38</entity_mnemonic_obj>
+<entity_description_field></entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration>This table associates data tags as defined in the gsc_data_tag table with specific items of data, e.g. specific object types to identify that the object types belong to the core Dynamics product.
+
+See description against table gsc_data_tag for further details on how this is intended to work.
+
+A specific item of data may contain any number of tags for various purposes, but a specific tag may only be allocated once to a specific item of data.
+
+As tags are generically attached to data, the schema triggers for data that may have tags attached will need to ensure that the tags are deleted when the data is deleted - like the mechanism used for generic comments and auditing.</entity_narration>
+<entity_object_field>tagged_data_obj</entity_object_field>
+<table_has_object_field>yes</table_has_object_field>
+<entity_key_field>owning_entity_mnemonic,owning_reference</entity_key_field>
+<table_prefix_length>4</table_prefix_length>
+<field_name_separator>_</field_name_separator>
+<auditing_enabled>?</auditing_enabled>
+<version_data>yes</version_data>
+<deploy_data>yes</deploy_data>
+<entity_dbname>ICFDB</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>yes</reuse_deleted_keys>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="121" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24196" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003009.09" record_version_obj="3000003010.09" version_number_seq="27.09" secondary_key_value="GSMTI" import_version_number_seq="27.09"><entity_mnemonic>GSMTI</entity_mnemonic>
 <entity_mnemonic_short_desc>translated menu item</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_translated_menu_item</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6393,8 +6187,8 @@ If no record exists for a given property and session type, the always_used flag 
 <entity_mnemonic_obj>3000003009.09</entity_mnemonic_obj>
 <entity_description_field>image1_up_filename</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table stores menu item translations. Fields requiring translation are duplicated from the gsm_menu_item table and translations for them stored in this table by language.
-
+<entity_narration>This table stores menu item translations. Fields requiring translation are duplicated from the gsm_menu_item table and translations for them stored in this table by language.
+
 This table is only required to be referenced if the users login language does not match the source language of the menu item, otherwise the standard fields on the gsm_menu_item can be used, i.e. this table is only required if a translation is required.</entity_narration>
 <entity_object_field>translated_menu_item_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6499,7 +6293,7 @@ This table is only required to be referenced if the users login language does no
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="120" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24196" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924397.09" record_version_obj="3000003049.09" version_number_seq="28.09" secondary_key_value="GSMTL" import_version_number_seq="28.09"><entity_mnemonic>GSMTL</entity_mnemonic>
+<dataset_transaction TransactionNo="122" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24196" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924397.09" record_version_obj="3000003049.09" version_number_seq="28.09" secondary_key_value="GSMTL" import_version_number_seq="28.09"><entity_mnemonic>GSMTL</entity_mnemonic>
 <entity_mnemonic_short_desc>translation</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_translation</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6507,11 +6301,11 @@ This table is only required to be referenced if the users login language does no
 <entity_mnemonic_obj>1004924397.09</entity_mnemonic_obj>
 <entity_description_field>widget_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table containes user defined translations for the various languages for widget labels and tooltip text.
-
-The setup of every program will first walk the widget tree and change the label / tooltip to the entry in this table according to the language selected by the user - if an entry exists.
-
-Translations can be turned off globally using the gsc_security_control.translation_enabled flag.
+<entity_narration>This table containes user defined translations for the various languages for widget labels and tooltip text.
+
+The setup of every program will first walk the widget tree and change the label / tooltip to the entry in this table according to the language selected by the user - if an entry exists.
+
+Translations can be turned off globally using the gsc_security_control.translation_enabled flag.
 </entity_narration>
 <entity_object_field>translation_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6592,7 +6386,7 @@ Translations can be turned off globally using the gsc_security_control.translati
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="121" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24195" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600089.08" record_version_obj="3000005949.09" version_number_seq="12.09" secondary_key_value="GSMTM" import_version_number_seq="12.09"><entity_mnemonic>GSMTM</entity_mnemonic>
+<dataset_transaction TransactionNo="123" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24195" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600089.08" record_version_obj="3000005949.09" version_number_seq="12.09" secondary_key_value="GSMTM" import_version_number_seq="12.09"><entity_mnemonic>GSMTM</entity_mnemonic>
 <entity_mnemonic_short_desc>toolbar menu structure</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_toolbar_menu_structure</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6656,7 +6450,7 @@ Translations can be turned off globally using the gsc_security_control.translati
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="122" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="164" record_version_obj="3000005944.09" version_number_seq="15.09" secondary_key_value="GSMTO" import_version_number_seq="15.09"><entity_mnemonic>GSMTO</entity_mnemonic>
+<dataset_transaction TransactionNo="124" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="164" record_version_obj="3000005944.09" version_number_seq="15.09" secondary_key_value="GSMTO" import_version_number_seq="15.09"><entity_mnemonic>GSMTO</entity_mnemonic>
 <entity_mnemonic_short_desc>token</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_token</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6664,15 +6458,15 @@ Translations can be turned off globally using the gsc_security_control.translati
 <entity_mnemonic_obj>164</entity_mnemonic_obj>
 <entity_description_field>token_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Tokens are used in the application to control access to functions the user may perform within a program via tab folder page names and button names.
-
-Tokens may be created for any tab page names or button labels, being careful to ignore any shortcut characters and ... suffixes. The tokens must then be added to the security structure table to become active. The security structure table facilitates the token being restricted for a specific object instance, specific object, specific product module, or generically for everything.
-
-The software will only check security providing a valid enabled token exists for the button label or tab folder page.
-
-If a user has no tokens allocated at all, then it is assumed they have full access (providing security contol is set to full access by default). Once a user is allocated tokens, then security comes into force and the user will only be granted access for folder pages and buttons they have been granted access to (an that have restricted access set up).
-
-Example tokens would be add, delete, modify, view, copy, page 1, page 2, etc.
+<entity_narration>Tokens are used in the application to control access to functions the user may perform within a program via tab folder page names and button names.
+
+Tokens may be created for any tab page names or button labels, being careful to ignore any shortcut characters and ... suffixes. The tokens must then be added to the security structure table to become active. The security structure table facilitates the token being restricted for a specific object instance, specific object, specific product module, or generically for everything.
+
+The software will only check security providing a valid enabled token exists for the button label or tab folder page.
+
+If a user has no tokens allocated at all, then it is assumed they have full access (providing security contol is set to full access by default). Once a user is allocated tokens, then security comes into force and the user will only be granted access for folder pages and buttons they have been granted access to (an that have restricted access set up).
+
+Example tokens would be add, delete, modify, view, copy, page 1, page 2, etc.
 </entity_narration>
 <entity_object_field>token_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6721,7 +6515,7 @@ Example tokens would be add, delete, modify, view, copy, page 1, page 2, etc.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="123" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924400.09" record_version_obj="3000006002.09" version_number_seq="8.09" secondary_key_value="GSMUC" import_version_number_seq="8.09"><entity_mnemonic>GSMUC</entity_mnemonic>
+<dataset_transaction TransactionNo="125" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924400.09" record_version_obj="3000006002.09" version_number_seq="8.09" secondary_key_value="GSMUC" import_version_number_seq="8.09"><entity_mnemonic>GSMUC</entity_mnemonic>
 <entity_mnemonic_short_desc>user category</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_user_category</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6769,7 +6563,7 @@ Example tokens would be add, delete, modify, view, copy, page 1, page 2, etc.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="124" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924399.09" record_version_obj="3000003107.09" version_number_seq="9.09" secondary_key_value="GSMUL" import_version_number_seq="9.09"><entity_mnemonic>GSMUL</entity_mnemonic>
+<dataset_transaction TransactionNo="126" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924399.09" record_version_obj="3000003107.09" version_number_seq="9.09" secondary_key_value="GSMUL" import_version_number_seq="9.09"><entity_mnemonic>GSMUL</entity_mnemonic>
 <entity_mnemonic_short_desc>user allocation</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_user_allocation</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6777,32 +6571,32 @@ Example tokens would be add, delete, modify, view, copy, page 1, page 2, etc.
 <entity_mnemonic_obj>1004924399.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>When a user logs into the system, they log in with a user id, and a select a company (organisation). This table defines the security options for the user when they log into a certian organisation. The user may have different security options when logged into different companies.
-
-If the organisation_obj is 0, then the security allocation applies to all companies. Likewise, if the user_obj is 0, then the security allocation applies to all users logged into this company. User security will always override company security. In addition, and owning_obj of 0 always indicates no access to all the data for that entity mnemonic (not supported for security structures, or menus - only really for data).
-
-This table generically assigns all security options for the user / company. The standard options that may be specified via the owning_entity_mnemonic and owning_obj are:
-
-gsm_security_structure records for security relating to tokens, fields and ranges.
-gsm_menu_items for securing access to menu items
-gsm_menu_structure for securing access to menu structures
-gsm_entity_field_value for securing access to generic entity field values e.g. companies.
-
-Additionally, access to any entity data can be secured using this table. For example, to secure access to specific cost centre codes in a general ledger, the owning_entity_mnemonic could be the cost centre table, and the owning_obj used to allocate specific cost centres the user / company has access to.
-
-The rules applied to this table for the entity in order are as follows:
-0) If security is disabled, then user security is passed.
-1) If a specific record exists for the user / company then security is passed
-2) If a specific record is found for the user / company with an owning_obj of     0, security is failed
-3) If not full access by default, and no entries exist for the user at all, including     all users and all companies, security is failed
-4) If a record exists for all users or all companies with an owning_obj of 0,     then security is failed
-5) If a record is found for all users, security is passed
-6) If a record is found for all companies, security is passed
-7) If full access by default and no records are found at all for the specific     user, all users, or all companies, then security is passed.
-
-Some allocations require additional data, e.g. allocating a field restriction needs to determine what can be done with the field, e.g. View, Update, Hide, etc.
-
-Entries must exist in this table for all security allocations. There is no option for inclusion or exclusion to make querying as fast as possible. The maintenance programs however should allow the specification by inclusion or exclusion for fast data entry - then create / delete all relevant entries in this table.
+<entity_narration>When a user logs into the system, they log in with a user id, and a select a company (organisation). This table defines the security options for the user when they log into a certian organisation. The user may have different security options when logged into different companies.
+
+If the organisation_obj is 0, then the security allocation applies to all companies. Likewise, if the user_obj is 0, then the security allocation applies to all users logged into this company. User security will always override company security. In addition, and owning_obj of 0 always indicates no access to all the data for that entity mnemonic (not supported for security structures, or menus - only really for data).
+
+This table generically assigns all security options for the user / company. The standard options that may be specified via the owning_entity_mnemonic and owning_obj are:
+
+gsm_security_structure records for security relating to tokens, fields and ranges.
+gsm_menu_items for securing access to menu items
+gsm_menu_structure for securing access to menu structures
+gsm_entity_field_value for securing access to generic entity field values e.g. companies.
+
+Additionally, access to any entity data can be secured using this table. For example, to secure access to specific cost centre codes in a general ledger, the owning_entity_mnemonic could be the cost centre table, and the owning_obj used to allocate specific cost centres the user / company has access to.
+
+The rules applied to this table for the entity in order are as follows:
+0) If security is disabled, then user security is passed.
+1) If a specific record exists for the user / company then security is passed
+2) If a specific record is found for the user / company with an owning_obj of     0, security is failed
+3) If not full access by default, and no entries exist for the user at all, including     all users and all companies, security is failed
+4) If a record exists for all users or all companies with an owning_obj of 0,     then security is failed
+5) If a record is found for all users, security is passed
+6) If a record is found for all companies, security is passed
+7) If full access by default and no records are found at all for the specific     user, all users, or all companies, then security is passed.
+
+Some allocations require additional data, e.g. allocating a field restriction needs to determine what can be done with the field, e.g. View, Update, Hide, etc.
+
+Entries must exist in this table for all security allocations. There is no option for inclusion or exclusion to make querying as fast as possible. The maintenance programs however should allow the specification by inclusion or exclusion for fast data entry - then create / delete all relevant entries in this table.
 </entity_narration>
 <entity_object_field>user_allocation_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -6843,7 +6637,7 @@ Entries must exist in this table for all security allocations. There is no optio
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="125" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24197" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924398.09" record_version_obj="3000003100.09" version_number_seq="54.09" secondary_key_value="GSMUS" import_version_number_seq="54.09"><entity_mnemonic>GSMUS</entity_mnemonic>
+<dataset_transaction TransactionNo="127" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24197" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924398.09" record_version_obj="3000003100.09" version_number_seq="54.09" secondary_key_value="GSMUS" import_version_number_seq="54.09"><entity_mnemonic>GSMUS</entity_mnemonic>
 <entity_mnemonic_short_desc>user</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_user</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -6851,14 +6645,14 @@ Entries must exist in this table for all security allocations. There is no optio
 <entity_mnemonic_obj>1004924398.09</entity_mnemonic_obj>
 <entity_description_field>user_full_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the users who may log into the system, i.e. the users of the system.
-
-The main user details are contained in an external security system, e.g. openstart pointed at by the external_userid field. This table defines extra user information for this system, and allows a user to be optionally associated with a person to facilitate full name, address, etc. details to be entered for a user as well as comments.
-
-There is a logged in flag on this user record to facilitate the identification of user availability (a user is available if they are logged into this application).
-
-The existence of this specific user table in our database also facilitates automatic referential integrity.
-
+<entity_narration>This table defines the users who may log into the system, i.e. the users of the system.
+
+The main user details are contained in an external security system, e.g. openstart pointed at by the external_userid field. This table defines extra user information for this system, and allows a user to be optionally associated with a person to facilitate full name, address, etc. details to be entered for a user as well as comments.
+
+There is a logged in flag on this user record to facilitate the identification of user availability (a user is available if they are logged into this application).
+
+The existence of this specific user table in our database also facilitates automatic referential integrity.
+
 </entity_narration>
 <entity_object_field>user_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7075,7 +6869,7 @@ The existence of this specific user table in our database also facilitates autom
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="126" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924436.09" record_version_obj="3000003114.09" version_number_seq="4.09" secondary_key_value="GSMVP" import_version_number_seq="4.09"><entity_mnemonic>GSMVP</entity_mnemonic>
+<dataset_transaction TransactionNo="128" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924436.09" record_version_obj="3000003114.09" version_number_seq="4.09" secondary_key_value="GSMVP" import_version_number_seq="4.09"><entity_mnemonic>GSMVP</entity_mnemonic>
 <entity_mnemonic_short_desc>valid object partition</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gsm_valid_object_partition</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7083,12 +6877,12 @@ The existence of this specific user table in our database also facilitates autom
 <entity_mnemonic_obj>1004924436.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines a list of valid partitions in which a procedure can be run.
-
-A partition is a logical AppServer Partition.
-
-The list only contains records when the object is restricted to certain partitions. When the object may be run on any partition, there are no records in this table.
-
+<entity_narration>This table defines a list of valid partitions in which a procedure can be run.
+
+A partition is a logical AppServer Partition.
+
+The list only contains records when the object is restricted to certain partitions. When the object may be run on any partition, there are no records in this table.
+
 The records in this table are only applicable to appserver session types.</entity_narration>
 <entity_object_field>valid_object_partition_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7105,7 +6899,7 @@ The records in this table are only applicable to appserver session types.</entit
 <reuse_deleted_keys>yes</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="127" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="186" record_version_obj="3000003131.09" version_number_seq="19.09" secondary_key_value="GSTAD" import_version_number_seq="19.09"><entity_mnemonic>GSTAD</entity_mnemonic>
+<dataset_transaction TransactionNo="129" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24198" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="186" record_version_obj="3000003131.09" version_number_seq="19.09" secondary_key_value="GSTAD" import_version_number_seq="19.09"><entity_mnemonic>GSTAD</entity_mnemonic>
 <entity_mnemonic_short_desc>audit</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_audit</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7113,8 +6907,8 @@ The records in this table are only applicable to appserver session types.</entit
 <entity_mnemonic_obj>186</entity_mnemonic_obj>
 <entity_description_field>program_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Global audit file to record modifications to data. The audit can be turned on by defining a category of audit for an entity type. It can be turned off again simply by resetting the active flag on the category.
-The audit will hold basic details on the action (create, amend, or delete), the user, date &amp; time, the program and procedure used to perform the action, and possibly a record of the data before the update.
+<entity_narration>Global audit file to record modifications to data. The audit can be turned on by defining a category of audit for an entity type. It can be turned off again simply by resetting the active flag on the category.
+The audit will hold basic details on the action (create, amend, or delete), the user, date &amp; time, the program and procedure used to perform the action, and possibly a record of the data before the update.
 The audit could easily be used to keep old values of fields by defining more categories, e.g. one for each field or group of fields on an entity.</entity_narration>
 <entity_object_field>audit_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7195,7 +6989,7 @@ The audit could easily be used to keep old values of fields by defining more cat
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="128" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24199" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924401.09" record_version_obj="3000003152.09" version_number_seq="23.09" secondary_key_value="GSTBT" import_version_number_seq="23.09"><entity_mnemonic>GSTBT</entity_mnemonic>
+<dataset_transaction TransactionNo="130" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24199" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924401.09" record_version_obj="3000003152.09" version_number_seq="23.09" secondary_key_value="GSTBT" import_version_number_seq="23.09"><entity_mnemonic>GSTBT</entity_mnemonic>
 <entity_mnemonic_short_desc>batch job</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_batch_job</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7203,10 +6997,10 @@ The audit could easily be used to keep old values of fields by defining more cat
 <entity_mnemonic_obj>1004924401.09</entity_mnemonic_obj>
 <entity_description_field>job_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>A job can be run immediately or at a user selected time in which case it is stored as a batch job. A daemon will monitor this table and initiate the jobs at the selected time.
-
-The batch_job_procedure_name may be the same as a report_procedure_name, or it may be for a separate procedure that initiates a number of separate procedures. These may or may not be report_procedure_name&apos;s.
-
+<entity_narration>A job can be run immediately or at a user selected time in which case it is stored as a batch job. A daemon will monitor this table and initiate the jobs at the selected time.
+
+The batch_job_procedure_name may be the same as a report_procedure_name, or it may be for a separate procedure that initiates a number of separate procedures. These may or may not be report_procedure_name&apos;s.
+
 Parameters for the batch job will be stored as per those for the report definition.</entity_narration>
 <entity_object_field>batch_job_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7303,7 +7097,7 @@ Parameters for the batch job will be stored as per those for the report definiti
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="129" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049853.09" record_version_obj="3000049854.09" version_number_seq="4.09" secondary_key_value="GSTCS" import_version_number_seq="4.09"><entity_mnemonic>GSTCS</entity_mnemonic>
+<dataset_transaction TransactionNo="131" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049853.09" record_version_obj="3000049854.09" version_number_seq="4.09" secondary_key_value="GSTCS" import_version_number_seq="4.09"><entity_mnemonic>GSTCS</entity_mnemonic>
 <entity_mnemonic_short_desc>context scope</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_context_scope</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7311,17 +7105,17 @@ Parameters for the batch job will be stored as per those for the report definiti
 <entity_mnemonic_obj>3000049853.09</entity_mnemonic_obj>
 <entity_description_field>scope_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the scope of the server context data, either by session or by user.
-
-If the context scope is for a user, then the context data in gsm_server_context will persist across sessions and will remain valid for the user until it is deleted or expires (as determined by the flag on gsc_security_control indicating after what period user context data should expire). This facilitates storing context for a user that can be re-used in new sessions, e.g. shopping cart information that can persist between web sessions. For user context scope, the session_obj will be set to 0 and a valid user_obj must be specified.
-
-If the context scope is for a session, then the context data in the gsm_server_context table will only be valid for the duration of a single session. In this case the session_obj will be specified and the user_obj will be 0.
-
-A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
-
-When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
-
-The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
+<entity_narration>This table defines the scope of the server context data, either by session or by user.
+
+If the context scope is for a user, then the context data in gsm_server_context will persist across sessions and will remain valid for the user until it is deleted or expires (as determined by the flag on gsc_security_control indicating after what period user context data should expire). This facilitates storing context for a user that can be re-used in new sessions, e.g. shopping cart information that can persist between web sessions. For user context scope, the session_obj will be set to 0 and a valid user_obj must be specified.
+
+If the context scope is for a session, then the context data in the gsm_server_context table will only be valid for the duration of a single session. In this case the session_obj will be specified and the user_obj will be 0.
+
+A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
+
+When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
+
+The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
 </entity_narration>
 <entity_object_field>context_scope_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7338,7 +7132,7 @@ The transaction complete flag is only set for the top parent context scope where
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="130" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="4623.24" record_version_obj="3000005434.09" version_number_seq="9.09" secondary_key_value="GSTDF" import_version_number_seq="9.09"><entity_mnemonic>GSTDF</entity_mnemonic>
+<dataset_transaction TransactionNo="132" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="4623.24" record_version_obj="3000005434.09" version_number_seq="9.09" secondary_key_value="GSTDF" import_version_number_seq="9.09"><entity_mnemonic>GSTDF</entity_mnemonic>
 <entity_mnemonic_short_desc>dataset file</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_dataset_file</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7346,10 +7140,10 @@ The transaction complete flag is only set for the top parent context scope where
 <entity_mnemonic_obj>4623.24</entity_mnemonic_obj>
 <entity_description_field>ado_filename</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table keeps a record of ADO files generated for a dataset. A single dataset may be generated out to multiple ADO files.
-
-The purpose of this table is to record the date and time this dataset ADO file was last loaded into the current repository. Checks will be made against the file date on disk to see whether a new files has been downloaded from POSSE and needs to be updated into the local repository.
-
+<entity_narration>This table keeps a record of ADO files generated for a dataset. A single dataset may be generated out to multiple ADO files.
+
+The purpose of this table is to record the date and time this dataset ADO file was last loaded into the current repository. Checks will be made against the file date on disk to see whether a new files has been downloaded from POSSE and needs to be updated into the local repository.
+
 If an ADO file is included as part of a package, this table records the package that the ADO file belongs to.</entity_narration>
 <entity_object_field>dataset_file_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7390,7 +7184,7 @@ If an ADO file is included as part of a package, this table records the package 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="131" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="4627.24" record_version_obj="3000005435.09" version_number_seq="21.09" secondary_key_value="GSTDP" import_version_number_seq="21.09"><entity_mnemonic>GSTDP</entity_mnemonic>
+<dataset_transaction TransactionNo="133" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24200" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="4627.24" record_version_obj="3000005435.09" version_number_seq="21.09" secondary_key_value="GSTDP" import_version_number_seq="21.09"><entity_mnemonic>GSTDP</entity_mnemonic>
 <entity_mnemonic_short_desc>deployment</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_deployment</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7486,7 +7280,7 @@ If an ADO file is included as part of a package, this table records the package 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="132" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24201" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924403.09" record_version_obj="3000003242.09" version_number_seq="39.09" secondary_key_value="GSTEL" import_version_number_seq="39.09"><entity_mnemonic>GSTEL</entity_mnemonic>
+<dataset_transaction TransactionNo="134" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24201" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924403.09" record_version_obj="3000003242.09" version_number_seq="39.09" secondary_key_value="GSTEL" import_version_number_seq="39.09"><entity_mnemonic>GSTEL</entity_mnemonic>
 <entity_mnemonic_short_desc>extract log</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_extract_log</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7494,8 +7288,8 @@ If an ADO file is included as part of a package, this table records the package 
 <entity_mnemonic_obj>1004924403.09</entity_mnemonic_obj>
 <entity_description_field>extract_log_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>Each time a data extract report is run, an entry is created in this file. The main intention is to track the completion of extract procedures so that report formatting procedures can be initiated where required.
-
+<entity_narration>Each time a data extract report is run, an entry is created in this file. The main intention is to track the completion of extract procedures so that report formatting procedures can be initiated where required.
+
 In the event that an extract log record is deleted, then any document produced records associated with the extract should be cascade deleted, providing that the print date has not been set - in order to tidy up the data.</entity_narration>
 <entity_object_field>extract_log_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7656,7 +7450,7 @@ In the event that an extract log record is deleted, then any document produced r
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="133" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24201" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924402.09" record_version_obj="3000003205.09" version_number_seq="20.09" secondary_key_value="GSTER" import_version_number_seq="20.09"><entity_mnemonic>GSTER</entity_mnemonic>
+<dataset_transaction TransactionNo="135" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24201" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924402.09" record_version_obj="3000003205.09" version_number_seq="20.09" secondary_key_value="GSTER" import_version_number_seq="20.09"><entity_mnemonic>GSTER</entity_mnemonic>
 <entity_mnemonic_short_desc>error log</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_error_log</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7664,10 +7458,10 @@ In the event that an extract log record is deleted, then any document produced r
 <entity_mnemonic_obj>1004924402.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table holds a list of errors generated either from business logic or user interface code.
-
-The table will be periodically archived to ensure it does not get too huge.
-
+<entity_narration>This table holds a list of errors generated either from business logic or user interface code.
+
+The table will be periodically archived to ensure it does not get too huge.
+
 The data in the table will be fed direct from the user interface, and periodically fed by the business logic error file which will be a flat file due to the fact that we cannot write direct to this table as the write would form part of the transaction being undone..</entity_narration>
 <entity_object_field>error_log_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7748,7 +7542,7 @@ The data in the table will be fed direct from the user interface, and periodical
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="134" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24202" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924404.09" record_version_obj="3000003249.09" version_number_seq="9.09" secondary_key_value="GSTPH" import_version_number_seq="9.09"><entity_mnemonic>GSTPH</entity_mnemonic>
+<dataset_transaction TransactionNo="136" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24202" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924404.09" record_version_obj="3000003249.09" version_number_seq="9.09" secondary_key_value="GSTPH" import_version_number_seq="9.09"><entity_mnemonic>GSTPH</entity_mnemonic>
 <entity_mnemonic_short_desc>password history</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_password_history</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7796,7 +7590,7 @@ The data in the table will be fed direct from the user interface, and periodical
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="135" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24203" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049867.09" record_version_obj="3000049868.09" version_number_seq="4.09" secondary_key_value="GSTRL" import_version_number_seq="4.09"><entity_mnemonic>GSTRL</entity_mnemonic>
+<dataset_transaction TransactionNo="137" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24203" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049867.09" record_version_obj="3000049868.09" version_number_seq="4.09" secondary_key_value="GSTRL" import_version_number_seq="4.09"><entity_mnemonic>GSTRL</entity_mnemonic>
 <entity_mnemonic_short_desc>release version</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_release_version</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7804,11 +7598,11 @@ The data in the table will be fed direct from the user interface, and periodical
 <entity_mnemonic_obj>3000049867.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table records the record versions that make up a release. 
-
-When creating a new release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
-
-This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
+<entity_narration>This table records the record versions that make up a release. 
+
+When creating a new release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
+
+This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
 </entity_narration>
 <entity_object_field>release_version_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7825,7 +7619,7 @@ This can then be used to determine what data needs to be deployed between releas
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="136" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24202" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004927721.09" record_version_obj="3000006065.09" version_number_seq="22.09" secondary_key_value="GSTRV" import_version_number_seq="22.09"><entity_mnemonic>GSTRV</entity_mnemonic>
+<dataset_transaction TransactionNo="138" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24202" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004927721.09" record_version_obj="3000006065.09" version_number_seq="22.09" secondary_key_value="GSTRV" import_version_number_seq="22.09"><entity_mnemonic>GSTRV</entity_mnemonic>
 <entity_mnemonic_short_desc>record version</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_record_version</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7833,17 +7627,17 @@ This can then be used to determine what data needs to be deployed between releas
 <entity_mnemonic_obj>1004927721.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table provides the means for identifying when static data is changed and needs to be deployed. 
-
-When an item of data on a record changes, the replication trigger on the table will check if the version_data flag on the gsc_entity_mnemonic table is switched on. 
-
-If the flag is on, either a record is written to this table or an existing record in the table is updated to indicate that the data has changed by incrementing the version_number_seq and resetting date, time and user. 
-
-This table is checked every time the deployment data is written to ensure that all data that matches the deployment criteria is written out.
-
-Basically any records with a version_number_seq greater than 0 has been changed locally and potentially needs to be deployed. Once an import is done for a record, the version_number_seq is set back to 0 indicating the data matches that since the last import and has not been modified since.
-
-When importing data, the import_version_number_seq is used as a validity check and if this number does not match the import_version_number_seq of the data being imported or the current version_number_seq does not match, there is a potential conflict.
+<entity_narration>This table provides the means for identifying when static data is changed and needs to be deployed. 
+
+When an item of data on a record changes, the replication trigger on the table will check if the version_data flag on the gsc_entity_mnemonic table is switched on. 
+
+If the flag is on, either a record is written to this table or an existing record in the table is updated to indicate that the data has changed by incrementing the version_number_seq and resetting date, time and user. 
+
+This table is checked every time the deployment data is written to ensure that all data that matches the deployment criteria is written out.
+
+Basically any records with a version_number_seq greater than 0 has been changed locally and potentially needs to be deployed. Once an import is done for a record, the version_number_seq is set back to 0 indicating the data matches that since the last import and has not been modified since.
+
+When importing data, the import_version_number_seq is used as a validity check and if this number does not match the import_version_number_seq of the data being imported or the current version_number_seq does not match, there is a potential conflict.
 </entity_narration>
 <entity_object_field>record_version_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -7940,7 +7734,7 @@ When importing data, the import_version_number_seq is used as a validity check a
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="137" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24203" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003279.09" record_version_obj="3000003280.09" version_number_seq="19.09" secondary_key_value="GSTSS" import_version_number_seq="19.09"><entity_mnemonic>GSTSS</entity_mnemonic>
+<dataset_transaction TransactionNo="139" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24203" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003279.09" record_version_obj="3000003280.09" version_number_seq="19.09" secondary_key_value="GSTSS" import_version_number_seq="19.09"><entity_mnemonic>GSTSS</entity_mnemonic>
 <entity_mnemonic_short_desc>session</entity_mnemonic_short_desc>
 <entity_mnemonic_description>gst_session</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -7948,9 +7742,9 @@ When importing data, the import_version_number_seq is used as a validity check a
 <entity_mnemonic_obj>3000003279.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table records a session and is only applicable for the duration of a session. Its purpose is to be able to record session activity and manage the context for the session in the child table gsm_server_context. The session id field from gsm_server_context has transferred to this table, so it only exists in one place for the session, and the object id for the session record is rather carried down onto the individual context records. This facilitates efficiently fixing the context id in the event a session is dropped and reconnected, thereby restoring context for the new session from the old session. For the Appserver, a record will be created in this table at connection time and checked / updated in the activate procedure.
-This table must not have a write trigger so that it can be updated as efficiently as possible.
-The information in this table is all client related, and in the case of a WebSpeed Agent, the agent is also the client.
+<entity_narration>This table records a session and is only applicable for the duration of a session. Its purpose is to be able to record session activity and manage the context for the session in the child table gsm_server_context. The session id field from gsm_server_context has transferred to this table, so it only exists in one place for the session, and the object id for the session record is rather carried down onto the individual context records. This facilitates efficiently fixing the context id in the event a session is dropped and reconnected, thereby restoring context for the new session from the old session. For the Appserver, a record will be created in this table at connection time and checked / updated in the activate procedure.
+This table must not have a write trigger so that it can be updated as efficiently as possible.
+The information in this table is all client related, and in the case of a WebSpeed Agent, the agent is also the client.
 </entity_narration>
 <entity_object_field>session_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8023,7 +7817,7 @@ The information in this table is all client related, and in the case of a WebSpe
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="138" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24206" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924439.09" record_version_obj="3000003323.09" version_number_seq="8.09" secondary_key_value="RYCAP" import_version_number_seq="8.09"><entity_mnemonic>RYCAP</entity_mnemonic>
+<dataset_transaction TransactionNo="140" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24206" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924439.09" record_version_obj="3000003323.09" version_number_seq="8.09" secondary_key_value="RYCAP" import_version_number_seq="8.09"><entity_mnemonic>RYCAP</entity_mnemonic>
 <entity_mnemonic_short_desc>attribute group</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_attribute_group</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8031,9 +7825,9 @@ The information in this table is all client related, and in the case of a WebSpe
 <entity_mnemonic_obj>1004924439.09</entity_mnemonic_obj>
 <entity_description_field>attribute_group_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table facilitates the logical grouping of attributes to simplify their use, e.g. geometry, statusbar, etc. The primary use of this table is make the presentation of the attributes to the user more effective and usable. It is likely we could use a tree view, with attribute groups as a node and pressing plus on the group, showing all attributes within that group.
-
-The attribute group is therefore for design time only and serves no purpose at runtime.
+<entity_narration>This table facilitates the logical grouping of attributes to simplify their use, e.g. geometry, statusbar, etc. The primary use of this table is make the presentation of the attributes to the user more effective and usable. It is likely we could use a tree view, with attribute groups as a node and pressing plus on the group, showing all attributes within that group.
+
+The attribute group is therefore for design time only and serves no purpose at runtime.
 </entity_narration>
 <entity_object_field>attribute_group_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8066,7 +7860,7 @@ The attribute group is therefore for design time only and serves no purpose at r
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="139" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24205" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924438.09" record_version_obj="3000001017.09" version_number_seq="31.09" secondary_key_value="RYCAT" import_version_number_seq="31.09"><entity_mnemonic>RYCAT</entity_mnemonic>
+<dataset_transaction TransactionNo="141" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24205" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924438.09" record_version_obj="3000001017.09" version_number_seq="31.09" secondary_key_value="RYCAT" import_version_number_seq="31.09"><entity_mnemonic>RYCAT</entity_mnemonic>
 <entity_mnemonic_short_desc>attribute</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_attribute</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8074,13 +7868,13 @@ The attribute group is therefore for design time only and serves no purpose at r
 <entity_mnemonic_obj>1004924438.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the attributes that may be allocated to objects, e.g. size, position, window title, query, where clause, etc. They are used to defined the properties of dynamic objects, plus to dynamically alter the behaviour of static objects.
-
-Certain attributes are required for the application to function correctly and these will be set to system owned to prevent accidental deletion. Only users that are classified as able to maintain system owned information may manipulate this data. In many (most) cases, the actual attribute label will need to match to a valid Progress supported attribute.
-
-Due to the powerful feature of allowing attributes to be defined at various levels, most dynamic data about smartobjects will utilise attributes.
-
-Example areas that we will utilise attributes for include browser query, sort order and where clauses, container window titles, which window to run based on various button actions in a browser, e.g. add, modify, view, etc., status bar configuration, page enabling and disabling, field enabling and disabling by object instance, whether toolbar items are included in the menu, etc.
+<entity_narration>This table defines the attributes that may be allocated to objects, e.g. size, position, window title, query, where clause, etc. They are used to defined the properties of dynamic objects, plus to dynamically alter the behaviour of static objects.
+
+Certain attributes are required for the application to function correctly and these will be set to system owned to prevent accidental deletion. Only users that are classified as able to maintain system owned information may manipulate this data. In many (most) cases, the actual attribute label will need to match to a valid Progress supported attribute.
+
+Due to the powerful feature of allowing attributes to be defined at various levels, most dynamic data about smartobjects will utilise attributes.
+
+Example areas that we will utilise attributes for include browser query, sort order and where clauses, container window titles, which window to run based on various button actions in a browser, e.g. add, modify, view, etc., status bar configuration, page enabling and disabling, field enabling and disabling by object instance, whether toolbar items are included in the menu, etc.
 </entity_narration>
 <entity_object_field>attribute_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8193,7 +7987,7 @@ Example areas that we will utilise attributes for include browser query, sort or
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="140" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24206" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924441.09" record_version_obj="3000003340.09" version_number_seq="23.09" secondary_key_value="RYCAV" import_version_number_seq="23.09"><entity_mnemonic>RYCAV</entity_mnemonic>
+<dataset_transaction TransactionNo="142" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24206" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924441.09" record_version_obj="3000003340.09" version_number_seq="23.09" secondary_key_value="RYCAV" import_version_number_seq="23.09"><entity_mnemonic>RYCAV</entity_mnemonic>
 <entity_mnemonic_short_desc>attribute value</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_attribute_value</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8201,21 +7995,21 @@ Example areas that we will utilise attributes for include browser query, sort or
 <entity_mnemonic_obj>1004924441.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This entity associates attributes with object types, smartobjects, and smartobject instances, and specifies the value of the attribute in the appropriate native data type or character if a native data type is not available for the data type.
-
-The list of attribute values defined for the object type (class) must be complete, and unless an attribute is defined at the class level, it will not be available to be set within a subclass. Attribute values are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the attribute values for an object, attributes for parent classes must also be read.
-
-Records will then only exist for subclassess in the event the value has been specifically overridden for that subclass.
-
-When creating entries in this table for attributes associated with an object type, then the smart object and instance will be 0.
-
-When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating attributes for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
-
-Note: We must be careful when looking for attributes associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
-
-Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible attribute values.
-
-It is possible to specify a specific rendering engine type for attributes at the class, master and instance levels. If an attribute is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that attribute will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
+<entity_narration>This entity associates attributes with object types, smartobjects, and smartobject instances, and specifies the value of the attribute in the appropriate native data type or character if a native data type is not available for the data type.
+
+The list of attribute values defined for the object type (class) must be complete, and unless an attribute is defined at the class level, it will not be available to be set within a subclass. Attribute values are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the attribute values for an object, attributes for parent classes must also be read.
+
+Records will then only exist for subclassess in the event the value has been specifically overridden for that subclass.
+
+When creating entries in this table for attributes associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating attributes for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for attributes associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible attribute values.
+
+It is possible to specify a specific rendering engine type for attributes at the class, master and instance levels. If an attribute is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that attribute will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
 </entity_narration>
 <entity_object_field>attribute_value_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8296,7 +8090,7 @@ It is possible to specify a specific rendering engine type for attributes at the
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="141" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003341.09" record_version_obj="3000003342.09" version_number_seq="13.09" secondary_key_value="RYCCR" import_version_number_seq="13.09"><entity_mnemonic>RYCCR</entity_mnemonic>
+<dataset_transaction TransactionNo="143" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003341.09" record_version_obj="3000003342.09" version_number_seq="13.09" secondary_key_value="RYCCR" import_version_number_seq="13.09"><entity_mnemonic>RYCCR</entity_mnemonic>
 <entity_mnemonic_short_desc>customization result</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_customization_result</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8304,15 +8098,15 @@ It is possible to specify a specific rendering engine type for attributes at the
 <entity_mnemonic_obj>3000003341.09</entity_mnemonic_obj>
 <entity_description_field>customization_result_desc</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>The table is required to store possible customization codes as a result of some level of customization. Many types of customization exist, including UI type customizations (e.g. HTML, DHTML, GUI), user category customizations, user customizations, company level customizations, etc as defined in the ryc_customization_type table.  To avoid confusion and to provide some level of control as to the use of the result codes, a result code must be for a specific customization type.
-
-The table will basically contain a code and description field. Meaningful codes and descriptions should be used to avoid conflicting uses of result codes. The table is also joined to the customization type to identify which type of customization the result code is for. 
-
-For user level customizations, example result codes could be individual user login names, e.g. Bruce, Anthony, Don, etc. Alternatively the customization results could be defined rather by job function, e.g. operator, administrator, clerk, etc. For UI type customizations, the result codes could be DHTML, HTML, GUI, PDA, etc. For language customizations, the result codes could be English, French, German, etc. Another possibility is customizations by user category, in which case the result codes would represent valid categories, e.g. data capturer.
-
-This provides maximum flexibility as to how much customization is required. 
-The customization types simply define the various levels of supported customization, and the result codes define the possible values each customization type can be. The customization result table could therefore be viewed as a list of valid values for a customization type.
-Certain result codes, such as supported UI type customizations will be provided as part of the framework. These result codes will be defined with a system owned flag set to YES, and maintenance of these codes will be restricted to users authorized to maintain system data. Care should be taken when defining these framework supplied result codes to avoid potential conflicts with result codes used by Dynamics applications.
+<entity_narration>The table is required to store possible customization codes as a result of some level of customization. Many types of customization exist, including UI type customizations (e.g. HTML, DHTML, GUI), user category customizations, user customizations, company level customizations, etc as defined in the ryc_customization_type table.  To avoid confusion and to provide some level of control as to the use of the result codes, a result code must be for a specific customization type.
+
+The table will basically contain a code and description field. Meaningful codes and descriptions should be used to avoid conflicting uses of result codes. The table is also joined to the customization type to identify which type of customization the result code is for. 
+
+For user level customizations, example result codes could be individual user login names, e.g. Bruce, Anthony, Don, etc. Alternatively the customization results could be defined rather by job function, e.g. operator, administrator, clerk, etc. For UI type customizations, the result codes could be DHTML, HTML, GUI, PDA, etc. For language customizations, the result codes could be English, French, German, etc. Another possibility is customizations by user category, in which case the result codes would represent valid categories, e.g. data capturer.
+
+This provides maximum flexibility as to how much customization is required. 
+The customization types simply define the various levels of supported customization, and the result codes define the possible values each customization type can be. The customization result table could therefore be viewed as a list of valid values for a customization type.
+Certain result codes, such as supported UI type customizations will be provided as part of the framework. These result codes will be defined with a system owned flag set to YES, and maintenance of these codes will be restricted to users authorized to maintain system data. Care should be taken when defining these framework supplied result codes to avoid potential conflicts with result codes used by Dynamics applications.
 </entity_narration>
 <entity_object_field>customization_result_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8353,7 +8147,7 @@ Certain result codes, such as supported UI type customizations will be provided 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="142" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003349.09" record_version_obj="3000003350.09" version_number_seq="10.09" secondary_key_value="RYCCY" import_version_number_seq="10.09"><entity_mnemonic>RYCCY</entity_mnemonic>
+<dataset_transaction TransactionNo="144" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000003349.09" record_version_obj="3000003350.09" version_number_seq="10.09" secondary_key_value="RYCCY" import_version_number_seq="10.09"><entity_mnemonic>RYCCY</entity_mnemonic>
 <entity_mnemonic_short_desc>customization type</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_customization_type</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8401,7 +8195,7 @@ Certain result codes, such as supported UI type customizations will be provided 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="143" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924445.09" record_version_obj="3000003371.09" version_number_seq="18.09" secondary_key_value="RYCLA" import_version_number_seq="18.09"><entity_mnemonic>RYCLA</entity_mnemonic>
+<dataset_transaction TransactionNo="145" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24207" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924445.09" record_version_obj="3000003371.09" version_number_seq="18.09" secondary_key_value="RYCLA" import_version_number_seq="18.09"><entity_mnemonic>RYCLA</entity_mnemonic>
 <entity_mnemonic_short_desc>layout</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_layout</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8409,13 +8203,13 @@ Certain result codes, such as supported UI type customizations will be provided 
 <entity_mnemonic_obj>1004924445.09</entity_mnemonic_obj>
 <entity_description_field>layout_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the available page layouts for pages on smartfolder windows, e.g. 1 browser with 1 toolbar underneath, n viewers above each other, 2 side by side viewers, 2 side by side browsers, etc.
-
-It also defines the available frame layouts for objects on a frame, e.g. 1 column, 2 columns, etc.
-
-The purpose of this table is to specify the program which is responsible for the layout when the window / frame  is construted or resized.
-
-As of V2, we only really support relative layouts which are layout code 6.
+<entity_narration>This table defines the available page layouts for pages on smartfolder windows, e.g. 1 browser with 1 toolbar underneath, n viewers above each other, 2 side by side viewers, 2 side by side browsers, etc.
+
+It also defines the available frame layouts for objects on a frame, e.g. 1 column, 2 columns, etc.
+
+The purpose of this table is to specify the program which is responsible for the layout when the window / frame  is construted or resized.
+
+As of V2, we only really support relative layouts which are layout code 6.
 </entity_narration>
 <entity_object_field>layout_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8488,7 +8282,7 @@ As of V2, we only really support relative layouts which are layout code 6.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="144" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24208" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924446.09" record_version_obj="3000003380.09" version_number_seq="11.09" secondary_key_value="RYCOI" import_version_number_seq="11.09"><entity_mnemonic>RYCOI</entity_mnemonic>
+<dataset_transaction TransactionNo="146" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24208" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924446.09" record_version_obj="3000003380.09" version_number_seq="11.09" secondary_key_value="RYCOI" import_version_number_seq="11.09"><entity_mnemonic>RYCOI</entity_mnemonic>
 <entity_mnemonic_short_desc>object instance</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_object_instance</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8496,12 +8290,12 @@ As of V2, we only really support relative layouts which are layout code 6.
 <entity_mnemonic_obj>1004924446.09</entity_mnemonic_obj>
 <entity_description_field>instance_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This is a running instance of an object on a container. This facilitates the allocation of specific attributes, links, and page numbers, etc. for the specific instance of an object.
-
-The instance name must be unique within a container as this is used to manage and locate instances of objects on a container, and for applying customizations to the same instance, etc.
-
-This table also defines which page within a container the instance appears on, and the order of the objects within a page - where applicable, i.e. for paged containers.
-
+<entity_narration>This is a running instance of an object on a container. This facilitates the allocation of specific attributes, links, and page numbers, etc. for the specific instance of an object.
+
+The instance name must be unique within a container as this is used to manage and locate instances of objects on a container, and for applying customizations to the same instance, etc.
+
+This table also defines which page within a container the instance appears on, and the order of the objects within a page - where applicable, i.e. for paged containers.
+
 </entity_narration>
 <entity_object_field>object_instance_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8550,7 +8344,7 @@ This table also defines which page within a container the instance appears on, a
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="145" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24208" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924447.09" record_version_obj="3000004639.09" version_number_seq="18.09" secondary_key_value="RYCPA" import_version_number_seq="18.09"><entity_mnemonic>RYCPA</entity_mnemonic>
+<dataset_transaction TransactionNo="147" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24208" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924447.09" record_version_obj="3000004639.09" version_number_seq="18.09" secondary_key_value="RYCPA" import_version_number_seq="18.09"><entity_mnemonic>RYCPA</entity_mnemonic>
 <entity_mnemonic_short_desc>page</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_page</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8558,8 +8352,8 @@ This table also defines which page within a container the instance appears on, a
 <entity_mnemonic_obj>1004924447.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the actual pages in a container. All containers must at least have one page, which is page 0 and is always displayed. All objects on page 0 are always displayed. If there are no other pages, then no tab folder is visualised.
-
+<entity_narration>This table defines the actual pages in a container. All containers must at least have one page, which is page 0 and is always displayed. All objects on page 0 are always displayed. If there are no other pages, then no tab folder is visualised.
+
 Example pages could be Page 1, Page 2, Customer Details, etc.</entity_narration>
 <entity_object_field>page_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8632,7 +8426,7 @@ Example pages could be Page 1, Page 2, Customer Details, etc.</entity_narration>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="146" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24209" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9385.24" record_version_obj="9386.24" version_number_seq="39.09" secondary_key_value="RYCRE" import_version_number_seq="39.09"><entity_mnemonic>RYCRE</entity_mnemonic>
+<dataset_transaction TransactionNo="148" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24209" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9385.24" record_version_obj="9386.24" version_number_seq="39.09" secondary_key_value="RYCRE" import_version_number_seq="39.09"><entity_mnemonic>RYCRE</entity_mnemonic>
 <entity_mnemonic_short_desc>relationship</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_relationship</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8640,21 +8434,21 @@ Example pages could be Page 1, Page 2, Customer Details, etc.</entity_narration>
 <entity_mnemonic_obj>9385.24</entity_mnemonic_obj>
 <entity_description_field>relationship_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table stores relationship information for tables in the Dynamics repository and application databases built using Dynamics.
-
-Multiple relationships can exist between the same parent and child table if required, so one of these must be flagged as the primary relationship to use initially when joining between the two tables.
-
-The relationship reference field is unique so that it can be referenced in code if required, where multiple possible relationships exists and application functionality depends on the relationship. Where the relationship reference is irrelevant, it can be automatically generated using the Dynamics sequences.
-
-The attributes about the relationship map closely with the attributes supported by ERWin from Computer Associates.
-
-The fields used to join the tables in the relationship are specified in the child table ryc_relationship_field.
-
-The contents of this table should be automatically populated from information exported from a case tool such as ERwin, to make synchronization of changes as automated as possible.
-
-This table, once populated, can be used to support generic application functionality such as automatic object generation, referential integrity trigger code, etc.
-
-It is envisaged that at some stage in the future, the information in these tables will be replaced with support for relationships in the core language meta schema.
+<entity_narration>This table stores relationship information for tables in the Dynamics repository and application databases built using Dynamics.
+
+Multiple relationships can exist between the same parent and child table if required, so one of these must be flagged as the primary relationship to use initially when joining between the two tables.
+
+The relationship reference field is unique so that it can be referenced in code if required, where multiple possible relationships exists and application functionality depends on the relationship. Where the relationship reference is irrelevant, it can be automatically generated using the Dynamics sequences.
+
+The attributes about the relationship map closely with the attributes supported by ERWin from Computer Associates.
+
+The fields used to join the tables in the relationship are specified in the child table ryc_relationship_field.
+
+The contents of this table should be automatically populated from information exported from a case tool such as ERwin, to make synchronization of changes as automated as possible.
+
+This table, once populated, can be used to support generic application functionality such as automatic object generation, referential integrity trigger code, etc.
+
+It is envisaged that at some stage in the future, the information in these tables will be replaced with support for relationships in the core language meta schema.
 </entity_narration>
 <entity_object_field>relationship_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8815,7 +8609,7 @@ It is envisaged that at some stage in the future, the information in these table
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="147" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24210" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9423.24" record_version_obj="9424.24" version_number_seq="21.09" secondary_key_value="RYCRF" import_version_number_seq="21.09"><entity_mnemonic>RYCRF</entity_mnemonic>
+<dataset_transaction TransactionNo="149" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24210" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9423.24" record_version_obj="9424.24" version_number_seq="21.09" secondary_key_value="RYCRF" import_version_number_seq="21.09"><entity_mnemonic>RYCRF</entity_mnemonic>
 <entity_mnemonic_short_desc>relationship field</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_relationship_field</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8823,16 +8617,16 @@ It is envisaged that at some stage in the future, the information in these table
 <entity_mnemonic_obj>9423.24</entity_mnemonic_obj>
 <entity_description_field>parent_table_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the fields used to join the two tables defined in the ryc_relationship table that this table is a child of. Multiple field joins are supported, as well as rolenamed foreign keys where the field names in the two tables do not match.
-
-The join sequence determines the order to reference the fields when constructing a dynamic where clause to join the tables.
-
-When joining to some tables, additional constant values for fields in the child table or parent table may need to be specified and this functionality is supported. 
-
-An example of this in the Dynamics repository is when joining from the gsc_object_type table to the ryc_attribute_value table, where there is a single field from the parent table, the object_type_obj, but we must additionally specify a 0 value for other fields, eg. container_smartobject_obj, smartobject_obj and object_instance_obj. This means that when using constant values, the child or the parent field may be left blank.
-
-
-
+<entity_narration>This table defines the fields used to join the two tables defined in the ryc_relationship table that this table is a child of. Multiple field joins are supported, as well as rolenamed foreign keys where the field names in the two tables do not match.
+
+The join sequence determines the order to reference the fields when constructing a dynamic where clause to join the tables.
+
+When joining to some tables, additional constant values for fields in the child table or parent table may need to be specified and this functionality is supported. 
+
+An example of this in the Dynamics repository is when joining from the gsc_object_type table to the ryc_attribute_value table, where there is a single field from the parent table, the object_type_obj, but we must additionally specify a 0 value for other fields, eg. container_smartobject_obj, smartobject_obj and object_instance_obj. This means that when using constant values, the child or the parent field may be left blank.
+
+
+
 </entity_narration>
 <entity_object_field>relationship_field_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8921,7 +8715,7 @@ An example of this in the Dynamics repository is when joining from the gsc_objec
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="148" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9443.24" record_version_obj="9444.24" version_number_seq="10.09" secondary_key_value="RYCRI" import_version_number_seq="10.09"><entity_mnemonic>RYCRI</entity_mnemonic>
+<dataset_transaction TransactionNo="150" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="9443.24" record_version_obj="9444.24" version_number_seq="10.09" secondary_key_value="RYCRI" import_version_number_seq="10.09"><entity_mnemonic>RYCRI</entity_mnemonic>
 <entity_mnemonic_short_desc>ri default</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_ri_default</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -8929,29 +8723,29 @@ An example of this in the Dynamics repository is when joining from the gsc_objec
 <entity_mnemonic_obj>9443.24</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the default referential integrity (RI) rules to apply when manually maintaining relationships in the ryc_relationship table.
-
-The rules in this table will be used to default the parent and child actions based on the value of the identifying_relationship and nulls_allowed fields.
-
-The standard set of RI defaults used by Dynamics are as follows:
-
-For identifying and non-identifying but will no nulls the defaults are:
-Child Delete = None
-Child Insert = Restrict
-Child Update = Restrict
-Parent Delete = Restrict
-Parent Insert = None
-Parent Update = Restrict
-
-For non-indentifying but with nulls allowed the defaults are:
-Child Delete = None
-Child Insert = Set Null
-Child Update = Set Null
-Parent Delete = Set Null
-Parent Insert = None
-Parent Update = Set Null
-
-These are usually correct apart from the need to sometimes change the delete rules for the parent to cascade, and soemtimes even when a relationship allows nulls, you still want a restrict rule rather than a set null rule.
+<entity_narration>This table defines the default referential integrity (RI) rules to apply when manually maintaining relationships in the ryc_relationship table.
+
+The rules in this table will be used to default the parent and child actions based on the value of the identifying_relationship and nulls_allowed fields.
+
+The standard set of RI defaults used by Dynamics are as follows:
+
+For identifying and non-identifying but will no nulls the defaults are:
+Child Delete = None
+Child Insert = Restrict
+Child Update = Restrict
+Parent Delete = Restrict
+Parent Insert = None
+Parent Update = Restrict
+
+For non-indentifying but with nulls allowed the defaults are:
+Child Delete = None
+Child Insert = Set Null
+Child Update = Set Null
+Parent Delete = Set Null
+Parent Insert = None
+Parent Update = Set Null
+
+These are usually correct apart from the need to sometimes change the delete rules for the parent to cascade, and soemtimes even when a relationship allows nulls, you still want a restrict rule rather than a set null rule.
 </entity_narration>
 <entity_object_field>ri_default_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -8992,7 +8786,7 @@ These are usually correct apart from the need to sometimes change the delete rul
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="149" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049906.09" record_version_obj="3000049907.09" version_number_seq="4.09" secondary_key_value="RYCRT" import_version_number_seq="4.09"><entity_mnemonic>RYCRT</entity_mnemonic>
+<dataset_transaction TransactionNo="151" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000049906.09" record_version_obj="3000049907.09" version_number_seq="4.09" secondary_key_value="RYCRT" import_version_number_seq="4.09"><entity_mnemonic>RYCRT</entity_mnemonic>
 <entity_mnemonic_short_desc>render type</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_render_type</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9000,12 +8794,12 @@ These are usually correct apart from the need to sometimes change the delete rul
 <entity_mnemonic_obj>3000049906.09</entity_mnemonic_obj>
 <entity_description_field>render_type_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the supported rendering engines, e.g. e.g. WEB, GUI, HTML, B2C, .NET, XML, etc. 
-
-It is joined into the gst_session table to identify for a session which rendering engine is active for that session.
-
-The main purpose of this table is to optionally join into the ryc_attribute_value table and ryc_ui_event table to provide an ability to override attribute values and events for different rendering engines at the class, master and instance level. The render type offers another dimension of customization capability specifically for rendering engines.
-
+<entity_narration>This table defines the supported rendering engines, e.g. e.g. WEB, GUI, HTML, B2C, .NET, XML, etc. 
+
+It is joined into the gst_session table to identify for a session which rendering engine is active for that session.
+
+The main purpose of this table is to optionally join into the ryc_attribute_value table and ryc_ui_event table to provide an ability to override attribute values and events for different rendering engines at the class, master and instance level. The render type offers another dimension of customization capability specifically for rendering engines.
+
 This also supports the ability to identify certain attributes and events that are only applicable to specific rendering engines, as well as the ability to override the values of common events and attributes across rendering engines.</entity_narration>
 <entity_object_field>render_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9022,7 +8816,7 @@ This also supports the ability to identify certain attributes and events that ar
 <reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="150" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924454.09" record_version_obj="3000004694.09" version_number_seq="11.09" secondary_key_value="RYCSL" import_version_number_seq="11.09"><entity_mnemonic>RYCSL</entity_mnemonic>
+<dataset_transaction TransactionNo="152" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="10/02/2003" version_time="48531" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924454.09" record_version_obj="3000004694.09" version_number_seq="11.09" secondary_key_value="RYCSL" import_version_number_seq="11.09"><entity_mnemonic>RYCSL</entity_mnemonic>
 <entity_mnemonic_short_desc>supported link</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_supported_link</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9030,10 +8824,10 @@ This also supports the ability to identify certain attributes and events that ar
 <entity_mnemonic_obj>1004924454.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the supported smartlinks for the various type of smartobjects, and whether the link can be a source, target, or both.
-
-User defined links should not be set-up in this table. This table is purely to ensure that when linking objects on containers, only valid system links are used, plus user defined links. It is merely a developer aid.
-
+<entity_narration>This table defines the supported smartlinks for the various type of smartobjects, and whether the link can be a source, target, or both.
+
+User defined links should not be set-up in this table. This table is purely to ensure that when linking objects on containers, only valid system links are used, plus user defined links. It is merely a developer aid.
+
 Not all types of smartobjects support links, in which case there will be no entries in this table for them.</entity_narration>
 <entity_object_field>supported_link_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9074,7 +8868,7 @@ Not all types of smartobjects support links, in which case there will be no entr
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="151" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924449.09" record_version_obj="3000004645.09" version_number_seq="6.09" secondary_key_value="RYCSM" import_version_number_seq="6.09"><entity_mnemonic>RYCSM</entity_mnemonic>
+<dataset_transaction TransactionNo="153" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24211" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924449.09" record_version_obj="3000004645.09" version_number_seq="6.09" secondary_key_value="RYCSM" import_version_number_seq="6.09"><entity_mnemonic>RYCSM</entity_mnemonic>
 <entity_mnemonic_short_desc>smartlink</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_smartlink</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9082,10 +8876,10 @@ Not all types of smartobjects support links, in which case there will be no entr
 <entity_mnemonic_obj>1004924449.09</entity_mnemonic_obj>
 <entity_description_field>link_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the actual smartlinks between objects on a container, to facilitate object communication. The link name may be user defined, or automatically copied from the smartlink type for system supported links.
-
-If the source object instance is not specified, then the source s assumed to be the container. Likewise if the target object instance is not specified, then the target is assumed to be the container.
-
+<entity_narration>This table defines the actual smartlinks between objects on a container, to facilitate object communication. The link name may be user defined, or automatically copied from the smartlink type for system supported links.
+
+If the source object instance is not specified, then the source s assumed to be the container. Likewise if the target object instance is not specified, then the target is assumed to be the container.
+
 Example links would be a tableio link between a smartbrowser and a smarttoolbar, a record link between a smartbrowser and a smartviewer, etc.</entity_narration>
 <entity_object_field>smartlink_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9110,7 +8904,7 @@ Example links would be a tableio link between a smartbrowser and a smarttoolbar,
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="152" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24212" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924451.09" record_version_obj="3000004687.09" version_number_seq="38.09" secondary_key_value="RYCSO" import_version_number_seq="38.09"><entity_mnemonic>RYCSO</entity_mnemonic>
+<dataset_transaction TransactionNo="154" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24212" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924451.09" record_version_obj="3000004687.09" version_number_seq="38.09" secondary_key_value="RYCSO" import_version_number_seq="38.09"><entity_mnemonic>RYCSO</entity_mnemonic>
 <entity_mnemonic_short_desc>smartobject</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_smartobject</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9118,28 +8912,28 @@ Example links would be a tableio link between a smartbrowser and a smarttoolbar,
 <entity_mnemonic_obj>1004924451.09</entity_mnemonic_obj>
 <entity_description_field>object_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table represents every object known to the repository, whether static or dynamic. All objects that can be run should be registered in the repository, including all visual objects, business logic, etc. Images for buttons, etc. should also be registered.
-
-The only files not registered in the repository are include files.
-
-Having the files registered allows them to be added as instances to containers, added to menus, have security applied to them, run them as part of flows and events, automate deployment of them, etc.
-
-Many child tables exist to further define an object, and which tables apply depend on the object type. For example, information regarding links, pages, instances, etc. only pertain to objects that are containers. Even with containers, not all tables may apply, as viewers, browsers, and sdo&apos;s are containers for datafields but do not have the concept of pages, only window containers have pages, links, etc.
-
-Certain object properties are only applicable to physical objects. Previously this table was broken into two, and th second table, gsc_object used to define physical properties. This was removed in V2 to improve performance and resolve many issues associated with this, hence some redundant fields in certain object types.
-
-For versioning to work, we have turned off RI that would have prevented an object being deleted if it is used on a container - this is to allow imports and object assignments to work. This RI must therefore be manually coded where required.
-
-We turned off the automatic delete cascade of smartobject attributes as it was also deleting attributes for instances of the smartobject when we did not want it to. Added a specific delete trigger customisation that rather joined on the primary_smartobject_obj in the attribute table when deleting attributes, to ensure only attributes for the smartobject were deleted, not also instance attributes.
-
-This table optionally supports customization using custom result codes.The unique key to this table is made up of the object filename and a result code, allowing the same object name to exist with multiple result codes, each custom object containing what behaviour has been added or overridden. The object with a 0 result code is the master default object, and this must always exist.
-
-In this way, any of the fields on this table, plus information in tables where this is the parent may be customized by result code. Tools support for this however may be limited initially.
-
-Whenever reading a smartobject based on the filename, the result code must also be specified, using 0 if looking for the master.
-
-A recursive join with a rolename of extends_smartobject_obj has been added to this table to support inherritance. This functionality however as of V2 has not been implemented into the framework. The intention is to allow objects to inherit from (extend) other objects, therefore facilitating changes to master or template objects being cascaded down to subclasses or instances, by reading up the class structure.
-
+<entity_narration>This table represents every object known to the repository, whether static or dynamic. All objects that can be run should be registered in the repository, including all visual objects, business logic, etc. Images for buttons, etc. should also be registered.
+
+The only files not registered in the repository are include files.
+
+Having the files registered allows them to be added as instances to containers, added to menus, have security applied to them, run them as part of flows and events, automate deployment of them, etc.
+
+Many child tables exist to further define an object, and which tables apply depend on the object type. For example, information regarding links, pages, instances, etc. only pertain to objects that are containers. Even with containers, not all tables may apply, as viewers, browsers, and sdo&apos;s are containers for datafields but do not have the concept of pages, only window containers have pages, links, etc.
+
+Certain object properties are only applicable to physical objects. Previously this table was broken into two, and th second table, gsc_object used to define physical properties. This was removed in V2 to improve performance and resolve many issues associated with this, hence some redundant fields in certain object types.
+
+For versioning to work, we have turned off RI that would have prevented an object being deleted if it is used on a container - this is to allow imports and object assignments to work. This RI must therefore be manually coded where required.
+
+We turned off the automatic delete cascade of smartobject attributes as it was also deleting attributes for instances of the smartobject when we did not want it to. Added a specific delete trigger customisation that rather joined on the primary_smartobject_obj in the attribute table when deleting attributes, to ensure only attributes for the smartobject were deleted, not also instance attributes.
+
+This table optionally supports customization using custom result codes.The unique key to this table is made up of the object filename and a result code, allowing the same object name to exist with multiple result codes, each custom object containing what behaviour has been added or overridden. The object with a 0 result code is the master default object, and this must always exist.
+
+In this way, any of the fields on this table, plus information in tables where this is the parent may be customized by result code. Tools support for this however may be limited initially.
+
+Whenever reading a smartobject based on the filename, the result code must also be specified, using 0 if looking for the master.
+
+A recursive join with a rolename of extends_smartobject_obj has been added to this table to support inherritance. This functionality however as of V2 has not been implemented into the framework. The intention is to allow objects to inherit from (extend) other objects, therefore facilitating changes to master or template objects being cascaded down to subclasses or instances, by reading up the class structure.
+
 For V2, the inherittance functionality has just been added at the object type level.</entity_narration>
 <entity_object_field>smartobject_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9292,7 +9086,7 @@ For V2, the inherittance functionality has just been added at the object type le
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="153" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24212" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924450.09" record_version_obj="3000004652.09" version_number_seq="10.09" secondary_key_value="RYCST" import_version_number_seq="10.09"><entity_mnemonic>RYCST</entity_mnemonic>
+<dataset_transaction TransactionNo="155" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24212" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924450.09" record_version_obj="3000004652.09" version_number_seq="10.09" secondary_key_value="RYCST" import_version_number_seq="10.09"><entity_mnemonic>RYCST</entity_mnemonic>
 <entity_mnemonic_short_desc>smartlink type</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_smartlink_type</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9300,15 +9094,15 @@ For V2, the inherittance functionality has just been added at the object type le
 <entity_mnemonic_obj>1004924450.09</entity_mnemonic_obj>
 <entity_description_field>link_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table defines the supported smart links available for linking objects on containers for object communication purposes.
-
-Example links include page, container, update, commit, tableio, etc.
-
-The main purpose of this table is to provide a valid list of smart links to choose from when building generic containers. Additional user defined smart links may be implemented by defining a user defined link.
-
-The actual link name will be cascaded down onto the smartlink table where this is not a user defined link.
-
-The supported link table will be used to highlight which are the expected links between any two smartobjects.
+<entity_narration>This table defines the supported smart links available for linking objects on containers for object communication purposes.
+
+Example links include page, container, update, commit, tableio, etc.
+
+The main purpose of this table is to provide a valid list of smart links to choose from when building generic containers. Additional user defined smart links may be implemented by defining a user defined link.
+
+The actual link name will be cascaded down onto the smartlink table where this is not a user defined link.
+
+The supported link table will be used to highlight which are the expected links between any two smartobjects.
 </entity_narration>
 <entity_object_field>smartlink_type_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9349,7 +9143,7 @@ The supported link table will be used to highlight which are the expected links 
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="154" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24214" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600043.08" record_version_obj="3000005450.09" version_number_seq="20.09" secondary_key_value="RYCUE" import_version_number_seq="20.09"><entity_mnemonic>RYCUE</entity_mnemonic>
+<dataset_transaction TransactionNo="156" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24214" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600043.08" record_version_obj="3000005450.09" version_number_seq="20.09" secondary_key_value="RYCUE" import_version_number_seq="20.09"><entity_mnemonic>RYCUE</entity_mnemonic>
 <entity_mnemonic_short_desc>ui event</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryc_ui_event</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9357,21 +9151,21 @@ The supported link table will be used to highlight which are the expected links 
 <entity_mnemonic_obj>1007600043.08</entity_mnemonic_obj>
 <entity_description_field>event_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
-
-This allows the attachment of UI events to dynamic objects.
-
-When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
-
-When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
-
-Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
-
-Events are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the events for an object, events for parent classes must also be read.
-
-Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible events.
-
-It is possible to specify a specific rendering engine type for events at the class, master and instance levels. If an event is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that event will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
+<entity_narration>This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
+
+This allows the attachment of UI events to dynamic objects.
+
+When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Events are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the events for an object, events for parent classes must also be read.
+
+Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible events.
+
+It is possible to specify a specific rendering engine type for events at the class, master and instance levels. If an event is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that event will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
 </entity_narration>
 <entity_object_field>ui_event_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9444,7 +9238,7 @@ It is possible to specify a specific rendering engine type for events at the cla
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="155" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000004717.09" record_version_obj="3000004718.09" version_number_seq="6.09" secondary_key_value="RYMCZ" import_version_number_seq="6.09"><entity_mnemonic>RYMCZ</entity_mnemonic>
+<dataset_transaction TransactionNo="157" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000004717.09" record_version_obj="3000004718.09" version_number_seq="6.09" secondary_key_value="RYMCZ" import_version_number_seq="6.09"><entity_mnemonic>RYMCZ</entity_mnemonic>
 <entity_mnemonic_short_desc>customization</entity_mnemonic_short_desc>
 <entity_mnemonic_description>rym_customization</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9452,21 +9246,21 @@ It is possible to specify a specific rendering engine type for events at the cla
 <entity_mnemonic_obj>3000004717.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table captures the actual customization results for the various supported types of customization as defined in the ryc_customization_type table.
-
-This table is joined from the ryc_customization_type table with a mandatory join to define the type of customization. It contains a customization_reference field as part of the unique key to store the value for the customization according to the type. For example, if this was a user level customization, then the reference field would contain a specific users login code. If this was a UI type customization, then the reference field would contain the value of a UI type, e.g. HTML, GUI, etc.
-
-This differs from the values in the customization result table. The customization result table is a list of valid value result codes for the customization type. This table represents actual values that can be checked at runtime with the appropriate api and the values may differ to the result code values. The result code values are reusable.
-
-For example, one customization type is user customization. In this customization table we could have a record for each user with the reference pointing at the user login name, e.g. Anthony, john, bruce, etc. The api specified for the customization type would be run to find the current user and lookup in this table what the specified result code is for the user. The result code for Anthony could be manager, and John could also point at the same result code, but Bruce may point at result code engineer. Note the possible reuse of result codes and the difference between the result code values and the customization references.
-
-The table stores the result for the customization via a join to the customization result table, identifying the result code to use for this specific customization.
-These tables then provide maximum flexibility for customization possibilities.
-As stated previously, the resultant result codes for a session will be evaluated after authentication and made available to the session.
-
-When reading from tables that support customization, e.g. the smartobject and related tables, the appropriate record will be read with a matching result code of the highest priority level, if any matching customizations exist, otherwise the default record will be used.
-
-A generic tool will need to be developed to capture these customizations.
+<entity_narration>This table captures the actual customization results for the various supported types of customization as defined in the ryc_customization_type table.
+
+This table is joined from the ryc_customization_type table with a mandatory join to define the type of customization. It contains a customization_reference field as part of the unique key to store the value for the customization according to the type. For example, if this was a user level customization, then the reference field would contain a specific users login code. If this was a UI type customization, then the reference field would contain the value of a UI type, e.g. HTML, GUI, etc.
+
+This differs from the values in the customization result table. The customization result table is a list of valid value result codes for the customization type. This table represents actual values that can be checked at runtime with the appropriate api and the values may differ to the result code values. The result code values are reusable.
+
+For example, one customization type is user customization. In this customization table we could have a record for each user with the reference pointing at the user login name, e.g. Anthony, john, bruce, etc. The api specified for the customization type would be run to find the current user and lookup in this table what the specified result code is for the user. The result code for Anthony could be manager, and John could also point at the same result code, but Bruce may point at result code engineer. Note the possible reuse of result codes and the difference between the result code values and the customization references.
+
+The table stores the result for the customization via a join to the customization result table, identifying the result code to use for this specific customization.
+These tables then provide maximum flexibility for customization possibilities.
+As stated previously, the resultant result codes for a session will be evaluated after authentication and made available to the session.
+
+When reading from tables that support customization, e.g. the smartobject and related tables, the appropriate record will be read with a matching result code of the highest priority level, if any matching customizations exist, otherwise the default record will be used.
+
+A generic tool will need to be developed to capture these customizations.
 </entity_narration>
 <entity_object_field>customization_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9491,7 +9285,7 @@ A generic tool will need to be developed to capture these customizations.
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="156" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924458.09" record_version_obj="3000004727.09" version_number_seq="10.09" secondary_key_value="RYMDV" import_version_number_seq="10.09"><entity_mnemonic>RYMDV</entity_mnemonic>
+<dataset_transaction TransactionNo="158" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1004924458.09" record_version_obj="3000004727.09" version_number_seq="10.09" secondary_key_value="RYMDV" import_version_number_seq="10.09"><entity_mnemonic>RYMDV</entity_mnemonic>
 <entity_mnemonic_short_desc>data version</entity_mnemonic_short_desc>
 <entity_mnemonic_description>rym_data_version</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9499,16 +9293,16 @@ A generic tool will need to be developed to capture these customizations.
 <entity_mnemonic_obj>1004924458.09</entity_mnemonic_obj>
 <entity_description_field></entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table facilitates the generic storage of data version numbers without having to add a specific version number field to any tables that require version control.
-
-This will definitely be used in the context of versioning smartobjects, but may also be used to record a version number for any data, e.g. menu items, help, etc.
-
-The update of this table will be automated by the version control procedures if they are being used to control maintenance of the data.
-
-This information must be made available generically to a help about window in the context of smartobject versioning.
-
-The version number is the version number as at the time written by the versioning procedures. The data may have been subsequently changed by the user outside of the version control procedures, which is a situation we cannot generically hande.
-
+<entity_narration>This table facilitates the generic storage of data version numbers without having to add a specific version number field to any tables that require version control.
+
+This will definitely be used in the context of versioning smartobjects, but may also be used to record a version number for any data, e.g. menu items, help, etc.
+
+The update of this table will be automated by the version control procedures if they are being used to control maintenance of the data.
+
+This information must be made available generically to a help about window in the context of smartobject versioning.
+
+The version number is the version number as at the time written by the versioning procedures. The data may have been subsequently changed by the user outside of the version control procedures, which is a situation we cannot generically hande.
+
 </entity_narration>
 <entity_object_field>data_version_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9549,7 +9343,7 @@ The version number is the version number as at the time written by the versionin
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="157" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600054.08" record_version_obj="3000005451.09" version_number_seq="45.09" secondary_key_value="RYMWT" import_version_number_seq="45.09"><entity_mnemonic>RYMWT</entity_mnemonic>
+<dataset_transaction TransactionNo="159" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24215" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="1007600054.08" record_version_obj="3000005451.09" version_number_seq="45.09" secondary_key_value="RYMWT" import_version_number_seq="45.09"><entity_mnemonic>RYMWT</entity_mnemonic>
 <entity_mnemonic_short_desc>wizard tree</entity_mnemonic_short_desc>
 <entity_mnemonic_description>rym_wizard_tree</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9557,13 +9351,13 @@ The version number is the version number as at the time written by the versionin
 <entity_mnemonic_obj>1007600054.08</entity_mnemonic_obj>
 <entity_description_field>object_description</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table captures wizard responses for the creation / modification of a standard ICF Dynamic TreeView Controller object.
-
-It is used to forward engineer the object into the full Repository, generating all appropriate smartobject instances and attributes. Many assumptions are made regarding the look and feel of a standard ICF TreeView Controller which significantly simplifies the data that must be captured.
-
-More complex specific modifications to an object may be made using the standard Repository Maintenance options.
-
-This table also facilitates generation of the object into different UI&apos;s, e.g. Java.
+<entity_narration>This table captures wizard responses for the creation / modification of a standard ICF Dynamic TreeView Controller object.
+
+It is used to forward engineer the object into the full Repository, generating all appropriate smartobject instances and attributes. Many assumptions are made regarding the look and feel of a standard ICF TreeView Controller which significantly simplifies the data that must be captured.
+
+More complex specific modifications to an object may be made using the standard Repository Maintenance options.
+
+This table also facilitates generation of the object into different UI&apos;s, e.g. Java.
 </entity_narration>
 <entity_object_field>wizard_tree_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9748,7 +9542,7 @@ This table also facilitates generation of the object into different UI&apos;s, e
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="158" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24216" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000004791.09" record_version_obj="3000004792.09" version_number_seq="35.09" secondary_key_value="RYTDS" import_version_number_seq="35.09"><entity_mnemonic>RYTDS</entity_mnemonic>
+<dataset_transaction TransactionNo="160" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="08/05/2003" version_time="24216" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="3000004791.09" record_version_obj="3000004792.09" version_number_seq="35.09" secondary_key_value="RYTDS" import_version_number_seq="35.09"><entity_mnemonic>RYTDS</entity_mnemonic>
 <entity_mnemonic_short_desc>dbupdate status</entity_mnemonic_short_desc>
 <entity_mnemonic_description>ryt_dbupdate_status</entity_mnemonic_description>
 <auto_properform_strings>yes</auto_properform_strings>
@@ -9756,13 +9550,13 @@ This table also facilitates generation of the object into different UI&apos;s, e
 <entity_mnemonic_obj>3000004791.09</entity_mnemonic_obj>
 <entity_description_field>update_db_name</entity_description_field>
 <entity_description_procedure></entity_description_procedure>
-<entity_narration>This table audits what DCU updates have occurred, and more importantly controls the DCU update beyond completion of the DCU, plus allows it to be re-run / re-started as required.
-
-We need to be able to control and automate what tasks to do as part of the DCU for a specific release, at what stage they should be run, whether each step completed successfully, the order of the steps, etc.
-
-Certain tasks can only occur after the DCU has finished, but before anybody starts using the system and the tasks require a valid login to complete. Currently we have no way of controlling or automating this, which is the primary reason for the table. This table will significantly improve the load-n-go functionality within Dynamics and help prevent migration and deployment issues.
-
-The DCU will update this table from the information in the .pfl file that the DCU uses as the source of the information for the DCU.
+<entity_narration>This table audits what DCU updates have occurred, and more importantly controls the DCU update beyond completion of the DCU, plus allows it to be re-run / re-started as required.
+
+We need to be able to control and automate what tasks to do as part of the DCU for a specific release, at what stage they should be run, whether each step completed successfully, the order of the steps, etc.
+
+Certain tasks can only occur after the DCU has finished, but before anybody starts using the system and the tasks require a valid login to complete. Currently we have no way of controlling or automating this, which is the primary reason for the table. This table will significantly improve the load-n-go functionality within Dynamics and help prevent migration and deployment issues.
+
+The DCU will update this table from the information in the .pfl file that the DCU uses as the source of the information for the DCU.
 </entity_narration>
 <entity_object_field>dbupdate_status_obj</entity_object_field>
 <table_has_object_field>yes</table_has_object_field>
@@ -9897,6 +9691,102 @@ The DCU will update this table from the information in the .pfl file that the DC
 <display_field_column_label></display_field_column_label>
 <display_field_format></display_field_format>
 </contained_record>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="161" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="05/25/2004" version_time="54031" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="14429.5498" record_version_obj="14430.5498" version_number_seq="2.5498" secondary_key_value="RYTTDATA" import_version_number_seq="2.5498"><entity_mnemonic>RYTTDATA</entity_mnemonic>
+<entity_mnemonic_short_desc>ryttDataField</entity_mnemonic_short_desc>
+<entity_mnemonic_description>ryttDataField</entity_mnemonic_description>
+<auto_properform_strings>yes</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>14429.5498</entity_mnemonic_obj>
+<entity_description_field>tClassName</entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration></entity_narration>
+<entity_object_field></entity_object_field>
+<table_has_object_field>no</table_has_object_field>
+<entity_key_field></entity_key_field>
+<table_prefix_length>0</table_prefix_length>
+<field_name_separator></field_name_separator>
+<auditing_enabled>?</auditing_enabled>
+<version_data>no</version_data>
+<deploy_data>no</deploy_data>
+<entity_dbname>temp-db</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>no</reuse_deleted_keys>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="162" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="05/20/2004" version_time="63989" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="98371.48" record_version_obj="98372.48" version_number_seq="2.48" secondary_key_value="TTCLASSA" import_version_number_seq="2.48"><entity_mnemonic>TTCLASSA</entity_mnemonic>
+<entity_mnemonic_short_desc>ttClassAttribute</entity_mnemonic_short_desc>
+<entity_mnemonic_description>ttClassAttribute</entity_mnemonic_description>
+<auto_properform_strings>no</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>98371.48</entity_mnemonic_obj>
+<entity_description_field>tClassName</entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration></entity_narration>
+<entity_object_field></entity_object_field>
+<table_has_object_field>no</table_has_object_field>
+<entity_key_field>tClassName,tAttributeLabel</entity_key_field>
+<table_prefix_length>0</table_prefix_length>
+<field_name_separator></field_name_separator>
+<auditing_enabled>no</auditing_enabled>
+<version_data>no</version_data>
+<deploy_data>no</deploy_data>
+<entity_dbname>TEMP-DB</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>no</reuse_deleted_keys>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="163" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="05/20/2004" version_time="63989" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="97893.48" record_version_obj="97894.48" version_number_seq="2.48" secondary_key_value="TTSUPPOR" import_version_number_seq="2.48"><entity_mnemonic>TTSUPPOR</entity_mnemonic>
+<entity_mnemonic_short_desc>ttSupportedLink</entity_mnemonic_short_desc>
+<entity_mnemonic_description>ttSupportedLink</entity_mnemonic_description>
+<auto_properform_strings>no</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>97893.48</entity_mnemonic_obj>
+<entity_description_field>ClassName</entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration></entity_narration>
+<entity_object_field></entity_object_field>
+<table_has_object_field>no</table_has_object_field>
+<entity_key_field>ClassName,LinkName</entity_key_field>
+<table_prefix_length>0</table_prefix_length>
+<field_name_separator></field_name_separator>
+<auditing_enabled>no</auditing_enabled>
+<version_data>no</version_data>
+<deploy_data>no</deploy_data>
+<entity_dbname>TEMP-DB</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>no</reuse_deleted_keys>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="164" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_entity_mnemonic" version_date="05/20/2004" version_time="63989" version_user="admin" deletion_flag="no" entity_mnemonic="gscem" key_field_value="98122.48" record_version_obj="98123.48" version_number_seq="2.48" secondary_key_value="TTUIEVEN" import_version_number_seq="2.48"><entity_mnemonic>TTUIEVEN</entity_mnemonic>
+<entity_mnemonic_short_desc>ttUiEvent</entity_mnemonic_short_desc>
+<entity_mnemonic_description>ttUiEvent</entity_mnemonic_description>
+<auto_properform_strings>no</auto_properform_strings>
+<entity_mnemonic_label_prefix></entity_mnemonic_label_prefix>
+<entity_mnemonic_obj>98122.48</entity_mnemonic_obj>
+<entity_description_field>tClassName</entity_description_field>
+<entity_description_procedure></entity_description_procedure>
+<entity_narration></entity_narration>
+<entity_object_field>tSmartObjectObj</entity_object_field>
+<table_has_object_field>yes</table_has_object_field>
+<entity_key_field></entity_key_field>
+<table_prefix_length>0</table_prefix_length>
+<field_name_separator></field_name_separator>
+<auditing_enabled>no</auditing_enabled>
+<version_data>no</version_data>
+<deploy_data>no</deploy_data>
+<entity_dbname>TEMP-DB</entity_dbname>
+<replicate_entity_mnemonic></replicate_entity_mnemonic>
+<replicate_key></replicate_key>
+<scm_field_name></scm_field_name>
+<reuse_deleted_keys>no</reuse_deleted_keys>
 </contained_record>
 </dataset_transaction>
 </dataset_records>

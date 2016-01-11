@@ -1,183 +1,162 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2002 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors: Per Digre (pdigre@progress.com)                      *
-*                                                                    *
---------------------------------------------------------------------->
-<html>
-<head>
-<title>Data Browser</title>
-</head>
-
-<body bgcolor="#ffffff">
-<h1><font face="MS Sans Serif"><font color="navy"><img height=40 hspace=0 src="images/helpbook.gif" 
-width=53 border=0 > Data Browser</font></font></h1>
-<p style="TEXT-ALIGN: center" align =center>
-<hr align=center width="100%" size="4"  color="#0000ff">
-
-<p><font size="2" face="Arial">The Data Browser allows you to work with the actual contents of
-the database. It lists all the databases that are connected to the WebSpeed Broker, and it 
-contains the following controls:</font>
-
-<dl>
-<dt><font size="2" face="Arial"><strong><a name="tablelistutil">Tables</a></strong></font>
-<dd><font size="2" face="Arial">Displays the Table List utility,
-which lists all the tables in the database. From the Table List utility, you can generate 
-the following:</font>
-<dd>&nbsp;
-
-   <dl>
-   
-   <dt><font SIZE="2" FACE="Arial"><strong><a name="dicrpt">Dictionary Report</a></strong></font>
-
-   <dd><font SIZE="2" FACE="Arial">Select check boxes next to the tables that
-   you want to include in a Dictionary Report. Then select the button labeled
-   <strong>View dictionary for selected items</strong>.</font>
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial">The Dictionary Report is a useful reference for
-   information about the database. The report alphabetically lists all fields and
-   indexes, along with their types, formats, labels, and column labels. You can
-   also select a field name to see a list of field attributes.</font>
-   <dd>&nbsp
-
-   
-
-   <dt><font SIZE="2" FACE="Arial"><strong><a name="recbrowseutil">Record Browse</a></strong></font>
-   <dd><font SIZE="2" FACE="Arial">Select a table name to display the Record Browse utility.
-   </font>
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial">The first ten records of the table are displayed. You can
-   scroll through the records in groups of ten (or proceed to the first or last group of 
-   ten records) by using the arrow buttons at the bottom of the page.</font>
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial">The <strong>Count</strong> button, at the bottom of the
-   page, displays the total number of records in the table. The <strong>Add</strong>
-   button, also at the bottom of the page, allows you to add a new record to the table.</font>
-   <dd>&nbsp;
-    
-   <dd><font SIZE="2" FACE="Arial">You can search through the records by doing the following:
-   </font>
-   <dd>&nbsp;
-   
-   
-   <ol>
-   <font SIZE="2" FACE="Arial">
-   <li>Select an index from the drop-down list at the top of the page. Indexes 
-   with multiple elements display a search input field for each element.
-   <p>
-   <li>Enter a string to search on in the text box that appears. The following
-   are some of the search features:
-   <p>
-   <ul>
-   <li>Character field searches find matches from the beginning of a string. For example,
-   <i>ow</i> will match <i>owl</i> but will not match <i>snow</i>.
-   <li>Number field searches find matches to values that are greater than or equal to the
-   value that you enter.
-   <li>Date field searches find matches to values that are greater than or equal to the 
-   value that you enter.
-   <li>Advanced search options (wildcards, logical AND, logical OR, etc.) are supported 
-   for word indexes. For more information on searching in word indexes, see the <i>Progress
-   Database Design Guide</i>.
-   <li>Searches on array fields are not supported.
-   </ul>
-   <p>
-   <li>Select the <strong>Find</strong> button to initiate your search.
-   </font>
-   </ol> 
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial">The first ten records that match your search 
-   criteria appear. If more than ten items match your search criteria, you can
-   scroll through them using the arrow keys at the bottom of the page. You can
-   find the number of records that match your search criteria by selecting the
-   <strong>Count</strong> button at the bottom of the page.</font>
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial"><a name="recdetail">Notice</a> that only the first eight fields in a 
-   record are displayed. You can view all the fields of a record by starting the 
-   Record Detail utility. Start the Record Detail utility by selecting the
-   first field of a record (which is usually underlined showing that it is a 
-   link).</font>
-   <dd>&nbsp;
-   
-   <dd><font SIZE="2" FACE="Arial">The Record Detail utility displays
-   all the fields, and it also has controls that allow you to modify fields, or to delete
-   the record. Values for each field are displayed in text boxes that can be edited.
-   Select <strong>Save</strong> if you want to save your changes. Select <strong>Delete
-   </strong> if you want to delete the entire record. </font>
-   <dd>&nbsp
-
-   </dl>
-
-<dt><font size="2" face="Arial"><strong>Sys</strong></font>
-<dd><font size="2" face="Arial">Shows hidden metaschema database tables. When selected, hidden
-tables are displayed in the <a href="#tablelistutil">Table List utility</a>.</font>
-<dd>&nbsp;
-
-<dt><font size="2" face="Arial"><strong>Dict</strong></font>
-<dd><font size="2" face="Arial">Shows a Dictionary Report of the database.</font>
-<dd>&nbsp;
-
-<dd><font SIZE="2" FACE="Arial">The Dictionary Report is a useful reference for
-information about the database. The report alphabetically lists all fields and
-indexes, along with their types, formats, labels, and column labels.</font>
-<dd>&nbsp
-
-<dt><font size="2" face="Arial"><strong><a name="vst">VST</a></strong></font>
-<dd><font size="2" face="Arial">Shows Virtual System Table data 
-generated by the PROMON utility. You can display general information, information on locks
-or connections, and information on a specific record by supplying a recid.</font>
-<dd>&nbsp;
-
-  
-</dl>
-<div>
-   <p style="TEXT-ALIGN: left" align =left>
-    <!-- $MVD$:spaceretainer() -->&nbsp;<br>
-    <br>
-    <!--webbot bot="Include" u-include="standard.htm" tag="BODY"
-startspan --><br>
-    <hr align=left width="100%" size="2" noshade color="#0000ff">
-
-<p></p>
-   </div>
-  <dl>
-   <div>
-    <p style="TEXT-ALIGN: left" align =left>
-     <dd><a href="howtouse.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="howtouse.htm"><font face="Arial"><font size="2">How
-      to Use Web Tools</font></font></a><br>
-     <dd><a href="glossary.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18 ></a> <a href="glossary.htm"><font face="Arial"><font size="2">WebSpeed
-      Glossary</font></font></a><br>
-     <dd><a href="main.htm"><img border=0 height=17 hspace=0 src="images/book.gif" width=19 ></a><font face="Arial"><font size="2"> </font></font><a href="main.htm"><font face="Arial"><font size="2">WebTools
-      Help</font></font></a>
-  <p></p></dd>
-    </div>
-   </dl>
-  <p style="TEXT-ALIGN: left" align =left>
-   &nbsp;</p>
-  <div>
-   <p style="TEXT-ALIGN: left" align =left>
-    <!--webbot bot="Include" endspan i-checksum="30635" --></p></div>
-
- 
-</body>
-</html>
+<!--------------------------------------------------------------------
+* Copyright (C) 2003 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors: Per Digre (pdigre@progress.com)                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<html>
+<head>
+<title>Data Browser</title>
+</head>
+
+<body bgcolor="#ffffff">
+<h1><font face="MS Sans Serif"><font color="navy"><img height=40 hspace=0 src="images/helpbook.gif" 
+width=53 border=0 > Data Browser</font></font></h1>
+<p style="TEXT-ALIGN: center" align =center>
+<hr align=center width="100%" size="4"  noshade color="#0000ff">
+
+<p><font size="2" face="Arial">The Data Browser allows you to work with the actual contents of
+the database. It lists all the databases that are connected to the WebSpeed broker, and it 
+contains the following controls:</font>
+
+<dl>
+<dt><font size="2" face="Arial"><strong><a name="tablelistutil">Tables</a></strong></font>
+<dd><font size="2" face="Arial">Displays the Table List utility,
+which lists all the tables in the database. From the Table List utility, you can generate 
+the following:</font>
+<dd>&nbsp;
+
+   <dl>
+   
+   <dt><font SIZE="2" FACE="Arial"><strong><a name="dicrpt">Dictionary Report</a></strong></font>
+
+   <dd><font SIZE="2" FACE="Arial">Select check boxes next to the tables that
+   you want to include in a Dictionary Report. Then select the button labeled
+   <strong>View dictionary for selected items</strong>.</font>
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial">The Dictionary Report is a useful reference for
+   information about the database. The report alphabetically lists all fields and
+   indexes, along with their types, formats, labels, and column labels. You can
+   also select a field name to see a list of field attributes.</font>
+   <dd>&nbsp
+
+   
+
+   <dt><font SIZE="2" FACE="Arial"><strong><a name="recbrowseutil">Record Browse</a></strong></font>
+   <dd><font SIZE="2" FACE="Arial">Select a table name to display the Record Browse utility.
+   </font>
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial">The first ten records of the table are displayed. You can
+   scroll through the records in groups of ten (or proceed to the first or last group of 
+   ten records) by using the arrow buttons at the bottom of the page.</font>
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial">The <strong>Count</strong> button, at the bottom of the
+   page, displays the total number of records in the table. The <strong>Add</strong>
+   button, also at the bottom of the page, allows you to add a new record to the table.</font>
+   <dd>&nbsp;
+    
+   <dd><font SIZE="2" FACE="Arial">You can search through the records by doing the following:
+   </font>
+   <dd>&nbsp;
+   
+   
+   <ol>
+   <font SIZE="2" FACE="Arial">
+   <li>Select an index from the drop-down list at the top of the page. Indexes 
+   with multiple elements display a search input field for each element.
+   <p>
+   <li>Enter a string to search on in the text box that appears. The following
+   are some of the search features:
+   <p>
+   <ul>
+   <li>Character field searches find matches from the beginning of a string. For example,
+   <i>ow</i> will match <i>owl</i> but will not match <i>snow</i>.
+   <li>Number field searches find matches to values that are greater than or equal to the
+   value that you enter.
+   <li>Date field searches find matches to values that are greater than or equal to the 
+   value that you enter.
+   <li>Advanced search options (wildcards, logical AND, logical OR, etc.) are supported 
+   for word indexes. For more information on searching in word indexes, see the 
+   <i>OpenEdge Data Management: Database Design</i> manual.
+   <li>Searches on array fields are not supported.
+   </ul>
+   <p>
+   <li>Select the <strong>Find</strong> button to initiate your search.
+   </font>
+   </ol> 
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial">The first ten records that match your search 
+   criteria appear. If more than ten items match your search criteria, you can
+   scroll through them using the arrow keys at the bottom of the page. You can
+   find the number of records that match your search criteria by selecting the
+   <strong>Count</strong> button at the bottom of the page.</font>
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial"><a name="recdetail">Notice</a> that only the first eight fields in a 
+   record are displayed. You can view all the fields of a record by starting the 
+   Record Detail utility. Start the Record Detail utility by selecting the
+   first field of a record (which is usually underlined showing that it is a 
+   link).</font>
+   <dd>&nbsp;
+   
+   <dd><font SIZE="2" FACE="Arial">The Record Detail utility displays
+   all the fields, and it also has controls that allow you to modify fields, or to delete
+   the record. Values for each field are displayed in text boxes that can be edited.
+   Select <strong>Save</strong> if you want to save your changes. Select <strong>Delete
+   </strong> if you want to delete the entire record. </font>
+   <dd>&nbsp
+
+   </dl>
+
+<dt><font size="2" face="Arial"><strong>Sys</strong></font>
+<dd><font size="2" face="Arial">Shows hidden metaschema database tables. When selected, hidden
+tables are displayed in the <a href="#tablelistutil">Table List utility</a>.</font>
+<dd>&nbsp;
+
+<dt><font size="2" face="Arial"><strong>Dict</strong></font>
+<dd><font size="2" face="Arial">Shows a Dictionary Report of the database.</font>
+<dd>&nbsp;
+
+<dd><font SIZE="2" FACE="Arial">The Dictionary Report is a useful reference for
+information about the database. The report alphabetically lists all fields and
+indexes, along with their types, formats, labels, and column labels.</font>
+<dd>&nbsp
+
+<dt><font size="2" face="Arial"><strong><a name="vst">VST</a></strong></font>
+<dd><font size="2" face="Arial">Shows Virtual System Table data 
+generated by the <font size="2" face="Courier">PROMON</font> utility. You can display 
+general information, information on locks
+or connections, and information on a specific record by supplying a <font size="2" face="Courier">recid</font>.</font>
+<dd>&nbsp;
+ 
+</dl>
+
+<hr align=left width="100%" size="2" noshade color="#0000ff">
+
+<h3><a href="glossary.htm"><img border=0 height=18 hspace=0 src="images/help-sm.gif" width=18></a> 
+     <a href="glossary.htm"><font face="Arial" size="2"></font>WebSpeed Glossary</font></a></h3>
+  
+<hr align=center width="100%" size="4"  noshade color="#0000ff">
+ 
+</body>
+</html>

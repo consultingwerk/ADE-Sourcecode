@@ -22,7 +22,7 @@ PSC
 filename=ryc_smartlink_type
 records=0000000000019
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:51
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

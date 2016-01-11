@@ -1,87 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="193"><dataset_header DisableRI="yes" DatasetObj="1007600108.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCGD" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600108.08</deploy_dataset_obj>
-<dataset_code>GSCGD</dataset_code>
-<dataset_description>gsc_global_defaults - Global deflt</dataset_description>
-<disable_ri>yes</disable_ri>
-<source_code_data>no</source_code_data>
-<deploy_full_data>yes</deploy_full_data>
-<xml_generation_procedure></xml_generation_procedure>
-<default_ado_filename></default_ado_filename>
-<deploy_additions_only>no</deploy_additions_only>
-<enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
-<dataset_entity><dataset_entity_obj>1007600110.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600108.08</deploy_dataset_obj>
-<entity_sequence>1</entity_sequence>
-<entity_mnemonic>GSCGD</entity_mnemonic>
-<primary_entity>yes</primary_entity>
-<join_entity_mnemonic></join_entity_mnemonic>
-<join_field_list>global_default_obj</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>gsc_global_default</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<table_definition><name>gsc_global_default</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_global_default,1,0,0,owning_entity_mnemonic,0,owning_obj,0,default_type,0,effective_date,0</index-1>
-<index-2>XPKgsc_global_default,1,1,0,global_default_obj,0</index-2>
-<field><name>global_default_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Global default obj</label>
-<column-label>Global default obj</column-label>
-</field>
-<field><name>owning_entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Owning entity</label>
-<column-label>Owning entity</column-label>
-</field>
-<field><name>default_type</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(3)</format>
-<initial></initial>
-<label>Default type</label>
-<column-label>Default type</column-label>
-</field>
-<field><name>effective_date</name>
-<data-type>date</data-type>
-<extent>0</extent>
-<format>99/99/9999</format>
-<initial></initial>
-<label>Effective date</label>
-<column-label>Effective date</column-label>
-</field>
-<field><name>owning_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Owning obj</label>
-<column-label>Owning obj</column-label>
-</field>
-<field><name>default_value</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Default value</label>
-<column-label>Default value</column-label>
-</field>
-</table_definition>
-</dataset_header>
+<dataset Transactions="210"><dataset_header DisableRI="yes" DatasetObj="1007600108.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCGD" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>-1294967294.91</global_default_obj>
 <owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
 <default_type>DDU</default_type>
@@ -1624,6 +1542,142 @@
 <effective_date>10/01/03</effective_date>
 <owning_obj>1003545208</owning_obj>
 <default_value>45382</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="194" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060251.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/02/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>51528</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="195" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060256.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/03/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>51990</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="196" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060262.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/05/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>76228</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="197" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060263.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/06/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>70854</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="198" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060360.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/08/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>57220</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="199" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060368.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/09/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>49638</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="200" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060369.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/10/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>48222</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="201" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060371.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/12/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>25360</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="202" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060372.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/14/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>61224</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="203" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060373.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/16/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>35304</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="204" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060374.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/17/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>56034</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="205" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060414.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>10/20/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>58898</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="206" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060415.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>11/04/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>49412</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="207" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060416.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>11/12/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>36958</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="208" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000060418.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>12/11/03</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>59994</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="209" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000066508.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>01/29/04</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>55738</default_value>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="210" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_global_default"><global_default_obj>3000066509.09</global_default_obj>
+<owning_entity_mnemonic>GSCGC</owning_entity_mnemonic>
+<default_type>DDU</default_type>
+<effective_date>02/02/04</effective_date>
+<owning_obj>1003545208</owning_obj>
+<default_value>53220</default_value>
 </contained_record>
 </dataset_transaction>
 </dataset_records>

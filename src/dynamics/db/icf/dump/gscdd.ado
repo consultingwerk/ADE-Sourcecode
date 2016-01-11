@@ -1,276 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="64"><dataset_header DisableRI="yes" DatasetObj="1007600169.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCDD" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600169.08</deploy_dataset_obj>
-<dataset_code>GSCDD</dataset_code>
-<dataset_description>gsc_deploy_dataset - Deployment DS</dataset_description>
-<disable_ri>yes</disable_ri>
-<source_code_data>no</source_code_data>
-<deploy_full_data>yes</deploy_full_data>
-<xml_generation_procedure></xml_generation_procedure>
-<default_ado_filename></default_ado_filename>
-<deploy_additions_only>no</deploy_additions_only>
-<enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
-<dataset_entity><dataset_entity_obj>1007600170.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600169.08</deploy_dataset_obj>
-<entity_sequence>1</entity_sequence>
-<entity_mnemonic>GSCDD</entity_mnemonic>
-<primary_entity>yes</primary_entity>
-<join_entity_mnemonic></join_entity_mnemonic>
-<join_field_list>dataset_code</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>gsc_deploy_dataset</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<dataset_entity><dataset_entity_obj>1007600171.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600169.08</deploy_dataset_obj>
-<entity_sequence>2</entity_sequence>
-<entity_mnemonic>GSCDE</entity_mnemonic>
-<primary_entity>no</primary_entity>
-<join_entity_mnemonic>GSCDD</join_entity_mnemonic>
-<join_field_list>deploy_dataset_obj,deploy_dataset_obj</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>gsc_dataset_entity</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<table_definition><name>gsc_deploy_dataset</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_deploy_dataset,1,0,0,dataset_code,0</index-1>
-<index-2>XIE1gsc_deploy_dataset,0,0,0,dataset_description,0</index-2>
-<index-3>XIE2gsc_deploy_dataset,0,0,0,source_code_data,0</index-3>
-<index-4>XPKgsc_deploy_dataset,1,1,0,deploy_dataset_obj,0</index-4>
-<field><name>deploy_dataset_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Deploy dataset obj</label>
-<column-label>Deploy dataset obj</column-label>
-</field>
-<field><name>dataset_code</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(10)</format>
-<initial></initial>
-<label>Dataset code</label>
-<column-label>Dataset code</column-label>
-</field>
-<field><name>dataset_description</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Dataset description</label>
-<column-label>Dataset description</column-label>
-</field>
-<field><name>disable_ri</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Disable ri</label>
-<column-label>Disable ri</column-label>
-</field>
-<field><name>source_code_data</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Source code data</label>
-<column-label>Source code data</column-label>
-</field>
-<field><name>deploy_full_data</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Deploy full data</label>
-<column-label>Deploy full data</column-label>
-</field>
-<field><name>xml_generation_procedure</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Xml generation procedure</label>
-<column-label>Xml generation procedure</column-label>
-</field>
-<field><name>default_ado_filename</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Default ado filename</label>
-<column-label>Default ado filename</column-label>
-</field>
-<field><name>deploy_additions_only</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Deploy additions only</label>
-<column-label>Deploy additions only</column-label>
-</field>
-<field><name>enable_data_versioning</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Enable data versioning</label>
-<column-label>Enable data versioning</column-label>
-</field>
-<field><name>deletion_dataset</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Deletion dataset</label>
-<column-label>Deletion dataset</column-label>
-</field>
-</table_definition>
-<table_definition><name>gsc_dataset_entity</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_dataset_entity,1,0,0,deploy_dataset_obj,0,entity_sequence,0</index-1>
-<index-2>XIE1gsc_dataset_entity,0,0,0,entity_mnemonic,0</index-2>
-<index-3>XIE3gsc_dataset_entity,0,0,0,deploy_dataset_obj,0,primary_entity,0,entity_mnemonic,0</index-3>
-<index-4>XIE4gsc_dataset_entity,0,0,0,join_entity_mnemonic,0,dataset_entity_obj,0</index-4>
-<index-5>XIE5gsc_dataset_entity,0,0,0,relationship_obj,0</index-5>
-<index-6>XPKgsc_dataset_entity,1,1,0,dataset_entity_obj,0</index-6>
-<field><name>dataset_entity_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Dataset entity obj</label>
-<column-label>Dataset entity obj</column-label>
-</field>
-<field><name>deploy_dataset_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Deploy dataset obj</label>
-<column-label>Deploy dataset obj</column-label>
-</field>
-<field><name>entity_sequence</name>
-<data-type>integer</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;9</format>
-<initial>   0</initial>
-<label>Entity sequence</label>
-<column-label>Entity sequence</column-label>
-</field>
-<field><name>entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Entity</label>
-<column-label>Entity</column-label>
-</field>
-<field><name>primary_entity</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Primary entity</label>
-<column-label>Primary entity</column-label>
-</field>
-<field><name>join_entity_mnemonic</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(8)</format>
-<initial></initial>
-<label>Join entity</label>
-<column-label>Join entity</column-label>
-</field>
-<field><name>join_field_list</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Join field list</label>
-<column-label>Join field list</column-label>
-</field>
-<field><name>filter_where_clause</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Filter where clause</label>
-<column-label>Filter where clause</column-label>
-</field>
-<field><name>delete_related_records</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Delete related records</label>
-<column-label>Delete related records</column-label>
-</field>
-<field><name>overwrite_records</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>YES</initial>
-<label>Overwrite records</label>
-<column-label>Overwrite records</column-label>
-</field>
-<field><name>keep_own_site_data</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Keep own site data</label>
-<column-label>Keep own site data</column-label>
-</field>
-<field><name>use_relationship</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Use relationship</label>
-<column-label>Use relationship</column-label>
-</field>
-<field><name>relationship_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Relationship obj</label>
-<column-label>Relationship obj</column-label>
-</field>
-<field><name>deletion_action</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(1)</format>
-<initial></initial>
-<label>Deletion action</label>
-<column-label>Deletion action</column-label>
-</field>
-<field><name>exclude_field_list</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Exclude field list</label>
-<column-label>Exclude field list</column-label>
-</field>
-</table_definition>
-</dataset_header>
+<dataset Transactions="65"><dataset_header DisableRI="yes" DatasetObj="1007600169.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCDD" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record version_date="05/22/2002" version_time="61354" version_user="admin" deletion_flag="yes" entity_mnemonic="gscdd" key_field_value="1000000148.39" record_version_obj="1000000149.39" version_number_seq="1.09" secondary_key_value="RVMTA" import_version_number_seq="1.09"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DELETION"><contained_record version_date="05/22/2002" version_time="61345" version_user="admin" deletion_flag="yes" entity_mnemonic="gscdd" key_field_value="1000000152.39" record_version_obj="1000000153.39" version_number_seq="1.09" secondary_key_value="RVCCT" import_version_number_seq="1.09"/>
@@ -283,7 +12,52 @@
 </dataset_transaction>
 <dataset_transaction TransactionNo="6" TransactionType="DELETION"><contained_record version_date="05/24/2002" version_time="29936" version_user="admin" deletion_flag="yes" entity_mnemonic="gscdd" key_field_value="1007600207.08" record_version_obj="3000000082.09" version_number_seq="1.09" secondary_key_value="GSMSI" import_version_number_seq="1.09"/>
 </dataset_transaction>
-<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/24/2002" version_time="84534" version_user="bgruenba" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="9843.24" record_version_obj="9844.24" version_number_seq="2.24" secondary_key_value="RYCRE" import_version_number_seq="2.24"><deploy_dataset_obj>9843.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="02/06/2004" version_time="38727" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="2511.38" record_version_obj="2512.38" version_number_seq="2.24" secondary_key_value="GSCTG" import_version_number_seq="2.24"><deploy_dataset_obj>2511.38</deploy_dataset_obj>
+<dataset_code>GSCTG</dataset_code>
+<dataset_description>gsc_tag_data -  Data Tags</dataset_description>
+<disable_ri>yes</disable_ri>
+<source_code_data>no</source_code_data>
+<deploy_full_data>yes</deploy_full_data>
+<xml_generation_procedure></xml_generation_procedure>
+<default_ado_filename></default_ado_filename>
+<deploy_additions_only>no</deploy_additions_only>
+<enable_data_versioning>yes</enable_data_versioning>
+<deletion_dataset>yes</deletion_dataset>
+<contained_record DB="icfdb" Table="gsc_dataset_entity"><dataset_entity_obj>2513.38</dataset_entity_obj>
+<deploy_dataset_obj>2511.38</deploy_dataset_obj>
+<entity_sequence>1</entity_sequence>
+<entity_mnemonic>GSCTG</entity_mnemonic>
+<primary_entity>yes</primary_entity>
+<join_entity_mnemonic></join_entity_mnemonic>
+<join_field_list>data_tag_code</join_field_list>
+<filter_where_clause></filter_where_clause>
+<delete_related_records>yes</delete_related_records>
+<overwrite_records>yes</overwrite_records>
+<keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
+<exclude_field_list></exclude_field_list>
+</contained_record>
+<contained_record DB="icfdb" Table="gsc_dataset_entity"><dataset_entity_obj>2514.38</dataset_entity_obj>
+<deploy_dataset_obj>2511.38</deploy_dataset_obj>
+<entity_sequence>2</entity_sequence>
+<entity_mnemonic>GSMTD</entity_mnemonic>
+<primary_entity>no</primary_entity>
+<join_entity_mnemonic>GSCTG</join_entity_mnemonic>
+<join_field_list>data_tag_obj,data_tag_obj</join_field_list>
+<filter_where_clause></filter_where_clause>
+<delete_related_records>yes</delete_related_records>
+<overwrite_records>yes</overwrite_records>
+<keep_own_site_data>no</keep_own_site_data>
+<use_relationship>no</use_relationship>
+<relationship_obj>0</relationship_obj>
+<deletion_action></deletion_action>
+<exclude_field_list></exclude_field_list>
+</contained_record>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="8" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/24/2002" version_time="84534" version_user="bgruenba" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="9843.24" record_version_obj="9844.24" version_number_seq="2.24" secondary_key_value="RYCRE" import_version_number_seq="2.24"><deploy_dataset_obj>9843.24</deploy_dataset_obj>
 <dataset_code>RYCRE</dataset_code>
 <dataset_description>ryc_relationship</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -328,7 +102,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="8" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54091" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="9849.24" record_version_obj="9850.24" version_number_seq="1.09" secondary_key_value="RYCRI" import_version_number_seq="1.09"><deploy_dataset_obj>9849.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="9" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54091" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="9849.24" record_version_obj="9850.24" version_number_seq="1.09" secondary_key_value="RYCRI" import_version_number_seq="1.09"><deploy_dataset_obj>9849.24</deploy_dataset_obj>
 <dataset_code>RYCRI</dataset_code>
 <dataset_description>ryc_ri_default</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -357,7 +131,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="9" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500371.24" record_version_obj="500372.24" version_number_seq="4.24" secondary_key_value="RYCRT" import_version_number_seq="4.24"><deploy_dataset_obj>500371.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="10" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500371.24" record_version_obj="500372.24" version_number_seq="4.24" secondary_key_value="RYCRT" import_version_number_seq="4.24"><deploy_dataset_obj>500371.24</deploy_dataset_obj>
 <dataset_code>RYCRT</dataset_code>
 <dataset_description>ryc_render_type - Render Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -386,7 +160,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="10" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500374.24" record_version_obj="500375.24" version_number_seq="4.24" secondary_key_value="GSMRL" import_version_number_seq="4.24"><deploy_dataset_obj>500374.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="11" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500374.24" record_version_obj="500375.24" version_number_seq="4.24" secondary_key_value="GSMRL" import_version_number_seq="4.24"><deploy_dataset_obj>500374.24</deploy_dataset_obj>
 <dataset_code>GSMRL</dataset_code>
 <dataset_description>gsm_release - Application Releases</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -431,7 +205,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="11" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500380.24" record_version_obj="500381.24" version_number_seq="4.24" secondary_key_value="GSMFI" import_version_number_seq="4.24"><deploy_dataset_obj>500380.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="12" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500380.24" record_version_obj="500381.24" version_number_seq="4.24" secondary_key_value="GSMFI" import_version_number_seq="4.24"><deploy_dataset_obj>500380.24</deploy_dataset_obj>
 <dataset_code>GSMFI</dataset_code>
 <dataset_description>gsm_filter_set - Filter Sets</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -476,7 +250,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="12" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500384.24" record_version_obj="500385.24" version_number_seq="4.24" secondary_key_value="GSCSM" import_version_number_seq="4.24"><deploy_dataset_obj>500384.24</deploy_dataset_obj>
+<dataset_transaction TransactionNo="13" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/05/2003" version_time="62991" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="500384.24" record_version_obj="500385.24" version_number_seq="4.24" secondary_key_value="GSCSM" import_version_number_seq="4.24"><deploy_dataset_obj>500384.24</deploy_dataset_obj>
 <dataset_code>GSCSM</dataset_code>
 <dataset_description>gsc_scm_tool</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -521,7 +295,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="13" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50017" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1004928896.09" record_version_obj="3000005370.09" version_number_seq="8.24" secondary_key_value="RYCSO" import_version_number_seq="8.24"><deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="14" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50017" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1004928896.09" record_version_obj="3000005370.09" version_number_seq="8.24" secondary_key_value="RYCSO" import_version_number_seq="8.24"><deploy_dataset_obj>1004928896.09</deploy_dataset_obj>
 <dataset_code>RYCSO</dataset_code>
 <dataset_description>ryc_smartobjects - Logical Objects</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -710,7 +484,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="14" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600077.08" record_version_obj="3000058671.09" version_number_seq="1.09" secondary_key_value="GSMND" import_version_number_seq="1.09"><deploy_dataset_obj>1007600077.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="15" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600077.08" record_version_obj="3000058671.09" version_number_seq="1.09" secondary_key_value="GSMND" import_version_number_seq="1.09"><deploy_dataset_obj>1007600077.08</deploy_dataset_obj>
 <dataset_code>GSMND</dataset_code>
 <dataset_description>gsm_node - TreeView Nodes</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -739,7 +513,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="15" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54102" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="1007600079.08" record_version_obj="3000005371.09" version_number_seq="1.09" secondary_key_value="RYCST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600079.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="16" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54102" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="1007600079.08" record_version_obj="3000005371.09" version_number_seq="1.09" secondary_key_value="RYCST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600079.08</deploy_dataset_obj>
 <dataset_code>RYCST</dataset_code>
 <dataset_description>ryc_smartlink_type - SmartLinks</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -768,7 +542,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="16" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600081.08" record_version_obj="3000058672.09" version_number_seq="1.09" secondary_key_value="RYCLA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600081.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="17" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600081.08" record_version_obj="3000058672.09" version_number_seq="1.09" secondary_key_value="RYCLA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600081.08</deploy_dataset_obj>
 <dataset_code>RYCLA</dataset_code>
 <dataset_description>ryc_layout - Layouts</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -797,7 +571,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="17" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600083.08" record_version_obj="3000058673.09" version_number_seq="1.09" secondary_key_value="RYCAT" import_version_number_seq="1.09"><deploy_dataset_obj>1007600083.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="18" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600083.08" record_version_obj="3000058673.09" version_number_seq="1.09" secondary_key_value="RYCAT" import_version_number_seq="1.09"><deploy_dataset_obj>1007600083.08</deploy_dataset_obj>
 <dataset_code>RYCAT</dataset_code>
 <dataset_description>ryc_attribute - Attribute Dataset</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -842,7 +616,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="18" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600103.08" record_version_obj="3000058674.09" version_number_seq="1.09" secondary_key_value="GSMLG" import_version_number_seq="1.09"><deploy_dataset_obj>1007600103.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="19" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600103.08" record_version_obj="3000058674.09" version_number_seq="1.09" secondary_key_value="GSMLG" import_version_number_seq="1.09"><deploy_dataset_obj>1007600103.08</deploy_dataset_obj>
 <dataset_code>GSMLG</dataset_code>
 <dataset_description>gsm_login_company - Login Company</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -871,7 +645,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="19" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600105.08" record_version_obj="3000005372.09" version_number_seq="5.24" secondary_key_value="GSCSQ" import_version_number_seq="5.24"><deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="20" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/16/2004" version_time="54020" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="1007600105.08" record_version_obj="3000005372.09" version_number_seq="7.24" secondary_key_value="GSCSQ" import_version_number_seq="7.24"><deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
 <dataset_code>GSCSQ</dataset_code>
 <dataset_description>gsc_sequence - Sequences</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -881,7 +655,7 @@
 <default_ado_filename></default_ado_filename>
 <deploy_additions_only>yes</deploy_additions_only>
 <enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
+<deletion_dataset>no</deletion_dataset>
 <contained_record DB="icfdb" Table="gsc_dataset_entity"><dataset_entity_obj>1007600106.08</dataset_entity_obj>
 <deploy_dataset_obj>1007600105.08</deploy_dataset_obj>
 <entity_sequence>1</entity_sequence>
@@ -916,7 +690,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="20" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600108.08" record_version_obj="3000058675.09" version_number_seq="1.09" secondary_key_value="GSCGD" import_version_number_seq="1.09"><deploy_dataset_obj>1007600108.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="21" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600108.08" record_version_obj="3000058675.09" version_number_seq="1.09" secondary_key_value="GSCGD" import_version_number_seq="1.09"><deploy_dataset_obj>1007600108.08</deploy_dataset_obj>
 <dataset_code>GSCGD</dataset_code>
 <dataset_description>gsc_global_defaults - Global deflt</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -945,7 +719,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="21" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600111.08" record_version_obj="3000058676.09" version_number_seq="1.09" secondary_key_value="GSCGC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600111.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="22" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600111.08" record_version_obj="3000058676.09" version_number_seq="1.09" secondary_key_value="GSCGC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600111.08</deploy_dataset_obj>
 <dataset_code>GSCGC</dataset_code>
 <dataset_description>gsc_global_control - Global Control</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -974,7 +748,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="22" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600113.08" record_version_obj="3000058677.09" version_number_seq="1.09" secondary_key_value="GSMCR" import_version_number_seq="1.09"><deploy_dataset_obj>1007600113.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="23" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600113.08" record_version_obj="3000058677.09" version_number_seq="1.09" secondary_key_value="GSMCR" import_version_number_seq="1.09"><deploy_dataset_obj>1007600113.08</deploy_dataset_obj>
 <dataset_code>GSMCR</dataset_code>
 <dataset_description>gsm_currency - Currencies</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1003,7 +777,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="23" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600115.08" record_version_obj="3000058678.09" version_number_seq="1.09" secondary_key_value="GSMCY" import_version_number_seq="1.09"><deploy_dataset_obj>1007600115.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="24" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600115.08" record_version_obj="3000058678.09" version_number_seq="1.09" secondary_key_value="GSMCY" import_version_number_seq="1.09"><deploy_dataset_obj>1007600115.08</deploy_dataset_obj>
 <dataset_code>GSMCY</dataset_code>
 <dataset_description>gsm_country - Countries</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1032,7 +806,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="24" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600117.08" record_version_obj="3000058679.09" version_number_seq="1.09" secondary_key_value="GSCNA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600117.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="25" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600117.08" record_version_obj="3000058679.09" version_number_seq="1.09" secondary_key_value="GSCNA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600117.08</deploy_dataset_obj>
 <dataset_code>GSCNA</dataset_code>
 <dataset_description>gsc_nationality - Nationalities</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1061,7 +835,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="25" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="09/26/2002" version_time="48490" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600119.08" record_version_obj="3000031139.09" version_number_seq="1.09" secondary_key_value="GSCLG" import_version_number_seq="1.09"><deploy_dataset_obj>1007600119.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="26" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="09/26/2002" version_time="48490" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600119.08" record_version_obj="3000031139.09" version_number_seq="1.09" secondary_key_value="GSCLG" import_version_number_seq="1.09"><deploy_dataset_obj>1007600119.08</deploy_dataset_obj>
 <dataset_code>GSCLG</dataset_code>
 <dataset_description>gsc_language - Languages</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1138,7 +912,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="26" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600123.08" record_version_obj="3000058680.09" version_number_seq="1.09" secondary_key_value="GSMUC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600123.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="27" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600123.08" record_version_obj="3000058680.09" version_number_seq="1.09" secondary_key_value="GSMUC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600123.08</deploy_dataset_obj>
 <dataset_code>GSMUC</dataset_code>
 <dataset_description>gsm_user_category</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1167,7 +941,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="27" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/20/2003" version_time="63936" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600125.08" record_version_obj="500379.24" version_number_seq="6.24" secondary_key_value="GSMUS" import_version_number_seq="6.24"><deploy_dataset_obj>1007600125.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="28" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/20/2003" version_time="63936" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600125.08" record_version_obj="500379.24" version_number_seq="6.24" secondary_key_value="GSMUS" import_version_number_seq="6.24"><deploy_dataset_obj>1007600125.08</deploy_dataset_obj>
 <dataset_code>GSMUS</dataset_code>
 <dataset_description>gsm_user - User Table</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1228,7 +1002,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="28" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600127.08" record_version_obj="3000058681.09" version_number_seq="1.09" secondary_key_value="GSCPF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600127.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="29" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600127.08" record_version_obj="3000058681.09" version_number_seq="1.09" secondary_key_value="GSCPF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600127.08</deploy_dataset_obj>
 <dataset_code>GSCPF</dataset_code>
 <dataset_description>gsc_profile_type - Profile Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1273,7 +1047,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="29" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600130.08" record_version_obj="3000058682.09" version_number_seq="1.09" secondary_key_value="GSCMT" import_version_number_seq="1.09"><deploy_dataset_obj>1007600130.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="30" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600130.08" record_version_obj="3000058682.09" version_number_seq="1.09" secondary_key_value="GSCMT" import_version_number_seq="1.09"><deploy_dataset_obj>1007600130.08</deploy_dataset_obj>
 <dataset_code>GSCMT</dataset_code>
 <dataset_description>gsc_manager_type - Manager Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1302,7 +1076,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="30" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600132.08" record_version_obj="3000058683.09" version_number_seq="7.24" secondary_key_value="GSMSE" import_version_number_seq="7.24"><deploy_dataset_obj>1007600132.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="31" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600132.08" record_version_obj="3000058683.09" version_number_seq="7.24" secondary_key_value="GSMSE" import_version_number_seq="7.24"><deploy_dataset_obj>1007600132.08</deploy_dataset_obj>
 <dataset_code>GSMSE</dataset_code>
 <dataset_description>gsm_session_type - Session Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1379,7 +1153,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="31" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600138.08" record_version_obj="3000058684.09" version_number_seq="3.24" secondary_key_value="GSCSP" import_version_number_seq="3.24"><deploy_dataset_obj>1007600138.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="32" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600138.08" record_version_obj="3000058684.09" version_number_seq="3.24" secondary_key_value="GSCSP" import_version_number_seq="3.24"><deploy_dataset_obj>1007600138.08</deploy_dataset_obj>
 <dataset_code>GSCSP</dataset_code>
 <dataset_description>gsc_session_property - Session Prop</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1408,7 +1182,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="32" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600140.08" record_version_obj="3000058685.09" version_number_seq="1.09" secondary_key_value="GSCST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600140.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="33" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600140.08" record_version_obj="3000058685.09" version_number_seq="1.09" secondary_key_value="GSCST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600140.08</deploy_dataset_obj>
 <dataset_code>GSCST</dataset_code>
 <dataset_description>gsc_service_type - Service Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1437,7 +1211,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="33" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600151.08" record_version_obj="3000058686.09" version_number_seq="1.09" secondary_key_value="GSCIC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600151.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="34" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600151.08" record_version_obj="3000058686.09" version_number_seq="1.09" secondary_key_value="GSCIC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600151.08</deploy_dataset_obj>
 <dataset_code>GSCIC</dataset_code>
 <dataset_description>gsc_item_category</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1466,7 +1240,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="34" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600153.08" record_version_obj="3000058687.09" version_number_seq="1.09" secondary_key_value="GSMMI" import_version_number_seq="1.09"><deploy_dataset_obj>1007600153.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="35" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600153.08" record_version_obj="3000058687.09" version_number_seq="1.09" secondary_key_value="GSMMI" import_version_number_seq="1.09"><deploy_dataset_obj>1007600153.08</deploy_dataset_obj>
 <dataset_code>GSMMI</dataset_code>
 <dataset_description>gsm_menu_item - Menu Items</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1495,7 +1269,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="35" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600155.08" record_version_obj="3000058688.09" version_number_seq="1.09" secondary_key_value="GSMMS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600155.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="36" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600155.08" record_version_obj="3000058688.09" version_number_seq="1.09" secondary_key_value="GSMMS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600155.08</deploy_dataset_obj>
 <dataset_code>GSMMS</dataset_code>
 <dataset_description>gsm_menu_structure - Menu Structure</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1540,7 +1314,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="36" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600160.08" record_version_obj="3000058689.09" version_number_seq="1.09" secondary_key_value="GSMSS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600160.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="37" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600160.08" record_version_obj="3000058689.09" version_number_seq="1.09" secondary_key_value="GSMSS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600160.08</deploy_dataset_obj>
 <dataset_code>GSMSS</dataset_code>
 <dataset_description>gsm_security_structure - Security</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1569,7 +1343,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="37" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600162.08" record_version_obj="3000058690.09" version_number_seq="1.09" secondary_key_value="GSCIA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600162.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="38" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600162.08" record_version_obj="3000058690.09" version_number_seq="1.09" secondary_key_value="GSCIA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600162.08</deploy_dataset_obj>
 <dataset_code>GSCIA</dataset_code>
 <dataset_description>gsc_instance_attribute - Inst Attr</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1598,7 +1372,7 @@
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="38" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600164.08" record_version_obj="3000058691.09" version_number_seq="1.09" secondary_key_value="GSCOT" import_version_number_seq="1.09"><deploy_dataset_obj>1007600164.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="39" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="02/03/2004" version_time="56120" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600164.08" record_version_obj="3000058691.09" version_number_seq="3.38" secondary_key_value="GSCOT" import_version_number_seq="3.38"><deploy_dataset_obj>1007600164.08</deploy_dataset_obj>
 <dataset_code>GSCOT</dataset_code>
 <dataset_description>gsc_object_type - Object Types</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1623,7 +1397,7 @@
 <use_relationship>no</use_relationship>
 <relationship_obj>0</relationship_obj>
 <deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
+<exclude_field_list>custom_object_type_obj</exclude_field_list>
 </contained_record>
 <contained_record DB="icfdb" Table="gsc_dataset_entity"><dataset_entity_obj>1000000232.39</dataset_entity_obj>
 <deploy_dataset_obj>1007600164.08</deploy_dataset_obj>
@@ -1632,10 +1406,10 @@
 <primary_entity>no</primary_entity>
 <join_entity_mnemonic>GSCOT</join_entity_mnemonic>
 <join_field_list>object_type_obj,object_type_obj</join_field_list>
-<filter_where_clause>ryc_attribute_value.primary_smartobject_obj = 0 AND
-ryc_attribute_value.smartobject_obj = 0 AND
-ryc_attribute_value.container_smartobject_obj = 0 AND
-ryc_attribute_value.object_instance_obj = 0
+<filter_where_clause>ryc_attribute_value.primary_smartobject_obj = 0 AND
+ryc_attribute_value.smartobject_obj = 0 AND
+ryc_attribute_value.container_smartobject_obj = 0 AND
+ryc_attribute_value.object_instance_obj = 0
 </filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
@@ -1652,9 +1426,9 @@ ryc_attribute_value.object_instance_obj = 0
 <primary_entity>no</primary_entity>
 <join_entity_mnemonic>GSCOT</join_entity_mnemonic>
 <join_field_list>object_type_obj,object_type_obj</join_field_list>
-<filter_where_clause>ryc_ui_event.primary_smartobject_obj = 0 AND
-ryc_ui_event.smartobject_obj = 0 AND
-ryc_ui_event.container_smartobject_obj = 0 AND
+<filter_where_clause>ryc_ui_event.primary_smartobject_obj = 0 AND
+ryc_ui_event.smartobject_obj = 0 AND
+ryc_ui_event.container_smartobject_obj = 0 AND
 ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 <delete_related_records>yes</delete_related_records>
 <overwrite_records>yes</overwrite_records>
@@ -1682,7 +1456,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="39" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600166.08" record_version_obj="3000058692.09" version_number_seq="1.09" secondary_key_value="GSCPR" import_version_number_seq="1.09"><deploy_dataset_obj>1007600166.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="40" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600166.08" record_version_obj="3000058692.09" version_number_seq="1.09" secondary_key_value="GSCPR" import_version_number_seq="1.09"><deploy_dataset_obj>1007600166.08</deploy_dataset_obj>
 <dataset_code>GSCPR</dataset_code>
 <dataset_description>gsc_product - Products and Modules</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1727,7 +1501,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="40" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600169.08" record_version_obj="3000058693.09" version_number_seq="1.09" secondary_key_value="GSCDD" import_version_number_seq="1.09"><deploy_dataset_obj>1007600169.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="41" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600169.08" record_version_obj="3000058693.09" version_number_seq="1.09" secondary_key_value="GSCDD" import_version_number_seq="1.09"><deploy_dataset_obj>1007600169.08</deploy_dataset_obj>
 <dataset_code>GSCDD</dataset_code>
 <dataset_description>gsc_deploy_dataset - Deployment DS</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1772,7 +1546,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="41" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600172.08" record_version_obj="3000058694.09" version_number_seq="1.09" secondary_key_value="GSMEX" import_version_number_seq="1.09"><deploy_dataset_obj>1007600172.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="42" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600172.08" record_version_obj="3000058694.09" version_number_seq="1.09" secondary_key_value="GSMEX" import_version_number_seq="1.09"><deploy_dataset_obj>1007600172.08</deploy_dataset_obj>
 <dataset_code>GSMEX</dataset_code>
 <dataset_description>gsm_external_xref - External XRef</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1801,7 +1575,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="42" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600174.08" record_version_obj="3000058695.09" version_number_seq="1.09" secondary_key_value="GSCDU" import_version_number_seq="1.09"><deploy_dataset_obj>1007600174.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="43" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600174.08" record_version_obj="3000058695.09" version_number_seq="1.09" secondary_key_value="GSCDU" import_version_number_seq="1.09"><deploy_dataset_obj>1007600174.08</deploy_dataset_obj>
 <dataset_code>GSCDU</dataset_code>
 <dataset_description>gsc_default_set_usage - Dft Set Use</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1830,7 +1604,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="43" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600176.08" record_version_obj="3000058696.09" version_number_seq="1.09" secondary_key_value="GSCDS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600176.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="44" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600176.08" record_version_obj="3000058696.09" version_number_seq="1.09" secondary_key_value="GSCDS" import_version_number_seq="1.09"><deploy_dataset_obj>1007600176.08</deploy_dataset_obj>
 <dataset_code>GSCDS</dataset_code>
 <dataset_description>gsc_default_set - Default Sets</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1875,7 +1649,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="44" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600179.08" record_version_obj="3000058697.09" version_number_seq="1.09" secondary_key_value="GSMEF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600179.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="45" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600179.08" record_version_obj="3000058697.09" version_number_seq="1.09" secondary_key_value="GSMEF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600179.08</deploy_dataset_obj>
 <dataset_code>GSMEF</dataset_code>
 <dataset_description>gsm_entity_field - Entity Fields</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1920,7 +1694,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="45" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600182.08" record_version_obj="3000058698.09" version_number_seq="1.09" secondary_key_value="GSCEP" import_version_number_seq="1.09"><deploy_dataset_obj>1007600182.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="46" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600182.08" record_version_obj="3000058698.09" version_number_seq="1.09" secondary_key_value="GSCEP" import_version_number_seq="1.09"><deploy_dataset_obj>1007600182.08</deploy_dataset_obj>
 <dataset_code>GSCEP</dataset_code>
 <dataset_description>gsc_entity_mnemonic_procedure</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1949,7 +1723,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="46" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600184.08" record_version_obj="3000058699.09" version_number_seq="1.09" secondary_key_value="GSCCP" import_version_number_seq="1.09"><deploy_dataset_obj>1007600184.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="47" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600184.08" record_version_obj="3000058699.09" version_number_seq="1.09" secondary_key_value="GSCCP" import_version_number_seq="1.09"><deploy_dataset_obj>1007600184.08</deploy_dataset_obj>
 <dataset_code>GSCCP</dataset_code>
 <dataset_description>gsc_custom_procedure</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -1978,7 +1752,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="47" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600186.08" record_version_obj="3000058700.09" version_number_seq="1.09" secondary_key_value="GSMCL" import_version_number_seq="1.09"><deploy_dataset_obj>1007600186.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="48" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600186.08" record_version_obj="3000058700.09" version_number_seq="1.09" secondary_key_value="GSMCL" import_version_number_seq="1.09"><deploy_dataset_obj>1007600186.08</deploy_dataset_obj>
 <dataset_code>GSMCL</dataset_code>
 <dataset_description>gsm_control_code</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2007,7 +1781,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="48" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600188.08" record_version_obj="3000058701.09" version_number_seq="1.09" secondary_key_value="GSMCM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600188.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="49" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600188.08" record_version_obj="3000058701.09" version_number_seq="1.09" secondary_key_value="GSMCM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600188.08</deploy_dataset_obj>
 <dataset_code>GSMCM</dataset_code>
 <dataset_description>gsm_comment - Comments</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2036,7 +1810,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="49" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600190.08" record_version_obj="3000058702.09" version_number_seq="1.09" secondary_key_value="GSMCA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600190.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="50" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600190.08" record_version_obj="3000058702.09" version_number_seq="1.09" secondary_key_value="GSMCA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600190.08</deploy_dataset_obj>
 <dataset_code>GSMCA</dataset_code>
 <dataset_description>gsm_category - Categories</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2065,7 +1839,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="50" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600192.08" record_version_obj="3000058703.09" version_number_seq="1.09" secondary_key_value="GSMMM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600192.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="51" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600192.08" record_version_obj="3000058703.09" version_number_seq="1.09" secondary_key_value="GSMMM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600192.08</deploy_dataset_obj>
 <dataset_code>GSMMM</dataset_code>
 <dataset_description>gsm_multi_media - Multi Media</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2094,7 +1868,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="51" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600194.08" record_version_obj="3000058704.09" version_number_seq="1.09" secondary_key_value="GSCMM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600194.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="52" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600194.08" record_version_obj="3000058704.09" version_number_seq="1.09" secondary_key_value="GSCMM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600194.08</deploy_dataset_obj>
 <dataset_code>GSCMM</dataset_code>
 <dataset_description>gsc_multi_media_type - Multi Media</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2123,7 +1897,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="52" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600196.08" record_version_obj="3000058705.09" version_number_seq="1.09" secondary_key_value="GSCEM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600196.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="53" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600196.08" record_version_obj="3000058705.09" version_number_seq="1.09" secondary_key_value="GSCEM" import_version_number_seq="1.09"><deploy_dataset_obj>1007600196.08</deploy_dataset_obj>
 <dataset_code>GSCEM</dataset_code>
 <dataset_description>gsc_entity_mnemonic - Entity Mnemon</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2168,7 +1942,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="53" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600199.08" record_version_obj="3000058706.09" version_number_seq="1.09" secondary_key_value="GSMRA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600199.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="54" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600199.08" record_version_obj="3000058706.09" version_number_seq="1.09" secondary_key_value="GSMRA" import_version_number_seq="1.09"><deploy_dataset_obj>1007600199.08</deploy_dataset_obj>
 <dataset_code>GSMRA</dataset_code>
 <dataset_description>gsm_range - Ranges</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2197,7 +1971,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="54" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600201.08" record_version_obj="3000058707.09" version_number_seq="1.09" secondary_key_value="GSMFF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600201.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="55" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600201.08" record_version_obj="3000058707.09" version_number_seq="1.09" secondary_key_value="GSMFF" import_version_number_seq="1.09"><deploy_dataset_obj>1007600201.08</deploy_dataset_obj>
 <dataset_code>GSMFF</dataset_code>
 <dataset_description>gsm_field - Fields</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2226,7 +2000,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="55" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600203.08" record_version_obj="3000058708.09" version_number_seq="1.09" secondary_key_value="GSMTO" import_version_number_seq="1.09"><deploy_dataset_obj>1007600203.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="56" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600203.08" record_version_obj="3000058708.09" version_number_seq="1.09" secondary_key_value="GSMTO" import_version_number_seq="1.09"><deploy_dataset_obj>1007600203.08</deploy_dataset_obj>
 <dataset_code>GSMTO</dataset_code>
 <dataset_description>gsm_token - Tokens</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2255,7 +2029,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="56" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600205.08" record_version_obj="3000058709.09" version_number_seq="1.09" secondary_key_value="GSCSC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600205.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="57" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600205.08" record_version_obj="3000058709.09" version_number_seq="1.09" secondary_key_value="GSCSC" import_version_number_seq="1.09"><deploy_dataset_obj>1007600205.08</deploy_dataset_obj>
 <dataset_code>GSCSC</dataset_code>
 <dataset_description>gsc_security_control - Security Ctr</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2284,7 +2058,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="57" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600209.08" record_version_obj="3000058710.09" version_number_seq="1.09" secondary_key_value="GSMST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="58" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600209.08" record_version_obj="3000058710.09" version_number_seq="1.09" secondary_key_value="GSMST" import_version_number_seq="1.09"><deploy_dataset_obj>1007600209.08</deploy_dataset_obj>
 <dataset_code>GSMST</dataset_code>
 <dataset_description>gsm_status</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2329,7 +2103,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="58" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600212.08" record_version_obj="3000058711.09" version_number_seq="1.09" secondary_key_value="GSMHE" import_version_number_seq="1.09"><deploy_dataset_obj>1007600212.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="59" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600212.08" record_version_obj="3000058711.09" version_number_seq="1.09" secondary_key_value="GSMHE" import_version_number_seq="1.09"><deploy_dataset_obj>1007600212.08</deploy_dataset_obj>
 <dataset_code>GSMHE</dataset_code>
 <dataset_description>gsm_help - Help</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2358,7 +2132,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="59" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600214.08" record_version_obj="3000058712.09" version_number_seq="1.09" secondary_key_value="GSCER" import_version_number_seq="1.09"><deploy_dataset_obj>1007600214.08</deploy_dataset_obj>
+<dataset_transaction TransactionNo="60" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="1007600214.08" record_version_obj="3000058712.09" version_number_seq="1.09" secondary_key_value="GSCER" import_version_number_seq="1.09"><deploy_dataset_obj>1007600214.08</deploy_dataset_obj>
 <dataset_code>GSCER</dataset_code>
 <dataset_description>gsc_error - Errors</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2387,7 +2161,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="60" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000000374.09" record_version_obj="3000058713.09" version_number_seq="1.09" secondary_key_value="RYCAP" import_version_number_seq="1.09"><deploy_dataset_obj>3000000374.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="61" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000000374.09" record_version_obj="3000058713.09" version_number_seq="1.09" secondary_key_value="RYCAP" import_version_number_seq="1.09"><deploy_dataset_obj>3000000374.09</deploy_dataset_obj>
 <dataset_code>RYCAP</dataset_code>
 <dataset_description>ryc_attribute_group - Attribute groups in isolation</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2416,7 +2190,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="61" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/27/2002" version_time="25339" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="3000004885.09" record_version_obj="3000004886.09" version_number_seq="2.09" secondary_key_value="RYCCY" import_version_number_seq="2.09"><deploy_dataset_obj>3000004885.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="62" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="06/27/2002" version_time="25339" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="3000004885.09" record_version_obj="3000004886.09" version_number_seq="2.09" secondary_key_value="RYCCY" import_version_number_seq="2.09"><deploy_dataset_obj>3000004885.09</deploy_dataset_obj>
 <dataset_code>RYCCY</dataset_code>
 <dataset_description>ryc_customization</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2461,7 +2235,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="62" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54113" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="3000004891.09" record_version_obj="3000004892.09" version_number_seq="3.09" secondary_key_value="RYMCZ" import_version_number_seq="3.09"><deploy_dataset_obj>3000004891.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="63" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="07/30/2002" version_time="54113" version_user="admin" deletion_flag="no" entity_mnemonic="gscdd" key_field_value="3000004891.09" record_version_obj="3000004892.09" version_number_seq="3.09" secondary_key_value="RYMCZ" import_version_number_seq="3.09"><deploy_dataset_obj>3000004891.09</deploy_dataset_obj>
 <dataset_code>RYMCZ</dataset_code>
 <dataset_description>rym_customization (whole set)</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2522,7 +2296,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="63" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000005364.09" record_version_obj="3000058714.09" version_number_seq="1.09" secondary_key_value="GSCLS" import_version_number_seq="1.09"><deploy_dataset_obj>3000005364.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="64" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/02/2003" version_time="49462" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000005364.09" record_version_obj="3000058714.09" version_number_seq="1.09" secondary_key_value="GSCLS" import_version_number_seq="1.09"><deploy_dataset_obj>3000005364.09</deploy_dataset_obj>
 <dataset_code>GSCLS</dataset_code>
 <dataset_description>gsc_logical_service - Logical Services</dataset_description>
 <disable_ri>yes</disable_ri>
@@ -2551,7 +2325,7 @@ ryc_ui_event.object_instance_obj = 0</filter_where_clause>
 </contained_record>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="64" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000005366.09" record_version_obj="3000058715.09" version_number_seq="3.24" secondary_key_value="GSMPY" import_version_number_seq="3.24"><deploy_dataset_obj>3000005366.09</deploy_dataset_obj>
+<dataset_transaction TransactionNo="65" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_deploy_dataset" version_date="10/12/2003" version_time="50016" version_user="admin" deletion_flag="no" entity_mnemonic="GSCDD" key_field_value="3000005366.09" record_version_obj="3000058715.09" version_number_seq="3.24" secondary_key_value="GSMPY" import_version_number_seq="3.24"><deploy_dataset_obj>3000005366.09</deploy_dataset_obj>
 <dataset_code>GSMPY</dataset_code>
 <dataset_description>gsm_physical_service - Physical Services</dataset_description>
 <disable_ri>yes</disable_ri>

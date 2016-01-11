@@ -119,7 +119,7 @@
 615.99 "prohelp/icdeveng.hlp" "rymwoobjcw" "" "" 426 "3076"
 616.99 "prohelp/icdeveng.hlp" "rymwofoldw" "" "" 426 "3077"
 618.99 "prohelp/icdeveng.hlp" "rymwmfoldw" "" "" 426 "3041"
-627.99 "prohelp/icabeng.hlp" "rydynlookw" "" "" 426 "47030"
+627.99 "prohelp/icabeng.hlp" "rydynlookw" "" "" 426 "47232"
 628.99 "prohelp/icabeng.hlp" "afsdofiltw.w" "" "" 426 "47237"
 629.99 "prohelp/icvereng.hlp" "rvutlmencw" "" "" 426 "4000"
 630.99 "prohelp/icvereng.hlp" "rvmwsobjcw" "" "" 426 "4009"
@@ -134,6 +134,11 @@
 639.99 "prohelp/icdeveng.hlp" "rymwbobjcw" "" "" 426 "3023"
 640.99 "prohelp/icdeveng.hlp" "rymwbfoldw" "" "" 426 "3078"
 641.99 "prohelp/icabeng.hlp" "rymwtfoldw" "" "" 426 "47227"
+12227.19 "prohelp/icabeng.chm" "ryclsfoldw" "" "" 426 "11"
+12229.19 "prohelp/icabeng.chm" "ryclsprefw" "" "" 426 "12"
+12235.19 "prohelp/icadseng.chm" "rycfgimprtw" "" "" 426 "4"
+12237.19 "prohelp/icdeveng.chm" "gsmsxotobjcw" "" "" 426 "2"
+12239.19 "prohelp/icdeveng.chm" "gsmsxpmobjcw" "" "" 426 "3"
 104524 "askjd/sjfd/lkasjd.w" "gscbafoldw.w" "afcompile.w" "gsm_commission_type.commission_type_desc" 0 ""
 104525 "gs/obj/gscaddetlv.w" "gscadfoldw.w" "gscadfullb.w" "gsm_commission_type.commission_type_desc" 0 "1"
 104526 "gs/obj/gscgcfullb.w" "gscerobjcw.w" "gscsqfullb.w" "gsc_address_type.address_type_obj" 0 ""
@@ -181,23 +186,23 @@
 3000060377.09 "prohelp/icdeveng.hlp" "rycavflt3w" "" "" 426 "3021"
 3000060379.09 "prohelp/icdeveng.hlp" "rycslfoldw" "" "" 426 "3021"
 3000060381.09 "prohelp/icdeveng.hlp" "ryccyfoltw" "" "" 426 "3012"
-3000060383.09 "prohelp/icdeveng.hlp" "gscsmobjcw" "" "" 426 "3015"
+3000060383.09 "prohelp/icdeveng.chm" "gscsmobjcw" "" "" 426 "1"
 3000060385.09 "prohelp/icdeveng.hlp" "rycsochgtypw" "" "" 426 "3021"
-3000060387.09 "prohelp/icadseng.hlp" "gsmrlobjcw" "" "" 426 "2005"
-3000060389.09 "prohelp/icadseng.hlp" "gsmsebconw" "" "" 426 "2009"
-3000060391.09 "prohelp/icadseng.hlp" "ryclcgenw" "" "" 426 "2005"
+3000060387.09 "prohelp/icadseng.chm" "gsmrlobjcw" "" "" 426 "1"
+3000060389.09 "prohelp/icadseng.chm" "gsmsebconw" "" "" 426 "3"
+3000060391.09 "prohelp/icadseng.chm" "ryclcgenw" "" "" 426 "2"
 3000060393.09 "prohelp/icadseng.hlp" "gsmrlfoldw" "" "" 426 "2005"
 3000060395.09 "prohelp/icdeveng.hlp" "gscottreew" "" "" 426 "3021"
 3000060397.09 "prohelp/icdeveng.hlp" "gscsmfoldw" "" "" 426 "3015"
 .
 PSC
 filename=gsm_help
-records=0000000000191
+records=0000000000196
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:39
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000012369
+0000012662

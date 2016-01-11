@@ -1,187 +1,187 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html 
-  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<style type="text/css">
-BODY        {font-family: arial;}
-TABLE.input {background-color: transparent;
-             border-left-style: none;
-             border-bottom-style: none;
-             border-width: 0;}
-TABLE.main  {background-color: #ECFFED;
-             border-left-style: solid;
-             border-bottom-style: solid;
-             border-width: 1;}
-TD.input    {background-color: transparent;
-             border-right-style: none;
-             border-top-style: none;
-             border-width: 0;}
-TD.main     {border-right-style: solid;
-             border-top-style: solid;
-             border-width: 1;}
-TH          {background-color: #ABFEAF;
-             text-align: left;
-             border-right-style: solid;
-             border-top-style: solid;
-             border-width: 1;}
-</style>
-</head>
-<body background="`RootURL`/images/bgr/wsbgr.gif">
-<img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font>
-<hr />
-<form name="form" method="post" action="_toolbars.icf">
-<h2>Toolbar Objects</h2>
-<table class="input">
-  <tr>
-    <td class="input"><label for="object">Toolbar:</label></td>
-    <td class="input" colspan="2"><input type="text" id="object" name="object" size="40" 
-       value='`if get-value('object') > '' then get-value('object') else 'StandardToolbar' `' /></td>
-  </tr>
-  <tr>
-    <td class="input"><label for="inst">Instance:</label></td>
-    <td class="input"><input type="text" name="inst" size="40" 
-       value='`if get-value('inst') > '' then get-value('inst') else 'afallmencw' `' /></td>
-    <td class="input"><input type="submit" name="submit" value="Submit" /></td>
-  </tr>
-</table>
-</form>
-<br />
-<!--wss
-{af/sup2/afglobals.i NEW GLOBAL}
-{src/adm2/ttaction.i}
-{src/adm2/tttoolbar.i}
-
-DEFINE VARIABLE cObject AS CHARACTER  NO-UNDO.
-DEFINE STREAM sListRecs.
-
-ASSIGN
-  cObject = get-value('object')
-  cObject = (IF cObject = '' THEN 'StandardToolBar' ELSE cObject).
-  
-RUN getToolbarBandActions IN gshRepositoryManager
-  (INPUT cObject, /* toolbar */
-   INPUT get-value('inst'), /* pObjectName, */
-   INPUT '',
-   OUTPUT TABLE ttToolbarBand,
-   OUTPUT TABLE ttObjectBand,
-   OUTPUT TABLE ttBand,
-   OUTPUT TABLE ttBandAction,
-   OUTPUT TABLE ttAction,
-   OUTPUT TABLE ttCategory)
-   NO-ERROR.
-IF ERROR-STATUS:ERROR THEN
-  MESSAGE "ERROR:getToolbarBandActions:" {1} '-' {2} '=' RETURN-VALUE '/' ERROR-STATUS:GET-MESSAGE(1).
-
-RUN listrecs(STRING(BUFFER ttToolbarBand:HANDLE) + ',' +
-             STRING(BUFFER ttObjectBand:HANDLE)+ ',' +
-             STRING(BUFFER ttBand:HANDLE)+ ',' +
-             STRING(BUFFER ttBandAction:HANDLE)+ ',' +
-             STRING(BUFFER ttAction:HANDLE)+ ',' +
-             STRING(BUFFER ttCategory:HANDLE), '').
-             
-
-PROCEDURE listrecs:
-  /* listRecs.p - Generate HTML file of contents of table. 
-     Params: pcBufs     = Comma separated list of table handles as strings
-             pcFileName = Name of file to output contents too.  If this is 
-                          blank, then output is redirected to the web stream.
-  */
-  DEFINE INPUT PARAMETER pcBufs     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcFileName AS CHARACTER  NO-UNDO.
-  
-  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCount        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hBuf          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQ            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cLine         AS CHARACTER  NO-UNDO.
-  
-  CREATE WIDGET-POOL 'x'.
-  
-  /* If no filename specified then assume the user wants it output directly to
-     the web stream.  In this case we'll output all contents to a tmp file then 
-     stream this out to the web at the end. */
-  IF pcFileName = ? OR pcFileName = '' THEN
-    pcFileName = 'listrecs.tmp'.
-  OUTPUT STREAM sListRecs TO VALUE(pcFileName).
-  
-  PUT STREAM sListRecs UNFORMATTED 
-    '<html><head>' SKIP
-    '<style>' SKIP
-    'body~{' SKIP
-    '  font-family: arial;}' SKIP
-    'table~{' SKIP
-    '  background-color: #ECFFED;' SKIP
-    '  border-left-style: solid;' SKIP
-    '  border-bottom-style: solid;' SKIP
-    '  border-width: 1;}' SKIP
-    'th~{' SKIP
-    '  background-color: #ABFEAF;' SKIP
-    '  text-align: left;' SKIP
-    '  border-right-style: solid;' SKIP
-    '  border-top-style: solid;' SKIP
-    '  border-width: 1;}' SKIP
-    'td~{' SKIP
-    '  border-right-style: solid;' SKIP
-    '  border-top-style: solid;' SKIP
-    '  border-width: 1;}' SKIP
-    '</style></head><body>' SKIP. 
-    
-  PUT STREAM sListRecs UNFORMATTED 
-    'Created: ' TODAY ' ' STRING(time, 'hh:mm:ss') '<br />' SKIP.
-  
-  DO iCount = 1 TO NUM-ENTRIES(pcBufs):
-    hBuf = WIDGET-HANDLE(ENTRY(iCount, pcBufs)).
-  
-    CREATE QUERY hQ IN WIDGET-POOL 'x'.
-    hQ:ADD-BUFFER(hBuf).
-    hQ:QUERY-PREPARE("FOR EACH "  + hBuf:NAME).
-    hQ:QUERY-OPEN().
-    hQ:GET-FIRST().
-    PUT STREAM sListRecs UNFORMATTED
-      '<br /><b>Buffer: <font color="blue">' hBuf:NAME ' (' hBuf:TABLE 
-      ')</font></b> Handle:<font color="blue"> ' STRING(hBuf) '</font><br />' SKIP
-      '<table class="main" cellspacing=0 cellpadding=0>' SKIP
-      '<tr>'.
-  
-    /* Column headings */  
-    DO i = 1 TO hBuf:NUM-FIELDS:
-      PUT STREAM sListRecs UNFORMATTED 
-        '<th>' hBuf:BUFFER-FIELD(i):NAME '</th>'.
-    END.
-    PUT STREAM sListRecs UNFORMATTED '</tr>' SKIP.
-  
-    /* Data rows */
-    DO WHILE hBuf:AVAILABLE:
-      PUT STREAM sListRecs UNFORMATTED '<tr>'.
-      DO i = 1 TO hBuf:NUM-FIELDS:
-        PUT STREAM sListRecs UNFORMATTED 
-          '<td class="main">' (IF hBuf:BUFFER-FIELD(i):BUFFER-VALUE = '' OR hBuf:BUFFER-FIELD(i):BUFFER-VALUE = ? 
-                  THEN '&#160;' ELSE hBuf:BUFFER-FIELD(i):BUFFER-VALUE) '</td>'.
-      END.
-      PUT STREAM sListRecs UNFORMATTED '</tr>' SKIP.
-      hQ:GET-NEXT().
-    END.
-    hQ:QUERY-CLOSE().
-    DELETE OBJECT hQ.
-    hQ = ?.
-    PUT STREAM sListRecs UNFORMATTED '</table>' SKIP.
-  END. /* do: thru list of table handles */
-  PUT STREAM sListRecs UNFORMATTED '</body></html>' SKIP.
-  
-  OUTPUT STREAM sListRecs CLOSE.
-  DELETE WIDGET-POOL 'x'.
-  
-  IF pcFileName = 'listrecs.tmp' THEN DO:
-    output-content-type ("text/html":U).
-    INPUT FROM VALUE(pcFileName).
-    REPEAT:
-      IMPORT UNFORMATTED cLine.
-      {&OUT} cLine SKIP.
-    END.
-  END.
-END.
--->
-</body>
-</html>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style type="text/css">
+BODY        {font-family: arial;}
+TABLE.input {background-color: transparent;
+             border-left-style: none;
+             border-bottom-style: none;
+             border-width: 0;}
+TABLE.main  {background-color: #ECFFED;
+             border-left-style: solid;
+             border-bottom-style: solid;
+             border-width: 1;}
+TD.input    {background-color: transparent;
+             border-right-style: none;
+             border-top-style: none;
+             border-width: 0;}
+TD.main     {border-right-style: solid;
+             border-top-style: solid;
+             border-width: 1;}
+TH          {background-color: #ABFEAF;
+             text-align: left;
+             border-right-style: solid;
+             border-top-style: solid;
+             border-width: 1;}
+</style>
+</head>
+<body background="`RootURL`/images/bgr/wsbgr.gif">
+<img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font>
+<hr />
+<form name="form" method="post" action="_toolbars.icf">
+<h2>Toolbar Objects</h2>
+<table class="input">
+  <tr>
+    <td class="input"><label for="object">Toolbar:</label></td>
+    <td class="input" colspan="2"><input type="text" id="object" name="object" size="40" 
+       value='`if get-value('object') > '' then get-value('object') else 'StandardToolbar' `' /></td>
+  </tr>
+  <tr>
+    <td class="input"><label for="inst">Instance:</label></td>
+    <td class="input"><input type="text" name="inst" size="40" 
+       value='`if get-value('inst') > '' then get-value('inst') else 'afallmencw' `' /></td>
+    <td class="input"><input type="submit" name="submit" value="Submit" /></td>
+  </tr>
+</table>
+</form>
+<br />
+<!--wss
+{af/sup2/afglobals.i NEW GLOBAL}
+{src/adm2/ttaction.i}
+{src/adm2/tttoolbar.i}
+
+DEFINE VARIABLE cObject AS CHARACTER  NO-UNDO.
+DEFINE STREAM sListRecs.
+
+ASSIGN
+  cObject = get-value('object')
+  cObject = (IF cObject = '' THEN 'StandardToolBar' ELSE cObject).
+  
+RUN getToolbarBandActions IN gshRepositoryManager
+  (INPUT cObject, /* toolbar */
+   INPUT get-value('inst'), /* pObjectName, */
+   INPUT '',
+   OUTPUT TABLE ttToolbarBand,
+   OUTPUT TABLE ttObjectBand,
+   OUTPUT TABLE ttBand,
+   OUTPUT TABLE ttBandAction,
+   OUTPUT TABLE ttAction,
+   OUTPUT TABLE ttCategory)
+   NO-ERROR.
+IF ERROR-STATUS:ERROR THEN
+  MESSAGE "ERROR:getToolbarBandActions:" {1} '-' {2} '=' RETURN-VALUE '/' ERROR-STATUS:GET-MESSAGE(1).
+
+RUN listrecs(STRING(BUFFER ttToolbarBand:HANDLE) + ',' +
+             STRING(BUFFER ttObjectBand:HANDLE)+ ',' +
+             STRING(BUFFER ttBand:HANDLE)+ ',' +
+             STRING(BUFFER ttBandAction:HANDLE)+ ',' +
+             STRING(BUFFER ttAction:HANDLE)+ ',' +
+             STRING(BUFFER ttCategory:HANDLE), '').
+             
+
+PROCEDURE listrecs:
+  /* listRecs.p - Generate HTML file of contents of table. 
+     Params: pcBufs     = Comma separated list of table handles as strings
+             pcFileName = Name of file to output contents too.  If this is 
+                          blank, then output is redirected to the web stream.
+  */
+  DEFINE INPUT PARAMETER pcBufs     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcFileName AS CHARACTER  NO-UNDO.
+  
+  DEFINE VARIABLE i             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCount        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hBuf          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQ            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cLine         AS CHARACTER  NO-UNDO.
+  
+  CREATE WIDGET-POOL 'x'.
+  
+  /* If no filename specified then assume the user wants it output directly to
+     the web stream.  In this case we'll output all contents to a tmp file then 
+     stream this out to the web at the end. */
+  IF pcFileName = ? OR pcFileName = '' THEN
+    pcFileName = 'listrecs.tmp'.
+  OUTPUT STREAM sListRecs TO VALUE(pcFileName).
+  
+  PUT STREAM sListRecs UNFORMATTED 
+    '<html><head>' SKIP
+    '<style>' SKIP
+    'body~{' SKIP
+    '  font-family: arial;}' SKIP
+    'table~{' SKIP
+    '  background-color: #ECFFED;' SKIP
+    '  border-left-style: solid;' SKIP
+    '  border-bottom-style: solid;' SKIP
+    '  border-width: 1;}' SKIP
+    'th~{' SKIP
+    '  background-color: #ABFEAF;' SKIP
+    '  text-align: left;' SKIP
+    '  border-right-style: solid;' SKIP
+    '  border-top-style: solid;' SKIP
+    '  border-width: 1;}' SKIP
+    'td~{' SKIP
+    '  border-right-style: solid;' SKIP
+    '  border-top-style: solid;' SKIP
+    '  border-width: 1;}' SKIP
+    '</style></head><body>' SKIP. 
+    
+  PUT STREAM sListRecs UNFORMATTED 
+    'Created: ' TODAY ' ' STRING(time, 'hh:mm:ss') '<br />' SKIP.
+  
+  DO iCount = 1 TO NUM-ENTRIES(pcBufs):
+    hBuf = WIDGET-HANDLE(ENTRY(iCount, pcBufs)).
+  
+    CREATE QUERY hQ IN WIDGET-POOL 'x'.
+    hQ:ADD-BUFFER(hBuf).
+    hQ:QUERY-PREPARE("FOR EACH "  + hBuf:NAME).
+    hQ:QUERY-OPEN().
+    hQ:GET-FIRST().
+    PUT STREAM sListRecs UNFORMATTED
+      '<br /><b>Buffer: <font color="blue">' hBuf:NAME ' (' hBuf:TABLE 
+      ')</font></b> Handle:<font color="blue"> ' STRING(hBuf) '</font><br />' SKIP
+      '<table class="main" cellspacing=0 cellpadding=0>' SKIP
+      '<tr>'.
+  
+    /* Column headings */  
+    DO i = 1 TO hBuf:NUM-FIELDS:
+      PUT STREAM sListRecs UNFORMATTED 
+        '<th>' hBuf:BUFFER-FIELD(i):NAME '</th>'.
+    END.
+    PUT STREAM sListRecs UNFORMATTED '</tr>' SKIP.
+  
+    /* Data rows */
+    DO WHILE hBuf:AVAILABLE:
+      PUT STREAM sListRecs UNFORMATTED '<tr>'.
+      DO i = 1 TO hBuf:NUM-FIELDS:
+        PUT STREAM sListRecs UNFORMATTED 
+          '<td class="main">' (IF hBuf:BUFFER-FIELD(i):BUFFER-VALUE = '' OR hBuf:BUFFER-FIELD(i):BUFFER-VALUE = ? 
+                  THEN '&#160;' ELSE hBuf:BUFFER-FIELD(i):BUFFER-VALUE) '</td>'.
+      END.
+      PUT STREAM sListRecs UNFORMATTED '</tr>' SKIP.
+      hQ:GET-NEXT().
+    END.
+    hQ:QUERY-CLOSE().
+    DELETE OBJECT hQ.
+    hQ = ?.
+    PUT STREAM sListRecs UNFORMATTED '</table>' SKIP.
+  END. /* do: thru list of table handles */
+  PUT STREAM sListRecs UNFORMATTED '</body></html>' SKIP.
+  
+  OUTPUT STREAM sListRecs CLOSE.
+  DELETE WIDGET-POOL 'x'.
+  
+  IF pcFileName = 'listrecs.tmp' THEN DO:
+    output-content-type ("text/html":U).
+    INPUT FROM VALUE(pcFileName).
+    REPEAT:
+      IMPORT UNFORMATTED cLine.
+      {&OUT} cLine SKIP.
+    END.
+  END.
+END.
+-->
+</body>
+</html>

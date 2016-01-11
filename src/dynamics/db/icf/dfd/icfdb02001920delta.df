@@ -1,1792 +1,1792 @@
-ADD TABLE "gsc_scm_tool"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines possible software configuration management tools that could be integrated with Dynamics. The tool currently in use is identified via the gsc_security_control table.
-
-An example of an integrated SCM tool is Roundtable (RTB).
-
-The primary purpose of this table is to link together xref information between the Dynamics repository and the SCM tool for data such as product modules, object types, etc. as specified in the gsm_scm_xref table.
-
-"
-  DUMP-NAME "gscsm"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gscsmreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gscsmrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gscsmreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigw.p" CRC "?" 
-
-ADD FIELD "scm_tool_obj" OF "gsc_scm_tool" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "SCM tool obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "SCM tool obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "scm_tool_code" OF "gsc_scm_tool" AS character 
-  DESCRIPTION "A unique code to identify the scm tool, e.g. RTB for Roundtable"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "SCM tool code"
-  POSITION 3
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "SCM tool code"
-  ORDER 20
-
-ADD FIELD "scm_tool_description" OF "gsc_scm_tool" AS character 
-  DESCRIPTION "A free text description of the SCM tool that could include version information, etc."
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "SCM tool description"
-  POSITION 4
-  SQL-WIDTH 140
-  VALMSG "s_big_description"
-  HELP "SCM tool description"
-  ORDER 30
-
-ADD INDEX "XPKgsc_scm_tool" ON "gsc_scm_tool" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "scm_tool_obj" ASCENDING 
-
-ADD INDEX "XAK1gsc_scm_tool" ON "gsc_scm_tool" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "scm_tool_code" ASCENDING 
-
-ADD INDEX "XIE1gsc_scm_tool" ON "gsc_scm_tool" 
-  AREA "Schema Area"
-  INDEX-FIELD "scm_tool_description" ASCENDING 
-
-ADD TABLE "gsm_filter_data"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines the filters that are applicable to a filter set, and a filter set can have many filters that apply. 
-
-By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems.
-The table can be read as meaning to exclude all specified data except the data that is specifically included back in. For example, exclude all objects in all repository modules, except for objects where the template flag is true or the object type is a toolbar.
-
-If a specific record is to be specified, then the owning_reference field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
-
-Alternatively a more generic expression can be specified, by supplying a fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
-
-It is not possible to specify a generic expression and a specific record, one or the other must be specified in a single filter data record.
-
-This table provides significant flexibility in the specification of what data to filter. It will be possible for example to specify a list of product modules to exclude, but to re-include specific objects from some of the excluded product modules.
-"
-  DUMP-NAME "gsmfd"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfdreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfdrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfdreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigw.p" CRC "?" 
-
-ADD FIELD "filter_data_obj" OF "gsm_filter_data" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Filter data obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Filter data obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "filter_set_obj" OF "gsm_filter_data" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Filter set obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Filter set obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "owning_entity_mnemonic" OF "gsm_filter_data" AS character 
-  DESCRIPTION "The code allocated to every table in the database that uniquely identifies the database table. This code is used when generically joining to tables, as the basis for naming conventions (e.g. a prefix to all objects that maintain this table), etc.
-
-This code is usually stored in the dump name of the table.
-"
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Owning entity"
-  POSITION 4
-  SQL-WIDTH 16
-  VALMSG "s_entity_mnemonic"
-  HELP "Owning entity"
-  ORDER 30
-
-ADD FIELD "owning_reference" OF "gsm_filter_data" AS character 
-  DESCRIPTION "If a specific record is to be specified, then this field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
-
-This field contains the key field values of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
-
-If the related table has a object number, this field will contain the string value of the object number, otherwise it will contain a CHR(3) seperated string list of the values for the fields in gsc_entity_mnemonic.entity_key_field.
-"
-  FORMAT "X(3000)"
-  INITIAL ""
-  LABEL "Owning reference"
-  POSITION 5
-  SQL-WIDTH 6000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
-  VALMSG "s_comma_separated_list"
-  HELP "Owning reference"
-  ORDER 40
-
-ADD FIELD "expression_field_name" OF "gsm_filter_data" AS character 
-  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
-"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Expression field name"
-  POSITION 6
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "Expression field name"
-  ORDER 50
-
-ADD FIELD "expression_operator" OF "gsm_filter_data" AS character 
-  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
-"
-  FORMAT "X(15)"
-  INITIAL ""
-  LABEL "Expression operator"
-  POSITION 7
-  SQL-WIDTH 30
-  VALMSG "s_reference"
-  HELP "Expression operator"
-  ORDER 60
-
-ADD FIELD "expression_value" OF "gsm_filter_data" AS character 
-  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
-"
-  FORMAT "X(500)"
-  INITIAL ""
-  LABEL "Expression value"
-  POSITION 8
-  SQL-WIDTH 1000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
-  VALMSG "s_small_text_block"
-  HELP "Expression value"
-  ORDER 70
-
-ADD FIELD "include_data" OF "gsm_filter_data" AS logical 
-  DESCRIPTION "By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems"
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Include data"
-  POSITION 9
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Include data"
-  ORDER 80
-
-ADD INDEX "XPKgsm_filter_data" ON "gsm_filter_data" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "filter_data_obj" ASCENDING 
-
-ADD INDEX "XIE1gsm_filter_data" ON "gsm_filter_data" 
-  AREA "Schema Area"
-  INDEX-FIELD "filter_set_obj" ASCENDING 
-
-ADD INDEX "XIE2gsm_filter_data" ON "gsm_filter_data" 
-  AREA "Schema Area"
-  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
-
-ADD INDEX "XIE3gsm_filter_data" ON "gsm_filter_data" 
-  AREA "Schema Area"
-  INDEX-FIELD "owning_reference" ASCENDING 
-
-ADD INDEX "XIE4gsm_filter_data" ON "gsm_filter_data" 
-  AREA "Schema Area"
-  INDEX-FIELD "expression_field_name" ASCENDING 
-
-ADD TABLE "gsm_filter_set"
-  AREA "Schema Area"
-  DESCRIPTION "This table is a grouping mechanism for numerous filter settings that make up a single filter definition. A standard filter set will be defined called ""Repository"" that contains all the filter records required to be able to filter out repository data. Filter sets can then be modified and extended to filter out additional data or include data that was previously excluded.
-
-We use user profile codes to assign a filter set to a user, rather than setting the flag, display repository data yes or no. If no filter set is allocated to a user, then no filters apply. Only a single filter set may be applied at any one time. 
-"
-  DUMP-NAME "gsmfi"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfireplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfirepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfireplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigw.p" CRC "?" 
-
-ADD FIELD "filter_set_obj" OF "gsm_filter_set" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Filter set obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Filter set obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "filter_set_code" OF "gsm_filter_set" AS character 
-  DESCRIPTION "A unique code to identify the filter set"
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Filter set code"
-  POSITION 3
-  SQL-WIDTH 70
-  VALMSG "s_name"
-  HELP "Filter set code"
-  ORDER 20
-
-ADD FIELD "filter_set_description" OF "gsm_filter_set" AS character 
-  DESCRIPTION "A free text description of the filter set"
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Filter set description"
-  POSITION 4
-  SQL-WIDTH 140
-  VALMSG "s_big_description"
-  HELP "Filter set description"
-  ORDER 30
-
-ADD INDEX "XPKgsm_filter_set" ON "gsm_filter_set" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "filter_set_obj" ASCENDING 
-
-ADD INDEX "XAK1gsm_filter_set" ON "gsm_filter_set" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "filter_set_code" ASCENDING 
-
-ADD INDEX "XIE1gsm_filter_set" ON "gsm_filter_set" 
-  AREA "Schema Area"
-  INDEX-FIELD "filter_set_description" ASCENDING 
-
-ADD TABLE "gsm_group_allocation"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines which groups a user belongs to - for security purposes. It is also possible to set up groups that belong to groups. If the login company is specified, this indicates that security for this group only applies when logged into the specified company.
-
-"
-  DUMP-NAME "gsmga"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmgareplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmgarepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmgareplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigw.p" CRC "?" 
-
-ADD FIELD "group_allocation_obj" OF "gsm_group_allocation" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Group allocation obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Group allocation obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "group_user_obj" OF "gsm_group_allocation" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Group user obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Group user obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "user_obj" OF "gsm_group_allocation" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "User obj"
-  POSITION 4
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "User obj"
-  DECIMALS 9
-  ORDER 30
-
-ADD FIELD "login_company_obj" OF "gsm_group_allocation" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Login company obj"
-  POSITION 5
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Login company obj"
-  DECIMALS 9
-  ORDER 40
-
-ADD INDEX "XPKgsm_group_allocation" ON "gsm_group_allocation" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "group_allocation_obj" ASCENDING 
-
-ADD INDEX "XAK1gsm_group_allocation" ON "gsm_group_allocation" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "group_user_obj" ASCENDING 
-  INDEX-FIELD "user_obj" ASCENDING 
-  INDEX-FIELD "login_company_obj" ASCENDING 
-
-ADD INDEX "XIE1gsm_group_allocation" ON "gsm_group_allocation" 
-  AREA "Schema Area"
-  INDEX-FIELD "user_obj" ASCENDING 
-
-ADD INDEX "XIE2gsm_group_allocation" ON "gsm_group_allocation" 
-  AREA "Schema Area"
-  INDEX-FIELD "login_company_obj" ASCENDING 
-
-ADD TABLE "gsm_release"
-  AREA "Schema Area"
-  DESCRIPTION "This table provides a mechanism to record what versions of an object belong to a release, when used in conjunction with the child table, gst_release_version.
-
-This table identifies an actual release, giving the release a specific reference, summary and detailed notes of the reason for the release, and details of when the release was created and by whom.
-
-The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
-
-When creating the release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
-
-This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
-"
-  DUMP-NAME "gsmrl"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmrlreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmrlrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmrlreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigw.p" CRC "?" 
-
-ADD FIELD "release_obj" OF "gsm_release" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Release obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Release obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "release_number" OF "gsm_release" AS character 
-  DESCRIPTION "The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
-"
-  FORMAT "X(28)"
-  INITIAL ""
-  LABEL "Release number"
-  POSITION 3
-  SQL-WIDTH 56
-  VALMSG "s_string_28"
-  HELP "Release number"
-  ORDER 20
-
-ADD FIELD "release_summary" OF "gsm_release" AS character 
-  DESCRIPTION "This is a summary description for the release"
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Release summary"
-  POSITION 4
-  SQL-WIDTH 140
-  VALMSG "s_big_description"
-  HELP "Release summary"
-  ORDER 30
-
-ADD FIELD "release_notes" OF "gsm_release" AS character 
-  DESCRIPTION "These are detailed notes pertaining to the release"
-  FORMAT "X(3000)"
-  INITIAL ""
-  LABEL "Release notes"
-  POSITION 5
-  SQL-WIDTH 6000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
-  VALMSG "s_big_text_block"
-  HELP "Release notes"
-  ORDER 40
-
-ADD FIELD "release_date" OF "gsm_release" AS date 
-  DESCRIPTION "The date this release was created."
-  FORMAT "99/99/9999"
-  INITIAL "TODAY"
-  LABEL "Release date"
-  POSITION 6
-  SQL-WIDTH 4
-  VALMSG "d_date_today"
-  HELP "Release date"
-  ORDER 50
-
-ADD FIELD "release_time" OF "gsm_release" AS integer 
-  DESCRIPTION "The time this release was created."
-  FORMAT ">>>>9"
-  INITIAL "0"
-  LABEL "Release time"
-  POSITION 7
-  SQL-WIDTH 4
-  VALMSG "n_time"
-  HELP "Release time"
-  ORDER 60
-
-ADD FIELD "release_user" OF "gsm_release" AS character 
-  DESCRIPTION "This field indicates which user created this release if known. This user may not exist in the current repository in the event that the data was imported from some external source.
-"
-  FORMAT "X(20)"
-  INITIAL ""
-  LABEL "Release user"
-  POSITION 8
-  SQL-WIDTH 40
-  VALMSG "s_string_20"
-  HELP "Release user"
-  ORDER 70
-
-ADD INDEX "XPKgsm_release" ON "gsm_release" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "release_obj" ASCENDING 
-
-ADD INDEX "XAK1gsm_release" ON "gsm_release" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "release_number" ASCENDING 
-
-ADD INDEX "XIE1gsm_release" ON "gsm_release" 
-  AREA "Schema Area"
-  INDEX-FIELD "release_summary" ASCENDING 
-
-ADD INDEX "XIE2gsm_release" ON "gsm_release" 
-  AREA "Schema Area"
-  INDEX-FIELD "release_notes" ASCENDING 
-
-ADD INDEX "XIE3gsm_release" ON "gsm_release" 
-  AREA "Schema Area"
-  INDEX-FIELD "release_date" ASCENDING 
-  INDEX-FIELD "release_time" ASCENDING 
-
-ADD TABLE "gsm_scm_xref"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines the mapping between data in the Dynamics repository and an external SCM tool, with mapping being defined per SCM tool in use.
-
-Examples of the types of data that is mapped includes object types and product modules. This facilitates the external SCM tool using different codes than those used in Dynamics. It also allows mutiple codes in Dynamics to share a common code in the external SCM tool, e.g. many product modules and object types in Dynamics could point at common modules and subtypes in an SCM tool such as Roundtable.
-
-The scm foreign key field is the field in the external SCM tool. This is a character field for maximum portability. API's should be used to provide lookup lists for values in the external SCM tool.
-
-Data must be set up in this table for SCM integration to function, so that it is clear what data is mapped to what. If it is a one to one mapping, then tools can be used to synchronize the data and set it up automatically.
-"
-  DUMP-NAME "gsmsx"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmsxreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmsxrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmsxreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigw.p" CRC "?" 
-
-ADD FIELD "scm_xref_obj" OF "gsm_scm_xref" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "SCM xref obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "SCM xref obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "scm_tool_obj" OF "gsm_scm_xref" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "SCM tool obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "SCM tool obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "owning_entity_mnemonic" OF "gsm_scm_xref" AS character 
-  DESCRIPTION "The code allocated to every table in the database that uniquely identifies the database table. This code is used when generically joining to tables, as the basis for naming conventions (e.g. a prefix to all objects that maintain this table), etc.
-
-This code is usually stored in the dump name of the table.
-"
-  FORMAT "X(8)"
-  INITIAL ""
-  LABEL "Owning entity"
-  POSITION 4
-  SQL-WIDTH 16
-  VALMSG "s_entity_mnemonic"
-  HELP "Owning entity"
-  ORDER 30
-
-ADD FIELD "owning_reference" OF "gsm_scm_xref" AS character 
-  DESCRIPTION "This field contains the key field values of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
-
-If the related table has a object number, this field will contain the string value of the object number, otherwise it will contain a CHR(3) seperated string list of the values for the fields in gsc_entity_mnemonic.entity_key_field.
-"
-  FORMAT "X(3000)"
-  INITIAL ""
-  LABEL "Owning reference"
-  POSITION 5
-  SQL-WIDTH 6000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
-  VALMSG "s_comma_separated_list"
-  HELP "Owning reference"
-  ORDER 40
-
-ADD FIELD "owning_obj" OF "gsm_scm_xref" AS decimal 
-  DESCRIPTION "This field contains the object id of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
-
-If the table referenced by the owning_entity_mnemonic does not contain an object id field, then the owning_reference field can be used to do the join instead.
-"
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Owning obj"
-  POSITION 6
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Owning obj"
-  DECIMALS 9
-  ORDER 50
-
-ADD FIELD "scm_foreign_key" OF "gsm_scm_xref" AS character 
-  DESCRIPTION "The scm foreign key field is the field in the external SCM tool to map the owning_obj field to. This is a character field for maximum portability. API's should be used to provide lookup lists for values in the external SCM tool.
-
-The data it is linked to is determined by the owning_entity_mnemonic and will need to be hard coded into an API for the specific SCM tool, e.g. for product modules, it will be modules and for object types it will be code subtypes for Roundtable.
-"
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "SCM foreign key"
-  POSITION 7
-  SQL-WIDTH 140
-  VALMSG "s_big_name"
-  HELP "SCM foreign key"
-  ORDER 60
-
-ADD INDEX "XPKgsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "scm_xref_obj" ASCENDING 
-
-ADD INDEX "XAK1gsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "scm_tool_obj" ASCENDING 
-  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
-  INDEX-FIELD "owning_reference" ASCENDING 
-
-ADD INDEX "XIE1gsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
-
-ADD INDEX "XIE2gsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  INDEX-FIELD "owning_obj" ASCENDING 
-
-ADD INDEX "XIE3gsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  INDEX-FIELD "scm_foreign_key" ASCENDING 
-
-ADD INDEX "XIE4gsm_scm_xref" ON "gsm_scm_xref" 
-  AREA "Schema Area"
-  INDEX-FIELD "owning_reference" ASCENDING 
-
-ADD TABLE "gst_context_scope"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines the scope of the server context data, either by session or by user.
-
-If the context scope is for a user, then the context data in gsm_server_context will persist across sessions and will remain valid for the user until it is deleted or expires (as determined by the flag on gsc_security_control indicating after what period user context data should expire). This facilitates storing context for a user that can be re-used in new sessions, e.g. shopping cart information that can persist between web sessions. For user context scope, the session_obj will be set to 0 and a valid user_obj must be specified.
-
-If the context scope is for a session, then the context data in the gsm_server_context table will only be valid for the duration of a single session. In this case the session_obj will be specified and the user_obj will be 0.
-
-A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
-
-When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
-
-The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
-"
-  DUMP-NAME "gstcs"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstcstrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstcstrigd.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstcstrigw.p" CRC "?" 
-
-ADD FIELD "context_scope_obj" OF "gst_context_scope" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Context scope obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Context scope obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "scope_name" OF "gst_context_scope" AS character 
-  DESCRIPTION "A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
-"
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Scope name"
-  POSITION 3
-  SQL-WIDTH 140
-  VALMSG "s_big_name"
-  HELP "Scope name"
-  ORDER 20
-
-ADD FIELD "session_obj" OF "gst_context_scope" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Session obj"
-  POSITION 4
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Session obj"
-  DECIMALS 9
-  ORDER 30
-
-ADD FIELD "user_obj" OF "gst_context_scope" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "User obj"
-  POSITION 5
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "User obj"
-  DECIMALS 9
-  ORDER 40
-
-ADD FIELD "transaction_complete" OF "gst_context_scope" AS logical 
-  DESCRIPTION "This is a flag, default value is NO.
-
-When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
-
-The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
-"
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Transaction complete"
-  POSITION 6
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Transaction complete"
-  ORDER 50
-
-ADD FIELD "scope_creation_date" OF "gst_context_scope" AS date 
-  DESCRIPTION "The date the scope was created"
-  FORMAT "99/99/9999"
-  INITIAL "TODAY"
-  LABEL "Scope creation date"
-  POSITION 7
-  SQL-WIDTH 4
-  VALMSG "d_date_today"
-  HELP "Scope creation date"
-  ORDER 60
-
-ADD FIELD "scope_creation_time" OF "gst_context_scope" AS integer 
-  DESCRIPTION "The time the scope was created"
-  FORMAT ">>>>9"
-  INITIAL "0"
-  LABEL "Scope creation time"
-  POSITION 8
-  SQL-WIDTH 4
-  VALMSG "n_time"
-  HELP "Scope creation time"
-  ORDER 70
-
-ADD FIELD "last_access_date" OF "gst_context_scope" AS date 
-  DESCRIPTION "The date the scope was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
-  FORMAT "99/99/9999"
-  INITIAL "?"
-  LABEL "Last access date"
-  POSITION 9
-  SQL-WIDTH 4
-  VALMSG "d_date_empty"
-  HELP "Last access date"
-  ORDER 80
-
-ADD FIELD "last_access_time" OF "gst_context_scope" AS integer 
-  DESCRIPTION "The time the scope was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
-  FORMAT ">>>>9"
-  INITIAL "0"
-  LABEL "Last access time"
-  POSITION 10
-  SQL-WIDTH 4
-  VALMSG "n_time"
-  HELP "Last access time"
-  ORDER 90
-
-ADD FIELD "parent_context_scope_obj" OF "gst_context_scope" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Parent context scope obj"
-  POSITION 11
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Parent context scope obj"
-  DECIMALS 9
-  ORDER 100
-
-ADD INDEX "XPKgst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "context_scope_obj" ASCENDING 
-
-ADD INDEX "XIE1gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "scope_name" ASCENDING 
-
-ADD INDEX "XIE2gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "user_obj" ASCENDING 
-
-ADD INDEX "XIE3gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "session_obj" ASCENDING 
-
-ADD INDEX "XIE4gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "parent_context_scope_obj" ASCENDING 
-
-ADD INDEX "XIE5gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "last_access_date" ASCENDING 
-  INDEX-FIELD "last_access_time" ASCENDING 
-
-ADD INDEX "XIE6gst_context_scope" ON "gst_context_scope" 
-  AREA "Schema Area"
-  INDEX-FIELD "transaction_complete" ASCENDING 
-
-ADD TABLE "gst_release_version"
-  AREA "Schema Area"
-  DESCRIPTION "This table records the record versions that make up a release. 
-
-When creating a new release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
-
-This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
-"
-  DUMP-NAME "gstrl"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstrltrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstrltrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gstrlreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gstrlrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gstrlreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstrltrigw.p" CRC "?" 
-
-ADD FIELD "release_version_obj" OF "gst_release_version" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Release version obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Release version obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "release_obj" OF "gst_release_version" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Release obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Release obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "record_version_obj" OF "gst_release_version" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Record version obj"
-  POSITION 4
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Record version obj"
-  DECIMALS 9
-  ORDER 30
-
-ADD FIELD "version_number_seq" OF "gst_release_version" AS decimal 
-  DESCRIPTION "This is the current version number of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created."
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Version number seq"
-  POSITION 5
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Version number seq"
-  DECIMALS 9
-  ORDER 40
-
-ADD FIELD "import_version_number_seq" OF "gst_release_version" AS decimal 
-  DESCRIPTION "This is the current import version number of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created."
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Import version number seq"
-  POSITION 6
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Import version number seq"
-  DECIMALS 9
-  ORDER 50
-
-ADD FIELD "deletion_flag" OF "gst_release_version" AS logical 
-  DESCRIPTION "This is the current delete flag of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created. If set to yes, this field indicates that the last action against the record resulted in a deletion in the release.
-"
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Deletion flag"
-  POSITION 7
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Deletion flag"
-  ORDER 60
-
-ADD INDEX "XPKgst_release_version" ON "gst_release_version" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "release_version_obj" ASCENDING 
-
-ADD INDEX "XAK1gst_release_version" ON "gst_release_version" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "release_obj" ASCENDING 
-  INDEX-FIELD "record_version_obj" ASCENDING 
-
-ADD TABLE "ryc_render_type"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines the supported rendering engines, e.g. e.g. WEB, GUI, HTML, B2C, .NET, XML, etc. 
-
-It is joined into the gst_session table to identify for a session which rendering engine is active for that session.
-
-The main purpose of this table is to optionally join into the ryc_attribute_value table and ryc_ui_event table to provide an ability to override attribute values and events for different rendering engines at the class, master and instance level. The render type offers another dimension of customization capability specifically for rendering engines.
-
-This also supports the ability to identify certain attributes and events that are only applicable to specific rendering engines, as well as the ability to override the values of common events and attributes across rendering engines."
-  DUMP-NAME "rycrt"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rycrttrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rycrttrigd.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/rycrtreplc.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/rycrtrepld.p" CRC "?" 
-  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/rycrtreplw.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rycrttrigw.p" CRC "?" 
-
-ADD FIELD "render_type_obj" OF "ryc_render_type" AS decimal 
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Render type obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Render type obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "render_type_code" OF "ryc_render_type" AS character 
-  DESCRIPTION "A unique code to identify the rendering engine type, e.g. WEB, GUI, HTML, B2C, .NET, XML, etc.
-"
-  FORMAT "X(10)"
-  INITIAL ""
-  LABEL "Render type code"
-  POSITION 3
-  SQL-WIDTH 20
-  VALMSG "s_code"
-  HELP "Render type code"
-  ORDER 20
-
-ADD FIELD "render_type_description" OF "ryc_render_type" AS character 
-  DESCRIPTION "A free text description of the rendering engine type."
-  FORMAT "X(35)"
-  INITIAL ""
-  LABEL "Render type description"
-  POSITION 4
-  SQL-WIDTH 70
-  VALMSG "s_description"
-  HELP "Render type description"
-  ORDER 30
-
-ADD INDEX "XPKryc_render_type" ON "ryc_render_type" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "render_type_obj" ASCENDING 
-
-ADD INDEX "XAK1ryc_render_type" ON "ryc_render_type" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "render_type_code" ASCENDING 
-
-ADD INDEX "XIE1ryc_render_type" ON "ryc_render_type" 
-  AREA "Schema Area"
-  INDEX-FIELD "render_type_description" ASCENDING 
-
-ADD FIELD "exclude_field_list" OF "gsc_dataset_entity" AS character
-  DESCRIPTION "This is a comma delimited list of fields for the entity that should not be updated during a deployment so as to not use customizations. 
-
-An example of where this is relevant is for the extends_object_type_obj on gsc_object_type. 
-
-Customers may modify this to point at a different object type so that they can customize in the middle of the class hierarchy. 
-
-For example, they may change the SDO class to extend mySDO to that the custom behavior applies to all existing SDOs without changing the object type. With the extends_object_type_obj field in the exclude field list, this would not be overwritten at deployment, thus preserving the customizations.
-
-If this is a new record, then fields in the exclude field list will be ignored. This just applies to updates.
-"
-  FORMAT "X(500)"
-  FORMAT-SA ?
-  POSITION 16
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Exclude field list"
-  HELP-SA ""
-  LABEL "Exclude field list"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_small_text_block"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 150
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1000
-
-UPDATE FIELD "error_group" OF "gsc_error"
-  FORMAT "X(10)"
-  HELP "Message group"
-  LABEL "Message group"
-  VALMSG "s_code"
-  SQL-WIDTH 20
-
-UPDATE FIELD "error_number" OF "gsc_error"
-  HELP "Message number"
-  LABEL "Message number"
-
-UPDATE FIELD "error_summary_description" OF "gsc_error"
-  HELP "Message summary description"
-  LABEL "Message summary description"
-
-UPDATE FIELD "error_full_description" OF "gsc_error"
-  HELP "Message full description"
-  LABEL "Message full description"
-
-UPDATE FIELD "error_obj" OF "gsc_error"
-  HELP "Message obj"
-  LABEL "Message obj"
-
-UPDATE FIELD "update_error_log" OF "gsc_error"
-  HELP "Update Message log"
-  LABEL "Update Message log"
-
-UPDATE FIELD "error_type" OF "gsc_error"
-  HELP "Message type"
-  LABEL "Message type"
-
-ADD FIELD "repository_site_number" OF "gsc_global_control" AS integer
-  DESCRIPTION "This field records the site number for the current repository database. The site number is actually stored in the sequences seq_site_division and seq_site_reverse and the sequence values are used at runtime to determine the site number. 
-This field is purely for validation purposes only so we can check against the actual sequence values and give an error if they do not match the value of this field.
-
-This validation will help avoid issues where the sequence values do not get loaded correctly after a dump or load, or with a clean database.
-
-Note that a site id of 0 is a valid site id!
-"
-  FORMAT "->>>>>>>9"
-  FORMAT-SA ?
-  POSITION 9
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Repository site number"
-  HELP-SA ""
-  LABEL "Repository site number"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "n_integer_9"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 80
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 4
-
-UPDATE TABLE "gsc_manager_type"
-  DESCRIPTION "This table contains the definition of the standard manager types that are used in the framework.
-
-A predefined set of manager types will exist in this table that support the framework functionality. Only managers that directly affect the core functionality of the framework need to be defined as manager types.
-
-For example, without a session manager we cannot start any other code, without a security manager we cannot do user authentication, etc.
-
-The physical procedures to run for this manager type are defined in this tables and two standard ones are supported;
-
-The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
-
-The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
-
-In order to support overrides of standard manager functionality, the super procedure attribute can be used against the manager object to define a super procedure stack of override functionality. It would point at a specific procedure to add as a super procedure, which in turn could have a super procedure, etc.
-
-The bound and unbound manager fields may need to be customized to point at the last procedure in the super procedure stack, so these fields need to be defined as fields that do not get overridden by new deployments to ensure that the customizations do not get lost. This is defined in the axclude fields field of the gsc_dataset_entity table.
-
-The manager objects specified here are always started for any session type that includes this manager type as a required manager type, via the gsm_required_manager table. We therefore do not support the ability to start different manager objects for different session types. If this is required, then different manager types must be defined."
-
-ADD FIELD "db_bound_smartobject_obj" OF "gsc_manager_type" AS decimal
-  DESCRIPTION "The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
-"
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 9
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Db bound smartobject obj"
-  HELP-SA ""
-  LABEL "Db bound smartobject obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 80
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD FIELD "db_unbound_smartobject_obj" OF "gsc_manager_type" AS decimal
-  DESCRIPTION "The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
-
-"
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 10
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Db unbound smartobject obj"
-  HELP-SA ""
-  LABEL "Db unbound smartobject obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 90
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD INDEX "XIE2gsc_manager_type" ON "gsc_manager_type"
-  AREA "Schema Area"
-  INDEX-FIELD "db_bound_smartobject_obj" ASCENDING
-
-ADD INDEX "XIE3gsc_manager_type" ON "gsc_manager_type"
-  AREA "Schema Area"
-  INDEX-FIELD "db_unbound_smartobject_obj" ASCENDING
-
-ADD FIELD "scm_tool_obj" OF "gsc_security_control" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 23
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "SCM tool obj"
-  HELP-SA ""
-  LABEL "SCM tool obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 220
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD FIELD "user_context_expiry_period" OF "gsc_security_control" AS decimal
-  DESCRIPTION "The period after which user context in the gsm_server_context table will expire. This field is a decimal field, with 0 indicating the functionality is disabled. The field is structured as days.time with the integer portion being the number of days and the decimal portion being the time in seconds since midnight.
-If a value is specified, then after the elapsed period of inactivity, the context data will be deleted.
-"
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 24
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "User context expiry period"
-  HELP-SA ""
-  LABEL "User context expiry period"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 230
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD INDEX "XIE1gsc_security_control" ON "gsc_security_control"
-  AREA "Schema Area"
-  INDEX-FIELD "scm_tool_obj" ASCENDING
-
-DROP FIELD "scm_tool_code" OF "gsc_security_control"
-
-UPDATE TABLE "gsm_node"
-  DESCRIPTION "This table contains a parent-child relationship of node behaviour for the TreeView controller.
-
-This table includes support for structured nodes. A structured node is a node where each new level is created infinitely from the same SDO, thus meaning that a node can be expanded infinite times and these nodes does not have to be set up for each level in node control.
-
-An example of the structured node field values for setting up a structured node treeview on this table would be;
-
-structured_node - YES
-parent_node_filter - parent_node_obj = 0
-parent_field - parent_node_obj
-child_field -  node_obj
-datatype - DECIMAL
-"
-
-UPDATE FIELD "node_code" OF "gsm_node"
-  FORMAT "X(35)"
-  VALMSG "s_name"
-  SQL-WIDTH 70
-
-UPDATE FIELD "node_description" OF "gsm_node"
-  FORMAT "X(70)"
-  VALMSG "s_big_description"
-  SQL-WIDTH 140
-
-ADD FIELD "structured_node" OF "gsm_node" AS logical
-  DESCRIPTION "This field indicates if this node should be a structured node, default is no.
-
-Only if this field is set to YES are the next 4 fields applicable; parent_node_filter, parent_field, child_field, data_type.
-
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 19
-  INITIAL "NO"
-  INITIAL-SA ?
-  HELP "Structured node"
-  HELP-SA ""
-  LABEL "Structured node"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_noyes"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 180
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD FIELD "parent_node_filter" OF "gsm_node" AS character
-  DESCRIPTION "This field contains the filter to be applied to the root node of the structured node
-"
-  FORMAT "X(70)"
-  FORMAT-SA ?
-  POSITION 20
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Parent node filter"
-  HELP-SA ""
-  LABEL "Parent node filter"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_big_description"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 190
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 140
-
-ADD FIELD "parent_field" OF "gsm_node" AS character
-  DESCRIPTION "This field contains the name of the parent field of the structured table
-"
-  FORMAT "X(35)"
-  FORMAT-SA ?
-  POSITION 21
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Parent field"
-  HELP-SA ""
-  LABEL "Parent field"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_name"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 200
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 70
-
-ADD FIELD "child_field" OF "gsm_node" AS character
-  DESCRIPTION "This field contains the name of the child field relating to a parent field in the same structured table."
-  FORMAT "X(35)"
-  FORMAT-SA ?
-  POSITION 22
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Child field"
-  HELP-SA ""
-  LABEL "Child field"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_name"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 210
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 70
-
-ADD FIELD "data_type" OF "gsm_node" AS character
-  DESCRIPTION "This field will contain the data type of the parent and child field.
-The PROGRESS data types include as follows:
-CHR = CHARACTER
-INT =  INTEGER
-DEC = DECIMAL
-DAT = DATE
-"
-  FORMAT "X(10)"
-  FORMAT-SA ?
-  POSITION 23
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Data type"
-  HELP-SA ""
-  LABEL "Data type"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_data_type"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 220
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 20
-
-UPDATE TABLE "gsm_required_manager"
-  DESCRIPTION "This table contains a list of the manager types that are required to be started during the startup of the session and the order in which they must be started. Any manager types which need to be written to the config file must always be started first. 
-
-The write_to_config attribute of the manager will cause this procedure name to be written to the config.xml file so that it can be started up before the session makes a connection to the runtime repository.
-
-The framework supports a standard set of manager types that are required but specific applications may require the startup of additional manager types for performance reasons, e.g. a financial system may require a frequently referenced financial manager api to be pre-started."
-
-UPDATE FIELD "startup_order" OF "gsm_required_manager"
-  DESCRIPTION "This field indicates the order in which the manager of this type should be started."
-
-UPDATE FIELD "system_owned" OF "gsm_required_manager"
-  POSITION 6
-  ORDER 50
-
-DROP INDEX "XIE2gsm_required_manager" ON "gsm_required_manager"
-
-DROP FIELD "object_obj" OF "gsm_required_manager"
-DROP FIELD "is_a_super_of" OF "gsm_required_manager"
-DROP FIELD "search_target" OF "gsm_required_manager"
-
-UPDATE TABLE "gsm_server_context"
-  DESCRIPTION "This table is a generic table to stored context information between stateless appserver connections.
-
-The type of information that is required includes user information, security information, possibly SCM workspace and task information, web page field values, etc.
-
-This is a child table of the context scope, gst_context_scope and could be context data scope to a session, or to a user."
-
-ADD FIELD "context_scope_obj" OF "gsm_server_context" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 3
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Context scope obj"
-  HELP-SA ""
-  LABEL "Context scope obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 20
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-RENAME INDEX "XAK1gsm_server_context" TO "temp-16033" ON "gsm_server_context"
-
-RENAME INDEX "XIE1gsm_server_context" TO "temp-88469" ON "gsm_server_context"
-
-ADD INDEX "XAK1gsm_server_context" ON "gsm_server_context"
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "context_scope_obj" ASCENDING
-  INDEX-FIELD "context_name" ASCENDING
-
-ADD INDEX "XIE1gsm_server_context" ON "gsm_server_context"
-  AREA "Schema Area"
-  INDEX-FIELD "context_id_date" ASCENDING
-  INDEX-FIELD "context_id_time" ASCENDING
-  INDEX-FIELD "context_scope_obj" ASCENDING
-
-DROP INDEX "temp-16033" ON "gsm_server_context"
-DROP INDEX "temp-88469" ON "gsm_server_context"
-
-DROP FIELD "session_obj" OF "gsm_server_context"
-
-ADD FIELD "security_group" OF "gsm_user" AS logical
-  DESCRIPTION "If set to YES, this is a security group record rather than a user record. If set to NO, this is a normal user record.
-
-Is set to YES, only a subset of the fields in this table are valid.
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 32
-  INITIAL "NO"
-  INITIAL-SA ?
-  HELP "Security group"
-  HELP-SA ""
-  LABEL "Security group"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_noyes"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 310
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD FIELD "default_security_group" OF "gsm_user" AS logical
-  DESCRIPTION "If set to YES, this is the default security group to allocate to users when creating new users. This can only be set to YES for user that are security groups - i.e security_group = YES.
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 33
-  INITIAL "NO"
-  INITIAL-SA ?
-  HELP "Default security group"
-  HELP-SA ""
-  LABEL "Default security group"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_noyes"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 320
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD INDEX "XIE10gsm_user" ON "gsm_user"
-  AREA "Schema Area"
-  INDEX-FIELD "security_group" ASCENDING
-
-ADD FIELD "year_offset" OF "gst_session" AS integer
-  DESCRIPTION "This field stores the session year offset for the client.
-
-The year offset field will map directly to the 4GL YEAR-OFFSET attribute which represents the start date for the Progress two-digit year-range of 100 years. Typical values are 1920 or 1950. The default value should be 1950 if not specified.
-
-This will be set as part of the client connection when the session record is created, and will be used in the appserver activate procedure to reset the server to match the client year offset for the duration of the call.
-"
-  FORMAT "->>>9"
-  FORMAT-SA ?
-  POSITION 12
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Year offset"
-  HELP-SA ""
-  LABEL "Year offset"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "n_year"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 110
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 4
-
-ADD FIELD "session_complete" OF "gst_session" AS logical
-  DESCRIPTION "This is a flag, default value is NO.
-
-Once a session is complete or expired, this flag is set to YES to indicate that the garbage collector can delete this record and all the context data associated with it.
-
-This flag overrides the transaction_complete flag on the gst_context_scope if set to YES.
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 13
-  INITIAL "NO"
-  INITIAL-SA ?
-  HELP "Session complete"
-  HELP-SA ""
-  LABEL "Session complete"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_noyes"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 120
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD FIELD "default_context_scope_obj" OF "gst_session" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 14
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Default context scope obj"
-  HELP-SA ""
-  LABEL "Default context scope obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 130
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD FIELD "render_type_obj" OF "gst_session" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 15
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Render type obj"
-  HELP-SA ""
-  LABEL "Render type obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 140
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD INDEX "XIE5gst_session" ON "gst_session"
-  AREA "Schema Area"
-  INDEX-FIELD "session_complete" ASCENDING
-
-ADD INDEX "XIE6gst_session" ON "gst_session"
-  AREA "Schema Area"
-  INDEX-FIELD "default_context_scope_obj" ASCENDING
-
-ADD INDEX "XIE7gst_session" ON "gst_session"
-  AREA "Schema Area"
-  INDEX-FIELD "render_type_obj" ASCENDING
-
-UPDATE TABLE "ryc_attribute_value"
-  DESCRIPTION "This entity associates attributes with object types, smartobjects, and smartobject instances, and specifies the value of the attribute in the appropriate native data type or character if a native data type is not available for the data type.
-
-The list of attribute values defined for the object type (class) must be complete, and unless an attribute is defined at the class level, it will not be available to be set within a subclass. Attribute values are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the attribute values for an object, attributes for parent classes must also be read.
-
-Records will then only exist for subclassess in the event the value has been specifically overridden for that subclass.
-
-When creating entries in this table for attributes associated with an object type, then the smart object and instance will be 0.
-
-When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating attributes for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
-
-Note: We must be careful when looking for attributes associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
-
-Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible attribute values.
-
-It is possible to specify a specific rendering engine type for attributes at the class, master and instance levels. If an attribute is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that attribute will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
-"
-
-ADD FIELD "render_type_obj" OF "ryc_attribute_value" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 16
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Render type obj"
-  HELP-SA ""
-  LABEL "Render type obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 150
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-RENAME INDEX "XAK1ryc_attribute_value" TO "temp-87603" ON "ryc_attribute_value"
-
-ADD INDEX "XAK1ryc_attribute_value" ON "ryc_attribute_value"
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "object_type_obj" ASCENDING
-  INDEX-FIELD "smartobject_obj" ASCENDING
-  INDEX-FIELD "object_instance_obj" ASCENDING
-  INDEX-FIELD "attribute_label" ASCENDING
-  INDEX-FIELD "container_smartobject_obj" ASCENDING
-  INDEX-FIELD "render_type_obj" ASCENDING
-
-ADD INDEX "XIE6ryc_attribute_value" ON "ryc_attribute_value"
-  AREA "Schema Area"
-  INDEX-FIELD "render_type_obj" ASCENDING
-
-ADD INDEX "XIE7ryc_attribute_value" ON "ryc_attribute_value"
-  AREA "Schema Area"
-  INDEX-FIELD "attribute_label" ASCENDING
-
-DROP INDEX "temp-87603" ON "ryc_attribute_value"
-
-UPDATE FIELD "static_object" OF "ryc_smartobject"
-  DESCRIPTION "This flag actually indicates whether the object can be run directly, or whether it needs a rendering object specified in order to run. A more suitable name for this attribute according to its use would be ""requires rendering object"".
-
-This flag is therefore set to YES for non dynamic objects and also for dynamic objects that do not require a rendering object, e.g. datafields.
-
-For dynamic objects that require a rendering engine, this flag is set to NO.
-
-This flag should be used with the object_is_runnable flag as follows;
-
-Datafields for example would have the static_object set to YES as they do not require a rendering engine, and the object_is_runnable flag set to NO.
-
-static sdo's would have the static_object set to YES as it also does not require a rendering engine and the object_is_runnable set to YES.
-
-dynamic sdo's would have the static_object set to NO as they require a rendering engine, and the object_is_runnable set to YES.
-"
-
-UPDATE FIELD "extends_smartobject_obj" OF "ryc_smartobject"
-  POSITION 25
-  ORDER 240
-
-UPDATE FIELD "security_smartobject_obj" OF "ryc_smartobject"
-  POSITION 26
-  ORDER 250
-
-ADD FIELD "object_is_runnable" OF "ryc_smartobject" AS logical
-  DESCRIPTION "This flag indicates whether an object is runnable or not. Objects such as datafields and button widgets can not be run, whereas static and dynamic sdo's can be run."
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 27
-  INITIAL "YES"
-  INITIAL-SA ?
-  HELP "Object is runnable"
-  HELP-SA ""
-  LABEL "Object is runnable"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_yesno"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 260
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-DROP INDEX "XIE4ryc_smartobject" ON "ryc_smartobject"
-
-DROP FIELD "custom_smartobject_obj" OF "ryc_smartobject"
-DROP FIELD "physical_smartobject_obj" OF "ryc_smartobject"
-
-UPDATE TABLE "ryc_ui_event"
-  DESCRIPTION "This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
-
-This allows the attachment of UI events to dynamic objects.
-
-When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
-
-When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
-
-Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
-
-Events are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the events for an object, events for parent classes must also be read.
-
-Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible events.
-
-It is possible to specify a specific rendering engine type for events at the class, master and instance levels. If an event is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that event will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
-"
-
-ADD FIELD "render_type_obj" OF "ryc_ui_event" AS decimal
-  DESCRIPTION ""
-  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 15
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Render type obj"
-  HELP-SA ""
-  LABEL "Render type obj"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 140
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-RENAME INDEX "XAK1ryc_ui_event" TO "temp-29069" ON "ryc_ui_event"
-
-ADD INDEX "XAK1ryc_ui_event" ON "ryc_ui_event"
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "object_type_obj" ASCENDING
-  INDEX-FIELD "smartobject_obj" ASCENDING
-  INDEX-FIELD "object_instance_obj" ASCENDING
-  INDEX-FIELD "event_name" ASCENDING
-  INDEX-FIELD "container_smartobject_obj" ASCENDING
-  INDEX-FIELD "render_type_obj" ASCENDING
-
-ADD INDEX "XIE5ryc_ui_event" ON "ryc_ui_event"
-  AREA "Schema Area"
-  INDEX-FIELD "render_type_obj" ASCENDING
-
-DROP INDEX "temp-29069" ON "ryc_ui_event"
-
-UPDATE SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 20020
-  MAX-VAL 20020
-
-.
-PSC
-cpstream=ISO8859-1
-.
-0000068274
+ADD TABLE "gsc_scm_tool"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines possible software configuration management tools that could be integrated with Dynamics. The tool currently in use is identified via the gsc_security_control table.
+
+An example of an integrated SCM tool is Roundtable (RTB).
+
+The primary purpose of this table is to link together xref information between the Dynamics repository and the SCM tool for data such as product modules, object types, etc. as specified in the gsm_scm_xref table.
+
+"
+  DUMP-NAME "gscsm"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gscsmreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gscsmrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gscsmreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscsmtrigw.p" CRC "?" 
+
+ADD FIELD "scm_tool_obj" OF "gsc_scm_tool" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "SCM tool obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "SCM tool obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "scm_tool_code" OF "gsc_scm_tool" AS character 
+  DESCRIPTION "A unique code to identify the scm tool, e.g. RTB for Roundtable"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "SCM tool code"
+  POSITION 3
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "SCM tool code"
+  ORDER 20
+
+ADD FIELD "scm_tool_description" OF "gsc_scm_tool" AS character 
+  DESCRIPTION "A free text description of the SCM tool that could include version information, etc."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "SCM tool description"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "SCM tool description"
+  ORDER 30
+
+ADD INDEX "XPKgsc_scm_tool" ON "gsc_scm_tool" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "scm_tool_obj" ASCENDING 
+
+ADD INDEX "XAK1gsc_scm_tool" ON "gsc_scm_tool" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "scm_tool_code" ASCENDING 
+
+ADD INDEX "XIE1gsc_scm_tool" ON "gsc_scm_tool" 
+  AREA "Schema Area"
+  INDEX-FIELD "scm_tool_description" ASCENDING 
+
+ADD TABLE "gsm_filter_data"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the filters that are applicable to a filter set, and a filter set can have many filters that apply. 
+
+By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems.
+The table can be read as meaning to exclude all specified data except the data that is specifically included back in. For example, exclude all objects in all repository modules, except for objects where the template flag is true or the object type is a toolbar.
+
+If a specific record is to be specified, then the owning_reference field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
+
+Alternatively a more generic expression can be specified, by supplying a fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
+
+It is not possible to specify a generic expression and a specific record, one or the other must be specified in a single filter data record.
+
+This table provides significant flexibility in the specification of what data to filter. It will be possible for example to specify a list of product modules to exclude, but to re-include specific objects from some of the excluded product modules.
+"
+  DUMP-NAME "gsmfd"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfdreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfdrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfdreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfdtrigw.p" CRC "?" 
+
+ADD FIELD "filter_data_obj" OF "gsm_filter_data" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Filter data obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Filter data obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "filter_set_obj" OF "gsm_filter_data" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Filter set obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Filter set obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "owning_entity_mnemonic" OF "gsm_filter_data" AS character 
+  DESCRIPTION "The code allocated to every table in the database that uniquely identifies the database table. This code is used when generically joining to tables, as the basis for naming conventions (e.g. a prefix to all objects that maintain this table), etc.
+
+This code is usually stored in the dump name of the table.
+"
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Owning entity"
+  POSITION 4
+  SQL-WIDTH 16
+  VALMSG "s_entity_mnemonic"
+  HELP "Owning entity"
+  ORDER 30
+
+ADD FIELD "owning_reference" OF "gsm_filter_data" AS character 
+  DESCRIPTION "If a specific record is to be specified, then this field will point at the object id for that table. For example, if the owning_entity_mnemonic is GSCPM for gsc_product_module, then the owning_reference will point to a specific product module product_module_obj.
+
+This field contains the key field values of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
+
+If the related table has a object number, this field will contain the string value of the object number, otherwise it will contain a CHR(3) seperated string list of the values for the fields in gsc_entity_mnemonic.entity_key_field.
+"
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Owning reference"
+  POSITION 5
+  SQL-WIDTH 6000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  VALMSG "s_comma_separated_list"
+  HELP "Owning reference"
+  ORDER 40
+
+ADD FIELD "expression_field_name" OF "gsm_filter_data" AS character 
+  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Expression field name"
+  POSITION 6
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Expression field name"
+  ORDER 50
+
+ADD FIELD "expression_operator" OF "gsm_filter_data" AS character 
+  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
+"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Expression operator"
+  POSITION 7
+  SQL-WIDTH 30
+  VALMSG "s_reference"
+  HELP "Expression operator"
+  ORDER 60
+
+ADD FIELD "expression_value" OF "gsm_filter_data" AS character 
+  DESCRIPTION "Rather than using the owning_entity_mnemonic and owning_reference, alternatively a more generic expression can be specified, by supplying an expression fieldname, e.g. object_filename, an operator, e.g. BEGINS, and a value, e.g. ""standardtoolbar"".
+"
+  FORMAT "X(500)"
+  INITIAL ""
+  LABEL "Expression value"
+  POSITION 8
+  SQL-WIDTH 1000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_small_text_block"
+  HELP "Expression value"
+  ORDER 70
+
+ADD FIELD "include_data" OF "gsm_filter_data" AS logical 
+  DESCRIPTION "By default, the include flag will be set to NO, indicating the specified criteria must be excluded from the result set. If the include flag is set to YES, then this will be treated as an override condition to re-include specific data. This will work by building up a bracketed where clause for all the exclusions, using the AND operator, and then outside this bracket, performing an OR operator for any data that must be re-included - allowing overrides for specific data. Clearly this must be used sparingly to avoid potential performance problems"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Include data"
+  POSITION 9
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Include data"
+  ORDER 80
+
+ADD INDEX "XPKgsm_filter_data" ON "gsm_filter_data" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "filter_data_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_filter_data" ON "gsm_filter_data" 
+  AREA "Schema Area"
+  INDEX-FIELD "filter_set_obj" ASCENDING 
+
+ADD INDEX "XIE2gsm_filter_data" ON "gsm_filter_data" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
+
+ADD INDEX "XIE3gsm_filter_data" ON "gsm_filter_data" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_reference" ASCENDING 
+
+ADD INDEX "XIE4gsm_filter_data" ON "gsm_filter_data" 
+  AREA "Schema Area"
+  INDEX-FIELD "expression_field_name" ASCENDING 
+
+ADD TABLE "gsm_filter_set"
+  AREA "Schema Area"
+  DESCRIPTION "This table is a grouping mechanism for numerous filter settings that make up a single filter definition. A standard filter set will be defined called ""Repository"" that contains all the filter records required to be able to filter out repository data. Filter sets can then be modified and extended to filter out additional data or include data that was previously excluded.
+
+We use user profile codes to assign a filter set to a user, rather than setting the flag, display repository data yes or no. If no filter set is allocated to a user, then no filters apply. Only a single filter set may be applied at any one time. 
+"
+  DUMP-NAME "gsmfi"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmfireplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmfirepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfireplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmfitrigw.p" CRC "?" 
+
+ADD FIELD "filter_set_obj" OF "gsm_filter_set" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Filter set obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Filter set obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "filter_set_code" OF "gsm_filter_set" AS character 
+  DESCRIPTION "A unique code to identify the filter set"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Filter set code"
+  POSITION 3
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Filter set code"
+  ORDER 20
+
+ADD FIELD "filter_set_description" OF "gsm_filter_set" AS character 
+  DESCRIPTION "A free text description of the filter set"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Filter set description"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Filter set description"
+  ORDER 30
+
+ADD INDEX "XPKgsm_filter_set" ON "gsm_filter_set" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "filter_set_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_filter_set" ON "gsm_filter_set" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "filter_set_code" ASCENDING 
+
+ADD INDEX "XIE1gsm_filter_set" ON "gsm_filter_set" 
+  AREA "Schema Area"
+  INDEX-FIELD "filter_set_description" ASCENDING 
+
+ADD TABLE "gsm_group_allocation"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines which groups a user belongs to - for security purposes. It is also possible to set up groups that belong to groups. If the login company is specified, this indicates that security for this group only applies when logged into the specified company.
+
+"
+  DUMP-NAME "gsmga"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmgareplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmgarepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmgareplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmgatrigw.p" CRC "?" 
+
+ADD FIELD "group_allocation_obj" OF "gsm_group_allocation" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Group allocation obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Group allocation obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "group_user_obj" OF "gsm_group_allocation" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Group user obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Group user obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "user_obj" OF "gsm_group_allocation" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "User obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "User obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "login_company_obj" OF "gsm_group_allocation" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Login company obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Login company obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD INDEX "XPKgsm_group_allocation" ON "gsm_group_allocation" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "group_allocation_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_group_allocation" ON "gsm_group_allocation" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "group_user_obj" ASCENDING 
+  INDEX-FIELD "user_obj" ASCENDING 
+  INDEX-FIELD "login_company_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_group_allocation" ON "gsm_group_allocation" 
+  AREA "Schema Area"
+  INDEX-FIELD "user_obj" ASCENDING 
+
+ADD INDEX "XIE2gsm_group_allocation" ON "gsm_group_allocation" 
+  AREA "Schema Area"
+  INDEX-FIELD "login_company_obj" ASCENDING 
+
+ADD TABLE "gsm_release"
+  AREA "Schema Area"
+  DESCRIPTION "This table provides a mechanism to record what versions of an object belong to a release, when used in conjunction with the child table, gst_release_version.
+
+This table identifies an actual release, giving the release a specific reference, summary and detailed notes of the reason for the release, and details of when the release was created and by whom.
+
+The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
+
+When creating the release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
+
+This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
+"
+  DUMP-NAME "gsmrl"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmrlreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmrlrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmrlreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmrltrigw.p" CRC "?" 
+
+ADD FIELD "release_obj" OF "gsm_release" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Release obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Release obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "release_number" OF "gsm_release" AS character 
+  DESCRIPTION "The release number will usually be an auto generated reference, using the gsc_sequence table to control the generation. The release number should contain the site number as part of the reference to indicate which site the release originated from and to avoid conflicts.
+"
+  FORMAT "X(28)"
+  INITIAL ""
+  LABEL "Release number"
+  POSITION 3
+  SQL-WIDTH 56
+  VALMSG "s_string_28"
+  HELP "Release number"
+  ORDER 20
+
+ADD FIELD "release_summary" OF "gsm_release" AS character 
+  DESCRIPTION "This is a summary description for the release"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Release summary"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Release summary"
+  ORDER 30
+
+ADD FIELD "release_notes" OF "gsm_release" AS character 
+  DESCRIPTION "These are detailed notes pertaining to the release"
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Release notes"
+  POSITION 5
+  SQL-WIDTH 6000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  VALMSG "s_big_text_block"
+  HELP "Release notes"
+  ORDER 40
+
+ADD FIELD "release_date" OF "gsm_release" AS date 
+  DESCRIPTION "The date this release was created."
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Release date"
+  POSITION 6
+  SQL-WIDTH 4
+  VALMSG "d_date_today"
+  HELP "Release date"
+  ORDER 50
+
+ADD FIELD "release_time" OF "gsm_release" AS integer 
+  DESCRIPTION "The time this release was created."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Release time"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Release time"
+  ORDER 60
+
+ADD FIELD "release_user" OF "gsm_release" AS character 
+  DESCRIPTION "This field indicates which user created this release if known. This user may not exist in the current repository in the event that the data was imported from some external source.
+"
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Release user"
+  POSITION 8
+  SQL-WIDTH 40
+  VALMSG "s_string_20"
+  HELP "Release user"
+  ORDER 70
+
+ADD INDEX "XPKgsm_release" ON "gsm_release" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "release_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_release" ON "gsm_release" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "release_number" ASCENDING 
+
+ADD INDEX "XIE1gsm_release" ON "gsm_release" 
+  AREA "Schema Area"
+  INDEX-FIELD "release_summary" ASCENDING 
+
+ADD INDEX "XIE2gsm_release" ON "gsm_release" 
+  AREA "Schema Area"
+  INDEX-FIELD "release_notes" ASCENDING 
+
+ADD INDEX "XIE3gsm_release" ON "gsm_release" 
+  AREA "Schema Area"
+  INDEX-FIELD "release_date" ASCENDING 
+  INDEX-FIELD "release_time" ASCENDING 
+
+ADD TABLE "gsm_scm_xref"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the mapping between data in the Dynamics repository and an external SCM tool, with mapping being defined per SCM tool in use.
+
+Examples of the types of data that is mapped includes object types and product modules. This facilitates the external SCM tool using different codes than those used in Dynamics. It also allows mutiple codes in Dynamics to share a common code in the external SCM tool, e.g. many product modules and object types in Dynamics could point at common modules and subtypes in an SCM tool such as Roundtable.
+
+The scm foreign key field is the field in the external SCM tool. This is a character field for maximum portability. API's should be used to provide lookup lists for values in the external SCM tool.
+
+Data must be set up in this table for SCM integration to function, so that it is clear what data is mapped to what. If it is a one to one mapping, then tools can be used to synchronize the data and set it up automatically.
+"
+  DUMP-NAME "gsmsx"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmsxreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmsxrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmsxreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmsxtrigw.p" CRC "?" 
+
+ADD FIELD "scm_xref_obj" OF "gsm_scm_xref" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "SCM xref obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "SCM xref obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "scm_tool_obj" OF "gsm_scm_xref" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "SCM tool obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "SCM tool obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "owning_entity_mnemonic" OF "gsm_scm_xref" AS character 
+  DESCRIPTION "The code allocated to every table in the database that uniquely identifies the database table. This code is used when generically joining to tables, as the basis for naming conventions (e.g. a prefix to all objects that maintain this table), etc.
+
+This code is usually stored in the dump name of the table.
+"
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Owning entity"
+  POSITION 4
+  SQL-WIDTH 16
+  VALMSG "s_entity_mnemonic"
+  HELP "Owning entity"
+  ORDER 30
+
+ADD FIELD "owning_reference" OF "gsm_scm_xref" AS character 
+  DESCRIPTION "This field contains the key field values of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
+
+If the related table has a object number, this field will contain the string value of the object number, otherwise it will contain a CHR(3) seperated string list of the values for the fields in gsc_entity_mnemonic.entity_key_field.
+"
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Owning reference"
+  POSITION 5
+  SQL-WIDTH 6000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  VALMSG "s_comma_separated_list"
+  HELP "Owning reference"
+  ORDER 40
+
+ADD FIELD "owning_obj" OF "gsm_scm_xref" AS decimal 
+  DESCRIPTION "This field contains the object id of a record from the table as identified by the owning entity mnemonic, e.g. a product_module_obj or a object_type_obj.
+
+If the table referenced by the owning_entity_mnemonic does not contain an object id field, then the owning_reference field can be used to do the join instead.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Owning obj"
+  POSITION 6
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Owning obj"
+  DECIMALS 9
+  ORDER 50
+
+ADD FIELD "scm_foreign_key" OF "gsm_scm_xref" AS character 
+  DESCRIPTION "The scm foreign key field is the field in the external SCM tool to map the owning_obj field to. This is a character field for maximum portability. API's should be used to provide lookup lists for values in the external SCM tool.
+
+The data it is linked to is determined by the owning_entity_mnemonic and will need to be hard coded into an API for the specific SCM tool, e.g. for product modules, it will be modules and for object types it will be code subtypes for Roundtable.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "SCM foreign key"
+  POSITION 7
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "SCM foreign key"
+  ORDER 60
+
+ADD INDEX "XPKgsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "scm_xref_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "scm_tool_obj" ASCENDING 
+  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
+  INDEX-FIELD "owning_reference" ASCENDING 
+
+ADD INDEX "XIE1gsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
+
+ADD INDEX "XIE2gsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_obj" ASCENDING 
+
+ADD INDEX "XIE3gsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  INDEX-FIELD "scm_foreign_key" ASCENDING 
+
+ADD INDEX "XIE4gsm_scm_xref" ON "gsm_scm_xref" 
+  AREA "Schema Area"
+  INDEX-FIELD "owning_reference" ASCENDING 
+
+ADD TABLE "gst_context_scope"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the scope of the server context data, either by session or by user.
+
+If the context scope is for a user, then the context data in gsm_server_context will persist across sessions and will remain valid for the user until it is deleted or expires (as determined by the flag on gsc_security_control indicating after what period user context data should expire). This facilitates storing context for a user that can be re-used in new sessions, e.g. shopping cart information that can persist between web sessions. For user context scope, the session_obj will be set to 0 and a valid user_obj must be specified.
+
+If the context scope is for a session, then the context data in the gsm_server_context table will only be valid for the duration of a single session. In this case the session_obj will be specified and the user_obj will be 0.
+
+A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
+
+When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
+
+The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
+"
+  DUMP-NAME "gstcs"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstcstrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstcstrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstcstrigw.p" CRC "?" 
+
+ADD FIELD "context_scope_obj" OF "gst_context_scope" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Context scope obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Context scope obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "scope_name" OF "gst_context_scope" AS character 
+  DESCRIPTION "A name is given to the scope record to identify the scope. This is mainly useful for context scoped to a user, and can be used via APIs to retrieve specific types of scope. Where the scope name is not required or specified, it will simply be automatically set to the string value of the context_scope_obj so that it has a unique number. The scope name is only unique for active context (transaction complete is no) and once context is complete, the scope name is irrelevant and can be duplicated. This unique validation must therefore be handled in code.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Scope name"
+  POSITION 3
+  SQL-WIDTH 140
+  VALMSG "s_big_name"
+  HELP "Scope name"
+  ORDER 20
+
+ADD FIELD "session_obj" OF "gst_context_scope" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Session obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Session obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "user_obj" OF "gst_context_scope" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "User obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "User obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "transaction_complete" OF "gst_context_scope" AS logical 
+  DESCRIPTION "This is a flag, default value is NO.
+
+When dealing with transaction data, many context scope records could exist for a single session for a single transaction, and where this is the case, the parent scope object id identifies which scope records together form the complete transaction. The record with a parent of 0 is the top parent scope. An example of where this is necessary is on the WEB when dealing with parent and child data, e.g. order and order lines as a single transaction across multiple web pages. An order may contain many order lines, and each order line will have a common set of fields but with different values in each case, so the data stored in the gsm_server_context table needs to point at a different context scope record to handle the same data fields existing in context for different records. This allows us to gather up context data across multiple web pages for multiple records, and commit the entire set of data as a single transaction.
+
+The transaction complete flag is only set for the top parent context scope where the object id is 0, and indicates that the transaction is finished and may be tidied up by the garbage collector. The session complete flag on gst_session can override this if that is set to YES and this is session scoped context data. Additionally, the scope name must be unique for context scope where the transaction complete flag is no.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Transaction complete"
+  POSITION 6
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Transaction complete"
+  ORDER 50
+
+ADD FIELD "scope_creation_date" OF "gst_context_scope" AS date 
+  DESCRIPTION "The date the scope was created"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Scope creation date"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "d_date_today"
+  HELP "Scope creation date"
+  ORDER 60
+
+ADD FIELD "scope_creation_time" OF "gst_context_scope" AS integer 
+  DESCRIPTION "The time the scope was created"
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Scope creation time"
+  POSITION 8
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Scope creation time"
+  ORDER 70
+
+ADD FIELD "last_access_date" OF "gst_context_scope" AS date 
+  DESCRIPTION "The date the scope was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
+  FORMAT "99/99/9999"
+  INITIAL "?"
+  LABEL "Last access date"
+  POSITION 9
+  SQL-WIDTH 4
+  VALMSG "d_date_empty"
+  HELP "Last access date"
+  ORDER 80
+
+ADD FIELD "last_access_time" OF "gst_context_scope" AS integer 
+  DESCRIPTION "The time the scope was last accessed. This field will be updated either via the request manager for the WEB or via the activate procedure for the Appserver. It is not supported for client/server."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Last access time"
+  POSITION 10
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Last access time"
+  ORDER 90
+
+ADD FIELD "parent_context_scope_obj" OF "gst_context_scope" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Parent context scope obj"
+  POSITION 11
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Parent context scope obj"
+  DECIMALS 9
+  ORDER 100
+
+ADD INDEX "XPKgst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "context_scope_obj" ASCENDING 
+
+ADD INDEX "XIE1gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "scope_name" ASCENDING 
+
+ADD INDEX "XIE2gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "user_obj" ASCENDING 
+
+ADD INDEX "XIE3gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "session_obj" ASCENDING 
+
+ADD INDEX "XIE4gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "parent_context_scope_obj" ASCENDING 
+
+ADD INDEX "XIE5gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "last_access_date" ASCENDING 
+  INDEX-FIELD "last_access_time" ASCENDING 
+
+ADD INDEX "XIE6gst_context_scope" ON "gst_context_scope" 
+  AREA "Schema Area"
+  INDEX-FIELD "transaction_complete" ASCENDING 
+
+ADD TABLE "gst_release_version"
+  AREA "Schema Area"
+  DESCRIPTION "This table records the record versions that make up a release. 
+
+When creating a new release, a gst_release_version record must be created for every gst_record_version, marking the current version number of all data as of this release.
+
+This can then be used to determine what data needs to be deployed between releases, i.e. what data has been modified between the releases by checking for matching version numbers in the gst_release_version table.
+"
+  DUMP-NAME "gstrl"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstrltrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstrltrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gstrlreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gstrlrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gstrlreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstrltrigw.p" CRC "?" 
+
+ADD FIELD "release_version_obj" OF "gst_release_version" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Release version obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Release version obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "release_obj" OF "gst_release_version" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Release obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Release obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "record_version_obj" OF "gst_release_version" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Record version obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Record version obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "version_number_seq" OF "gst_release_version" AS decimal 
+  DESCRIPTION "This is the current version number of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Version number seq"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Version number seq"
+  DECIMALS 9
+  ORDER 40
+
+ADD FIELD "import_version_number_seq" OF "gst_release_version" AS decimal 
+  DESCRIPTION "This is the current import version number of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created."
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Import version number seq"
+  POSITION 6
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Import version number seq"
+  DECIMALS 9
+  ORDER 50
+
+ADD FIELD "deletion_flag" OF "gst_release_version" AS logical 
+  DESCRIPTION "This is the current delete flag of the record in this repository as of the release. It is copied from the gst_record_version table when the release is created. If set to yes, this field indicates that the last action against the record resulted in a deletion in the release.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Deletion flag"
+  POSITION 7
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Deletion flag"
+  ORDER 60
+
+ADD INDEX "XPKgst_release_version" ON "gst_release_version" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "release_version_obj" ASCENDING 
+
+ADD INDEX "XAK1gst_release_version" ON "gst_release_version" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "release_obj" ASCENDING 
+  INDEX-FIELD "record_version_obj" ASCENDING 
+
+ADD TABLE "ryc_render_type"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the supported rendering engines, e.g. e.g. WEB, GUI, HTML, B2C, .NET, XML, etc. 
+
+It is joined into the gst_session table to identify for a session which rendering engine is active for that session.
+
+The main purpose of this table is to optionally join into the ryc_attribute_value table and ryc_ui_event table to provide an ability to override attribute values and events for different rendering engines at the class, master and instance level. The render type offers another dimension of customization capability specifically for rendering engines.
+
+This also supports the ability to identify certain attributes and events that are only applicable to specific rendering engines, as well as the ability to override the values of common events and attributes across rendering engines."
+  DUMP-NAME "rycrt"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/rycrttrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/rycrttrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/rycrtreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/rycrtrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/rycrtreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/rycrttrigw.p" CRC "?" 
+
+ADD FIELD "render_type_obj" OF "ryc_render_type" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Render type obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Render type obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "render_type_code" OF "ryc_render_type" AS character 
+  DESCRIPTION "A unique code to identify the rendering engine type, e.g. WEB, GUI, HTML, B2C, .NET, XML, etc.
+"
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Render type code"
+  POSITION 3
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Render type code"
+  ORDER 20
+
+ADD FIELD "render_type_description" OF "ryc_render_type" AS character 
+  DESCRIPTION "A free text description of the rendering engine type."
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Render type description"
+  POSITION 4
+  SQL-WIDTH 70
+  VALMSG "s_description"
+  HELP "Render type description"
+  ORDER 30
+
+ADD INDEX "XPKryc_render_type" ON "ryc_render_type" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "render_type_obj" ASCENDING 
+
+ADD INDEX "XAK1ryc_render_type" ON "ryc_render_type" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "render_type_code" ASCENDING 
+
+ADD INDEX "XIE1ryc_render_type" ON "ryc_render_type" 
+  AREA "Schema Area"
+  INDEX-FIELD "render_type_description" ASCENDING 
+
+ADD FIELD "exclude_field_list" OF "gsc_dataset_entity" AS character
+  DESCRIPTION "This is a comma delimited list of fields for the entity that should not be updated during a deployment so as to not use customizations. 
+
+An example of where this is relevant is for the extends_object_type_obj on gsc_object_type. 
+
+Customers may modify this to point at a different object type so that they can customize in the middle of the class hierarchy. 
+
+For example, they may change the SDO class to extend mySDO to that the custom behavior applies to all existing SDOs without changing the object type. With the extends_object_type_obj field in the exclude field list, this would not be overwritten at deployment, thus preserving the customizations.
+
+If this is a new record, then fields in the exclude field list will be ignored. This just applies to updates.
+"
+  FORMAT "X(500)"
+  FORMAT-SA ?
+  POSITION 16
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Exclude field list"
+  HELP-SA ""
+  LABEL "Exclude field list"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_small_text_block"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 150
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1000
+
+UPDATE FIELD "error_group" OF "gsc_error"
+  FORMAT "X(10)"
+  HELP "Message group"
+  LABEL "Message group"
+  VALMSG "s_code"
+  SQL-WIDTH 20
+
+UPDATE FIELD "error_number" OF "gsc_error"
+  HELP "Message number"
+  LABEL "Message number"
+
+UPDATE FIELD "error_summary_description" OF "gsc_error"
+  HELP "Message summary description"
+  LABEL "Message summary description"
+
+UPDATE FIELD "error_full_description" OF "gsc_error"
+  HELP "Message full description"
+  LABEL "Message full description"
+
+UPDATE FIELD "error_obj" OF "gsc_error"
+  HELP "Message obj"
+  LABEL "Message obj"
+
+UPDATE FIELD "update_error_log" OF "gsc_error"
+  HELP "Update Message log"
+  LABEL "Update Message log"
+
+UPDATE FIELD "error_type" OF "gsc_error"
+  HELP "Message type"
+  LABEL "Message type"
+
+ADD FIELD "repository_site_number" OF "gsc_global_control" AS integer
+  DESCRIPTION "This field records the site number for the current repository database. The site number is actually stored in the sequences seq_site_division and seq_site_reverse and the sequence values are used at runtime to determine the site number. 
+This field is purely for validation purposes only so we can check against the actual sequence values and give an error if they do not match the value of this field.
+
+This validation will help avoid issues where the sequence values do not get loaded correctly after a dump or load, or with a clean database.
+
+Note that a site id of 0 is a valid site id!
+"
+  FORMAT "->>>>>>>9"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Repository site number"
+  HELP-SA ""
+  LABEL "Repository site number"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_integer_9"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+UPDATE TABLE "gsc_manager_type"
+  DESCRIPTION "This table contains the definition of the standard manager types that are used in the framework.
+
+A predefined set of manager types will exist in this table that support the framework functionality. Only managers that directly affect the core functionality of the framework need to be defined as manager types.
+
+For example, without a session manager we cannot start any other code, without a security manager we cannot do user authentication, etc.
+
+The physical procedures to run for this manager type are defined in this tables and two standard ones are supported;
+
+The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
+
+The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
+
+In order to support overrides of standard manager functionality, the super procedure attribute can be used against the manager object to define a super procedure stack of override functionality. It would point at a specific procedure to add as a super procedure, which in turn could have a super procedure, etc.
+
+The bound and unbound manager fields may need to be customized to point at the last procedure in the super procedure stack, so these fields need to be defined as fields that do not get overridden by new deployments to ensure that the customizations do not get lost. This is defined in the axclude fields field of the gsc_dataset_entity table.
+
+The manager objects specified here are always started for any session type that includes this manager type as a required manager type, via the gsm_required_manager table. We therefore do not support the ability to start different manager objects for different session types. If this is required, then different manager types must be defined."
+
+ADD FIELD "db_bound_smartobject_obj" OF "gsc_manager_type" AS decimal
+  DESCRIPTION "The bound manager object should be run for sessions that have a database connection, i.e. have a service type of database connection as one of the session services. This manager therefore requires a database connection and communicates directly with schema tables.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 9
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Db bound smartobject obj"
+  HELP-SA ""
+  LABEL "Db bound smartobject obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 80
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "db_unbound_smartobject_obj" OF "gsc_manager_type" AS decimal
+  DESCRIPTION "The unbound manager object should be run for sessions that do not have a database connection, i.e. do not have a service type of database connection as one of the session services. This manager therefore does not require a database connection and communicates indirectly with schema tables via the bound manager object running server side in a session with a database connection.
+
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Db unbound smartobject obj"
+  HELP-SA ""
+  LABEL "Db unbound smartobject obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE2gsc_manager_type" ON "gsc_manager_type"
+  AREA "Schema Area"
+  INDEX-FIELD "db_bound_smartobject_obj" ASCENDING
+
+ADD INDEX "XIE3gsc_manager_type" ON "gsc_manager_type"
+  AREA "Schema Area"
+  INDEX-FIELD "db_unbound_smartobject_obj" ASCENDING
+
+ADD FIELD "scm_tool_obj" OF "gsc_security_control" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "SCM tool obj"
+  HELP-SA ""
+  LABEL "SCM tool obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "user_context_expiry_period" OF "gsc_security_control" AS decimal
+  DESCRIPTION "The period after which user context in the gsm_server_context table will expire. This field is a decimal field, with 0 indicating the functionality is disabled. The field is structured as days.time with the integer portion being the number of days and the decimal portion being the time in seconds since midnight.
+If a value is specified, then after the elapsed period of inactivity, the context data will be deleted.
+"
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 24
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "User context expiry period"
+  HELP-SA ""
+  LABEL "User context expiry period"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 230
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE1gsc_security_control" ON "gsc_security_control"
+  AREA "Schema Area"
+  INDEX-FIELD "scm_tool_obj" ASCENDING
+
+DROP FIELD "scm_tool_code" OF "gsc_security_control"
+
+UPDATE TABLE "gsm_node"
+  DESCRIPTION "This table contains a parent-child relationship of node behaviour for the TreeView controller.
+
+This table includes support for structured nodes. A structured node is a node where each new level is created infinitely from the same SDO, thus meaning that a node can be expanded infinite times and these nodes does not have to be set up for each level in node control.
+
+An example of the structured node field values for setting up a structured node treeview on this table would be;
+
+structured_node - YES
+parent_node_filter - parent_node_obj = 0
+parent_field - parent_node_obj
+child_field -  node_obj
+datatype - DECIMAL
+"
+
+UPDATE FIELD "node_code" OF "gsm_node"
+  FORMAT "X(35)"
+  VALMSG "s_name"
+  SQL-WIDTH 70
+
+UPDATE FIELD "node_description" OF "gsm_node"
+  FORMAT "X(70)"
+  VALMSG "s_big_description"
+  SQL-WIDTH 140
+
+ADD FIELD "structured_node" OF "gsm_node" AS logical
+  DESCRIPTION "This field indicates if this node should be a structured node, default is no.
+
+Only if this field is set to YES are the next 4 fields applicable; parent_node_filter, parent_field, child_field, data_type.
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 19
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Structured node"
+  HELP-SA ""
+  LABEL "Structured node"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 180
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "parent_node_filter" OF "gsm_node" AS character
+  DESCRIPTION "This field contains the filter to be applied to the root node of the structured node
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 20
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Parent node filter"
+  HELP-SA ""
+  LABEL "Parent node filter"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_big_description"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 190
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD FIELD "parent_field" OF "gsm_node" AS character
+  DESCRIPTION "This field contains the name of the parent field of the structured table
+"
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 21
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Parent field"
+  HELP-SA ""
+  LABEL "Parent field"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 200
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "child_field" OF "gsm_node" AS character
+  DESCRIPTION "This field contains the name of the child field relating to a parent field in the same structured table."
+  FORMAT "X(35)"
+  FORMAT-SA ?
+  POSITION 22
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Child field"
+  HELP-SA ""
+  LABEL "Child field"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 210
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 70
+
+ADD FIELD "data_type" OF "gsm_node" AS character
+  DESCRIPTION "This field will contain the data type of the parent and child field.
+The PROGRESS data types include as follows:
+CHR = CHARACTER
+INT =  INTEGER
+DEC = DECIMAL
+DAT = DATE
+"
+  FORMAT "X(10)"
+  FORMAT-SA ?
+  POSITION 23
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Data type"
+  HELP-SA ""
+  LABEL "Data type"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_data_type"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 220
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 20
+
+UPDATE TABLE "gsm_required_manager"
+  DESCRIPTION "This table contains a list of the manager types that are required to be started during the startup of the session and the order in which they must be started. Any manager types which need to be written to the config file must always be started first. 
+
+The write_to_config attribute of the manager will cause this procedure name to be written to the config.xml file so that it can be started up before the session makes a connection to the runtime repository.
+
+The framework supports a standard set of manager types that are required but specific applications may require the startup of additional manager types for performance reasons, e.g. a financial system may require a frequently referenced financial manager api to be pre-started."
+
+UPDATE FIELD "startup_order" OF "gsm_required_manager"
+  DESCRIPTION "This field indicates the order in which the manager of this type should be started."
+
+UPDATE FIELD "system_owned" OF "gsm_required_manager"
+  POSITION 6
+  ORDER 50
+
+DROP INDEX "XIE2gsm_required_manager" ON "gsm_required_manager"
+
+DROP FIELD "object_obj" OF "gsm_required_manager"
+DROP FIELD "is_a_super_of" OF "gsm_required_manager"
+DROP FIELD "search_target" OF "gsm_required_manager"
+
+UPDATE TABLE "gsm_server_context"
+  DESCRIPTION "This table is a generic table to stored context information between stateless appserver connections.
+
+The type of information that is required includes user information, security information, possibly SCM workspace and task information, web page field values, etc.
+
+This is a child table of the context scope, gst_context_scope and could be context data scope to a session, or to a user."
+
+ADD FIELD "context_scope_obj" OF "gsm_server_context" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 3
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Context scope obj"
+  HELP-SA ""
+  LABEL "Context scope obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 20
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1gsm_server_context" TO "temp-16033" ON "gsm_server_context"
+
+RENAME INDEX "XIE1gsm_server_context" TO "temp-88469" ON "gsm_server_context"
+
+ADD INDEX "XAK1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "context_scope_obj" ASCENDING
+  INDEX-FIELD "context_name" ASCENDING
+
+ADD INDEX "XIE1gsm_server_context" ON "gsm_server_context"
+  AREA "Schema Area"
+  INDEX-FIELD "context_id_date" ASCENDING
+  INDEX-FIELD "context_id_time" ASCENDING
+  INDEX-FIELD "context_scope_obj" ASCENDING
+
+DROP INDEX "temp-16033" ON "gsm_server_context"
+DROP INDEX "temp-88469" ON "gsm_server_context"
+
+DROP FIELD "session_obj" OF "gsm_server_context"
+
+ADD FIELD "security_group" OF "gsm_user" AS logical
+  DESCRIPTION "If set to YES, this is a security group record rather than a user record. If set to NO, this is a normal user record.
+
+Is set to YES, only a subset of the fields in this table are valid.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 32
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Security group"
+  HELP-SA ""
+  LABEL "Security group"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 310
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "default_security_group" OF "gsm_user" AS logical
+  DESCRIPTION "If set to YES, this is the default security group to allocate to users when creating new users. This can only be set to YES for user that are security groups - i.e security_group = YES.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 33
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Default security group"
+  HELP-SA ""
+  LABEL "Default security group"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 320
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD INDEX "XIE10gsm_user" ON "gsm_user"
+  AREA "Schema Area"
+  INDEX-FIELD "security_group" ASCENDING
+
+ADD FIELD "year_offset" OF "gst_session" AS integer
+  DESCRIPTION "This field stores the session year offset for the client.
+
+The year offset field will map directly to the 4GL YEAR-OFFSET attribute which represents the start date for the Progress two-digit year-range of 100 years. Typical values are 1920 or 1950. The default value should be 1950 if not specified.
+
+This will be set as part of the client connection when the session record is created, and will be used in the appserver activate procedure to reset the server to match the client year offset for the duration of the call.
+"
+  FORMAT "->>>9"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Year offset"
+  HELP-SA ""
+  LABEL "Year offset"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "n_year"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 4
+
+ADD FIELD "session_complete" OF "gst_session" AS logical
+  DESCRIPTION "This is a flag, default value is NO.
+
+Once a session is complete or expired, this flag is set to YES to indicate that the garbage collector can delete this record and all the context data associated with it.
+
+This flag overrides the transaction_complete flag on the gst_context_scope if set to YES.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 13
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Session complete"
+  HELP-SA ""
+  LABEL "Session complete"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 120
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "default_context_scope_obj" OF "gst_session" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 14
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Default context scope obj"
+  HELP-SA ""
+  LABEL "Default context scope obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 130
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "render_type_obj" OF "gst_session" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Render type obj"
+  HELP-SA ""
+  LABEL "Render type obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE5gst_session" ON "gst_session"
+  AREA "Schema Area"
+  INDEX-FIELD "session_complete" ASCENDING
+
+ADD INDEX "XIE6gst_session" ON "gst_session"
+  AREA "Schema Area"
+  INDEX-FIELD "default_context_scope_obj" ASCENDING
+
+ADD INDEX "XIE7gst_session" ON "gst_session"
+  AREA "Schema Area"
+  INDEX-FIELD "render_type_obj" ASCENDING
+
+UPDATE TABLE "ryc_attribute_value"
+  DESCRIPTION "This entity associates attributes with object types, smartobjects, and smartobject instances, and specifies the value of the attribute in the appropriate native data type or character if a native data type is not available for the data type.
+
+The list of attribute values defined for the object type (class) must be complete, and unless an attribute is defined at the class level, it will not be available to be set within a subclass. Attribute values are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the attribute values for an object, attributes for parent classes must also be read.
+
+Records will then only exist for subclassess in the event the value has been specifically overridden for that subclass.
+
+When creating entries in this table for attributes associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating attributes for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for attributes associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible attribute values.
+
+It is possible to specify a specific rendering engine type for attributes at the class, master and instance levels. If an attribute is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that attribute will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
+"
+
+ADD FIELD "render_type_obj" OF "ryc_attribute_value" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 16
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Render type obj"
+  HELP-SA ""
+  LABEL "Render type obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 150
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1ryc_attribute_value" TO "temp-87603" ON "ryc_attribute_value"
+
+ADD INDEX "XAK1ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING
+  INDEX-FIELD "smartobject_obj" ASCENDING
+  INDEX-FIELD "object_instance_obj" ASCENDING
+  INDEX-FIELD "attribute_label" ASCENDING
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+  INDEX-FIELD "render_type_obj" ASCENDING
+
+ADD INDEX "XIE6ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "render_type_obj" ASCENDING
+
+ADD INDEX "XIE7ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  INDEX-FIELD "attribute_label" ASCENDING
+
+DROP INDEX "temp-87603" ON "ryc_attribute_value"
+
+UPDATE FIELD "static_object" OF "ryc_smartobject"
+  DESCRIPTION "This flag actually indicates whether the object can be run directly, or whether it needs a rendering object specified in order to run. A more suitable name for this attribute according to its use would be ""requires rendering object"".
+
+This flag is therefore set to YES for non dynamic objects and also for dynamic objects that do not require a rendering object, e.g. datafields.
+
+For dynamic objects that require a rendering engine, this flag is set to NO.
+
+This flag should be used with the object_is_runnable flag as follows;
+
+Datafields for example would have the static_object set to YES as they do not require a rendering engine, and the object_is_runnable flag set to NO.
+
+static sdo's would have the static_object set to YES as it also does not require a rendering engine and the object_is_runnable set to YES.
+
+dynamic sdo's would have the static_object set to NO as they require a rendering engine, and the object_is_runnable set to YES.
+"
+
+UPDATE FIELD "extends_smartobject_obj" OF "ryc_smartobject"
+  POSITION 25
+  ORDER 240
+
+UPDATE FIELD "security_smartobject_obj" OF "ryc_smartobject"
+  POSITION 26
+  ORDER 250
+
+ADD FIELD "object_is_runnable" OF "ryc_smartobject" AS logical
+  DESCRIPTION "This flag indicates whether an object is runnable or not. Objects such as datafields and button widgets can not be run, whereas static and dynamic sdo's can be run."
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 27
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Object is runnable"
+  HELP-SA ""
+  LABEL "Object is runnable"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 260
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+DROP INDEX "XIE4ryc_smartobject" ON "ryc_smartobject"
+
+DROP FIELD "custom_smartobject_obj" OF "ryc_smartobject"
+DROP FIELD "physical_smartobject_obj" OF "ryc_smartobject"
+
+UPDATE TABLE "ryc_ui_event"
+  DESCRIPTION "This entity stores information about UI events for a smartobject. It works very similar to the ryc_attribute_value table in that UI events can be associated with object types, smartobjects, and smartobject instances.
+
+This allows the attachment of UI events to dynamic objects.
+
+When creating entries in this table for events associated with an object type, then the smart object and instance will be 0.
+
+When creating entries in the table for a smartobject, we will also populate the object type field to avoid having 0 in the key. Likewise when creating events for an object instance, we will populate the object type and the smartobject. This ensures effective use of the alternate keys.
+
+Note: We must be careful when looking for events associated with an object type to ensure we look for the specific object type and 0 values for the smartobject and instance fields.
+
+Events are not cascaded down to subclassess and entries will only exist at subclass levels for overrides. To read all the events for an object, events for parent classes must also be read.
+
+Where multiple rendering engines are supported and used, the render type object id adds another dimension to the possible events.
+
+It is possible to specify a specific rendering engine type for events at the class, master and instance levels. If an event is specified at the class level for a specific rendering engine type, and not for a 0 rendering engine type, then that event will only ever be used for the specific rendering engine type and will not apply across all rendering engines.
+"
+
+ADD FIELD "render_type_obj" OF "ryc_ui_event" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 15
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Render type obj"
+  HELP-SA ""
+  LABEL "Render type obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 140
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+RENAME INDEX "XAK1ryc_ui_event" TO "temp-29069" ON "ryc_ui_event"
+
+ADD INDEX "XAK1ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING
+  INDEX-FIELD "smartobject_obj" ASCENDING
+  INDEX-FIELD "object_instance_obj" ASCENDING
+  INDEX-FIELD "event_name" ASCENDING
+  INDEX-FIELD "container_smartobject_obj" ASCENDING
+  INDEX-FIELD "render_type_obj" ASCENDING
+
+ADD INDEX "XIE5ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  INDEX-FIELD "render_type_obj" ASCENDING
+
+DROP INDEX "temp-29069" ON "ryc_ui_event"
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20020
+  MAX-VAL 20020
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000068274

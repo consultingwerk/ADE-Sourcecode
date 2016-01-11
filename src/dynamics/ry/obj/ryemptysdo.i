@@ -1,1 +1,1 @@
-  FIELD cEmptyField AS CHARACTER FORMAT "x(8)"
+  FIELD cEmptyField AS CHARACTER FORMAT "x(8)"

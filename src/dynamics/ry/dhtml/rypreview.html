@@ -1,0 +1,56 @@
+<html>
+<!--wss
+procedure output-headers:
+/*  output-content-type('application/vnd.ms-excel'). */
+end procedure.
+
+{af/sup2/afglobals.i NEW GLOBAL }
+
+define variable cScriptName         as character no-undo.
+define variable cStylesheet         as character no-undo.
+define variable ghRequestManager    as handle    no-undo.
+define variable gcBatchSize         as character no-undo.
+define variable gcLogicalObjectName as character no-undo.
+define variable gcSDOName           as character no-undo.
+define variable cAuthenticationResponse as char no-undo.
+def var cSDOPath as char no-undo.
+
+/* Stylesheet */
+ASSIGN 
+   cStylesheet = DYNAMIC-FUNCTION('getSessionParam':U IN TARGET-PROCEDURE, 'print_preview_stylesheet':U) NO-ERROR.
+IF cStylesheet > "" THEN 
+   cStylesheet = '<link rel="stylesheet" type="text/css" href="' 
+               + cStylesheet
+               + '" />~n'.
+
+/* Parse the Input Data */
+assign cScriptName = get-cgi('SCRIPT_NAME')
+       gscSessionID = entry(1,entry(4,cScriptName,'.'))
+       gcBatchSize = entry(5,cScriptName,'.')
+       gcLogicalObjectName = entry(2,cScriptName,'.')
+       gcSDOName = entry(3,cScriptName,'.').
+
+/* Get the request Manager Handle */
+ghRequestManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+                                    "RequestManager":U).
+-->
+<head>
+<title>`gcLogicalObjectName`</title>
+ `cStylesheet`
+</head>
+<body>
+<p class="otherInfo"><b>Print Date:</b>`STRING(TODAY,"99/99/99")`<b> Print Time: </b>`STRING(TIME,"HH:MM")`</p>
+<table>
+<!--wss
+set-user-field("sessionid":U,gscSessionID).     /* Set the session id */
+set-user-field("do":U, gcSDOName + ".ALL":U).   /* Set the request */
+set-user-field("export":U, gcBatchSize).        /* Set the export flag to yes */
+set-user-field("DataDelimiter":U, '</td><td>'). /* Set the Data Delimiter */
+
+/* Run the Process Request in the Request Manager */
+run processRequest in ghRequestManager (gcLogicalObjectName).
+  
+-->
+</table>
+</body>
+</html>

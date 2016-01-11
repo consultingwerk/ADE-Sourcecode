@@ -1,101 +1,101 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html 
-  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<style>
-BODY         {font-family: arial;}
-TABLE.report {background-color: #ECFFED;
-              border-left-style: solid;
-              border-bottom-style: solid;
-              border-width: 1;}
-TH.report    {background-color: #ABFEAF;
-              text-align: left;
-              border-right-style: solid;
-              border-top-style: solid;
-              border-width: 1;}
-TD.report    {text-align: left;
-              border-right-style: solid;
-              border-top-style: solid;
-              border-width: 1;}
-</style>
-</head>
-<body background="../img/wsbgr.gif">
-<img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font>
-<hr />
-<h2>Images</h2>
-<!--wss
-DEFINE VARIABLE cOption AS CHARACTER  NO-UNDO INITIAL "bmp,gif,jpg|gif|jpg|bmp".
-DEFINE VARIABLE cDir    AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cEntry  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cFType  AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cName   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cPath   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cText   AS CHARACTER  NO-UNDO INITIAL
-  "All Files (*.bmp;*.gif;*.jpg)|Compuserve Graphics Interchange (*.gif)|JPEG (*.jpg)|Windows Bitmap (*.bmp)".
-DEFINE VARIABLE cType   AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE iCount  AS INTEGER    NO-UNDO.
-DEFINE VARIABLE ix      AS INTEGER    NO-UNDO.
-ASSIGN 
-  cDir   = IF get-value('directory') > '' THEN get-value('directory') ELSE replace(search("ry/img/save.gif"),"save.gif","")
-  cFType = IF get-value('filetype') > '' THEN get-value('filetype') ELSE "bmp,gif,jpg".
--->
-<form name="form1" method="post" action="_images.icf">
-<table border="0">
-  <tr>
-    <td>Directory:</td>
-    <td colspan="2"><input type="text" name="directory" size="80" value="`cDir`" /></td>
-  </tr>
-  <tr>
-    <td>File Type:</td>
-    <td>
-      <select name="filetype">
-<!--wss
-DO ix = 1 TO NUM-ENTRIES(cOption,"|"):
-  {&OUT} 
-    '        <option value="' + ENTRY(ix, cOption, "|":U) + '"' +
-    (IF cFType = ENTRY(ix, cOption, "|":U) THEN ' selected>' ELSE '>') +
-    ENTRY(ix, cText, "|":U) + '~n'.
-END.
--->
-      </select>
-    </td>
-    <td><input type="submit" name="submit" value="Submit" /></td>
-  </tr>
-</table>
-</form>
-<!--wss
-DEFINE STREAM s1.
-DEFINE TEMP-TABLE ttImage
-  FIELD imageName AS CHARACTER
-  FIELD imagePath AS CHARACTER
-  FIELD imageSize AS INTEGER
-  INDEX imageName imageName.
-
-INPUT STREAM s1 FROM OS-DIR(cDir) NO-ECHO.
-REPEAT ON ENDKEY UNDO, LEAVE:
-  IMPORT STREAM s1 cName cPath cType NO-ERROR.
-  IF cName = ".":U OR cName = "..":U OR 
-    INDEX(cType,"D":U) > 0 OR INDEX(cType,"F":U) = 0 OR
-    NOT CAN-DO(cFType,ENTRY(2, cName, ".")) THEN NEXT.
-  CREATE ttImage.
-  ASSIGN
-    FILE-INFO:FILE-NAME = cDir + '/' + cName
-    ttImage.imageName   = cName
-    ttImage.imagePath   = FILE-INFO:FULL-PATHNAME
-    ttImage.imageSize   = FILE-INFO:FILE-SIZE.
-END.
-INPUT STREAM s1 CLOSE.
-{&out} '<table class="report" width="100%">~n'.
-iCount = 0.
-FOR EACH ttImage:
-  iCount = iCount + 1.
-  IF imageName = "wsbgr.gif" THEN NEXT.
-  {&OUT} '<tr><td class="report" width="1"><img src="file:///' + ttImage.imagePath + '" /></td>' +
-         '<td class="report">' + ttImage.imageName + ' (' + STRING(imageSize) + ')</td><tr>~n'.
-END.
-{&out} '</table>~n<br />' STRING(iCount) ' image' STRING(icount > 1,'s/') ' found~n'.
--->
-</body>
-</html>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+BODY         {font-family: arial;}
+TABLE.report {background-color: #ECFFED;
+              border-left-style: solid;
+              border-bottom-style: solid;
+              border-width: 1;}
+TH.report    {background-color: #ABFEAF;
+              text-align: left;
+              border-right-style: solid;
+              border-top-style: solid;
+              border-width: 1;}
+TD.report    {text-align: left;
+              border-right-style: solid;
+              border-top-style: solid;
+              border-width: 1;}
+</style>
+</head>
+<body background="../img/wsbgr.gif">
+<img src="../img/icflogo.gif" />&#160;&#160;<font size="+3">Progress Dynamics Web</font>
+<hr />
+<h2>Images</h2>
+<!--wss
+DEFINE VARIABLE cOption AS CHARACTER  NO-UNDO INITIAL "bmp,gif,jpg|gif|jpg|bmp".
+DEFINE VARIABLE cDir    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cEntry  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFType  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cName   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cPath   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cText   AS CHARACTER  NO-UNDO INITIAL
+  "All Files (*.bmp;*.gif;*.jpg)|Compuserve Graphics Interchange (*.gif)|JPEG (*.jpg)|Windows Bitmap (*.bmp)".
+DEFINE VARIABLE cType   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iCount  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE ix      AS INTEGER    NO-UNDO.
+ASSIGN 
+  cDir   = IF get-value('directory') > '' THEN get-value('directory') ELSE replace(search("ry/img/save.gif"),"save.gif","")
+  cFType = IF get-value('filetype') > '' THEN get-value('filetype') ELSE "bmp,gif,jpg".
+-->
+<form name="form1" method="post" action="_images.icf">
+<table border="0">
+  <tr>
+    <td>Directory:</td>
+    <td colspan="2"><input type="text" name="directory" size="80" value="`cDir`" /></td>
+  </tr>
+  <tr>
+    <td>File Type:</td>
+    <td>
+      <select name="filetype">
+<!--wss
+DO ix = 1 TO NUM-ENTRIES(cOption,"|"):
+  {&OUT} 
+    '        <option value="' + ENTRY(ix, cOption, "|":U) + '"' +
+    (IF cFType = ENTRY(ix, cOption, "|":U) THEN ' selected>' ELSE '>') +
+    ENTRY(ix, cText, "|":U) + '~n'.
+END.
+-->
+      </select>
+    </td>
+    <td><input type="submit" name="submit" value="Submit" /></td>
+  </tr>
+</table>
+</form>
+<!--wss
+DEFINE STREAM s1.
+DEFINE TEMP-TABLE ttImage
+  FIELD imageName AS CHARACTER
+  FIELD imagePath AS CHARACTER
+  FIELD imageSize AS INTEGER
+  INDEX imageName imageName.
+
+INPUT STREAM s1 FROM OS-DIR(cDir) NO-ECHO.
+REPEAT ON ENDKEY UNDO, LEAVE:
+  IMPORT STREAM s1 cName cPath cType NO-ERROR.
+  IF cName = ".":U OR cName = "..":U OR 
+    INDEX(cType,"D":U) > 0 OR INDEX(cType,"F":U) = 0 OR
+    NOT CAN-DO(cFType,ENTRY(2, cName, ".")) THEN NEXT.
+  CREATE ttImage.
+  ASSIGN
+    FILE-INFO:FILE-NAME = cDir + '/' + cName
+    ttImage.imageName   = cName
+    ttImage.imagePath   = FILE-INFO:FULL-PATHNAME
+    ttImage.imageSize   = FILE-INFO:FILE-SIZE.
+END.
+INPUT STREAM s1 CLOSE.
+{&out} '<table class="report" width="100%">~n'.
+iCount = 0.
+FOR EACH ttImage:
+  iCount = iCount + 1.
+  IF imageName = "wsbgr.gif" THEN NEXT.
+  {&OUT} '<tr><td class="report" width="1"><img src="file:///' + ttImage.imagePath + '" /></td>' +
+         '<td class="report">' + ttImage.imageName + ' (' + STRING(imageSize) + ')</td><tr>~n'.
+END.
+{&out} '</table>~n<br />' STRING(iCount) ' image' STRING(icount > 1,'s/') ' found~n'.
+-->
+</body>
+</html>

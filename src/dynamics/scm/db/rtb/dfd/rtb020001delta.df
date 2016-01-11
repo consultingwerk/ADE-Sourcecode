@@ -1,10 +1,10 @@
-UPDATE TABLE "rtb_task"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rtb/trg/afrtbtrigc.p" CRC "?"
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rtb/trg/afrtbtrigd.p" CRC "?"
-  TABLE-TRIGGER "WRITE"  OVERRIDE PROCEDURE "rtb/trg/afrtbtrigw.p" CRC "?"
-
-.
-PSC
-cpstream=ISO8859-1
-.
-0000042544
+UPDATE TABLE "rtb_task"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "rtb/trg/afrtbtrigc.p" CRC "?"
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "rtb/trg/afrtbtrigd.p" CRC "?"
+  TABLE-TRIGGER "WRITE"  OVERRIDE PROCEDURE "rtb/trg/afrtbtrigw.p" CRC "?"
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000042544

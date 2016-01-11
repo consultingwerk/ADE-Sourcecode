@@ -1,31 +1,31 @@
-UPDATE FIELD "item_control_type" OF "gsm_menu_item"
-  FORMAT "X(15)"
-  VALMSG "s_reference"
-  SQL-WIDTH 30
-
-UPDATE FIELD "item_control_style" OF "gsm_menu_item"
-  FORMAT "X(15)"
-  VALMSG "s_reference"
-  SQL-WIDTH 30
-
-UPDATE FIELD "menu_structure_code" OF "gsm_menu_structure"
-  FORMAT "X(28)"
-  VALMSG "s_label"
-  SQL-WIDTH 56
-
-ADD INDEX "XIE3ryc_smartobject" ON "ryc_smartobject"
-  AREA "Schema Area"
-  INDEX-FIELD "object_obj" ASCENDING
-
-ADD SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 20005
-  INCREMENT 1
-  CYCLE-ON-LIMIT yes
-  MIN-VAL 20005
-  MAX-VAL 20005
-
-.
-PSC
-cpstream=UTF-8
-.
-0000000588
+UPDATE FIELD "item_control_type" OF "gsm_menu_item"
+  FORMAT "X(15)"
+  VALMSG "s_reference"
+  SQL-WIDTH 30
+
+UPDATE FIELD "item_control_style" OF "gsm_menu_item"
+  FORMAT "X(15)"
+  VALMSG "s_reference"
+  SQL-WIDTH 30
+
+UPDATE FIELD "menu_structure_code" OF "gsm_menu_structure"
+  FORMAT "X(28)"
+  VALMSG "s_label"
+  SQL-WIDTH 56
+
+ADD INDEX "XIE3ryc_smartobject" ON "ryc_smartobject"
+  AREA "Schema Area"
+  INDEX-FIELD "object_obj" ASCENDING
+
+ADD SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20005
+  INCREMENT 1
+  CYCLE-ON-LIMIT yes
+  MIN-VAL 20005
+  MAX-VAL 20005
+
+.
+PSC
+cpstream=UTF-8
+.
+0000000588

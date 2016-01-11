@@ -34,7 +34,7 @@ PSC
 filename=ryc_attribute_group
 records=0000000000031
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:43
+timestamp=2004/07/16-15:10:16
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

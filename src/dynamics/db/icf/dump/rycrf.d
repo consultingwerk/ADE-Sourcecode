@@ -198,7 +198,7 @@ PSC
 filename=ryc_relationship_field
 records=0000000000195
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:50
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

@@ -1,47 +1,47 @@
-/********************************
-  app_snow.css
-  Snow theme for application screens 
-  Per Digre / PSC
-********************************/
-
-@import url(../dhtml/ryapp.css);
-
-BODY  {background:url(../img/bg.gif);
-scrollbar-face-color: #CCCC99; 
-scrollbar-shadow-color: #999999; 
-scrollbar-highlight-color: #FFFFCC; 
-scrollbar-3dlight-color: #FFFFCC; 
-scrollbar-darkshadow-color: black; 
-scrollbar-track-color: #999966; 
-scrollbar-arrow-color: #666633
-}
-
-FIELDSET.browse {border-color:gray;}
-TR.browseheader {background-color:lightgreen;font-weight:bold;}
-TR.browse       {background-color:white;}
-TR.browse.alt   {background-color:#E4FEFE;}
-TR.select       {background-color:#339999;}
-
-/** SmartPanels and lone tools **/
-.panel              {border-bottom:thin groove;border-top:thin groove;margin-top:7pt;margin-bottom:2pt;position:relative;}
-.panel TD           {margin:0;padding:2px 0px 0px 7px;border:0;width:24px;height:25px;
-                     background-image:url(../img/ws_round.gif);}
-.panel TD.over      {background-image:url(../img/ws_round2.gif);}
-.panel TD.disable   {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
-.panel TD.nolink    {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:20%;}
-
-SPAN                {margin:0;padding:4px 0px 0px 6px;border:0;width:30px;height:25px;
-                     background-image:url(../img/ws_round.gif);}
-SPAN.over           {background-image:url(../img/ws_round2.gif);}
-SPAN.disable        {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
-
-
-
-
-/** Tabfolders ***/
-#folder TD.front  {background-image:url(../img/ws_tbluef.gif);color:white;}
-#folder TD.back   {background-image:url(../img/ws_tblueb.gif);color:yellow;}
-
-INPUT.field.disable     {background-color:white;border:2px #D6D3CE solid;border-color:gray white white gray;color:gray;}
-
-.customerviewv  {background-color:yellow}
+/********************************
+  app_snow.css
+  Snow theme for application screens 
+  Per Digre / PSC
+********************************/
+
+@import url(../dhtml/ryapp.css);
+
+BODY  {background:url(../img/bg.gif);
+scrollbar-face-color: #CCCC99; 
+scrollbar-shadow-color: #999999; 
+scrollbar-highlight-color: #FFFFCC; 
+scrollbar-3dlight-color: #FFFFCC; 
+scrollbar-darkshadow-color: black; 
+scrollbar-track-color: #999966; 
+scrollbar-arrow-color: #666633
+}
+
+FIELDSET.browse {border-color:gray;}
+TR.browseheader {background-color:lightgreen;font-weight:bold;}
+TR.browse       {background-color:white;}
+TR.browse.alt   {background-color:#E4FEFE;}
+TR.select       {background-color:#339999;}
+
+/** SmartPanels and lone tools **/
+.panel              {border-bottom:thin groove;border-top:thin groove;margin-top:7pt;margin-bottom:2pt;position:relative;}
+.panel TD           {margin:0;padding:2px 0px 0px 7px;border:0;width:24px;height:25px;
+                     background-image:url(../img/ws_round.gif);}
+.panel TD.over      {background-image:url(../img/ws_round2.gif);}
+.panel TD.disable   {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
+.panel TD.nolink    {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:20%;}
+
+SPAN                {margin:0;padding:4px 0px 0px 6px;border:0;width:30px;height:25px;
+                     background-image:url(../img/ws_round.gif);}
+SPAN.over           {background-image:url(../img/ws_round2.gif);}
+SPAN.disable        {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
+
+
+
+
+/** Tabfolders ***/
+#folder TD.front  {background-image:url(../img/ws_tbluef.gif);color:white;}
+#folder TD.back   {background-image:url(../img/ws_tblueb.gif);color:yellow;}
+
+INPUT.field.disable     {background-color:white;border:2px #D6D3CE solid;border-color:gray white white gray;color:gray;}
+
+.customerviewv  {background-color:yellow}

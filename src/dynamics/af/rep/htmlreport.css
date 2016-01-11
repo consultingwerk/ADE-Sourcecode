@@ -1,0 +1,44 @@
+/* Dynamics HTML Report Stylesheet */
+
+/* Settings for the main report header */
+
+.mainHeader {
+ font-family: 'times new roman', arial, 'sans-serif';
+ color: #000000;
+}
+
+/* For page breaks we use H2 to force a page break */
+.secondHeader {
+ page-break-before: always;
+ font-family: 'times new roman', arial, 'sans-serif';
+ color: #000000;
+}
+
+/* Other information on page settings - e.g. date and time */
+.otherInfo {
+ font-family: 'times new roman', arial, 'sans-serif';
+}
+
+/* Default settings for the column labels of the report */
+.columnLabel {
+ font-family: 'times new roman', arial, 'sans-serif';
+ font-weight: bold;
+ text-decoration: underline;
+ color: #000000;
+}
+
+/* Default setting for the rows in the report */
+.normalRow {
+ font-family: 'times new roman', arial, 'sans-serif';
+ font-style: normal;
+ color: #000000;  /* Black */
+ background-color: FFFFFF; /* White */
+}
+
+/* Default setting for every other row in the report */
+.otherRow {
+ font-family: 'times new roman', arial, 'sans-serif'
+ font-style: normal;
+ color: #000000;   /* Black */
+ background-color: #DADADA; /* Light grey */
+}

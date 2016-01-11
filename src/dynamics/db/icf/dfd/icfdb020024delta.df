@@ -1,0 +1,251 @@
+ADD TABLE "gsc_data_tag"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines generic tags that may be assigned to data via the gsm_tagged_data table.
+
+The core Dynamics framework utilises the tag mechanism to identify which data belongs to and is shipped with the core product using a tag ""ry-own"", e.g. to identify which object classes and related data belong to the core Dynamics product and should not be modified by users of the framework.
+
+Applications could use the tag mechanism to tag data that belongs to specific applications, or for any other generic purpose.
+
+The data in this table would need to be deployed as part of Dynamics and would typically only be relevant at design and deployment time rather than used as part of the runtime application. For example, rules could be applied to tagged data to prevent unauthorized or accidental modification of the data as design time, and tags could be used to help identify what data to deploy as part of an application.
+
+A generic mechanism is required in the framework to be able to easily attach data tags to data, typically from a browse view but also from within viewers when maintaining a specific record. Additionally, a central tool is required to maintain and manage multiple tags together.
+
+API's also need to be provided to make it easy to identify and work with tagged data as necessary.
+
+Session / configuration data will be required to configure how to operate on specific tags for specific purposes, e.g. to disable certain data due to ownership rules.
+"
+  DUMP-NAME "gsctg"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsctgtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsctgtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsctgreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsctgrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsctgreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsctgtrigw.p" CRC "?" 
+
+ADD FIELD "data_tag_obj" OF "gsc_data_tag" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Data tag obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Data tag obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "data_tag_code" OF "gsc_data_tag" AS character 
+  DESCRIPTION "A unique name for the tag, e.g. ""ry-own"" for Dynamics system owned repository data.
+"
+  FORMAT "X(35)"
+  INITIAL ""
+  LABEL "Data tag code"
+  POSITION 3
+  SQL-WIDTH 70
+  VALMSG "s_name"
+  HELP "Data tag code"
+  ORDER 20
+
+ADD FIELD "data_tag_description" OF "gsc_data_tag" AS character 
+  DESCRIPTION "A free text description describing the purpose of the tag, e.g. to tag data as being owned by the core Dynamics product as shipped by Progress.
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Data tag description"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Data tag description"
+  ORDER 30
+
+ADD INDEX "XPKgsc_data_tag" ON "gsc_data_tag" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "data_tag_obj" ASCENDING 
+
+ADD INDEX "XAK1gsc_data_tag" ON "gsc_data_tag" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "data_tag_code" ASCENDING 
+
+ADD INDEX "XIE1gsc_data_tag" ON "gsc_data_tag" 
+  AREA "Schema Area"
+  INDEX-FIELD "data_tag_description" ASCENDING 
+
+ADD TABLE "gsm_tagged_data"
+  AREA "Schema Area"
+  DESCRIPTION "This table associates data tags as defined in the gsc_data_tag table with specific items of data, e.g. specific object types to identify that the object types belong to the core Dynamics product.
+
+See description against table gsc_data_tag for further details on how this is intended to work.
+
+A specific item of data may contain any number of tags for various purposes, but a specific tag may only be allocated once to a specific item of data.
+
+As tags are generically attached to data, the schema triggers for data that may have tags attached will need to ensure that the tags are deleted when the data is deleted - like the mechanism used for generic comments and auditing."
+  DUMP-NAME "gsmtd"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gsmtdtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gsmtdtrigd.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-CREATE" OVERRIDE PROCEDURE "icf/trg/gsmtdreplc.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-DELETE" OVERRIDE PROCEDURE "icf/trg/gsmtdrepld.p" CRC "?" 
+  TABLE-TRIGGER "REPLICATION-WRITE" OVERRIDE PROCEDURE "icf/trg/gsmtdreplw.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gsmtdtrigw.p" CRC "?" 
+
+ADD FIELD "tagged_data_obj" OF "gsm_tagged_data" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Tagged data obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Tagged data obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "owning_entity_mnemonic" OF "gsm_tagged_data" AS character 
+  DESCRIPTION "The code allocated to every table in the database that uniquely identifies the database table. This code is used when generically joining to tables, as the basis for naming conventions (e.g. a prefix to all objects that maintain this table), etc.
+
+This code is usually stored in the dump name of the table.
+"
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Entity"
+  POSITION 3
+  SQL-WIDTH 16
+  VALMSG "s_entity_mnemonic"
+  HELP "Entity"
+  ORDER 20
+
+ADD FIELD "owning_reference" OF "gsm_tagged_data" AS character 
+  DESCRIPTION "This field contains the key field values of a record from the table as identified by the owning entity mnemonic, e.g. a object_type_obj.
+
+If the related table has an object number, this field will contain the string value of the object number, otherwise it will contain a CHR(3) seperated string list of the values for the fields in gsc_entity_mnemonic.entity_key_field.
+"
+  FORMAT "X(3000)"
+  INITIAL ""
+  LABEL "Owning reference"
+  POSITION 4
+  SQL-WIDTH 6000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL LARGE MAX-CHARS 3000"
+  VALMSG "s_comma_separated_list"
+  HELP "Owning reference"
+  ORDER 30
+
+ADD FIELD "data_tag_obj" OF "gsm_tagged_data" AS decimal 
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Data tag obj"
+  POSITION 5
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Data tag obj"
+  DECIMALS 9
+  ORDER 40
+
+ADD INDEX "XPKgsm_tagged_data" ON "gsm_tagged_data" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "tagged_data_obj" ASCENDING 
+
+ADD INDEX "XAK1gsm_tagged_data" ON "gsm_tagged_data" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "owning_reference" ASCENDING 
+  INDEX-FIELD "owning_entity_mnemonic" ASCENDING 
+  INDEX-FIELD "data_tag_obj" ASCENDING 
+
+ADD INDEX "XIE1gsm_tagged_data" ON "gsm_tagged_data" 
+  AREA "Schema Area"
+  INDEX-FIELD "data_tag_obj" ASCENDING 
+
+UPDATE TABLE "gsc_object_type"
+  DESCRIPTION "This table defines the types of programs supported. A record will need to exist for the various support templates, e.g. ""Object Controller"", ""Menu Controller"", ""SmartFolder"", smartbrowser, smartviewer, smartdataobject, etc.
+
+When objects are created, they must be assigned an object type.
+
+The object type is used as a grouping mechanism for security, to allow restrictions to be created for certain types of objects, rather than having to setup security for every object.
+
+A recursive join exists for the object type to facilitate definition of object type hierarchies (class hieararchies). This is then useful for attribute inheritance at multiple levels of object type.
+
+For example, an object type could be defined for a fill-in, then a child of this may be an integer fill-in, then a child of this may be an object id, etc.
+
+the extends object type means the inherit from object type.
+
+To support customizations for object types (classes), a custom_object_type_obj may be specified that identifies an additional class structure to include as part of this class, e.g. to add additional custom attributes and class super procedures. This facilitates adding customizations to a class in the middle of the hierarchy without having to modify the hierarchy itself, i.e. without having to change the extends_object_type_obj of the subclasses to point at the new custom class.
+
+The custom class if specified is added below the class it is customizing, e.g. if customizing the data class with a custom class datacustom, then at runtime datacustom will be added as a subclass of data overriding / extending the behaviour of all objects that further extend data. All classes below data will therefore automatically now extend the custom class datacustom rather than data - thereby adding datacustom in the middle of the class hierarchy.
+
+The custom class itself may include a structure below it, e.g. provide multiple levels of customization, in which case all of these customizations will be inserted below this class, and classes that previosuly extended this class will rather extend the class at the bottom of the customized classes. For example if the custom class datacustom included an additional subclass, datacustom2 that extends datacustom, then the subclasses would then point at datacustom2, which would point at datacustom, which would then point back at the original class, data.
+
+The field custom_object_type_obj will be specified in the deployment datasets exclude field list so that it is never overwritten as part of deploying changes to the class structure, therefore avoiding the loss of the customizations with future upgrades.
+"
+
+ADD FIELD "custom_object_type_obj" OF "gsc_object_type" AS decimal
+  DESCRIPTION ""
+  FORMAT "->>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Custom object type obj"
+  HELP-SA ""
+  LABEL "Custom object type obj"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE4gsc_object_type" ON "gsc_object_type"
+  AREA "Schema Area"
+  INDEX-FIELD "custom_object_type_obj" ASCENDING
+
+RENAME INDEX "XAK1ryc_attribute_value" TO "temp-43766" ON "ryc_attribute_value"
+
+ADD INDEX "XAK1ryc_attribute_value" ON "ryc_attribute_value"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING
+  INDEX-FIELD "smartobject_obj" ASCENDING
+  INDEX-FIELD "object_instance_obj" ASCENDING
+  INDEX-FIELD "render_type_obj" ASCENDING
+  INDEX-FIELD "attribute_label" ASCENDING
+
+DROP INDEX "temp-43766" ON "ryc_attribute_value"
+
+UPDATE FIELD "deployment_type" OF "ryc_smartobject"
+  DESCRIPTION "This is to determine where the object should be deployed. This field is also on the object type which serves as a default. Valid values for this field would be ""SRV"" for remote server only, ""CLI"" for client only, ""WEB"" for WEB, or combinations as required comma delimited, e.g. ""CLI,SRV"". This field will assist when deploying applications on appservers to help define which objects should reside where.
+This field is also specified on product modules, but the value on the specific object would always override the value on the product module.
+If this field is set to blank, then this object should not be deployed."
+
+RENAME INDEX "XAK1ryc_ui_event" TO "temp-30014" ON "ryc_ui_event"
+
+ADD INDEX "XAK1ryc_ui_event" ON "ryc_ui_event"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "object_type_obj" ASCENDING
+  INDEX-FIELD "smartobject_obj" ASCENDING
+  INDEX-FIELD "object_instance_obj" ASCENDING
+  INDEX-FIELD "render_type_obj" ASCENDING
+  INDEX-FIELD "event_name" ASCENDING
+
+DROP INDEX "temp-30014" ON "ryc_ui_event"
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20024
+  MAX-VAL 20024
+
+.
+PSC
+cpstream=UTF-8
+.
+0000012232

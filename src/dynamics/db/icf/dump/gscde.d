@@ -1,3 +1,5 @@
+2513.38 2511.38 1 "GSCTG" yes "" "data_tag_code" "" yes yes no no 0 "" ""
+2514.38 2511.38 2 "GSMTD" no "GSCTG" "data_tag_obj,data_tag_obj" "" yes yes no no 0 "" ""
 9845.24 9843.24 1 "RYCRE" yes "" "relationship_reference" "" yes yes no no 0 "" ""
 9847.24 9843.24 2 "RYCRF" no "RYCRE" "relationship_obj,relationship_obj" "" yes yes no no 0 "" ""
 9851.24 9849.24 1 "RYCRI" yes "" "ri_default_obj" "" yes yes no no 0 "" ""
@@ -10,10 +12,10 @@
 500386.24 500384.24 1 "GSCSM" yes "" "scm_tool_code" "" yes yes no no 0 "" ""
 500387.24 500384.24 2 "GSMSX" no "GSCSM" "scm_tool_obj,scm_tool_obj" "" yes yes no no 0 "" ""
 964088.24 1007600125.08 3 "GSMUL" no "GSMUS" "user_obj,user_obj" "" yes yes no no 0 "" ""
-1000000232.39 1007600164.08 2 "RYCAV" no "GSCOT" "object_type_obj,object_type_obj" "ryc_attribute_value.primary_smartobject_obj = 0 AND
-ryc_attribute_value.smartobject_obj = 0 AND
-ryc_attribute_value.container_smartobject_obj = 0 AND
-ryc_attribute_value.object_instance_obj = 0
+1000000232.39 1007600164.08 2 "RYCAV" no "GSCOT" "object_type_obj,object_type_obj" "ryc_attribute_value.primary_smartobject_obj = 0 AND
+ryc_attribute_value.smartobject_obj = 0 AND
+ryc_attribute_value.container_smartobject_obj = 0 AND
+ryc_attribute_value.object_instance_obj = 0
 " yes yes no no 0 "" ""
 1004928912.09 1004928896.09 1 "RYCSO" yes "" "object_filename" "" yes yes no no 0 "" ""
 1004928913.09 1004928896.09 4 "RYCPA" no "rycso" "container_smartobject_obj,smartobject_obj" "" yes yes no no 0 "" ""
@@ -57,7 +59,7 @@ ryc_attribute_value.object_instance_obj = 0
 1007600159.08 1007600155.08 2 "GSMIT" no "GSMMS" "menu_structure_obj,menu_structure_obj" "" yes yes no no 0 "" ""
 1007600161.08 1007600160.08 1 "GSMSS" yes "" "security_structure_obj" "" yes yes no no 0 "" ""
 1007600163.08 1007600162.08 1 "GSCIA" yes "" "attribute_code" "" yes yes no no 0 "" ""
-1007600165.08 1007600164.08 1 "GSCOT" yes "" "object_type_code" "" yes yes no no 0 "" ""
+1007600165.08 1007600164.08 1 "GSCOT" yes "" "object_type_code" "" yes yes no no 0 "" "custom_object_type_obj"
 1007600167.08 1007600166.08 1 "GSCPR" yes "" "product_code" "" yes yes no no 0 "" ""
 1007600168.08 1007600166.08 2 "GSCPM" no "GSCPR" "product_obj,product_obj" "" yes yes no no 0 "" ""
 1007600170.08 1007600169.08 1 "GSCDD" yes "" "dataset_code" "" yes yes no no 0 "" ""
@@ -93,9 +95,9 @@ ryc_attribute_value.object_instance_obj = 0
 3000004895.09 3000004891.09 2 "RYCCR" no "RYCCY" "customization_type_obj,customization_type_obj" "" yes yes no no 0 "" ""
 3000004897.09 3000004891.09 3 "RYMCZ" no "RYCCR" "customization_result_obj,customization_result_obj" "" yes yes no no 0 "" ""
 3000004908.09 1004928896.09 2 "RYCUE" no "RYCSO" "primary_smartobject_obj,smartobject_obj" "" yes yes no no 0 "" ""
-3000004910.09 1007600164.08 3 "RYCUE" no "GSCOT" "object_type_obj,object_type_obj" "ryc_ui_event.primary_smartobject_obj = 0 AND
-ryc_ui_event.smartobject_obj = 0 AND
-ryc_ui_event.container_smartobject_obj = 0 AND
+3000004910.09 1007600164.08 3 "RYCUE" no "GSCOT" "object_type_obj,object_type_obj" "ryc_ui_event.primary_smartobject_obj = 0 AND
+ryc_ui_event.smartobject_obj = 0 AND
+ryc_ui_event.container_smartobject_obj = 0 AND
 ryc_ui_event.object_instance_obj = 0" yes yes no no 0 "" ""
 3000004931.09 1007600164.08 4 "RYCSL" no "GSCOT" "object_type_obj,object_type_obj" "" yes yes no no 0 "" ""
 3000005365.09 3000005364.09 1 "GSCLS" yes "" "logical_service_code" "" yes yes no no 0 "" ""
@@ -104,12 +106,12 @@ ryc_ui_event.object_instance_obj = 0" yes yes no no 0 "" ""
 .
 PSC
 filename=gsc_dataset_entity
-records=0000000000096
+records=0000000000098
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:37
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000009977
+0000010172

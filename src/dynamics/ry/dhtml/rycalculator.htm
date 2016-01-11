@@ -1,140 +1,192 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html 
-  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<style>
-TD            {text-align:center;font:bold 14px Verdana;color:black;cursor:pointer;background:white;}
-TD.over       {color:blue;}
-TD.disable    {color:gray;}
-TD.button     {background:gray;}
-SMALL         {font:bolder 8px Verdana;}
-TABLE         {background-color:#000000;border-color:black;border:1px;margin:0;padding:0;}
-#result       {color:white;text-align:right;background:black;}
-BODY          {margin:0;}
-</style>
-<title>&#160;</title>
-</head>
-<body onload="win.autofit(window);">
-<div id="body">
-<table border="2" cellspacing="0" cellpadding="0" width="150" id="table" 
-   onmouseover="fmouseover(document.all?event.srcElement:event.target)" 
-   onmouseout="fmouseout(document.all?event.srcElement:event.target)" 
-   onClick="fclick(document.all?event.srcElement:event.target)">
-  <tr><td colspan="5" id="result">0</td></tr> 
-  <tr><td width="20%">7</td><td width="20%">8</td><td width="20%">9</td><td width="20%">/</td><td width="20%">C</td></tr>
-  <tr><td>4</td><td>5</td><td>6</td>  <td>*</td><td>M</td></tr>
-  <tr><td>1</td><td>2</td><td>3</td>  <td>-</td><td id="memory">M<small>R</small></td></tr>
-  <tr><td>0</td><td id="dec">.</td><td><small>+/-</small></td><td>+</td><td>=</td></tr>
-  <tr><td class="button" colspan="3">OK</td><td class="button" colspan="2">Cancel</td></tr>
-</table>
-</div>
-<script language="javascript"><!--
-var win=document.all?window.dialogArguments:window.opener;
-function fmouseover(e){
-  if(e.nodeName!='TD') e=e.parentNode;
-  if(e.nodeName=='TD' && e.className=='') e.className='over';
-}
-function fmouseout(e){
-  if(e.nodeName!='TD') e=e.parentNode;
-  if(e.nodeName=='TD' && e.className=='over') e.className='';
-}
-
-var mem='0';
-var oper='';
-var num='';
-var res='0';
-if (win.returnfield) res=win.strip(win.returnfield.value,'dec');
-var fdec=win.appcontrol.numformat;  
-var result=document.getElementById('result');
-var memory=document.getElementById('memory');
-result.innerHTML=res;
-var ctext=(win.action('info.get|HTM6')).split(';'); //ok
-window.document.title=ctext[0]+window.document.title;
-memory.className='disable';
-window.document.getElementById('dec').innerHTML=fdec;
-
-
-function fclick(e){
-  if (e.nodeName!='TD') e=e.parentNode; 
-  if (e.nodeName!='TD') return false; 
-  var c=e.innerHTML;
-  switch(c){
-    case '+':
-    case '-':
-    case '*':
-    case '/':
-    case '=':
-      if(res.substr(res.length-1)==oper) res=res.substr(0,res.length-1);
-      else if(oper=='') num=res;
-      else {
-        res=(eval(res.replace(',','.'))+'').replace('.',fdec); // Calculate
-        if(res.length>12) res=res.substr(0,12);
-        num=res;
-      }
-      oper=c;
-      if(c=='=') c='';
-      res+=c;
-      break;
-    case '.':
-    case ',':
-
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-    case '0':
-      if(res=='0'||oper=='='){
-        res='';
-        oper='';
-      } 
-      res+=c;
-      break;
-    case '+/-':
-      c=res.replace(num+oper,'');
-      if((c+' ').charAt(0)=='-') 
-        c=c.replace('-','');
-      else 
-        c='-'+c;
-      res=num+oper+c;
-      break;
-    case 'C':
-      if(res==num+oper){
-        num='0';
-        oper='';
-      }
-      res=num+oper;
-      break;
-    case 'M':
-      mem=res.replace(num+oper,'');
-      memory.className=(mem==0?'disable':''); 
-      break;
-    case 'MR':
-      res+=mem;
-      break;
-    case 'OK':
-      //window.returnValue=res;
-      win.returnfield.value=res;
-      if(win.app&&win.app.wbo) win.app.wbo.editfield(win.returnfield);
-    case 'Cancel':
-      window.close();
-      break;
-    default:
-  }
-  if(res=='') res='0';
-  result.innerHTML=res;
-  window.status='Vars'
-            + '\nMemory  :' + mem
-            + '\nResults :' + res
-            + '\nNumber:' + num
-            + '\nOperand:' + oper;
-}
---></script>
-</body>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+TD            {text-align:center;font:bold 14px Verdana;color:black;cursor:pointer;background:white;width:20%}
+TD.over       {color:blue;}
+TD.disable    {color:gray;}
+TD.button     {background:gray;}
+SMALL         {font:bolder 8px Verdana;}
+TABLE         {background-color:#000000;border-color:black;border:1px;margin:0;padding:0;}
+#result       {color:white;text-align:right;background:black;}
+BODY          {margin:0;}
+</style>
+<title>&#160;</title>
+</head>
+<body onload="win.autofit(window);">
+<div id="body">
+<table border="2" cellspacing="0" cellpadding="0" width="150" id="table" 
+   onmouseover="fmouseover(document.all?event.srcElement:event.target)" 
+   onmouseout="fmouseout(document.all?event.srcElement:event.target)" 
+   onClick="fclick(document.all?event.srcElement:event.target)">
+  <tr><td colspan="5" id="result">0</td></tr> 
+  <tr><td val="7">7</td>
+      <td val="8">8</td>
+      <td val="9">9</td>
+      <td val="/">/</td>
+      <td val="C">C</td></tr>
+  <tr><td val="4">4</td>
+      <td val="5">5</td>
+      <td val="6">6</td>  
+      <td val="*">*</td>
+      <td val="M">M</td></tr>
+  <tr><td val="1">1</td>
+      <td val="2">2</td>
+      <td val="3">3</td>  
+      <td val="-">-</td>
+      <td val="R" id="recall">M<small>R</small></td></tr>
+  <tr><td val="0">0</td>
+      <td val="D" id="dec">.</td>
+      <td val="S"><small>+/-</small></td>
+      <td val="+">+</td>
+      <td val="=">=</td></tr>
+  <tr><td val="O" class="button" colspan="3">OK</td>
+      <td val="N" class="button" colspan="2">Cancel</td></tr>
+</table>
+</div>
+<script language="javascript"><!--
+var win=document.all?window.dialogArguments:window.opener;
+function fmouseover(e){
+  if(e.nodeName!='TD') e=e.parentNode;
+  if(e.nodeName=='TD' && e.className=='') e.className='over';
+}
+function fmouseout(e){
+  if(e.nodeName!='TD') e=e.parentNode;
+  if(e.nodeName=='TD' && e.className=='over') e.className='';
+}
+
+var mem='0';
+var oper='';
+var num='';
+var res='0';
+var started=false;
+
+if (win.returnfield) res=win.strip(win.returnfield.value,'dec');
+var fdec=win.appcontrol.numformat;  
+var result=document.getElementById('result');
+var memory=document.getElementById('recall');
+result.innerHTML=res;
+var ctext=(win.action('info.get|HTM6')).split(';'); //ok
+window.document.title=ctext[0]+window.document.title;
+memory.className='disable';
+window.document.getElementById('dec').innerHTML=fdec;
+
+window.document.onkeydown=function(e){
+  keypress(code2char(e?e.keyCode:window.event.keyCode));
+}
+
+function code2char(k){
+  if(k>95 && k<106) k-=48;  // numeric keypad
+  switch(k){
+    case 187: return '=';
+    case 188: return 'D';
+    case 190: return 'D';
+    case 106: return '*';
+    case 107: return '+';
+    case 189: 
+    case 109: return '-';
+    case 111: return '/';
+    case 13:  return 'O';
+    case 27:  return 'N';
+    case 46:  return 'C';
+    default:  
+//      alert(k)
+    return (String.fromCharCode(k)).toUpperCase();
+  } 
+}
+
+var re=new RegExp(fdec=='.'?'\\\.':fdec,'g');
+
+function calculate(){
+  var expr=res.replace(re,'.');
+  res=(window.eval(expr)+'').replace(/\./,fdec);
+  if(res.length>12) res=res.substr(0,12);
+  num=res;
+}
+
+function fclick(e){
+  if (e.nodeName!='TD') e=e.parentNode; 
+  if (e.nodeName!='TD') return false; 
+  keypress(e.getAttribute('val'));
+}
+
+function keypress(c){
+  switch(c){
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+    case '=':
+      if(res.substr(res.length-1)==oper) res=res.substr(0,res.length-1);
+      else if(oper=='') num=res;
+      else calculate();
+      oper=c;
+      if(c=='=') c='';
+      res+=c;
+      break;
+    case 'D':
+      c=fdec;
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '0':
+      if(res=='0'||oper=='='||!started){
+        res='';
+        oper='';
+      } 
+      res+=c;
+      break;
+    case 'S':
+      c=res.replace(num+oper,'');
+      if((c+' ').charAt(0)=='-') 
+        c=c.replace('-','');
+      else 
+        c='-'+c;
+      res=num+oper+c;
+      break;
+    case 'C':
+      if(res==num+oper){
+        num='0';
+        oper='';
+      }
+      res=num+oper;
+      break;
+    case 'M':
+      mem=res.replace(num+oper,'');
+      memory.className=(mem==0?'disable':''); 
+      break;
+    case 'R':
+      res+=mem;
+      break;
+    case 'O':
+      calculate();
+      if(win.returnfield){
+        win.returnfield.value=res;
+        if(win.app&&win.app.wbo) win.app.wbo.editfield(win.returnfield);
+      }
+    case 'N':
+      window.close();
+      break;
+    default:
+  }
+  started=true;
+  if(res=='') res='0';
+  result.innerHTML=res;
+  window.status='Vars'
+            + '\nMemory  :' + mem
+            + '\nResults :' + res
+            + '\nNumber:' + num
+            + '\nOperand:' + oper;
+}
+--></script>
+</body>
 </html>

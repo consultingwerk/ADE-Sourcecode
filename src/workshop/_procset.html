@@ -1,301 +1,301 @@
-<SCRIPT LANGUAGE = "SpeedScript">
-  /*------------------------------------------------------------------------
-    File: workshop/_procset.html
-    
-    Description: Edit the Procedure Settings for this web object.
-    
-    Parameters:  
-        p_action  -- action to take ("Save" or "Edit")
-        p_code-id -- context id for the procedure.
-        p_options -- comma delimited list of options [currently unused]
-  
-    Author:  Wm. T. Wood
-    Created: March 31, 1997
-  ------------------------------------------------------------------------*/
-  /*           This .W file was created with WebSpeed Workshop.           */
-  /*----------------------------------------------------------------------*/
-    
-  /* ***************************  Definitions  ************************** */
-  
-  /* Parameters Definitions ---                                           */
-  DEFINE INPUT PARAMETER p_action   AS CHAR     NO-UNDO.
-  DEFINE INPUT PARAMETER p_code-id  AS RECID    NO-UNDO.
-  DEFINE INPUT PARAMETER p_options  AS CHAR     NO-UNDO.
-
-  /* Included Definitions ---                                             */
-  { webutil/wstyle.i }              /* Standard style guide definitions.  */
-  { workshop/errors.i }             /* Shared error handling procedure.   */
-  { workshop/code.i }               /* Shared code temp-tables.           */
-  { workshop/objects.i }            /* Shared web object temp-tables.     */
-  { workshop/uniwidg.i }            /* Shared widget temp-tables.         */ 
-  { workshop/help.i }               /* Include context strings.           */
-
-  /* Local Variable Definitions ---                                       */
-  DEFINE VAR t-compile LIKE _P._compile.
-  DEFINE VAR t-type    LIKE _P._type.
-  DEFINE VAR t-lists   LIKE _P._lists.
-
-  /* Output the standard HTML header. */
-  {&OUT} 
-    { workshop/html.i &SEGMENTS = "head,open-body,help"
-                      &FRAME    = "WSFC_main" 
-                      &AUTHOR   = "Wm.T.Wood"
-                      &TITLE    = "Procedure Settings"
-                      &CONTEXT  = "{&Procedure_Settings_Help}" } 
-    { workshop/chkfld.i }
-    .
-  
-  /* Find the relevant records. */
-  FIND _code WHERE RECID(_code) eq p_code-id.
-  FIND _P    WHERE RECID(_P)    eq _code._P-recid.
-  
-  {&OUT} 
-    format-filename (_P._filename, 'Procedure Settings for &1...', '':U) SKIP
-    get-rule-tag ("100%":U, "":U )
-    .
-
-  /* Base the action on either the database values, or the ones submitted. */
-  IF p_action eq "Save":U THEN RUN process-submit.
-  ELSE 
-    /* Copy from the procedure record to the local area. */
-    ASSIGN t-type    = _P._type
-           t-compile = _P._compile
-           t-lists   = _P._lists
-           .
- 
-</SCRIPT>
-<FORM ACTION="_main.w" METHOD="POST">
-<INPUT TYPE="HIDDEN" NAME="html"       VALUE="saveSection">
-<INPUT TYPE="HIDDEN" NAME="section-id" VALUE="`RECID(_code)`">
-<center>
-<INPUT TYPE="SUBMIT" VALUE="Submit">&nbsp;<INPUT TYPE="RESET">
-<br><br>
-<SCRIPT LANGUAGE = "SpeedScript">
-  /* Show errors */
-  IF errors-exist ("VALIDATION":U) THEN DO:
-    {&OUT} { workshop/javascpt.i &SEGMENTS = "goto-Field" }
-           '</CENTER><UL>'
-           format-text ('Errors:', "SUBMIT":U)  
-           '<UL>~n'.
-      RUN output-errors IN _err-hdl ("VALIDATION":U, ? /* Use default template */ ). 
-     {&OUT} '</UL></UL><CENTER>~n'.
-   END.
-</SCRIPT>
-<table border="1">
-  <tr> 
-    <td colspan="2" align="CENTER">`format-label('Procedure Settings', "COLUMN":U, "":U)`</td>   
-  </tr>
-  <tr>
-    <td align="RIGHT">`format-label('Procedure Type', 'ROW':U, "":U)`</td>
-    <td><INPUT TYPE="TEXT" NAME="Type" VALUE="`html-encode(t-type)`" onChange="chkFld(this);">
-  </tr>
-  <tr>
-    <td>`format-label('Compile on Save', 'ROW':U, "":U)`</td>
-    <td><INPUT TYPE="RADIO" NAME="compile" VALUE="YES" `
-         IF t-compile THEN " CHECKED":U ELSE "":U `>Yes
-        <INPUT TYPE="RADIO" NAME="compile" VALUE="NO"  `
-        IF t-compile THEN "":U ELSE " CHECKED":U `>No
-    </td>
-  </tr>
-  
-  <script language="WebSpeed4GL">
-  /* Show the names of Custom List variables, if necesary. */
-  RUN show-custom-lists.  
-  </script>
-  
-</table>
-</center>
-</form>
-</body>
-</html>
-<SCRIPT LANGUAGE = "WebSpeed4GL">
-
-
-  /* *********************** Internal Procedures *********************** */
-
-  /* -----------------------------------------------------------
-    Purpose: Run this code to check any of the fields that
-             define the name of a User-List Preprocessor variable.
-    Parameters:
-      INPUT  pTest  - the value to test
-      INPUT  pList  - the list of other names we don't want to choose
-      INPUT  pIndex - the index of the list (1 to 6)
-                      (used to test that no other varialbes have the 
-                       same name.)
-      OUTPUT pMsg - The error message. The value &1 is used where
-                    the calling program should place the name of the
-                    field. 
-
-    Notes: We check only for the fact that the value entered is
-           a legal keyword, and that it is not used in one of the
-           other lists.
-  -------------------------------------------------------------*/
-  FUNCTION check-name RETURNS LOGICAL
-     (INPUT  pTest  AS CHAR,
-      INPUT  pList  AS CHAR,
-      INPUT  pIndex AS INTEGER,
-      OUTPUT pMsg   AS CHAR) :
-  
-    DEFINE VAR i    AS INTEGER NO-UNDO.
-
-    /* Is it a valid PROGRESS identifier */
-    if pTest = ""  then do:
-      pMsg = "Please enter a value for &1. It may not be left blank.".
-      RETURN false.
-    end.
-  
-    /* Check the first character. */
-    if SUBSTRING(pTest,1,1) < "A" OR  SUBSTRING(pTest,1,1) > "Z" then do:
-      pMsg = "The &1 must start with a letter.".
-      RETURN false.
-    end.
-
-    /* Check all other characters */
-    do i = 2 to LENGTH(pTest, "CHARACTER":U):
-      IF INDEX("#$%&-_0123456789ETAONRISHDLFCMUGYPWBVKXJQZ", SUBSTRING(pTest,i,1)) eq 0
-      THEN do:
-        IF SUBSTR(pTest, i, 1, "CHARACTER":U) eq " ":U
-        THEN pMsg = 'The &1 cannot contain spaces.'.
-        ELSE pMsg = 'The &1 contains an invalid character ("' +
-                     html-encode(SUBSTR(pTest, i, 1, "CHARACTER")) + '").'.
-        RETURN false.
-      end.
-    end.
-
-    /* Is the name already used? */
-    if pList ne "":U and LOOKUP(pTest, pList) < pIndex then do:
-      pMsg ='The name <i>' + html-encode(pTest) + '</I> cannot be used twice.'.
-      return false.
-    end.
-  
-    /* Looks good. */
-    RETURN true.
-
-  END FUNCTION.
-  
-  
-  /* ---------------------------------------------------------------------
-     Purpose: Read the values of the fields from the form-input 
-              and store them.
-     Parameters: 
-            <none>
-     Notes: Set the MODIFIED flag on the current procedure if
-            anything changed.
-    --------------------------------------------------------------------- */
-  PROCEDURE process-submit :
-    DEFINE VARIABLE i          AS INTEGER NO-UNDO.
-    DEFINE VARIABLE cnt        AS INTEGER NO-UNDO.
-    DEFINE VARIABLE c_error    AS CHAR NO-UNDO.
-    DEFINE VARIABLE c_label    AS CHAR NO-UNDO.
-    DEFINE VARIABLE c_name     AS CHAR NO-UNDO.
-    DEFINE VARIABLE c_value    AS CHAR NO-UNDO.
-    DEFINE VARIABLE field-list AS CHAR NO-UNDO.
-    
-    /* Clear any preexisting validation errors. */
-    RUN clear-errors IN _err-hdl ("VALIDATION":U).
-    
-    /* Get the fields that were submitted. */
-    field-list = get-field (?).
-
-    /* Save the Procedure Type, if submitted. */
-    IF LOOKUP ("Type":U, field-list) > 0 THEN DO:
-      t-type = TRIM(get-field ('Type':U)).
-      IF t-type ne _P._type THEN DO:
-        IF check-name (t-type, "", ?, OUTPUT c_error)
-        THEN ASSIGN _P._modified = yes
-                    _P._type     = t-type .
-        ELSE DO:
-          c_error = SUBSTITUTE (c_error, "procedure type":U) +
-                    ' [<A HREF="JavaScript:GotoField(~'Type~');">' +
-                    'goto field</A>]~n'.
-          RUN Add-Error IN _err-hdl ("VALIDATION", ?, c_error).
-        END. /* IF [error]... */
-      END. /* IF t-type ne _P._type... */
-    END. /* IF [input] 'Type' */
-
-    /* Save the Compile flag, if submitted. */
-    IF LOOKUP ("Compile":U, field-list) > 0 THEN DO:
-      t-compile = (get-field ('Compile':U) eq "yes":U).
-      IF t-compile ne _P._compile 
-      THEN ASSIGN _P._modified = yes
-                  _P._compile  = t-compile.
-                  .
-   END. /* IF [input] 'Compile' */
-
-    /* Save the List-n Preprocessor, if submitted (only check for the first). */
-    IF LOOKUP ("List1":U, field-list) > 0 THEN DO:
-      /* Build the rest of the form dynamically. Check for the case of
-         the "lists" missing entries and fill these in. */
-      cnt = NUM-ENTRIES(t-lists).
-      DO i = 1 TO {&MaxUserLists} :
-        ASSIGN c_name  = "List":U + TRIM(STRING(i,">>>>9":U))
-               c_label = "List-":U + TRIM(STRING(i,">>>>9":U))
-               c_value = TRIM(get-field (c_name)).
-        IF i > cnt 
-        THEN t-lists = (IF i eq 1 THEN "":U ELSE t-lists + ",") + c_value.
-        ELSE ENTRY(i, t-lists) = c_value.
-        IF c_value ne ENTRY(i, _P._lists) THEN DO:
-          IF check-name (c_value, t-lists, i, OUTPUT c_error)
-          THEN ASSIGN _P._modified         = yes
-                       ENTRY(i, _P._lists) = c_value
-                      .
-          ELSE DO:
-            c_error = SUBSTITUTE (c_error, "procedure type":U) +
-                      ' [<A HREF="JavaScript:GotoField(~'' + c_name + '~')~;">' +
-                       'goto field</A>]'.
-            RUN Add-Error IN _err-hdl ("VALIDATION":U, ?, c_error).
-         END. /* IF [error]... */
-       END. /* IF c_value [changed].... */
-      END. /* DO... */
-      /* Was there a change? */
-      IF t-lists ne _P._lists THEN DO:
-        /* Check each value in turn. */
-      END.
-    END. /* IF [input] 'List-1' */
-  END PROCEDURE.
-  
-  
-  PROCEDURE show-custom-lists :
-  /* ---------------------------------------------------------------------
-     Purpose:     Display the names for user defined custom lists.
-     Parameters:  <none>
-     Notes:     
-    --------------------------------------------------------------------- */
-    DEFINE VARIABLE i        AS INTEGER NO-UNDO.
-    DEFINE VARIABLE cnt      AS INTEGER NO-UNDO.
-    DEFINE VARIABLE c_label    AS CHAR NO-UNDO.
-    DEFINE VARIABLE c_name   AS CHAR NO-UNDO.
-    DEFINE VARIABLE c_value  AS CHAR NO-UNDO.
-    
-    /* Are there any objects in this file? */
-    IF CAN-FIND (FIRST _U WHERE _U._P-recid eq RECID(_P)
-                            AND LOOKUP(_U._TYPE, "FRAME,QUERY":U) eq 0
-                            AND _U._status ne "DELETED":U)
-    THEN DO:                
-      {&OUT}
-         '  <tr>~n'
-         '    <td colspan="2" align="CENTER">' 
-                format-label('Custom Lists', "COLUMN":U, "":U) '</td>~n'  
-         '  </tr>~n'
-         .
-
-      /* Build the rest of the form dynamically. Check for the case of
-         the "lists" missing entries and fill these in. */
-      cnt = NUM-ENTRIES(t-lists).
-      DO i = 1 TO {&MaxUserLists} :
-        ASSIGN c_name  = "List":U + TRIM(STRING(i,">>>>9":U))
-               c_label = "List-":U + TRIM(STRING(i,">>>>9":U))
-               c_value = IF i > cnt THEN c_label ELSE ENTRY(i, t-lists).
-        {&OUT}
-          '  </tr>~n'
-          '    <td align="RIGHT">' format-label(c_label , 'ROW':U, "":U) '</td> ~n'
-          '    <td><INPUT TYPE="TEXT"'
-                        ' NAME="' c_name '"'
-                        ' VALUE="' html-encode(c_value) '" onChange="chkFld(this)~;">~n'
-          '  </tr>~n'
-          .
-      END. /* FOR i... */
-    END. /* IF CAN-FIND (FIRST _U... */
-  END PROCEDURE.
-
-</SCRIPT>
+<SCRIPT LANGUAGE = "SpeedScript">
+  /*------------------------------------------------------------------------
+    File: workshop/_procset.html
+    
+    Description: Edit the Procedure Settings for this web object.
+    
+    Parameters:  
+        p_action  -- action to take ("Save" or "Edit")
+        p_code-id -- context id for the procedure.
+        p_options -- comma delimited list of options [currently unused]
+  
+    Author:  Wm. T. Wood
+    Created: March 31, 1997
+  ------------------------------------------------------------------------*/
+  /*           This .W file was created with WebSpeed Workshop.           */
+  /*----------------------------------------------------------------------*/
+    
+  /* ***************************  Definitions  ************************** */
+  
+  /* Parameters Definitions ---                                           */
+  DEFINE INPUT PARAMETER p_action   AS CHAR     NO-UNDO.
+  DEFINE INPUT PARAMETER p_code-id  AS RECID    NO-UNDO.
+  DEFINE INPUT PARAMETER p_options  AS CHAR     NO-UNDO.
+
+  /* Included Definitions ---                                             */
+  { webutil/wstyle.i }              /* Standard style guide definitions.  */
+  { workshop/errors.i }             /* Shared error handling procedure.   */
+  { workshop/code.i }               /* Shared code temp-tables.           */
+  { workshop/objects.i }            /* Shared web object temp-tables.     */
+  { workshop/uniwidg.i }            /* Shared widget temp-tables.         */ 
+  { workshop/help.i }               /* Include context strings.           */
+
+  /* Local Variable Definitions ---                                       */
+  DEFINE VAR t-compile LIKE _P._compile.
+  DEFINE VAR t-type    LIKE _P._type.
+  DEFINE VAR t-lists   LIKE _P._lists.
+
+  /* Output the standard HTML header. */
+  {&OUT} 
+    { workshop/html.i &SEGMENTS = "head,open-body,help"
+                      &FRAME    = "WSFC_main" 
+                      &AUTHOR   = "Wm.T.Wood"
+                      &TITLE    = "Procedure Settings"
+                      &CONTEXT  = "{&Procedure_Settings_Help}" } 
+    { workshop/chkfld.i }
+    .
+  
+  /* Find the relevant records. */
+  FIND _code WHERE RECID(_code) eq p_code-id.
+  FIND _P    WHERE RECID(_P)    eq _code._P-recid.
+  
+  {&OUT} 
+    format-filename (_P._filename, 'Procedure Settings for &1...', '':U) SKIP
+    get-rule-tag ("100%":U, "":U )
+    .
+
+  /* Base the action on either the database values, or the ones submitted. */
+  IF p_action eq "Save":U THEN RUN process-submit.
+  ELSE 
+    /* Copy from the procedure record to the local area. */
+    ASSIGN t-type    = _P._type
+           t-compile = _P._compile
+           t-lists   = _P._lists
+           .
+ 
+</SCRIPT>
+<FORM ACTION="_main.w" METHOD="POST">
+<INPUT TYPE="HIDDEN" NAME="html"       VALUE="saveSection">
+<INPUT TYPE="HIDDEN" NAME="section-id" VALUE="`RECID(_code)`">
+<center>
+<INPUT TYPE="SUBMIT" VALUE="Submit">&nbsp;<INPUT TYPE="RESET">
+<br><br>
+<SCRIPT LANGUAGE = "SpeedScript">
+  /* Show errors */
+  IF errors-exist ("VALIDATION":U) THEN DO:
+    {&OUT} { workshop/javascpt.i &SEGMENTS = "goto-Field" }
+           '</CENTER><UL>'
+           format-text ('Errors:', "SUBMIT":U)  
+           '<UL>~n'.
+      RUN output-errors IN _err-hdl ("VALIDATION":U, ? /* Use default template */ ). 
+     {&OUT} '</UL></UL><CENTER>~n'.
+   END.
+</SCRIPT>
+<table border="1">
+  <tr> 
+    <td colspan="2" align="CENTER">`format-label('Procedure Settings', "COLUMN":U, "":U)`</td>   
+  </tr>
+  <tr>
+    <td align="RIGHT">`format-label('Procedure Type', 'ROW':U, "":U)`</td>
+    <td><INPUT TYPE="TEXT" NAME="Type" VALUE="`html-encode(t-type)`" onChange="chkFld(this);">
+  </tr>
+  <tr>
+    <td>`format-label('Compile on Save', 'ROW':U, "":U)`</td>
+    <td><INPUT TYPE="RADIO" NAME="compile" VALUE="YES" `
+         IF t-compile THEN " CHECKED":U ELSE "":U `>Yes
+        <INPUT TYPE="RADIO" NAME="compile" VALUE="NO"  `
+        IF t-compile THEN "":U ELSE " CHECKED":U `>No
+    </td>
+  </tr>
+  
+  <script language="WebSpeed4GL">
+  /* Show the names of Custom List variables, if necesary. */
+  RUN show-custom-lists.  
+  </script>
+  
+</table>
+</center>
+</form>
+</body>
+</html>
+<SCRIPT LANGUAGE = "WebSpeed4GL">
+
+
+  /* *********************** Internal Procedures *********************** */
+
+  /* -----------------------------------------------------------
+    Purpose: Run this code to check any of the fields that
+             define the name of a User-List Preprocessor variable.
+    Parameters:
+      INPUT  pTest  - the value to test
+      INPUT  pList  - the list of other names we don't want to choose
+      INPUT  pIndex - the index of the list (1 to 6)
+                      (used to test that no other varialbes have the 
+                       same name.)
+      OUTPUT pMsg - The error message. The value &1 is used where
+                    the calling program should place the name of the
+                    field. 
+
+    Notes: We check only for the fact that the value entered is
+           a legal keyword, and that it is not used in one of the
+           other lists.
+  -------------------------------------------------------------*/
+  FUNCTION check-name RETURNS LOGICAL
+     (INPUT  pTest  AS CHAR,
+      INPUT  pList  AS CHAR,
+      INPUT  pIndex AS INTEGER,
+      OUTPUT pMsg   AS CHAR) :
+  
+    DEFINE VAR i    AS INTEGER NO-UNDO.
+
+    /* Is it a valid PROGRESS identifier */
+    if pTest = ""  then do:
+      pMsg = "Please enter a value for &1. It may not be left blank.".
+      RETURN false.
+    end.
+  
+    /* Check the first character. */
+    if SUBSTRING(pTest,1,1) < "A" OR  SUBSTRING(pTest,1,1) > "Z" then do:
+      pMsg = "The &1 must start with a letter.".
+      RETURN false.
+    end.
+
+    /* Check all other characters */
+    do i = 2 to LENGTH(pTest, "CHARACTER":U):
+      IF INDEX("#$%&-_0123456789ETAONRISHDLFCMUGYPWBVKXJQZ", SUBSTRING(pTest,i,1)) eq 0
+      THEN do:
+        IF SUBSTR(pTest, i, 1, "CHARACTER":U) eq " ":U
+        THEN pMsg = 'The &1 cannot contain spaces.'.
+        ELSE pMsg = 'The &1 contains an invalid character ("' +
+                     html-encode(SUBSTR(pTest, i, 1, "CHARACTER")) + '").'.
+        RETURN false.
+      end.
+    end.
+
+    /* Is the name already used? */
+    if pList ne "":U and LOOKUP(pTest, pList) < pIndex then do:
+      pMsg ='The name <i>' + html-encode(pTest) + '</I> cannot be used twice.'.
+      return false.
+    end.
+  
+    /* Looks good. */
+    RETURN true.
+
+  END FUNCTION.
+  
+  
+  /* ---------------------------------------------------------------------
+     Purpose: Read the values of the fields from the form-input 
+              and store them.
+     Parameters: 
+            <none>
+     Notes: Set the MODIFIED flag on the current procedure if
+            anything changed.
+    --------------------------------------------------------------------- */
+  PROCEDURE process-submit :
+    DEFINE VARIABLE i          AS INTEGER NO-UNDO.
+    DEFINE VARIABLE cnt        AS INTEGER NO-UNDO.
+    DEFINE VARIABLE c_error    AS CHAR NO-UNDO.
+    DEFINE VARIABLE c_label    AS CHAR NO-UNDO.
+    DEFINE VARIABLE c_name     AS CHAR NO-UNDO.
+    DEFINE VARIABLE c_value    AS CHAR NO-UNDO.
+    DEFINE VARIABLE field-list AS CHAR NO-UNDO.
+    
+    /* Clear any preexisting validation errors. */
+    RUN clear-errors IN _err-hdl ("VALIDATION":U).
+    
+    /* Get the fields that were submitted. */
+    field-list = get-field (?).
+
+    /* Save the Procedure Type, if submitted. */
+    IF LOOKUP ("Type":U, field-list) > 0 THEN DO:
+      t-type = TRIM(get-field ('Type':U)).
+      IF t-type ne _P._type THEN DO:
+        IF check-name (t-type, "", ?, OUTPUT c_error)
+        THEN ASSIGN _P._modified = yes
+                    _P._type     = t-type .
+        ELSE DO:
+          c_error = SUBSTITUTE (c_error, "procedure type":U) +
+                    ' [<A HREF="JavaScript:GotoField(~'Type~');">' +
+                    'goto field</A>]~n'.
+          RUN Add-Error IN _err-hdl ("VALIDATION", ?, c_error).
+        END. /* IF [error]... */
+      END. /* IF t-type ne _P._type... */
+    END. /* IF [input] 'Type' */
+
+    /* Save the Compile flag, if submitted. */
+    IF LOOKUP ("Compile":U, field-list) > 0 THEN DO:
+      t-compile = (get-field ('Compile':U) eq "yes":U).
+      IF t-compile ne _P._compile 
+      THEN ASSIGN _P._modified = yes
+                  _P._compile  = t-compile.
+                  .
+   END. /* IF [input] 'Compile' */
+
+    /* Save the List-n Preprocessor, if submitted (only check for the first). */
+    IF LOOKUP ("List1":U, field-list) > 0 THEN DO:
+      /* Build the rest of the form dynamically. Check for the case of
+         the "lists" missing entries and fill these in. */
+      cnt = NUM-ENTRIES(t-lists).
+      DO i = 1 TO {&MaxUserLists} :
+        ASSIGN c_name  = "List":U + TRIM(STRING(i,">>>>9":U))
+               c_label = "List-":U + TRIM(STRING(i,">>>>9":U))
+               c_value = TRIM(get-field (c_name)).
+        IF i > cnt 
+        THEN t-lists = (IF i eq 1 THEN "":U ELSE t-lists + ",") + c_value.
+        ELSE ENTRY(i, t-lists) = c_value.
+        IF c_value ne ENTRY(i, _P._lists) THEN DO:
+          IF check-name (c_value, t-lists, i, OUTPUT c_error)
+          THEN ASSIGN _P._modified         = yes
+                       ENTRY(i, _P._lists) = c_value
+                      .
+          ELSE DO:
+            c_error = SUBSTITUTE (c_error, "procedure type":U) +
+                      ' [<A HREF="JavaScript:GotoField(~'' + c_name + '~')~;">' +
+                       'goto field</A>]'.
+            RUN Add-Error IN _err-hdl ("VALIDATION":U, ?, c_error).
+         END. /* IF [error]... */
+       END. /* IF c_value [changed].... */
+      END. /* DO... */
+      /* Was there a change? */
+      IF t-lists ne _P._lists THEN DO:
+        /* Check each value in turn. */
+      END.
+    END. /* IF [input] 'List-1' */
+  END PROCEDURE.
+  
+  
+  PROCEDURE show-custom-lists :
+  /* ---------------------------------------------------------------------
+     Purpose:     Display the names for user defined custom lists.
+     Parameters:  <none>
+     Notes:     
+    --------------------------------------------------------------------- */
+    DEFINE VARIABLE i        AS INTEGER NO-UNDO.
+    DEFINE VARIABLE cnt      AS INTEGER NO-UNDO.
+    DEFINE VARIABLE c_label    AS CHAR NO-UNDO.
+    DEFINE VARIABLE c_name   AS CHAR NO-UNDO.
+    DEFINE VARIABLE c_value  AS CHAR NO-UNDO.
+    
+    /* Are there any objects in this file? */
+    IF CAN-FIND (FIRST _U WHERE _U._P-recid eq RECID(_P)
+                            AND LOOKUP(_U._TYPE, "FRAME,QUERY":U) eq 0
+                            AND _U._status ne "DELETED":U)
+    THEN DO:                
+      {&OUT}
+         '  <tr>~n'
+         '    <td colspan="2" align="CENTER">' 
+                format-label('Custom Lists', "COLUMN":U, "":U) '</td>~n'  
+         '  </tr>~n'
+         .
+
+      /* Build the rest of the form dynamically. Check for the case of
+         the "lists" missing entries and fill these in. */
+      cnt = NUM-ENTRIES(t-lists).
+      DO i = 1 TO {&MaxUserLists} :
+        ASSIGN c_name  = "List":U + TRIM(STRING(i,">>>>9":U))
+               c_label = "List-":U + TRIM(STRING(i,">>>>9":U))
+               c_value = IF i > cnt THEN c_label ELSE ENTRY(i, t-lists).
+        {&OUT}
+          '  </tr>~n'
+          '    <td align="RIGHT">' format-label(c_label , 'ROW':U, "":U) '</td> ~n'
+          '    <td><INPUT TYPE="TEXT"'
+                        ' NAME="' c_name '"'
+                        ' VALUE="' html-encode(c_value) '" onChange="chkFld(this)~;">~n'
+          '  </tr>~n'
+          .
+      END. /* FOR i... */
+    END. /* IF CAN-FIND (FIRST _U... */
+  END PROCEDURE.
+
+</SCRIPT>

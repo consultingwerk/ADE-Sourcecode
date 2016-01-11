@@ -1,626 +1,626 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-/*
-
-Procedure:    adetran/pm/_gloss.p
-Author:       R. Ryan/
-Created:      1/95
-Updated:      9/95
-Purpose:      Translation Manager's Glossary Tab folder
-Background:   This is a persistent procedure that is run from
-              pm/_pmain.p *only* after a database is connected.
-              Once connected, this procedure has the browser
-              and buttons associated with the glossary functions. 
-              
-Notes:        A key shared variable, s_Glossary, keeps track of what
-              the selected glossary is (found in the GlossaryName
-              combo-box). Remember, the glossary table looks like this:
-              
-              +--------------------------------------------------+
-              | Glossary   | Source    | Target    | Modi-| Glos |
-              | Name       | Phrase    | Phrase    | fied | Type |
-              +--------------------------------------------------+
-              | MyFrench   | hello     | bonjour   | no   | D    |
-              | MyFrench   | city      | ville     | no   | D    |
-              | MyFrench   | hi        | bonjour   | no   | D    |
-              | Espanol    | hello     | como estas| no   | D    |
-              | Espanol    | city      | cuidad    | no   | D    |
-              | Espanol    | hi        | hola      | no   | D    |
-              +--------------------------------------------------+
-              
-Procedures:   key procedures include:
-
-                InsertRow          adds a row - called by insert button 
-                                   in hMain
-                DeleteRow          deletes a row(s) - called by delete
-                                    button in hMain
-                CreateOrdList       dynamically builds a list of the 
-                                    columns in the browser that the 
-                                   'Order Columns' menu-item/button in
-                                    hMain uses.
-                OrderColumn         Runs the 'Order Columns' dialog.
-                Repo                Repositions the cursor at the last
-                                    row when a find/goto is made.
-                Ref                 Refreshes the browser when a replace
-                                    is made in hReplace  
-                UpdateGlossaryCount Counts the entries for s_Glossary
-                UpdateGlossaryCount Updates XL_GlossDet.GlossaryCount
-                                    for s_Glossary
-                                              
-Includes:     none  
-
-Called by:    pm/_pmmain.p  
-
-Calls:        SetSensitivity in _hMain
-              ResetMain in _hMain (to rebuild persistent procedures)
-              pm/_getproj.p (to build glossary list)
-              pm/_newglos.w (to create a new glossary)
-              
-*/
-           
-
-
-{ adetran/pm/tranhelp.i } 
-
-DEFINE SHARED VARIABLE CurrentTool     AS CHARACTER               NO-UNDO.
-DEFINE SHARED VARIABLE _hMain          AS HANDLE                  NO-UNDO.
-DEFINE SHARED VARIABLE _MainWindow     AS WIDGET-HANDLE           NO-UNDO. 
-DEFINE SHARED VARIABLE s_Glossary      AS CHARACTER               NO-UNDO.
-DEFINE SHARED VARIABLE _hGloss         AS HANDLE                  NO-UNDO.
-DEFINE SHARED VARIABLE _hLongStr       AS HANDLE                  NO-UNDO. 
-DEFINE SHARED VARIABLE _hSort          AS HANDLE                  NO-UNDO.
-DEFINE SHARED VARIABLE tGlss           AS ROWID                   NO-UNDO.
-DEFINE SHARED VARIABLE glossDetROWID   AS ROWID                   NO-UNDO.
-DEFINE SHARED VARIABLE tModFlag        AS LOGICAL                 NO-UNDO. 
-DEFINE SHARED VARIABLE OrdMode3        AS CHARACTER               NO-UNDO.
-DEFINE SHARED VARIABLE _Lang           AS CHARACTER               NO-UNDO.
-
-/* Temporary files generated by _sort.w and _order.w.                */
-/* If these are blank then the regular OpenQuery internal procedures */
-/* are run, otherwise these will be run                              */
-DEFINE SHARED VAR TmpFl_PM_Gl AS CHARACTER                     NO-UNDO.
-
-DEFINE VARIABLE tLog          AS LOGICAL                       NO-UNDO.
-
-DEFINE VARIABLE GlossaryList  AS CHARACTER                     NO-UNDO.
-DEFINE VARIABLE KitList       AS CHARACTER                     NO-UNDO.  
-DEFINE VARIABLE ErrorStatus   AS LOGICAL                       NO-UNDO. 
-DEFINE VARIABLE ThisMessage   AS CHARACTER                     NO-UNDO.
-DEFINE VARIABLE i             AS INTEGER                       NO-UNDO. 
-DEFINE VARIABLE Result        AS LOGICAL                       NO-UNDO.  
-DEFINE VARIABLE ResetQuery    AS LOGICAL                       NO-UNDO. 
-
-DEFINE VARIABLE firstRecord	AS LOGICAL			NO-UNDO.
-
-DEFINE TEMP-TABLE tmp-order 
-   FIELD OrdCol AS CHARACTER  
-   FIELD OldNum AS INTEGER  
-   FIELD NewNum AS INTEGER .
-
-
-&scoped-define frame-name GlossFrame
-&scoped-define browse-name GlossBrowser
-
-DEFINE BUTTON BtnAdd 
-  LABEL "&Add..." SIZE-PIXELS 90 BY 23.
-
-DEFINE BUTTON BtnRemove 
-  LABEL "&Remove" SIZE-PIXELS 90 BY 23.
-
-DEFINE VARIABLE GlossaryName AS CHARACTER FORMAT "X(256)":U
-  VIEW-AS COMBO-BOX INNER-LINES 5 LIST-ITEMS "(None)":U
-   SIZE-PIXELS 159 BY 26 NO-UNDO.
-
-DEFINE VARIABLE GlossaryType AS CHARACTER
-  VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS   
-  "&All",     "A":U,
-  "&Default", "D":U,
-  "&Custom",  "C":U
-  SIZE-PIXELS 210 BY 25 NO-UNDO.
-
-DEFINE RECTANGLE rect-1
-  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE-PIXELS 469 BY 275.
-
-
-DEFINE NEW SHARED BUFFER bXLGloss FOR xlatedb.XL_GlossDet.
-DEFINE NEW SHARED QUERY  GlossBrowser FOR bXLGloss SCROLLING.
-
-DEFINE BROWSE GlossBrowser QUERY GlossBrowser SHARE-LOCK DISPLAY   
-   bXLGloss.SourcePhrase WIDTH 31 FORMAT "X(256)":U
-   bXLGloss.TargetPhrase WIDTH 32 FORMAT "X(256)":U
-   bXLGloss.ModifiedByTranslator COLUMN-LABEL "Modified By!Translator?"
-   bXLGloss.GlossaryType WIDTH 5 COLUMN-LABEL "!Type"  
-   ENABLE bXLGloss.SourcePhrase bXLGloss.TargetPhrase 
-WITH SEPARATORS MULTIPLE SIZE-PIXELS 442 BY 212 FONT 4 EXPANDABLE.
-
-
-/* ************************  frame definitions  *********************** */
-
-DEFINE FRAME GlossFrame
-  BtnAdd       AT y 8  X 498
-  GlossaryName AT y 21 X 13  COLON-ALIGNED NO-LABEL
-  GlossaryType AT y 21 X 260 NO-LABEL
-  GlossBrowser AT y 57 X 27 
-  BtnRemove    AT y 35 X 498 
-  rect-1       AT y 8  X 12 
-  WITH 1 DOWN NO-BOX OVERLAY SIDE-LABELS NO-UNDERLINE THREE-D AT X 14 Y 52
-     SIZE-PIXELS 602 BY 299 FONT 4.
-
- 
-ON HELP OF FRAME GlossFrame DO:
-  RUN adecomm/_adehelp.p ("tran":U,"context":U,{&glossaries_tab_folder}, ?). 
-END.
-
-ON ENTRY OF GlossBrowser DO:
-   RUN CustSensi IN _hMain(Glossbrowser:HANDLE IN FRAME {&FRAME-NAME}).
-END.
-
-ON VALUE-CHANGED OF GlossBrowser DO:  
-  IF ResetQuery THEN DO:   
-    IF AVAILABLE bXLGloss THEN DO:
-      ASSIGN 
-         tGlss = ROWID(bXLGloss)
-         glossDetROWID = tGlss.
-      RUN OpenQuery.
-      ResetQuery = FALSE.
-      RETURN NO-APPLY.
-    END.
-  END.
-  IF AVAILABLE bXLGloss THEN
-    RUN Refresh IN _hLongStr (INPUT bXLGloss.SourcePhrase,
-                              INPUT bXLGloss.TargetPhrase,
-                              INPUT _hGloss).
-  ASSIGN tGlss = IF AVAILABLE bXLGloss THEN ROWID(bXLGloss) ELSE ?
-         glossDetROWID = tGlss.
-END.   
-
-ON ROW-LEAVE OF GlossBrowser DO:
-  RUN rowLeave.ip.
-END.
-
-ON CHOOSE OF BtnAdd IN FRAME GlossFrame DO:             
-  DEFINE VARIABLE OKPressed   AS                         LOGICAL NO-UNDO.
-  DEFINE VARIABLE ErrorStatus AS                         LOGICAL NO-UNDO.
-  RUN adecomm/_setcurs.p ("WAIT":U).
-  RUN adetran/pm/_newglos.w  (OUTPUT OKPressed, OUTPUT ErrorStatus).
-  RUN adecomm/_setcurs.p ("":U).
-  IF OKPressed THEN RUN ResetMain IN _hMain.
-END.
-
-
-ON CHOOSE OF BtnRemove IN FRAME GlossFrame DO:
-  ThisMessage = 'About to remove the entire glossary.  To remove only the ' +
-                'selected rows, choose "Edit->Delete Row" from the Main Menu.' +
-                '^^Do you want to remove the entire glossary ' + s_Glossary + '?':U.
-  RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "yes-no":U, ThisMessage).    
-  
-  RUN adecomm/_setcurs.p ("WAIT":U).                     
-  IF ErrorStatus THEN DO:    
-    tModFlag = TRUE.      
-     
-    /* First delete the glossary contents */
-    FOR EACH xlatedb.XL_GlossDet WHERE
-             xlatedb.XL_GlossDet.GlossaryName = s_Glossary EXCLUSIVE-LOCK.
-      DELETE xlatedb.XL_GlossDet.
-    END.      
-
-    /* Next, delete the glossary from the glossary listings */
-    FIND xlatedb.XL_Glossary WHERE
-         xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
-    IF AVAILABLE xlatedb.XL_Glossary THEN DELETE xlatedb.XL_Glossary.
-
-    /* Finally, figure out where the next glossary should be  */      
-    s_Glossary = "".
-    FIND FIRST xlatedb.XL_Glossary EXCLUSIVE-LOCK NO-ERROR.
-    IF AVAILABLE xlatedb.XL_Glossary THEN RUN realize.
-    ELSE RUN ResetMain IN _hMain.
-  END.  
-  RUN adecomm/_setcurs.p ("":U).
-END.
-
-
-ON VALUE-CHANGED OF GlossaryName IN FRAME GlossFrame DO:
-  s_Glossary = GlossaryName:SCREEN-VALUE.
-  if GlossaryName:SCREEN-VALUE <> "None":U THEN RUN OpenQuery.
-END.
-
-
-ON VALUE-CHANGED OF GlossaryType IN FRAME GlossFrame
-DO:                    
-  RUN OpenQuery.
-END.
-
-
-ON MOUSE-SELECT-DBLCLICK OF BROWSE GlossBrowser, bXLGloss.SourcePhrase,
-                         bXLGloss.TargetPhrase DO:
-  IF AVAILABLE bXLGloss THEN
-    RUN Realize IN _hLongStr (INPUT bXLGloss.SourcePhrase,
-                              INPUT bXLGloss.TargetPhrase,
-                              INPUT _hGloss).
-END.
-
-
-&SCOPED-DEFINE FRAME-NAME GlossFrame
-{adetran/common/noscroll.i}
-
-PAUSE 0 BEFORE-HIDE.
-
-MAIN-BLOCK:
-DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
-   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:  
-   
-   ASSIGN FRAME {&FRAME-NAME}:PARENT      = _MainWindow  
-          GlossBrowser:NUM-LOCKED-COLUMNS = 1.   
-END.
-{adecomm/_adetool.i}
-
-
-
-/* 
-** internal procedures ..........................................................  
-*/
-
-PROCEDURE HideMe :
-  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
-END PROCEDURE.
-
-PROCEDURE InsertRow: 
-  DEFINE VARIABLE rid              AS INTEGER         NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:  
-
-    IF NOT CAN-FIND(FIRST bXLGloss WHERE
-           bXLGloss.GlossaryName = GlossaryName:SCREEN-VALUE) THEN DO:    
-      
-      /* This is an empty browse and a dummy record is created;
-         Later, the row-leave trigger will modify this record.   */
-      CREATE bXLGloss.
-      ASSIGN bXLGloss.GlossaryName         = s_Glossary
-             bXLGloss.SourcePhrase         = ""
-             bXLGloss.TargetPhrase         = ""
-             bXLGloss.GlossaryType         = "D":U
-             bXLGloss.ModifiedByTranslator = FALSE
-	     firstRecord = YES.
-        
-      FIND xlatedb.XL_Glossary WHERE
-        xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
-      IF AVAILABLE xlatedb.XL_Glossary THEN
-        xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount + 1.
-
-                   
-      /* The empty row has been created so by opening the query, you can start typing
-         into this dummy row.  APPLY "ENTRY" positions the user to the first cell.   */
-      RUN OpenQuery.   
-      APPLY "ENTRY" TO bXLGloss.SourcePhrase IN BROWSE GlossBrowser.
-      RUN SetSensitivity IN _hMain.
-   END. 
-   ELSE DO:  
-     /* Ok, there are some records in the table, but is there a record in the
-        buffer?  If not, produce an error and get out.   */
-     IF GlossBrowser:NUM-SELECTED-ROWS < 1 THEN DO:
-       ThisMessage = "You must select a row first.".
-       RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "w*":U, "ok":U, ThisMessage).    
-       RETURN.
-     END.   
-     
-     ELSE DO: 
-       /* BEFORE inserting the blank row, make sure that you are taken care 
-        * of the last insert by applying row-leave */
-       RUN rowLeave.ip.
-       GET CURRENT GlossBrowser EXCLUSIVE-LOCK.
-       ASSIGN 
-          rid = CURRENT-RESULT-ROW("GlossBrowser":U).
-       GlossBrowser:SELECT-ROW(rid).
- 
-       /* Now insert a blank row - remember, the row-leave trigger will actually do
-          the work.      */   
-       result     = GlossBrowser:INSERT-ROW("AFTER":U).
-      END.
-    END.                  
-    
-   END.   
-END PROCEDURE.
-
-PROCEDURE OpenQuery :
-  DO WITH FRAME {&FRAME-NAME}: 
-    DEFINE VARIABLE MaxGuess AS INTEGER                                    NO-UNDO.
-    RUN adecomm/_setcurs.p ("WAIT":U).
-    
-    FIND xlatedb.XL_Glossary WHERE 
-          xlatedb.XL_Glossary.GlossaryName = s_Glossary NO-ERROR.
-    IF AVAILABLE xlatedb.XL_Glossary THEN MaxGuess = xlatedb.XL_Glossary.GlossaryCount.
-
-    IF TmpFl_PM_Gl NE "" THEN RUN VALUE(TmpFl_PM_GL).
-    
-    ELSE IF GlossaryType:SCREEN-VALUE = "d":U THEN 
-      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE 
-        bXLGloss.GlossaryName = s_Glossary and
-        bXLGloss.GlossaryType = "d":U share-lock  
-        by bXLGloss.ShortSrc by bXLGloss.ShortTarg.
-    ELSE IF GlossaryType:SCREEN-VALUE = "C":U THEN 
-      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE 
-        bXLGloss.GlossaryName = s_Glossary AND
-        bXLGloss.GlossaryType = "c":U  SHARE-LOCK
-        BY bXLGloss.ShortSrc BY bXLGloss.ShortTarg.
-    ELSE
-      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE
-        bXLGloss.GlossaryName = s_Glossary SHARE-LOCK
-        BY bXLGloss.ShortSrc BY bXLGloss.ShortTarg.
-         
-
-    ASSIGN 
-       tGlss = IF AVAILABLE bXLGLoss THEN 
-                  ROWID(bXLGloss) ELSE ?
-       glossDetROWID = tGlss.
-
-    IF MaxGuess > 0 THEN GlossBrowser:MAX-DATA-GUESS = MaxGuess.  
-      
-    IF OrdMode3 = "" THEN RUN CreateOrdList.
-
-    RUN adecomm/_setcurs.p ("").
-END.
-END PROCEDURE.
-
-
-PROCEDURE realize :
-  DO WITH FRAME {&FRAME-NAME}:     
-    ENABLE 
-      GlossBrowser
-      BtnAdd 
-    WITH FRAME {&FRAME-NAME} IN WINDOW _MainWindow.  
-    
-    RUN adetran/pm/_getproj.p (OUTPUT glossarylist, OUTPUT kitlist, OUTPUT ErrorStatus).   
-    glossarylist = TRIM(glossarylist,"").
-  
-    ASSIGN      
-      GlossaryName              = IF glossarylist <> "" 
-                                  THEN glossarylist ELSE "(None)":U
-      GlossaryName:LIST-ITEMS   = TRIM(REPLACE(GlossaryName,CHR(10),""))
-      GlossaryName:SCREEN-VALUE = IF s_Glossary <> "" AND 
-                                    LOOKUP(s_Glossary,GlossaryName:LIST-ITEMS) > 0
-                                  THEN s_Glossary
-                                  ELSE GlossaryName:ENTRY(1)
-      GlossaryName:SENSITIVE    = GlossaryName:SCREEN-VALUE <> "(None)":U.
- 
-   
-    IF GlossaryList <> ? AND GlossaryList <> "" THEN
-      ASSIGN GlossaryType:SENSITIVE = TRUE
-             BtnRemove:SENSITIVE    = TRUE.
-    ELSE
-      ASSIGN GlossaryType:SENSITIVE = FALSE
-             BtnRemove:SENSITIVE    = FALSE.
-
-
-    APPLY "VALUE-CHANGED":U TO GlossaryName.  
-    FRAME {&FRAME-NAME}:HIDDEN = FALSE.  
-  END.  
-END PROCEDURE.
-
-
-PROCEDURE OrderColumn :
-    {adetran/common/_order.i GlossBrowser} 
-END PROCEDURE.  
-
-PROCEDURE CreateOrdList :
-  DEFINE VARIABLE tBrColWH     AS WIDGET-HANDLE NO-UNDO.
-  DEFINE VARIABLE tListItems   AS CHARACTER NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:
-
-    ASSIGN tBrColWH   = GlossBrowser:FIRST-COLUMN
-           tListItems = "".
-                   
-    DO WHILE tBrColWH <> ?:  
-      ASSIGN tListItems = tListItems + "," +  tBrColWh:LABEL                                   
-             tBrColWH   = tBrColWH:NEXT-COLUMN.
-    END.
-               
-    ASSIGN tListItems = TRIM(tListItems,",")
-           tListItems = REPLACE(tListItems,"!","")
-           OrdMode3 = tListItems.
-   END.     
-END PROCEDURE.                                                          
-
-
-
-PROCEDURE CountEntries:           
-  DEFINE INPUT  PARAMETER pGlossary AS CHARACTER NO-UNDO.
-  DEFINE OUTPUT PARAMETER pEntries  AS INTEGER NO-UNDO.
-  
-  i = 0.
-  FOR EACH xlatedb.XL_GlossDet NO-LOCK WHERE
-    xlatedb.XL_GlossDet.GlossaryName = pGlossary:
-    i = i + 1.
-  END.
-  pEntries = i.
-END PROCEDURE.
-
-PROCEDURE UpdateGlossaryCount : 
-  DEFINE INPUT PARAMETER pOperation AS CHARACTER NO-UNDO.
-  
-  /* *** 11/99 tomn: Shouldn't be necessary; CREATE schema trigger should do this! */
-  DO TRANSACTION ON ERROR UNDO, LEAVE:
-    /* update the total number of procedures in the xl_project
-       table as well as on the project frame  */      
-    FIND xlatedb.XL_Glossary WHERE xlatedb.XL_Glossary.GlossaryName = s_Glossary 
-                             EXCLUSIVE-LOCK NO-ERROR.
-    IF AVAILABLE xlatedb.XL_Glossary THEN DO:
-      IF pOperation = "Addition":U THEN
-        xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount + 1.
-    END.
-  END.  /* TRANSACTION */
-
-  FIND CURRENT xlatedb.XL_Glossary NO-LOCK NO-ERROR.  /* downgrade lock */
-END PROCEDURE.
-
-
-PROCEDURE SortQuery :
-  DEFINE INPUT PARAMETER pTempFile AS CHARACTER NO-UNDO. 
-
-  IF pTempFile NE TmpFl_PM_Gl THEN DO:
-    IF TmpFl_PM_Gl NE "" THEN OS-DELETE VALUE(TmpFl_PM_Gl).
-    TmpFl_PM_Gl = pTempFile.
-  END.
-
-  IF VALID-HANDLE(_hSort) THEN DELETE PROCEDURE _hSort.  
-  RUN VALUE(pTempFile) PERSISTENT SET _hSort. 
-  IF VALID-HANDLE(_hSort) THEN _hSort:PRIVATE-DATA = CurrentTool.
-  FIND xlatedb.XL_Glossary WHERE
-       xlatedb.XL_Glossary.GlossaryName = s_Glossary NO-ERROR.
-  IF AVAILABLE xlatedb.XL_Glossary AND xlatedb.XL_Glossary.GlossaryCount > 0 THEN
-    GlossBrowser:max-data-guess IN FRAME {&FRAME-NAME} = xlatedb.XL_Glossary.GlossaryCount.  
-    
-END PROCEDURE.   
-
-PROCEDURE DeleteRow :   
-  DEFINE VARIABLE DeleteCnt AS INTEGER NO-UNDO.
-  IF GlossBrowser:NUM-SELECTED-ROWS IN FRAME {&FRAME-NAME} < 1 THEN DO:
-    ThisMessage = "You must select a row first.".
-    RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "ok":U, ThisMessage).   
-    RETURN. 
-  END.
-
-  ThisMessage = "Delete selected rows?".
-  RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "yes-no":U, ThisMessage).    
-  IF NOT ErrorStatus THEN RETURN.
-                      
-  tModFlag = yes.                      
-  DO WITH FRAME GlossFrame:
-    DO i = GlossBrowser:NUM-SELECTED-ROWS TO 1 BY -1:   
-      DeleteCnt = DeleteCnt + 1. 
-      result = GlossBrowser:FETCH-SELECTED-ROW(i).   
-      IF AVAILABLE bXLGloss THEN DELETE bXLGloss. 
-      RUN UpdateGlossaryCount ("Subtraction":U).  
-    END.  
-    result = GlossBrowser:DELETE-SELECTED-ROWS().              
- 
-    FIND xlatedb.XL_Glossary 
-      WHERE xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
-    IF AVAILABLE xlatedb.XL_Glossary THEN
-      xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount - DeleteCnt.
-
-    RUN SetSensitivity in _hMain.
-  END.      
-END PROCEDURE. 
-
-PROCEDURE Ref: 
-  DEFINE INPUT PARAMETER pRowid AS ROWID NO-UNDO. 
-   
-  tLog = GlossBrowser:REFRESH() IN FRAME {&FRAME-NAME}.
-  IF pRowid <> ? THEN DO: 
-    tlog = GlossBrowser:set-repositioned-row(INTEGER(GlossBrowser:NUM-ITERATIONS / 2),
-                                                     "CONDITIONAL":U) IN FRAME {&FRAME-NAME}.
-    REPOSITION GlossBrowser TO ROWID pRowid NO-ERROR.
-    FIND FIRST bXLGloss WHERE ROWID(bXLGloss) = pRowid NO-ERROR.
-  END.   
-END PROCEDURE.  
-
-
-PROCEDURE Repo :
-  DEFINE INPUT PARAMETER pRowid AS ROWID                                    NO-UNDO.
-  DEFINE INPUT PARAMETER pRow   AS INTEGER                                  NO-UNDO.
-
-  IF pRowid = ? THEN                  
-    REPOSITION GlossBrowser TO ROW pRow NO-ERROR.
-  ELSE DO:
-    tlog = GlossBrowser:SET-REPOSITIONED-ROW(INTEGER(GlossBrowser:NUM-ITERATIONS / 2),
-                                             "CONDITIONAL":U) IN FRAME {&FRAME-NAME}.
-    REPOSITION GlossBrowser TO ROWID pRowid NO-ERROR.
-  END.  
-END PROCEDURE.   
-
-
-PROCEDURE Store-Long-String:
-  DEFINE INPUT PARAMETER src AS CHARACTER               NO-UNDO.
-  DEFINE INPUT PARAMETER trg AS CHARACTER               NO-UNDO.
-  
-  /* First make sure that we are still on the correct row of the browse  */
-  IF NOT AVAILABLE (bXLGloss) THEN RETURN.
-  IF bXLGloss.SourcePhrase NE src THEN RETURN.
-  IF trg = ? THEN RETURN.
-
-  ASSIGN bXLGloss.TargetPhrase              = trg
-         bXLGloss.TargetPhrase:SCREEN-VALUE IN BROWSE GlossBrowser = trg
-         bXLGloss.ShortTarg                 = SUBSTRING(TRIM(trg), 1, 63, "RAW":U).
-  
-END PROCEDURE. /* Store-Long-String */
-
-
-PROCEDURE EnableFrame :   
-  DEFINE INPUT PARAMETER pMode AS LOGICAL NO-UNDO.
-  FRAME {&FRAME-NAME}:SENSITIVE = pMode.
-END PROCEDURE.
-
-PROCEDURE rowLeave.ip:
-/* CREATE PROCEDURE because a simple APPLY ROW-LEAVE would be undone when we
- * returned to the calling procedure for the menu option
- */
-  DEFINE VARIABLE tRec  AS ROWID                             NO-UNDO.
-  DEFINE VARIABLE ss    AS CHARACTER                         NO-UNDO.
-  DEFINE VARIABLE st    AS CHARACTER                         NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:  
-  /* if this is a new row then before adding, insure that it doesn't already exists. */  
-    ASSIGN ss = bXLGloss.SourcePhrase:SCREEN-VALUE IN BROWSE GlossBrowser
-           st = bXLGloss.TargetPhrase:SCREEN-VALUE IN BROWSE GlossBrowser
-    .
-
-  IF GlossBrowser:NEW-ROW THEN DO:
-    FIND bXLGloss WHERE
-         bXLGloss.ShortSrc     BEGINS SUBSTRING(ss, 1, 63, "RAW":U) AND
-         bXLGloss.ShortTarg    BEGINS SUBSTRING(st, 1, 63, "RAW":U) AND
-         bXLGloss.SourcePhrase MATCHES ss AND
-         bXLGloss.TargetPhrase MATCHES st EXCLUSIVE-LOCK NO-ERROR.
-    IF AVAILABLE bXLGloss THEN DO:
-      ThisMessage = '"':U + ss + '"^"':U + st + '"^^':U + "Exists and won't be entered.".
-      RUN adecomm/_s-alert.p (input-output ErrorStatus, "w*":U, "ok":U, ThisMessage).   
-      result = GlossBrowser:REFRESH().
-    END.
-    ELSE DO:
-      CREATE bXLGloss NO-ERROR.
-      ASSIGN bXLGloss.GlossaryName         = s_Glossary
-             bXLGloss.GlossaryType         = "D":U
-             bXLGloss.ModifiedByTranslator = NO
-             bXLGloss.SourcePhrase         = ss
-             bXLGloss.TargetPhrase         = st
-             bXLGloss.ShortSrc             = SUBSTRING(ss, 1, 63, "RAW":U)
-             bXLGloss.ShortTarg            = SUBSTRING(st, 1, 63, "RAW":U)
-             ResetQuery                    = TRUE
-             tRec                          = ROWID(bXLGloss).
-      RUN OpenQuery.
-      RUN Ref (INPUT tRec).
-    END.  /* ELSE DO */
-  END. /* If a new row */
-  ELSE
-  DO:
-     IF AVAILABLE bXLGloss THEN
-        ASSIGN
-	   bXLGloss.SourcePhrase         = ss
-           bXLGloss.TargetPhrase         = st
-           bXLGloss.ShortSrc             = SUBSTRING(ss, 1, 63, "RAW":U)
-           bXLGloss.ShortTarg            = SUBSTRING(st, 1, 63, "RAW":U).
-  END.
-  IF firstRecord THEN ASSIGN firstRecord = NO.
-  RUN SetSensitivity IN _hMain.
-END.
-END PROCEDURE.
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/*
+
+Procedure:    adetran/pm/_gloss.p
+Author:       R. Ryan/
+Created:      1/95
+Updated:      9/95
+Purpose:      Translation Manager's Glossary Tab folder
+Background:   This is a persistent procedure that is run from
+              pm/_pmain.p *only* after a database is connected.
+              Once connected, this procedure has the browser
+              and buttons associated with the glossary functions. 
+              
+Notes:        A key shared variable, s_Glossary, keeps track of what
+              the selected glossary is (found in the GlossaryName
+              combo-box). Remember, the glossary table looks like this:
+              
+              +--------------------------------------------------+
+              | Glossary   | Source    | Target    | Modi-| Glos |
+              | Name       | Phrase    | Phrase    | fied | Type |
+              +--------------------------------------------------+
+              | MyFrench   | hello     | bonjour   | no   | D    |
+              | MyFrench   | city      | ville     | no   | D    |
+              | MyFrench   | hi        | bonjour   | no   | D    |
+              | Espanol    | hello     | como estas| no   | D    |
+              | Espanol    | city      | cuidad    | no   | D    |
+              | Espanol    | hi        | hola      | no   | D    |
+              +--------------------------------------------------+
+              
+Procedures:   key procedures include:
+
+                InsertRow          adds a row - called by insert button 
+                                   in hMain
+                DeleteRow          deletes a row(s) - called by delete
+                                    button in hMain
+                CreateOrdList       dynamically builds a list of the 
+                                    columns in the browser that the 
+                                   'Order Columns' menu-item/button in
+                                    hMain uses.
+                OrderColumn         Runs the 'Order Columns' dialog.
+                Repo                Repositions the cursor at the last
+                                    row when a find/goto is made.
+                Ref                 Refreshes the browser when a replace
+                                    is made in hReplace  
+                UpdateGlossaryCount Counts the entries for s_Glossary
+                UpdateGlossaryCount Updates XL_GlossDet.GlossaryCount
+                                    for s_Glossary
+                                              
+Includes:     none  
+
+Called by:    pm/_pmmain.p  
+
+Calls:        SetSensitivity in _hMain
+              ResetMain in _hMain (to rebuild persistent procedures)
+              pm/_getproj.p (to build glossary list)
+              pm/_newglos.w (to create a new glossary)
+              
+*/
+           
+
+
+{ adetran/pm/tranhelp.i } 
+
+DEFINE SHARED VARIABLE CurrentTool     AS CHARACTER               NO-UNDO.
+DEFINE SHARED VARIABLE _hMain          AS HANDLE                  NO-UNDO.
+DEFINE SHARED VARIABLE _MainWindow     AS WIDGET-HANDLE           NO-UNDO. 
+DEFINE SHARED VARIABLE s_Glossary      AS CHARACTER               NO-UNDO.
+DEFINE SHARED VARIABLE _hGloss         AS HANDLE                  NO-UNDO.
+DEFINE SHARED VARIABLE _hLongStr       AS HANDLE                  NO-UNDO. 
+DEFINE SHARED VARIABLE _hSort          AS HANDLE                  NO-UNDO.
+DEFINE SHARED VARIABLE tGlss           AS ROWID                   NO-UNDO.
+DEFINE SHARED VARIABLE glossDetROWID   AS ROWID                   NO-UNDO.
+DEFINE SHARED VARIABLE tModFlag        AS LOGICAL                 NO-UNDO. 
+DEFINE SHARED VARIABLE OrdMode3        AS CHARACTER               NO-UNDO.
+DEFINE SHARED VARIABLE _Lang           AS CHARACTER               NO-UNDO.
+
+/* Temporary files generated by _sort.w and _order.w.                */
+/* If these are blank then the regular OpenQuery internal procedures */
+/* are run, otherwise these will be run                              */
+DEFINE SHARED VAR TmpFl_PM_Gl AS CHARACTER                     NO-UNDO.
+
+DEFINE VARIABLE tLog          AS LOGICAL                       NO-UNDO.
+
+DEFINE VARIABLE GlossaryList  AS CHARACTER                     NO-UNDO.
+DEFINE VARIABLE KitList       AS CHARACTER                     NO-UNDO.  
+DEFINE VARIABLE ErrorStatus   AS LOGICAL                       NO-UNDO. 
+DEFINE VARIABLE ThisMessage   AS CHARACTER                     NO-UNDO.
+DEFINE VARIABLE i             AS INTEGER                       NO-UNDO. 
+DEFINE VARIABLE Result        AS LOGICAL                       NO-UNDO.  
+DEFINE VARIABLE ResetQuery    AS LOGICAL                       NO-UNDO. 
+
+DEFINE VARIABLE firstRecord	AS LOGICAL			NO-UNDO.
+
+DEFINE TEMP-TABLE tmp-order 
+   FIELD OrdCol AS CHARACTER  
+   FIELD OldNum AS INTEGER  
+   FIELD NewNum AS INTEGER .
+
+
+&scoped-define frame-name GlossFrame
+&scoped-define browse-name GlossBrowser
+
+DEFINE BUTTON BtnAdd 
+  LABEL "&Add..." SIZE-PIXELS 90 BY 23.
+
+DEFINE BUTTON BtnRemove 
+  LABEL "&Remove" SIZE-PIXELS 90 BY 23.
+
+DEFINE VARIABLE GlossaryName AS CHARACTER FORMAT "X(256)":U
+  VIEW-AS COMBO-BOX INNER-LINES 5 LIST-ITEMS "(None)":U
+   SIZE-PIXELS 159 BY 26 NO-UNDO.
+
+DEFINE VARIABLE GlossaryType AS CHARACTER
+  VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS   
+  "&All",     "A":U,
+  "&Default", "D":U,
+  "&Custom",  "C":U
+  SIZE-PIXELS 210 BY 25 NO-UNDO.
+
+DEFINE RECTANGLE rect-1
+  EDGE-PIXELS 2 GRAPHIC-EDGE NO-FILL SIZE-PIXELS 469 BY 275.
+
+
+DEFINE NEW SHARED BUFFER bXLGloss FOR xlatedb.XL_GlossDet.
+DEFINE NEW SHARED QUERY  GlossBrowser FOR bXLGloss SCROLLING.
+
+DEFINE BROWSE GlossBrowser QUERY GlossBrowser SHARE-LOCK DISPLAY   
+   bXLGloss.SourcePhrase WIDTH 31 FORMAT "X(256)":U
+   bXLGloss.TargetPhrase WIDTH 32 FORMAT "X(256)":U
+   bXLGloss.ModifiedByTranslator COLUMN-LABEL "Modified By!Translator?"
+   bXLGloss.GlossaryType WIDTH 5 COLUMN-LABEL "!Type"  
+   ENABLE bXLGloss.SourcePhrase bXLGloss.TargetPhrase 
+WITH SEPARATORS MULTIPLE SIZE-PIXELS 442 BY 212 FONT 4 EXPANDABLE.
+
+
+/* ************************  frame definitions  *********************** */
+
+DEFINE FRAME GlossFrame
+  BtnAdd       AT y 8  X 498
+  GlossaryName AT y 21 X 13  COLON-ALIGNED NO-LABEL
+  GlossaryType AT y 21 X 260 NO-LABEL
+  GlossBrowser AT y 57 X 27 
+  BtnRemove    AT y 35 X 498 
+  rect-1       AT y 8  X 12 
+  WITH 1 DOWN NO-BOX OVERLAY SIDE-LABELS NO-UNDERLINE THREE-D AT X 14 Y 52
+     SIZE-PIXELS 602 BY 299 FONT 4.
+
+ 
+ON HELP OF FRAME GlossFrame DO:
+  RUN adecomm/_adehelp.p ("tran":U,"context":U,{&glossaries_tab_folder}, ?). 
+END.
+
+ON ENTRY OF GlossBrowser DO:
+   RUN CustSensi IN _hMain(Glossbrowser:HANDLE IN FRAME {&FRAME-NAME}).
+END.
+
+ON VALUE-CHANGED OF GlossBrowser DO:  
+  IF ResetQuery THEN DO:   
+    IF AVAILABLE bXLGloss THEN DO:
+      ASSIGN 
+         tGlss = ROWID(bXLGloss)
+         glossDetROWID = tGlss.
+      RUN OpenQuery.
+      ResetQuery = FALSE.
+      RETURN NO-APPLY.
+    END.
+  END.
+  IF AVAILABLE bXLGloss THEN
+    RUN Refresh IN _hLongStr (INPUT bXLGloss.SourcePhrase,
+                              INPUT bXLGloss.TargetPhrase,
+                              INPUT _hGloss).
+  ASSIGN tGlss = IF AVAILABLE bXLGloss THEN ROWID(bXLGloss) ELSE ?
+         glossDetROWID = tGlss.
+END.   
+
+ON ROW-LEAVE OF GlossBrowser DO:
+  RUN rowLeave.ip.
+END.
+
+ON CHOOSE OF BtnAdd IN FRAME GlossFrame DO:             
+  DEFINE VARIABLE OKPressed   AS                         LOGICAL NO-UNDO.
+  DEFINE VARIABLE ErrorStatus AS                         LOGICAL NO-UNDO.
+  RUN adecomm/_setcurs.p ("WAIT":U).
+  RUN adetran/pm/_newglos.w  (OUTPUT OKPressed, OUTPUT ErrorStatus).
+  RUN adecomm/_setcurs.p ("":U).
+  IF OKPressed THEN RUN ResetMain IN _hMain.
+END.
+
+
+ON CHOOSE OF BtnRemove IN FRAME GlossFrame DO:
+  ThisMessage = 'About to remove the entire glossary.  To remove only the ' +
+                'selected rows, choose "Edit->Delete Row" from the Main Menu.' +
+                '^^Do you want to remove the entire glossary ' + s_Glossary + '?':U.
+  RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "yes-no":U, ThisMessage).    
+  
+  RUN adecomm/_setcurs.p ("WAIT":U).                     
+  IF ErrorStatus THEN DO:    
+    tModFlag = TRUE.      
+     
+    /* First delete the glossary contents */
+    FOR EACH xlatedb.XL_GlossDet WHERE
+             xlatedb.XL_GlossDet.GlossaryName = s_Glossary EXCLUSIVE-LOCK.
+      DELETE xlatedb.XL_GlossDet.
+    END.      
+
+    /* Next, delete the glossary from the glossary listings */
+    FIND xlatedb.XL_Glossary WHERE
+         xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE xlatedb.XL_Glossary THEN DELETE xlatedb.XL_Glossary.
+
+    /* Finally, figure out where the next glossary should be  */      
+    s_Glossary = "".
+    FIND FIRST xlatedb.XL_Glossary EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE xlatedb.XL_Glossary THEN RUN realize.
+    ELSE RUN ResetMain IN _hMain.
+  END.  
+  RUN adecomm/_setcurs.p ("":U).
+END.
+
+
+ON VALUE-CHANGED OF GlossaryName IN FRAME GlossFrame DO:
+  s_Glossary = GlossaryName:SCREEN-VALUE.
+  if GlossaryName:SCREEN-VALUE <> "None":U THEN RUN OpenQuery.
+END.
+
+
+ON VALUE-CHANGED OF GlossaryType IN FRAME GlossFrame
+DO:                    
+  RUN OpenQuery.
+END.
+
+
+ON MOUSE-SELECT-DBLCLICK OF BROWSE GlossBrowser, bXLGloss.SourcePhrase,
+                         bXLGloss.TargetPhrase DO:
+  IF AVAILABLE bXLGloss THEN
+    RUN Realize IN _hLongStr (INPUT bXLGloss.SourcePhrase,
+                              INPUT bXLGloss.TargetPhrase,
+                              INPUT _hGloss).
+END.
+
+
+&SCOPED-DEFINE FRAME-NAME GlossFrame
+{adetran/common/noscroll.i}
+
+PAUSE 0 BEFORE-HIDE.
+
+MAIN-BLOCK:
+DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
+   ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:  
+   
+   ASSIGN FRAME {&FRAME-NAME}:PARENT      = _MainWindow  
+          GlossBrowser:NUM-LOCKED-COLUMNS = 1.   
+END.
+{adecomm/_adetool.i}
+
+
+
+/* 
+** internal procedures ..........................................................  
+*/
+
+PROCEDURE HideMe :
+  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
+END PROCEDURE.
+
+PROCEDURE InsertRow: 
+  DEFINE VARIABLE rid              AS INTEGER         NO-UNDO.
+
+  DO WITH FRAME {&FRAME-NAME}:  
+
+    IF NOT CAN-FIND(FIRST bXLGloss WHERE
+           bXLGloss.GlossaryName = GlossaryName:SCREEN-VALUE) THEN DO:    
+      
+      /* This is an empty browse and a dummy record is created;
+         Later, the row-leave trigger will modify this record.   */
+      CREATE bXLGloss.
+      ASSIGN bXLGloss.GlossaryName         = s_Glossary
+             bXLGloss.SourcePhrase         = ""
+             bXLGloss.TargetPhrase         = ""
+             bXLGloss.GlossaryType         = "D":U
+             bXLGloss.ModifiedByTranslator = FALSE
+	     firstRecord = YES.
+        
+      FIND xlatedb.XL_Glossary WHERE
+        xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
+      IF AVAILABLE xlatedb.XL_Glossary THEN
+        xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount + 1.
+
+                   
+      /* The empty row has been created so by opening the query, you can start typing
+         into this dummy row.  APPLY "ENTRY" positions the user to the first cell.   */
+      RUN OpenQuery.   
+      APPLY "ENTRY" TO bXLGloss.SourcePhrase IN BROWSE GlossBrowser.
+      RUN SetSensitivity IN _hMain.
+   END. 
+   ELSE DO:  
+     /* Ok, there are some records in the table, but is there a record in the
+        buffer?  If not, produce an error and get out.   */
+     IF GlossBrowser:NUM-SELECTED-ROWS < 1 THEN DO:
+       ThisMessage = "You must select a row first.".
+       RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "w*":U, "ok":U, ThisMessage).    
+       RETURN.
+     END.   
+     
+     ELSE DO: 
+       /* BEFORE inserting the blank row, make sure that you are taken care 
+        * of the last insert by applying row-leave */
+       RUN rowLeave.ip.
+       GET CURRENT GlossBrowser EXCLUSIVE-LOCK.
+       ASSIGN 
+          rid = CURRENT-RESULT-ROW("GlossBrowser":U).
+       GlossBrowser:SELECT-ROW(rid).
+ 
+       /* Now insert a blank row - remember, the row-leave trigger will actually do
+          the work.      */   
+       result     = GlossBrowser:INSERT-ROW("AFTER":U).
+      END.
+    END.                  
+    
+   END.   
+END PROCEDURE.
+
+PROCEDURE OpenQuery :
+  DO WITH FRAME {&FRAME-NAME}: 
+    DEFINE VARIABLE MaxGuess AS INTEGER                                    NO-UNDO.
+    RUN adecomm/_setcurs.p ("WAIT":U).
+    
+    FIND xlatedb.XL_Glossary WHERE 
+          xlatedb.XL_Glossary.GlossaryName = s_Glossary NO-ERROR.
+    IF AVAILABLE xlatedb.XL_Glossary THEN MaxGuess = xlatedb.XL_Glossary.GlossaryCount.
+
+    IF TmpFl_PM_Gl NE "" THEN RUN VALUE(TmpFl_PM_GL).
+    
+    ELSE IF GlossaryType:SCREEN-VALUE = "d":U THEN 
+      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE 
+        bXLGloss.GlossaryName = s_Glossary and
+        bXLGloss.GlossaryType = "d":U share-lock  
+        by bXLGloss.ShortSrc by bXLGloss.ShortTarg.
+    ELSE IF GlossaryType:SCREEN-VALUE = "C":U THEN 
+      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE 
+        bXLGloss.GlossaryName = s_Glossary AND
+        bXLGloss.GlossaryType = "c":U  SHARE-LOCK
+        BY bXLGloss.ShortSrc BY bXLGloss.ShortTarg.
+    ELSE
+      OPEN QUERY GlossBrowser FOR EACH bXLGloss WHERE
+        bXLGloss.GlossaryName = s_Glossary SHARE-LOCK
+        BY bXLGloss.ShortSrc BY bXLGloss.ShortTarg.
+         
+
+    ASSIGN 
+       tGlss = IF AVAILABLE bXLGLoss THEN 
+                  ROWID(bXLGloss) ELSE ?
+       glossDetROWID = tGlss.
+
+    IF MaxGuess > 0 THEN GlossBrowser:MAX-DATA-GUESS = MaxGuess.  
+      
+    IF OrdMode3 = "" THEN RUN CreateOrdList.
+
+    RUN adecomm/_setcurs.p ("").
+END.
+END PROCEDURE.
+
+
+PROCEDURE realize :
+  DO WITH FRAME {&FRAME-NAME}:     
+    ENABLE 
+      GlossBrowser
+      BtnAdd 
+    WITH FRAME {&FRAME-NAME} IN WINDOW _MainWindow.  
+    
+    RUN adetran/pm/_getproj.p (OUTPUT glossarylist, OUTPUT kitlist, OUTPUT ErrorStatus).   
+    glossarylist = TRIM(glossarylist,"").
+  
+    ASSIGN      
+      GlossaryName              = IF glossarylist <> "" 
+                                  THEN glossarylist ELSE "(None)":U
+      GlossaryName:LIST-ITEMS   = TRIM(REPLACE(GlossaryName,CHR(10),""))
+      GlossaryName:SCREEN-VALUE = IF s_Glossary <> "" AND 
+                                    LOOKUP(s_Glossary,GlossaryName:LIST-ITEMS) > 0
+                                  THEN s_Glossary
+                                  ELSE GlossaryName:ENTRY(1)
+      GlossaryName:SENSITIVE    = GlossaryName:SCREEN-VALUE <> "(None)":U.
+ 
+   
+    IF GlossaryList <> ? AND GlossaryList <> "" THEN
+      ASSIGN GlossaryType:SENSITIVE = TRUE
+             BtnRemove:SENSITIVE    = TRUE.
+    ELSE
+      ASSIGN GlossaryType:SENSITIVE = FALSE
+             BtnRemove:SENSITIVE    = FALSE.
+
+
+    APPLY "VALUE-CHANGED":U TO GlossaryName.  
+    FRAME {&FRAME-NAME}:HIDDEN = FALSE.  
+  END.  
+END PROCEDURE.
+
+
+PROCEDURE OrderColumn :
+    {adetran/common/_order.i GlossBrowser} 
+END PROCEDURE.  
+
+PROCEDURE CreateOrdList :
+  DEFINE VARIABLE tBrColWH     AS WIDGET-HANDLE NO-UNDO.
+  DEFINE VARIABLE tListItems   AS CHARACTER NO-UNDO.
+
+  DO WITH FRAME {&FRAME-NAME}:
+
+    ASSIGN tBrColWH   = GlossBrowser:FIRST-COLUMN
+           tListItems = "".
+                   
+    DO WHILE tBrColWH <> ?:  
+      ASSIGN tListItems = tListItems + "," +  tBrColWh:LABEL                                   
+             tBrColWH   = tBrColWH:NEXT-COLUMN.
+    END.
+               
+    ASSIGN tListItems = TRIM(tListItems,",")
+           tListItems = REPLACE(tListItems,"!","")
+           OrdMode3 = tListItems.
+   END.     
+END PROCEDURE.                                                          
+
+
+
+PROCEDURE CountEntries:           
+  DEFINE INPUT  PARAMETER pGlossary AS CHARACTER NO-UNDO.
+  DEFINE OUTPUT PARAMETER pEntries  AS INTEGER NO-UNDO.
+  
+  i = 0.
+  FOR EACH xlatedb.XL_GlossDet NO-LOCK WHERE
+    xlatedb.XL_GlossDet.GlossaryName = pGlossary:
+    i = i + 1.
+  END.
+  pEntries = i.
+END PROCEDURE.
+
+PROCEDURE UpdateGlossaryCount : 
+  DEFINE INPUT PARAMETER pOperation AS CHARACTER NO-UNDO.
+  
+  /* *** 11/99 tomn: Shouldn't be necessary; CREATE schema trigger should do this! */
+  DO TRANSACTION ON ERROR UNDO, LEAVE:
+    /* update the total number of procedures in the xl_project
+       table as well as on the project frame  */      
+    FIND xlatedb.XL_Glossary WHERE xlatedb.XL_Glossary.GlossaryName = s_Glossary 
+                             EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE xlatedb.XL_Glossary THEN DO:
+      IF pOperation = "Addition":U THEN
+        xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount + 1.
+    END.
+  END.  /* TRANSACTION */
+
+  FIND CURRENT xlatedb.XL_Glossary NO-LOCK NO-ERROR.  /* downgrade lock */
+END PROCEDURE.
+
+
+PROCEDURE SortQuery :
+  DEFINE INPUT PARAMETER pTempFile AS CHARACTER NO-UNDO. 
+
+  IF pTempFile NE TmpFl_PM_Gl THEN DO:
+    IF TmpFl_PM_Gl NE "" THEN OS-DELETE VALUE(TmpFl_PM_Gl).
+    TmpFl_PM_Gl = pTempFile.
+  END.
+
+  IF VALID-HANDLE(_hSort) THEN DELETE PROCEDURE _hSort.  
+  RUN VALUE(pTempFile) PERSISTENT SET _hSort. 
+  IF VALID-HANDLE(_hSort) THEN _hSort:PRIVATE-DATA = CurrentTool.
+  FIND xlatedb.XL_Glossary WHERE
+       xlatedb.XL_Glossary.GlossaryName = s_Glossary NO-ERROR.
+  IF AVAILABLE xlatedb.XL_Glossary AND xlatedb.XL_Glossary.GlossaryCount > 0 THEN
+    GlossBrowser:max-data-guess IN FRAME {&FRAME-NAME} = xlatedb.XL_Glossary.GlossaryCount.  
+    
+END PROCEDURE.   
+
+PROCEDURE DeleteRow :   
+  DEFINE VARIABLE DeleteCnt AS INTEGER NO-UNDO.
+  IF GlossBrowser:NUM-SELECTED-ROWS IN FRAME {&FRAME-NAME} < 1 THEN DO:
+    ThisMessage = "You must select a row first.".
+    RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "ok":U, ThisMessage).   
+    RETURN. 
+  END.
+
+  ThisMessage = "Delete selected rows?".
+  RUN adecomm/_s-alert.p (INPUT-OUTPUT ErrorStatus, "q*":U, "yes-no":U, ThisMessage).    
+  IF NOT ErrorStatus THEN RETURN.
+                      
+  tModFlag = yes.                      
+  DO WITH FRAME GlossFrame:
+    DO i = GlossBrowser:NUM-SELECTED-ROWS TO 1 BY -1:   
+      DeleteCnt = DeleteCnt + 1. 
+      result = GlossBrowser:FETCH-SELECTED-ROW(i).   
+      IF AVAILABLE bXLGloss THEN DELETE bXLGloss. 
+      RUN UpdateGlossaryCount ("Subtraction":U).  
+    END.  
+    result = GlossBrowser:DELETE-SELECTED-ROWS().              
+ 
+    FIND xlatedb.XL_Glossary 
+      WHERE xlatedb.XL_Glossary.GlossaryName = s_Glossary EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE xlatedb.XL_Glossary THEN
+      xlatedb.XL_Glossary.GlossaryCount = xlatedb.XL_Glossary.GlossaryCount - DeleteCnt.
+
+    RUN SetSensitivity in _hMain.
+  END.      
+END PROCEDURE. 
+
+PROCEDURE Ref: 
+  DEFINE INPUT PARAMETER pRowid AS ROWID NO-UNDO. 
+   
+  tLog = GlossBrowser:REFRESH() IN FRAME {&FRAME-NAME}.
+  IF pRowid <> ? THEN DO: 
+    tlog = GlossBrowser:set-repositioned-row(INTEGER(GlossBrowser:NUM-ITERATIONS / 2),
+                                                     "CONDITIONAL":U) IN FRAME {&FRAME-NAME}.
+    REPOSITION GlossBrowser TO ROWID pRowid NO-ERROR.
+    FIND FIRST bXLGloss WHERE ROWID(bXLGloss) = pRowid NO-ERROR.
+  END.   
+END PROCEDURE.  
+
+
+PROCEDURE Repo :
+  DEFINE INPUT PARAMETER pRowid AS ROWID                                    NO-UNDO.
+  DEFINE INPUT PARAMETER pRow   AS INTEGER                                  NO-UNDO.
+
+  IF pRowid = ? THEN                  
+    REPOSITION GlossBrowser TO ROW pRow NO-ERROR.
+  ELSE DO:
+    tlog = GlossBrowser:SET-REPOSITIONED-ROW(INTEGER(GlossBrowser:NUM-ITERATIONS / 2),
+                                             "CONDITIONAL":U) IN FRAME {&FRAME-NAME}.
+    REPOSITION GlossBrowser TO ROWID pRowid NO-ERROR.
+  END.  
+END PROCEDURE.   
+
+
+PROCEDURE Store-Long-String:
+  DEFINE INPUT PARAMETER src AS CHARACTER               NO-UNDO.
+  DEFINE INPUT PARAMETER trg AS CHARACTER               NO-UNDO.
+  
+  /* First make sure that we are still on the correct row of the browse  */
+  IF NOT AVAILABLE (bXLGloss) THEN RETURN.
+  IF bXLGloss.SourcePhrase NE src THEN RETURN.
+  IF trg = ? THEN RETURN.
+
+  ASSIGN bXLGloss.TargetPhrase              = trg
+         bXLGloss.TargetPhrase:SCREEN-VALUE IN BROWSE GlossBrowser = trg
+         bXLGloss.ShortTarg                 = SUBSTRING(TRIM(trg), 1, 63, "RAW":U).
+  
+END PROCEDURE. /* Store-Long-String */
+
+
+PROCEDURE EnableFrame :   
+  DEFINE INPUT PARAMETER pMode AS LOGICAL NO-UNDO.
+  FRAME {&FRAME-NAME}:SENSITIVE = pMode.
+END PROCEDURE.
+
+PROCEDURE rowLeave.ip:
+/* CREATE PROCEDURE because a simple APPLY ROW-LEAVE would be undone when we
+ * returned to the calling procedure for the menu option
+ */
+  DEFINE VARIABLE tRec  AS ROWID                             NO-UNDO.
+  DEFINE VARIABLE ss    AS CHARACTER                         NO-UNDO.
+  DEFINE VARIABLE st    AS CHARACTER                         NO-UNDO.
+
+  DO WITH FRAME {&FRAME-NAME}:  
+  /* if this is a new row then before adding, insure that it doesn't already exists. */  
+    ASSIGN ss = bXLGloss.SourcePhrase:SCREEN-VALUE IN BROWSE GlossBrowser
+           st = bXLGloss.TargetPhrase:SCREEN-VALUE IN BROWSE GlossBrowser
+    .
+
+  IF GlossBrowser:NEW-ROW THEN DO:
+    FIND bXLGloss WHERE
+         bXLGloss.ShortSrc     BEGINS SUBSTRING(ss, 1, 63, "RAW":U) AND
+         bXLGloss.ShortTarg    BEGINS SUBSTRING(st, 1, 63, "RAW":U) AND
+         bXLGloss.SourcePhrase MATCHES ss AND
+         bXLGloss.TargetPhrase MATCHES st EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE bXLGloss THEN DO:
+      ThisMessage = '"':U + ss + '"^"':U + st + '"^^':U + "Exists and won't be entered.".
+      RUN adecomm/_s-alert.p (input-output ErrorStatus, "w*":U, "ok":U, ThisMessage).   
+      result = GlossBrowser:REFRESH().
+    END.
+    ELSE DO:
+      CREATE bXLGloss NO-ERROR.
+      ASSIGN bXLGloss.GlossaryName         = s_Glossary
+             bXLGloss.GlossaryType         = "D":U
+             bXLGloss.ModifiedByTranslator = NO
+             bXLGloss.SourcePhrase         = ss
+             bXLGloss.TargetPhrase         = st
+             bXLGloss.ShortSrc             = SUBSTRING(ss, 1, 63, "RAW":U)
+             bXLGloss.ShortTarg            = SUBSTRING(st, 1, 63, "RAW":U)
+             ResetQuery                    = TRUE
+             tRec                          = ROWID(bXLGloss).
+      RUN OpenQuery.
+      RUN Ref (INPUT tRec).
+    END.  /* ELSE DO */
+  END. /* If a new row */
+  ELSE
+  DO:
+     IF AVAILABLE bXLGloss THEN
+        ASSIGN
+	   bXLGloss.SourcePhrase         = ss
+           bXLGloss.TargetPhrase         = st
+           bXLGloss.ShortSrc             = SUBSTRING(ss, 1, 63, "RAW":U)
+           bXLGloss.ShortTarg            = SUBSTRING(st, 1, 63, "RAW":U).
+  END.
+  IF firstRecord THEN ASSIGN firstRecord = NO.
+  RUN SetSensitivity IN _hMain.
+END.
+END PROCEDURE.

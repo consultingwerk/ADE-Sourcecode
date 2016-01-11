@@ -22,7 +22,6 @@
 15271.81 15269.81 1007500101.09 1 "&Details01" "&Details" "Details" yes yes yes
 15323.81 15321.81 1007500101.09 1 "&Generate01" "&Generate" "Generate" yes yes yes
 16244.53 16218.53 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
-17071.5053 17066.5053 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 17144.0766 17139.0766 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 17274.0766 17269.0766 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 17439.0766 17434.0766 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
@@ -39,6 +38,15 @@
 36129.3993 36124.3993 1007500101.09 4 "&Logging04" "&Logging" "Logging" yes yes yes
 50736.9875 50377.9875 1007500101.09 1 "&Preferences01" "&Preferences" "Preference" yes yes yes
 90305.9875 90299.9875 1007500101.09 1 "&Details01" "&Details" "Details" yes yes yes
+95814.48 95812.48 1007500101.09 1 "&Details01" "&Class" "&Class" yes yes yes
+95815.48 95812.48 1007500101.09 2 "&Attributes02" "&Attributes" "&Attributes" yes yes yes
+95816.48 95812.48 1007500101.09 3 "E&vents03" "E&vents" "E&vents" yes yes yes
+95817.48 95812.48 1007500101.09 4 "Supported &Links04" "Suppor&ted Links" "Suppor&ted Links" yes yes yes
+95819.48 95812.48 1007500101.09 5 "&SCM Xref06" "&SCM Xref" "SCM Xref" yes yes yes
+96177.48 96175.48 1007500101.09 1 "Attribute Detail01" "Description" "Description" yes yes yes
+96178.48 96175.48 1007500101.09 2 "Advanced02" "Advanced" "Advanced" yes yes yes
+96179.48 96175.48 1007500101.09 4 "Usage03" "Where Used" "Where Used" yes yes yes
+99891.48 96175.48 1007500101.09 3 "Design03" "Design" "Design" yes yes yes
 122498.9875 122289.9875 1007500101.09 1 "&Details01" "&Details" "Details" yes yes yes
 122501.9875 122289.9875 1007500101.09 2 "&Filter02" "F&ilter" "Filter" yes yes yes
 124211.9875 124155.9875 1007500101.09 1 "&Details01" "&Details" "Details" yes yes yes
@@ -69,7 +77,6 @@
 1000000953.48 1000000943.48 1007500101.09 7 "Logging06" "Logging" "Logging" yes yes yes
 1000003107.48 1000000943.48 1007500101.09 2 "SCM02" "SCM" "SCM" yes yes yes
 1000005869.48 1000005864.48 1007500101.09 1 "Details01" "Details" "Details" yes yes yes
-1000009561.81 1004913610.09 1007500101.09 2 "&SCM Xref02" "&SCM Xref" "SCM Xref" yes yes yes
 1003584684 1003584635 1003201406 1 "General01" "General" "" yes yes yes
 1003584709 1003584635 1003201406 2 "Multi Window02" "Multi Window" "" yes yes yes
 1004021651 1004021484 1004899067 1 "&Lookup01" "&Lookup" "&Lookup" yes yes yes
@@ -106,8 +113,6 @@
 1004898535.09 1004898370.09 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
 1004899420.09 1004899255.09 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
 1004899603.09 1004899438.09 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
-1004900887.09 1004883883.09 1003501078 1 "Details01" "Details" "Details" yes yes yes
-1004900889.09 1004883883.09 1003501078 2 "Filter02" "Filter" "Filter" yes yes yes
 1004903618.09 1004901129.09 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 1004903620.09 1004901129.09 1007500101.09 2 "&Session Services02" "&Session Services" "&Session Services" yes yes yes
 1004903622.09 1004901129.09 1007500101.09 3 "Ser&vice03" "Ser&vice" "Ser&vice" yes yes yes
@@ -117,7 +122,6 @@
 1004908419.09 1004830646.09 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 1004908421.09 1004830646.09 1007500101.09 4 "&Password History02" "&Password History" "&Password History" yes yes yes
 1004908423.09 1004830646.09 1007500101.09 5 "&Cascade03" "&Cascade" "&Cascade" yes yes yes
-1004914427.09 1004913610.09 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 1004916661.09 1004914665.09 1007500101.09 1 "&Details01" "&Details" "&Details" yes yes yes
 1004916663.09 1004914665.09 1007500101.09 2 "&Session Type Properties02" "&Session Type Properties" "&Session Type Properties" yes yes yes
 1004916665.09 1004914665.09 1007500101.09 3 "&Property03" "&Property" "&Property" yes yes yes
@@ -149,7 +153,6 @@
 1005122402.101 1005121802.101 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
 1005122548.101 1005122198.101 1004899067 1 "&Detail01" "&Detail" "&Detail" yes yes yes
 1005122612.101 1005122127.101 1004899067 1 "&Detail01" "&Detail" "&Detail" yes yes yes
-1005124719.101 1005124662.101 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
 1005124803.101 1005119638.101 1003501078 1 "&Details01" "&Details" "&Details" yes yes yes
 1005125737.101 1005125685.101 1004899067 1 "&Detail01" "&Detail" "&Detail" yes yes yes
 1007600089.09 1005118440.101 1003501078 2 "&More02" "&More" "" yes yes yes
@@ -177,12 +180,12 @@
 .
 PSC
 filename=ryc_page
-records=0000000000176
+records=0000000000179
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:49
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000016649
+0000016892

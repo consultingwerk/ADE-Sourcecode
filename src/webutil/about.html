@@ -1,63 +1,63 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<!----------------------------------------------------------------------
-  * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-  * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-  * below.  All Rights Reserved.                                       *
-  *                                                                    * 
-  * The Initial Developer of the Original Code is PSC.  The Original   *
-  * Code is Progress IDE code released to open source December 1, 2000.*
-  *                                                                    *
-  * The contents of this file are subject to the Possenet Public       *
-  * License Version 1.0 (the "License"); you may not use this file     *
-  * except in compliance with the License.  A copy of the License is   *
-  * available as of the date of this notice at                         *
-  * http://www.possenet.org/license.html                               *
-  *                                                                    *
-  * Software distributed under the License is distributed on an "AS IS"*
-  * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-  * should refer to the License for the specific language governing    *
-  * rights and limitations under the License.                          *
-  *                                                                    *
-  * Contributors:                                                      *
-  *                                                                    *
-  --------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META NAME="author" CONTENT="Douglas M. Adams">
-<META NAME="wsoptions" CONTENT="compile">
-<TITLE>About Editor</TITLE>
-</HEAD>
-
-<BODY BACKGROUND="`RootURL`/images/bgr/wsbgr.gif" BGCOLOR="#FFFFCC"
-  onBlur="window.focus()">
-<TABLE>
-  <TR>
-    <TD VALIGN="top"><IMG SRC="`RootURL`/images/results.gif"></TD>
-    <TD><B>`get-field("product")`</B><BR>
-      <FONT SIZE=-1>Version `PROVERSION`<BR>
-      Copyright(c) 1984-2000 Progress Software Corp.<BR>
-      All rights reserved<BR>
-      <HR>
-      <SCRIPT LANGUAGE="SpeedScript">
-        /* If this is MS-WINDOWS, go out and make some WIN API calls */
-        DEFINE VARIABLE cMachine AS CHARACTER NO-UNDO.
-        DEFINE VARIABLE cMemory  AS CHARACTER NO-UNDO.
-        IF OPSYS BEGINS "WIN":U THEN
-          RUN adecomm/_winsys.p (OUTPUT cMachine, OUTPUT cMemory).
-        ELSE
-          ASSIGN cMachine = 'Use the "showcfg" utility at the operating'
-                 cMemory  = 'system prompt for licensing information.'.
-      </SCRIPT>
-      `cMachine`<BR>
-      `cMemory`</FONT>
-      <HR>
-    </TD>
-  </TR>
-</TABLE>
-<CENTER>
-<FORM>
-  <INPUT TYPE="button" VALUE="  OK  " onClick="window.close()">
-</FORM>
-</CENTER>
-</BODY>
-</HTML>
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!----------------------------------------------------------------------
+  * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+  * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+  * below.  All Rights Reserved.                                       *
+  *                                                                    * 
+  * The Initial Developer of the Original Code is PSC.  The Original   *
+  * Code is Progress IDE code released to open source December 1, 2000.*
+  *                                                                    *
+  * The contents of this file are subject to the Possenet Public       *
+  * License Version 1.0 (the "License"); you may not use this file     *
+  * except in compliance with the License.  A copy of the License is   *
+  * available as of the date of this notice at                         *
+  * http://www.possenet.org/license.html                               *
+  *                                                                    *
+  * Software distributed under the License is distributed on an "AS IS"*
+  * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+  * should refer to the License for the specific language governing    *
+  * rights and limitations under the License.                          *
+  *                                                                    *
+  * Contributors:                                                      *
+  *                                                                    *
+  --------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META NAME="author" CONTENT="Douglas M. Adams">
+<META NAME="wsoptions" CONTENT="compile">
+<TITLE>About Editor</TITLE>
+</HEAD>
+
+<BODY BACKGROUND="`RootURL`/images/bgr/wsbgr.gif" BGCOLOR="#FFFFCC"
+  onBlur="window.focus()">
+<TABLE>
+  <TR>
+    <TD VALIGN="top"><IMG SRC="`RootURL`/images/results.gif"></TD>
+    <TD><B>`get-field("product")`</B><BR>
+      <FONT SIZE=-1>Version `PROVERSION`<BR>
+      Copyright(c) 1984-2003 Progress Software Corp.<BR>
+      All rights reserved<BR>
+      <HR>
+      <SCRIPT LANGUAGE="SpeedScript">
+        /* If this is MS-WINDOWS, go out and make some WIN API calls */
+        DEFINE VARIABLE cMachine AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE cMemory  AS CHARACTER NO-UNDO.
+        IF OPSYS BEGINS "WIN":U THEN
+          RUN adecomm/_winsys.p (OUTPUT cMachine, OUTPUT cMemory).
+        ELSE
+          ASSIGN cMachine = 'Use the "showcfg" utility at the operating'
+                 cMemory  = 'system prompt for licensing information.'.
+      </SCRIPT>
+      `cMachine`<BR>
+      `cMemory`</FONT>
+      <HR>
+    </TD>
+  </TR>
+</TABLE>
+<CENTER>
+<FORM>
+  <INPUT TYPE="button" VALUE="  OK  " onClick="window.close()">
+</FORM>
+</CENTER>
+</BODY>
+</HTML>

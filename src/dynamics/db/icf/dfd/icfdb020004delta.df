@@ -1,2114 +1,2114 @@
-ADD TABLE "gsc_deploy_package"
-  AREA "Schema Area"
-  DESCRIPTION "This table facilitates defining groups of datasets that should be deployed together as a single package. This enables users to ensure they send all related datasets inclduing related / dependant data that has also changed."
-  DUMP-NAME "gscdp"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscdptrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscdptrigd.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscdptrigw.p" CRC "?" 
-
-ADD FIELD "deploy_package_obj" OF "gsc_deploy_package" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deploy Package Obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deploy package obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "package_code" OF "gsc_deploy_package" AS character 
-  DESCRIPTION "A unique code to identify the package"
-  FORMAT "X(10)"
-  INITIAL ""
-  LABEL "Package Code"
-  POSITION 3
-  SQL-WIDTH 20
-  VALMSG "s_code"
-  HELP "Package code"
-  ORDER 20
-
-ADD FIELD "package_description" OF "gsc_deploy_package" AS character 
-  DESCRIPTION "A description of the package."
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Package Description"
-  POSITION 4
-  SQL-WIDTH 140
-  VALMSG "s_big_description"
-  HELP "Package description"
-  ORDER 30
-
-ADD INDEX "XPKgsc_deploy_package" ON "gsc_deploy_package" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "deploy_package_obj" ASCENDING 
-
-ADD INDEX "XAK1gsc_deploy_package" ON "gsc_deploy_package" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "package_code" ASCENDING 
-
-ADD INDEX "XIE1gsc_deploy_package" ON "gsc_deploy_package" 
-  AREA "Schema Area"
-  INDEX-FIELD "package_description" ASCENDING 
-
-ADD TABLE "gsc_package_dataset"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines the datasets that should be included with a package. A dataset may be included in multiple packages."
-  DUMP-NAME "gscpd"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigd.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigw.p" CRC "?" 
-
-ADD FIELD "package_dataset_obj" OF "gsc_package_dataset" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Package Dataset Obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Package dataset obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "deploy_dataset_obj" OF "gsc_package_dataset" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deploy Dataset Obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deploy dataset obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "deploy_package_obj" OF "gsc_package_dataset" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deploy Package Obj"
-  POSITION 4
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deploy package obj"
-  DECIMALS 9
-  ORDER 30
-
-ADD FIELD "deploy_full_data" OF "gsc_package_dataset" AS logical 
-  DESCRIPTION "If set to yes, this field indicates that the entire set of records contained in this primary and related tables must be deployed - i.e. ignore whether the data has changed or not, just always deploy all the data.
-
-Note that any filter criteria in the filter_where_clause on the gsc_dataset_entity will still be honored."
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Deploy Full Data"
-  POSITION 5
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Deploy full data"
-  ORDER 40
-
-ADD INDEX "XPKgsc_package_dataset" ON "gsc_package_dataset" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "package_dataset_obj" ASCENDING 
-
-ADD TABLE "gst_dataset_file"
-  AREA "Schema Area"
-  DESCRIPTION "This table keeps a record of ADO files generated for a dataset. A single dataset may be generated out to multiple ADO files.
-
-The purpose of this table is to record the date and time this dataset ADO file was last loaded into the current repository. Checks will be made against the file date on disk to see whether a new files has been downloaded from POSSE and needs to be updated into the local repository.
-
-If an ADO file is included as part of a package, this table records the package that the ADO file belongs to."
-  DUMP-NAME "gstdf"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstdftrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstdftrigd.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstdftrigw.p" CRC "?" 
-
-ADD FIELD "dataset_file_obj" OF "gst_dataset_file" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Dataset File Obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Dataset file obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "deployment_obj" OF "gst_dataset_file" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deployment Obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deployment obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "deploy_dataset_obj" OF "gst_dataset_file" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deploy Dataset Obj"
-  POSITION 4
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deploy dataset obj"
-  DECIMALS 9
-  ORDER 30
-
-ADD FIELD "ado_filename" OF "gst_dataset_file" AS character 
-  DESCRIPTION "This is the name of the generated ADO file, complete with relative path and extension.
-
-If the ADO file forms part of a deployment package, the ADO file name is constructed from the default_ado_filename, the package code and the deployment number."
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Ado Filename"
-  POSITION 5
-  SQL-WIDTH 140
-  VALMSG "s_file_name"
-  HELP "Ado filename"
-  ORDER 40
-
-ADD FIELD "loaded_date" OF "gst_dataset_file" AS date 
-  DESCRIPTION "This field contains the date that the ado file was imported into the target repository.
-"
-  FORMAT "99/99/9999"
-  INITIAL "TODAY"
-  LABEL "Loaded Date"
-  POSITION 6
-  SQL-WIDTH 4
-  VALMSG "d_date_today"
-  HELP "Loaded date"
-  ORDER 50
-
-ADD FIELD "loaded_time" OF "gst_dataset_file" AS integer 
-  DESCRIPTION "This field contains the time that the ado file was imported into the target repository.
-"
-  FORMAT ">>>>9"
-  INITIAL "0"
-  LABEL "Loaded Time"
-  POSITION 7
-  SQL-WIDTH 4
-  VALMSG "n_time"
-  HELP "Loaded time"
-  ORDER 60
-
-ADD INDEX "XPKgst_dataset_file" ON "gst_dataset_file" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "dataset_file_obj" ASCENDING 
-
-ADD INDEX "XAK1gst_dataset_file" ON "gst_dataset_file" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "deployment_obj" ASCENDING 
-  INDEX-FIELD "deploy_dataset_obj" ASCENDING 
-  INDEX-FIELD "ado_filename" ASCENDING 
-
-ADD INDEX "XIE2gst_dataset_file" ON "gst_dataset_file" 
-  AREA "Schema Area"
-  INDEX-FIELD "deploy_dataset_obj" ASCENDING 
-
-ADD INDEX "XIE3gst_dataset_file" ON "gst_dataset_file" 
-  AREA "Schema Area"
-  INDEX-FIELD "ado_filename" ASCENDING 
-  INDEX-FIELD "loaded_date" ASCENDING 
-  INDEX-FIELD "loaded_time" ASCENDING 
-
-ADD TABLE "gst_deployment"
-  AREA "Schema Area"
-  DESCRIPTION "This table defines an instance of a deployment package, from a particular site. Records in this table may be manually created for the curent site, or may be imported as part of loading a deployment package from an external site."
-  DUMP-NAME "gstdp"
-  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstdptrigc.p" CRC "?" 
-  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstdptrigd.p" CRC "?" 
-  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstdptrigw.p" CRC "?" 
-
-ADD FIELD "deployment_obj" OF "gst_deployment" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deployment Obj"
-  POSITION 2
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deployment obj"
-  DECIMALS 9
-  ORDER 10
-
-ADD FIELD "deploy_package_obj" OF "gst_deployment" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Deploy Package Obj"
-  POSITION 3
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Deploy package obj"
-  DECIMALS 9
-  ORDER 20
-
-ADD FIELD "originating_site_number" OF "gst_deployment" AS integer 
-  DESCRIPTION "This is the site number of the site that created the deployment package. This field will be set automatically from the current site number, or will be as imported from the contents of an incoming package."
-  FORMAT "->>>>>>>9"
-  INITIAL "0"
-  LABEL "Originating Site Number"
-  POSITION 4
-  SQL-WIDTH 4
-  VALMSG "n_integer_9"
-  HELP "Originating site number"
-  ORDER 30
-
-ADD FIELD "deployment_number" OF "gst_deployment" AS integer 
-  DESCRIPTION "This is a sequential number starting from 1 within each dataset within a site. It identifies the order the dataset deployments were produced and uniquely identifies the deployment for the dataset."
-  FORMAT "->>>>>>>9"
-  INITIAL "0"
-  LABEL "Deployment Number"
-  POSITION 5
-  SQL-WIDTH 4
-  VALMSG "n_integer_9"
-  HELP "Deployment number"
-  ORDER 40
-
-ADD FIELD "deployment_description" OF "gst_deployment" AS character 
-  DESCRIPTION "A free text description of the deployment, possibly including the reason for the deployment."
-  FORMAT "X(500)"
-  INITIAL ""
-  LABEL "Deployment Description"
-  POSITION 6
-  SQL-WIDTH 1000
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
-  VALMSG "s_small_text_block"
-  HELP "Deployment description"
-  ORDER 50
-
-ADD FIELD "deployment_date" OF "gst_deployment" AS date 
-  DESCRIPTION "The date the deployment was created."
-  FORMAT "99/99/9999"
-  INITIAL "TODAY"
-  LABEL "Deployment Date"
-  POSITION 7
-  SQL-WIDTH 4
-  VALMSG "d_date_today"
-  HELP "Deployment date"
-  ORDER 60
-
-ADD FIELD "deployment_time" OF "gst_deployment" AS integer 
-  DESCRIPTION "The time the deployment was created."
-  FORMAT ">>>>9"
-  INITIAL "0"
-  LABEL "Deployment Time"
-  POSITION 8
-  SQL-WIDTH 4
-  VALMSG "n_time"
-  HELP "Deployment time"
-  ORDER 70
-
-ADD FIELD "baseline_deployment" OF "gst_deployment" AS logical 
-  DESCRIPTION "If this is set to YES then it is a baseline deployment and the xml file will contain all the records in all the tables included in the dataset. If NO, it will only contain records that have changed since the last deployment, as idenitified by the information in the gst_record_version table. This version table will only contain version records if the data in the table is being versioned. If data is not being versioned, then the xml file will always have to contain the full data in the table.
-"
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Baseline Deployment"
-  POSITION 9
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Baseline deployment"
-  ORDER 80
-
-ADD FIELD "manual_record_selection" OF "gst_deployment" AS logical 
-  DESCRIPTION "If set to NO, then the gst_record_version table was used to identify the modified records since the last baseline to include in the deployment package.
-
-If set to YES, then records to include in the package were selected manually.
-"
-  FORMAT "YES/NO"
-  INITIAL "NO"
-  LABEL "Manual Record Selection"
-  POSITION 10
-  SQL-WIDTH 1
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  VALMSG "l_noyes"
-  HELP "Manual record selection"
-  ORDER 90
-
-ADD FIELD "package_control_file" OF "gst_deployment" AS character 
-  DESCRIPTION "A control file will be created with the deployment package, with an extsion of .pdo.
-
-This file will contain a list of all the .ado's that make up the package and have to be loaded. It also contains all the gst_record_version records affected by this package, to speed up the identification of potential clashes.
-
-The defauly name is the package code, plus the site number, plus the deployment number with an extension of .pdo
-"
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Package Control File"
-  POSITION 11
-  SQL-WIDTH 140
-  VALMSG "s_file_name"
-  HELP "Package control file"
-  ORDER 100
-
-ADD FIELD "package_exception_file" OF "gst_deployment" AS character 
-  DESCRIPTION "The name of an exception file to contain the list of the .ado's that failed to load."
-  FORMAT "X(70)"
-  INITIAL ""
-  LABEL "Package Exception File"
-  POSITION 12
-  SQL-WIDTH 140
-  VALMSG "s_file_name"
-  HELP "Package exception file"
-  ORDER 110
-
-ADD FIELD "load_after_deployment_obj" OF "gst_deployment" AS decimal 
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  INITIAL "0"
-  LABEL "Load After Deployment Obj"
-  POSITION 13
-  SQL-WIDTH 24
-  VALMSG "o_obj"
-  HELP "Load after deployment obj"
-  DECIMALS 9
-  ORDER 120
-
-ADD INDEX "XPKgst_deployment" ON "gst_deployment" 
-  AREA "Schema Area"
-  UNIQUE
-  PRIMARY
-  INDEX-FIELD "deployment_obj" ASCENDING 
-
-ADD INDEX "XAK1gst_deployment" ON "gst_deployment" 
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "deploy_package_obj" ASCENDING 
-  INDEX-FIELD "originating_site_number" ASCENDING 
-  INDEX-FIELD "deployment_number" ASCENDING 
-
-ADD INDEX "XIE1gst_deployment" ON "gst_deployment" 
-  AREA "Schema Area"
-  INDEX-FIELD "load_after_deployment_obj" ASCENDING 
-
-UPDATE FIELD "custom_procedure_obj" OF "gsc_custom_procedure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsc_custom_procedure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "dataset_entity_obj" OF "gsc_dataset_entity"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsc_dataset_entity"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-ADD FIELD "delete_related_records" OF "gsc_dataset_entity" AS logical
-  DESCRIPTION "If set to YES, any records for this dataset entity related to the parent entity will be deleted. If set to NO, records in this entity will not be deleted before applying the new dataset records.
-
-For example, a dataset linking objects and menu items would typically not want to first delete the menu item records so that user defined menu items are preserved, whereas a dataset relating entity mnemonics to entity display fields would require the deletion of existing data first before applying the new set.
-
-If delete_related_records is YES then overwrite_records must also be YES.
-
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 10
-  INITIAL "YES"
-  INITIAL-SA ?
-  HELP "Delete related records"
-  HELP-SA ""
-  LABEL "Delete Related Records"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_yesno"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 90
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD FIELD "overwrite_records" OF "gsc_dataset_entity" AS logical
-  DESCRIPTION "If set to YES and a record corresponding to a record in the dataset is found in the target repository, then the contents of the record will be overwritten with the contents of the dataset.
-
-If set to NO, the repository record will be left intact if it already exists. 
-
-Typically this flag would be set to YES, but in the case of sequences for example, it would be set to NO so as not to overwrite sequence current values in the target repository.
-
-If delete_related_records is YES then overwrite_records must also be YES.
-
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 11
-  INITIAL "YES"
-  INITIAL-SA ?
-  HELP "Overwrite records"
-  HELP-SA ""
-  LABEL "Overwrite Records"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_yesno"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 100
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-ADD FIELD "keep_own_site_data" OF "gsc_dataset_entity" AS logical
-  DESCRIPTION "This is used in conjunction with the delete_related_records flag and is only applicable if this is set to YES.
-
-If set to YES, then any data for the current site number will not be deleted, e.g. to preserve own menu items.
-"
-  FORMAT "YES/NO"
-  FORMAT-SA ?
-  POSITION 12
-  INITIAL "NO"
-  INITIAL-SA ?
-  HELP "Keep own site data"
-  HELP-SA ""
-  LABEL "Keep Own Site Data"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "l_noyes"
-  VALMSG-SA ""
-  VIEW-AS "VIEW-AS TOGGLE-BOX"
-  EXTENT 0
-  DECIMALS ?
-  ORDER 110
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 1
-
-UPDATE FIELD "default_code_obj" OF "gsc_default_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_set_obj" OF "gsc_default_set"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsc_default_set_usage"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_set_usage_obj" OF "gsc_default_set_usage"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-ADD INDEX "XIE1gsc_default_set_usage" ON "gsc_default_set_usage"
-  AREA "Schema Area"
-  INDEX-FIELD "default_set_usage_obj" ASCENDING
-
-UPDATE FIELD "delivery_method_obj" OF "gsc_delivery_method"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "delivery_custom_procedure_obj" OF "gsc_delivery_method"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsc_deploy_dataset"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "dataset_description" OF "gsc_deploy_dataset"
-  FORMAT "X(500)"
-  VALMSG "s_small_text_block"
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
-  SQL-WIDTH 1000
-
-ADD FIELD "default_ado_filename" OF "gsc_deploy_dataset" AS character
-  DESCRIPTION "This is the default name of the ADO file containing the dumped data in the deployment, including data from all tables identified in the dataset.
-
-If not specified, the ADO filename will be structured based on the owning site code and the dataset code together, with no extension.
-"
-  FORMAT "X(70)"
-  FORMAT-SA ?
-  POSITION 10
-  INITIAL ""
-  INITIAL-SA ?
-  HELP "Default ado filename"
-  HELP-SA ""
-  LABEL "Default Ado Filename"
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "s_file_name"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS ?
-  ORDER 90
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 140
-
-ADD INDEX "XAK2gsc_deploy_dataset" ON "gsc_deploy_dataset"
-  AREA "Schema Area"
-  UNIQUE
-  INDEX-FIELD "dataset_code" ASCENDING
-
-UPDATE FIELD "document_type_obj" OF "gsc_document_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_delivery_method" OF "gsc_document_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_display_field_obj" OF "gsc_entity_display_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_mnemonic_obj" OF "gsc_entity_mnemonic"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "custom_procedure_obj" OF "gsc_entity_mnemonic_procedure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_mnemonic_procedure_obj" OF "gsc_entity_mnemonic_procedure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-ADD INDEX "XIE1gsc_entity_mnemonic_proced" ON "gsc_entity_mnemonic_procedure"
-  AREA "Schema Area"
-  INDEX-FIELD "entity_mnemonic_procedure_obj" ASCENDING
-
-UPDATE FIELD "error_obj" OF "gsc_error"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsc_error"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "global_control_obj" OF "gsc_global_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_country_obj" OF "gsc_global_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_nationality_obj" OF "gsc_global_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_language_obj" OF "gsc_global_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_currency_obj" OF "gsc_global_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "global_default_obj" OF "gsc_global_default"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsc_global_default"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "instance_attribute_obj" OF "gsc_instance_attribute"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "item_category_obj" OF "gsc_item_category"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "parent_item_category_obj" OF "gsc_item_category"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsc_language"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_text_obj" OF "gsc_language_text"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsc_language_text"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsc_language_text"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsc_language_text"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "logical_service_obj" OF "gsc_logical_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "service_type_obj" OF "gsc_logical_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "manager_type_obj" OF "gsc_manager_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "multi_media_type_obj" OF "gsc_multi_media_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "nationality_obj" OF "gsc_nationality"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "sequence_obj" OF "gsc_next_sequence"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "next_sequence_obj" OF "gsc_next_sequence"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "toolbar_multi_media_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "security_object_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "physical_object_obj" OF "gsc_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "gsc_object_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_obj" OF "gsc_product"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "supplier_organisation_obj" OF "gsc_product"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsc_product_module"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_obj" OF "gsc_product_module"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_type_obj" OF "gsc_profile_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_code_obj" OF "gsc_profile_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_type_obj" OF "gsc_profile_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "security_control_obj" OF "gsc_security_control"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "company_organisation_obj" OF "gsc_sequence"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "sequence_obj" OF "gsc_sequence"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "service_type_obj" OF "gsc_service_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "management_object_obj" OF "gsc_service_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "maintenance_object_obj" OF "gsc_service_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_logical_service_obj" OF "gsc_service_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_property_obj" OF "gsc_session_property"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_category"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "comment_obj" OF "gsm_comment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_comment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_comment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_control_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_control_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "control_code_obj" OF "gsm_control_code"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "country_obj" OF "gsm_country"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "address_format_procedure_obj" OF "gsm_country"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "currency_obj" OF "gsm_currency"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE TABLE "gsm_dataset_deployment"
-  DESCRIPTION "REDUNDANT TABLE - TO BE REMOVED LATER
-
-This table registers a deployment created for a dataset, when it was created, by whom, whether it was a baseline including all data or whether it was incremental data including only data that had changed, plus the xml file that contains the dumped data.
-
-Deployments should only be created for datasets created and owned by your site. If a dataset is owned by another site, then you should use the xml file to load data and pass data on to other sites. If you wish to create your own xml files, then simply create a new dataset with the same tables and deploy from there. This will ensure we can track the versions of data deployed and loaded at the various sites.
-
-The xml file that contains the deployed data should be kept, registered in the SCM tool and deployed as part of the application. This facilitates incremental deployments of only data that has changed.
-
-If this is a baseline deployment, then the xml file will contain all the records in all the tables included in the dataset. If not, it will only contain records that have changed since the last deployment, as idenitified by the information in the gst_record_version table. This version table will only contain version records if the data in the table is being versioned. IF data is not being versioned, then the xml file will always have to contain the full data in the table.
-
-This table also registers when (and if) the deployment was loaded at the remote site and by whom."
-
-UPDATE FIELD "dataset_deployment_obj" OF "gsm_dataset_deployment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsm_dataset_deployment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "deployment_number" OF "gsm_dataset_deployment"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_report_format_obj" OF "gsm_default_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_definition_obj" OF "gsm_default_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_default_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "document_type_obj" OF "gsm_default_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_format_obj" OF "gsm_default_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_field_obj" OF "gsm_entity_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_field_value_obj" OF "gsm_entity_field_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "entity_field_obj" OF "gsm_entity_field_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "related_owning_obj" OF "gsm_external_xref"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "internal_owning_obj" OF "gsm_external_xref"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "external_owning_obj" OF "gsm_external_xref"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "external_xref_obj" OF "gsm_external_xref"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-ADD INDEX "XIE7gsm_external_xref" ON "gsm_external_xref"
-  AREA "Schema Area"
-  INDEX-FIELD "external_xref_obj" ASCENDING
-
-UPDATE FIELD "field_obj" OF "gsm_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "flow_obj" OF "gsm_flow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsm_flow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "flow_step_obj" OF "gsm_flow_step"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "flow_obj" OF "gsm_flow_step"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "login_company_obj" OF "gsm_flow_step"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_flow_step"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "flow_step_flow_obj" OF "gsm_flow_step"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "help_obj" OF "gsm_help"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsm_help"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "login_company_obj" OF "gsm_login_company"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsm_menu_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "item_category_obj" OF "gsm_menu_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_menu_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_obj" OF "gsm_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "multi_media_obj" OF "gsm_multi_media"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_multi_media"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_multi_media"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "multi_media_type_obj" OF "gsm_multi_media"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "node_obj" OF "gsm_node"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "parent_node_obj" OF "gsm_node"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_object_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_object_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_menu_structure_obj" OF "gsm_object_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_object_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_item_obj" OF "gsm_object_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "physical_service_obj" OF "gsm_physical_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "service_type_obj" OF "gsm_physical_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_profile"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_options"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_alpha_options_obj" OF "gsm_profile_alpha_options"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_alpha_value_obj" OF "gsm_profile_alpha_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_obj" OF "gsm_profile_data"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_type_obj" OF "gsm_profile_data"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_code_obj" OF "gsm_profile_data"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_data_obj" OF "gsm_profile_data"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_date_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_date_value_obj" OF "gsm_profile_date_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_profile_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_history_obj" OF "gsm_profile_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_options"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_numeric_options_obj" OF "gsm_profile_numeric_options"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "profile_numeric_value_obj" OF "gsm_profile_numeric_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "range_obj" OF "gsm_range"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "reporting_tool_obj" OF "gsm_reporting_tool"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_definition_obj" OF "gsm_report_definition"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "document_type_obj" OF "gsm_report_definition"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_definition_obj" OF "gsm_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_format_obj" OF "gsm_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "reporting_tool_obj" OF "gsm_report_format"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "required_manager_obj" OF "gsm_required_manager"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_obj" OF "gsm_required_manager"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "manager_type_obj" OF "gsm_required_manager"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_required_manager"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "security_structure_obj" OF "gsm_security_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_security_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "gsm_security_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_security_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_security_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "server_context_obj" OF "gsm_server_context"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_service_obj" OF "gsm_session_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "logical_service_obj" OF "gsm_session_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "physical_service_obj" OF "gsm_session_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_service"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_property_obj" OF "gsm_session_type_property"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_type_property"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_property_obj" OF "gsm_session_type_property"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "site_obj" OF "gsm_site"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "site_number" OF "gsm_site"
-  FORMAT "->>>>>>>9"
-  VALMSG "n_integer_9"
-
-UPDATE FIELD "site_specific_obj" OF "gsm_site_specific"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "startup_flow_obj" OF "gsm_startup_flow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "session_type_obj" OF "gsm_startup_flow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "flow_obj" OF "gsm_startup_flow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "status_obj" OF "gsm_status"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "category_obj" OF "gsm_status"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_status_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "status_obj" OF "gsm_status_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "status_history_obj" OF "gsm_status_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "token_obj" OF "gsm_token"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_toolbar_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "translation_obj" OF "gsm_translation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsm_translation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_obj" OF "gsm_user"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_category_obj" OF "gsm_user"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "created_from_profile_user_obj" OF "gsm_user"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "language_obj" OF "gsm_user"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "default_login_company_obj" OF "gsm_user"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_obj" OF "gsm_user_allocation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "login_organisation_obj" OF "gsm_user_allocation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gsm_user_allocation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_allocation_obj" OF "gsm_user_allocation"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_category_obj" OF "gsm_user_category"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "valid_object_partition_obj" OF "gsm_valid_object_partition"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "logical_service_obj" OF "gsm_valid_object_partition"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "gsm_valid_object_partition"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "audit_obj" OF "gst_audit"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gst_audit"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "audit_user_obj" OF "gst_audit"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "batch_job_obj" OF "gst_batch_job"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "status_obj" OF "gst_batch_job"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "user_obj" OF "gst_batch_job"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "error_log_obj" OF "gst_error_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_obj" OF "gst_error_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "gst_error_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "extract_log_obj" OF "gst_extract_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "report_definition_obj" OF "gst_extract_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "user_obj" OF "gst_extract_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "batch_job_obj" OF "gst_extract_log"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-
-UPDATE FIELD "password_history_obj" OF "gst_password_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "user_obj" OF "gst_password_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "changed_by_user_obj" OF "gst_password_history"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE TABLE "gst_record_version"
-  DESCRIPTION "This table provides the means for identifying when static data is changed and needs to be deployed. 
-
-When an item of data on a record changes, the replication trigger on the table will check if the version_data flag on the gsc_entity_mnemonic table is switched on. 
-
-If the flag is on, either a record is written to this table or an existing record in the table is updated to indicate that the data has changed by incrementing the version_number_seq and resetting date, time and user. 
-
-This table is checked every time the deployment data is written to ensure that all data that matches the deployment criteria is written out.
-
-Basically any records with a version_number_seq greater than 0 has been changed locally and potentially needs to be deployed. Once an import is done for a record, the version_number_seq is set back to 0 indicating the data matches that since the last import and has not been modified since.
-
-When importing data, the import_version_number_seq is used as a validity check and if this number does not match the import_version_number_seq of the data being imported or the current version_number_seq does not match, there is a potential conflict.
-"
-
-UPDATE FIELD "record_version_obj" OF "gst_record_version"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "key_field_value" OF "gst_record_version"
-  DESCRIPTION "This is the key field value of the record in the table identified by the entity mnemonic and dbname.
-
-The contents of this field are defined by the gsc_entity_mnemonic table and will contain the object field if specified otherwise the key field.
-"
-
-UPDATE FIELD "version_number_seq" OF "gst_record_version"
-  DESCRIPTION "This is the current version number of the record in this repository - if it has changed. If it has not changed, it will be left at 0. Therefore, any records in this table with a current version number greater than 0 have changed since last imported and potentially need to be deployed.
-
-When importing new records, providing there are no conflicts, the import version number will be set appropriately and the current version number set back to 0.
-
-Every time the data related to the record specified in the key_field_value field changes, this number is set to the last_version_number_seq plus 1 and the last_version_number_seq is reset to this new number.
-
-The version number consists of an incremented counter in the integer portion and the repository site number in the mantissa portion, ensuring the numbers never conflict worldwide. This is the same principal as the object ids.
-"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "version_date" OF "gst_record_version"
-  DESCRIPTION "The date this record was last updated. If imported, this will be set to the date the original change was made at the originating site, not the import date."
-
-UPDATE FIELD "version_time" OF "gst_record_version"
-  DESCRIPTION "The time this record was last updated. If imported, this will be set to the time the original change was made at the originating site, not the import time."
-
-UPDATE FIELD "version_user" OF "gst_record_version"
-  DESCRIPTION "This field indicates which user created this version of the data if known. This user may not exist in the current repository in the event that the data was imported from some external source."
-
-ADD FIELD "import_version_number_seq" OF "gst_record_version" AS decimal
-  DESCRIPTION "This is the version number of the record as imported from the last dataset import. If we initially created the record, then this will be 0.
-
-The version number consists of an incremented counter in the integer portion and the repository site number in the mantissa portion, ensuring the numbers never conflict worldwide. This is the same principal as the object ids.
-
-When importing new data from a dataset, if the import version number matches the import version number of the data being imported, then there is no conflict. If these numbers do not match, then there is a potential issue of losing data changes made by somebody else and the conflict must be resolved manually.
-
-"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 10
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Import version number seq."
-  HELP-SA ""
-  LABEL "Import Version Number Seq."
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 90
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD FIELD "last_version_number_seq" OF "gst_record_version" AS decimal
-  DESCRIPTION "This field stores the last version number used for this key field value. When assigning a new key field value, the version_number_seq field will be set to this field plus 1. The reason we need this field is because the version_number_seq field is reset to 0 after an import (maybe from a different site with different numbers) and we do not want to reuse previously used numbers the next time  a change is made."
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  FORMAT-SA ?
-  POSITION 11
-  INITIAL "0"
-  INITIAL-SA ?
-  HELP "Last version number seq."
-  HELP-SA ""
-  LABEL "Last Version Number Seq."
-  LABEL-SA ?
-  COLUMN-LABEL ?
-  COLUMN-LABEL-SA ?
-  CAN-READ "*"
-  CAN-WRITE "*"
-  VALEXP ?
-  VALMSG "o_obj"
-  VALMSG-SA ""
-  VIEW-AS ?
-  EXTENT 0
-  DECIMALS 9
-  ORDER 100
-  NULL-ALLOWED
-  NOT-CASE-SENSITIVE
-  SQL-WIDTH 24
-
-ADD INDEX "XIE4gst_record_version" ON "gst_record_version"
-  AREA "Schema Area"
-  INDEX-FIELD "entity_mnemonic" ASCENDING
-  INDEX-FIELD "version_number_seq" ASCENDING
-
-ADD INDEX "XIE5gst_record_version" ON "gst_record_version"
-  AREA "Schema Area"
-  INDEX-FIELD "version_number_seq" ASCENDING
-
-DROP INDEX "XIE2gst_record_version" ON "gst_record_version"
-
-UPDATE FIELD "trigger_override_obj" OF "gst_trigger_override"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "action_obj" OF "ryc_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "ryc_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "instance_attribute_obj" OF "ryc_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_group_obj" OF "ryc_attribute"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_obj" OF "ryc_attribute"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_group"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_type_obj" OF "ryc_attribute_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_value_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_instance_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "collect_attribute_value_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "primary_smartobject_obj" OF "ryc_attribute_value"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "band_obj" OF "ryc_band"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "band_action_obj" OF "ryc_band_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "band_obj" OF "ryc_band_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "action_obj" OF "ryc_band_action"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "custom_ui_trigger_obj" OF "ryc_custom_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_custom_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_field_obj" OF "ryc_custom_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "ui_trigger_obj" OF "ryc_custom_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "layout_obj" OF "ryc_layout"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_object_instance"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_instance_obj" OF "ryc_object_instance"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_object_instance"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_page"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "page_obj" OF "ryc_page"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "layout_obj" OF "ryc_page"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "page_object_obj" OF "ryc_page_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_page_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "page_obj" OF "ryc_page_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_instance_obj" OF "ryc_page_object"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartlink_obj" OF "ryc_smartlink"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_smartlink"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "source_object_instance_obj" OF "ryc_smartlink"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "target_object_instance_obj" OF "ryc_smartlink"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "layout_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "product_module_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "sdo_smartobject_obj" OF "ryc_smartobject"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_field_obj" OF "ryc_smartobject_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_smartobject_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "widget_type_obj" OF "ryc_smartobject_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "subscribe_obj" OF "ryc_subscribe"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "owning_obj" OF "ryc_subscribe"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "supported_link_obj" OF "ryc_supported_link"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "ryc_supported_link"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_supported_link"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "ui_event_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_type_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "smartobject_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "object_instance_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "primary_smartobject_obj" OF "ryc_ui_event"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "ui_trigger_obj" OF "ryc_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "valid_ui_trigger_obj" OF "ryc_valid_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "widget_type_obj" OF "ryc_valid_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "ui_trigger_obj" OF "ryc_valid_ui_trigger"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "widget_type_obj" OF "ryc_widget_type"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "data_version_obj" OF "rym_data_version"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "lookup_field_obj" OF "rym_lookup_field"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_brow_obj" OF "rym_wizard_brow"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_fold_obj" OF "rym_wizard_fold"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_fold_obj" OF "rym_wizard_fold_page"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_fold_page_obj" OF "rym_wizard_fold_page"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_menc_obj" OF "rym_wizard_menc"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_objc_obj" OF "rym_wizard_objc"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_tree_obj" OF "rym_wizard_tree"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-UPDATE FIELD "wizard_view_obj" OF "rym_wizard_view"
-  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
-  DECIMALS 9
-  SQL-WIDTH 24
-
-.
-PSC
-cpstream=UTF-8
-.
-0000062393
+ADD TABLE "gsc_deploy_package"
+  AREA "Schema Area"
+  DESCRIPTION "This table facilitates defining groups of datasets that should be deployed together as a single package. This enables users to ensure they send all related datasets inclduing related / dependant data that has also changed."
+  DUMP-NAME "gscdp"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscdptrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscdptrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscdptrigw.p" CRC "?" 
+
+ADD FIELD "deploy_package_obj" OF "gsc_deploy_package" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deploy Package Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deploy package obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "package_code" OF "gsc_deploy_package" AS character 
+  DESCRIPTION "A unique code to identify the package"
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Package Code"
+  POSITION 3
+  SQL-WIDTH 20
+  VALMSG "s_code"
+  HELP "Package code"
+  ORDER 20
+
+ADD FIELD "package_description" OF "gsc_deploy_package" AS character 
+  DESCRIPTION "A description of the package."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Package Description"
+  POSITION 4
+  SQL-WIDTH 140
+  VALMSG "s_big_description"
+  HELP "Package description"
+  ORDER 30
+
+ADD INDEX "XPKgsc_deploy_package" ON "gsc_deploy_package" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "deploy_package_obj" ASCENDING 
+
+ADD INDEX "XAK1gsc_deploy_package" ON "gsc_deploy_package" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "package_code" ASCENDING 
+
+ADD INDEX "XIE1gsc_deploy_package" ON "gsc_deploy_package" 
+  AREA "Schema Area"
+  INDEX-FIELD "package_description" ASCENDING 
+
+ADD TABLE "gsc_package_dataset"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines the datasets that should be included with a package. A dataset may be included in multiple packages."
+  DUMP-NAME "gscpd"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gscpdtrigw.p" CRC "?" 
+
+ADD FIELD "package_dataset_obj" OF "gsc_package_dataset" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Package Dataset Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Package dataset obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "deploy_dataset_obj" OF "gsc_package_dataset" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deploy Dataset Obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deploy dataset obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "deploy_package_obj" OF "gsc_package_dataset" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deploy Package Obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deploy package obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "deploy_full_data" OF "gsc_package_dataset" AS logical 
+  DESCRIPTION "If set to yes, this field indicates that the entire set of records contained in this primary and related tables must be deployed - i.e. ignore whether the data has changed or not, just always deploy all the data.
+
+Note that any filter criteria in the filter_where_clause on the gsc_dataset_entity will still be honored."
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Deploy Full Data"
+  POSITION 5
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Deploy full data"
+  ORDER 40
+
+ADD INDEX "XPKgsc_package_dataset" ON "gsc_package_dataset" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "package_dataset_obj" ASCENDING 
+
+ADD TABLE "gst_dataset_file"
+  AREA "Schema Area"
+  DESCRIPTION "This table keeps a record of ADO files generated for a dataset. A single dataset may be generated out to multiple ADO files.
+
+The purpose of this table is to record the date and time this dataset ADO file was last loaded into the current repository. Checks will be made against the file date on disk to see whether a new files has been downloaded from POSSE and needs to be updated into the local repository.
+
+If an ADO file is included as part of a package, this table records the package that the ADO file belongs to."
+  DUMP-NAME "gstdf"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstdftrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstdftrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstdftrigw.p" CRC "?" 
+
+ADD FIELD "dataset_file_obj" OF "gst_dataset_file" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Dataset File Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Dataset file obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "deployment_obj" OF "gst_dataset_file" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deployment Obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deployment obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "deploy_dataset_obj" OF "gst_dataset_file" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deploy Dataset Obj"
+  POSITION 4
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deploy dataset obj"
+  DECIMALS 9
+  ORDER 30
+
+ADD FIELD "ado_filename" OF "gst_dataset_file" AS character 
+  DESCRIPTION "This is the name of the generated ADO file, complete with relative path and extension.
+
+If the ADO file forms part of a deployment package, the ADO file name is constructed from the default_ado_filename, the package code and the deployment number."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Ado Filename"
+  POSITION 5
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Ado filename"
+  ORDER 40
+
+ADD FIELD "loaded_date" OF "gst_dataset_file" AS date 
+  DESCRIPTION "This field contains the date that the ado file was imported into the target repository.
+"
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Loaded Date"
+  POSITION 6
+  SQL-WIDTH 4
+  VALMSG "d_date_today"
+  HELP "Loaded date"
+  ORDER 50
+
+ADD FIELD "loaded_time" OF "gst_dataset_file" AS integer 
+  DESCRIPTION "This field contains the time that the ado file was imported into the target repository.
+"
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Loaded Time"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Loaded time"
+  ORDER 60
+
+ADD INDEX "XPKgst_dataset_file" ON "gst_dataset_file" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "dataset_file_obj" ASCENDING 
+
+ADD INDEX "XAK1gst_dataset_file" ON "gst_dataset_file" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "deployment_obj" ASCENDING 
+  INDEX-FIELD "deploy_dataset_obj" ASCENDING 
+  INDEX-FIELD "ado_filename" ASCENDING 
+
+ADD INDEX "XIE2gst_dataset_file" ON "gst_dataset_file" 
+  AREA "Schema Area"
+  INDEX-FIELD "deploy_dataset_obj" ASCENDING 
+
+ADD INDEX "XIE3gst_dataset_file" ON "gst_dataset_file" 
+  AREA "Schema Area"
+  INDEX-FIELD "ado_filename" ASCENDING 
+  INDEX-FIELD "loaded_date" ASCENDING 
+  INDEX-FIELD "loaded_time" ASCENDING 
+
+ADD TABLE "gst_deployment"
+  AREA "Schema Area"
+  DESCRIPTION "This table defines an instance of a deployment package, from a particular site. Records in this table may be manually created for the curent site, or may be imported as part of loading a deployment package from an external site."
+  DUMP-NAME "gstdp"
+  TABLE-TRIGGER "CREATE" OVERRIDE PROCEDURE "icf/trg/gstdptrigc.p" CRC "?" 
+  TABLE-TRIGGER "DELETE" OVERRIDE PROCEDURE "icf/trg/gstdptrigd.p" CRC "?" 
+  TABLE-TRIGGER "WRITE" OVERRIDE PROCEDURE "icf/trg/gstdptrigw.p" CRC "?" 
+
+ADD FIELD "deployment_obj" OF "gst_deployment" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deployment Obj"
+  POSITION 2
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deployment obj"
+  DECIMALS 9
+  ORDER 10
+
+ADD FIELD "deploy_package_obj" OF "gst_deployment" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Deploy Package Obj"
+  POSITION 3
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Deploy package obj"
+  DECIMALS 9
+  ORDER 20
+
+ADD FIELD "originating_site_number" OF "gst_deployment" AS integer 
+  DESCRIPTION "This is the site number of the site that created the deployment package. This field will be set automatically from the current site number, or will be as imported from the contents of an incoming package."
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Originating Site Number"
+  POSITION 4
+  SQL-WIDTH 4
+  VALMSG "n_integer_9"
+  HELP "Originating site number"
+  ORDER 30
+
+ADD FIELD "deployment_number" OF "gst_deployment" AS integer 
+  DESCRIPTION "This is a sequential number starting from 1 within each dataset within a site. It identifies the order the dataset deployments were produced and uniquely identifies the deployment for the dataset."
+  FORMAT "->>>>>>>9"
+  INITIAL "0"
+  LABEL "Deployment Number"
+  POSITION 5
+  SQL-WIDTH 4
+  VALMSG "n_integer_9"
+  HELP "Deployment number"
+  ORDER 40
+
+ADD FIELD "deployment_description" OF "gst_deployment" AS character 
+  DESCRIPTION "A free text description of the deployment, possibly including the reason for the deployment."
+  FORMAT "X(500)"
+  INITIAL ""
+  LABEL "Deployment Description"
+  POSITION 6
+  SQL-WIDTH 1000
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  VALMSG "s_small_text_block"
+  HELP "Deployment description"
+  ORDER 50
+
+ADD FIELD "deployment_date" OF "gst_deployment" AS date 
+  DESCRIPTION "The date the deployment was created."
+  FORMAT "99/99/9999"
+  INITIAL "TODAY"
+  LABEL "Deployment Date"
+  POSITION 7
+  SQL-WIDTH 4
+  VALMSG "d_date_today"
+  HELP "Deployment date"
+  ORDER 60
+
+ADD FIELD "deployment_time" OF "gst_deployment" AS integer 
+  DESCRIPTION "The time the deployment was created."
+  FORMAT ">>>>9"
+  INITIAL "0"
+  LABEL "Deployment Time"
+  POSITION 8
+  SQL-WIDTH 4
+  VALMSG "n_time"
+  HELP "Deployment time"
+  ORDER 70
+
+ADD FIELD "baseline_deployment" OF "gst_deployment" AS logical 
+  DESCRIPTION "If this is set to YES then it is a baseline deployment and the xml file will contain all the records in all the tables included in the dataset. If NO, it will only contain records that have changed since the last deployment, as idenitified by the information in the gst_record_version table. This version table will only contain version records if the data in the table is being versioned. If data is not being versioned, then the xml file will always have to contain the full data in the table.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Baseline Deployment"
+  POSITION 9
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Baseline deployment"
+  ORDER 80
+
+ADD FIELD "manual_record_selection" OF "gst_deployment" AS logical 
+  DESCRIPTION "If set to NO, then the gst_record_version table was used to identify the modified records since the last baseline to include in the deployment package.
+
+If set to YES, then records to include in the package were selected manually.
+"
+  FORMAT "YES/NO"
+  INITIAL "NO"
+  LABEL "Manual Record Selection"
+  POSITION 10
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  VALMSG "l_noyes"
+  HELP "Manual record selection"
+  ORDER 90
+
+ADD FIELD "package_control_file" OF "gst_deployment" AS character 
+  DESCRIPTION "A control file will be created with the deployment package, with an extsion of .pdo.
+
+This file will contain a list of all the .ado's that make up the package and have to be loaded. It also contains all the gst_record_version records affected by this package, to speed up the identification of potential clashes.
+
+The defauly name is the package code, plus the site number, plus the deployment number with an extension of .pdo
+"
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Package Control File"
+  POSITION 11
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Package control file"
+  ORDER 100
+
+ADD FIELD "package_exception_file" OF "gst_deployment" AS character 
+  DESCRIPTION "The name of an exception file to contain the list of the .ado's that failed to load."
+  FORMAT "X(70)"
+  INITIAL ""
+  LABEL "Package Exception File"
+  POSITION 12
+  SQL-WIDTH 140
+  VALMSG "s_file_name"
+  HELP "Package exception file"
+  ORDER 110
+
+ADD FIELD "load_after_deployment_obj" OF "gst_deployment" AS decimal 
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  INITIAL "0"
+  LABEL "Load After Deployment Obj"
+  POSITION 13
+  SQL-WIDTH 24
+  VALMSG "o_obj"
+  HELP "Load after deployment obj"
+  DECIMALS 9
+  ORDER 120
+
+ADD INDEX "XPKgst_deployment" ON "gst_deployment" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "deployment_obj" ASCENDING 
+
+ADD INDEX "XAK1gst_deployment" ON "gst_deployment" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "deploy_package_obj" ASCENDING 
+  INDEX-FIELD "originating_site_number" ASCENDING 
+  INDEX-FIELD "deployment_number" ASCENDING 
+
+ADD INDEX "XIE1gst_deployment" ON "gst_deployment" 
+  AREA "Schema Area"
+  INDEX-FIELD "load_after_deployment_obj" ASCENDING 
+
+UPDATE FIELD "custom_procedure_obj" OF "gsc_custom_procedure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsc_custom_procedure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "dataset_entity_obj" OF "gsc_dataset_entity"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_dataset_entity"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+ADD FIELD "delete_related_records" OF "gsc_dataset_entity" AS logical
+  DESCRIPTION "If set to YES, any records for this dataset entity related to the parent entity will be deleted. If set to NO, records in this entity will not be deleted before applying the new dataset records.
+
+For example, a dataset linking objects and menu items would typically not want to first delete the menu item records so that user defined menu items are preserved, whereas a dataset relating entity mnemonics to entity display fields would require the deletion of existing data first before applying the new set.
+
+If delete_related_records is YES then overwrite_records must also be YES.
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Delete related records"
+  HELP-SA ""
+  LABEL "Delete Related Records"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "overwrite_records" OF "gsc_dataset_entity" AS logical
+  DESCRIPTION "If set to YES and a record corresponding to a record in the dataset is found in the target repository, then the contents of the record will be overwritten with the contents of the dataset.
+
+If set to NO, the repository record will be left intact if it already exists. 
+
+Typically this flag would be set to YES, but in the case of sequences for example, it would be set to NO so as not to overwrite sequence current values in the target repository.
+
+If delete_related_records is YES then overwrite_records must also be YES.
+
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL "YES"
+  INITIAL-SA ?
+  HELP "Overwrite records"
+  HELP-SA ""
+  LABEL "Overwrite Records"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_yesno"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+ADD FIELD "keep_own_site_data" OF "gsc_dataset_entity" AS logical
+  DESCRIPTION "This is used in conjunction with the delete_related_records flag and is only applicable if this is set to YES.
+
+If set to YES, then any data for the current site number will not be deleted, e.g. to preserve own menu items.
+"
+  FORMAT "YES/NO"
+  FORMAT-SA ?
+  POSITION 12
+  INITIAL "NO"
+  INITIAL-SA ?
+  HELP "Keep own site data"
+  HELP-SA ""
+  LABEL "Keep Own Site Data"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "l_noyes"
+  VALMSG-SA ""
+  VIEW-AS "VIEW-AS TOGGLE-BOX"
+  EXTENT 0
+  DECIMALS ?
+  ORDER 110
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 1
+
+UPDATE FIELD "default_code_obj" OF "gsc_default_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_set_obj" OF "gsc_default_set"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsc_default_set_usage"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_set_usage_obj" OF "gsc_default_set_usage"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+ADD INDEX "XIE1gsc_default_set_usage" ON "gsc_default_set_usage"
+  AREA "Schema Area"
+  INDEX-FIELD "default_set_usage_obj" ASCENDING
+
+UPDATE FIELD "delivery_method_obj" OF "gsc_delivery_method"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "delivery_custom_procedure_obj" OF "gsc_delivery_method"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_deploy_dataset"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "dataset_description" OF "gsc_deploy_dataset"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+ADD FIELD "default_ado_filename" OF "gsc_deploy_dataset" AS character
+  DESCRIPTION "This is the default name of the ADO file containing the dumped data in the deployment, including data from all tables identified in the dataset.
+
+If not specified, the ADO filename will be structured based on the owning site code and the dataset code together, with no extension.
+"
+  FORMAT "X(70)"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL ""
+  INITIAL-SA ?
+  HELP "Default ado filename"
+  HELP-SA ""
+  LABEL "Default Ado Filename"
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "s_file_name"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS ?
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 140
+
+ADD INDEX "XAK2gsc_deploy_dataset" ON "gsc_deploy_dataset"
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "dataset_code" ASCENDING
+
+UPDATE FIELD "document_type_obj" OF "gsc_document_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_delivery_method" OF "gsc_document_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_display_field_obj" OF "gsc_entity_display_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_mnemonic_obj" OF "gsc_entity_mnemonic"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "custom_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_mnemonic_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+ADD INDEX "XIE1gsc_entity_mnemonic_proced" ON "gsc_entity_mnemonic_procedure"
+  AREA "Schema Area"
+  INDEX-FIELD "entity_mnemonic_procedure_obj" ASCENDING
+
+UPDATE FIELD "error_obj" OF "gsc_error"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsc_error"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "global_control_obj" OF "gsc_global_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_country_obj" OF "gsc_global_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_nationality_obj" OF "gsc_global_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_language_obj" OF "gsc_global_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_currency_obj" OF "gsc_global_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "global_default_obj" OF "gsc_global_default"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsc_global_default"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "instance_attribute_obj" OF "gsc_instance_attribute"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "item_category_obj" OF "gsc_item_category"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "parent_item_category_obj" OF "gsc_item_category"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsc_language"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_text_obj" OF "gsc_language_text"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsc_language_text"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsc_language_text"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsc_language_text"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "logical_service_obj" OF "gsc_logical_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "service_type_obj" OF "gsc_logical_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "manager_type_obj" OF "gsc_manager_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "multi_media_type_obj" OF "gsc_multi_media_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "nationality_obj" OF "gsc_nationality"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "sequence_obj" OF "gsc_next_sequence"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "next_sequence_obj" OF "gsc_next_sequence"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "toolbar_multi_media_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "security_object_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "physical_object_obj" OF "gsc_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "gsc_object_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_obj" OF "gsc_product"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "supplier_organisation_obj" OF "gsc_product"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsc_product_module"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_obj" OF "gsc_product_module"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_code_obj" OF "gsc_profile_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "security_control_obj" OF "gsc_security_control"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "company_organisation_obj" OF "gsc_sequence"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "sequence_obj" OF "gsc_sequence"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "service_type_obj" OF "gsc_service_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "management_object_obj" OF "gsc_service_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "maintenance_object_obj" OF "gsc_service_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_logical_service_obj" OF "gsc_service_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_property_obj" OF "gsc_session_property"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_category"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "comment_obj" OF "gsm_comment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_comment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_comment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_control_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_control_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "control_code_obj" OF "gsm_control_code"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "country_obj" OF "gsm_country"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "address_format_procedure_obj" OF "gsm_country"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "currency_obj" OF "gsm_currency"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE TABLE "gsm_dataset_deployment"
+  DESCRIPTION "REDUNDANT TABLE - TO BE REMOVED LATER
+
+This table registers a deployment created for a dataset, when it was created, by whom, whether it was a baseline including all data or whether it was incremental data including only data that had changed, plus the xml file that contains the dumped data.
+
+Deployments should only be created for datasets created and owned by your site. If a dataset is owned by another site, then you should use the xml file to load data and pass data on to other sites. If you wish to create your own xml files, then simply create a new dataset with the same tables and deploy from there. This will ensure we can track the versions of data deployed and loaded at the various sites.
+
+The xml file that contains the deployed data should be kept, registered in the SCM tool and deployed as part of the application. This facilitates incremental deployments of only data that has changed.
+
+If this is a baseline deployment, then the xml file will contain all the records in all the tables included in the dataset. If not, it will only contain records that have changed since the last deployment, as idenitified by the information in the gst_record_version table. This version table will only contain version records if the data in the table is being versioned. IF data is not being versioned, then the xml file will always have to contain the full data in the table.
+
+This table also registers when (and if) the deployment was loaded at the remote site and by whom."
+
+UPDATE FIELD "dataset_deployment_obj" OF "gsm_dataset_deployment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsm_dataset_deployment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "deployment_number" OF "gsm_dataset_deployment"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_report_format_obj" OF "gsm_default_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_definition_obj" OF "gsm_default_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_default_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "document_type_obj" OF "gsm_default_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_format_obj" OF "gsm_default_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_field_value_obj" OF "gsm_entity_field_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "related_owning_obj" OF "gsm_external_xref"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "internal_owning_obj" OF "gsm_external_xref"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "external_owning_obj" OF "gsm_external_xref"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "external_xref_obj" OF "gsm_external_xref"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+ADD INDEX "XIE7gsm_external_xref" ON "gsm_external_xref"
+  AREA "Schema Area"
+  INDEX-FIELD "external_xref_obj" ASCENDING
+
+UPDATE FIELD "field_obj" OF "gsm_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "flow_obj" OF "gsm_flow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsm_flow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "flow_step_obj" OF "gsm_flow_step"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "flow_obj" OF "gsm_flow_step"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "login_company_obj" OF "gsm_flow_step"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_flow_step"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "flow_step_flow_obj" OF "gsm_flow_step"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "help_obj" OF "gsm_help"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsm_help"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "login_company_obj" OF "gsm_login_company"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "item_category_obj" OF "gsm_menu_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_menu_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_obj" OF "gsm_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "multi_media_obj" OF "gsm_multi_media"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_multi_media"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_multi_media"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "multi_media_type_obj" OF "gsm_multi_media"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "node_obj" OF "gsm_node"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "parent_node_obj" OF "gsm_node"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_object_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_object_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_menu_structure_obj" OF "gsm_object_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_object_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_item_obj" OF "gsm_object_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "physical_service_obj" OF "gsm_physical_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "service_type_obj" OF "gsm_physical_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_profile"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_options"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_alpha_options_obj" OF "gsm_profile_alpha_options"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_alpha_value_obj" OF "gsm_profile_alpha_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_obj" OF "gsm_profile_data"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_type_obj" OF "gsm_profile_data"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_code_obj" OF "gsm_profile_data"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_data_obj" OF "gsm_profile_data"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_date_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_date_value_obj" OF "gsm_profile_date_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_profile_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_history_obj" OF "gsm_profile_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_options"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_numeric_options_obj" OF "gsm_profile_numeric_options"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "profile_numeric_value_obj" OF "gsm_profile_numeric_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "range_obj" OF "gsm_range"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_reporting_tool"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_definition"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "document_type_obj" OF "gsm_report_definition"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_format_obj" OF "gsm_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_report_format"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "required_manager_obj" OF "gsm_required_manager"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_obj" OF "gsm_required_manager"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "manager_type_obj" OF "gsm_required_manager"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_required_manager"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "security_structure_obj" OF "gsm_security_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_security_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "gsm_security_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_security_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_security_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "server_context_obj" OF "gsm_server_context"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_service_obj" OF "gsm_session_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "logical_service_obj" OF "gsm_session_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "physical_service_obj" OF "gsm_session_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_service"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_property_obj" OF "gsm_session_type_property"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type_property"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_property_obj" OF "gsm_session_type_property"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "site_obj" OF "gsm_site"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "site_number" OF "gsm_site"
+  FORMAT "->>>>>>>9"
+  VALMSG "n_integer_9"
+
+UPDATE FIELD "site_specific_obj" OF "gsm_site_specific"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "startup_flow_obj" OF "gsm_startup_flow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "session_type_obj" OF "gsm_startup_flow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "flow_obj" OF "gsm_startup_flow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "status_obj" OF "gsm_status"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "category_obj" OF "gsm_status"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_status_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "status_obj" OF "gsm_status_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "status_history_obj" OF "gsm_status_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "token_obj" OF "gsm_token"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "translation_obj" OF "gsm_translation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsm_translation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_obj" OF "gsm_user"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_category_obj" OF "gsm_user"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "created_from_profile_user_obj" OF "gsm_user"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "language_obj" OF "gsm_user"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "default_login_company_obj" OF "gsm_user"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_obj" OF "gsm_user_allocation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "login_organisation_obj" OF "gsm_user_allocation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gsm_user_allocation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_allocation_obj" OF "gsm_user_allocation"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_category_obj" OF "gsm_user_category"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "valid_object_partition_obj" OF "gsm_valid_object_partition"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "logical_service_obj" OF "gsm_valid_object_partition"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "gsm_valid_object_partition"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "audit_obj" OF "gst_audit"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gst_audit"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "audit_user_obj" OF "gst_audit"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "batch_job_obj" OF "gst_batch_job"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "status_obj" OF "gst_batch_job"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gst_batch_job"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "error_log_obj" OF "gst_error_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_obj" OF "gst_error_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "gst_error_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "extract_log_obj" OF "gst_extract_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "report_definition_obj" OF "gst_extract_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "user_obj" OF "gst_extract_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "batch_job_obj" OF "gst_extract_log"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+
+UPDATE FIELD "password_history_obj" OF "gst_password_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "user_obj" OF "gst_password_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "changed_by_user_obj" OF "gst_password_history"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE TABLE "gst_record_version"
+  DESCRIPTION "This table provides the means for identifying when static data is changed and needs to be deployed. 
+
+When an item of data on a record changes, the replication trigger on the table will check if the version_data flag on the gsc_entity_mnemonic table is switched on. 
+
+If the flag is on, either a record is written to this table or an existing record in the table is updated to indicate that the data has changed by incrementing the version_number_seq and resetting date, time and user. 
+
+This table is checked every time the deployment data is written to ensure that all data that matches the deployment criteria is written out.
+
+Basically any records with a version_number_seq greater than 0 has been changed locally and potentially needs to be deployed. Once an import is done for a record, the version_number_seq is set back to 0 indicating the data matches that since the last import and has not been modified since.
+
+When importing data, the import_version_number_seq is used as a validity check and if this number does not match the import_version_number_seq of the data being imported or the current version_number_seq does not match, there is a potential conflict.
+"
+
+UPDATE FIELD "record_version_obj" OF "gst_record_version"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "key_field_value" OF "gst_record_version"
+  DESCRIPTION "This is the key field value of the record in the table identified by the entity mnemonic and dbname.
+
+The contents of this field are defined by the gsc_entity_mnemonic table and will contain the object field if specified otherwise the key field.
+"
+
+UPDATE FIELD "version_number_seq" OF "gst_record_version"
+  DESCRIPTION "This is the current version number of the record in this repository - if it has changed. If it has not changed, it will be left at 0. Therefore, any records in this table with a current version number greater than 0 have changed since last imported and potentially need to be deployed.
+
+When importing new records, providing there are no conflicts, the import version number will be set appropriately and the current version number set back to 0.
+
+Every time the data related to the record specified in the key_field_value field changes, this number is set to the last_version_number_seq plus 1 and the last_version_number_seq is reset to this new number.
+
+The version number consists of an incremented counter in the integer portion and the repository site number in the mantissa portion, ensuring the numbers never conflict worldwide. This is the same principal as the object ids.
+"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "version_date" OF "gst_record_version"
+  DESCRIPTION "The date this record was last updated. If imported, this will be set to the date the original change was made at the originating site, not the import date."
+
+UPDATE FIELD "version_time" OF "gst_record_version"
+  DESCRIPTION "The time this record was last updated. If imported, this will be set to the time the original change was made at the originating site, not the import time."
+
+UPDATE FIELD "version_user" OF "gst_record_version"
+  DESCRIPTION "This field indicates which user created this version of the data if known. This user may not exist in the current repository in the event that the data was imported from some external source."
+
+ADD FIELD "import_version_number_seq" OF "gst_record_version" AS decimal
+  DESCRIPTION "This is the version number of the record as imported from the last dataset import. If we initially created the record, then this will be 0.
+
+The version number consists of an incremented counter in the integer portion and the repository site number in the mantissa portion, ensuring the numbers never conflict worldwide. This is the same principal as the object ids.
+
+When importing new data from a dataset, if the import version number matches the import version number of the data being imported, then there is no conflict. If these numbers do not match, then there is a potential issue of losing data changes made by somebody else and the conflict must be resolved manually.
+
+"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 10
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Import version number seq."
+  HELP-SA ""
+  LABEL "Import Version Number Seq."
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 90
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD FIELD "last_version_number_seq" OF "gst_record_version" AS decimal
+  DESCRIPTION "This field stores the last version number used for this key field value. When assigning a new key field value, the version_number_seq field will be set to this field plus 1. The reason we need this field is because the version_number_seq field is reset to 0 after an import (maybe from a different site with different numbers) and we do not want to reuse previously used numbers the next time  a change is made."
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  FORMAT-SA ?
+  POSITION 11
+  INITIAL "0"
+  INITIAL-SA ?
+  HELP "Last version number seq."
+  HELP-SA ""
+  LABEL "Last Version Number Seq."
+  LABEL-SA ?
+  COLUMN-LABEL ?
+  COLUMN-LABEL-SA ?
+  CAN-READ "*"
+  CAN-WRITE "*"
+  VALEXP ?
+  VALMSG "o_obj"
+  VALMSG-SA ""
+  VIEW-AS ?
+  EXTENT 0
+  DECIMALS 9
+  ORDER 100
+  NULL-ALLOWED
+  NOT-CASE-SENSITIVE
+  SQL-WIDTH 24
+
+ADD INDEX "XIE4gst_record_version" ON "gst_record_version"
+  AREA "Schema Area"
+  INDEX-FIELD "entity_mnemonic" ASCENDING
+  INDEX-FIELD "version_number_seq" ASCENDING
+
+ADD INDEX "XIE5gst_record_version" ON "gst_record_version"
+  AREA "Schema Area"
+  INDEX-FIELD "version_number_seq" ASCENDING
+
+DROP INDEX "XIE2gst_record_version" ON "gst_record_version"
+
+UPDATE FIELD "trigger_override_obj" OF "gst_trigger_override"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "action_obj" OF "ryc_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "ryc_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "instance_attribute_obj" OF "ryc_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_obj" OF "ryc_attribute"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_group"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_type_obj" OF "ryc_attribute_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_value_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_instance_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "collect_attribute_value_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_attribute_value"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "band_obj" OF "ryc_band"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "band_action_obj" OF "ryc_band_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "band_obj" OF "ryc_band_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "action_obj" OF "ryc_band_action"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "custom_ui_trigger_obj" OF "ryc_custom_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_custom_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_field_obj" OF "ryc_custom_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "ui_trigger_obj" OF "ryc_custom_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "layout_obj" OF "ryc_layout"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_object_instance"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_instance_obj" OF "ryc_object_instance"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_object_instance"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "page_obj" OF "ryc_page"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "layout_obj" OF "ryc_page"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "page_object_obj" OF "ryc_page_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "page_obj" OF "ryc_page_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_instance_obj" OF "ryc_page_object"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartlink_obj" OF "ryc_smartlink"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_smartlink"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "source_object_instance_obj" OF "ryc_smartlink"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "target_object_instance_obj" OF "ryc_smartlink"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "layout_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "product_module_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "sdo_smartobject_obj" OF "ryc_smartobject"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_field_obj" OF "ryc_smartobject_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_smartobject_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "widget_type_obj" OF "ryc_smartobject_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "subscribe_obj" OF "ryc_subscribe"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "owning_obj" OF "ryc_subscribe"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "supported_link_obj" OF "ryc_supported_link"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "ryc_supported_link"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_supported_link"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "ui_event_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_type_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "smartobject_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "object_instance_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_ui_event"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "ui_trigger_obj" OF "ryc_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "valid_ui_trigger_obj" OF "ryc_valid_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "widget_type_obj" OF "ryc_valid_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "ui_trigger_obj" OF "ryc_valid_ui_trigger"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "widget_type_obj" OF "ryc_widget_type"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "data_version_obj" OF "rym_data_version"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "lookup_field_obj" OF "rym_lookup_field"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_brow_obj" OF "rym_wizard_brow"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_fold_obj" OF "rym_wizard_fold"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_fold_obj" OF "rym_wizard_fold_page"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_fold_page_obj" OF "rym_wizard_fold_page"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_menc_obj" OF "rym_wizard_menc"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_objc_obj" OF "rym_wizard_objc"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_tree_obj" OF "rym_wizard_tree"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+UPDATE FIELD "wizard_view_obj" OF "rym_wizard_view"
+  FORMAT ">>>>>>>>>>>>>>>>>9.999999999"
+  DECIMALS 9
+  SQL-WIDTH 24
+
+.
+PSC
+cpstream=UTF-8
+.
+0000062393

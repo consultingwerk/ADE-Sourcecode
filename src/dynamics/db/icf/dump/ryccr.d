@@ -9,7 +9,7 @@ PSC
 filename=ryc_customization_result
 records=0000000000006
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:48
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

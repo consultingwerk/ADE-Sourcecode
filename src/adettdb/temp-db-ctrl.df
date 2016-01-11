@@ -1,0 +1,68 @@
+ADD TABLE "temp-db-ctrl"
+  AREA "Schema Area"
+  DESCRIPTION "Control File storing associated source"
+  DUMP-NAME "tempdbct"
+
+ADD FIELD "TableName" OF "temp-db-ctrl" AS character 
+  DESCRIPTION "Name of temp-db table"
+  FORMAT "x(32)"
+  INITIAL ""
+  LABEL "Name"
+  POSITION 2
+  MAX-WIDTH 64
+  ORDER 10
+
+ADD FIELD "SourceFile" OF "temp-db-ctrl" AS character 
+  FORMAT "x(100)"
+  INITIAL ""
+  POSITION 4
+  MAX-WIDTH 200
+  ORDER 30
+
+ADD FIELD "TableDate" OF "temp-db-ctrl" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  POSITION 5
+  MAX-WIDTH 8
+  ORDER 40
+
+ADD FIELD "UserModified" OF "temp-db-ctrl" AS character 
+  FORMAT "X(32)"
+  INITIAL ""
+  POSITION 6
+  MAX-WIDTH 64
+  ORDER 50
+
+ADD FIELD "UseInclude" OF "temp-db-ctrl" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 8
+  MAX-WIDTH 1
+  ORDER 70
+
+ADD FIELD "EntityImported" OF "temp-db-ctrl" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Entity Imported"
+  POSITION 9
+  MAX-WIDTH 1
+  ORDER 80
+
+ADD FIELD "FileDate" OF "temp-db-ctrl" AS datetime 
+  FORMAT "99/99/9999 HH:MM:SS.SSS"
+  INITIAL ?
+  POSITION 10
+  MAX-WIDTH 8
+  ORDER 45
+
+ADD INDEX "TableName" ON "temp-db-ctrl" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "TableName" ASCENDING 
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000001299

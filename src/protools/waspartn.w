@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
@@ -83,7 +83,7 @@ DEFINE VARIABLE lSave AS LOGICAL INITIAL YES    NO-UNDO.
 &Scoped-define FRAME-NAME fMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS btn_Close btn_Help RECT-5 
+&Scoped-Define ENABLED-OBJECTS RECT-5 btn_Close btn_Help 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -289,7 +289,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyntoolbar.w':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'FlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceEdgePixels2PanelTypeToolbarNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EdgePixels2DeactivateTargetOnHidenoDisabledActionsFlatButtonsyesMenuyesShowBorderyesToolbaryesActionGroupsTableio,NavigationTableIOTypeSaveSupportedLinksNavigation-Source,TableIo-SourceToolbarBandsToolbarAutoSizenoToolbarDrawDirectionhorizontalLogicalObjectNameAutoResizeDisabledActionsHiddenActionsUpdateHiddenToolbarBandsHiddenMenuBandsMenuMergeOrder0RemoveMenuOnHidenoCreateSubMenuOnConflictyesNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyntoolbar ).
        RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
        RUN resizeObject IN h_dyntoolbar ( 1.33 , 81.00 ) NO-ERROR.
@@ -305,13 +305,17 @@ PROCEDURE adm-create-objects :
        /* Links to SmartFolder h_folder. */
        RUN addLink ( h_folder , 'Page':U , THIS-PROCEDURE ).
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dyntoolbar ,
+             btn_Close:HANDLE IN FRAME fMain , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_folder ,
+             h_dyntoolbar , 'AFTER':U ).
     END. /* Page 0 */
-
     WHEN 1 THEN DO:
        RUN constructObject (
              INPUT  'protools/dappsrv.wDB-AWARE':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedappsrv':U ,
+             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedappsrvUpdateFromSourcenoToggleDataTargetsyesOpenOnInityesPromptOnDeleteyesPromptColumns(NONE)':U ,
              OUTPUT h_dappsrv ).
        RUN repositionObject IN h_dappsrv ( 4.10 , 4.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 10.80 ) */
@@ -319,18 +323,18 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynbrowser.w':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'DisplayedFieldsPartitionEnabledFieldsSearchFieldNumDown0CalcWidthnoMaxWidth80HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldsPartitionEnabledFieldsScrollRemotenoNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesSearchFieldDataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_asbrowser ).
        RUN repositionObject IN h_asbrowser ( 4.10 , 7.00 ) NO-ERROR.
-       RUN resizeObject IN h_asbrowser ( 6.67 , 68.00 ) NO-ERROR.
+       RUN resizeObject IN h_asbrowser ( 5.00 , 68.00 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'protools/vappsrv.w':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNameDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vappsrv ).
-       RUN repositionObject IN h_vappsrv ( 11.00 , 7.00 ) NO-ERROR.
-       /* Size in AB:  ( 13.10 , 68.00 ) */
+       RUN repositionObject IN h_vappsrv ( 9.29 , 7.00 ) NO-ERROR.
+       /* Size in AB:  ( 15.10 , 68.00 ) */
 
        /* Links to SmartDataObject h_dappsrv. */
        RUN addLink ( h_dyntoolbar , 'Navigation':U , h_dappsrv ).
@@ -344,39 +348,47 @@ PROCEDURE adm-create-objects :
        RUN addLink ( h_vappsrv , 'Update':U , h_dappsrv ).
        RUN addLink ( h_dyntoolbar , 'TableIo':U , h_vappsrv ).
 
+       /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dyntoolbar ,
+             btn_Close:HANDLE IN FRAME fMain , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_folder ,
+             h_dyntoolbar , 'AFTER':U ).
+       RUN adjustTabOrder ( h_asbrowser ,
+             h_folder , 'AFTER':U ).
+       RUN adjustTabOrder ( h_vappsrv ,
+             h_asbrowser , 'AFTER':U ).
     END. /* Page 1 */
-
     WHEN 2 THEN DO:
-       RUN constructObject (
-             INPUT  'adm2/dynbrowser.w':U ,
-             INPUT  FRAME fMain:HANDLE ,
-             INPUT  'DisplayedFieldsPartitionEnabledFieldsSearchFieldNumDown0CalcWidthnoMaxWidth80HideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT h_jmsbrowser ).
-       RUN repositionObject IN h_jmsbrowser ( 4.57 , 5.00 ) NO-ERROR.
-       RUN resizeObject IN h_jmsbrowser ( 6.67 , 72.00 ) NO-ERROR.
-
        RUN constructObject (
              INPUT  'protools/dappsrv.wDB-AWARE':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedappsrv':U ,
+             INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamedappsrvUpdateFromSourcenoToggleDataTargetsyesOpenOnInityesPromptOnDeleteyesPromptColumns(NONE)':U ,
              OUTPUT h_djmssrv ).
        RUN repositionObject IN h_djmssrv ( 4.57 , 8.00 ) NO-ERROR.
        /* Size in AB:  ( 1.86 , 10.80 ) */
 
        RUN constructObject (
+             INPUT  'adm2/dynbrowser.w':U ,
+             INPUT  FRAME fMain:HANDLE ,
+             INPUT  'DisplayedFieldsPartitionEnabledFieldsScrollRemotenoNumDown0CalcWidthnoMaxWidth80FetchOnReposToEndyesSearchFieldDataSourceNamesUpdateTargetNamesLogicalObjectNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             OUTPUT h_jmsbrowser ).
+       RUN repositionObject IN h_jmsbrowser ( 4.57 , 5.00 ) NO-ERROR.
+       RUN resizeObject IN h_jmsbrowser ( 6.67 , 72.00 ) NO-ERROR.
+
+       RUN constructObject (
              INPUT  'protools/vjmssrv.w':U ,
              INPUT  FRAME fMain:HANDLE ,
-             INPUT  'HideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'EnabledObjFldsToDisableModifyFields(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNameDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_vjmssrv ).
        RUN repositionObject IN h_vjmssrv ( 11.71 , 5.00 ) NO-ERROR.
        /* Size in AB:  ( 7.62 , 73.00 ) */
 
-       /* Links to SmartDataBrowser h_jmsbrowser. */
-       RUN addLink ( h_djmssrv , 'Data':U , h_jmsbrowser ).
-
        /* Links to SmartDataObject h_djmssrv. */
        RUN addLink ( h_dyntoolbar , 'Navigation':U , h_djmssrv ).
        RUN addLink ( h_djmssrv , 'tableChanged':U , THIS-PROCEDURE ).
+
+       /* Links to SmartDataBrowser h_jmsbrowser. */
+       RUN addLink ( h_djmssrv , 'Data':U , h_jmsbrowser ).
 
        /* Links to SmartDataViewer h_vjmssrv. */
        RUN addLink ( h_djmssrv , 'Data':U , h_vjmssrv ).
@@ -384,6 +396,14 @@ PROCEDURE adm-create-objects :
        RUN addLink ( h_dyntoolbar , 'TableIO':U , h_vjmssrv ).
 
        /* Adjust the tab order of the smart objects. */
+       RUN adjustTabOrder ( h_dyntoolbar ,
+             btn_Close:HANDLE IN FRAME fMain , 'BEFORE':U ).
+       RUN adjustTabOrder ( h_folder ,
+             h_dyntoolbar , 'AFTER':U ).
+       RUN adjustTabOrder ( h_jmsbrowser ,
+             h_folder , 'AFTER':U ).
+       RUN adjustTabOrder ( h_vjmssrv ,
+             h_jmsbrowser , 'AFTER':U ).
     END. /* Page 2 */
 
   END CASE.
@@ -474,7 +494,7 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  ENABLE btn_Close btn_Help RECT-5 
+  ENABLE RECT-5 btn_Close btn_Help 
       WITH FRAME fMain IN WINDOW wWin.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
   VIEW wWin.

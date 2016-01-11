@@ -1,229 +1,229 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SetupInclude>
-   <Patch PatchLevel="020022">
-      <PatchStage Stage="Delta">
-         <Program>
-            <FileType>df</FileType>
-            <FileName>db/icf/dfd/icfdb020022delta.df</FileName>
-            <Description>Applying 020022 Delta</Description>
-            <Rerunnable>no</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-      </PatchStage>
-      <PatchStage Stage="PreADOLoad">
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixtxttableiomenuitems.p</FileName>
-            <Description>Upgrading TableIO menu items</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/convertdyntree.p</FileName>
-            <Description>Dynamic Treeview Conversion</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/removeinvalidlinks.p</FileName>
-            <Description>Removing invalid links</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/ensurevalidobjectpath.p</FileName>
-            <Description>Correcting object paths</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-      </PatchStage>
-	  <PatchStage Stage="ADOLoad">
-			<Program>
-				<FileType>ADO</FileType>
-				<FileName>db/icf/dump/gsmfi.ado</FileName>
-				<Description>Loading ADO for db/icf/dump/gsmfi.ado</Description>
-				<Rerunnable>yes</Rerunnable>
-				<NewDB>no</NewDB>
-				<ExistingDB>yes</ExistingDB>
-				<UpdateMandatory>yes</UpdateMandatory>
-			</Program>
-	  </PatchStage>
-      <PatchStage Stage="PostADOLoad">
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/FixTreeStuctures.p</FileName>
-            <Description>Fixing Tree Structures</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/convertobjecttopathedname.p</FileName>
-            <Description>Fixing object names to pathed file names</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/createmissingpagelink.p</FileName>
-            <Description>Creating missing page links</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/ensurevalidinstancename.p</FileName>
-            <Description>Ensuring valid instance names</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/ensurevalidlayoutposition.p</FileName>
-            <Description>Ensuring valid layout positions</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/ensurevalidobjectsequence.p</FileName>
-            <Description>Ensuring valid object sequences</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/migrateautoattachedsdf.p</FileName>
-            <Description>Migrating auto attached sdf</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/updateruntimeflagfordfmasters.p</FileName>
-            <Description>Updating run time flag for df masters</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/addPhysicalTablesAttr.p</FileName>
-            <Description>Adding PhysicalTables attribute to DynSDO objects</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixcontainertoolbarlink.p</FileName>
-            <Description>Removing invalid links</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fix_audit_records.p</FileName>
-            <Description>Fixing audit trail data</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/set_gscot_cache_on_client.p</FileName>
-            <Description>Setting cache-on-client values</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/setviewertabbing.p</FileName>
-            <Description>Creating AppBuilderTabbing Attribute</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixloginfilename.p</FileName>
-            <Description>Verifying login procedure on security control</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/moveInstanceSecurityToContainer.p</FileName>
-            <Description>Verifying login procedure on security control</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixInstanceNames.p</FileName>
-            <Description>Fixing instance names</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/addLabelAttr.p</FileName>
-            <Description>Adding Label attribute</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/createassignlist.p</FileName>
-            <Description>Adding AssignList attributes</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-      </PatchStage>
-   </Patch>
-</SetupInclude>
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="020022">
+      <PatchStage Stage="Delta">
+         <Program>
+            <FileType>df</FileType>
+            <FileName>db/icf/dfd/icfdb020022delta.df</FileName>
+            <Description>Applying 020022 Delta</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+      <PatchStage Stage="PreADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixtxttableiomenuitems.p</FileName>
+            <Description>Upgrading TableIO menu items</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/convertdyntree.p</FileName>
+            <Description>Dynamic Treeview Conversion</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/removeinvalidlinks.p</FileName>
+            <Description>Removing invalid links</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/ensurevalidobjectpath.p</FileName>
+            <Description>Correcting object paths</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+	  <PatchStage Stage="ADOLoad">
+			<Program>
+				<FileType>ADO</FileType>
+				<FileName>db/icf/dump/gsmfi.ado</FileName>
+				<Description>Loading ADO for db/icf/dump/gsmfi.ado</Description>
+				<Rerunnable>yes</Rerunnable>
+				<NewDB>no</NewDB>
+				<ExistingDB>yes</ExistingDB>
+				<UpdateMandatory>yes</UpdateMandatory>
+			</Program>
+	  </PatchStage>
+      <PatchStage Stage="PostADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/FixTreeStuctures.p</FileName>
+            <Description>Fixing Tree Structures</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/convertobjecttopathedname.p</FileName>
+            <Description>Fixing object names to pathed file names</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/createmissingpagelink.p</FileName>
+            <Description>Creating missing page links</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/ensurevalidinstancename.p</FileName>
+            <Description>Ensuring valid instance names</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/ensurevalidlayoutposition.p</FileName>
+            <Description>Ensuring valid layout positions</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/ensurevalidobjectsequence.p</FileName>
+            <Description>Ensuring valid object sequences</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/migrateautoattachedsdf.p</FileName>
+            <Description>Migrating auto attached sdf</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/updateruntimeflagfordfmasters.p</FileName>
+            <Description>Updating run time flag for df masters</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/addPhysicalTablesAttr.p</FileName>
+            <Description>Adding PhysicalTables attribute to DynSDO objects</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixcontainertoolbarlink.p</FileName>
+            <Description>Removing invalid links</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fix_audit_records.p</FileName>
+            <Description>Fixing audit trail data</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/set_gscot_cache_on_client.p</FileName>
+            <Description>Setting cache-on-client values</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/setviewertabbing.p</FileName>
+            <Description>Creating AppBuilderTabbing Attribute</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixloginfilename.p</FileName>
+            <Description>Verifying login procedure on security control</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/moveInstanceSecurityToContainer.p</FileName>
+            <Description>Verifying login procedure on security control</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixInstanceNames.p</FileName>
+            <Description>Fixing instance names</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/addLabelAttr.p</FileName>
+            <Description>Adding Label attribute</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/createassignlist.p</FileName>
+            <Description>Adding AssignList attributes</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+      </PatchStage>
+   </Patch>
+</SetupInclude>

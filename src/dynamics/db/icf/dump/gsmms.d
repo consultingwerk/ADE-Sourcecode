@@ -84,7 +84,7 @@ PSC
 filename=gsm_menu_structure
 records=0000000000081
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:39
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

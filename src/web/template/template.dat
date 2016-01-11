@@ -1,184 +1,184 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
---------------------------------------------------------------------->
-<!-- WebSpeed: template.dat
-  --     This file contains the list of options supported by the
-  --     [Create New File] action in the WebSpeed WorkShop.
-  -- 
-  --     This list can be extended. To create a new link, create
-  --     an anchor pointing to the full path of the template:
-  --        HREF = main.w?html=createFile&amp;template=[path]
-  --  
-  --     Created: Feb. 3, 1997
-  -->
-
-<blockquote>
-<table border="0">
-  <th align="left"><img src="`RootURL`/workshop/wizards/i-wiz.gif"></th>
-  <th colspan="2"><b><FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Wizards:</b></th>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a href="wizards/_browse.r"
-            onmouseover="window.status='Let the Wizard help you create your report.';return true"
-            onmouseout="window.status='';return true">Report Wizard</a></td>
-            <td><em>Database Table Field(s) Report Browser</em></td>
-            <td><a href="`RootURL`/doc/wshelp/brwsovw.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Report Wizard';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a href="wizards/_detail.r"
-            onmouseover="window.status='Let the Wizard help you create an updateable detail view.';return true"
-            onmouseout="window.status='';return true">Detail Wizard</a></td>
-            <td><em>Record View with Update Capabilities</em></td>
-            <td><a href="`RootURL`/doc/wshelp/detlovw.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Detail Wizard';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-  <th align="left"><img src="`RootURL`/workshop/wizards/i-embed.gif"></th>
-  <th colspan="2"><b>Create HTML Files with Embedded SpeedScript:</b></th>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/script.html"
-            onmouseover="window.status='Create customized Embedded WebSpeed Script.';return true"
-            onmouseout="window.status='';return true">Blank</a> </td>
-            <td><em>Simple HTML File with Blank WebSpeed Script</em></td>
-            <td><a href="`RootURL`/doc/wshelp/script.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Blank Template';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/browse.html"
-            onmouseover="window.status='Create customized Table Browse.';return true"
-            onmouseout="window.status='';return true">Report</a> </td>
-            <td><em>Database Field Browser</em></td>
-            <td><a href="`RootURL`/doc/wshelp/browse.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Report Template';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/main.html"
-            onmouseover="window.status='Create customized Welcome screen.';return true"
-            onmouseout="window.status='';return true">Main</a> </td>
-            <td><em>Introductory <i>Welcome</i> Screen</em></td>
-            <td><a href="`RootURL`/doc/wshelp/main.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Main Template';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/frameset.html"
-            onmouseover="window.status='Create customized Framesets.';return true"
-            onmouseout="window.status='';return true">Frameset</a>
-            </td>
-            <td><em>HTML Frameset File</em></td>
-            <td><a href="`RootURL`/doc/wshelp/frameset.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Frameset Template';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-      <th align="left"><img src="`RootURL`/workshop/wizards/i-table.gif"></th>
-      <th colspan="2"><b>Create Page Components to Add to Other <FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Files:</b></th>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/table.html"
-            onmouseover="window.status='Create customized Table display.';return true"
-            onmouseout="window.status='';return true">Table</a> </td>
-            <td><em>Table of Database Fields</em></td>
-            <td><a href="`RootURL`/doc/wshelp/table.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Table Template';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-   <th align="left"><img src="`RootURL`/workshop/wizards/i-cgl.gif"></th>
-   <th colspan="2"><b>Create Standalone <FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Files:</b></th>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/procedur.p"
-            onmouseover="window.status='Create customized Procedure file.';return true"
-            onmouseout="window.status='';return true">Procedure</a></td>
-            <td><em>WebSpeed Procedure file</em></td>
-            <td><a href="`RootURL`/doc/wshelp/procedur.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Procedure File';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a> </td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/include.i"
-            onmouseover="window.status='Create customized Include file.';return true"
-            onmouseout="window.status='';return true">Include</a></td>
-            <td><em>WebSpeed Include file</em></td>
-            <td><a href="`RootURL`/doc/wshelp/include.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - Include File';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-        <tr>
-            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
-            <td><a
-            href="_main.w?html=createFile&amp;template=src/web/template/wrap-cgi.w"
-            onmouseover="window.status='Create customized CGI Wrapper program.';return true"
-            onmouseout="window.status='';return true">CGI Wrapper</a></td>
-            <td><em>Custom CGI wrapper program</em></td>
-            <td><a href="`RootURL`/doc/wshelp/wrap-cgi.htm"
-            target="helpWindow" onClick="openHelpWin();"
-            onmouseover="window.status='Help - CGI Wrapper';return true"
-            onmouseout="window.status='';return true"><img
-            src="`RootURL`/images/help-sm.gif" border="0"
-            width="18" height="18"></a></td>
-        </tr>
-    </table>
-</blockquote>
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<!-- WebSpeed: template.dat
+  --     This file contains the list of options supported by the
+  --     [Create New File] action in the WebSpeed WorkShop.
+  -- 
+  --     This list can be extended. To create a new link, create
+  --     an anchor pointing to the full path of the template:
+  --        HREF = main.w?html=createFile&amp;template=[path]
+  --  
+  --     Created: Feb. 3, 1997
+  -->
+
+<blockquote>
+<table border="0">
+  <th align="left"><img src="`RootURL`/workshop/wizards/i-wiz.gif"></th>
+  <th colspan="2"><b><FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Wizards:</b></th>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a href="wizards/_browse.r"
+            onmouseover="window.status='Let the Wizard help you create your report.';return true"
+            onmouseout="window.status='';return true">Report Wizard</a></td>
+            <td><em>Database Table Field(s) Report Browser</em></td>
+            <td><a href="`RootURL`/doc/wshelp/brwsovw.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Report Wizard';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a href="wizards/_detail.r"
+            onmouseover="window.status='Let the Wizard help you create an updateable detail view.';return true"
+            onmouseout="window.status='';return true">Detail Wizard</a></td>
+            <td><em>Record View with Update Capabilities</em></td>
+            <td><a href="`RootURL`/doc/wshelp/detlovw.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Detail Wizard';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+  <th align="left"><img src="`RootURL`/workshop/wizards/i-embed.gif"></th>
+  <th colspan="2"><b>Create HTML Files with Embedded SpeedScript:</b></th>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/script.html"
+            onmouseover="window.status='Create customized Embedded WebSpeed Script.';return true"
+            onmouseout="window.status='';return true">Blank</a> </td>
+            <td><em>Simple HTML File with Blank WebSpeed Script</em></td>
+            <td><a href="`RootURL`/doc/wshelp/script.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Blank Template';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/browse.html"
+            onmouseover="window.status='Create customized Table Browse.';return true"
+            onmouseout="window.status='';return true">Report</a> </td>
+            <td><em>Database Field Browser</em></td>
+            <td><a href="`RootURL`/doc/wshelp/browse.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Report Template';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/main.html"
+            onmouseover="window.status='Create customized Welcome screen.';return true"
+            onmouseout="window.status='';return true">Main</a> </td>
+            <td><em>Introductory <i>Welcome</i> Screen</em></td>
+            <td><a href="`RootURL`/doc/wshelp/main.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Main Template';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/frameset.html"
+            onmouseover="window.status='Create customized Framesets.';return true"
+            onmouseout="window.status='';return true">Frameset</a>
+            </td>
+            <td><em>HTML Frameset File</em></td>
+            <td><a href="`RootURL`/doc/wshelp/frameset.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Frameset Template';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+      <th align="left"><img src="`RootURL`/workshop/wizards/i-table.gif"></th>
+      <th colspan="2"><b>Create Page Components to Add to Other <FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Files:</b></th>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/table.html"
+            onmouseover="window.status='Create customized Table display.';return true"
+            onmouseout="window.status='';return true">Table</a> </td>
+            <td><em>Table of Database Fields</em></td>
+            <td><a href="`RootURL`/doc/wshelp/table.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Table Template';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+   <th align="left"><img src="`RootURL`/workshop/wizards/i-cgl.gif"></th>
+   <th colspan="2"><b>Create Standalone <FONT COLOR="Red">Web</FONT><FONT COLOR="Black">Speed</FONT> Files:</b></th>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/procedur.p"
+            onmouseover="window.status='Create customized Procedure file.';return true"
+            onmouseout="window.status='';return true">Procedure</a></td>
+            <td><em>WebSpeed Procedure file</em></td>
+            <td><a href="`RootURL`/doc/wshelp/procedur.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Procedure File';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a> </td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/include.i"
+            onmouseover="window.status='Create customized Include file.';return true"
+            onmouseout="window.status='';return true">Include</a></td>
+            <td><em>WebSpeed Include file</em></td>
+            <td><a href="`RootURL`/doc/wshelp/include.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - Include File';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+        <tr>
+            <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td><a
+            href="_main.w?html=createFile&amp;template=src/web/template/wrap-cgi.w"
+            onmouseover="window.status='Create customized CGI Wrapper program.';return true"
+            onmouseout="window.status='';return true">CGI Wrapper</a></td>
+            <td><em>Custom CGI wrapper program</em></td>
+            <td><a href="`RootURL`/doc/wshelp/wrap-cgi.htm"
+            target="helpWindow" onClick="openHelpWin();"
+            onmouseover="window.status='Help - CGI Wrapper';return true"
+            onmouseout="window.status='';return true"><img
+            src="`RootURL`/images/help-sm.gif" border="0"
+            width="18" height="18"></a></td>
+        </tr>
+    </table>
+</blockquote>

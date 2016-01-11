@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="020025">
+      <PatchStage Stage="Delta">
+         <Program>
+            <FileType>df</FileType>
+            <FileName>db/icf/dfd/icfdb020025delta.df</FileName>
+            <Description>Applying 020025 Delta</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+      <PatchStage Stage="PreADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixrmdhtmlattr.p</FileName>
+            <Description>Removing old DHTML attribute deletions</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+      </PatchStage>
+   </Patch>
+</SetupInclude>

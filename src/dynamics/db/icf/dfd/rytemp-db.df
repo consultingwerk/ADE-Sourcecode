@@ -1,0 +1,198 @@
+ADD TABLE "ryttDataField"
+  AREA "Schema Area"
+  DUMP-NAME "ryttData"
+
+ADD FIELD "tClassName" OF "ryttDataField" AS character 
+  FORMAT "x(35)"
+  INITIAL ""
+  LABEL "Class"
+  POSITION 2
+  MAX-WIDTH 70
+  COLUMN-LABEL "Class"
+  ORDER 10
+
+ADD FIELD "tFieldName" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Field name"
+  POSITION 3
+  MAX-WIDTH 140
+  COLUMN-LABEL "Field name"
+  ORDER 20
+
+ADD FIELD "tInstanceName" OF "ryttDataField" AS character 
+  FORMAT "x(35)"
+  INITIAL ""
+  LABEL "Instance name"
+  POSITION 4
+  MAX-WIDTH 70
+  COLUMN-LABEL "Instance name"
+  ORDER 30
+
+ADD FIELD "tInstanceOrder" OF "ryttDataField" AS integer 
+  FORMAT "->>9"
+  INITIAL "0"
+  LABEL "Order"
+  POSITION 5
+  MAX-WIDTH 4
+  COLUMN-LABEL "Order"
+  ORDER 40
+
+ADD FIELD "tDataType" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Data type"
+  POSITION 6
+  MAX-WIDTH 140
+  COLUMN-LABEL "Data type"
+  ORDER 50
+
+ADD FIELD "tFormat" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Format"
+  POSITION 7
+  MAX-WIDTH 140
+  COLUMN-LABEL "Format"
+  ORDER 60
+
+ADD FIELD "tLabel" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Label"
+  POSITION 8
+  MAX-WIDTH 140
+  COLUMN-LABEL "Label"
+  ORDER 70
+
+ADD FIELD "tColumnLabel" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Column label"
+  POSITION 9
+  MAX-WIDTH 140
+  COLUMN-LABEL "Column label"
+  ORDER 80
+
+ADD FIELD "tDefaultValue" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Default value"
+  POSITION 10
+  MAX-WIDTH 140
+  COLUMN-LABEL "Default value"
+  ORDER 90
+
+ADD FIELD "tIncludeListView" OF "ryttDataField" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Include in browsers"
+  POSITION 11
+  MAX-WIDTH 1
+  COLUMN-LABEL "Include in browsers"
+  ORDER 100
+
+ADD FIELD "tIncludeView" OF "ryttDataField" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Include in viewers"
+  POSITION 12
+  MAX-WIDTH 1
+  COLUMN-LABEL "Include in viewers"
+  ORDER 110
+
+ADD FIELD "tSchemaFormat" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Format"
+  POSITION 13
+  MAX-WIDTH 140
+  COLUMN-LABEL "Format"
+  ORDER 120
+
+ADD FIELD "tSchemaLabel" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Label"
+  POSITION 14
+  MAX-WIDTH 140
+  COLUMN-LABEL "Label"
+  ORDER 130
+
+ADD FIELD "tSchemaColumnLabel" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Column label"
+  POSITION 15
+  MAX-WIDTH 140
+  COLUMN-LABEL "Column label"
+  ORDER 140
+
+ADD FIELD "tSchemaInitial" OF "ryttDataField" AS character 
+  FORMAT "x(50)"
+  INITIAL ""
+  LABEL "Initial value"
+  POSITION 16
+  MAX-WIDTH 100
+  COLUMN-LABEL "Initial value"
+  ORDER 150
+
+ADD FIELD "tSchemaHelp" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Help"
+  POSITION 17
+  MAX-WIDTH 140
+  COLUMN-LABEL "Help"
+  ORDER 160
+
+ADD FIELD "tSchemaViewAs" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "VIEW-AS"
+  POSITION 18
+  MAX-WIDTH 140
+  COLUMN-LABEL "VIEW-AS"
+  ORDER 170
+
+ADD FIELD "tSchemaValExp" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Val expression"
+  POSITION 19
+  MAX-WIDTH 140
+  COLUMN-LABEL "Val expression"
+  ORDER 180
+
+ADD FIELD "tSchemaValMsg" OF "ryttDataField" AS character 
+  FORMAT "x(70)"
+  INITIAL ""
+  LABEL "Val message"
+  POSITION 20
+  MAX-WIDTH 140
+  COLUMN-LABEL "Val message"
+  ORDER 190
+
+ADD FIELD "tProductModule" OF "ryttDataField" AS character 
+  FORMAT "x(30)"
+  INITIAL ""
+  LABEL "Product module"
+  POSITION 21
+  MAX-WIDTH 60
+  COLUMN-LABEL "Product module"
+  ORDER 200
+
+ADD FIELD "tEditMaster" OF "ryttDataField" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Edit master"
+  POSITION 22
+  MAX-WIDTH 1
+  COLUMN-LABEL "Edit master"
+  ORDER 210
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000004026

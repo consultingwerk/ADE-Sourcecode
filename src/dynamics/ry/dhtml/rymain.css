@@ -1,78 +1,70 @@
-/*********************************************************************
-  rymain.css
-  Stylesheet for the Dynamics main/menu screen 
-  Per Digre / PSC
-*********************************************************************/
-
-BODY                   {background-color:#D6D3CE;font-color:#000000;font-family:MS Sans Serif;font-size:8pt;margin:0;}
-
-/**** Various Object Positioning ****/
-IFRAME                 {width:100%;height:100px;border:0;visibility:visible;}
-.resizex               {position:absolute;z-index:3;cursor:move;}
-.hide                  {display:none;}
-.show                  {display:block;}
-IFRAME.frame           {display:block;position:absolute;}
-#app                   {position:relative;}
-
-/*** Generic for all menu items ***/
-.disable               {filter:gray(enabled=1) alpha(opacity=40,enabled=1);-moz-opacity:.4;}
-.nolink                {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:.2;}
-
-/*** Toolbar ***/
-#toolbar               {margin:0px;border-bottom:thin groove;border-top:thin groove;width:99%;height:28px;}
-#toolbar TABLE         {position:relative;top:0px;}
-#toolbar BUTTON        {vertical-align:top;height:21px;width:60px;font-family:MS Sans Serif;font-size:8;}
-#toolbar TD            {margin:0;padding:1px 3px 1px 3px;border:1px #D6D3CE solid}
-#toolbar TD.over       {border-color:#EEEEEE gray gray #EEEEEE;}
-#toolbar TD.break      {background-image:url(../img/ws_spacer.gif);width:5px;padding:0;}
-
-
-
-/*** Treeview ***/
-#treeview              {overflow:auto;position:relative;width:100%;height:100%;}
-#treeview TABLE        {margin:0;spacing:0;border:1;}
-#treeview TR           {font-weight:bold;font-size:8pt;height:14px;}
-#treeview TD           {white-space:nowrap;}
-#treeview IMG          {height:16px;}
-#treeview .enable      {cursor:pointer;}
-
-/*** Menubar ******/
-#menubar               {cursor:default;border:0;z-index:5;width:99%;height:22px;}
-#menubar > TABLE       {margin:0pt;padding:0pt;background:#D6D3CE;}
-#menubar TH            {z-index:4;margin:0;padding:0;height:18px;border:1px lightgrey solid;padding-left:3pt;padding-right:3pt;
-                        font-family:MS Sans Serif;font-size:8pt;font-weight:normal;}
-#menubar TH.raise      {border-color:gray;border-left-color:#EEEEEE;border-top-color:#EEEEEE;}
-#menubar TH.sink       {border-color:gray;border-right-color:#EEEEEE;border-bottom-color:#EEEEEE;}
-#menubar .menu         {z-index:5;margin:2pt;padding:0pt;background:#D6D3CE;position:absolute;
-                        border:2px #EEEEEE solid;border-right-color:gray;border-bottom-color:gray;}
-#menubar TD            {font-family:MS Sans Serif;font-size:8pt;text-align:left;padding:2px;}
-#menubar TR            {height:20px;}
-#menubar TR.over  TD   {color:white;background:#0A246A;}
-#menubar IMG           {width:14px;height:14px;}
-TR.disable             {color:gray;}
-TR.nolink              {color:gray;}
-TR.disable IMG         {filter:gray(enabled=1) alpha(opacity=40,enabled=1);-moz-opacity:.4;}
-TR.nolink  IMG         {filter:gray(enabled=1) alpha(opacity=20,enabled=1);-moz-opacity:.2;}
-
-/**** Popup menu ****/
-#popup TABLE           {position:absolute;top:150px;left:150px;z-index:9;font:menu;
-                        margin:0pt;padding:0pt;background:#D6D3CE;border-left:2px #EEEEEE solid;
-                        border-right:2px gray solid;border-bottom:2px gray solid;border-top: 2px #EEEEEE solid;}
-#popup TD              {cursor:default;padding-top:2pt;padding-bottom:2pt;padding-right:15pt;padding-left:12pt;margin:0pt;}
-#popup TD.over         {color:white;background:blue;}
-
-/*** Tab Menu *****/
-#tabmenu               {behavior:url(../dhtml/rytabmenu.htc);visibility:hidden;}
-#tabmenu TABLE.root    {z-index:1;font-family:Arial;font-size:10pt;font-weight:bold;}
-#tabmenu IMG.root      {height:25px;}
-#tabmenu IMG           {height:14px;}
-#tabmenu TABLE.menu    {width:100%;z-index:-1;text-decoration:none;font-size:medium;color:white;text-align:left;}
-#tabmenu SPAN          {cursor:pointer;font-family:Arial;font-size:10pt;font-weight:bold;}
-#tabmenu SPAN.selected {text-decoration:underline;font-style:italic;font-size:12pt;}    
-
-/*** Message window ***/
-#info                  {z-index:9;overflow:auto;background:lightblue;}
-#info NOBR             {color:black;}
-#info NOBR.alert       {color:red;}
-#info NOBR.field       {color:green;}
-
+/*********************************************************************
+  rymain.css
+  Stylesheet for the Dynamics main/menu screen 
+  Per Digre / PSC
+*********************************************************************/
+
+BODY                   {background-color:#D6D3CE;font-color:#000000;font-family:MS Sans Serif;font-size:8pt;margin:0;}
+
+/**** Various Object Positioning ****/
+IFRAME                 {width:100%;height:100px;border:0;visibility:visible;}
+.resizex               {position:absolute;z-index:3;cursor:move;}
+.hide                  {display:none;}
+.show                  {display:block;}
+IFRAME.frame           {display:block;position:absolute;}
+#app                   {position:relative;}
+
+/*** Generic for all menu items ***/
+.disable               {filter:gray(enabled=1) alpha(opacity=40,enabled=1);-moz-opacity:.4;}
+.nolink                {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:.2;}
+
+/*** Toolbar ***/
+#toolbar               {margin:0px;border-bottom:thin groove;border-top:thin groove;width:99%;height:28px;}
+#toolbar TABLE         {position:relative;top:0px;}
+#toolbar BUTTON        {vertical-align:top;height:21px;width:60px;font-family:MS Sans Serif;font-size:8;}
+#toolbar TD            {margin:0;padding:1px 3px 1px 3px;border:1px #D6D3CE solid}
+#toolbar TD.over       {border-color:#EEEEEE gray gray #EEEEEE;}
+#toolbar TD.break      {background-image:url(../img/ws_spacer.gif);width:5px;padding:0;}
+
+
+
+/*** Menubar ******/
+#menubar               {cursor:default;border:0;z-index:5;width:99%;height:22px;}
+#menubar > TABLE       {margin:0pt;padding:0pt;background:#D6D3CE;}
+#menubar TH            {z-index:4;margin:0;padding:0;height:18px;border:1px lightgrey solid;padding-left:3pt;padding-right:3pt;
+                        font-family:MS Sans Serif;font-size:8pt;font-weight:normal;}
+#menubar TH.raise      {border-color:gray;border-left-color:#EEEEEE;border-top-color:#EEEEEE;}
+#menubar TH.sink       {border-color:gray;border-right-color:#EEEEEE;border-bottom-color:#EEEEEE;}
+#menubar .menu         {z-index:5;margin:2pt;padding:0pt;background:#D6D3CE;position:absolute;
+                        border:2px #EEEEEE solid;border-right-color:gray;border-bottom-color:gray;}
+#menubar TD            {font-family:MS Sans Serif;font-size:8pt;text-align:left;padding:2px;}
+#menubar TR            {height:20px;}
+#menubar TR.over  TD   {color:white;background:#0A246A;}
+#menubar IMG           {width:14px;height:14px;}
+TR.disable             {color:gray;}
+TR.nolink              {color:gray;}
+TR.disable IMG         {filter:gray(enabled=1) alpha(opacity=40,enabled=1);-moz-opacity:.4;}
+TR.nolink  IMG         {filter:gray(enabled=1) alpha(opacity=20,enabled=1);-moz-opacity:.2;}
+
+/**** Popup menu ****/
+#popup TABLE           {position:absolute;top:150px;left:150px;z-index:9;font:menu;
+                        margin:0pt;padding:0pt;background:#D6D3CE;border-left:2px #EEEEEE solid;
+                        border-right:2px gray solid;border-bottom:2px gray solid;border-top: 2px #EEEEEE solid;}
+#popup TD              {cursor:default;padding-top:2pt;padding-bottom:2pt;padding-right:15pt;padding-left:12pt;margin:0pt;}
+#popup TD.over         {color:white;background:blue;}
+
+/*** Tab Menu *****/
+#tabmenu               {behavior:url(../dhtml/rytabmenu.htc);visibility:hidden;}
+#tabmenu TABLE.root    {z-index:1;font-family:Arial;font-size:10pt;font-weight:bold;}
+#tabmenu IMG.root      {height:25px;}
+#tabmenu IMG           {height:14px;}
+#tabmenu TABLE.menu    {width:100%;z-index:-1;text-decoration:none;font-size:medium;color:white;text-align:left;}
+#tabmenu SPAN          {cursor:pointer;font-family:Arial;font-size:10pt;font-weight:bold;}
+#tabmenu SPAN.selected {text-decoration:underline;font-style:italic;font-size:12pt;}    
+
+/*** Message window ***/
+#info                  {z-index:9;overflow:auto;background:lightblue;}
+#info NOBR             {color:black;}
+#info NOBR.alert       {color:red;}
+#info NOBR.field       {color:green;}
+

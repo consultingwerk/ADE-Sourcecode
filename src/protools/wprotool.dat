@@ -1,15 +1,15 @@
-"Config info" "protools/_procfg.w" "adeicon/cnfginfo.bmp" yes yes 10 no
-"DB List" "protools/_dblist.w" "adeicon/dblist" yes yes 20 no
-"OS Prompt" "protools/_osprmt.p" "adeicon/osprompt" no yes 30 no
-"Set Font 2" "protools/_edfont.p" "adeicon/setfont" no yes 40 no
-"Editor" "protools/_pwedit.p" "adeicon/editor" no yes 50 no
-"Procedures" "protools/_ppmgr.w" "adeicon/procedur" yes yes 60 no
-"Propath" "protools/_propath.w" "adeicon/propath" no yes 70 no
-"Run" "protools/_runfile.w" "adeicon/run" yes yes 80 no
-"Session" "protools/_session.w" "adeicon/session" no yes 90 no
-"Window Viewer" "protools/_winmgr.w" "adeicon/windview" no yes 100 no
-"Windows Info" "protools/_wabout.p" "adeicon/wininfo" no yes 110 no
-"Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 120 no
-"Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 130 no
-"AppServer Information" "protools/_asinfo.w" "adeicon/asinfo" no yes 140 no
-"XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 150 no
+"Config info" "protools/_procfg.w" "adeicon/cnfginfo.bmp" yes yes 10 no
+"DB List" "protools/_dblist.w" "adeicon/dblist" yes yes 20 no
+"OS Prompt" "protools/_osprmt.p" "adeicon/osprompt" no yes 30 no
+"Set Font 2" "protools/_edfont.p" "adeicon/setfont" no yes 40 no
+"Editor" "protools/_pwedit.p" "adeicon/editor" no yes 50 no
+"Procedures" "protools/_ppmgr.w" "adeicon/procedur" yes yes 60 no
+"Propath" "protools/_propath.w" "adeicon/propath" no yes 70 no
+"Run" "protools/_runfile.w" "adeicon/run" yes yes 80 no
+"Session" "protools/_session.w" "adeicon/session" no yes 90 no
+"Window Viewer" "protools/_winmgr.w" "adeicon/windview" no yes 100 no
+"Windows Info" "protools/_wabout.p" "adeicon/wininfo" no yes 110 no
+"Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 120 no
+"Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 130 no
+"AppServer Information" "protools/_asinfo.w" "adeicon/asinfo" no yes 140 no
+"XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 150 no

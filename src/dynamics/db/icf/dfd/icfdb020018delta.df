@@ -1,3139 +1,3139 @@
-UPDATE FIELD "custom_procedure_obj" OF "gsc_custom_procedure"
-  LABEL "Custom procedure obj"
-
-UPDATE FIELD "category_obj" OF "gsc_custom_procedure"
-  LABEL "Category obj"
-
-UPDATE FIELD "custom_procedure_short_desc" OF "gsc_custom_procedure"
-  LABEL "Custom procedure short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "custom_procedure_description" OF "gsc_custom_procedure"
-  LABEL "Custom procedure description"
-
-UPDATE FIELD "custom_procedure_notes" OF "gsc_custom_procedure"
-  LABEL "Custom procedure notes"
-
-UPDATE FIELD "procedure_name" OF "gsc_custom_procedure"
-  LABEL "Procedure name"
-
-UPDATE FIELD "run_this_procedure" OF "gsc_custom_procedure"
-  LABEL "Run this procedure"
-
-UPDATE FIELD "dataset_entity_obj" OF "gsc_dataset_entity"
-  LABEL "Dataset entity obj"
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsc_dataset_entity"
-  LABEL "Deploy dataset obj"
-
-UPDATE FIELD "entity_sequence" OF "gsc_dataset_entity"
-  LABEL "Entity sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "entity_mnemonic" OF "gsc_dataset_entity"
-  HELP "Entity"
-  LABEL "Entity"
-
-UPDATE FIELD "primary_entity" OF "gsc_dataset_entity"
-  LABEL "Primary entity"
-
-UPDATE FIELD "join_entity_mnemonic" OF "gsc_dataset_entity"
-  HELP "Join entity"
-  LABEL "Join entity"
-
-UPDATE FIELD "join_field_list" OF "gsc_dataset_entity"
-  LABEL "Join field list"
-
-UPDATE FIELD "filter_where_clause" OF "gsc_dataset_entity"
-  LABEL "Filter where clause"
-
-UPDATE FIELD "delete_related_records" OF "gsc_dataset_entity"
-  LABEL "Delete related records"
-
-UPDATE FIELD "overwrite_records" OF "gsc_dataset_entity"
-  LABEL "Overwrite records"
-
-UPDATE FIELD "keep_own_site_data" OF "gsc_dataset_entity"
-  LABEL "Keep own site data"
-
-UPDATE FIELD "use_relationship" OF "gsc_dataset_entity"
-  LABEL "Use relationship"
-
-UPDATE FIELD "relationship_obj" OF "gsc_dataset_entity"
-  LABEL "Relationship obj"
-
-UPDATE FIELD "deletion_action" OF "gsc_dataset_entity"
-  LABEL "Deletion action"
-
-UPDATE FIELD "default_set_code" OF "gsc_default_code"
-  LABEL "Default set code"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsc_default_code"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "field_name" OF "gsc_default_code"
-  LABEL "Field name"
-
-UPDATE FIELD "effective_date" OF "gsc_default_code"
-  LABEL "Effective date"
-
-UPDATE FIELD "data_type" OF "gsc_default_code"
-  LABEL "Data type"
-
-UPDATE FIELD "field_value" OF "gsc_default_code"
-  LABEL "Field value"
-
-UPDATE FIELD "default_code_obj" OF "gsc_default_code"
-  LABEL "Default code obj"
-
-UPDATE FIELD "default_set_code" OF "gsc_default_set"
-  LABEL "Default set code"
-
-UPDATE FIELD "default_set_description" OF "gsc_default_set"
-  LABEL "Default set description"
-
-UPDATE FIELD "default_set_obj" OF "gsc_default_set"
-  LABEL "Default set obj"
-
-UPDATE FIELD "default_set_code" OF "gsc_default_set_usage"
-  LABEL "Default set code"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsc_default_set_usage"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_obj" OF "gsc_default_set_usage"
-  LABEL "Owning obj"
-
-UPDATE FIELD "default_set_usage_obj" OF "gsc_default_set_usage"
-  LABEL "Default set usage obj"
-
-UPDATE FIELD "delivery_method_obj" OF "gsc_delivery_method"
-  LABEL "Delivery method obj"
-
-UPDATE FIELD "delivery_method_tla" OF "gsc_delivery_method"
-  LABEL "Delivery method TLA"
-
-UPDATE FIELD "delivery_method_short_desc" OF "gsc_delivery_method"
-  LABEL "Delivery method short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "delivery_method_description" OF "gsc_delivery_method"
-  LABEL "Delivery method description"
-
-UPDATE FIELD "postal_service_method" OF "gsc_delivery_method"
-  LABEL "Postal service method"
-
-UPDATE FIELD "address_label_required" OF "gsc_delivery_method"
-  LABEL "Address label required"
-
-UPDATE FIELD "delivery_custom_procedure_obj" OF "gsc_delivery_method"
-  LABEL "Delivery custom procedure obj"
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsc_deploy_dataset"
-  LABEL "Deploy dataset obj"
-
-UPDATE FIELD "dataset_code" OF "gsc_deploy_dataset"
-  LABEL "Dataset code"
-
-UPDATE FIELD "dataset_description" OF "gsc_deploy_dataset"
-  LABEL "Dataset description"
-
-UPDATE FIELD "disable_ri" OF "gsc_deploy_dataset"
-  LABEL "Disable ri"
-
-UPDATE FIELD "source_code_data" OF "gsc_deploy_dataset"
-  LABEL "Source code data"
-
-UPDATE FIELD "deploy_full_data" OF "gsc_deploy_dataset"
-  LABEL "Deploy full data"
-
-UPDATE FIELD "xml_generation_procedure" OF "gsc_deploy_dataset"
-  LABEL "Xml generation procedure"
-
-UPDATE FIELD "default_ado_filename" OF "gsc_deploy_dataset"
-  LABEL "Default ado filename"
-
-UPDATE FIELD "deploy_additions_only" OF "gsc_deploy_dataset"
-  LABEL "Deploy additions only"
-
-UPDATE FIELD "enable_data_versioning" OF "gsc_deploy_dataset"
-  LABEL "Enable data versioning"
-
-UPDATE FIELD "deletion_dataset" OF "gsc_deploy_dataset"
-  LABEL "Deletion dataset"
-
-UPDATE FIELD "deploy_package_obj" OF "gsc_deploy_package"
-  LABEL "Deploy package obj"
-
-UPDATE FIELD "package_code" OF "gsc_deploy_package"
-  LABEL "Package code"
-
-UPDATE FIELD "package_description" OF "gsc_deploy_package"
-  LABEL "Package description"
-
-UPDATE FIELD "document_type_obj" OF "gsc_document_type"
-  LABEL "Document type obj"
-
-UPDATE FIELD "document_type_tla" OF "gsc_document_type"
-  LABEL "Document type TLA"
-
-UPDATE FIELD "document_type_short_desc" OF "gsc_document_type"
-  LABEL "Document type short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "document_type_description" OF "gsc_document_type"
-  LABEL "Document type description"
-
-UPDATE FIELD "system_owned" OF "gsc_document_type"
-  LABEL "System owned"
-
-UPDATE FIELD "default_delivery_method" OF "gsc_document_type"
-  LABEL "Default delivery method"
-
-UPDATE FIELD "entity_display_field_obj" OF "gsc_entity_display_field"
-  LABEL "Entity display field obj"
-
-UPDATE FIELD "entity_mnemonic" OF "gsc_entity_display_field"
-  HELP "Entity"
-  LABEL "Entity"
-
-UPDATE FIELD "display_field_name" OF "gsc_entity_display_field"
-  LABEL "Display field name"
-
-UPDATE FIELD "display_field_order" OF "gsc_entity_display_field"
-  LABEL "Display field order"
-
-UPDATE FIELD "display_field_label" OF "gsc_entity_display_field"
-  LABEL "Display field label"
-
-UPDATE FIELD "display_field_column_label" OF "gsc_entity_display_field"
-  LABEL "Display field column label"
-
-UPDATE FIELD "display_field_format" OF "gsc_entity_display_field"
-  LABEL "Display field format"
-
-UPDATE FIELD "entity_mnemonic" OF "gsc_entity_mnemonic"
-  HELP "Entity"
-  LABEL "Entity"
-
-UPDATE FIELD "entity_mnemonic_short_desc" OF "gsc_entity_mnemonic"
-  HELP "Entity short description"
-  LABEL "Entity short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "entity_mnemonic_description" OF "gsc_entity_mnemonic"
-  HELP "Entity description"
-  LABEL "Entity description"
-
-UPDATE FIELD "auto_properform_strings" OF "gsc_entity_mnemonic"
-  LABEL "Auto properform strings"
-
-UPDATE FIELD "entity_mnemonic_label_prefix" OF "gsc_entity_mnemonic"
-  HELP "Entity label prefix"
-  LABEL "Entity label prefix"
-
-UPDATE FIELD "entity_mnemonic_obj" OF "gsc_entity_mnemonic"
-  HELP "Entity obj"
-  LABEL "Entity obj"
-
-UPDATE FIELD "entity_description_field" OF "gsc_entity_mnemonic"
-  LABEL "Entity description field"
-
-UPDATE FIELD "entity_description_procedure" OF "gsc_entity_mnemonic"
-  LABEL "Entity description procedure"
-
-UPDATE FIELD "entity_narration" OF "gsc_entity_mnemonic"
-  LABEL "Entity narration"
-
-UPDATE FIELD "entity_object_field" OF "gsc_entity_mnemonic"
-  LABEL "Entity object field"
-
-UPDATE FIELD "table_has_object_field" OF "gsc_entity_mnemonic"
-  LABEL "Table has object field"
-
-UPDATE FIELD "entity_key_field" OF "gsc_entity_mnemonic"
-  LABEL "Entity key field"
-
-UPDATE FIELD "table_prefix_length" OF "gsc_entity_mnemonic"
-  LABEL "Table prefix length"
-
-UPDATE FIELD "field_name_separator" OF "gsc_entity_mnemonic"
-  LABEL "Field name separator"
-
-UPDATE FIELD "auditing_enabled" OF "gsc_entity_mnemonic"
-  LABEL "Auditing enabled"
-
-UPDATE FIELD "version_data" OF "gsc_entity_mnemonic"
-  LABEL "Version data"
-
-UPDATE FIELD "deploy_data" OF "gsc_entity_mnemonic"
-  LABEL "Deploy data"
-
-UPDATE FIELD "entity_dbname" OF "gsc_entity_mnemonic"
-  HELP "Entity database name"
-  LABEL "Entity DB name"
-
-UPDATE FIELD "replicate_entity_mnemonic" OF "gsc_entity_mnemonic"
-  HELP "Replicate entity"
-  LABEL "Replicate entity"
-
-UPDATE FIELD "replicate_key" OF "gsc_entity_mnemonic"
-  LABEL "Replicate key"
-
-UPDATE FIELD "scm_field_name" OF "gsc_entity_mnemonic"
-  HELP "SCM field name"
-  LABEL "SCM field name"
-
-UPDATE FIELD "reuse_deleted_keys" OF "gsc_entity_mnemonic"
-  LABEL "Reuse deleted keys"
-
-UPDATE FIELD "custom_procedure_obj" OF "gsc_entity_mnemonic_procedure"
-  LABEL "Custom procedure obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsc_entity_mnemonic_procedure"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "entity_mnemonic_procedure_obj" OF "gsc_entity_mnemonic_procedure"
-  HELP "Entity procedure obj"
-  LABEL "Entity procedure obj"
-
-UPDATE FIELD "run_this_procedure" OF "gsc_entity_mnemonic_procedure"
-  LABEL "Run this procedure"
-
-UPDATE FIELD "error_group" OF "gsc_error"
-  LABEL "Error group"
-
-UPDATE FIELD "error_number" OF "gsc_error"
-  LABEL "Error number"
-
-UPDATE FIELD "language_obj" OF "gsc_error"
-  LABEL "Language obj"
-
-UPDATE FIELD "error_summary_description" OF "gsc_error"
-  LABEL "Error summary description"
-
-UPDATE FIELD "error_full_description" OF "gsc_error"
-  LABEL "Error full description"
-
-UPDATE FIELD "error_obj" OF "gsc_error"
-  LABEL "Error obj"
-
-UPDATE FIELD "update_error_log" OF "gsc_error"
-  LABEL "Update error log"
-
-UPDATE FIELD "error_type" OF "gsc_error"
-  LABEL "Error type"
-
-UPDATE FIELD "source_language" OF "gsc_error"
-  LABEL "Source language"
-
-UPDATE FIELD "global_control_obj" OF "gsc_global_control"
-  LABEL "Global control obj"
-
-UPDATE FIELD "default_country_obj" OF "gsc_global_control"
-  LABEL "Default country obj"
-
-UPDATE FIELD "default_nationality_obj" OF "gsc_global_control"
-  LABEL "Default nationality obj"
-
-UPDATE FIELD "default_language_obj" OF "gsc_global_control"
-  LABEL "Default language obj"
-
-UPDATE FIELD "default_currency_obj" OF "gsc_global_control"
-  LABEL "Default currency obj"
-
-UPDATE FIELD "date_format" OF "gsc_global_control"
-  LABEL "Date format"
-
-UPDATE FIELD "date_format_mask" OF "gsc_global_control"
-  LABEL "Date format mask"
-
-UPDATE FIELD "global_default_obj" OF "gsc_global_default"
-  LABEL "Global default obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsc_global_default"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "default_type" OF "gsc_global_default"
-  LABEL "Default type"
-
-UPDATE FIELD "effective_date" OF "gsc_global_default"
-  LABEL "Effective date"
-
-UPDATE FIELD "owning_obj" OF "gsc_global_default"
-  LABEL "Owning obj"
-
-UPDATE FIELD "default_value" OF "gsc_global_default"
-  LABEL "Default value"
-
-UPDATE FIELD "instance_attribute_obj" OF "gsc_instance_attribute"
-  LABEL "Instance attribute obj"
-
-UPDATE FIELD "attribute_code" OF "gsc_instance_attribute"
-  LABEL "Attribute code"
-
-UPDATE FIELD "attribute_description" OF "gsc_instance_attribute"
-  LABEL "Attribute description"
-
-UPDATE FIELD "system_owned" OF "gsc_instance_attribute"
-  LABEL "System owned"
-
-UPDATE FIELD "attribute_type" OF "gsc_instance_attribute"
-  LABEL "Attribute type"
-
-UPDATE FIELD "item_category_obj" OF "gsc_item_category"
-  LABEL "Item category obj"
-
-UPDATE FIELD "item_category_label" OF "gsc_item_category"
-  LABEL "Item category label"
-
-UPDATE FIELD "item_category_description" OF "gsc_item_category"
-  LABEL "Item category description"
-
-UPDATE FIELD "item_link" OF "gsc_item_category"
-  LABEL "Item link"
-
-UPDATE FIELD "system_owned" OF "gsc_item_category"
-  LABEL "System owned"
-
-UPDATE FIELD "parent_item_category_obj" OF "gsc_item_category"
-  LABEL "Parent item category obj"
-
-UPDATE FIELD "language_obj" OF "gsc_language"
-  LABEL "Language obj"
-
-UPDATE FIELD "language_code" OF "gsc_language"
-  LABEL "Language code"
-
-UPDATE FIELD "language_name" OF "gsc_language"
-  LABEL "Language name"
-
-UPDATE FIELD "person_title1_label" OF "gsc_language"
-  LABEL "Person title1 label"
-
-UPDATE FIELD "person_title2_label" OF "gsc_language"
-  LABEL "Person title2 label"
-
-UPDATE FIELD "person_title3_label" OF "gsc_language"
-  LABEL "Person title3 label"
-
-UPDATE FIELD "language_text_obj" OF "gsc_language_text"
-  LABEL "Language text obj"
-
-UPDATE FIELD "owning_obj" OF "gsc_language_text"
-  LABEL "Owning obj"
-
-UPDATE FIELD "category_obj" OF "gsc_language_text"
-  LABEL "Category obj"
-
-UPDATE FIELD "language_obj" OF "gsc_language_text"
-  LABEL "Language obj"
-
-UPDATE FIELD "physical_file_name" OF "gsc_language_text"
-  LABEL "Physical file name"
-
-UPDATE FIELD "text_content" OF "gsc_language_text"
-  LABEL "Text content"
-
-UPDATE FIELD "system_owned" OF "gsc_language_text"
-  LABEL "System owned"
-
-UPDATE FIELD "max_length" OF "gsc_language_text"
-  HELP "Maximum length"
-  LABEL "Max. length"
-
-UPDATE FIELD "print_option_tlas" OF "gsc_language_text"
-  LABEL "Print option TLAs"
-
-UPDATE FIELD "search_string" OF "gsc_language_text"
-  LABEL "Search string"
-
-UPDATE FIELD "logical_service_obj" OF "gsc_logical_service"
-  LABEL "Logical service obj"
-
-UPDATE FIELD "logical_service_code" OF "gsc_logical_service"
-  LABEL "Logical service code"
-
-UPDATE FIELD "logical_service_description" OF "gsc_logical_service"
-  LABEL "Logical service description"
-
-UPDATE FIELD "service_type_obj" OF "gsc_logical_service"
-  LABEL "Service type obj"
-
-UPDATE FIELD "can_run_locally" OF "gsc_logical_service"
-  LABEL "Can run locally"
-
-UPDATE FIELD "system_owned" OF "gsc_logical_service"
-  LABEL "System owned"
-
-UPDATE FIELD "write_to_config" OF "gsc_logical_service"
-  LABEL "Write to config"
-
-UPDATE FIELD "manager_type_obj" OF "gsc_manager_type"
-  LABEL "Manager type obj"
-
-UPDATE FIELD "manager_type_code" OF "gsc_manager_type"
-  LABEL "Manager type code"
-
-UPDATE FIELD "manager_type_name" OF "gsc_manager_type"
-  LABEL "Manager type name"
-
-UPDATE FIELD "system_owned" OF "gsc_manager_type"
-  LABEL "System owned"
-
-UPDATE FIELD "write_to_config" OF "gsc_manager_type"
-  LABEL "Write to config"
-
-UPDATE FIELD "static_handle" OF "gsc_manager_type"
-  LABEL "Static handle"
-
-UPDATE FIELD "manager_narration" OF "gsc_manager_type"
-  LABEL "Manager narration"
-
-UPDATE FIELD "multi_media_type_obj" OF "gsc_multi_media_type"
-  LABEL "Multi media type obj"
-
-UPDATE FIELD "multi_media_type_code" OF "gsc_multi_media_type"
-  LABEL "Multi media type code"
-
-UPDATE FIELD "multi_media_type_description" OF "gsc_multi_media_type"
-  LABEL "Multi media type description"
-
-UPDATE FIELD "application_launch_command" OF "gsc_multi_media_type"
-  LABEL "Application launch command"
-
-UPDATE FIELD "file_extension" OF "gsc_multi_media_type"
-  LABEL "File extension"
-
-UPDATE FIELD "template_extension" OF "gsc_multi_media_type"
-  LABEL "Template extension"
-
-UPDATE FIELD "nationality_obj" OF "gsc_nationality"
-  LABEL "Nationality obj"
-
-UPDATE FIELD "nationality_code" OF "gsc_nationality"
-  LABEL "Nationality code"
-
-UPDATE FIELD "nationality_name" OF "gsc_nationality"
-  LABEL "Nationality name"
-
-UPDATE FIELD "sequence_obj" OF "gsc_next_sequence"
-  LABEL "Sequence obj"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "next_sequence_value" OF "gsc_next_sequence"
-  HELP "Next sequence value"
-  LABEL "Next sequence value"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "next_sequence_obj" OF "gsc_next_sequence"
-  HELP "Next sequence obj"
-  LABEL "Next sequence obj"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "object_type_obj" OF "gsc_object_type"
-  LABEL "Object type obj"
-
-UPDATE FIELD "object_type_code" OF "gsc_object_type"
-  LABEL "Object type code"
-
-UPDATE FIELD "object_type_description" OF "gsc_object_type"
-  LABEL "Object type description"
-
-UPDATE FIELD "layout_supported" OF "gsc_object_type"
-  LABEL "Layout supported"
-
-UPDATE FIELD "deployment_type" OF "gsc_object_type"
-  LABEL "Deployment type"
-
-UPDATE FIELD "static_object" OF "gsc_object_type"
-  LABEL "Static object"
-
-UPDATE FIELD "class_smartobject_obj" OF "gsc_object_type"
-  HELP "Class smartobject obj"
-  LABEL "Class smartobject obj"
-
-UPDATE FIELD "extends_object_type_obj" OF "gsc_object_type"
-  LABEL "Extends object type obj"
-
-UPDATE FIELD "package_dataset_obj" OF "gsc_package_dataset"
-  LABEL "Package dataset obj"
-
-UPDATE FIELD "deploy_dataset_obj" OF "gsc_package_dataset"
-  LABEL "Deploy dataset obj"
-
-UPDATE FIELD "deploy_package_obj" OF "gsc_package_dataset"
-  LABEL "Deploy package obj"
-
-UPDATE FIELD "deploy_full_data" OF "gsc_package_dataset"
-  LABEL "Deploy full data"
-
-UPDATE FIELD "package_dataset_seq" OF "gsc_package_dataset"
-  HELP "Package dataset seq"
-  LABEL "Package dataset seq"
-
-UPDATE FIELD "product_obj" OF "gsc_product"
-  LABEL "Product obj"
-
-UPDATE FIELD "product_code" OF "gsc_product"
-  LABEL "Product code"
-
-UPDATE FIELD "product_description" OF "gsc_product"
-  LABEL "Product description"
-
-UPDATE FIELD "product_installed" OF "gsc_product"
-  LABEL "Product installed"
-
-UPDATE FIELD "number_of_users" OF "gsc_product"
-  LABEL "Number of users"
-
-UPDATE FIELD "db_connection_pf_file" OF "gsc_product"
-  HELP "Database connection PF file"
-  LABEL "DB connection PF file"
-
-UPDATE FIELD "supplier_organisation_obj" OF "gsc_product"
-  LABEL "Supplier organisation obj"
-
-UPDATE FIELD "product_module_obj" OF "gsc_product_module"
-  LABEL "Product module obj"
-
-UPDATE FIELD "product_obj" OF "gsc_product_module"
-  LABEL "Product obj"
-
-UPDATE FIELD "product_module_code" OF "gsc_product_module"
-  LABEL "Product module code"
-
-UPDATE FIELD "product_module_description" OF "gsc_product_module"
-  LABEL "Product module description"
-
-UPDATE FIELD "product_module_installed" OF "gsc_product_module"
-  LABEL "Product module installed"
-
-UPDATE FIELD "number_of_users" OF "gsc_product_module"
-  LABEL "Number of users"
-
-UPDATE FIELD "db_connection_pf_file" OF "gsc_product_module"
-  HELP "Database connection pf file"
-  LABEL "DB connection pf file"
-
-UPDATE FIELD "relative_path" OF "gsc_product_module"
-  LABEL "Relative path"
-
-UPDATE FIELD "deployment_type" OF "gsc_product_module"
-  LABEL "Deployment type"
-
-UPDATE FIELD "parent_product_module_obj" OF "gsc_product_module"
-  LABEL "Parent product module obj"
-
-UPDATE FIELD "profile_type_obj" OF "gsc_profile_code"
-  LABEL "Profile type obj"
-
-UPDATE FIELD "profile_code_obj" OF "gsc_profile_code"
-  LABEL "Profile code obj"
-
-UPDATE FIELD "profile_code" OF "gsc_profile_code"
-  LABEL "Profile code"
-
-UPDATE FIELD "profile_description" OF "gsc_profile_code"
-  LABEL "Profile description"
-
-UPDATE FIELD "profile_narrative" OF "gsc_profile_code"
-  LABEL "Profile narrative"
-
-UPDATE FIELD "profile_type_obj" OF "gsc_profile_type"
-  LABEL "Profile type obj"
-
-UPDATE FIELD "profile_type_code" OF "gsc_profile_type"
-  LABEL "Profile type code"
-
-UPDATE FIELD "profile_type_description" OF "gsc_profile_type"
-  LABEL "Profile type description"
-
-UPDATE FIELD "client_profile_type" OF "gsc_profile_type"
-  LABEL "Client profile type"
-
-UPDATE FIELD "server_profile_type" OF "gsc_profile_type"
-  LABEL "Server profile type"
-
-UPDATE FIELD "profile_type_active" OF "gsc_profile_type"
-  LABEL "Profile type active"
-
-UPDATE FIELD "security_control_obj" OF "gsc_security_control"
-  LABEL "Security control obj"
-
-UPDATE FIELD "password_max_retries" OF "gsc_security_control"
-  HELP "Password maximum retries"
-  LABEL "Password max. retries"
-
-UPDATE FIELD "password_history_life_time" OF "gsc_security_control"
-  LABEL "Password history life time"
-
-UPDATE FIELD "full_access_by_default" OF "gsc_security_control"
-  LABEL "Full access by default"
-
-UPDATE FIELD "security_enabled" OF "gsc_security_control"
-  LABEL "Security enabled"
-
-UPDATE FIELD "help_writer_enabled" OF "gsc_security_control"
-  LABEL "Help writer enabled"
-
-UPDATE FIELD "build_top_menus_only" OF "gsc_security_control"
-  LABEL "Build top menus only"
-
-UPDATE FIELD "default_help_filename" OF "gsc_security_control"
-  LABEL "Default help filename"
-
-UPDATE FIELD "error_log_filename" OF "gsc_security_control"
-  LABEL "Error log filename"
-
-UPDATE FIELD "translation_enabled" OF "gsc_security_control"
-  LABEL "Translation enabled"
-
-UPDATE FIELD "login_filename" OF "gsc_security_control"
-  LABEL "Login filename"
-
-UPDATE FIELD "multi_user_check" OF "gsc_security_control"
-  LABEL "Multi user check"
-
-UPDATE FIELD "program_access_check" OF "gsc_security_control"
-  LABEL "Program access check"
-
-UPDATE FIELD "minimise_siblings" OF "gsc_security_control"
-  LABEL "Minimise siblings"
-
-UPDATE FIELD "enable_window_positioning" OF "gsc_security_control"
-  LABEL "Enable window positioning"
-
-UPDATE FIELD "force_unique_password" OF "gsc_security_control"
-  LABEL "Force unique password"
-
-UPDATE FIELD "company_logo_filename" OF "gsc_security_control"
-  LABEL "Company logo filename"
-
-UPDATE FIELD "system_icon_filename" OF "gsc_security_control"
-  LABEL "System icon filename"
-
-UPDATE FIELD "small_icon_filename" OF "gsc_security_control"
-  LABEL "Small icon filename"
-
-UPDATE FIELD "product_logo_filename" OF "gsc_security_control"
-  LABEL "Product logo filename"
-
-UPDATE FIELD "scm_checks_on" OF "gsc_security_control"
-  HELP "SCM checks on"
-  LABEL "SCM checks on"
-
-UPDATE FIELD "scm_tool_code" OF "gsc_security_control"
-  HELP "SCM tool code"
-  LABEL "SCM tool code"
-
-UPDATE FIELD "sequence_obj" OF "gsc_sequence"
-  LABEL "Sequence obj"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "company_organisation_obj" OF "gsc_sequence"
-  LABEL "Company organisation obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsc_sequence"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "sequence_tla" OF "gsc_sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "sequence_short_desc" OF "gsc_sequence"
-  LABEL "Sequence short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "sequence_description" OF "gsc_sequence"
-  LABEL "Sequence description"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "min_value" OF "gsc_sequence"
-  HELP "Minimum value"
-  LABEL "Min. value"
-
-UPDATE FIELD "max_value" OF "gsc_sequence"
-  HELP "Maximum value"
-  LABEL "Max. value"
-
-UPDATE FIELD "sequence_format" OF "gsc_sequence"
-  LABEL "Sequence format"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "auto_generate" OF "gsc_sequence"
-  LABEL "Auto generate"
-
-UPDATE FIELD "multi_transaction" OF "gsc_sequence"
-  LABEL "Multi transaction"
-
-UPDATE FIELD "next_value" OF "gsc_sequence"
-  HELP "Next value"
-  LABEL "Next value"
-
-UPDATE FIELD "number_of_sequences" OF "gsc_sequence"
-  LABEL "Number of sequences"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "sequence_active" OF "gsc_sequence"
-  LABEL "Sequence active"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "service_type_obj" OF "gsc_service_type"
-  LABEL "Service type obj"
-
-UPDATE FIELD "service_type_code" OF "gsc_service_type"
-  LABEL "Service type code"
-
-UPDATE FIELD "service_type_description" OF "gsc_service_type"
-  LABEL "Service type description"
-
-UPDATE FIELD "management_object_obj" OF "gsc_service_type"
-  LABEL "Management object obj"
-
-UPDATE FIELD "maintenance_object_obj" OF "gsc_service_type"
-  LABEL "Maintenance object obj"
-
-UPDATE FIELD "default_logical_service_obj" OF "gsc_service_type"
-  LABEL "Default logical service obj"
-
-UPDATE FIELD "session_property_obj" OF "gsc_session_property"
-  LABEL "Session property obj"
-
-UPDATE FIELD "session_property_name" OF "gsc_session_property"
-  LABEL "Session property name"
-
-UPDATE FIELD "session_property_description" OF "gsc_session_property"
-  LABEL "Session property description"
-
-UPDATE FIELD "system_owned" OF "gsc_session_property"
-  LABEL "System owned"
-
-UPDATE FIELD "default_property_value" OF "gsc_session_property"
-  LABEL "Default property value"
-
-UPDATE FIELD "always_used" OF "gsc_session_property"
-  LABEL "Always used"
-
-UPDATE FIELD "category_obj" OF "gsm_category"
-  LABEL "Category obj"
-
-UPDATE FIELD "related_entity_mnemonic" OF "gsm_category"
-  HELP "Related entity"
-  LABEL "Related entity"
-
-UPDATE FIELD "category_type" OF "gsm_category"
-  LABEL "Category type"
-
-UPDATE FIELD "category_group" OF "gsm_category"
-  LABEL "Category group"
-
-UPDATE FIELD "category_subgroup" OF "gsm_category"
-  LABEL "Category subgroup"
-
-UPDATE FIELD "category_group_seq" OF "gsm_category"
-  HELP "Category group seq"
-  LABEL "Category group seq"
-
-UPDATE FIELD "category_label" OF "gsm_category"
-  LABEL "Category label"
-
-UPDATE FIELD "category_description" OF "gsm_category"
-  LABEL "Category description"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_category"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "system_owned" OF "gsm_category"
-  LABEL "System owned"
-
-UPDATE FIELD "validation_min_length" OF "gsm_category"
-  HELP "Validation minimum length"
-  LABEL "Validation min. length"
-
-UPDATE FIELD "validation_max_length" OF "gsm_category"
-  HELP "Validation maximum length"
-  LABEL "Validation max. length"
-
-UPDATE FIELD "view_as_columns" OF "gsm_category"
-  LABEL "View as columns"
-
-UPDATE FIELD "view_as_rows" OF "gsm_category"
-  LABEL "View as rows"
-
-UPDATE FIELD "category_mandatory" OF "gsm_category"
-  LABEL "Category mandatory"
-
-UPDATE FIELD "category_active" OF "gsm_category"
-  LABEL "Category active"
-
-UPDATE FIELD "comment_obj" OF "gsm_comment"
-  LABEL "Comment obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_comment"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_reference" OF "gsm_comment"
-  LABEL "Owning reference"
-
-UPDATE FIELD "owning_obj" OF "gsm_comment"
-  LABEL "Owning obj"
-
-UPDATE FIELD "category_obj" OF "gsm_comment"
-  LABEL "Category obj"
-
-UPDATE FIELD "comment_text" OF "gsm_comment"
-  LABEL "Comment text"
-
-UPDATE FIELD "auto_display" OF "gsm_comment"
-  LABEL "Auto display"
-
-UPDATE FIELD "print_option_tlas" OF "gsm_comment"
-  LABEL "Print option TLAs"
-
-UPDATE FIELD "expiry_date" OF "gsm_comment"
-  LABEL "Expiry date"
-
-UPDATE FIELD "comment_description" OF "gsm_comment"
-  LABEL "Comment description"
-
-UPDATE FIELD "last_updated_by_user" OF "gsm_comment"
-  LABEL "Last updated by user"
-
-UPDATE FIELD "last_updated_date" OF "gsm_comment"
-  LABEL "Last updated date"
-
-UPDATE FIELD "category_obj" OF "gsm_control_code"
-  LABEL "Category obj"
-
-UPDATE FIELD "owning_obj" OF "gsm_control_code"
-  LABEL "Owning obj"
-
-UPDATE FIELD "control_data" OF "gsm_control_code"
-  LABEL "Control data"
-
-UPDATE FIELD "control_short_description" OF "gsm_control_code"
-  HELP "Control short description"
-  LABEL "Control short description"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "control_description" OF "gsm_control_code"
-  LABEL "Control description"
-
-UPDATE FIELD "control_code_obj" OF "gsm_control_code"
-  LABEL "Control code obj"
-
-UPDATE FIELD "country_obj" OF "gsm_country"
-  LABEL "Country obj"
-
-UPDATE FIELD "country_code" OF "gsm_country"
-  LABEL "Country code"
-
-UPDATE FIELD "country_name" OF "gsm_country"
-  LABEL "Country name"
-
-UPDATE FIELD "min_postcode_lookup_chars" OF "gsm_country"
-  HELP "Min postcode lookup chars"
-  LABEL "Min postcode lookup chars"
-
-UPDATE FIELD "address_format_procedure_obj" OF "gsm_country"
-  LABEL "Address format procedure obj"
-
-UPDATE FIELD "properform_address" OF "gsm_country"
-  LABEL "Properform address"
-
-UPDATE FIELD "upcase_town" OF "gsm_country"
-  LABEL "Upcase town"
-
-UPDATE FIELD "force_valid_address" OF "gsm_country"
-  LABEL "Force valid address"
-
-UPDATE FIELD "address_line1_label" OF "gsm_country"
-  LABEL "Address line1 label"
-
-UPDATE FIELD "address_line2_label" OF "gsm_country"
-  LABEL "Address line2 label"
-
-UPDATE FIELD "address_line3_label" OF "gsm_country"
-  LABEL "Address line3 label"
-
-UPDATE FIELD "address_line4_label" OF "gsm_country"
-  LABEL "Address line4 label"
-
-UPDATE FIELD "address_line5_label" OF "gsm_country"
-  LABEL "Address line5 label"
-
-UPDATE FIELD "postcode_label" OF "gsm_country"
-  LABEL "Postcode label"
-
-UPDATE FIELD "currency_obj" OF "gsm_currency"
-  LABEL "Currency obj"
-
-UPDATE FIELD "currency_code" OF "gsm_currency"
-  LABEL "Currency code"
-
-UPDATE FIELD "currency_description" OF "gsm_currency"
-  LABEL "Currency description"
-
-UPDATE FIELD "currency_symbol" OF "gsm_currency"
-  LABEL "Currency symbol"
-
-UPDATE FIELD "symbol_format_mask" OF "gsm_currency"
-  LABEL "Symbol format mask"
-
-UPDATE FIELD "number_of_decimals" OF "gsm_currency"
-  LABEL "Number of decimals"
-
-UPDATE FIELD "default_report_format_obj" OF "gsm_default_report_format"
-  LABEL "Default report format obj"
-
-UPDATE FIELD "report_definition_obj" OF "gsm_default_report_format"
-  LABEL "Report definition obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_default_report_format"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_obj" OF "gsm_default_report_format"
-  LABEL "Owning obj"
-
-UPDATE FIELD "document_type_obj" OF "gsm_default_report_format"
-  LABEL "Document type obj"
-
-UPDATE FIELD "report_format_obj" OF "gsm_default_report_format"
-  LABEL "Report format obj"
-
-UPDATE FIELD "entity_field_obj" OF "gsm_entity_field"
-  LABEL "Entity field obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_entity_field"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "entity_field_name" OF "gsm_entity_field"
-  LABEL "Entity field name"
-
-UPDATE FIELD "entity_field_description" OF "gsm_entity_field"
-  LABEL "Entity field description"
-
-UPDATE FIELD "entity_field_value_obj" OF "gsm_entity_field_value"
-  LABEL "Entity field value obj"
-
-UPDATE FIELD "entity_field_obj" OF "gsm_entity_field_value"
-  LABEL "Entity field obj"
-
-UPDATE FIELD "entity_field_contents" OF "gsm_entity_field_value"
-  LABEL "Entity field contents"
-
-UPDATE FIELD "related_entity_mnemonic" OF "gsm_external_xref"
-  HELP "Related entity"
-  LABEL "Related entity"
-
-UPDATE FIELD "related_owning_obj" OF "gsm_external_xref"
-  LABEL "Related owning obj"
-
-UPDATE FIELD "internal_entity_mnemonic" OF "gsm_external_xref"
-  HELP "Internal entity"
-  LABEL "Internal entity"
-
-UPDATE FIELD "internal_owning_obj" OF "gsm_external_xref"
-  LABEL "Internal owning obj"
-
-UPDATE FIELD "external_xref_obj" OF "gsm_external_xref"
-  LABEL "External xref obj"
-
-UPDATE FIELD "external_entity_mnemonic" OF "gsm_external_xref"
-  HELP "External entity"
-  LABEL "External entity"
-
-UPDATE FIELD "external_owning_obj" OF "gsm_external_xref"
-  LABEL "External owning obj"
-
-UPDATE FIELD "external_code" OF "gsm_external_xref"
-  LABEL "External code"
-
-UPDATE FIELD "external_description" OF "gsm_external_xref"
-  LABEL "External description"
-
-UPDATE FIELD "external_details" OF "gsm_external_xref"
-  LABEL "External details"
-
-UPDATE FIELD "field_obj" OF "gsm_field"
-  LABEL "Field obj"
-
-UPDATE FIELD "field_name" OF "gsm_field"
-  LABEL "Field name"
-
-UPDATE FIELD "field_description" OF "gsm_field"
-  LABEL "Field description"
-
-UPDATE FIELD "system_owned" OF "gsm_field"
-  LABEL "System owned"
-
-UPDATE FIELD "flow_obj" OF "gsm_flow"
-  LABEL "Flow obj"
-
-UPDATE FIELD "flow_name" OF "gsm_flow"
-  LABEL "Flow name"
-
-UPDATE FIELD "flow_description" OF "gsm_flow"
-  LABEL "Flow description"
-
-UPDATE FIELD "product_module_obj" OF "gsm_flow"
-  LABEL "Product module obj"
-
-UPDATE FIELD "system_owned" OF "gsm_flow"
-  LABEL "System owned"
-
-UPDATE FIELD "flow_narration" OF "gsm_flow"
-  LABEL "Flow narration"
-
-UPDATE FIELD "flow_step_obj" OF "gsm_flow_step"
-  LABEL "Flow step obj"
-
-UPDATE FIELD "flow_obj" OF "gsm_flow_step"
-  LABEL "Flow obj"
-
-UPDATE FIELD "flow_step_order" OF "gsm_flow_step"
-  LABEL "Flow step order"
-
-UPDATE FIELD "login_company_obj" OF "gsm_flow_step"
-  LABEL "Login company obj"
-
-UPDATE FIELD "replace_standard_step" OF "gsm_flow_step"
-  LABEL "Replace standard step"
-
-UPDATE FIELD "object_obj" OF "gsm_flow_step"
-  LABEL "Object obj"
-
-UPDATE FIELD "internal_procedure" OF "gsm_flow_step"
-  LABEL "Internal procedure"
-
-UPDATE FIELD "flow_step_flow_obj" OF "gsm_flow_step"
-  LABEL "Flow step flow obj"
-
-UPDATE FIELD "help_obj" OF "gsm_help"
-  LABEL "Help obj"
-
-UPDATE FIELD "help_filename" OF "gsm_help"
-  LABEL "Help filename"
-
-UPDATE FIELD "help_container_filename" OF "gsm_help"
-  LABEL "Help container filename"
-
-UPDATE FIELD "help_object_filename" OF "gsm_help"
-  LABEL "Help object filename"
-
-UPDATE FIELD "help_fieldname" OF "gsm_help"
-  LABEL "Help fieldname"
-
-UPDATE FIELD "language_obj" OF "gsm_help"
-  LABEL "Language obj"
-
-UPDATE FIELD "help_context" OF "gsm_help"
-  LABEL "Help context"
-
-UPDATE FIELD "login_company_obj" OF "gsm_login_company"
-  LABEL "Login company obj"
-
-UPDATE FIELD "login_company_code" OF "gsm_login_company"
-  LABEL "Login company code"
-
-UPDATE FIELD "login_company_short_name" OF "gsm_login_company"
-  LABEL "Login company short name"
-
-UPDATE FIELD "login_company_name" OF "gsm_login_company"
-  LABEL "Login company name"
-
-UPDATE FIELD "login_company_email" OF "gsm_login_company"
-  LABEL "Login company email"
-
-UPDATE FIELD "login_company_disabled" OF "gsm_login_company"
-  LABEL "Login company disabled"
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_item"
-  LABEL "Menu item obj"
-
-UPDATE FIELD "product_module_obj" OF "gsm_menu_item"
-  LABEL "Product module obj"
-
-UPDATE FIELD "object_obj" OF "gsm_menu_item"
-  LABEL "Object obj"
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
-  LABEL "Instance attribute obj"
-
-UPDATE FIELD "item_category_obj" OF "gsm_menu_item"
-  LABEL "Item category obj"
-
-UPDATE FIELD "menu_item_label" OF "gsm_menu_item"
-  LABEL "Menu item label"
-
-UPDATE FIELD "menu_item_description" OF "gsm_menu_item"
-  LABEL "Menu item description"
-
-UPDATE FIELD "toggle_menu_item" OF "gsm_menu_item"
-  LABEL "Toggle menu item"
-
-UPDATE FIELD "tooltip_text" OF "gsm_menu_item"
-  LABEL "Tooltip text"
-
-UPDATE FIELD "shortcut_key" OF "gsm_menu_item"
-  LABEL "Shortcut key"
-
-UPDATE FIELD "hide_if_disabled" OF "gsm_menu_item"
-  LABEL "Hide if disabled"
-
-UPDATE FIELD "system_owned" OF "gsm_menu_item"
-  LABEL "System owned"
-
-UPDATE FIELD "under_development" OF "gsm_menu_item"
-  LABEL "Under development"
-
-UPDATE FIELD "menu_item_reference" OF "gsm_menu_item"
-  LABEL "Menu item reference"
-
-UPDATE FIELD "propagate_links" OF "gsm_menu_item"
-  LABEL "Propagate links"
-
-UPDATE FIELD "security_token" OF "gsm_menu_item"
-  LABEL "Security token"
-
-UPDATE FIELD "item_toolbar_label" OF "gsm_menu_item"
-  LABEL "Item toolbar label"
-
-UPDATE FIELD "image1_up_filename" OF "gsm_menu_item"
-  LABEL "Image1 up filename"
-
-UPDATE FIELD "image1_down_filename" OF "gsm_menu_item"
-  LABEL "Image1 down filename"
-
-UPDATE FIELD "image1_insensitive_filename" OF "gsm_menu_item"
-  LABEL "Image1 insensitive filename"
-
-UPDATE FIELD "image2_up_filename" OF "gsm_menu_item"
-  LABEL "Image2 up filename"
-
-UPDATE FIELD "image2_down_filename" OF "gsm_menu_item"
-  LABEL "Image2 down filename"
-
-UPDATE FIELD "image2_insensitive_filename" OF "gsm_menu_item"
-  LABEL "Image2 insensitive filename"
-
-UPDATE FIELD "item_select_type" OF "gsm_menu_item"
-  LABEL "Item select type"
-
-UPDATE FIELD "item_select_action" OF "gsm_menu_item"
-  LABEL "Item select action"
-
-UPDATE FIELD "item_link" OF "gsm_menu_item"
-  LABEL "Item link"
-
-UPDATE FIELD "item_select_parameter" OF "gsm_menu_item"
-  LABEL "Item select parameter"
-
-UPDATE FIELD "item_menu_drop" OF "gsm_menu_item"
-  LABEL "Item menu drop"
-
-UPDATE FIELD "on_create_publish_event" OF "gsm_menu_item"
-  LABEL "On create publish event"
-
-UPDATE FIELD "enable_rule" OF "gsm_menu_item"
-  LABEL "Enable rule"
-
-UPDATE FIELD "disable_rule" OF "gsm_menu_item"
-  LABEL "Disable rule"
-
-UPDATE FIELD "image_alternate_rule" OF "gsm_menu_item"
-  LABEL "Image alternate rule"
-
-UPDATE FIELD "hide_rule" OF "gsm_menu_item"
-  LABEL "Hide rule"
-
-UPDATE FIELD "item_control_type" OF "gsm_menu_item"
-  LABEL "Item control type"
-
-UPDATE FIELD "item_control_style" OF "gsm_menu_item"
-  LABEL "Item control style"
-
-UPDATE FIELD "substitute_text_property" OF "gsm_menu_item"
-  LABEL "Substitute text property"
-
-UPDATE FIELD "item_narration" OF "gsm_menu_item"
-  LABEL "Item narration"
-
-UPDATE FIELD "source_language_obj" OF "gsm_menu_item"
-  LABEL "Source language obj"
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure"
-  LABEL "Menu structure obj"
-
-UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
-  LABEL "Product module obj"
-
-UPDATE FIELD "product_obj" OF "gsm_menu_structure"
-  LABEL "Product obj"
-
-UPDATE FIELD "menu_structure_code" OF "gsm_menu_structure"
-  LABEL "Menu structure code"
-
-UPDATE FIELD "menu_structure_description" OF "gsm_menu_structure"
-  LABEL "Menu structure description"
-
-UPDATE FIELD "system_owned" OF "gsm_menu_structure"
-  LABEL "System owned"
-
-UPDATE FIELD "under_development" OF "gsm_menu_structure"
-  LABEL "Under development"
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure"
-  LABEL "Menu item obj"
-
-UPDATE FIELD "menu_structure_type" OF "gsm_menu_structure"
-  LABEL "Menu structure type"
-
-UPDATE FIELD "menu_structure_hidden" OF "gsm_menu_structure"
-  LABEL "Menu structure hidden"
-
-UPDATE FIELD "control_spacing" OF "gsm_menu_structure"
-  LABEL "Control spacing"
-
-UPDATE FIELD "control_padding" OF "gsm_menu_structure"
-  LABEL "Control padding"
-
-UPDATE FIELD "menu_structure_narrative" OF "gsm_menu_structure"
-  LABEL "Menu structure narrative"
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure_item"
-  LABEL "Menu structure obj"
-
-UPDATE FIELD "menu_item_sequence" OF "gsm_menu_structure_item"
-  LABEL "Menu item sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure_item"
-  LABEL "Menu item obj"
-
-UPDATE FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item"
-  LABEL "Child menu structure obj"
-
-UPDATE FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item"
-  LABEL "Menu structure item obj"
-
-UPDATE FIELD "multi_media_obj" OF "gsm_multi_media"
-  LABEL "Multi media obj"
-
-UPDATE FIELD "category_obj" OF "gsm_multi_media"
-  LABEL "Category obj"
-
-UPDATE FIELD "owning_obj" OF "gsm_multi_media"
-  LABEL "Owning obj"
-
-UPDATE FIELD "multi_media_type_obj" OF "gsm_multi_media"
-  LABEL "Multi media type obj"
-
-UPDATE FIELD "physical_file_name" OF "gsm_multi_media"
-  LABEL "Physical file name"
-
-UPDATE FIELD "multi_media_description" OF "gsm_multi_media"
-  LABEL "Multi media description"
-
-UPDATE FIELD "creation_date" OF "gsm_multi_media"
-  LABEL "Creation date"
-
-UPDATE FIELD "node_obj" OF "gsm_node"
-  LABEL "Node obj"
-
-UPDATE FIELD "node_code" OF "gsm_node"
-  LABEL "Node code"
-
-UPDATE FIELD "node_description" OF "gsm_node"
-  LABEL "Node description"
-
-UPDATE FIELD "parent_node_obj" OF "gsm_node"
-  LABEL "Parent node obj"
-
-UPDATE FIELD "node_label" OF "gsm_node"
-  LABEL "Node label"
-
-UPDATE FIELD "node_checked" OF "gsm_node"
-  LABEL "Node checked"
-
-UPDATE FIELD "data_source_type" OF "gsm_node"
-  LABEL "Data source type"
-
-UPDATE FIELD "data_source" OF "gsm_node"
-  LABEL "Data source"
-
-UPDATE FIELD "primary_sdo" OF "gsm_node"
-  HELP "Primary data object"
-  LABEL "Primary data dbject"
-  COLUMN-LABEL "Primary data object"
-
-UPDATE FIELD "logical_object" OF "gsm_node"
-  LABEL "Logical object"
-
-UPDATE FIELD "run_attribute" OF "gsm_node"
-  LABEL "Run attribute"
-
-UPDATE FIELD "fields_to_store" OF "gsm_node"
-  LABEL "Fields to store"
-
-UPDATE FIELD "node_text_label_expression" OF "gsm_node"
-  LABEL "Node text label expression"
-
-UPDATE FIELD "label_text_substitution_fields" OF "gsm_node"
-  LABEL "Label text substitution fields"
-
-UPDATE FIELD "foreign_fields" OF "gsm_node"
-  LABEL "Foreign fields"
-
-UPDATE FIELD "image_file_name" OF "gsm_node"
-  LABEL "Image file name"
-
-UPDATE FIELD "selected_image_file_name" OF "gsm_node"
-  LABEL "Selected image file name"
-
-UPDATE FIELD "object_obj" OF "gsm_object_menu_structure"
-  LABEL "Object obj"
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_object_menu_structure"
-  LABEL "Menu structure obj"
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_object_menu_structure"
-  LABEL "Instance attribute obj"
-
-UPDATE FIELD "object_menu_structure_obj" OF "gsm_object_menu_structure"
-  LABEL "Object menu structure obj"
-
-UPDATE FIELD "menu_item_obj" OF "gsm_object_menu_structure"
-  LABEL "Menu item obj"
-
-UPDATE FIELD "insert_submenu" OF "gsm_object_menu_structure"
-  LABEL "Insert submenu"
-
-UPDATE FIELD "menu_structure_sequence" OF "gsm_object_menu_structure"
-  LABEL "Menu structure sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "physical_service_obj" OF "gsm_physical_service"
-  LABEL "Physical service obj"
-
-UPDATE FIELD "physical_service_code" OF "gsm_physical_service"
-  LABEL "Physical service code"
-
-UPDATE FIELD "physical_service_description" OF "gsm_physical_service"
-  LABEL "Physical service description"
-
-UPDATE FIELD "service_type_obj" OF "gsm_physical_service"
-  LABEL "Service type obj"
-
-UPDATE FIELD "connection_parameters" OF "gsm_physical_service"
-  LABEL "Connection parameters"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile"
-  LABEL "Profile obj"
-
-UPDATE FIELD "category_obj" OF "gsm_profile"
-  LABEL "Category obj"
-
-UPDATE FIELD "profile_short_desc" OF "gsm_profile"
-  LABEL "Profile short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "profile_description" OF "gsm_profile"
-  LABEL "Profile description"
-
-UPDATE FIELD "data_type" OF "gsm_profile"
-  LABEL "Data type"
-
-UPDATE FIELD "value_is_range" OF "gsm_profile"
-  LABEL "Value is range"
-
-UPDATE FIELD "valid_value_list" OF "gsm_profile"
-  LABEL "Valid value list"
-
-UPDATE FIELD "retain_profile_history" OF "gsm_profile"
-  LABEL "Retain profile history"
-
-UPDATE FIELD "profile_mandatory" OF "gsm_profile"
-  LABEL "Profile mandatory"
-
-UPDATE FIELD "modifications_allowed" OF "gsm_profile"
-  LABEL "Modifications allowed"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_options"
-  LABEL "Profile obj"
-
-UPDATE FIELD "min_characters" OF "gsm_profile_alpha_options"
-  HELP "Minimum characters"
-  LABEL "Min. characters"
-
-UPDATE FIELD "max_characters" OF "gsm_profile_alpha_options"
-  HELP "Maximum characters"
-  LABEL "Max. characters"
-
-UPDATE FIELD "force_uppercase" OF "gsm_profile_alpha_options"
-  LABEL "Force uppercase"
-
-UPDATE FIELD "profile_alpha_options_obj" OF "gsm_profile_alpha_options"
-  LABEL "Profile alpha options obj"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_value"
-  LABEL "Profile obj"
-
-UPDATE FIELD "profile_sequence" OF "gsm_profile_alpha_value"
-  LABEL "Profile sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "alpha_value_from" OF "gsm_profile_alpha_value"
-  LABEL "Alpha value from"
-
-UPDATE FIELD "alpha_value_to" OF "gsm_profile_alpha_value"
-  LABEL "Alpha value to"
-
-UPDATE FIELD "profile_alpha_value_obj" OF "gsm_profile_alpha_value"
-  LABEL "Profile alpha value obj"
-
-UPDATE FIELD "user_obj" OF "gsm_profile_data"
-  LABEL "User obj"
-
-UPDATE FIELD "profile_type_obj" OF "gsm_profile_data"
-  LABEL "Profile type obj"
-
-UPDATE FIELD "profile_code_obj" OF "gsm_profile_data"
-  LABEL "Profile code obj"
-
-UPDATE FIELD "profile_data_key" OF "gsm_profile_data"
-  LABEL "Profile data key"
-
-UPDATE FIELD "context_id" OF "gsm_profile_data"
-  LABEL "Context id"
-
-UPDATE FIELD "profile_data_value" OF "gsm_profile_data"
-  LABEL "Profile data value"
-
-UPDATE FIELD "profile_data_obj" OF "gsm_profile_data"
-  LABEL "Profile data obj"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_date_value"
-  LABEL "Profile obj"
-
-UPDATE FIELD "profile_sequence" OF "gsm_profile_date_value"
-  LABEL "Profile sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "date_value_from" OF "gsm_profile_date_value"
-  LABEL "Date value from"
-
-UPDATE FIELD "date_value_to" OF "gsm_profile_date_value"
-  LABEL "Date value to"
-
-UPDATE FIELD "profile_date_value_obj" OF "gsm_profile_date_value"
-  LABEL "Profile date value obj"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_history"
-  LABEL "Profile obj"
-
-UPDATE FIELD "owning_obj" OF "gsm_profile_history"
-  LABEL "Owning obj"
-
-UPDATE FIELD "effective_date" OF "gsm_profile_history"
-  LABEL "Effective date"
-
-UPDATE FIELD "alpha_value" OF "gsm_profile_history"
-  LABEL "Alpha value"
-
-UPDATE FIELD "date_value" OF "gsm_profile_history"
-  LABEL "Date value"
-
-UPDATE FIELD "numeric_value" OF "gsm_profile_history"
-  LABEL "Numeric value"
-
-UPDATE FIELD "alpha_value_to" OF "gsm_profile_history"
-  LABEL "Alpha value to"
-
-UPDATE FIELD "date_value_to" OF "gsm_profile_history"
-  LABEL "Date value to"
-
-UPDATE FIELD "numeric_value_to" OF "gsm_profile_history"
-  LABEL "Numeric value to"
-
-UPDATE FIELD "profile_history_obj" OF "gsm_profile_history"
-  LABEL "Profile history obj"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_options"
-  LABEL "Profile obj"
-
-UPDATE FIELD "decimal_places" OF "gsm_profile_numeric_options"
-  LABEL "Decimal places"
-
-UPDATE FIELD "min_value" OF "gsm_profile_numeric_options"
-  HELP "Minimum value"
-  LABEL "Min. value"
-
-UPDATE FIELD "max_value" OF "gsm_profile_numeric_options"
-  HELP "Maximum value"
-  LABEL "Max. value"
-
-UPDATE FIELD "field_mask" OF "gsm_profile_numeric_options"
-  LABEL "Field mask"
-
-UPDATE FIELD "profile_numeric_options_obj" OF "gsm_profile_numeric_options"
-  LABEL "Profile numeric options obj"
-
-UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_value"
-  LABEL "Profile obj"
-
-UPDATE FIELD "profile_sequence" OF "gsm_profile_numeric_value"
-  LABEL "Profile sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "numeric_value_from" OF "gsm_profile_numeric_value"
-  LABEL "Numeric value from"
-
-UPDATE FIELD "numeric_value_to" OF "gsm_profile_numeric_value"
-  LABEL "Numeric value to"
-
-UPDATE FIELD "profile_numeric_value_obj" OF "gsm_profile_numeric_value"
-  LABEL "Profile numeric value obj"
-
-UPDATE FIELD "range_obj" OF "gsm_range"
-  LABEL "Range obj"
-
-UPDATE FIELD "range_code" OF "gsm_range"
-  LABEL "Range code"
-
-UPDATE FIELD "range_description" OF "gsm_range"
-  LABEL "Range description"
-
-UPDATE FIELD "system_owned" OF "gsm_range"
-  LABEL "System owned"
-
-UPDATE FIELD "reporting_tool_obj" OF "gsm_reporting_tool"
-  LABEL "Reporting tool obj"
-
-UPDATE FIELD "reporting_tool_code" OF "gsm_reporting_tool"
-  LABEL "Reporting tool code"
-
-UPDATE FIELD "reporting_tool_description" OF "gsm_reporting_tool"
-  LABEL "Reporting tool description"
-
-UPDATE FIELD "launch_command" OF "gsm_reporting_tool"
-  LABEL "Launch command"
-
-UPDATE FIELD "report_definition_obj" OF "gsm_report_definition"
-  LABEL "Report definition obj"
-
-UPDATE FIELD "report_procedure_name" OF "gsm_report_definition"
-  LABEL "Report procedure name"
-
-UPDATE FIELD "report_short_desc" OF "gsm_report_definition"
-  LABEL "Report short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "report_description" OF "gsm_report_definition"
-  LABEL "Report description"
-
-UPDATE FIELD "next_extract_sequence" OF "gsm_report_definition"
-  HELP "Next extract sequence"
-  LABEL "Next extract sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "allow_server_printing" OF "gsm_report_definition"
-  LABEL "Allow server printing"
-
-UPDATE FIELD "allow_client_printing" OF "gsm_report_definition"
-  LABEL "Allow client printing"
-
-UPDATE FIELD "default_destination" OF "gsm_report_definition"
-  LABEL "Default destination"
-
-UPDATE FIELD "allow_destination_override" OF "gsm_report_definition"
-  LABEL "Allow destination override"
-
-UPDATE FIELD "default_form_type" OF "gsm_report_definition"
-  LABEL "Default form type"
-
-UPDATE FIELD "allow_form_type_override" OF "gsm_report_definition"
-  LABEL "Allow form type override"
-
-UPDATE FIELD "default_priority" OF "gsm_report_definition"
-  LABEL "Default priority"
-
-UPDATE FIELD "allow_priority_override" OF "gsm_report_definition"
-  LABEL "Allow priority override"
-
-UPDATE FIELD "default_copies_to_print" OF "gsm_report_definition"
-  LABEL "Default copies to print"
-
-UPDATE FIELD "default_days_to_retain" OF "gsm_report_definition"
-  LABEL "Default days to retain"
-
-UPDATE FIELD "filter_database_list" OF "gsm_report_definition"
-  LABEL "Filter database list"
-
-UPDATE FIELD "filter_table_list" OF "gsm_report_definition"
-  LABEL "Filter table list"
-
-UPDATE FIELD "filter_field_list" OF "gsm_report_definition"
-  LABEL "Filter field list"
-
-UPDATE FIELD "filter_label_list" OF "gsm_report_definition"
-  LABEL "Filter label list"
-
-UPDATE FIELD "filter_datatype_list" OF "gsm_report_definition"
-  LABEL "Filter datatype list"
-
-UPDATE FIELD "sort_by_field_list" OF "gsm_report_definition"
-  LABEL "Sort by field list"
-
-UPDATE FIELD "report_distribution_list" OF "gsm_report_definition"
-  LABEL "Report distribution list"
-
-UPDATE FIELD "document_type_obj" OF "gsm_report_definition"
-  LABEL "Document type obj"
-
-UPDATE FIELD "launch_window_name" OF "gsm_report_definition"
-  LABEL "Launch window name"
-
-UPDATE FIELD "default_password" OF "gsm_report_definition"
-  LABEL "Default password"
-
-UPDATE FIELD "password_required" OF "gsm_report_definition"
-  LABEL "Password required"
-
-UPDATE FIELD "allow_password_override" OF "gsm_report_definition"
-  LABEL "Allow password override"
-
-UPDATE FIELD "encrypt_data_file" OF "gsm_report_definition"
-  LABEL "Encrypt data file"
-
-UPDATE FIELD "allow_encrypt_override" OF "gsm_report_definition"
-  LABEL "Allow encrypt override"
-
-UPDATE FIELD "auto_delete_data_file" OF "gsm_report_definition"
-  LABEL "Auto delete data file"
-
-UPDATE FIELD "allow_auto_delete_override" OF "gsm_report_definition"
-  LABEL "Allow auto delete override"
-
-UPDATE FIELD "under_development" OF "gsm_report_definition"
-  LABEL "Under development"
-
-UPDATE FIELD "report_definition_reference" OF "gsm_report_definition"
-  LABEL "Report definition reference"
-
-UPDATE FIELD "report_definition_obj" OF "gsm_report_format"
-  LABEL "Report definition obj"
-
-UPDATE FIELD "report_format_obj" OF "gsm_report_format"
-  LABEL "Report format obj"
-
-UPDATE FIELD "report_format_description" OF "gsm_report_format"
-  LABEL "Report format description"
-
-UPDATE FIELD "reporting_tool_obj" OF "gsm_report_format"
-  LABEL "Reporting tool obj"
-
-UPDATE FIELD "report_formatting_procedure" OF "gsm_report_format"
-  LABEL "Report formatting procedure"
-
-UPDATE FIELD "is_this_the_default" OF "gsm_report_format"
-  LABEL "Is this the default"
-
-UPDATE FIELD "landscape_report" OF "gsm_report_format"
-  LABEL "Landscape report"
-
-UPDATE FIELD "laser_report_only" OF "gsm_report_format"
-  LABEL "Laser report only"
-
-UPDATE FIELD "report_format_reference" OF "gsm_report_format"
-  LABEL "Report format reference"
-
-UPDATE FIELD "form_type" OF "gsm_report_format"
-  LABEL "Form type"
-
-UPDATE FIELD "page_length" OF "gsm_report_format"
-  LABEL "Page length"
-
-UPDATE FIELD "paper_bin" OF "gsm_report_format"
-  LABEL "Paper bin"
-
-UPDATE FIELD "paper_type" OF "gsm_report_format"
-  LABEL "Paper type"
-
-UPDATE FIELD "default_font" OF "gsm_report_format"
-  LABEL "Default font"
-
-UPDATE FIELD "required_manager_obj" OF "gsm_required_manager"
-  LABEL "Required manager obj"
-
-UPDATE FIELD "session_type_obj" OF "gsm_required_manager"
-  LABEL "Session type obj"
-
-UPDATE FIELD "startup_order" OF "gsm_required_manager"
-  LABEL "Startup order"
-
-UPDATE FIELD "manager_type_obj" OF "gsm_required_manager"
-  LABEL "Manager type obj"
-
-UPDATE FIELD "object_obj" OF "gsm_required_manager"
-  LABEL "Object obj"
-
-UPDATE FIELD "system_owned" OF "gsm_required_manager"
-  LABEL "System owned"
-
-UPDATE FIELD "is_a_super_of" OF "gsm_required_manager"
-  LABEL "Is a super of"
-
-UPDATE FIELD "search_target" OF "gsm_required_manager"
-  LABEL "Search target"
-
-UPDATE FIELD "security_structure_obj" OF "gsm_security_structure"
-  LABEL "Security structure obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_security_structure"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_obj" OF "gsm_security_structure"
-  LABEL "Owning obj"
-
-UPDATE FIELD "product_module_obj" OF "gsm_security_structure"
-  LABEL "Product module obj"
-
-UPDATE FIELD "object_obj" OF "gsm_security_structure"
-  LABEL "Object obj"
-
-UPDATE FIELD "instance_attribute_obj" OF "gsm_security_structure"
-  LABEL "Instance attribute obj"
-
-UPDATE FIELD "server_context_obj" OF "gsm_server_context"
-  LABEL "Server context obj"
-
-UPDATE FIELD "session_obj" OF "gsm_server_context"
-  LABEL "Session obj"
-
-UPDATE FIELD "context_id_date" OF "gsm_server_context"
-  LABEL "Context id date"
-
-UPDATE FIELD "context_id_time" OF "gsm_server_context"
-  LABEL "Context id time"
-
-UPDATE FIELD "context_name" OF "gsm_server_context"
-  LABEL "Context name"
-
-UPDATE FIELD "context_value" OF "gsm_server_context"
-  LABEL "Context value"
-
-UPDATE FIELD "session_service_obj" OF "gsm_session_service"
-  LABEL "Session service obj"
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_service"
-  LABEL "Session type obj"
-
-UPDATE FIELD "logical_service_obj" OF "gsm_session_service"
-  LABEL "Logical service obj"
-
-UPDATE FIELD "physical_service_obj" OF "gsm_session_service"
-  LABEL "Physical service obj"
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_type"
-  LABEL "Session type obj"
-
-UPDATE FIELD "session_type_code" OF "gsm_session_type"
-  LABEL "Session type code"
-
-UPDATE FIELD "session_type_description" OF "gsm_session_type"
-  LABEL "Session type description"
-
-UPDATE FIELD "physical_session_list" OF "gsm_session_type"
-  LABEL "Physical session list"
-
-UPDATE FIELD "valid_os_list" OF "gsm_session_type"
-  HELP "Valid os list"
-  LABEL "Valid os list"
-
-UPDATE FIELD "inactivity_timeout_period" OF "gsm_session_type"
-  LABEL "Inactivity timeout period"
-
-UPDATE FIELD "automatic_reconnect" OF "gsm_session_type"
-  LABEL "Automatic reconnect"
-
-UPDATE FIELD "extends_session_type_obj" OF "gsm_session_type"
-  LABEL "Extends session type obj"
-
-UPDATE FIELD "session_type_property_obj" OF "gsm_session_type_property"
-  LABEL "Session type property obj"
-
-UPDATE FIELD "session_type_obj" OF "gsm_session_type_property"
-  LABEL "Session type obj"
-
-UPDATE FIELD "session_property_obj" OF "gsm_session_type_property"
-  LABEL "Session property obj"
-
-UPDATE FIELD "property_value" OF "gsm_session_type_property"
-  LABEL "Property value"
-
-UPDATE FIELD "startup_flow_obj" OF "gsm_startup_flow"
-  LABEL "Startup flow obj"
-
-UPDATE FIELD "session_type_obj" OF "gsm_startup_flow"
-  LABEL "Session type obj"
-
-UPDATE FIELD "startup_order" OF "gsm_startup_flow"
-  LABEL "Startup order"
-
-UPDATE FIELD "flow_obj" OF "gsm_startup_flow"
-  LABEL "Flow obj"
-
-UPDATE FIELD "status_obj" OF "gsm_status"
-  LABEL "Status obj"
-
-UPDATE FIELD "category_obj" OF "gsm_status"
-  LABEL "Category obj"
-
-UPDATE FIELD "status_seq" OF "gsm_status"
-  HELP "Status seq"
-  LABEL "Status seq"
-
-UPDATE FIELD "status_short_desc" OF "gsm_status"
-  LABEL "Status short desc."
-  COLUMN-LABEL ?
-
-UPDATE FIELD "status_description" OF "gsm_status"
-  LABEL "Status description"
-
-UPDATE FIELD "retain_status_history" OF "gsm_status"
-  LABEL "Retain status history"
-
-UPDATE FIELD "system_owned" OF "gsm_status"
-  LABEL "System owned"
-
-UPDATE FIELD "auto_display" OF "gsm_status"
-  LABEL "Auto display"
-
-UPDATE FIELD "owning_obj" OF "gsm_status_history"
-  LABEL "Owning obj"
-
-UPDATE FIELD "from_date" OF "gsm_status_history"
-  LABEL "From date"
-
-UPDATE FIELD "status_obj" OF "gsm_status_history"
-  LABEL "Status obj"
-
-UPDATE FIELD "to_date" OF "gsm_status_history"
-  LABEL "To date"
-
-UPDATE FIELD "status_history_obj" OF "gsm_status_history"
-  LABEL "Status history obj"
-
-UPDATE FIELD "token_obj" OF "gsm_token"
-  LABEL "Token obj"
-
-UPDATE FIELD "token_code" OF "gsm_token"
-  LABEL "Token code"
-
-UPDATE FIELD "token_description" OF "gsm_token"
-  LABEL "Token description"
-
-UPDATE FIELD "system_owned" OF "gsm_token"
-  LABEL "System owned"
-
-UPDATE FIELD "object_obj" OF "gsm_toolbar_menu_structure"
-  LABEL "Object obj"
-
-UPDATE FIELD "menu_structure_sequence" OF "gsm_toolbar_menu_structure"
-  LABEL "Menu structure sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure"
-  LABEL "Menu structure obj"
-
-UPDATE FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure"
-  LABEL "Toolbar menu structure obj"
-
-UPDATE FIELD "menu_structure_spacing" OF "gsm_toolbar_menu_structure"
-  LABEL "Menu structure spacing"
-
-UPDATE FIELD "menu_structure_alignment" OF "gsm_toolbar_menu_structure"
-  LABEL "Menu structure alignment"
-
-UPDATE FIELD "menu_structure_row" OF "gsm_toolbar_menu_structure"
-  LABEL "Menu structure row"
-
-UPDATE FIELD "insert_rule" OF "gsm_toolbar_menu_structure"
-  LABEL "Insert rule"
-
-UPDATE FIELD "translated_menu_item_obj" OF "gsm_translated_menu_item"
-  LABEL "Translated menu item obj"
-
-UPDATE FIELD "menu_item_obj" OF "gsm_translated_menu_item"
-  LABEL "Menu item obj"
-
-UPDATE FIELD "source_language_obj" OF "gsm_translated_menu_item"
-  LABEL "Source language obj"
-
-UPDATE FIELD "language_obj" OF "gsm_translated_menu_item"
-  LABEL "Language obj"
-
-UPDATE FIELD "menu_item_label" OF "gsm_translated_menu_item"
-  LABEL "Menu item label"
-
-UPDATE FIELD "tooltip_text" OF "gsm_translated_menu_item"
-  LABEL "Tooltip text"
-
-UPDATE FIELD "alternate_shortcut_key" OF "gsm_translated_menu_item"
-  LABEL "Alternate shortcut key"
-
-UPDATE FIELD "item_toolbar_label" OF "gsm_translated_menu_item"
-  LABEL "Item toolbar label"
-
-UPDATE FIELD "image1_up_filename" OF "gsm_translated_menu_item"
-  LABEL "Image1 up filename"
-
-UPDATE FIELD "image1_down_filename" OF "gsm_translated_menu_item"
-  LABEL "Image1 down filename"
-
-UPDATE FIELD "image1_insensitive_filename" OF "gsm_translated_menu_item"
-  LABEL "Image1 insensitive filename"
-
-UPDATE FIELD "image2_up_filename" OF "gsm_translated_menu_item"
-  LABEL "Image2 up filename"
-
-UPDATE FIELD "image2_down_filename" OF "gsm_translated_menu_item"
-  LABEL "Image2 down filename"
-
-UPDATE FIELD "image2_insensitive_filename" OF "gsm_translated_menu_item"
-  LABEL "Image2 insensitive filename"
-
-UPDATE FIELD "item_narration" OF "gsm_translated_menu_item"
-  LABEL "Item narration"
-
-UPDATE FIELD "translation_obj" OF "gsm_translation"
-  LABEL "Translation obj"
-
-UPDATE FIELD "language_obj" OF "gsm_translation"
-  LABEL "Language obj"
-
-UPDATE FIELD "object_filename" OF "gsm_translation"
-  LABEL "Object filename"
-
-UPDATE FIELD "widget_type" OF "gsm_translation"
-  LABEL "Widget type"
-
-UPDATE FIELD "widget_name" OF "gsm_translation"
-  LABEL "Widget name"
-
-UPDATE FIELD "widget_entry" OF "gsm_translation"
-  LABEL "Widget entry"
-
-UPDATE FIELD "original_label" OF "gsm_translation"
-  LABEL "Original label"
-
-UPDATE FIELD "translation_label" OF "gsm_translation"
-  LABEL "Translation label"
-
-UPDATE FIELD "original_tooltip" OF "gsm_translation"
-  LABEL "Original tooltip"
-
-UPDATE FIELD "translation_tooltip" OF "gsm_translation"
-  LABEL "Translation tooltip"
-
-UPDATE FIELD "source_language_obj" OF "gsm_translation"
-  LABEL "Source language obj"
-
-UPDATE FIELD "user_obj" OF "gsm_user"
-  LABEL "User obj"
-
-UPDATE FIELD "user_category_obj" OF "gsm_user"
-  LABEL "User category obj"
-
-UPDATE FIELD "user_full_name" OF "gsm_user"
-  LABEL "User full name"
-
-UPDATE FIELD "user_login_name" OF "gsm_user"
-  LABEL "User login name"
-
-UPDATE FIELD "user_creation_date" OF "gsm_user"
-  LABEL "User creation date"
-
-UPDATE FIELD "user_creation_time" OF "gsm_user"
-  LABEL "User creation time"
-
-UPDATE FIELD "profile_user" OF "gsm_user"
-  LABEL "Profile user"
-
-UPDATE FIELD "created_from_profile_user_obj" OF "gsm_user"
-  LABEL "Created from profile user obj"
-
-UPDATE FIELD "external_userid" OF "gsm_user"
-  LABEL "External userid"
-
-UPDATE FIELD "user_password" OF "gsm_user"
-  LABEL "User password"
-
-UPDATE FIELD "password_minimum_length" OF "gsm_user"
-  LABEL "Password minimum length"
-
-UPDATE FIELD "password_preexpired" OF "gsm_user"
-  LABEL "Password preexpired"
-
-UPDATE FIELD "password_fail_count" OF "gsm_user"
-  LABEL "Password fail count"
-
-UPDATE FIELD "password_fail_date" OF "gsm_user"
-  LABEL "Password fail date"
-
-UPDATE FIELD "password_fail_time" OF "gsm_user"
-  LABEL "Password fail time"
-
-UPDATE FIELD "password_creation_date" OF "gsm_user"
-  LABEL "Password creation date"
-
-UPDATE FIELD "password_creation_time" OF "gsm_user"
-  LABEL "Password creation time"
-
-UPDATE FIELD "password_expiry_date" OF "gsm_user"
-  LABEL "Password expiry date"
-
-UPDATE FIELD "password_expiry_time" OF "gsm_user"
-  LABEL "Password expiry time"
-
-UPDATE FIELD "update_password_history" OF "gsm_user"
-  LABEL "Update password history"
-
-UPDATE FIELD "check_password_history" OF "gsm_user"
-  LABEL "Check password history"
-
-UPDATE FIELD "last_login_date" OF "gsm_user"
-  LABEL "Last login date"
-
-UPDATE FIELD "last_login_time" OF "gsm_user"
-  LABEL "Last login time"
-
-UPDATE FIELD "language_obj" OF "gsm_user"
-  LABEL "Language obj"
-
-UPDATE FIELD "password_expiry_days" OF "gsm_user"
-  LABEL "Password expiry days"
-
-UPDATE FIELD "maintain_system_data" OF "gsm_user"
-  LABEL "Maintain system data"
-
-UPDATE FIELD "default_login_company_obj" OF "gsm_user"
-  LABEL "Default login company obj"
-
-UPDATE FIELD "user_email_address" OF "gsm_user"
-  LABEL "User email address"
-
-UPDATE FIELD "development_user" OF "gsm_user"
-  LABEL "Development user"
-
-UPDATE FIELD "user_obj" OF "gsm_user_allocation"
-  LABEL "User obj"
-
-UPDATE FIELD "login_organisation_obj" OF "gsm_user_allocation"
-  LABEL "Login organisation obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gsm_user_allocation"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_obj" OF "gsm_user_allocation"
-  LABEL "Owning obj"
-
-UPDATE FIELD "user_allocation_value1" OF "gsm_user_allocation"
-  LABEL "User allocation value1"
-
-UPDATE FIELD "user_allocation_value2" OF "gsm_user_allocation"
-  LABEL "User allocation value2"
-
-UPDATE FIELD "user_allocation_obj" OF "gsm_user_allocation"
-  LABEL "User allocation obj"
-
-UPDATE FIELD "user_category_obj" OF "gsm_user_category"
-  LABEL "User category obj"
-
-UPDATE FIELD "user_category_code" OF "gsm_user_category"
-  LABEL "User category code"
-
-UPDATE FIELD "user_category_description" OF "gsm_user_category"
-  LABEL "User category description"
-
-UPDATE FIELD "valid_object_partition_obj" OF "gsm_valid_object_partition"
-  LABEL "Valid object partition obj"
-
-UPDATE FIELD "logical_service_obj" OF "gsm_valid_object_partition"
-  LABEL "Logical service obj"
-
-UPDATE FIELD "object_obj" OF "gsm_valid_object_partition"
-  LABEL "Object obj"
-
-UPDATE FIELD "audit_obj" OF "gst_audit"
-  LABEL "Audit obj"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gst_audit"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_reference" OF "gst_audit"
-  LABEL "Owning reference"
-
-UPDATE FIELD "owning_obj" OF "gst_audit"
-  LABEL "Owning obj"
-
-UPDATE FIELD "audit_date" OF "gst_audit"
-  LABEL "Audit date"
-
-UPDATE FIELD "audit_time" OF "gst_audit"
-  LABEL "Audit time"
-
-UPDATE FIELD "audit_user_obj" OF "gst_audit"
-  LABEL "Audit user obj"
-
-UPDATE FIELD "program_name" OF "gst_audit"
-  LABEL "Program name"
-
-UPDATE FIELD "program_procedure" OF "gst_audit"
-  LABEL "Program procedure"
-
-UPDATE FIELD "audit_action" OF "gst_audit"
-  LABEL "Audit action"
-
-UPDATE FIELD "old_detail" OF "gst_audit"
-  LABEL "Old detail"
-
-UPDATE FIELD "batch_job_obj" OF "gst_batch_job"
-  LABEL "Batch job obj"
-
-UPDATE FIELD "job_description" OF "gst_batch_job"
-  LABEL "Job description"
-
-UPDATE FIELD "status_obj" OF "gst_batch_job"
-  LABEL "Status obj"
-
-UPDATE FIELD "batch_job_procedure_name" OF "gst_batch_job"
-  LABEL "Batch job procedure name"
-
-UPDATE FIELD "date_to_start" OF "gst_batch_job"
-  LABEL "Date to start"
-
-UPDATE FIELD "time_to_start" OF "gst_batch_job"
-  LABEL "Time to start"
-
-UPDATE FIELD "date_started" OF "gst_batch_job"
-  LABEL "Date started"
-
-UPDATE FIELD "time_started" OF "gst_batch_job"
-  LABEL "Time started"
-
-UPDATE FIELD "date_completed" OF "gst_batch_job"
-  LABEL "Date completed"
-
-UPDATE FIELD "time_completed" OF "gst_batch_job"
-  LABEL "Time completed"
-
-UPDATE FIELD "days_to_retain" OF "gst_batch_job"
-  LABEL "Days to retain"
-
-UPDATE FIELD "user_obj" OF "gst_batch_job"
-  LABEL "User obj"
-
-UPDATE FIELD "dataset_file_obj" OF "gst_dataset_file"
-  LABEL "Dataset file obj"
-
-UPDATE FIELD "deployment_obj" OF "gst_dataset_file"
-  LABEL "Deployment obj"
-
-UPDATE FIELD "deploy_dataset_obj" OF "gst_dataset_file"
-  LABEL "Deploy dataset obj"
-
-UPDATE FIELD "ado_filename" OF "gst_dataset_file"
-  LABEL "Ado filename"
-
-UPDATE FIELD "loaded_date" OF "gst_dataset_file"
-  LABEL "Loaded date"
-
-UPDATE FIELD "loaded_time" OF "gst_dataset_file"
-  LABEL "Loaded time"
-
-UPDATE FIELD "deployment_obj" OF "gst_deployment"
-  LABEL "Deployment obj"
-
-UPDATE FIELD "deploy_package_obj" OF "gst_deployment"
-  LABEL "Deploy package obj"
-
-UPDATE FIELD "originating_site_number" OF "gst_deployment"
-  LABEL "Originating site number"
-
-UPDATE FIELD "deployment_number" OF "gst_deployment"
-  LABEL "Deployment number"
-
-UPDATE FIELD "deployment_description" OF "gst_deployment"
-  LABEL "Deployment description"
-
-UPDATE FIELD "deployment_date" OF "gst_deployment"
-  LABEL "Deployment date"
-
-UPDATE FIELD "deployment_time" OF "gst_deployment"
-  LABEL "Deployment time"
-
-UPDATE FIELD "baseline_deployment" OF "gst_deployment"
-  LABEL "Baseline deployment"
-
-UPDATE FIELD "manual_record_selection" OF "gst_deployment"
-  LABEL "Manual record selection"
-
-UPDATE FIELD "package_control_file" OF "gst_deployment"
-  LABEL "Package control file"
-
-UPDATE FIELD "package_exception_file" OF "gst_deployment"
-  LABEL "Package exception file"
-
-UPDATE FIELD "load_after_deployment_obj" OF "gst_deployment"
-  LABEL "Load after deployment obj"
-
-UPDATE FIELD "error_log_obj" OF "gst_error_log"
-  LABEL "Error log obj"
-
-UPDATE FIELD "business_logic_error" OF "gst_error_log"
-  LABEL "Business logic error"
-
-UPDATE FIELD "error_group" OF "gst_error_log"
-  LABEL "Error group"
-
-UPDATE FIELD "error_number" OF "gst_error_log"
-  LABEL "Error number"
-
-UPDATE FIELD "error_message" OF "gst_error_log"
-  LABEL "Error message"
-
-UPDATE FIELD "user_obj" OF "gst_error_log"
-  LABEL "User obj"
-
-UPDATE FIELD "error_date" OF "gst_error_log"
-  LABEL "Error date"
-
-UPDATE FIELD "error_time" OF "gst_error_log"
-  LABEL "Error time"
-
-UPDATE FIELD "error_in_program" OF "gst_error_log"
-  LABEL "Error in program"
-
-UPDATE FIELD "owning_entity_mnemonic" OF "gst_error_log"
-  HELP "Owning entity"
-  LABEL "Owning entity"
-
-UPDATE FIELD "owning_obj" OF "gst_error_log"
-  LABEL "Owning obj"
-
-UPDATE FIELD "extract_log_obj" OF "gst_extract_log"
-  LABEL "Extract log obj"
-
-UPDATE FIELD "data_file_name" OF "gst_extract_log"
-  LABEL "Data file name"
-
-UPDATE FIELD "extract_sequence" OF "gst_extract_log"
-  LABEL "Extract sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "form_type" OF "gst_extract_log"
-  LABEL "Form type"
-
-UPDATE FIELD "copies_to_print" OF "gst_extract_log"
-  LABEL "Copies to print"
-
-UPDATE FIELD "print_automatically" OF "gst_extract_log"
-  LABEL "Print automatically"
-
-UPDATE FIELD "created_on_date" OF "gst_extract_log"
-  LABEL "Created on date"
-
-UPDATE FIELD "created_at_time" OF "gst_extract_log"
-  LABEL "Created at time"
-
-UPDATE FIELD "printed_date" OF "gst_extract_log"
-  LABEL "Printed date"
-
-UPDATE FIELD "printed_time" OF "gst_extract_log"
-  LABEL "Printed time"
-
-UPDATE FIELD "last_printed_date" OF "gst_extract_log"
-  LABEL "Last printed date"
-
-UPDATE FIELD "last_printed_time" OF "gst_extract_log"
-  LABEL "Last printed time"
-
-UPDATE FIELD "delete_on_date" OF "gst_extract_log"
-  LABEL "Delete on date"
-
-UPDATE FIELD "report_definition_obj" OF "gst_extract_log"
-  LABEL "Report definition obj"
-
-UPDATE FIELD "user_obj" OF "gst_extract_log"
-  LABEL "User obj"
-
-UPDATE FIELD "batch_job_obj" OF "gst_extract_log"
-  LABEL "Batch job obj"
-
-UPDATE FIELD "extract_log_password" OF "gst_extract_log"
-  LABEL "Extract log password"
-
-UPDATE FIELD "data_file_encrypted" OF "gst_extract_log"
-  LABEL "Data file encrypted"
-
-UPDATE FIELD "auto_delete_extract" OF "gst_extract_log"
-  LABEL "Auto delete extract"
-
-UPDATE FIELD "extract_log_description" OF "gst_extract_log"
-  LABEL "Extract log description"
-
-UPDATE FIELD "password_history_obj" OF "gst_password_history"
-  LABEL "Password history obj"
-
-UPDATE FIELD "user_obj" OF "gst_password_history"
-  LABEL "User obj"
-
-UPDATE FIELD "old_password" OF "gst_password_history"
-  LABEL "Old password"
-
-UPDATE FIELD "password_change_date" OF "gst_password_history"
-  LABEL "Password change date"
-
-UPDATE FIELD "password_change_time" OF "gst_password_history"
-  LABEL "Password change time"
-
-UPDATE FIELD "changed_by_user_obj" OF "gst_password_history"
-  LABEL "Changed by user obj"
-
-UPDATE FIELD "record_version_obj" OF "gst_record_version"
-  LABEL "Record version obj"
-
-UPDATE FIELD "entity_mnemonic" OF "gst_record_version"
-  HELP "Entity"
-  LABEL "Entity"
-
-UPDATE FIELD "key_field_value" OF "gst_record_version"
-  LABEL "Key field value"
-
-UPDATE FIELD "version_number_seq" OF "gst_record_version"
-  HELP "Version number seq"
-  LABEL "Version number seq"
-
-UPDATE FIELD "version_date" OF "gst_record_version"
-  LABEL "Version date"
-
-UPDATE FIELD "version_time" OF "gst_record_version"
-  LABEL "Version time"
-
-UPDATE FIELD "version_user" OF "gst_record_version"
-  LABEL "Version user"
-
-UPDATE FIELD "deletion_flag" OF "gst_record_version"
-  LABEL "Deletion flag"
-
-UPDATE FIELD "import_version_number_seq" OF "gst_record_version"
-  HELP "Import version number seq"
-  LABEL "Import version number seq"
-
-UPDATE FIELD "last_version_number_seq" OF "gst_record_version"
-  HELP "Last version number seq"
-  LABEL "Last version number seq"
-
-UPDATE FIELD "secondary_key_value" OF "gst_record_version"
-  LABEL "Secondary key value"
-
-UPDATE FIELD "session_obj" OF "gst_session"
-  LABEL "Session obj"
-
-UPDATE FIELD "session_id" OF "gst_session"
-  LABEL "Session id"
-
-UPDATE FIELD "session_type_obj" OF "gst_session"
-  LABEL "Session type obj"
-
-UPDATE FIELD "user_obj" OF "gst_session"
-  LABEL "User obj"
-
-UPDATE FIELD "session_creation_date" OF "gst_session"
-  LABEL "Session creation date"
-
-UPDATE FIELD "session_creation_time" OF "gst_session"
-  LABEL "Session creation time"
-
-UPDATE FIELD "last_access_date" OF "gst_session"
-  LABEL "Last access date"
-
-UPDATE FIELD "last_access_time" OF "gst_session"
-  LABEL "Last access time"
-
-UPDATE FIELD "client_date_format" OF "gst_session"
-  LABEL "Client date format"
-
-UPDATE FIELD "client_numeric_format" OF "gst_session"
-  LABEL "Client numeric format"
-
-UPDATE FIELD "attribute_label" OF "ryc_attribute"
-  LABEL "Attribute label"
-
-UPDATE FIELD "attribute_group_obj" OF "ryc_attribute"
-  LABEL "Attribute group obj"
-
-UPDATE FIELD "data_type" OF "ryc_attribute"
-  LABEL "Data type"
-
-UPDATE FIELD "attribute_narrative" OF "ryc_attribute"
-  LABEL "Attribute narrative"
-
-UPDATE FIELD "override_type" OF "ryc_attribute"
-  LABEL "Override type"
-
-UPDATE FIELD "runtime_only" OF "ryc_attribute"
-  LABEL "Runtime only"
-
-UPDATE FIELD "is_private" OF "ryc_attribute"
-  LABEL "Is private"
-
-UPDATE FIELD "constant_level" OF "ryc_attribute"
-  LABEL "Constant level"
-
-UPDATE FIELD "derived_value" OF "ryc_attribute"
-  LABEL "Derived value"
-
-UPDATE FIELD "lookup_type" OF "ryc_attribute"
-  LABEL "Lookup type"
-
-UPDATE FIELD "lookup_value" OF "ryc_attribute"
-  LABEL "Lookup value"
-
-UPDATE FIELD "design_only" OF "ryc_attribute"
-  LABEL "Design only"
-
-UPDATE FIELD "system_owned" OF "ryc_attribute"
-  LABEL "System owned"
-
-UPDATE FIELD "attribute_obj" OF "ryc_attribute"
-  LABEL "Attribute obj"
-
-UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_group"
-  LABEL "Attribute group obj"
-
-UPDATE FIELD "attribute_group_name" OF "ryc_attribute_group"
-  LABEL "Attribute group name"
-
-UPDATE FIELD "attribute_group_narrative" OF "ryc_attribute_group"
-  LABEL "Attribute group narrative"
-
-UPDATE FIELD "attribute_value_obj" OF "ryc_attribute_value"
-  LABEL "Attribute value obj"
-
-UPDATE FIELD "object_type_obj" OF "ryc_attribute_value"
-  LABEL "Object type obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_attribute_value"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "smartobject_obj" OF "ryc_attribute_value"
-  HELP "Smartobject obj"
-  LABEL "Smartobject obj"
-
-UPDATE FIELD "object_instance_obj" OF "ryc_attribute_value"
-  LABEL "Object instance obj"
-
-UPDATE FIELD "constant_value" OF "ryc_attribute_value"
-  LABEL "Constant value"
-
-UPDATE FIELD "attribute_label" OF "ryc_attribute_value"
-  LABEL "Attribute label"
-
-UPDATE FIELD "character_value" OF "ryc_attribute_value"
-  LABEL "Character value"
-
-UPDATE FIELD "integer_value" OF "ryc_attribute_value"
-  LABEL "Integer value"
-
-UPDATE FIELD "date_value" OF "ryc_attribute_value"
-  LABEL "Date value"
-
-UPDATE FIELD "decimal_value" OF "ryc_attribute_value"
-  LABEL "Decimal value"
-
-UPDATE FIELD "logical_value" OF "ryc_attribute_value"
-  LABEL "Logical value"
-
-UPDATE FIELD "raw_value" OF "ryc_attribute_value"
-  LABEL "Raw value"
-
-UPDATE FIELD "primary_smartobject_obj" OF "ryc_attribute_value"
-  HELP "Primary smartobject obj"
-  LABEL "Primary smartobject obj"
-
-UPDATE FIELD "customization_result_obj" OF "ryc_customization_result"
-  LABEL "Customization result obj"
-
-UPDATE FIELD "customization_result_code" OF "ryc_customization_result"
-  LABEL "Customization result code"
-
-UPDATE FIELD "customization_result_desc" OF "ryc_customization_result"
-  LABEL "Customization result desc"
-
-UPDATE FIELD "customization_type_obj" OF "ryc_customization_result"
-  LABEL "Customization type obj"
-
-UPDATE FIELD "system_owned" OF "ryc_customization_result"
-  LABEL "System owned"
-
-UPDATE FIELD "customization_type_obj" OF "ryc_customization_type"
-  LABEL "Customization type obj"
-
-UPDATE FIELD "customization_type_code" OF "ryc_customization_type"
-  LABEL "Customization type code"
-
-UPDATE FIELD "customization_type_desc" OF "ryc_customization_type"
-  LABEL "Customization type desc"
-
-UPDATE FIELD "api_name" OF "ryc_customization_type"
-  LABEL "Api name"
-
-UPDATE FIELD "layout_obj" OF "ryc_layout"
-  LABEL "Layout obj"
-
-UPDATE FIELD "layout_name" OF "ryc_layout"
-  LABEL "Layout name"
-
-UPDATE FIELD "layout_type" OF "ryc_layout"
-  LABEL "Layout type"
-
-UPDATE FIELD "layout_narrative" OF "ryc_layout"
-  LABEL "Layout narrative"
-
-UPDATE FIELD "layout_filename" OF "ryc_layout"
-  LABEL "Layout filename"
-
-UPDATE FIELD "sample_image_filename" OF "ryc_layout"
-  LABEL "Sample image filename"
-
-UPDATE FIELD "system_owned" OF "ryc_layout"
-  LABEL "System owned"
-
-UPDATE FIELD "layout_code" OF "ryc_layout"
-  LABEL "Layout code"
-
-UPDATE FIELD "object_instance_obj" OF "ryc_object_instance"
-  LABEL "Object instance obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_object_instance"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "smartobject_obj" OF "ryc_object_instance"
-  HELP "Smartobject obj"
-  LABEL "Smartobject obj"
-
-UPDATE FIELD "system_owned" OF "ryc_object_instance"
-  LABEL "System owned"
-
-UPDATE FIELD "layout_position" OF "ryc_object_instance"
-  LABEL "Layout position"
-
-UPDATE FIELD "instance_name" OF "ryc_object_instance"
-  LABEL "Instance name"
-
-UPDATE FIELD "instance_description" OF "ryc_object_instance"
-  LABEL "Instance description"
-
-UPDATE FIELD "page_obj" OF "ryc_page"
-  LABEL "Page obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_page"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "layout_obj" OF "ryc_page"
-  LABEL "Layout obj"
-
-UPDATE FIELD "page_sequence" OF "ryc_page"
-  LABEL "Page sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "page_reference" OF "ryc_page"
-  LABEL "Page reference"
-
-UPDATE FIELD "page_label" OF "ryc_page"
-  LABEL "Page label"
-
-UPDATE FIELD "security_token" OF "ryc_page"
-  LABEL "Security token"
-
-UPDATE FIELD "enable_on_create" OF "ryc_page"
-  LABEL "Enable on create"
-
-UPDATE FIELD "enable_on_modify" OF "ryc_page"
-  LABEL "Enable on modify"
-
-UPDATE FIELD "enable_on_view" OF "ryc_page"
-  LABEL "Enable on view"
-
-UPDATE FIELD "page_object_obj" OF "ryc_page_object"
-  LABEL "Page object obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_page_object"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "page_obj" OF "ryc_page_object"
-  LABEL "Page obj"
-
-UPDATE FIELD "page_object_sequence" OF "ryc_page_object"
-  LABEL "Page object sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "object_instance_obj" OF "ryc_page_object"
-  LABEL "Object instance obj"
-
-UPDATE FIELD "relationship_obj" OF "ryc_relationship"
-  LABEL "Relationship obj"
-
-UPDATE FIELD "relationship_reference" OF "ryc_relationship"
-  LABEL "Relationship reference"
-
-UPDATE FIELD "relationship_description" OF "ryc_relationship"
-  LABEL "Relationship description"
-
-UPDATE FIELD "parent_entity" OF "ryc_relationship"
-  LABEL "Parent entity"
-
-UPDATE FIELD "child_entity" OF "ryc_relationship"
-  LABEL "Child entity"
-
-UPDATE FIELD "primary_relationship" OF "ryc_relationship"
-  LABEL "Primary relationship"
-
-UPDATE FIELD "identifying_relationship" OF "ryc_relationship"
-  LABEL "Identifying relationship"
-
-UPDATE FIELD "nulls_allowed" OF "ryc_relationship"
-  LABEL "Nulls allowed"
-
-UPDATE FIELD "update_parent_allowed" OF "ryc_relationship"
-  LABEL "Update parent allowed"
-
-UPDATE FIELD "parent_delete_action" OF "ryc_relationship"
-  LABEL "Parent delete action"
-
-UPDATE FIELD "parent_insert_action" OF "ryc_relationship"
-  LABEL "Parent insert action"
-
-UPDATE FIELD "parent_update_action" OF "ryc_relationship"
-  LABEL "Parent update action"
-
-UPDATE FIELD "parent_verb_phrase" OF "ryc_relationship"
-  LABEL "Parent verb phrase"
-
-UPDATE FIELD "child_delete_action" OF "ryc_relationship"
-  LABEL "Child delete action"
-
-UPDATE FIELD "child_insert_action" OF "ryc_relationship"
-  LABEL "Child insert action"
-
-UPDATE FIELD "child_update_action" OF "ryc_relationship"
-  LABEL "Child update action"
-
-UPDATE FIELD "child_verb_phrase" OF "ryc_relationship"
-  LABEL "Child verb phrase"
-
-UPDATE FIELD "model_external_reference" OF "ryc_relationship"
-  DESCRIPTION "This is a unique reference from the entity model diagram to identify the reference. In ERwin this equates to the  macro and is globally unique (a GUID).
-
-In the event this field comes in blank because the modelling tool used does not support a relatsionship id, or in fact no modeling tool is being used, this field will be set to the same as the relationship_reference to ensure it gets a unique value.
-
-The primary use of this field is to update existing relationships in subsequent imports.
-"
-  LABEL "Model external reference"
-
-UPDATE FIELD "relationship_field_obj" OF "ryc_relationship_field"
-  LABEL "Relationship field obj"
-
-UPDATE FIELD "relationship_obj" OF "ryc_relationship_field"
-  LABEL "Relationship obj"
-
-UPDATE FIELD "join_sequence" OF "ryc_relationship_field"
-  LABEL "Join sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "parent_table_name" OF "ryc_relationship_field"
-  LABEL "Parent table name"
-
-UPDATE FIELD "parent_field_name" OF "ryc_relationship_field"
-  LABEL "Parent field name"
-
-UPDATE FIELD "use_parent_constant_value" OF "ryc_relationship_field"
-  LABEL "Use parent constant value"
-
-UPDATE FIELD "parent_constant_value" OF "ryc_relationship_field"
-  LABEL "Parent constant value"
-
-UPDATE FIELD "child_table_name" OF "ryc_relationship_field"
-  LABEL "Child table name"
-
-UPDATE FIELD "child_field_name" OF "ryc_relationship_field"
-  LABEL "Child field name"
-
-UPDATE FIELD "use_child_constant_value" OF "ryc_relationship_field"
-  LABEL "Use child constant value"
-
-UPDATE FIELD "child_constant_value" OF "ryc_relationship_field"
-  LABEL "Child constant value"
-
-UPDATE FIELD "ri_default_obj" OF "ryc_ri_default"
-  LABEL "Ri default obj"
-
-UPDATE FIELD "relationship_type" OF "ryc_ri_default"
-  LABEL "Relationship type"
-
-UPDATE FIELD "action_type" OF "ryc_ri_default"
-  LABEL "Action type"
-
-UPDATE FIELD "default_rule" OF "ryc_ri_default"
-  LABEL "Default rule"
-
-UPDATE FIELD "smartlink_obj" OF "ryc_smartlink"
-  LABEL "Smartlink obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_smartlink"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink"
-  LABEL "Smartlink type obj"
-
-UPDATE FIELD "link_name" OF "ryc_smartlink"
-  LABEL "Link name"
-
-UPDATE FIELD "source_object_instance_obj" OF "ryc_smartlink"
-  LABEL "Source object instance obj"
-
-UPDATE FIELD "target_object_instance_obj" OF "ryc_smartlink"
-  LABEL "Target object instance obj"
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink_type"
-  LABEL "Smartlink type obj"
-
-UPDATE FIELD "link_name" OF "ryc_smartlink_type"
-  LABEL "Link name"
-
-UPDATE FIELD "user_defined_link" OF "ryc_smartlink_type"
-  LABEL "User defined link"
-
-UPDATE FIELD "system_owned" OF "ryc_smartlink_type"
-  LABEL "System owned"
-
-UPDATE FIELD "smartobject_obj" OF "ryc_smartobject"
-  HELP "Smartobject obj"
-  LABEL "Smartobject obj"
-
-UPDATE FIELD "object_filename" OF "ryc_smartobject"
-  LABEL "Object filename"
-
-UPDATE FIELD "customization_result_obj" OF "ryc_smartobject"
-  LABEL "Customization result obj"
-
-UPDATE FIELD "object_type_obj" OF "ryc_smartobject"
-  LABEL "Object type obj"
-
-UPDATE FIELD "product_module_obj" OF "ryc_smartobject"
-  LABEL "Product module obj"
-
-UPDATE FIELD "layout_obj" OF "ryc_smartobject"
-  LABEL "Layout obj"
-
-UPDATE FIELD "object_description" OF "ryc_smartobject"
-  LABEL "Object description"
-
-UPDATE FIELD "object_path" OF "ryc_smartobject"
-  LABEL "Object path"
-
-UPDATE FIELD "object_extension" OF "ryc_smartobject"
-  LABEL "Object extension"
-
-UPDATE FIELD "static_object" OF "ryc_smartobject"
-  LABEL "Static object"
-
-UPDATE FIELD "generic_object" OF "ryc_smartobject"
-  LABEL "Generic object"
-
-UPDATE FIELD "template_smartobject" OF "ryc_smartobject"
-  HELP "Template smartobject"
-  LABEL "Template smartobject"
-
-UPDATE FIELD "system_owned" OF "ryc_smartobject"
-  LABEL "System owned"
-
-UPDATE FIELD "deployment_type" OF "ryc_smartobject"
-  LABEL "Deployment type"
-
-UPDATE FIELD "design_only" OF "ryc_smartobject"
-  LABEL "Design only"
-
-UPDATE FIELD "runnable_from_menu" OF "ryc_smartobject"
-  LABEL "Runnable from menu"
-
-UPDATE FIELD "container_object" OF "ryc_smartobject"
-  LABEL "Container object"
-
-UPDATE FIELD "run_persistent" OF "ryc_smartobject"
-  LABEL "Run persistent"
-
-UPDATE FIELD "run_when" OF "ryc_smartobject"
-  LABEL "Run when"
-
-UPDATE FIELD "shutdown_message_text" OF "ryc_smartobject"
-  LABEL "Shutdown message text"
-
-UPDATE FIELD "required_db_list" OF "ryc_smartobject"
-  HELP "Required database list"
-  LABEL "Required DB list"
-
-UPDATE FIELD "sdo_smartobject_obj" OF "ryc_smartobject"
-  HELP "SDO smartobject obj"
-  LABEL "SDO smartobject obj"
-
-UPDATE FIELD "custom_smartobject_obj" OF "ryc_smartobject"
-  HELP "Custom smartobject obj"
-  LABEL "Custom smartobject obj"
-
-UPDATE FIELD "extends_smartobject_obj" OF "ryc_smartobject"
-  HELP "Extends smartobject obj"
-  LABEL "Extends smartobject obj"
-
-UPDATE FIELD "physical_smartobject_obj" OF "ryc_smartobject"
-  HELP "Physical smartobject obj"
-  LABEL "Physical smartobject obj"
-
-UPDATE FIELD "security_smartobject_obj" OF "ryc_smartobject"
-  HELP "Security smartobject obj"
-  LABEL "Security smartobject obj"
-
-UPDATE FIELD "supported_link_obj" OF "ryc_supported_link"
-  LABEL "Supported link obj"
-
-UPDATE FIELD "object_type_obj" OF "ryc_supported_link"
-  LABEL "Object type obj"
-
-UPDATE FIELD "smartlink_type_obj" OF "ryc_supported_link"
-  LABEL "Smartlink type obj"
-
-UPDATE FIELD "link_source" OF "ryc_supported_link"
-  LABEL "Link source"
-
-UPDATE FIELD "link_target" OF "ryc_supported_link"
-  LABEL "Link target"
-
-UPDATE FIELD "deactivated_link_on_hide" OF "ryc_supported_link"
-  LABEL "Deactivated link on hide"
-
-UPDATE FIELD "ui_event_obj" OF "ryc_ui_event"
-  HELP "UI event obj"
-  LABEL "UI event obj"
-
-UPDATE FIELD "object_type_obj" OF "ryc_ui_event"
-  LABEL "Object type obj"
-
-UPDATE FIELD "container_smartobject_obj" OF "ryc_ui_event"
-  HELP "Container smartobject obj"
-  LABEL "Container smartobject obj"
-
-UPDATE FIELD "smartobject_obj" OF "ryc_ui_event"
-  HELP "Smartobject obj"
-  LABEL "Smartobject obj"
-
-UPDATE FIELD "object_instance_obj" OF "ryc_ui_event"
-  LABEL "Object instance obj"
-
-UPDATE FIELD "event_name" OF "ryc_ui_event"
-  LABEL "Event name"
-
-UPDATE FIELD "constant_value" OF "ryc_ui_event"
-  LABEL "Constant value"
-
-UPDATE FIELD "action_type" OF "ryc_ui_event"
-  LABEL "Action type"
-
-UPDATE FIELD "action_target" OF "ryc_ui_event"
-  LABEL "Action target"
-
-UPDATE FIELD "event_action" OF "ryc_ui_event"
-  LABEL "Event action"
-
-UPDATE FIELD "event_parameter" OF "ryc_ui_event"
-  LABEL "Event parameter"
-
-UPDATE FIELD "event_disabled" OF "ryc_ui_event"
-  LABEL "Event disabled"
-
-UPDATE FIELD "primary_smartobject_obj" OF "ryc_ui_event"
-  HELP "Primary smartobject obj"
-  LABEL "Primary smartobject obj"
-
-UPDATE FIELD "customization_type_obj" OF "rym_customization"
-  LABEL "Customization type obj"
-
-UPDATE FIELD "customization_reference" OF "rym_customization"
-  LABEL "Customization reference"
-
-UPDATE FIELD "customization_result_obj" OF "rym_customization"
-  LABEL "Customization result obj"
-
-UPDATE FIELD "customization_obj" OF "rym_customization"
-  LABEL "Customization obj"
-
-UPDATE FIELD "data_version_obj" OF "rym_data_version"
-  LABEL "Data version obj"
-
-UPDATE FIELD "related_entity_mnemonic" OF "rym_data_version"
-  HELP "Related entity"
-  LABEL "Related entity"
-
-UPDATE FIELD "related_entity_key" OF "rym_data_version"
-  LABEL "Related entity key"
-
-UPDATE FIELD "data_version_number" OF "rym_data_version"
-  LABEL "Data version number"
-
-UPDATE FIELD "wizard_tree_obj" OF "rym_wizard_tree"
-  LABEL "Wizard tree obj"
-
-UPDATE FIELD "product_code" OF "rym_wizard_tree"
-  LABEL "Product code"
-
-UPDATE FIELD "product_module_code" OF "rym_wizard_tree"
-  LABEL "Product module code"
-
-UPDATE FIELD "object_name" OF "rym_wizard_tree"
-  LABEL "Object name"
-
-UPDATE FIELD "object_description" OF "rym_wizard_tree"
-  LABEL "Object description"
-
-UPDATE FIELD "window_title" OF "rym_wizard_tree"
-  LABEL "Window title"
-
-UPDATE FIELD "window_title_field" OF "rym_wizard_tree"
-  LABEL "Window title field"
-
-UPDATE FIELD "root_node_code" OF "rym_wizard_tree"
-  LABEL "Root node code"
-
-UPDATE FIELD "root_node_sdo_name" OF "rym_wizard_tree"
-  HELP "Root node SDO name"
-  LABEL "Root node SDO name"
-
-UPDATE FIELD "sdo_foreign_fields" OF "rym_wizard_tree"
-  HELP "SDO foreign fields"
-  LABEL "SDO foreign fields"
-
-UPDATE FIELD "custom_super_procedure" OF "rym_wizard_tree"
-  LABEL "Custom super procedure"
-
-UPDATE FIELD "page_layout" OF "rym_wizard_tree"
-  LABEL "Page layout"
-
-UPDATE FIELD "filter_viewer" OF "rym_wizard_tree"
-  LABEL "Filter viewer"
-
-UPDATE FIELD "auto_sort" OF "rym_wizard_tree"
-  LABEL "Auto sort"
-
-UPDATE FIELD "hide_selection" OF "rym_wizard_tree"
-  LABEL "Hide selection"
-
-UPDATE FIELD "image_height" OF "rym_wizard_tree"
-  LABEL "Image height"
-
-UPDATE FIELD "image_width" OF "rym_wizard_tree"
-  LABEL "Image width"
-
-UPDATE FIELD "show_check_boxes" OF "rym_wizard_tree"
-  LABEL "Show check boxes"
-
-UPDATE FIELD "show_root_lines" OF "rym_wizard_tree"
-  LABEL "Show root lines"
-
-UPDATE FIELD "tree_style" OF "rym_wizard_tree"
-  LABEL "Tree style"
-
-UPDATE FIELD "generated_time" OF "rym_wizard_tree"
-  LABEL "Generated time"
-
-UPDATE FIELD "generated_date" OF "rym_wizard_tree"
-  LABEL "Generated date"
-
-UPDATE FIELD "dbupdate_status_obj" OF "ryt_dbupdate_status"
-  LABEL "Dbupdate status obj"
-
-UPDATE FIELD "update_db_name" OF "ryt_dbupdate_status"
-  HELP "Update database name"
-  LABEL "Update DB name"
-
-UPDATE FIELD "delta_version" OF "ryt_dbupdate_status"
-  LABEL "Delta version"
-
-UPDATE FIELD "file_type" OF "ryt_dbupdate_status"
-  LABEL "File type"
-
-UPDATE FIELD "file_name" OF "ryt_dbupdate_status"
-  LABEL "File name"
-
-UPDATE FIELD "update_when" OF "ryt_dbupdate_status"
-  LABEL "Update when"
-
-UPDATE FIELD "run_sequence" OF "ryt_dbupdate_status"
-  LABEL "Run sequence"
-  COLUMN-LABEL ?
-
-UPDATE FIELD "update_completed" OF "ryt_dbupdate_status"
-  LABEL "Update completed"
-
-UPDATE FIELD "update_successful" OF "ryt_dbupdate_status"
-  LABEL "Update successful"
-
-UPDATE FIELD "return_result" OF "ryt_dbupdate_status"
-  LABEL "Return result"
-
-UPDATE FIELD "run_date" OF "ryt_dbupdate_status"
-  LABEL "Run date"
-
-UPDATE FIELD "run_time" OF "ryt_dbupdate_status"
-  LABEL "Run time"
-
-UPDATE FIELD "run_by_user_obj" OF "ryt_dbupdate_status"
-  LABEL "Run by user obj"
-
-UPDATE FIELD "update_new_db" OF "ryt_dbupdate_status"
-  LABEL "Update new db"
-
-UPDATE FIELD "update_existing_db" OF "ryt_dbupdate_status"
-  HELP "Update existing database"
-  LABEL "Update existing DB"
-
-UPDATE FIELD "update_mandatory" OF "ryt_dbupdate_status"
-  LABEL "Update mandatory"
-
-UPDATE SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 20018
-  MAX-VAL 20018
-
-.
-PSC
-cpstream=UTF-8
-.
-0000090309
+UPDATE FIELD "custom_procedure_obj" OF "gsc_custom_procedure"
+  LABEL "Custom procedure obj"
+
+UPDATE FIELD "category_obj" OF "gsc_custom_procedure"
+  LABEL "Category obj"
+
+UPDATE FIELD "custom_procedure_short_desc" OF "gsc_custom_procedure"
+  LABEL "Custom procedure short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "custom_procedure_description" OF "gsc_custom_procedure"
+  LABEL "Custom procedure description"
+
+UPDATE FIELD "custom_procedure_notes" OF "gsc_custom_procedure"
+  LABEL "Custom procedure notes"
+
+UPDATE FIELD "procedure_name" OF "gsc_custom_procedure"
+  LABEL "Procedure name"
+
+UPDATE FIELD "run_this_procedure" OF "gsc_custom_procedure"
+  LABEL "Run this procedure"
+
+UPDATE FIELD "dataset_entity_obj" OF "gsc_dataset_entity"
+  LABEL "Dataset entity obj"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_dataset_entity"
+  LABEL "Deploy dataset obj"
+
+UPDATE FIELD "entity_sequence" OF "gsc_dataset_entity"
+  LABEL "Entity sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "entity_mnemonic" OF "gsc_dataset_entity"
+  HELP "Entity"
+  LABEL "Entity"
+
+UPDATE FIELD "primary_entity" OF "gsc_dataset_entity"
+  LABEL "Primary entity"
+
+UPDATE FIELD "join_entity_mnemonic" OF "gsc_dataset_entity"
+  HELP "Join entity"
+  LABEL "Join entity"
+
+UPDATE FIELD "join_field_list" OF "gsc_dataset_entity"
+  LABEL "Join field list"
+
+UPDATE FIELD "filter_where_clause" OF "gsc_dataset_entity"
+  LABEL "Filter where clause"
+
+UPDATE FIELD "delete_related_records" OF "gsc_dataset_entity"
+  LABEL "Delete related records"
+
+UPDATE FIELD "overwrite_records" OF "gsc_dataset_entity"
+  LABEL "Overwrite records"
+
+UPDATE FIELD "keep_own_site_data" OF "gsc_dataset_entity"
+  LABEL "Keep own site data"
+
+UPDATE FIELD "use_relationship" OF "gsc_dataset_entity"
+  LABEL "Use relationship"
+
+UPDATE FIELD "relationship_obj" OF "gsc_dataset_entity"
+  LABEL "Relationship obj"
+
+UPDATE FIELD "deletion_action" OF "gsc_dataset_entity"
+  LABEL "Deletion action"
+
+UPDATE FIELD "default_set_code" OF "gsc_default_code"
+  LABEL "Default set code"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_default_code"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "field_name" OF "gsc_default_code"
+  LABEL "Field name"
+
+UPDATE FIELD "effective_date" OF "gsc_default_code"
+  LABEL "Effective date"
+
+UPDATE FIELD "data_type" OF "gsc_default_code"
+  LABEL "Data type"
+
+UPDATE FIELD "field_value" OF "gsc_default_code"
+  LABEL "Field value"
+
+UPDATE FIELD "default_code_obj" OF "gsc_default_code"
+  LABEL "Default code obj"
+
+UPDATE FIELD "default_set_code" OF "gsc_default_set"
+  LABEL "Default set code"
+
+UPDATE FIELD "default_set_description" OF "gsc_default_set"
+  LABEL "Default set description"
+
+UPDATE FIELD "default_set_obj" OF "gsc_default_set"
+  LABEL "Default set obj"
+
+UPDATE FIELD "default_set_code" OF "gsc_default_set_usage"
+  LABEL "Default set code"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_default_set_usage"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_obj" OF "gsc_default_set_usage"
+  LABEL "Owning obj"
+
+UPDATE FIELD "default_set_usage_obj" OF "gsc_default_set_usage"
+  LABEL "Default set usage obj"
+
+UPDATE FIELD "delivery_method_obj" OF "gsc_delivery_method"
+  LABEL "Delivery method obj"
+
+UPDATE FIELD "delivery_method_tla" OF "gsc_delivery_method"
+  LABEL "Delivery method TLA"
+
+UPDATE FIELD "delivery_method_short_desc" OF "gsc_delivery_method"
+  LABEL "Delivery method short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "delivery_method_description" OF "gsc_delivery_method"
+  LABEL "Delivery method description"
+
+UPDATE FIELD "postal_service_method" OF "gsc_delivery_method"
+  LABEL "Postal service method"
+
+UPDATE FIELD "address_label_required" OF "gsc_delivery_method"
+  LABEL "Address label required"
+
+UPDATE FIELD "delivery_custom_procedure_obj" OF "gsc_delivery_method"
+  LABEL "Delivery custom procedure obj"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_deploy_dataset"
+  LABEL "Deploy dataset obj"
+
+UPDATE FIELD "dataset_code" OF "gsc_deploy_dataset"
+  LABEL "Dataset code"
+
+UPDATE FIELD "dataset_description" OF "gsc_deploy_dataset"
+  LABEL "Dataset description"
+
+UPDATE FIELD "disable_ri" OF "gsc_deploy_dataset"
+  LABEL "Disable ri"
+
+UPDATE FIELD "source_code_data" OF "gsc_deploy_dataset"
+  LABEL "Source code data"
+
+UPDATE FIELD "deploy_full_data" OF "gsc_deploy_dataset"
+  LABEL "Deploy full data"
+
+UPDATE FIELD "xml_generation_procedure" OF "gsc_deploy_dataset"
+  LABEL "Xml generation procedure"
+
+UPDATE FIELD "default_ado_filename" OF "gsc_deploy_dataset"
+  LABEL "Default ado filename"
+
+UPDATE FIELD "deploy_additions_only" OF "gsc_deploy_dataset"
+  LABEL "Deploy additions only"
+
+UPDATE FIELD "enable_data_versioning" OF "gsc_deploy_dataset"
+  LABEL "Enable data versioning"
+
+UPDATE FIELD "deletion_dataset" OF "gsc_deploy_dataset"
+  LABEL "Deletion dataset"
+
+UPDATE FIELD "deploy_package_obj" OF "gsc_deploy_package"
+  LABEL "Deploy package obj"
+
+UPDATE FIELD "package_code" OF "gsc_deploy_package"
+  LABEL "Package code"
+
+UPDATE FIELD "package_description" OF "gsc_deploy_package"
+  LABEL "Package description"
+
+UPDATE FIELD "document_type_obj" OF "gsc_document_type"
+  LABEL "Document type obj"
+
+UPDATE FIELD "document_type_tla" OF "gsc_document_type"
+  LABEL "Document type TLA"
+
+UPDATE FIELD "document_type_short_desc" OF "gsc_document_type"
+  LABEL "Document type short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "document_type_description" OF "gsc_document_type"
+  LABEL "Document type description"
+
+UPDATE FIELD "system_owned" OF "gsc_document_type"
+  LABEL "System owned"
+
+UPDATE FIELD "default_delivery_method" OF "gsc_document_type"
+  LABEL "Default delivery method"
+
+UPDATE FIELD "entity_display_field_obj" OF "gsc_entity_display_field"
+  LABEL "Entity display field obj"
+
+UPDATE FIELD "entity_mnemonic" OF "gsc_entity_display_field"
+  HELP "Entity"
+  LABEL "Entity"
+
+UPDATE FIELD "display_field_name" OF "gsc_entity_display_field"
+  LABEL "Display field name"
+
+UPDATE FIELD "display_field_order" OF "gsc_entity_display_field"
+  LABEL "Display field order"
+
+UPDATE FIELD "display_field_label" OF "gsc_entity_display_field"
+  LABEL "Display field label"
+
+UPDATE FIELD "display_field_column_label" OF "gsc_entity_display_field"
+  LABEL "Display field column label"
+
+UPDATE FIELD "display_field_format" OF "gsc_entity_display_field"
+  LABEL "Display field format"
+
+UPDATE FIELD "entity_mnemonic" OF "gsc_entity_mnemonic"
+  HELP "Entity"
+  LABEL "Entity"
+
+UPDATE FIELD "entity_mnemonic_short_desc" OF "gsc_entity_mnemonic"
+  HELP "Entity short description"
+  LABEL "Entity short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "entity_mnemonic_description" OF "gsc_entity_mnemonic"
+  HELP "Entity description"
+  LABEL "Entity description"
+
+UPDATE FIELD "auto_properform_strings" OF "gsc_entity_mnemonic"
+  LABEL "Auto properform strings"
+
+UPDATE FIELD "entity_mnemonic_label_prefix" OF "gsc_entity_mnemonic"
+  HELP "Entity label prefix"
+  LABEL "Entity label prefix"
+
+UPDATE FIELD "entity_mnemonic_obj" OF "gsc_entity_mnemonic"
+  HELP "Entity obj"
+  LABEL "Entity obj"
+
+UPDATE FIELD "entity_description_field" OF "gsc_entity_mnemonic"
+  LABEL "Entity description field"
+
+UPDATE FIELD "entity_description_procedure" OF "gsc_entity_mnemonic"
+  LABEL "Entity description procedure"
+
+UPDATE FIELD "entity_narration" OF "gsc_entity_mnemonic"
+  LABEL "Entity narration"
+
+UPDATE FIELD "entity_object_field" OF "gsc_entity_mnemonic"
+  LABEL "Entity object field"
+
+UPDATE FIELD "table_has_object_field" OF "gsc_entity_mnemonic"
+  LABEL "Table has object field"
+
+UPDATE FIELD "entity_key_field" OF "gsc_entity_mnemonic"
+  LABEL "Entity key field"
+
+UPDATE FIELD "table_prefix_length" OF "gsc_entity_mnemonic"
+  LABEL "Table prefix length"
+
+UPDATE FIELD "field_name_separator" OF "gsc_entity_mnemonic"
+  LABEL "Field name separator"
+
+UPDATE FIELD "auditing_enabled" OF "gsc_entity_mnemonic"
+  LABEL "Auditing enabled"
+
+UPDATE FIELD "version_data" OF "gsc_entity_mnemonic"
+  LABEL "Version data"
+
+UPDATE FIELD "deploy_data" OF "gsc_entity_mnemonic"
+  LABEL "Deploy data"
+
+UPDATE FIELD "entity_dbname" OF "gsc_entity_mnemonic"
+  HELP "Entity database name"
+  LABEL "Entity DB name"
+
+UPDATE FIELD "replicate_entity_mnemonic" OF "gsc_entity_mnemonic"
+  HELP "Replicate entity"
+  LABEL "Replicate entity"
+
+UPDATE FIELD "replicate_key" OF "gsc_entity_mnemonic"
+  LABEL "Replicate key"
+
+UPDATE FIELD "scm_field_name" OF "gsc_entity_mnemonic"
+  HELP "SCM field name"
+  LABEL "SCM field name"
+
+UPDATE FIELD "reuse_deleted_keys" OF "gsc_entity_mnemonic"
+  LABEL "Reuse deleted keys"
+
+UPDATE FIELD "custom_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  LABEL "Custom procedure obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_entity_mnemonic_procedure"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "entity_mnemonic_procedure_obj" OF "gsc_entity_mnemonic_procedure"
+  HELP "Entity procedure obj"
+  LABEL "Entity procedure obj"
+
+UPDATE FIELD "run_this_procedure" OF "gsc_entity_mnemonic_procedure"
+  LABEL "Run this procedure"
+
+UPDATE FIELD "error_group" OF "gsc_error"
+  LABEL "Error group"
+
+UPDATE FIELD "error_number" OF "gsc_error"
+  LABEL "Error number"
+
+UPDATE FIELD "language_obj" OF "gsc_error"
+  LABEL "Language obj"
+
+UPDATE FIELD "error_summary_description" OF "gsc_error"
+  LABEL "Error summary description"
+
+UPDATE FIELD "error_full_description" OF "gsc_error"
+  LABEL "Error full description"
+
+UPDATE FIELD "error_obj" OF "gsc_error"
+  LABEL "Error obj"
+
+UPDATE FIELD "update_error_log" OF "gsc_error"
+  LABEL "Update error log"
+
+UPDATE FIELD "error_type" OF "gsc_error"
+  LABEL "Error type"
+
+UPDATE FIELD "source_language" OF "gsc_error"
+  LABEL "Source language"
+
+UPDATE FIELD "global_control_obj" OF "gsc_global_control"
+  LABEL "Global control obj"
+
+UPDATE FIELD "default_country_obj" OF "gsc_global_control"
+  LABEL "Default country obj"
+
+UPDATE FIELD "default_nationality_obj" OF "gsc_global_control"
+  LABEL "Default nationality obj"
+
+UPDATE FIELD "default_language_obj" OF "gsc_global_control"
+  LABEL "Default language obj"
+
+UPDATE FIELD "default_currency_obj" OF "gsc_global_control"
+  LABEL "Default currency obj"
+
+UPDATE FIELD "date_format" OF "gsc_global_control"
+  LABEL "Date format"
+
+UPDATE FIELD "date_format_mask" OF "gsc_global_control"
+  LABEL "Date format mask"
+
+UPDATE FIELD "global_default_obj" OF "gsc_global_default"
+  LABEL "Global default obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_global_default"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "default_type" OF "gsc_global_default"
+  LABEL "Default type"
+
+UPDATE FIELD "effective_date" OF "gsc_global_default"
+  LABEL "Effective date"
+
+UPDATE FIELD "owning_obj" OF "gsc_global_default"
+  LABEL "Owning obj"
+
+UPDATE FIELD "default_value" OF "gsc_global_default"
+  LABEL "Default value"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsc_instance_attribute"
+  LABEL "Instance attribute obj"
+
+UPDATE FIELD "attribute_code" OF "gsc_instance_attribute"
+  LABEL "Attribute code"
+
+UPDATE FIELD "attribute_description" OF "gsc_instance_attribute"
+  LABEL "Attribute description"
+
+UPDATE FIELD "system_owned" OF "gsc_instance_attribute"
+  LABEL "System owned"
+
+UPDATE FIELD "attribute_type" OF "gsc_instance_attribute"
+  LABEL "Attribute type"
+
+UPDATE FIELD "item_category_obj" OF "gsc_item_category"
+  LABEL "Item category obj"
+
+UPDATE FIELD "item_category_label" OF "gsc_item_category"
+  LABEL "Item category label"
+
+UPDATE FIELD "item_category_description" OF "gsc_item_category"
+  LABEL "Item category description"
+
+UPDATE FIELD "item_link" OF "gsc_item_category"
+  LABEL "Item link"
+
+UPDATE FIELD "system_owned" OF "gsc_item_category"
+  LABEL "System owned"
+
+UPDATE FIELD "parent_item_category_obj" OF "gsc_item_category"
+  LABEL "Parent item category obj"
+
+UPDATE FIELD "language_obj" OF "gsc_language"
+  LABEL "Language obj"
+
+UPDATE FIELD "language_code" OF "gsc_language"
+  LABEL "Language code"
+
+UPDATE FIELD "language_name" OF "gsc_language"
+  LABEL "Language name"
+
+UPDATE FIELD "person_title1_label" OF "gsc_language"
+  LABEL "Person title1 label"
+
+UPDATE FIELD "person_title2_label" OF "gsc_language"
+  LABEL "Person title2 label"
+
+UPDATE FIELD "person_title3_label" OF "gsc_language"
+  LABEL "Person title3 label"
+
+UPDATE FIELD "language_text_obj" OF "gsc_language_text"
+  LABEL "Language text obj"
+
+UPDATE FIELD "owning_obj" OF "gsc_language_text"
+  LABEL "Owning obj"
+
+UPDATE FIELD "category_obj" OF "gsc_language_text"
+  LABEL "Category obj"
+
+UPDATE FIELD "language_obj" OF "gsc_language_text"
+  LABEL "Language obj"
+
+UPDATE FIELD "physical_file_name" OF "gsc_language_text"
+  LABEL "Physical file name"
+
+UPDATE FIELD "text_content" OF "gsc_language_text"
+  LABEL "Text content"
+
+UPDATE FIELD "system_owned" OF "gsc_language_text"
+  LABEL "System owned"
+
+UPDATE FIELD "max_length" OF "gsc_language_text"
+  HELP "Maximum length"
+  LABEL "Max. length"
+
+UPDATE FIELD "print_option_tlas" OF "gsc_language_text"
+  LABEL "Print option TLAs"
+
+UPDATE FIELD "search_string" OF "gsc_language_text"
+  LABEL "Search string"
+
+UPDATE FIELD "logical_service_obj" OF "gsc_logical_service"
+  LABEL "Logical service obj"
+
+UPDATE FIELD "logical_service_code" OF "gsc_logical_service"
+  LABEL "Logical service code"
+
+UPDATE FIELD "logical_service_description" OF "gsc_logical_service"
+  LABEL "Logical service description"
+
+UPDATE FIELD "service_type_obj" OF "gsc_logical_service"
+  LABEL "Service type obj"
+
+UPDATE FIELD "can_run_locally" OF "gsc_logical_service"
+  LABEL "Can run locally"
+
+UPDATE FIELD "system_owned" OF "gsc_logical_service"
+  LABEL "System owned"
+
+UPDATE FIELD "write_to_config" OF "gsc_logical_service"
+  LABEL "Write to config"
+
+UPDATE FIELD "manager_type_obj" OF "gsc_manager_type"
+  LABEL "Manager type obj"
+
+UPDATE FIELD "manager_type_code" OF "gsc_manager_type"
+  LABEL "Manager type code"
+
+UPDATE FIELD "manager_type_name" OF "gsc_manager_type"
+  LABEL "Manager type name"
+
+UPDATE FIELD "system_owned" OF "gsc_manager_type"
+  LABEL "System owned"
+
+UPDATE FIELD "write_to_config" OF "gsc_manager_type"
+  LABEL "Write to config"
+
+UPDATE FIELD "static_handle" OF "gsc_manager_type"
+  LABEL "Static handle"
+
+UPDATE FIELD "manager_narration" OF "gsc_manager_type"
+  LABEL "Manager narration"
+
+UPDATE FIELD "multi_media_type_obj" OF "gsc_multi_media_type"
+  LABEL "Multi media type obj"
+
+UPDATE FIELD "multi_media_type_code" OF "gsc_multi_media_type"
+  LABEL "Multi media type code"
+
+UPDATE FIELD "multi_media_type_description" OF "gsc_multi_media_type"
+  LABEL "Multi media type description"
+
+UPDATE FIELD "application_launch_command" OF "gsc_multi_media_type"
+  LABEL "Application launch command"
+
+UPDATE FIELD "file_extension" OF "gsc_multi_media_type"
+  LABEL "File extension"
+
+UPDATE FIELD "template_extension" OF "gsc_multi_media_type"
+  LABEL "Template extension"
+
+UPDATE FIELD "nationality_obj" OF "gsc_nationality"
+  LABEL "Nationality obj"
+
+UPDATE FIELD "nationality_code" OF "gsc_nationality"
+  LABEL "Nationality code"
+
+UPDATE FIELD "nationality_name" OF "gsc_nationality"
+  LABEL "Nationality name"
+
+UPDATE FIELD "sequence_obj" OF "gsc_next_sequence"
+  LABEL "Sequence obj"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "next_sequence_value" OF "gsc_next_sequence"
+  HELP "Next sequence value"
+  LABEL "Next sequence value"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "next_sequence_obj" OF "gsc_next_sequence"
+  HELP "Next sequence obj"
+  LABEL "Next sequence obj"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "object_type_obj" OF "gsc_object_type"
+  LABEL "Object type obj"
+
+UPDATE FIELD "object_type_code" OF "gsc_object_type"
+  LABEL "Object type code"
+
+UPDATE FIELD "object_type_description" OF "gsc_object_type"
+  LABEL "Object type description"
+
+UPDATE FIELD "layout_supported" OF "gsc_object_type"
+  LABEL "Layout supported"
+
+UPDATE FIELD "deployment_type" OF "gsc_object_type"
+  LABEL "Deployment type"
+
+UPDATE FIELD "static_object" OF "gsc_object_type"
+  LABEL "Static object"
+
+UPDATE FIELD "class_smartobject_obj" OF "gsc_object_type"
+  HELP "Class smartobject obj"
+  LABEL "Class smartobject obj"
+
+UPDATE FIELD "extends_object_type_obj" OF "gsc_object_type"
+  LABEL "Extends object type obj"
+
+UPDATE FIELD "package_dataset_obj" OF "gsc_package_dataset"
+  LABEL "Package dataset obj"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gsc_package_dataset"
+  LABEL "Deploy dataset obj"
+
+UPDATE FIELD "deploy_package_obj" OF "gsc_package_dataset"
+  LABEL "Deploy package obj"
+
+UPDATE FIELD "deploy_full_data" OF "gsc_package_dataset"
+  LABEL "Deploy full data"
+
+UPDATE FIELD "package_dataset_seq" OF "gsc_package_dataset"
+  HELP "Package dataset seq"
+  LABEL "Package dataset seq"
+
+UPDATE FIELD "product_obj" OF "gsc_product"
+  LABEL "Product obj"
+
+UPDATE FIELD "product_code" OF "gsc_product"
+  LABEL "Product code"
+
+UPDATE FIELD "product_description" OF "gsc_product"
+  LABEL "Product description"
+
+UPDATE FIELD "product_installed" OF "gsc_product"
+  LABEL "Product installed"
+
+UPDATE FIELD "number_of_users" OF "gsc_product"
+  LABEL "Number of users"
+
+UPDATE FIELD "db_connection_pf_file" OF "gsc_product"
+  HELP "Database connection PF file"
+  LABEL "DB connection PF file"
+
+UPDATE FIELD "supplier_organisation_obj" OF "gsc_product"
+  LABEL "Supplier organisation obj"
+
+UPDATE FIELD "product_module_obj" OF "gsc_product_module"
+  LABEL "Product module obj"
+
+UPDATE FIELD "product_obj" OF "gsc_product_module"
+  LABEL "Product obj"
+
+UPDATE FIELD "product_module_code" OF "gsc_product_module"
+  LABEL "Product module code"
+
+UPDATE FIELD "product_module_description" OF "gsc_product_module"
+  LABEL "Product module description"
+
+UPDATE FIELD "product_module_installed" OF "gsc_product_module"
+  LABEL "Product module installed"
+
+UPDATE FIELD "number_of_users" OF "gsc_product_module"
+  LABEL "Number of users"
+
+UPDATE FIELD "db_connection_pf_file" OF "gsc_product_module"
+  HELP "Database connection pf file"
+  LABEL "DB connection pf file"
+
+UPDATE FIELD "relative_path" OF "gsc_product_module"
+  LABEL "Relative path"
+
+UPDATE FIELD "deployment_type" OF "gsc_product_module"
+  LABEL "Deployment type"
+
+UPDATE FIELD "parent_product_module_obj" OF "gsc_product_module"
+  LABEL "Parent product module obj"
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_code"
+  LABEL "Profile type obj"
+
+UPDATE FIELD "profile_code_obj" OF "gsc_profile_code"
+  LABEL "Profile code obj"
+
+UPDATE FIELD "profile_code" OF "gsc_profile_code"
+  LABEL "Profile code"
+
+UPDATE FIELD "profile_description" OF "gsc_profile_code"
+  LABEL "Profile description"
+
+UPDATE FIELD "profile_narrative" OF "gsc_profile_code"
+  LABEL "Profile narrative"
+
+UPDATE FIELD "profile_type_obj" OF "gsc_profile_type"
+  LABEL "Profile type obj"
+
+UPDATE FIELD "profile_type_code" OF "gsc_profile_type"
+  LABEL "Profile type code"
+
+UPDATE FIELD "profile_type_description" OF "gsc_profile_type"
+  LABEL "Profile type description"
+
+UPDATE FIELD "client_profile_type" OF "gsc_profile_type"
+  LABEL "Client profile type"
+
+UPDATE FIELD "server_profile_type" OF "gsc_profile_type"
+  LABEL "Server profile type"
+
+UPDATE FIELD "profile_type_active" OF "gsc_profile_type"
+  LABEL "Profile type active"
+
+UPDATE FIELD "security_control_obj" OF "gsc_security_control"
+  LABEL "Security control obj"
+
+UPDATE FIELD "password_max_retries" OF "gsc_security_control"
+  HELP "Password maximum retries"
+  LABEL "Password max. retries"
+
+UPDATE FIELD "password_history_life_time" OF "gsc_security_control"
+  LABEL "Password history life time"
+
+UPDATE FIELD "full_access_by_default" OF "gsc_security_control"
+  LABEL "Full access by default"
+
+UPDATE FIELD "security_enabled" OF "gsc_security_control"
+  LABEL "Security enabled"
+
+UPDATE FIELD "help_writer_enabled" OF "gsc_security_control"
+  LABEL "Help writer enabled"
+
+UPDATE FIELD "build_top_menus_only" OF "gsc_security_control"
+  LABEL "Build top menus only"
+
+UPDATE FIELD "default_help_filename" OF "gsc_security_control"
+  LABEL "Default help filename"
+
+UPDATE FIELD "error_log_filename" OF "gsc_security_control"
+  LABEL "Error log filename"
+
+UPDATE FIELD "translation_enabled" OF "gsc_security_control"
+  LABEL "Translation enabled"
+
+UPDATE FIELD "login_filename" OF "gsc_security_control"
+  LABEL "Login filename"
+
+UPDATE FIELD "multi_user_check" OF "gsc_security_control"
+  LABEL "Multi user check"
+
+UPDATE FIELD "program_access_check" OF "gsc_security_control"
+  LABEL "Program access check"
+
+UPDATE FIELD "minimise_siblings" OF "gsc_security_control"
+  LABEL "Minimise siblings"
+
+UPDATE FIELD "enable_window_positioning" OF "gsc_security_control"
+  LABEL "Enable window positioning"
+
+UPDATE FIELD "force_unique_password" OF "gsc_security_control"
+  LABEL "Force unique password"
+
+UPDATE FIELD "company_logo_filename" OF "gsc_security_control"
+  LABEL "Company logo filename"
+
+UPDATE FIELD "system_icon_filename" OF "gsc_security_control"
+  LABEL "System icon filename"
+
+UPDATE FIELD "small_icon_filename" OF "gsc_security_control"
+  LABEL "Small icon filename"
+
+UPDATE FIELD "product_logo_filename" OF "gsc_security_control"
+  LABEL "Product logo filename"
+
+UPDATE FIELD "scm_checks_on" OF "gsc_security_control"
+  HELP "SCM checks on"
+  LABEL "SCM checks on"
+
+UPDATE FIELD "scm_tool_code" OF "gsc_security_control"
+  HELP "SCM tool code"
+  LABEL "SCM tool code"
+
+UPDATE FIELD "sequence_obj" OF "gsc_sequence"
+  LABEL "Sequence obj"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "company_organisation_obj" OF "gsc_sequence"
+  LABEL "Company organisation obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsc_sequence"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "sequence_tla" OF "gsc_sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "sequence_short_desc" OF "gsc_sequence"
+  LABEL "Sequence short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "sequence_description" OF "gsc_sequence"
+  LABEL "Sequence description"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "min_value" OF "gsc_sequence"
+  HELP "Minimum value"
+  LABEL "Min. value"
+
+UPDATE FIELD "max_value" OF "gsc_sequence"
+  HELP "Maximum value"
+  LABEL "Max. value"
+
+UPDATE FIELD "sequence_format" OF "gsc_sequence"
+  LABEL "Sequence format"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "auto_generate" OF "gsc_sequence"
+  LABEL "Auto generate"
+
+UPDATE FIELD "multi_transaction" OF "gsc_sequence"
+  LABEL "Multi transaction"
+
+UPDATE FIELD "next_value" OF "gsc_sequence"
+  HELP "Next value"
+  LABEL "Next value"
+
+UPDATE FIELD "number_of_sequences" OF "gsc_sequence"
+  LABEL "Number of sequences"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "sequence_active" OF "gsc_sequence"
+  LABEL "Sequence active"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "service_type_obj" OF "gsc_service_type"
+  LABEL "Service type obj"
+
+UPDATE FIELD "service_type_code" OF "gsc_service_type"
+  LABEL "Service type code"
+
+UPDATE FIELD "service_type_description" OF "gsc_service_type"
+  LABEL "Service type description"
+
+UPDATE FIELD "management_object_obj" OF "gsc_service_type"
+  LABEL "Management object obj"
+
+UPDATE FIELD "maintenance_object_obj" OF "gsc_service_type"
+  LABEL "Maintenance object obj"
+
+UPDATE FIELD "default_logical_service_obj" OF "gsc_service_type"
+  LABEL "Default logical service obj"
+
+UPDATE FIELD "session_property_obj" OF "gsc_session_property"
+  LABEL "Session property obj"
+
+UPDATE FIELD "session_property_name" OF "gsc_session_property"
+  LABEL "Session property name"
+
+UPDATE FIELD "session_property_description" OF "gsc_session_property"
+  LABEL "Session property description"
+
+UPDATE FIELD "system_owned" OF "gsc_session_property"
+  LABEL "System owned"
+
+UPDATE FIELD "default_property_value" OF "gsc_session_property"
+  LABEL "Default property value"
+
+UPDATE FIELD "always_used" OF "gsc_session_property"
+  LABEL "Always used"
+
+UPDATE FIELD "category_obj" OF "gsm_category"
+  LABEL "Category obj"
+
+UPDATE FIELD "related_entity_mnemonic" OF "gsm_category"
+  HELP "Related entity"
+  LABEL "Related entity"
+
+UPDATE FIELD "category_type" OF "gsm_category"
+  LABEL "Category type"
+
+UPDATE FIELD "category_group" OF "gsm_category"
+  LABEL "Category group"
+
+UPDATE FIELD "category_subgroup" OF "gsm_category"
+  LABEL "Category subgroup"
+
+UPDATE FIELD "category_group_seq" OF "gsm_category"
+  HELP "Category group seq"
+  LABEL "Category group seq"
+
+UPDATE FIELD "category_label" OF "gsm_category"
+  LABEL "Category label"
+
+UPDATE FIELD "category_description" OF "gsm_category"
+  LABEL "Category description"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_category"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "system_owned" OF "gsm_category"
+  LABEL "System owned"
+
+UPDATE FIELD "validation_min_length" OF "gsm_category"
+  HELP "Validation minimum length"
+  LABEL "Validation min. length"
+
+UPDATE FIELD "validation_max_length" OF "gsm_category"
+  HELP "Validation maximum length"
+  LABEL "Validation max. length"
+
+UPDATE FIELD "view_as_columns" OF "gsm_category"
+  LABEL "View as columns"
+
+UPDATE FIELD "view_as_rows" OF "gsm_category"
+  LABEL "View as rows"
+
+UPDATE FIELD "category_mandatory" OF "gsm_category"
+  LABEL "Category mandatory"
+
+UPDATE FIELD "category_active" OF "gsm_category"
+  LABEL "Category active"
+
+UPDATE FIELD "comment_obj" OF "gsm_comment"
+  LABEL "Comment obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_comment"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_reference" OF "gsm_comment"
+  LABEL "Owning reference"
+
+UPDATE FIELD "owning_obj" OF "gsm_comment"
+  LABEL "Owning obj"
+
+UPDATE FIELD "category_obj" OF "gsm_comment"
+  LABEL "Category obj"
+
+UPDATE FIELD "comment_text" OF "gsm_comment"
+  LABEL "Comment text"
+
+UPDATE FIELD "auto_display" OF "gsm_comment"
+  LABEL "Auto display"
+
+UPDATE FIELD "print_option_tlas" OF "gsm_comment"
+  LABEL "Print option TLAs"
+
+UPDATE FIELD "expiry_date" OF "gsm_comment"
+  LABEL "Expiry date"
+
+UPDATE FIELD "comment_description" OF "gsm_comment"
+  LABEL "Comment description"
+
+UPDATE FIELD "last_updated_by_user" OF "gsm_comment"
+  LABEL "Last updated by user"
+
+UPDATE FIELD "last_updated_date" OF "gsm_comment"
+  LABEL "Last updated date"
+
+UPDATE FIELD "category_obj" OF "gsm_control_code"
+  LABEL "Category obj"
+
+UPDATE FIELD "owning_obj" OF "gsm_control_code"
+  LABEL "Owning obj"
+
+UPDATE FIELD "control_data" OF "gsm_control_code"
+  LABEL "Control data"
+
+UPDATE FIELD "control_short_description" OF "gsm_control_code"
+  HELP "Control short description"
+  LABEL "Control short description"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "control_description" OF "gsm_control_code"
+  LABEL "Control description"
+
+UPDATE FIELD "control_code_obj" OF "gsm_control_code"
+  LABEL "Control code obj"
+
+UPDATE FIELD "country_obj" OF "gsm_country"
+  LABEL "Country obj"
+
+UPDATE FIELD "country_code" OF "gsm_country"
+  LABEL "Country code"
+
+UPDATE FIELD "country_name" OF "gsm_country"
+  LABEL "Country name"
+
+UPDATE FIELD "min_postcode_lookup_chars" OF "gsm_country"
+  HELP "Min postcode lookup chars"
+  LABEL "Min postcode lookup chars"
+
+UPDATE FIELD "address_format_procedure_obj" OF "gsm_country"
+  LABEL "Address format procedure obj"
+
+UPDATE FIELD "properform_address" OF "gsm_country"
+  LABEL "Properform address"
+
+UPDATE FIELD "upcase_town" OF "gsm_country"
+  LABEL "Upcase town"
+
+UPDATE FIELD "force_valid_address" OF "gsm_country"
+  LABEL "Force valid address"
+
+UPDATE FIELD "address_line1_label" OF "gsm_country"
+  LABEL "Address line1 label"
+
+UPDATE FIELD "address_line2_label" OF "gsm_country"
+  LABEL "Address line2 label"
+
+UPDATE FIELD "address_line3_label" OF "gsm_country"
+  LABEL "Address line3 label"
+
+UPDATE FIELD "address_line4_label" OF "gsm_country"
+  LABEL "Address line4 label"
+
+UPDATE FIELD "address_line5_label" OF "gsm_country"
+  LABEL "Address line5 label"
+
+UPDATE FIELD "postcode_label" OF "gsm_country"
+  LABEL "Postcode label"
+
+UPDATE FIELD "currency_obj" OF "gsm_currency"
+  LABEL "Currency obj"
+
+UPDATE FIELD "currency_code" OF "gsm_currency"
+  LABEL "Currency code"
+
+UPDATE FIELD "currency_description" OF "gsm_currency"
+  LABEL "Currency description"
+
+UPDATE FIELD "currency_symbol" OF "gsm_currency"
+  LABEL "Currency symbol"
+
+UPDATE FIELD "symbol_format_mask" OF "gsm_currency"
+  LABEL "Symbol format mask"
+
+UPDATE FIELD "number_of_decimals" OF "gsm_currency"
+  LABEL "Number of decimals"
+
+UPDATE FIELD "default_report_format_obj" OF "gsm_default_report_format"
+  LABEL "Default report format obj"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_default_report_format"
+  LABEL "Report definition obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_default_report_format"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_obj" OF "gsm_default_report_format"
+  LABEL "Owning obj"
+
+UPDATE FIELD "document_type_obj" OF "gsm_default_report_format"
+  LABEL "Document type obj"
+
+UPDATE FIELD "report_format_obj" OF "gsm_default_report_format"
+  LABEL "Report format obj"
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field"
+  LABEL "Entity field obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_entity_field"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "entity_field_name" OF "gsm_entity_field"
+  LABEL "Entity field name"
+
+UPDATE FIELD "entity_field_description" OF "gsm_entity_field"
+  LABEL "Entity field description"
+
+UPDATE FIELD "entity_field_value_obj" OF "gsm_entity_field_value"
+  LABEL "Entity field value obj"
+
+UPDATE FIELD "entity_field_obj" OF "gsm_entity_field_value"
+  LABEL "Entity field obj"
+
+UPDATE FIELD "entity_field_contents" OF "gsm_entity_field_value"
+  LABEL "Entity field contents"
+
+UPDATE FIELD "related_entity_mnemonic" OF "gsm_external_xref"
+  HELP "Related entity"
+  LABEL "Related entity"
+
+UPDATE FIELD "related_owning_obj" OF "gsm_external_xref"
+  LABEL "Related owning obj"
+
+UPDATE FIELD "internal_entity_mnemonic" OF "gsm_external_xref"
+  HELP "Internal entity"
+  LABEL "Internal entity"
+
+UPDATE FIELD "internal_owning_obj" OF "gsm_external_xref"
+  LABEL "Internal owning obj"
+
+UPDATE FIELD "external_xref_obj" OF "gsm_external_xref"
+  LABEL "External xref obj"
+
+UPDATE FIELD "external_entity_mnemonic" OF "gsm_external_xref"
+  HELP "External entity"
+  LABEL "External entity"
+
+UPDATE FIELD "external_owning_obj" OF "gsm_external_xref"
+  LABEL "External owning obj"
+
+UPDATE FIELD "external_code" OF "gsm_external_xref"
+  LABEL "External code"
+
+UPDATE FIELD "external_description" OF "gsm_external_xref"
+  LABEL "External description"
+
+UPDATE FIELD "external_details" OF "gsm_external_xref"
+  LABEL "External details"
+
+UPDATE FIELD "field_obj" OF "gsm_field"
+  LABEL "Field obj"
+
+UPDATE FIELD "field_name" OF "gsm_field"
+  LABEL "Field name"
+
+UPDATE FIELD "field_description" OF "gsm_field"
+  LABEL "Field description"
+
+UPDATE FIELD "system_owned" OF "gsm_field"
+  LABEL "System owned"
+
+UPDATE FIELD "flow_obj" OF "gsm_flow"
+  LABEL "Flow obj"
+
+UPDATE FIELD "flow_name" OF "gsm_flow"
+  LABEL "Flow name"
+
+UPDATE FIELD "flow_description" OF "gsm_flow"
+  LABEL "Flow description"
+
+UPDATE FIELD "product_module_obj" OF "gsm_flow"
+  LABEL "Product module obj"
+
+UPDATE FIELD "system_owned" OF "gsm_flow"
+  LABEL "System owned"
+
+UPDATE FIELD "flow_narration" OF "gsm_flow"
+  LABEL "Flow narration"
+
+UPDATE FIELD "flow_step_obj" OF "gsm_flow_step"
+  LABEL "Flow step obj"
+
+UPDATE FIELD "flow_obj" OF "gsm_flow_step"
+  LABEL "Flow obj"
+
+UPDATE FIELD "flow_step_order" OF "gsm_flow_step"
+  LABEL "Flow step order"
+
+UPDATE FIELD "login_company_obj" OF "gsm_flow_step"
+  LABEL "Login company obj"
+
+UPDATE FIELD "replace_standard_step" OF "gsm_flow_step"
+  LABEL "Replace standard step"
+
+UPDATE FIELD "object_obj" OF "gsm_flow_step"
+  LABEL "Object obj"
+
+UPDATE FIELD "internal_procedure" OF "gsm_flow_step"
+  LABEL "Internal procedure"
+
+UPDATE FIELD "flow_step_flow_obj" OF "gsm_flow_step"
+  LABEL "Flow step flow obj"
+
+UPDATE FIELD "help_obj" OF "gsm_help"
+  LABEL "Help obj"
+
+UPDATE FIELD "help_filename" OF "gsm_help"
+  LABEL "Help filename"
+
+UPDATE FIELD "help_container_filename" OF "gsm_help"
+  LABEL "Help container filename"
+
+UPDATE FIELD "help_object_filename" OF "gsm_help"
+  LABEL "Help object filename"
+
+UPDATE FIELD "help_fieldname" OF "gsm_help"
+  LABEL "Help fieldname"
+
+UPDATE FIELD "language_obj" OF "gsm_help"
+  LABEL "Language obj"
+
+UPDATE FIELD "help_context" OF "gsm_help"
+  LABEL "Help context"
+
+UPDATE FIELD "login_company_obj" OF "gsm_login_company"
+  LABEL "Login company obj"
+
+UPDATE FIELD "login_company_code" OF "gsm_login_company"
+  LABEL "Login company code"
+
+UPDATE FIELD "login_company_short_name" OF "gsm_login_company"
+  LABEL "Login company short name"
+
+UPDATE FIELD "login_company_name" OF "gsm_login_company"
+  LABEL "Login company name"
+
+UPDATE FIELD "login_company_email" OF "gsm_login_company"
+  LABEL "Login company email"
+
+UPDATE FIELD "login_company_disabled" OF "gsm_login_company"
+  LABEL "Login company disabled"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_item"
+  LABEL "Menu item obj"
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_item"
+  LABEL "Product module obj"
+
+UPDATE FIELD "object_obj" OF "gsm_menu_item"
+  LABEL "Object obj"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_menu_item"
+  LABEL "Instance attribute obj"
+
+UPDATE FIELD "item_category_obj" OF "gsm_menu_item"
+  LABEL "Item category obj"
+
+UPDATE FIELD "menu_item_label" OF "gsm_menu_item"
+  LABEL "Menu item label"
+
+UPDATE FIELD "menu_item_description" OF "gsm_menu_item"
+  LABEL "Menu item description"
+
+UPDATE FIELD "toggle_menu_item" OF "gsm_menu_item"
+  LABEL "Toggle menu item"
+
+UPDATE FIELD "tooltip_text" OF "gsm_menu_item"
+  LABEL "Tooltip text"
+
+UPDATE FIELD "shortcut_key" OF "gsm_menu_item"
+  LABEL "Shortcut key"
+
+UPDATE FIELD "hide_if_disabled" OF "gsm_menu_item"
+  LABEL "Hide if disabled"
+
+UPDATE FIELD "system_owned" OF "gsm_menu_item"
+  LABEL "System owned"
+
+UPDATE FIELD "under_development" OF "gsm_menu_item"
+  LABEL "Under development"
+
+UPDATE FIELD "menu_item_reference" OF "gsm_menu_item"
+  LABEL "Menu item reference"
+
+UPDATE FIELD "propagate_links" OF "gsm_menu_item"
+  LABEL "Propagate links"
+
+UPDATE FIELD "security_token" OF "gsm_menu_item"
+  LABEL "Security token"
+
+UPDATE FIELD "item_toolbar_label" OF "gsm_menu_item"
+  LABEL "Item toolbar label"
+
+UPDATE FIELD "image1_up_filename" OF "gsm_menu_item"
+  LABEL "Image1 up filename"
+
+UPDATE FIELD "image1_down_filename" OF "gsm_menu_item"
+  LABEL "Image1 down filename"
+
+UPDATE FIELD "image1_insensitive_filename" OF "gsm_menu_item"
+  LABEL "Image1 insensitive filename"
+
+UPDATE FIELD "image2_up_filename" OF "gsm_menu_item"
+  LABEL "Image2 up filename"
+
+UPDATE FIELD "image2_down_filename" OF "gsm_menu_item"
+  LABEL "Image2 down filename"
+
+UPDATE FIELD "image2_insensitive_filename" OF "gsm_menu_item"
+  LABEL "Image2 insensitive filename"
+
+UPDATE FIELD "item_select_type" OF "gsm_menu_item"
+  LABEL "Item select type"
+
+UPDATE FIELD "item_select_action" OF "gsm_menu_item"
+  LABEL "Item select action"
+
+UPDATE FIELD "item_link" OF "gsm_menu_item"
+  LABEL "Item link"
+
+UPDATE FIELD "item_select_parameter" OF "gsm_menu_item"
+  LABEL "Item select parameter"
+
+UPDATE FIELD "item_menu_drop" OF "gsm_menu_item"
+  LABEL "Item menu drop"
+
+UPDATE FIELD "on_create_publish_event" OF "gsm_menu_item"
+  LABEL "On create publish event"
+
+UPDATE FIELD "enable_rule" OF "gsm_menu_item"
+  LABEL "Enable rule"
+
+UPDATE FIELD "disable_rule" OF "gsm_menu_item"
+  LABEL "Disable rule"
+
+UPDATE FIELD "image_alternate_rule" OF "gsm_menu_item"
+  LABEL "Image alternate rule"
+
+UPDATE FIELD "hide_rule" OF "gsm_menu_item"
+  LABEL "Hide rule"
+
+UPDATE FIELD "item_control_type" OF "gsm_menu_item"
+  LABEL "Item control type"
+
+UPDATE FIELD "item_control_style" OF "gsm_menu_item"
+  LABEL "Item control style"
+
+UPDATE FIELD "substitute_text_property" OF "gsm_menu_item"
+  LABEL "Substitute text property"
+
+UPDATE FIELD "item_narration" OF "gsm_menu_item"
+  LABEL "Item narration"
+
+UPDATE FIELD "source_language_obj" OF "gsm_menu_item"
+  LABEL "Source language obj"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure"
+  LABEL "Menu structure obj"
+
+UPDATE FIELD "product_module_obj" OF "gsm_menu_structure"
+  LABEL "Product module obj"
+
+UPDATE FIELD "product_obj" OF "gsm_menu_structure"
+  LABEL "Product obj"
+
+UPDATE FIELD "menu_structure_code" OF "gsm_menu_structure"
+  LABEL "Menu structure code"
+
+UPDATE FIELD "menu_structure_description" OF "gsm_menu_structure"
+  LABEL "Menu structure description"
+
+UPDATE FIELD "system_owned" OF "gsm_menu_structure"
+  LABEL "System owned"
+
+UPDATE FIELD "under_development" OF "gsm_menu_structure"
+  LABEL "Under development"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure"
+  LABEL "Menu item obj"
+
+UPDATE FIELD "menu_structure_type" OF "gsm_menu_structure"
+  LABEL "Menu structure type"
+
+UPDATE FIELD "menu_structure_hidden" OF "gsm_menu_structure"
+  LABEL "Menu structure hidden"
+
+UPDATE FIELD "control_spacing" OF "gsm_menu_structure"
+  LABEL "Control spacing"
+
+UPDATE FIELD "control_padding" OF "gsm_menu_structure"
+  LABEL "Control padding"
+
+UPDATE FIELD "menu_structure_narrative" OF "gsm_menu_structure"
+  LABEL "Menu structure narrative"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_menu_structure_item"
+  LABEL "Menu structure obj"
+
+UPDATE FIELD "menu_item_sequence" OF "gsm_menu_structure_item"
+  LABEL "Menu item sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "menu_item_obj" OF "gsm_menu_structure_item"
+  LABEL "Menu item obj"
+
+UPDATE FIELD "child_menu_structure_obj" OF "gsm_menu_structure_item"
+  LABEL "Child menu structure obj"
+
+UPDATE FIELD "menu_structure_item_obj" OF "gsm_menu_structure_item"
+  LABEL "Menu structure item obj"
+
+UPDATE FIELD "multi_media_obj" OF "gsm_multi_media"
+  LABEL "Multi media obj"
+
+UPDATE FIELD "category_obj" OF "gsm_multi_media"
+  LABEL "Category obj"
+
+UPDATE FIELD "owning_obj" OF "gsm_multi_media"
+  LABEL "Owning obj"
+
+UPDATE FIELD "multi_media_type_obj" OF "gsm_multi_media"
+  LABEL "Multi media type obj"
+
+UPDATE FIELD "physical_file_name" OF "gsm_multi_media"
+  LABEL "Physical file name"
+
+UPDATE FIELD "multi_media_description" OF "gsm_multi_media"
+  LABEL "Multi media description"
+
+UPDATE FIELD "creation_date" OF "gsm_multi_media"
+  LABEL "Creation date"
+
+UPDATE FIELD "node_obj" OF "gsm_node"
+  LABEL "Node obj"
+
+UPDATE FIELD "node_code" OF "gsm_node"
+  LABEL "Node code"
+
+UPDATE FIELD "node_description" OF "gsm_node"
+  LABEL "Node description"
+
+UPDATE FIELD "parent_node_obj" OF "gsm_node"
+  LABEL "Parent node obj"
+
+UPDATE FIELD "node_label" OF "gsm_node"
+  LABEL "Node label"
+
+UPDATE FIELD "node_checked" OF "gsm_node"
+  LABEL "Node checked"
+
+UPDATE FIELD "data_source_type" OF "gsm_node"
+  LABEL "Data source type"
+
+UPDATE FIELD "data_source" OF "gsm_node"
+  LABEL "Data source"
+
+UPDATE FIELD "primary_sdo" OF "gsm_node"
+  HELP "Primary data object"
+  LABEL "Primary data dbject"
+  COLUMN-LABEL "Primary data object"
+
+UPDATE FIELD "logical_object" OF "gsm_node"
+  LABEL "Logical object"
+
+UPDATE FIELD "run_attribute" OF "gsm_node"
+  LABEL "Run attribute"
+
+UPDATE FIELD "fields_to_store" OF "gsm_node"
+  LABEL "Fields to store"
+
+UPDATE FIELD "node_text_label_expression" OF "gsm_node"
+  LABEL "Node text label expression"
+
+UPDATE FIELD "label_text_substitution_fields" OF "gsm_node"
+  LABEL "Label text substitution fields"
+
+UPDATE FIELD "foreign_fields" OF "gsm_node"
+  LABEL "Foreign fields"
+
+UPDATE FIELD "image_file_name" OF "gsm_node"
+  LABEL "Image file name"
+
+UPDATE FIELD "selected_image_file_name" OF "gsm_node"
+  LABEL "Selected image file name"
+
+UPDATE FIELD "object_obj" OF "gsm_object_menu_structure"
+  LABEL "Object obj"
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_object_menu_structure"
+  LABEL "Menu structure obj"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_object_menu_structure"
+  LABEL "Instance attribute obj"
+
+UPDATE FIELD "object_menu_structure_obj" OF "gsm_object_menu_structure"
+  LABEL "Object menu structure obj"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_object_menu_structure"
+  LABEL "Menu item obj"
+
+UPDATE FIELD "insert_submenu" OF "gsm_object_menu_structure"
+  LABEL "Insert submenu"
+
+UPDATE FIELD "menu_structure_sequence" OF "gsm_object_menu_structure"
+  LABEL "Menu structure sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "physical_service_obj" OF "gsm_physical_service"
+  LABEL "Physical service obj"
+
+UPDATE FIELD "physical_service_code" OF "gsm_physical_service"
+  LABEL "Physical service code"
+
+UPDATE FIELD "physical_service_description" OF "gsm_physical_service"
+  LABEL "Physical service description"
+
+UPDATE FIELD "service_type_obj" OF "gsm_physical_service"
+  LABEL "Service type obj"
+
+UPDATE FIELD "connection_parameters" OF "gsm_physical_service"
+  LABEL "Connection parameters"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile"
+  LABEL "Profile obj"
+
+UPDATE FIELD "category_obj" OF "gsm_profile"
+  LABEL "Category obj"
+
+UPDATE FIELD "profile_short_desc" OF "gsm_profile"
+  LABEL "Profile short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "profile_description" OF "gsm_profile"
+  LABEL "Profile description"
+
+UPDATE FIELD "data_type" OF "gsm_profile"
+  LABEL "Data type"
+
+UPDATE FIELD "value_is_range" OF "gsm_profile"
+  LABEL "Value is range"
+
+UPDATE FIELD "valid_value_list" OF "gsm_profile"
+  LABEL "Valid value list"
+
+UPDATE FIELD "retain_profile_history" OF "gsm_profile"
+  LABEL "Retain profile history"
+
+UPDATE FIELD "profile_mandatory" OF "gsm_profile"
+  LABEL "Profile mandatory"
+
+UPDATE FIELD "modifications_allowed" OF "gsm_profile"
+  LABEL "Modifications allowed"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_options"
+  LABEL "Profile obj"
+
+UPDATE FIELD "min_characters" OF "gsm_profile_alpha_options"
+  HELP "Minimum characters"
+  LABEL "Min. characters"
+
+UPDATE FIELD "max_characters" OF "gsm_profile_alpha_options"
+  HELP "Maximum characters"
+  LABEL "Max. characters"
+
+UPDATE FIELD "force_uppercase" OF "gsm_profile_alpha_options"
+  LABEL "Force uppercase"
+
+UPDATE FIELD "profile_alpha_options_obj" OF "gsm_profile_alpha_options"
+  LABEL "Profile alpha options obj"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_alpha_value"
+  LABEL "Profile obj"
+
+UPDATE FIELD "profile_sequence" OF "gsm_profile_alpha_value"
+  LABEL "Profile sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "alpha_value_from" OF "gsm_profile_alpha_value"
+  LABEL "Alpha value from"
+
+UPDATE FIELD "alpha_value_to" OF "gsm_profile_alpha_value"
+  LABEL "Alpha value to"
+
+UPDATE FIELD "profile_alpha_value_obj" OF "gsm_profile_alpha_value"
+  LABEL "Profile alpha value obj"
+
+UPDATE FIELD "user_obj" OF "gsm_profile_data"
+  LABEL "User obj"
+
+UPDATE FIELD "profile_type_obj" OF "gsm_profile_data"
+  LABEL "Profile type obj"
+
+UPDATE FIELD "profile_code_obj" OF "gsm_profile_data"
+  LABEL "Profile code obj"
+
+UPDATE FIELD "profile_data_key" OF "gsm_profile_data"
+  LABEL "Profile data key"
+
+UPDATE FIELD "context_id" OF "gsm_profile_data"
+  LABEL "Context id"
+
+UPDATE FIELD "profile_data_value" OF "gsm_profile_data"
+  LABEL "Profile data value"
+
+UPDATE FIELD "profile_data_obj" OF "gsm_profile_data"
+  LABEL "Profile data obj"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_date_value"
+  LABEL "Profile obj"
+
+UPDATE FIELD "profile_sequence" OF "gsm_profile_date_value"
+  LABEL "Profile sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "date_value_from" OF "gsm_profile_date_value"
+  LABEL "Date value from"
+
+UPDATE FIELD "date_value_to" OF "gsm_profile_date_value"
+  LABEL "Date value to"
+
+UPDATE FIELD "profile_date_value_obj" OF "gsm_profile_date_value"
+  LABEL "Profile date value obj"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_history"
+  LABEL "Profile obj"
+
+UPDATE FIELD "owning_obj" OF "gsm_profile_history"
+  LABEL "Owning obj"
+
+UPDATE FIELD "effective_date" OF "gsm_profile_history"
+  LABEL "Effective date"
+
+UPDATE FIELD "alpha_value" OF "gsm_profile_history"
+  LABEL "Alpha value"
+
+UPDATE FIELD "date_value" OF "gsm_profile_history"
+  LABEL "Date value"
+
+UPDATE FIELD "numeric_value" OF "gsm_profile_history"
+  LABEL "Numeric value"
+
+UPDATE FIELD "alpha_value_to" OF "gsm_profile_history"
+  LABEL "Alpha value to"
+
+UPDATE FIELD "date_value_to" OF "gsm_profile_history"
+  LABEL "Date value to"
+
+UPDATE FIELD "numeric_value_to" OF "gsm_profile_history"
+  LABEL "Numeric value to"
+
+UPDATE FIELD "profile_history_obj" OF "gsm_profile_history"
+  LABEL "Profile history obj"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_options"
+  LABEL "Profile obj"
+
+UPDATE FIELD "decimal_places" OF "gsm_profile_numeric_options"
+  LABEL "Decimal places"
+
+UPDATE FIELD "min_value" OF "gsm_profile_numeric_options"
+  HELP "Minimum value"
+  LABEL "Min. value"
+
+UPDATE FIELD "max_value" OF "gsm_profile_numeric_options"
+  HELP "Maximum value"
+  LABEL "Max. value"
+
+UPDATE FIELD "field_mask" OF "gsm_profile_numeric_options"
+  LABEL "Field mask"
+
+UPDATE FIELD "profile_numeric_options_obj" OF "gsm_profile_numeric_options"
+  LABEL "Profile numeric options obj"
+
+UPDATE FIELD "profile_obj" OF "gsm_profile_numeric_value"
+  LABEL "Profile obj"
+
+UPDATE FIELD "profile_sequence" OF "gsm_profile_numeric_value"
+  LABEL "Profile sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "numeric_value_from" OF "gsm_profile_numeric_value"
+  LABEL "Numeric value from"
+
+UPDATE FIELD "numeric_value_to" OF "gsm_profile_numeric_value"
+  LABEL "Numeric value to"
+
+UPDATE FIELD "profile_numeric_value_obj" OF "gsm_profile_numeric_value"
+  LABEL "Profile numeric value obj"
+
+UPDATE FIELD "range_obj" OF "gsm_range"
+  LABEL "Range obj"
+
+UPDATE FIELD "range_code" OF "gsm_range"
+  LABEL "Range code"
+
+UPDATE FIELD "range_description" OF "gsm_range"
+  LABEL "Range description"
+
+UPDATE FIELD "system_owned" OF "gsm_range"
+  LABEL "System owned"
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_reporting_tool"
+  LABEL "Reporting tool obj"
+
+UPDATE FIELD "reporting_tool_code" OF "gsm_reporting_tool"
+  LABEL "Reporting tool code"
+
+UPDATE FIELD "reporting_tool_description" OF "gsm_reporting_tool"
+  LABEL "Reporting tool description"
+
+UPDATE FIELD "launch_command" OF "gsm_reporting_tool"
+  LABEL "Launch command"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_definition"
+  LABEL "Report definition obj"
+
+UPDATE FIELD "report_procedure_name" OF "gsm_report_definition"
+  LABEL "Report procedure name"
+
+UPDATE FIELD "report_short_desc" OF "gsm_report_definition"
+  LABEL "Report short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "report_description" OF "gsm_report_definition"
+  LABEL "Report description"
+
+UPDATE FIELD "next_extract_sequence" OF "gsm_report_definition"
+  HELP "Next extract sequence"
+  LABEL "Next extract sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "allow_server_printing" OF "gsm_report_definition"
+  LABEL "Allow server printing"
+
+UPDATE FIELD "allow_client_printing" OF "gsm_report_definition"
+  LABEL "Allow client printing"
+
+UPDATE FIELD "default_destination" OF "gsm_report_definition"
+  LABEL "Default destination"
+
+UPDATE FIELD "allow_destination_override" OF "gsm_report_definition"
+  LABEL "Allow destination override"
+
+UPDATE FIELD "default_form_type" OF "gsm_report_definition"
+  LABEL "Default form type"
+
+UPDATE FIELD "allow_form_type_override" OF "gsm_report_definition"
+  LABEL "Allow form type override"
+
+UPDATE FIELD "default_priority" OF "gsm_report_definition"
+  LABEL "Default priority"
+
+UPDATE FIELD "allow_priority_override" OF "gsm_report_definition"
+  LABEL "Allow priority override"
+
+UPDATE FIELD "default_copies_to_print" OF "gsm_report_definition"
+  LABEL "Default copies to print"
+
+UPDATE FIELD "default_days_to_retain" OF "gsm_report_definition"
+  LABEL "Default days to retain"
+
+UPDATE FIELD "filter_database_list" OF "gsm_report_definition"
+  LABEL "Filter database list"
+
+UPDATE FIELD "filter_table_list" OF "gsm_report_definition"
+  LABEL "Filter table list"
+
+UPDATE FIELD "filter_field_list" OF "gsm_report_definition"
+  LABEL "Filter field list"
+
+UPDATE FIELD "filter_label_list" OF "gsm_report_definition"
+  LABEL "Filter label list"
+
+UPDATE FIELD "filter_datatype_list" OF "gsm_report_definition"
+  LABEL "Filter datatype list"
+
+UPDATE FIELD "sort_by_field_list" OF "gsm_report_definition"
+  LABEL "Sort by field list"
+
+UPDATE FIELD "report_distribution_list" OF "gsm_report_definition"
+  LABEL "Report distribution list"
+
+UPDATE FIELD "document_type_obj" OF "gsm_report_definition"
+  LABEL "Document type obj"
+
+UPDATE FIELD "launch_window_name" OF "gsm_report_definition"
+  LABEL "Launch window name"
+
+UPDATE FIELD "default_password" OF "gsm_report_definition"
+  LABEL "Default password"
+
+UPDATE FIELD "password_required" OF "gsm_report_definition"
+  LABEL "Password required"
+
+UPDATE FIELD "allow_password_override" OF "gsm_report_definition"
+  LABEL "Allow password override"
+
+UPDATE FIELD "encrypt_data_file" OF "gsm_report_definition"
+  LABEL "Encrypt data file"
+
+UPDATE FIELD "allow_encrypt_override" OF "gsm_report_definition"
+  LABEL "Allow encrypt override"
+
+UPDATE FIELD "auto_delete_data_file" OF "gsm_report_definition"
+  LABEL "Auto delete data file"
+
+UPDATE FIELD "allow_auto_delete_override" OF "gsm_report_definition"
+  LABEL "Allow auto delete override"
+
+UPDATE FIELD "under_development" OF "gsm_report_definition"
+  LABEL "Under development"
+
+UPDATE FIELD "report_definition_reference" OF "gsm_report_definition"
+  LABEL "Report definition reference"
+
+UPDATE FIELD "report_definition_obj" OF "gsm_report_format"
+  LABEL "Report definition obj"
+
+UPDATE FIELD "report_format_obj" OF "gsm_report_format"
+  LABEL "Report format obj"
+
+UPDATE FIELD "report_format_description" OF "gsm_report_format"
+  LABEL "Report format description"
+
+UPDATE FIELD "reporting_tool_obj" OF "gsm_report_format"
+  LABEL "Reporting tool obj"
+
+UPDATE FIELD "report_formatting_procedure" OF "gsm_report_format"
+  LABEL "Report formatting procedure"
+
+UPDATE FIELD "is_this_the_default" OF "gsm_report_format"
+  LABEL "Is this the default"
+
+UPDATE FIELD "landscape_report" OF "gsm_report_format"
+  LABEL "Landscape report"
+
+UPDATE FIELD "laser_report_only" OF "gsm_report_format"
+  LABEL "Laser report only"
+
+UPDATE FIELD "report_format_reference" OF "gsm_report_format"
+  LABEL "Report format reference"
+
+UPDATE FIELD "form_type" OF "gsm_report_format"
+  LABEL "Form type"
+
+UPDATE FIELD "page_length" OF "gsm_report_format"
+  LABEL "Page length"
+
+UPDATE FIELD "paper_bin" OF "gsm_report_format"
+  LABEL "Paper bin"
+
+UPDATE FIELD "paper_type" OF "gsm_report_format"
+  LABEL "Paper type"
+
+UPDATE FIELD "default_font" OF "gsm_report_format"
+  LABEL "Default font"
+
+UPDATE FIELD "required_manager_obj" OF "gsm_required_manager"
+  LABEL "Required manager obj"
+
+UPDATE FIELD "session_type_obj" OF "gsm_required_manager"
+  LABEL "Session type obj"
+
+UPDATE FIELD "startup_order" OF "gsm_required_manager"
+  LABEL "Startup order"
+
+UPDATE FIELD "manager_type_obj" OF "gsm_required_manager"
+  LABEL "Manager type obj"
+
+UPDATE FIELD "object_obj" OF "gsm_required_manager"
+  LABEL "Object obj"
+
+UPDATE FIELD "system_owned" OF "gsm_required_manager"
+  LABEL "System owned"
+
+UPDATE FIELD "is_a_super_of" OF "gsm_required_manager"
+  LABEL "Is a super of"
+
+UPDATE FIELD "search_target" OF "gsm_required_manager"
+  LABEL "Search target"
+
+UPDATE FIELD "security_structure_obj" OF "gsm_security_structure"
+  LABEL "Security structure obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_security_structure"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_obj" OF "gsm_security_structure"
+  LABEL "Owning obj"
+
+UPDATE FIELD "product_module_obj" OF "gsm_security_structure"
+  LABEL "Product module obj"
+
+UPDATE FIELD "object_obj" OF "gsm_security_structure"
+  LABEL "Object obj"
+
+UPDATE FIELD "instance_attribute_obj" OF "gsm_security_structure"
+  LABEL "Instance attribute obj"
+
+UPDATE FIELD "server_context_obj" OF "gsm_server_context"
+  LABEL "Server context obj"
+
+UPDATE FIELD "session_obj" OF "gsm_server_context"
+  LABEL "Session obj"
+
+UPDATE FIELD "context_id_date" OF "gsm_server_context"
+  LABEL "Context id date"
+
+UPDATE FIELD "context_id_time" OF "gsm_server_context"
+  LABEL "Context id time"
+
+UPDATE FIELD "context_name" OF "gsm_server_context"
+  LABEL "Context name"
+
+UPDATE FIELD "context_value" OF "gsm_server_context"
+  LABEL "Context value"
+
+UPDATE FIELD "session_service_obj" OF "gsm_session_service"
+  LABEL "Session service obj"
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_service"
+  LABEL "Session type obj"
+
+UPDATE FIELD "logical_service_obj" OF "gsm_session_service"
+  LABEL "Logical service obj"
+
+UPDATE FIELD "physical_service_obj" OF "gsm_session_service"
+  LABEL "Physical service obj"
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type"
+  LABEL "Session type obj"
+
+UPDATE FIELD "session_type_code" OF "gsm_session_type"
+  LABEL "Session type code"
+
+UPDATE FIELD "session_type_description" OF "gsm_session_type"
+  LABEL "Session type description"
+
+UPDATE FIELD "physical_session_list" OF "gsm_session_type"
+  LABEL "Physical session list"
+
+UPDATE FIELD "valid_os_list" OF "gsm_session_type"
+  HELP "Valid os list"
+  LABEL "Valid os list"
+
+UPDATE FIELD "inactivity_timeout_period" OF "gsm_session_type"
+  LABEL "Inactivity timeout period"
+
+UPDATE FIELD "automatic_reconnect" OF "gsm_session_type"
+  LABEL "Automatic reconnect"
+
+UPDATE FIELD "extends_session_type_obj" OF "gsm_session_type"
+  LABEL "Extends session type obj"
+
+UPDATE FIELD "session_type_property_obj" OF "gsm_session_type_property"
+  LABEL "Session type property obj"
+
+UPDATE FIELD "session_type_obj" OF "gsm_session_type_property"
+  LABEL "Session type obj"
+
+UPDATE FIELD "session_property_obj" OF "gsm_session_type_property"
+  LABEL "Session property obj"
+
+UPDATE FIELD "property_value" OF "gsm_session_type_property"
+  LABEL "Property value"
+
+UPDATE FIELD "startup_flow_obj" OF "gsm_startup_flow"
+  LABEL "Startup flow obj"
+
+UPDATE FIELD "session_type_obj" OF "gsm_startup_flow"
+  LABEL "Session type obj"
+
+UPDATE FIELD "startup_order" OF "gsm_startup_flow"
+  LABEL "Startup order"
+
+UPDATE FIELD "flow_obj" OF "gsm_startup_flow"
+  LABEL "Flow obj"
+
+UPDATE FIELD "status_obj" OF "gsm_status"
+  LABEL "Status obj"
+
+UPDATE FIELD "category_obj" OF "gsm_status"
+  LABEL "Category obj"
+
+UPDATE FIELD "status_seq" OF "gsm_status"
+  HELP "Status seq"
+  LABEL "Status seq"
+
+UPDATE FIELD "status_short_desc" OF "gsm_status"
+  LABEL "Status short desc."
+  COLUMN-LABEL ?
+
+UPDATE FIELD "status_description" OF "gsm_status"
+  LABEL "Status description"
+
+UPDATE FIELD "retain_status_history" OF "gsm_status"
+  LABEL "Retain status history"
+
+UPDATE FIELD "system_owned" OF "gsm_status"
+  LABEL "System owned"
+
+UPDATE FIELD "auto_display" OF "gsm_status"
+  LABEL "Auto display"
+
+UPDATE FIELD "owning_obj" OF "gsm_status_history"
+  LABEL "Owning obj"
+
+UPDATE FIELD "from_date" OF "gsm_status_history"
+  LABEL "From date"
+
+UPDATE FIELD "status_obj" OF "gsm_status_history"
+  LABEL "Status obj"
+
+UPDATE FIELD "to_date" OF "gsm_status_history"
+  LABEL "To date"
+
+UPDATE FIELD "status_history_obj" OF "gsm_status_history"
+  LABEL "Status history obj"
+
+UPDATE FIELD "token_obj" OF "gsm_token"
+  LABEL "Token obj"
+
+UPDATE FIELD "token_code" OF "gsm_token"
+  LABEL "Token code"
+
+UPDATE FIELD "token_description" OF "gsm_token"
+  LABEL "Token description"
+
+UPDATE FIELD "system_owned" OF "gsm_token"
+  LABEL "System owned"
+
+UPDATE FIELD "object_obj" OF "gsm_toolbar_menu_structure"
+  LABEL "Object obj"
+
+UPDATE FIELD "menu_structure_sequence" OF "gsm_toolbar_menu_structure"
+  LABEL "Menu structure sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  LABEL "Menu structure obj"
+
+UPDATE FIELD "toolbar_menu_structure_obj" OF "gsm_toolbar_menu_structure"
+  LABEL "Toolbar menu structure obj"
+
+UPDATE FIELD "menu_structure_spacing" OF "gsm_toolbar_menu_structure"
+  LABEL "Menu structure spacing"
+
+UPDATE FIELD "menu_structure_alignment" OF "gsm_toolbar_menu_structure"
+  LABEL "Menu structure alignment"
+
+UPDATE FIELD "menu_structure_row" OF "gsm_toolbar_menu_structure"
+  LABEL "Menu structure row"
+
+UPDATE FIELD "insert_rule" OF "gsm_toolbar_menu_structure"
+  LABEL "Insert rule"
+
+UPDATE FIELD "translated_menu_item_obj" OF "gsm_translated_menu_item"
+  LABEL "Translated menu item obj"
+
+UPDATE FIELD "menu_item_obj" OF "gsm_translated_menu_item"
+  LABEL "Menu item obj"
+
+UPDATE FIELD "source_language_obj" OF "gsm_translated_menu_item"
+  LABEL "Source language obj"
+
+UPDATE FIELD "language_obj" OF "gsm_translated_menu_item"
+  LABEL "Language obj"
+
+UPDATE FIELD "menu_item_label" OF "gsm_translated_menu_item"
+  LABEL "Menu item label"
+
+UPDATE FIELD "tooltip_text" OF "gsm_translated_menu_item"
+  LABEL "Tooltip text"
+
+UPDATE FIELD "alternate_shortcut_key" OF "gsm_translated_menu_item"
+  LABEL "Alternate shortcut key"
+
+UPDATE FIELD "item_toolbar_label" OF "gsm_translated_menu_item"
+  LABEL "Item toolbar label"
+
+UPDATE FIELD "image1_up_filename" OF "gsm_translated_menu_item"
+  LABEL "Image1 up filename"
+
+UPDATE FIELD "image1_down_filename" OF "gsm_translated_menu_item"
+  LABEL "Image1 down filename"
+
+UPDATE FIELD "image1_insensitive_filename" OF "gsm_translated_menu_item"
+  LABEL "Image1 insensitive filename"
+
+UPDATE FIELD "image2_up_filename" OF "gsm_translated_menu_item"
+  LABEL "Image2 up filename"
+
+UPDATE FIELD "image2_down_filename" OF "gsm_translated_menu_item"
+  LABEL "Image2 down filename"
+
+UPDATE FIELD "image2_insensitive_filename" OF "gsm_translated_menu_item"
+  LABEL "Image2 insensitive filename"
+
+UPDATE FIELD "item_narration" OF "gsm_translated_menu_item"
+  LABEL "Item narration"
+
+UPDATE FIELD "translation_obj" OF "gsm_translation"
+  LABEL "Translation obj"
+
+UPDATE FIELD "language_obj" OF "gsm_translation"
+  LABEL "Language obj"
+
+UPDATE FIELD "object_filename" OF "gsm_translation"
+  LABEL "Object filename"
+
+UPDATE FIELD "widget_type" OF "gsm_translation"
+  LABEL "Widget type"
+
+UPDATE FIELD "widget_name" OF "gsm_translation"
+  LABEL "Widget name"
+
+UPDATE FIELD "widget_entry" OF "gsm_translation"
+  LABEL "Widget entry"
+
+UPDATE FIELD "original_label" OF "gsm_translation"
+  LABEL "Original label"
+
+UPDATE FIELD "translation_label" OF "gsm_translation"
+  LABEL "Translation label"
+
+UPDATE FIELD "original_tooltip" OF "gsm_translation"
+  LABEL "Original tooltip"
+
+UPDATE FIELD "translation_tooltip" OF "gsm_translation"
+  LABEL "Translation tooltip"
+
+UPDATE FIELD "source_language_obj" OF "gsm_translation"
+  LABEL "Source language obj"
+
+UPDATE FIELD "user_obj" OF "gsm_user"
+  LABEL "User obj"
+
+UPDATE FIELD "user_category_obj" OF "gsm_user"
+  LABEL "User category obj"
+
+UPDATE FIELD "user_full_name" OF "gsm_user"
+  LABEL "User full name"
+
+UPDATE FIELD "user_login_name" OF "gsm_user"
+  LABEL "User login name"
+
+UPDATE FIELD "user_creation_date" OF "gsm_user"
+  LABEL "User creation date"
+
+UPDATE FIELD "user_creation_time" OF "gsm_user"
+  LABEL "User creation time"
+
+UPDATE FIELD "profile_user" OF "gsm_user"
+  LABEL "Profile user"
+
+UPDATE FIELD "created_from_profile_user_obj" OF "gsm_user"
+  LABEL "Created from profile user obj"
+
+UPDATE FIELD "external_userid" OF "gsm_user"
+  LABEL "External userid"
+
+UPDATE FIELD "user_password" OF "gsm_user"
+  LABEL "User password"
+
+UPDATE FIELD "password_minimum_length" OF "gsm_user"
+  LABEL "Password minimum length"
+
+UPDATE FIELD "password_preexpired" OF "gsm_user"
+  LABEL "Password preexpired"
+
+UPDATE FIELD "password_fail_count" OF "gsm_user"
+  LABEL "Password fail count"
+
+UPDATE FIELD "password_fail_date" OF "gsm_user"
+  LABEL "Password fail date"
+
+UPDATE FIELD "password_fail_time" OF "gsm_user"
+  LABEL "Password fail time"
+
+UPDATE FIELD "password_creation_date" OF "gsm_user"
+  LABEL "Password creation date"
+
+UPDATE FIELD "password_creation_time" OF "gsm_user"
+  LABEL "Password creation time"
+
+UPDATE FIELD "password_expiry_date" OF "gsm_user"
+  LABEL "Password expiry date"
+
+UPDATE FIELD "password_expiry_time" OF "gsm_user"
+  LABEL "Password expiry time"
+
+UPDATE FIELD "update_password_history" OF "gsm_user"
+  LABEL "Update password history"
+
+UPDATE FIELD "check_password_history" OF "gsm_user"
+  LABEL "Check password history"
+
+UPDATE FIELD "last_login_date" OF "gsm_user"
+  LABEL "Last login date"
+
+UPDATE FIELD "last_login_time" OF "gsm_user"
+  LABEL "Last login time"
+
+UPDATE FIELD "language_obj" OF "gsm_user"
+  LABEL "Language obj"
+
+UPDATE FIELD "password_expiry_days" OF "gsm_user"
+  LABEL "Password expiry days"
+
+UPDATE FIELD "maintain_system_data" OF "gsm_user"
+  LABEL "Maintain system data"
+
+UPDATE FIELD "default_login_company_obj" OF "gsm_user"
+  LABEL "Default login company obj"
+
+UPDATE FIELD "user_email_address" OF "gsm_user"
+  LABEL "User email address"
+
+UPDATE FIELD "development_user" OF "gsm_user"
+  LABEL "Development user"
+
+UPDATE FIELD "user_obj" OF "gsm_user_allocation"
+  LABEL "User obj"
+
+UPDATE FIELD "login_organisation_obj" OF "gsm_user_allocation"
+  LABEL "Login organisation obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gsm_user_allocation"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_obj" OF "gsm_user_allocation"
+  LABEL "Owning obj"
+
+UPDATE FIELD "user_allocation_value1" OF "gsm_user_allocation"
+  LABEL "User allocation value1"
+
+UPDATE FIELD "user_allocation_value2" OF "gsm_user_allocation"
+  LABEL "User allocation value2"
+
+UPDATE FIELD "user_allocation_obj" OF "gsm_user_allocation"
+  LABEL "User allocation obj"
+
+UPDATE FIELD "user_category_obj" OF "gsm_user_category"
+  LABEL "User category obj"
+
+UPDATE FIELD "user_category_code" OF "gsm_user_category"
+  LABEL "User category code"
+
+UPDATE FIELD "user_category_description" OF "gsm_user_category"
+  LABEL "User category description"
+
+UPDATE FIELD "valid_object_partition_obj" OF "gsm_valid_object_partition"
+  LABEL "Valid object partition obj"
+
+UPDATE FIELD "logical_service_obj" OF "gsm_valid_object_partition"
+  LABEL "Logical service obj"
+
+UPDATE FIELD "object_obj" OF "gsm_valid_object_partition"
+  LABEL "Object obj"
+
+UPDATE FIELD "audit_obj" OF "gst_audit"
+  LABEL "Audit obj"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gst_audit"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_reference" OF "gst_audit"
+  LABEL "Owning reference"
+
+UPDATE FIELD "owning_obj" OF "gst_audit"
+  LABEL "Owning obj"
+
+UPDATE FIELD "audit_date" OF "gst_audit"
+  LABEL "Audit date"
+
+UPDATE FIELD "audit_time" OF "gst_audit"
+  LABEL "Audit time"
+
+UPDATE FIELD "audit_user_obj" OF "gst_audit"
+  LABEL "Audit user obj"
+
+UPDATE FIELD "program_name" OF "gst_audit"
+  LABEL "Program name"
+
+UPDATE FIELD "program_procedure" OF "gst_audit"
+  LABEL "Program procedure"
+
+UPDATE FIELD "audit_action" OF "gst_audit"
+  LABEL "Audit action"
+
+UPDATE FIELD "old_detail" OF "gst_audit"
+  LABEL "Old detail"
+
+UPDATE FIELD "batch_job_obj" OF "gst_batch_job"
+  LABEL "Batch job obj"
+
+UPDATE FIELD "job_description" OF "gst_batch_job"
+  LABEL "Job description"
+
+UPDATE FIELD "status_obj" OF "gst_batch_job"
+  LABEL "Status obj"
+
+UPDATE FIELD "batch_job_procedure_name" OF "gst_batch_job"
+  LABEL "Batch job procedure name"
+
+UPDATE FIELD "date_to_start" OF "gst_batch_job"
+  LABEL "Date to start"
+
+UPDATE FIELD "time_to_start" OF "gst_batch_job"
+  LABEL "Time to start"
+
+UPDATE FIELD "date_started" OF "gst_batch_job"
+  LABEL "Date started"
+
+UPDATE FIELD "time_started" OF "gst_batch_job"
+  LABEL "Time started"
+
+UPDATE FIELD "date_completed" OF "gst_batch_job"
+  LABEL "Date completed"
+
+UPDATE FIELD "time_completed" OF "gst_batch_job"
+  LABEL "Time completed"
+
+UPDATE FIELD "days_to_retain" OF "gst_batch_job"
+  LABEL "Days to retain"
+
+UPDATE FIELD "user_obj" OF "gst_batch_job"
+  LABEL "User obj"
+
+UPDATE FIELD "dataset_file_obj" OF "gst_dataset_file"
+  LABEL "Dataset file obj"
+
+UPDATE FIELD "deployment_obj" OF "gst_dataset_file"
+  LABEL "Deployment obj"
+
+UPDATE FIELD "deploy_dataset_obj" OF "gst_dataset_file"
+  LABEL "Deploy dataset obj"
+
+UPDATE FIELD "ado_filename" OF "gst_dataset_file"
+  LABEL "Ado filename"
+
+UPDATE FIELD "loaded_date" OF "gst_dataset_file"
+  LABEL "Loaded date"
+
+UPDATE FIELD "loaded_time" OF "gst_dataset_file"
+  LABEL "Loaded time"
+
+UPDATE FIELD "deployment_obj" OF "gst_deployment"
+  LABEL "Deployment obj"
+
+UPDATE FIELD "deploy_package_obj" OF "gst_deployment"
+  LABEL "Deploy package obj"
+
+UPDATE FIELD "originating_site_number" OF "gst_deployment"
+  LABEL "Originating site number"
+
+UPDATE FIELD "deployment_number" OF "gst_deployment"
+  LABEL "Deployment number"
+
+UPDATE FIELD "deployment_description" OF "gst_deployment"
+  LABEL "Deployment description"
+
+UPDATE FIELD "deployment_date" OF "gst_deployment"
+  LABEL "Deployment date"
+
+UPDATE FIELD "deployment_time" OF "gst_deployment"
+  LABEL "Deployment time"
+
+UPDATE FIELD "baseline_deployment" OF "gst_deployment"
+  LABEL "Baseline deployment"
+
+UPDATE FIELD "manual_record_selection" OF "gst_deployment"
+  LABEL "Manual record selection"
+
+UPDATE FIELD "package_control_file" OF "gst_deployment"
+  LABEL "Package control file"
+
+UPDATE FIELD "package_exception_file" OF "gst_deployment"
+  LABEL "Package exception file"
+
+UPDATE FIELD "load_after_deployment_obj" OF "gst_deployment"
+  LABEL "Load after deployment obj"
+
+UPDATE FIELD "error_log_obj" OF "gst_error_log"
+  LABEL "Error log obj"
+
+UPDATE FIELD "business_logic_error" OF "gst_error_log"
+  LABEL "Business logic error"
+
+UPDATE FIELD "error_group" OF "gst_error_log"
+  LABEL "Error group"
+
+UPDATE FIELD "error_number" OF "gst_error_log"
+  LABEL "Error number"
+
+UPDATE FIELD "error_message" OF "gst_error_log"
+  LABEL "Error message"
+
+UPDATE FIELD "user_obj" OF "gst_error_log"
+  LABEL "User obj"
+
+UPDATE FIELD "error_date" OF "gst_error_log"
+  LABEL "Error date"
+
+UPDATE FIELD "error_time" OF "gst_error_log"
+  LABEL "Error time"
+
+UPDATE FIELD "error_in_program" OF "gst_error_log"
+  LABEL "Error in program"
+
+UPDATE FIELD "owning_entity_mnemonic" OF "gst_error_log"
+  HELP "Owning entity"
+  LABEL "Owning entity"
+
+UPDATE FIELD "owning_obj" OF "gst_error_log"
+  LABEL "Owning obj"
+
+UPDATE FIELD "extract_log_obj" OF "gst_extract_log"
+  LABEL "Extract log obj"
+
+UPDATE FIELD "data_file_name" OF "gst_extract_log"
+  LABEL "Data file name"
+
+UPDATE FIELD "extract_sequence" OF "gst_extract_log"
+  LABEL "Extract sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "form_type" OF "gst_extract_log"
+  LABEL "Form type"
+
+UPDATE FIELD "copies_to_print" OF "gst_extract_log"
+  LABEL "Copies to print"
+
+UPDATE FIELD "print_automatically" OF "gst_extract_log"
+  LABEL "Print automatically"
+
+UPDATE FIELD "created_on_date" OF "gst_extract_log"
+  LABEL "Created on date"
+
+UPDATE FIELD "created_at_time" OF "gst_extract_log"
+  LABEL "Created at time"
+
+UPDATE FIELD "printed_date" OF "gst_extract_log"
+  LABEL "Printed date"
+
+UPDATE FIELD "printed_time" OF "gst_extract_log"
+  LABEL "Printed time"
+
+UPDATE FIELD "last_printed_date" OF "gst_extract_log"
+  LABEL "Last printed date"
+
+UPDATE FIELD "last_printed_time" OF "gst_extract_log"
+  LABEL "Last printed time"
+
+UPDATE FIELD "delete_on_date" OF "gst_extract_log"
+  LABEL "Delete on date"
+
+UPDATE FIELD "report_definition_obj" OF "gst_extract_log"
+  LABEL "Report definition obj"
+
+UPDATE FIELD "user_obj" OF "gst_extract_log"
+  LABEL "User obj"
+
+UPDATE FIELD "batch_job_obj" OF "gst_extract_log"
+  LABEL "Batch job obj"
+
+UPDATE FIELD "extract_log_password" OF "gst_extract_log"
+  LABEL "Extract log password"
+
+UPDATE FIELD "data_file_encrypted" OF "gst_extract_log"
+  LABEL "Data file encrypted"
+
+UPDATE FIELD "auto_delete_extract" OF "gst_extract_log"
+  LABEL "Auto delete extract"
+
+UPDATE FIELD "extract_log_description" OF "gst_extract_log"
+  LABEL "Extract log description"
+
+UPDATE FIELD "password_history_obj" OF "gst_password_history"
+  LABEL "Password history obj"
+
+UPDATE FIELD "user_obj" OF "gst_password_history"
+  LABEL "User obj"
+
+UPDATE FIELD "old_password" OF "gst_password_history"
+  LABEL "Old password"
+
+UPDATE FIELD "password_change_date" OF "gst_password_history"
+  LABEL "Password change date"
+
+UPDATE FIELD "password_change_time" OF "gst_password_history"
+  LABEL "Password change time"
+
+UPDATE FIELD "changed_by_user_obj" OF "gst_password_history"
+  LABEL "Changed by user obj"
+
+UPDATE FIELD "record_version_obj" OF "gst_record_version"
+  LABEL "Record version obj"
+
+UPDATE FIELD "entity_mnemonic" OF "gst_record_version"
+  HELP "Entity"
+  LABEL "Entity"
+
+UPDATE FIELD "key_field_value" OF "gst_record_version"
+  LABEL "Key field value"
+
+UPDATE FIELD "version_number_seq" OF "gst_record_version"
+  HELP "Version number seq"
+  LABEL "Version number seq"
+
+UPDATE FIELD "version_date" OF "gst_record_version"
+  LABEL "Version date"
+
+UPDATE FIELD "version_time" OF "gst_record_version"
+  LABEL "Version time"
+
+UPDATE FIELD "version_user" OF "gst_record_version"
+  LABEL "Version user"
+
+UPDATE FIELD "deletion_flag" OF "gst_record_version"
+  LABEL "Deletion flag"
+
+UPDATE FIELD "import_version_number_seq" OF "gst_record_version"
+  HELP "Import version number seq"
+  LABEL "Import version number seq"
+
+UPDATE FIELD "last_version_number_seq" OF "gst_record_version"
+  HELP "Last version number seq"
+  LABEL "Last version number seq"
+
+UPDATE FIELD "secondary_key_value" OF "gst_record_version"
+  LABEL "Secondary key value"
+
+UPDATE FIELD "session_obj" OF "gst_session"
+  LABEL "Session obj"
+
+UPDATE FIELD "session_id" OF "gst_session"
+  LABEL "Session id"
+
+UPDATE FIELD "session_type_obj" OF "gst_session"
+  LABEL "Session type obj"
+
+UPDATE FIELD "user_obj" OF "gst_session"
+  LABEL "User obj"
+
+UPDATE FIELD "session_creation_date" OF "gst_session"
+  LABEL "Session creation date"
+
+UPDATE FIELD "session_creation_time" OF "gst_session"
+  LABEL "Session creation time"
+
+UPDATE FIELD "last_access_date" OF "gst_session"
+  LABEL "Last access date"
+
+UPDATE FIELD "last_access_time" OF "gst_session"
+  LABEL "Last access time"
+
+UPDATE FIELD "client_date_format" OF "gst_session"
+  LABEL "Client date format"
+
+UPDATE FIELD "client_numeric_format" OF "gst_session"
+  LABEL "Client numeric format"
+
+UPDATE FIELD "attribute_label" OF "ryc_attribute"
+  LABEL "Attribute label"
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute"
+  LABEL "Attribute group obj"
+
+UPDATE FIELD "data_type" OF "ryc_attribute"
+  LABEL "Data type"
+
+UPDATE FIELD "attribute_narrative" OF "ryc_attribute"
+  LABEL "Attribute narrative"
+
+UPDATE FIELD "override_type" OF "ryc_attribute"
+  LABEL "Override type"
+
+UPDATE FIELD "runtime_only" OF "ryc_attribute"
+  LABEL "Runtime only"
+
+UPDATE FIELD "is_private" OF "ryc_attribute"
+  LABEL "Is private"
+
+UPDATE FIELD "constant_level" OF "ryc_attribute"
+  LABEL "Constant level"
+
+UPDATE FIELD "derived_value" OF "ryc_attribute"
+  LABEL "Derived value"
+
+UPDATE FIELD "lookup_type" OF "ryc_attribute"
+  LABEL "Lookup type"
+
+UPDATE FIELD "lookup_value" OF "ryc_attribute"
+  LABEL "Lookup value"
+
+UPDATE FIELD "design_only" OF "ryc_attribute"
+  LABEL "Design only"
+
+UPDATE FIELD "system_owned" OF "ryc_attribute"
+  LABEL "System owned"
+
+UPDATE FIELD "attribute_obj" OF "ryc_attribute"
+  LABEL "Attribute obj"
+
+UPDATE FIELD "attribute_group_obj" OF "ryc_attribute_group"
+  LABEL "Attribute group obj"
+
+UPDATE FIELD "attribute_group_name" OF "ryc_attribute_group"
+  LABEL "Attribute group name"
+
+UPDATE FIELD "attribute_group_narrative" OF "ryc_attribute_group"
+  LABEL "Attribute group narrative"
+
+UPDATE FIELD "attribute_value_obj" OF "ryc_attribute_value"
+  LABEL "Attribute value obj"
+
+UPDATE FIELD "object_type_obj" OF "ryc_attribute_value"
+  LABEL "Object type obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_attribute_value"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_attribute_value"
+  HELP "Smartobject obj"
+  LABEL "Smartobject obj"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_attribute_value"
+  LABEL "Object instance obj"
+
+UPDATE FIELD "constant_value" OF "ryc_attribute_value"
+  LABEL "Constant value"
+
+UPDATE FIELD "attribute_label" OF "ryc_attribute_value"
+  LABEL "Attribute label"
+
+UPDATE FIELD "character_value" OF "ryc_attribute_value"
+  LABEL "Character value"
+
+UPDATE FIELD "integer_value" OF "ryc_attribute_value"
+  LABEL "Integer value"
+
+UPDATE FIELD "date_value" OF "ryc_attribute_value"
+  LABEL "Date value"
+
+UPDATE FIELD "decimal_value" OF "ryc_attribute_value"
+  LABEL "Decimal value"
+
+UPDATE FIELD "logical_value" OF "ryc_attribute_value"
+  LABEL "Logical value"
+
+UPDATE FIELD "raw_value" OF "ryc_attribute_value"
+  LABEL "Raw value"
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_attribute_value"
+  HELP "Primary smartobject obj"
+  LABEL "Primary smartobject obj"
+
+UPDATE FIELD "customization_result_obj" OF "ryc_customization_result"
+  LABEL "Customization result obj"
+
+UPDATE FIELD "customization_result_code" OF "ryc_customization_result"
+  LABEL "Customization result code"
+
+UPDATE FIELD "customization_result_desc" OF "ryc_customization_result"
+  LABEL "Customization result desc"
+
+UPDATE FIELD "customization_type_obj" OF "ryc_customization_result"
+  LABEL "Customization type obj"
+
+UPDATE FIELD "system_owned" OF "ryc_customization_result"
+  LABEL "System owned"
+
+UPDATE FIELD "customization_type_obj" OF "ryc_customization_type"
+  LABEL "Customization type obj"
+
+UPDATE FIELD "customization_type_code" OF "ryc_customization_type"
+  LABEL "Customization type code"
+
+UPDATE FIELD "customization_type_desc" OF "ryc_customization_type"
+  LABEL "Customization type desc"
+
+UPDATE FIELD "api_name" OF "ryc_customization_type"
+  LABEL "Api name"
+
+UPDATE FIELD "layout_obj" OF "ryc_layout"
+  LABEL "Layout obj"
+
+UPDATE FIELD "layout_name" OF "ryc_layout"
+  LABEL "Layout name"
+
+UPDATE FIELD "layout_type" OF "ryc_layout"
+  LABEL "Layout type"
+
+UPDATE FIELD "layout_narrative" OF "ryc_layout"
+  LABEL "Layout narrative"
+
+UPDATE FIELD "layout_filename" OF "ryc_layout"
+  LABEL "Layout filename"
+
+UPDATE FIELD "sample_image_filename" OF "ryc_layout"
+  LABEL "Sample image filename"
+
+UPDATE FIELD "system_owned" OF "ryc_layout"
+  LABEL "System owned"
+
+UPDATE FIELD "layout_code" OF "ryc_layout"
+  LABEL "Layout code"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_object_instance"
+  LABEL "Object instance obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_object_instance"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_object_instance"
+  HELP "Smartobject obj"
+  LABEL "Smartobject obj"
+
+UPDATE FIELD "system_owned" OF "ryc_object_instance"
+  LABEL "System owned"
+
+UPDATE FIELD "layout_position" OF "ryc_object_instance"
+  LABEL "Layout position"
+
+UPDATE FIELD "instance_name" OF "ryc_object_instance"
+  LABEL "Instance name"
+
+UPDATE FIELD "instance_description" OF "ryc_object_instance"
+  LABEL "Instance description"
+
+UPDATE FIELD "page_obj" OF "ryc_page"
+  LABEL "Page obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "layout_obj" OF "ryc_page"
+  LABEL "Layout obj"
+
+UPDATE FIELD "page_sequence" OF "ryc_page"
+  LABEL "Page sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "page_reference" OF "ryc_page"
+  LABEL "Page reference"
+
+UPDATE FIELD "page_label" OF "ryc_page"
+  LABEL "Page label"
+
+UPDATE FIELD "security_token" OF "ryc_page"
+  LABEL "Security token"
+
+UPDATE FIELD "enable_on_create" OF "ryc_page"
+  LABEL "Enable on create"
+
+UPDATE FIELD "enable_on_modify" OF "ryc_page"
+  LABEL "Enable on modify"
+
+UPDATE FIELD "enable_on_view" OF "ryc_page"
+  LABEL "Enable on view"
+
+UPDATE FIELD "page_object_obj" OF "ryc_page_object"
+  LABEL "Page object obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_page_object"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "page_obj" OF "ryc_page_object"
+  LABEL "Page obj"
+
+UPDATE FIELD "page_object_sequence" OF "ryc_page_object"
+  LABEL "Page object sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "object_instance_obj" OF "ryc_page_object"
+  LABEL "Object instance obj"
+
+UPDATE FIELD "relationship_obj" OF "ryc_relationship"
+  LABEL "Relationship obj"
+
+UPDATE FIELD "relationship_reference" OF "ryc_relationship"
+  LABEL "Relationship reference"
+
+UPDATE FIELD "relationship_description" OF "ryc_relationship"
+  LABEL "Relationship description"
+
+UPDATE FIELD "parent_entity" OF "ryc_relationship"
+  LABEL "Parent entity"
+
+UPDATE FIELD "child_entity" OF "ryc_relationship"
+  LABEL "Child entity"
+
+UPDATE FIELD "primary_relationship" OF "ryc_relationship"
+  LABEL "Primary relationship"
+
+UPDATE FIELD "identifying_relationship" OF "ryc_relationship"
+  LABEL "Identifying relationship"
+
+UPDATE FIELD "nulls_allowed" OF "ryc_relationship"
+  LABEL "Nulls allowed"
+
+UPDATE FIELD "update_parent_allowed" OF "ryc_relationship"
+  LABEL "Update parent allowed"
+
+UPDATE FIELD "parent_delete_action" OF "ryc_relationship"
+  LABEL "Parent delete action"
+
+UPDATE FIELD "parent_insert_action" OF "ryc_relationship"
+  LABEL "Parent insert action"
+
+UPDATE FIELD "parent_update_action" OF "ryc_relationship"
+  LABEL "Parent update action"
+
+UPDATE FIELD "parent_verb_phrase" OF "ryc_relationship"
+  LABEL "Parent verb phrase"
+
+UPDATE FIELD "child_delete_action" OF "ryc_relationship"
+  LABEL "Child delete action"
+
+UPDATE FIELD "child_insert_action" OF "ryc_relationship"
+  LABEL "Child insert action"
+
+UPDATE FIELD "child_update_action" OF "ryc_relationship"
+  LABEL "Child update action"
+
+UPDATE FIELD "child_verb_phrase" OF "ryc_relationship"
+  LABEL "Child verb phrase"
+
+UPDATE FIELD "model_external_reference" OF "ryc_relationship"
+  DESCRIPTION "This is a unique reference from the entity model diagram to identify the reference. In ERwin this equates to the  macro and is globally unique (a GUID).
+
+In the event this field comes in blank because the modelling tool used does not support a relatsionship id, or in fact no modeling tool is being used, this field will be set to the same as the relationship_reference to ensure it gets a unique value.
+
+The primary use of this field is to update existing relationships in subsequent imports.
+"
+  LABEL "Model external reference"
+
+UPDATE FIELD "relationship_field_obj" OF "ryc_relationship_field"
+  LABEL "Relationship field obj"
+
+UPDATE FIELD "relationship_obj" OF "ryc_relationship_field"
+  LABEL "Relationship obj"
+
+UPDATE FIELD "join_sequence" OF "ryc_relationship_field"
+  LABEL "Join sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "parent_table_name" OF "ryc_relationship_field"
+  LABEL "Parent table name"
+
+UPDATE FIELD "parent_field_name" OF "ryc_relationship_field"
+  LABEL "Parent field name"
+
+UPDATE FIELD "use_parent_constant_value" OF "ryc_relationship_field"
+  LABEL "Use parent constant value"
+
+UPDATE FIELD "parent_constant_value" OF "ryc_relationship_field"
+  LABEL "Parent constant value"
+
+UPDATE FIELD "child_table_name" OF "ryc_relationship_field"
+  LABEL "Child table name"
+
+UPDATE FIELD "child_field_name" OF "ryc_relationship_field"
+  LABEL "Child field name"
+
+UPDATE FIELD "use_child_constant_value" OF "ryc_relationship_field"
+  LABEL "Use child constant value"
+
+UPDATE FIELD "child_constant_value" OF "ryc_relationship_field"
+  LABEL "Child constant value"
+
+UPDATE FIELD "ri_default_obj" OF "ryc_ri_default"
+  LABEL "Ri default obj"
+
+UPDATE FIELD "relationship_type" OF "ryc_ri_default"
+  LABEL "Relationship type"
+
+UPDATE FIELD "action_type" OF "ryc_ri_default"
+  LABEL "Action type"
+
+UPDATE FIELD "default_rule" OF "ryc_ri_default"
+  LABEL "Default rule"
+
+UPDATE FIELD "smartlink_obj" OF "ryc_smartlink"
+  LABEL "Smartlink obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_smartlink"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink"
+  LABEL "Smartlink type obj"
+
+UPDATE FIELD "link_name" OF "ryc_smartlink"
+  LABEL "Link name"
+
+UPDATE FIELD "source_object_instance_obj" OF "ryc_smartlink"
+  LABEL "Source object instance obj"
+
+UPDATE FIELD "target_object_instance_obj" OF "ryc_smartlink"
+  LABEL "Target object instance obj"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_smartlink_type"
+  LABEL "Smartlink type obj"
+
+UPDATE FIELD "link_name" OF "ryc_smartlink_type"
+  LABEL "Link name"
+
+UPDATE FIELD "user_defined_link" OF "ryc_smartlink_type"
+  LABEL "User defined link"
+
+UPDATE FIELD "system_owned" OF "ryc_smartlink_type"
+  LABEL "System owned"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_smartobject"
+  HELP "Smartobject obj"
+  LABEL "Smartobject obj"
+
+UPDATE FIELD "object_filename" OF "ryc_smartobject"
+  LABEL "Object filename"
+
+UPDATE FIELD "customization_result_obj" OF "ryc_smartobject"
+  LABEL "Customization result obj"
+
+UPDATE FIELD "object_type_obj" OF "ryc_smartobject"
+  LABEL "Object type obj"
+
+UPDATE FIELD "product_module_obj" OF "ryc_smartobject"
+  LABEL "Product module obj"
+
+UPDATE FIELD "layout_obj" OF "ryc_smartobject"
+  LABEL "Layout obj"
+
+UPDATE FIELD "object_description" OF "ryc_smartobject"
+  LABEL "Object description"
+
+UPDATE FIELD "object_path" OF "ryc_smartobject"
+  LABEL "Object path"
+
+UPDATE FIELD "object_extension" OF "ryc_smartobject"
+  LABEL "Object extension"
+
+UPDATE FIELD "static_object" OF "ryc_smartobject"
+  LABEL "Static object"
+
+UPDATE FIELD "generic_object" OF "ryc_smartobject"
+  LABEL "Generic object"
+
+UPDATE FIELD "template_smartobject" OF "ryc_smartobject"
+  HELP "Template smartobject"
+  LABEL "Template smartobject"
+
+UPDATE FIELD "system_owned" OF "ryc_smartobject"
+  LABEL "System owned"
+
+UPDATE FIELD "deployment_type" OF "ryc_smartobject"
+  LABEL "Deployment type"
+
+UPDATE FIELD "design_only" OF "ryc_smartobject"
+  LABEL "Design only"
+
+UPDATE FIELD "runnable_from_menu" OF "ryc_smartobject"
+  LABEL "Runnable from menu"
+
+UPDATE FIELD "container_object" OF "ryc_smartobject"
+  LABEL "Container object"
+
+UPDATE FIELD "run_persistent" OF "ryc_smartobject"
+  LABEL "Run persistent"
+
+UPDATE FIELD "run_when" OF "ryc_smartobject"
+  LABEL "Run when"
+
+UPDATE FIELD "shutdown_message_text" OF "ryc_smartobject"
+  LABEL "Shutdown message text"
+
+UPDATE FIELD "required_db_list" OF "ryc_smartobject"
+  HELP "Required database list"
+  LABEL "Required DB list"
+
+UPDATE FIELD "sdo_smartobject_obj" OF "ryc_smartobject"
+  HELP "SDO smartobject obj"
+  LABEL "SDO smartobject obj"
+
+UPDATE FIELD "custom_smartobject_obj" OF "ryc_smartobject"
+  HELP "Custom smartobject obj"
+  LABEL "Custom smartobject obj"
+
+UPDATE FIELD "extends_smartobject_obj" OF "ryc_smartobject"
+  HELP "Extends smartobject obj"
+  LABEL "Extends smartobject obj"
+
+UPDATE FIELD "physical_smartobject_obj" OF "ryc_smartobject"
+  HELP "Physical smartobject obj"
+  LABEL "Physical smartobject obj"
+
+UPDATE FIELD "security_smartobject_obj" OF "ryc_smartobject"
+  HELP "Security smartobject obj"
+  LABEL "Security smartobject obj"
+
+UPDATE FIELD "supported_link_obj" OF "ryc_supported_link"
+  LABEL "Supported link obj"
+
+UPDATE FIELD "object_type_obj" OF "ryc_supported_link"
+  LABEL "Object type obj"
+
+UPDATE FIELD "smartlink_type_obj" OF "ryc_supported_link"
+  LABEL "Smartlink type obj"
+
+UPDATE FIELD "link_source" OF "ryc_supported_link"
+  LABEL "Link source"
+
+UPDATE FIELD "link_target" OF "ryc_supported_link"
+  LABEL "Link target"
+
+UPDATE FIELD "deactivated_link_on_hide" OF "ryc_supported_link"
+  LABEL "Deactivated link on hide"
+
+UPDATE FIELD "ui_event_obj" OF "ryc_ui_event"
+  HELP "UI event obj"
+  LABEL "UI event obj"
+
+UPDATE FIELD "object_type_obj" OF "ryc_ui_event"
+  LABEL "Object type obj"
+
+UPDATE FIELD "container_smartobject_obj" OF "ryc_ui_event"
+  HELP "Container smartobject obj"
+  LABEL "Container smartobject obj"
+
+UPDATE FIELD "smartobject_obj" OF "ryc_ui_event"
+  HELP "Smartobject obj"
+  LABEL "Smartobject obj"
+
+UPDATE FIELD "object_instance_obj" OF "ryc_ui_event"
+  LABEL "Object instance obj"
+
+UPDATE FIELD "event_name" OF "ryc_ui_event"
+  LABEL "Event name"
+
+UPDATE FIELD "constant_value" OF "ryc_ui_event"
+  LABEL "Constant value"
+
+UPDATE FIELD "action_type" OF "ryc_ui_event"
+  LABEL "Action type"
+
+UPDATE FIELD "action_target" OF "ryc_ui_event"
+  LABEL "Action target"
+
+UPDATE FIELD "event_action" OF "ryc_ui_event"
+  LABEL "Event action"
+
+UPDATE FIELD "event_parameter" OF "ryc_ui_event"
+  LABEL "Event parameter"
+
+UPDATE FIELD "event_disabled" OF "ryc_ui_event"
+  LABEL "Event disabled"
+
+UPDATE FIELD "primary_smartobject_obj" OF "ryc_ui_event"
+  HELP "Primary smartobject obj"
+  LABEL "Primary smartobject obj"
+
+UPDATE FIELD "customization_type_obj" OF "rym_customization"
+  LABEL "Customization type obj"
+
+UPDATE FIELD "customization_reference" OF "rym_customization"
+  LABEL "Customization reference"
+
+UPDATE FIELD "customization_result_obj" OF "rym_customization"
+  LABEL "Customization result obj"
+
+UPDATE FIELD "customization_obj" OF "rym_customization"
+  LABEL "Customization obj"
+
+UPDATE FIELD "data_version_obj" OF "rym_data_version"
+  LABEL "Data version obj"
+
+UPDATE FIELD "related_entity_mnemonic" OF "rym_data_version"
+  HELP "Related entity"
+  LABEL "Related entity"
+
+UPDATE FIELD "related_entity_key" OF "rym_data_version"
+  LABEL "Related entity key"
+
+UPDATE FIELD "data_version_number" OF "rym_data_version"
+  LABEL "Data version number"
+
+UPDATE FIELD "wizard_tree_obj" OF "rym_wizard_tree"
+  LABEL "Wizard tree obj"
+
+UPDATE FIELD "product_code" OF "rym_wizard_tree"
+  LABEL "Product code"
+
+UPDATE FIELD "product_module_code" OF "rym_wizard_tree"
+  LABEL "Product module code"
+
+UPDATE FIELD "object_name" OF "rym_wizard_tree"
+  LABEL "Object name"
+
+UPDATE FIELD "object_description" OF "rym_wizard_tree"
+  LABEL "Object description"
+
+UPDATE FIELD "window_title" OF "rym_wizard_tree"
+  LABEL "Window title"
+
+UPDATE FIELD "window_title_field" OF "rym_wizard_tree"
+  LABEL "Window title field"
+
+UPDATE FIELD "root_node_code" OF "rym_wizard_tree"
+  LABEL "Root node code"
+
+UPDATE FIELD "root_node_sdo_name" OF "rym_wizard_tree"
+  HELP "Root node SDO name"
+  LABEL "Root node SDO name"
+
+UPDATE FIELD "sdo_foreign_fields" OF "rym_wizard_tree"
+  HELP "SDO foreign fields"
+  LABEL "SDO foreign fields"
+
+UPDATE FIELD "custom_super_procedure" OF "rym_wizard_tree"
+  LABEL "Custom super procedure"
+
+UPDATE FIELD "page_layout" OF "rym_wizard_tree"
+  LABEL "Page layout"
+
+UPDATE FIELD "filter_viewer" OF "rym_wizard_tree"
+  LABEL "Filter viewer"
+
+UPDATE FIELD "auto_sort" OF "rym_wizard_tree"
+  LABEL "Auto sort"
+
+UPDATE FIELD "hide_selection" OF "rym_wizard_tree"
+  LABEL "Hide selection"
+
+UPDATE FIELD "image_height" OF "rym_wizard_tree"
+  LABEL "Image height"
+
+UPDATE FIELD "image_width" OF "rym_wizard_tree"
+  LABEL "Image width"
+
+UPDATE FIELD "show_check_boxes" OF "rym_wizard_tree"
+  LABEL "Show check boxes"
+
+UPDATE FIELD "show_root_lines" OF "rym_wizard_tree"
+  LABEL "Show root lines"
+
+UPDATE FIELD "tree_style" OF "rym_wizard_tree"
+  LABEL "Tree style"
+
+UPDATE FIELD "generated_time" OF "rym_wizard_tree"
+  LABEL "Generated time"
+
+UPDATE FIELD "generated_date" OF "rym_wizard_tree"
+  LABEL "Generated date"
+
+UPDATE FIELD "dbupdate_status_obj" OF "ryt_dbupdate_status"
+  LABEL "Dbupdate status obj"
+
+UPDATE FIELD "update_db_name" OF "ryt_dbupdate_status"
+  HELP "Update database name"
+  LABEL "Update DB name"
+
+UPDATE FIELD "delta_version" OF "ryt_dbupdate_status"
+  LABEL "Delta version"
+
+UPDATE FIELD "file_type" OF "ryt_dbupdate_status"
+  LABEL "File type"
+
+UPDATE FIELD "file_name" OF "ryt_dbupdate_status"
+  LABEL "File name"
+
+UPDATE FIELD "update_when" OF "ryt_dbupdate_status"
+  LABEL "Update when"
+
+UPDATE FIELD "run_sequence" OF "ryt_dbupdate_status"
+  LABEL "Run sequence"
+  COLUMN-LABEL ?
+
+UPDATE FIELD "update_completed" OF "ryt_dbupdate_status"
+  LABEL "Update completed"
+
+UPDATE FIELD "update_successful" OF "ryt_dbupdate_status"
+  LABEL "Update successful"
+
+UPDATE FIELD "return_result" OF "ryt_dbupdate_status"
+  LABEL "Return result"
+
+UPDATE FIELD "run_date" OF "ryt_dbupdate_status"
+  LABEL "Run date"
+
+UPDATE FIELD "run_time" OF "ryt_dbupdate_status"
+  LABEL "Run time"
+
+UPDATE FIELD "run_by_user_obj" OF "ryt_dbupdate_status"
+  LABEL "Run by user obj"
+
+UPDATE FIELD "update_new_db" OF "ryt_dbupdate_status"
+  LABEL "Update new db"
+
+UPDATE FIELD "update_existing_db" OF "ryt_dbupdate_status"
+  HELP "Update existing database"
+  LABEL "Update existing DB"
+
+UPDATE FIELD "update_mandatory" OF "ryt_dbupdate_status"
+  LABEL "Update mandatory"
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20018
+  MAX-VAL 20018
+
+.
+PSC
+cpstream=UTF-8
+.
+0000090309

@@ -1,27 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
-<SetupInclude>
-   <Patch PatchLevel="020023">
-      <PatchStage Stage="PreADOLoad">
-         <Program>
-            <FileType>p</FileType>
-            <FileName>db/icf/dfd/fixrvkeynumeric.p</FileName>
-            <Description>Fixing Record Version Keys for European Format</Description>
-            <Rerunnable>yes</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>no</UpdateMandatory>
-         </Program>
-	  </PatchStage>
-      <PatchStage Stage="Delta">
-         <Program>
-            <FileType>df</FileType>
-            <FileName>db/icf/dfd/icfdb020023delta.df</FileName>
-            <Description>Applying 020023 Delta</Description>
-            <Rerunnable>no</Rerunnable>
-            <NewDB>no</NewDB>
-            <ExistingDB>yes</ExistingDB>
-            <UpdateMandatory>yes</UpdateMandatory>
-         </Program>
-      </PatchStage>
-   </Patch>
-</SetupInclude>
+<?xml version="1.0" encoding="utf-8"?>
+<SetupInclude>
+   <Patch PatchLevel="020023">
+      <PatchStage Stage="Delta">
+         <Program>
+            <FileType>df</FileType>
+            <FileName>db/icf/dfd/icfdb020023delta.df</FileName>
+            <Description>Applying 020023 Delta</Description>
+            <Rerunnable>no</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>yes</UpdateMandatory>
+         </Program>
+      </PatchStage>
+      <PatchStage Stage="PreADOLoad">
+         <Program>
+            <FileType>p</FileType>
+            <FileName>db/icf/dfd/fixrvkeynumeric.p</FileName>
+            <Description>Fixing Record Version Keys for European Format</Description>
+            <Rerunnable>yes</Rerunnable>
+            <NewDB>no</NewDB>
+            <ExistingDB>yes</ExistingDB>
+            <UpdateMandatory>no</UpdateMandatory>
+         </Program>
+      </PatchStage>
+   </Patch>
+</SetupInclude>

@@ -1,63 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="32"><dataset_header DisableRI="yes" DatasetObj="3000000374.09" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="RYCAP" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>3000000374.09</deploy_dataset_obj>
-<dataset_code>RYCAP</dataset_code>
-<dataset_description>ryc_attribute_group - Attribute groups in isolation</dataset_description>
-<disable_ri>yes</disable_ri>
-<source_code_data>no</source_code_data>
-<deploy_full_data>yes</deploy_full_data>
-<xml_generation_procedure></xml_generation_procedure>
-<default_ado_filename>rycap.ado</default_ado_filename>
-<deploy_additions_only>no</deploy_additions_only>
-<enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
-<dataset_entity><dataset_entity_obj>3000002001.09</dataset_entity_obj>
-<deploy_dataset_obj>3000000374.09</deploy_dataset_obj>
-<entity_sequence>1</entity_sequence>
-<entity_mnemonic>RYCAP</entity_mnemonic>
-<primary_entity>yes</primary_entity>
-<join_entity_mnemonic></join_entity_mnemonic>
-<join_field_list>attribute_group_name</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list></exclude_field_list>
-<entity_mnemonic_description>ryc_attribute_group</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<table_definition><name>ryc_attribute_group</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1ryc_attribute_group,1,0,0,attribute_group_name,0</index-1>
-<index-2>XPKryc_attribute_group,1,1,0,attribute_group_obj,0</index-2>
-<field><name>attribute_group_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Attribute group obj</label>
-<column-label>Attribute group obj</column-label>
-</field>
-<field><name>attribute_group_name</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(28)</format>
-<initial></initial>
-<label>Attribute group name</label>
-<column-label>Attribute group name</column-label>
-</field>
-<field><name>attribute_group_narrative</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(500)</format>
-<initial></initial>
-<label>Attribute group narrative</label>
-<column-label>Attribute group narrative</column-label>
-</field>
-</table_definition>
-</dataset_header>
+<dataset Transactions="32"><dataset_header DisableRI="yes" DatasetObj="3000000374.09" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="RYCAP" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record version_date="07/08/2002" version_time="67111" version_user="admin" deletion_flag="yes" entity_mnemonic="rycap" key_field_value="1.1713" record_version_obj="2.1713" version_number_seq="1.09" secondary_key_value="1.1713" import_version_number_seq="1.09"/>
 </dataset_transaction>
 <dataset_transaction TransactionNo="2" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/03/2003" version_time="53247" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="5.7063" record_version_obj="3000060257.09" version_number_seq="1.09" secondary_key_value="Smart" import_version_number_seq="1.09"><attribute_group_obj>5.7063</attribute_group_obj>
@@ -70,7 +12,7 @@
 <attribute_group_narrative>Visual Smartobject attributes</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="9.7063" record_version_obj="3000058997.09" version_number_seq="1.09" secondary_key_value="DataVisual" import_version_number_seq="1.09"><attribute_group_obj>9.7063</attribute_group_obj>
+<dataset_transaction TransactionNo="4" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="04/13/2004" version_time="36082" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="9.7063" record_version_obj="3000058997.09" version_number_seq="1.09" secondary_key_value="DataVisual" import_version_number_seq="1.09"><attribute_group_obj>9.7063</attribute_group_obj>
 <attribute_group_name>DataVisual</attribute_group_name>
 <attribute_group_narrative>Data visualization object attributes</attribute_group_narrative>
 </contained_record>
@@ -80,17 +22,17 @@
 <attribute_group_narrative>Appserver attributes</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="6" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="152.7063" record_version_obj="3000058999.09" version_number_seq="1.09" secondary_key_value="Data" import_version_number_seq="1.09"><attribute_group_obj>152.7063</attribute_group_obj>
+<dataset_transaction TransactionNo="6" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="04/13/2004" version_time="36082" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="152.7063" record_version_obj="3000058999.09" version_number_seq="1.09" secondary_key_value="Data" import_version_number_seq="1.09"><attribute_group_obj>152.7063</attribute_group_obj>
 <attribute_group_name>Data</attribute_group_name>
 <attribute_group_narrative>SDO Attributes</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="154.7063" record_version_obj="3000059000.09" version_number_seq="1.09" secondary_key_value="Query" import_version_number_seq="1.09"><attribute_group_obj>154.7063</attribute_group_obj>
+<dataset_transaction TransactionNo="7" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="05/25/2004" version_time="54033" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="154.7063" record_version_obj="3000059000.09" version_number_seq="1.09" secondary_key_value="Query" import_version_number_seq="1.09"><attribute_group_obj>154.7063</attribute_group_obj>
 <attribute_group_name>Query</attribute_group_name>
 <attribute_group_narrative>Query object attributes</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="8" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="347.7063" record_version_obj="3000059001.09" version_number_seq="1.09" secondary_key_value="Container" import_version_number_seq="1.09"><attribute_group_obj>347.7063</attribute_group_obj>
+<dataset_transaction TransactionNo="8" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="05/25/2004" version_time="54031" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="347.7063" record_version_obj="3000059001.09" version_number_seq="1.09" secondary_key_value="Container" import_version_number_seq="1.09"><attribute_group_obj>347.7063</attribute_group_obj>
 <attribute_group_name>Container</attribute_group_name>
 <attribute_group_narrative>Container Attributes</attribute_group_narrative>
 </contained_record>
@@ -105,7 +47,7 @@
 <attribute_group_narrative>SmartToolbar attributes</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="11" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="432.7063" record_version_obj="3000059004.09" version_number_seq="1.09" secondary_key_value="Field" import_version_number_seq="1.09"><attribute_group_obj>432.7063</attribute_group_obj>
+<dataset_transaction TransactionNo="11" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="05/04/2004" version_time="35517" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="432.7063" record_version_obj="3000059004.09" version_number_seq="1.09" secondary_key_value="Field" import_version_number_seq="1.09"><attribute_group_obj>432.7063</attribute_group_obj>
 <attribute_group_name>Field</attribute_group_name>
 <attribute_group_narrative>SmartField Attributes</attribute_group_narrative>
 </contained_record>
@@ -185,7 +127,7 @@
 <attribute_group_narrative>Default group for all attributes initially</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="27" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/02/2003" version_time="49466" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="1005078412.09" record_version_obj="3000059011.09" version_number_seq="1.09" secondary_key_value="WidgetAttributes" import_version_number_seq="1.09"><attribute_group_obj>1005078412.09</attribute_group_obj>
+<dataset_transaction TransactionNo="27" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="04/13/2004" version_time="35945" version_user="admin" deletion_flag="no" entity_mnemonic="RYCAP" key_field_value="1005078412.09" record_version_obj="3000059011.09" version_number_seq="1.09" secondary_key_value="WidgetAttributes" import_version_number_seq="1.09"><attribute_group_obj>1005078412.09</attribute_group_obj>
 <attribute_group_name>WidgetAttributes</attribute_group_name>
 <attribute_group_narrative>Attributes for Data Fields</attribute_group_narrative>
 </contained_record>
@@ -210,7 +152,7 @@
 <attribute_group_narrative>Attributes which are specific to an editor widget</attribute_group_narrative>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="32" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="10/06/2003" version_time="37776" version_user="admin" deletion_flag="no" entity_mnemonic="rycap" key_field_value="3000002003.09" record_version_obj="3000002004.09" version_number_seq="1.09" secondary_key_value="ADMAttributes" import_version_number_seq="1.09"><attribute_group_obj>3000002003.09</attribute_group_obj>
+<dataset_transaction TransactionNo="32" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_attribute_group" version_date="06/11/2004" version_time="56952" version_user="admin" deletion_flag="no" entity_mnemonic="rycap" key_field_value="3000002003.09" record_version_obj="3000002004.09" version_number_seq="1.09" secondary_key_value="ADMAttributes" import_version_number_seq="1.09"><attribute_group_obj>3000002003.09</attribute_group_obj>
 <attribute_group_name>ADMAttributes</attribute_group_name>
 <attribute_group_narrative>This group contains all attributes of ADM objects excepts those that can also be Widget Attributes. In that case, they are in the WidgetAttribute group.</attribute_group_narrative>
 </contained_record>

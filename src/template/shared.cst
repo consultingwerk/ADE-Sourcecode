@@ -1,33 +1,33 @@
-/* shared.cst - shared file - Version 9 - 03/98 
- ************************************************************************
- Separated from smart.cst so changes are not lost if WebSpeed and/or 
- AppBuilder upgraded to having both.
- ************************************************************************/
-
-#SmartDataObject &Default
-UP-IMAGE-FILE    adeicon/wp_up 24,288
-DOWN-IMAGE-FILE  adeicon/wp_down 24,288
-LABEL            Smart&DataObject
-DB-CONNECT
-NEW-TEMPLATE     src/adm2/template/data.w
-DIRECTORY-LIST   .,adm2
-FILTER           d*.w,d*.r,d*.*,*.*
-TITLE            Choose SmartDataObject
-
-*NEW-SMARTOBJECT Smart&DataObject
-TYPE		 SmartDataObject
-NEW-TEMPLATE     src/adm2/template/data.w
-
-*NEW-PROCEDURE  Structured &Procedure
-NEW-TEMPLATE    src/template/procedur.p
-
-*NEW-PROCEDURE  Structured &Include
-NEW-TEMPLATE    src/template/include.i
-
-*NEW-PROCEDURE  Method &Library
-NEW-TEMPLATE    src/template/mli.i
-
-*NEW-PROCEDURE  SAX &Handler
-NEW-TEMPLATE    src/adm2/template/sax.w
-
-
+/* shared.cst - shared file - Version 9 - 03/98 
+ ************************************************************************
+ Separated from smart.cst so changes are not lost if WebSpeed and/or 
+ AppBuilder upgraded to having both.
+ ************************************************************************/
+
+#SmartDataObject &Default
+UP-IMAGE-FILE    adeicon/wp_up 24,288
+DOWN-IMAGE-FILE  adeicon/wp_down 24,288
+LABEL            Smart&DataObject
+DB-CONNECT
+NEW-TEMPLATE     src/adm2/template/data.w
+DIRECTORY-LIST   .,adm2
+FILTER           d*.w,d*.r,d*.*,*.*
+TITLE            Choose SmartDataObject
+
+*NEW-SMARTOBJECT Smart&DataObject
+TYPE		 SmartDataObject
+NEW-TEMPLATE     src/adm2/template/data.w
+
+*NEW-PROCEDURE  Structured &Procedure
+NEW-TEMPLATE    src/template/procedur.p
+
+*NEW-PROCEDURE  Structured &Include
+NEW-TEMPLATE    src/template/include.i
+
+*NEW-PROCEDURE  Method &Library
+NEW-TEMPLATE    src/template/mli.i
+
+*NEW-PROCEDURE  SAX &Handler
+NEW-TEMPLATE    src/adm2/template/sax.w
+
+

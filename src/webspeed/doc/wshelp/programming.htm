@@ -1,403 +1,403 @@
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
-<meta name="ProgId" content="FrontPage.Editor.Document">
-<title>Application Framework</title>
-</head>
-<body>
-<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm">
-<img SRC="images/helpbook.gif" WIDTH="53" HEIGHT="40">
-</a> Application Framework</font></h1>
-<hr SIZE="4" COLOR="#0000FF">
-<p>&nbsp;<a href="framework.htm">Configuration</a>
-<a href="framework.htm">Overview</a> Programming</p>
-<h1 style="margin-left:0in;mso-list:l64 level1 lfo51"><a name="_Toc534774996">1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Technical/Implementation Details</a></h1>
-<div style="border:solid windowtext 1.0pt;padding:1.0pt 4.0pt 1.0pt 4.0pt;
-mso-border-shadow:yes">
-  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
-padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes"><!--[if gte vml 1]><v:shapetype
- id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
- path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
- <v:stroke joinstyle="miter"/>
- <v:formulas>
-  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
-  <v:f eqn="sum @0 1 0"/>
-  <v:f eqn="sum 0 0 @1"/>
-  <v:f eqn="prod @2 1 2"/>
-  <v:f eqn="prod @3 21600 pixelWidth"/>
-  <v:f eqn="prod @3 21600 pixelHeight"/>
-  <v:f eqn="sum @0 0 1"/>
-  <v:f eqn="prod @6 1 2"/>
-  <v:f eqn="prod @7 21600 pixelWidth"/>
-  <v:f eqn="sum @8 21600 0"/>
-  <v:f eqn="prod @7 21600 pixelHeight"/>
-  <v:f eqn="sum @10 21600 0"/>
- </v:formulas>
- <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
- <o:lock v:ext="edit" aspectratio="t"/>
-</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:414.75pt;
- height:168pt' o:ole="">
- <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/07/clip_image001.wmz"
-  o:title=""/>
-</v:shape><![endif]-->
-  <img src="progra13.gif" v:shapes="_x0000_i1025" width="553" height="224"><!--[if gte mso 9]><xml>
- <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1025"
-  DrawAspect="Content" ObjectID="_1072037908">
- </o:OLEObject>
-</xml><![endif]-->
-  </p>
-  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
-padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes">Fig.
-  Current startup structure</p>
-</div>
-<p class="MsoBodyText">The super procedures are started in a stack with web-util
-started first and custom procedures last. The search order when saying “RUN
-init-request IN web-utilities-hdl.”, would be the last started custom
-procedure first and then at RUN SUPER continue down the stack.</p>
-<div style="border:solid windowtext 1.0pt;padding:1.0pt 4.0pt 1.0pt 4.0pt;
-mso-border-shadow:yes">
-  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
-padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes"><!--[if gte vml 1]><v:shape
- id="_x0000_i1026" type="#_x0000_t75" style='width:414.75pt;height:168pt'
- o:ole="">
- <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/07/clip_image003.wmz"
-  o:title=""/>
-</v:shape><![endif]-->
-  <img src="progra14.gif" v:shapes="_x0000_i1026" width="553" height="224"><!--[if gte mso 9]><xml>
- <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1026"
-  DrawAspect="Content" ObjectID="_1072037909">
- </o:OLEObject>
-</xml><![endif]-->
-  Fig. Super procedure stack. Init-request appears in all except dbtools.</p>
-</div>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<h2><a name="_Toc534774997">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Startup program “webutil/webstart.p”</a></h2>
-<p class="MsoBodyText">“Web-disp.p” will start up “webstart.p” that will
-be the entry for web-utilities-hdl that again will have multiple super
-procedures started and added. Additional custom super procedures may be added to
-add and override any of the functionality in the web-utilities-hdl.</p>
-<h2>1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Additional function prototypes “web/method/session.i”.</h2>
-<p class="MsoBodyText">Session variable functionality set/getSession(), set/getGlobal()
-and runlogging function logNote() are defined in session.i and this again is
-included in proto.i which is part of the default Webspeed programs. If these are
-conflicting with existing application definitions then the last line of proto.i
-should be commented out.<span style="mso-spacerun:
-yes">&nbsp;</span></p>
-<h2><a name="_Toc534775001">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Session functionality</a></h2>
-<p class="MsoBodyText">“web/methods/session.i” which is being included in
-end of “web/method/proto.i”, contains prototype definitions for following
-functionality. This is thereby new core Webspeed functionality.</p>
-<p class="MsoBodyText">When Progress Dynamics is initialized it will replace the set/getSession.
-The set/getGlobal on the other hand is useful for system utilities dealing with
-connections, system status, failover, backup redundancy, so a database free
-(file-based) method can be more useful then.</p>
-<table border="1" cellspacing="0" cellpadding="0" style="margin-left:.25in;
- border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
- mso-padding-alt:0in 5.4pt 0in 5.4pt">
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in"><b>Functionality<o:p>
-      </o:p>
-      </b></p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border:solid windowtext .5pt;
-  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in"><b>Description<o:p>
-      </o:p>
-      </b></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">“gscSessionId”</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Global shared variable
-      containing the session id</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">GetSession(name)</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Retrieving a session
-      variable</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">SetSession(name,value)</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Setting a session variable</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">GetGlobal(name)</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Retrieving a cross-agent
-      global variable</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">SetGlobal(name,value)</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Setting a cross-agent
-      global variable</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">LogNote(messagetype,message)</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">log a message to the
-      session log</p>
-    </td>
-  </tr>
-</table>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<h2><a name="_Toc534775002">1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Logging</a></h2>
-<p class="MsoBodyText">logNote(messagetype,message) function will log a message
-to the session log.</p>
-<p class="MsoBodyText">The session log is located in by “SessionPath”
-environment variable, and if not given it goes to the Temp directory. The file
-name will be the session-id with extension “*.log”. If no session has been
-initialized it will use SYS.log as filename and if running batch it will use the
-name “batch.log”.</p>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<p class="MsoBodyText">Message Types set by the “LogTypes” environment
-variable:</p>
-<table border="1" cellspacing="0" cellpadding="0" style="margin-left:.25in;
- border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
- mso-padding-alt:0in 5.4pt 0in 5.4pt">
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">RUN</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border:solid windowtext .5pt;
-  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Messages to inform what is
-      going on.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">BATCH</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Messages that only apply to
-      BATCH</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">NOTE</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Notes</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">WARNING</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Warning messages such as
-      “trying to run workshop”</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">ERROR</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Error messages</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
-  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">COMPILE</p>
-    </td>
-    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
-  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
-  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
-  padding:0in 5.4pt 0in 5.4pt">
-      <p class="MsoBodyText" style="margin-left:0in">Messages about run-time
-      compilation</p>
-    </td>
-  </tr>
-</table>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<p class="MsoBodyText">The current logs can be viewed from a shortcut in the
-Data Browser or Application Manager header.</p>
-<h2><a name="_Toc534775003">1.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Database reconnect</a></h2>
-<p class="MsoBodyText">Databases, DbGroup, DbObject</p>
-<p class="MsoBodyText"><!--[if gte vml 1]><v:shapetype id="_x0000_t75"
- coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe"
- filled="f" stroked="f">
- <v:stroke joinstyle="miter"/>
- <v:formulas>
-  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
-  <v:f eqn="sum @0 1 0"/>
-  <v:f eqn="sum 0 0 @1"/>
-  <v:f eqn="prod @2 1 2"/>
-  <v:f eqn="prod @3 21600 pixelWidth"/>
-  <v:f eqn="prod @3 21600 pixelHeight"/>
-  <v:f eqn="sum @0 0 1"/>
-  <v:f eqn="prod @6 1 2"/>
-  <v:f eqn="prod @7 21600 pixelWidth"/>
-  <v:f eqn="sum @8 21600 0"/>
-  <v:f eqn="prod @7 21600 pixelHeight"/>
-  <v:f eqn="sum @10 21600 0"/>
- </v:formulas>
- <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
- <o:lock v:ext="edit" aspectratio="t"/>
-</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:345.75pt;
- height:131.25pt' o:ole="">
- <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/08/clip_image001.wmz"
-  o:title=""/>
- <w:bordertop type="single" width="4" shadow="t"/>
- <w:borderleft type="single" width="4" shadow="t"/>
- <w:borderbottom type="single" width="4" shadow="t"/>
- <w:borderright type="single" width="4" shadow="t"/>
-</v:shape><![endif]-->
-<img src="progra15.gif" v:shapes="_x0000_i1025" width="465" height="179"><!--[if gte mso 9]><xml>
- <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1025"
-  DrawAspect="Content" ObjectID="_1072037947">
- </o:OLEObject>
-</xml><![endif]-->
-</p>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<h3><a name="_Toc534775004">1.3.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Selective connections</a></h3>
-<p class="MsoBodyText">Normally you would just specify the databases to be
-connected in the “Databases” environment variable, but if certain databases
-only needs to be connected for certain programs you would have to specify the
-codebases and databases for each special handling here called DbObject in the
-diagram. You now also have to specify which databases are considered default in
-the DbGroup.</p>
-<p class="MsoBodyText">Example: You want to connect the customer’s inventory
-database only when needed.</p>
-<p class="MsoBodyText">[Databases] sysdb=-pf c:/app/db/sysdb.pf|invdb=-pf
-c:/app/db/invdb.pf</p>
-<p class="MsoBodyText">[DbObject]<span style="mso-spacerun: yes">&nbsp; </span>inv=c:/app/src/inv</p>
-<p class="MsoBodyText">[DbGroup]<span style="mso-spacerun: yes">&nbsp; </span>inv=invdb;default=sysdb<span style="mso-spacerun: yes">&nbsp;&nbsp;</span></p>
-<p class="MsoBodyText">&nbsp;<o:p>
-</o:p>
-</p>
-<h3><a name="_Toc534775005">1.3.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Custom connections</a></h3>
-<p class="MsoBodyText">It’s possible to specify a program to connect to the
-databases instead of the connection parameters. By using a program you can
-connect with data-driven logic if necessary. Say your customers want to have
-their data separated from other customers databases, then you could connect on
-the fly using such a routine. For disconnection the specific database you should
-custom program “end-request” routine to disconnect the customer specific
-databases after the program has been run.</p>
-<h3><a name="_Toc534775006">1.3.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Progress Dynamics</a></h3>
-<p class="MsoBodyText">In Progress Dynamics the connection manager will get the
-parameters that you would otherwise specify in [Databases]. In other words you
-would not specify the Progress Dynamics configured databases unless you have to override
-the Progress Dynamics configuration for custom connection logic reasons.</p>
-<p class="MsoBodyText">Selective connections have to be specified in DbGroup and
-DbObject as usual even with Progress Dynamics.</p>
-<h2><a name="_Toc534775007">1.4<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Progress Dynamics integration&nbsp;hook</a></h2>
-<p class="MsoBodyText">The procedure “afreqsrvrp.p”, Request Manager
-contains function code for session context functionality using the Progress Dynamics
-databases and it also does following.</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Automatically detected by “session:icfparameter”</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Looks for XML startup-file</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Starts Progress Dynamics managers</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Configures automatic database reconnection. (Not yet)</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Starts UI Managers and the handle will be switched on the fly by
-the request.</p>
-<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
-tab-stops:list .75in left 279.0pt"><span style="font-family:
-Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span>Overrides the “run-web-object” to check for Progress Dynamics *.icf
-extension mappings.</p>
-</body>
-</html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Application Framework</title>
+</head>
+<body>
+<h1><font COLOR="#000080" FACE="MS Sans Serif"><a href="default.htm">
+<img SRC="images/helpbook.gif" WIDTH="53" HEIGHT="40">
+</a> Application Framework</font></h1>
+<hr SIZE="4" COLOR="#0000FF">
+<p>&nbsp;<a href="framework.htm">Configuration</a>
+<a href="framework.htm">Overview</a> Programming</p>
+<h1 style="margin-left:0in;mso-list:l64 level1 lfo51"><a name="_Toc534774996">1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Technical/Implementation Details</a></h1>
+<div style="border:solid windowtext 1.0pt;padding:1.0pt 4.0pt 1.0pt 4.0pt;
+mso-border-shadow:yes">
+  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes"><!--[if gte vml 1]><v:shapetype
+ id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t"
+ path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:414.75pt;
+ height:168pt' o:ole="">
+ <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/07/clip_image001.wmz"
+  o:title=""/>
+</v:shape><![endif]-->
+  <img src="progra13.gif" v:shapes="_x0000_i1025" width="553" height="224"><!--[if gte mso 9]><xml>
+ <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1025"
+  DrawAspect="Content" ObjectID="_1072037908">
+ </o:OLEObject>
+</xml><![endif]-->
+  </p>
+  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes">Fig.
+  Current startup structure</p>
+</div>
+<p class="MsoBodyText">The super procedures are started in a stack with web-util
+started first and custom procedures last. The search order when saying “RUN
+init-request IN web-utilities-hdl.”, would be the last started custom
+procedure first and then at RUN SUPER continue down the stack.</p>
+<div style="border:solid windowtext 1.0pt;padding:1.0pt 4.0pt 1.0pt 4.0pt;
+mso-border-shadow:yes">
+  <p class="MsoBodyText" style="border:none;mso-border-alt:solid windowtext 1.0pt;
+padding:0in;mso-padding-alt:1.0pt 4.0pt 1.0pt 4.0pt;mso-border-shadow:yes"><!--[if gte vml 1]><v:shape
+ id="_x0000_i1026" type="#_x0000_t75" style='width:414.75pt;height:168pt'
+ o:ole="">
+ <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/07/clip_image003.wmz"
+  o:title=""/>
+</v:shape><![endif]-->
+  <img src="progra14.gif" v:shapes="_x0000_i1026" width="553" height="224"><!--[if gte mso 9]><xml>
+ <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1026"
+  DrawAspect="Content" ObjectID="_1072037909">
+ </o:OLEObject>
+</xml><![endif]-->
+  Fig. Super procedure stack. Init-request appears in all except dbtools.</p>
+</div>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<h2><a name="_Toc534774997">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Startup program “webutil/webstart.p”</a></h2>
+<p class="MsoBodyText">“Web-disp.p” will start up “webstart.p” that will
+be the entry for web-utilities-hdl that again will have multiple super
+procedures started and added. Additional custom super procedures may be added to
+add and override any of the functionality in the web-utilities-hdl.</p>
+<h2>1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Additional function prototypes “web/method/session.i”.</h2>
+<p class="MsoBodyText">Session variable functionality set/getSession(), set/getGlobal()
+and runlogging function logNote() are defined in session.i and this again is
+included in proto.i which is part of the default Webspeed programs. If these are
+conflicting with existing application definitions then the last line of proto.i
+should be commented out.<span style="mso-spacerun:
+yes">&nbsp;</span></p>
+<h2><a name="_Toc534775001">1.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Session functionality</a></h2>
+<p class="MsoBodyText">“web/methods/session.i” which is being included in
+end of “web/method/proto.i”, contains prototype definitions for following
+functionality. This is thereby new core Webspeed functionality.</p>
+<p class="MsoBodyText">When Progress Dynamics is initialized it will replace the set/getSession.
+The set/getGlobal on the other hand is useful for system utilities dealing with
+connections, system status, failover, backup redundancy, so a database free
+(file-based) method can be more useful then.</p>
+<table border="1" cellspacing="0" cellpadding="0" style="margin-left:.25in;
+ border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt">
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in"><b>Functionality<o:p>
+      </o:p>
+      </b></p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in"><b>Description<o:p>
+      </o:p>
+      </b></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">“gscSessionId”</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Global shared variable
+      containing the session id</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">GetSession(name)</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Retrieving a session
+      variable</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">SetSession(name,value)</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Setting a session variable</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">GetGlobal(name)</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Retrieving a cross-agent
+      global variable</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">SetGlobal(name,value)</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Setting a cross-agent
+      global variable</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">LogNote(messagetype,message)</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">log a message to the
+      session log</p>
+    </td>
+  </tr>
+</table>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<h2><a name="_Toc534775002">1.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Logging</a></h2>
+<p class="MsoBodyText">logNote(messagetype,message) function will log a message
+to the session log.</p>
+<p class="MsoBodyText">The session log is located in by “SessionPath”
+environment variable, and if not given it goes to the Temp directory. The file
+name will be the session-id with extension “*.log”. If no session has been
+initialized it will use SYS.log as filename and if running batch it will use the
+name “batch.log”.</p>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<p class="MsoBodyText">Message Types set by the “LogTypes” environment
+variable:</p>
+<table border="1" cellspacing="0" cellpadding="0" style="margin-left:.25in;
+ border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
+ mso-padding-alt:0in 5.4pt 0in 5.4pt">
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">RUN</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border:solid windowtext .5pt;
+  border-left:none;mso-border-left-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Messages to inform what is
+      going on.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">BATCH</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Messages that only apply to
+      BATCH</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">NOTE</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Notes</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">WARNING</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Warning messages such as
+      “trying to run workshop”</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">ERROR</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Error messages</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="189" valign="top" style="width:141.6pt;border:solid windowtext .5pt;
+  border-top:none;mso-border-top-alt:solid windowtext .5pt;padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">COMPILE</p>
+    </td>
+    <td width="370" valign="top" style="width:277.8pt;border-top:none;border-left:
+  none;border-bottom:solid windowtext .5pt;border-right:solid windowtext .5pt;
+  mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
+  padding:0in 5.4pt 0in 5.4pt">
+      <p class="MsoBodyText" style="margin-left:0in">Messages about run-time
+      compilation</p>
+    </td>
+  </tr>
+</table>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<p class="MsoBodyText">The current logs can be viewed from a shortcut in the
+Data Browser or Application Manager header.</p>
+<h2><a name="_Toc534775003">1.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Database reconnect</a></h2>
+<p class="MsoBodyText">Databases, DbGroup, DbObject</p>
+<p class="MsoBodyText"><!--[if gte vml 1]><v:shapetype id="_x0000_t75"
+ coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe"
+ filled="f" stroked="f">
+ <v:stroke joinstyle="miter"/>
+ <v:formulas>
+  <v:f eqn="if lineDrawn pixelLineWidth 0"/>
+  <v:f eqn="sum @0 1 0"/>
+  <v:f eqn="sum 0 0 @1"/>
+  <v:f eqn="prod @2 1 2"/>
+  <v:f eqn="prod @3 21600 pixelWidth"/>
+  <v:f eqn="prod @3 21600 pixelHeight"/>
+  <v:f eqn="sum @0 0 1"/>
+  <v:f eqn="prod @6 1 2"/>
+  <v:f eqn="prod @7 21600 pixelWidth"/>
+  <v:f eqn="sum @8 21600 0"/>
+  <v:f eqn="prod @7 21600 pixelHeight"/>
+  <v:f eqn="sum @10 21600 0"/>
+ </v:formulas>
+ <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+ <o:lock v:ext="edit" aspectratio="t"/>
+</v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style='width:345.75pt;
+ height:131.25pt' o:ole="">
+ <v:imagedata src="file:///C:/DOCUME~1/pdigre/LOCALS~1/Temp/msoclip1/08/clip_image001.wmz"
+  o:title=""/>
+ <w:bordertop type="single" width="4" shadow="t"/>
+ <w:borderleft type="single" width="4" shadow="t"/>
+ <w:borderbottom type="single" width="4" shadow="t"/>
+ <w:borderright type="single" width="4" shadow="t"/>
+</v:shape><![endif]-->
+<img src="progra15.gif" v:shapes="_x0000_i1025" width="465" height="179"><!--[if gte mso 9]><xml>
+ <o:OLEObject Type="Embed" ProgID="Word.Picture.8" ShapeID="_x0000_i1025"
+  DrawAspect="Content" ObjectID="_1072037947">
+ </o:OLEObject>
+</xml><![endif]-->
+</p>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<h3><a name="_Toc534775004">1.3.1<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Selective connections</a></h3>
+<p class="MsoBodyText">Normally you would just specify the databases to be
+connected in the “Databases” environment variable, but if certain databases
+only needs to be connected for certain programs you would have to specify the
+codebases and databases for each special handling here called DbObject in the
+diagram. You now also have to specify which databases are considered default in
+the DbGroup.</p>
+<p class="MsoBodyText">Example: You want to connect the customer’s inventory
+database only when needed.</p>
+<p class="MsoBodyText">[Databases] sysdb=-pf c:/app/db/sysdb.pf|invdb=-pf
+c:/app/db/invdb.pf</p>
+<p class="MsoBodyText">[DbObject]<span style="mso-spacerun: yes">&nbsp; </span>inv=c:/app/src/inv</p>
+<p class="MsoBodyText">[DbGroup]<span style="mso-spacerun: yes">&nbsp; </span>inv=invdb;default=sysdb<span style="mso-spacerun: yes">&nbsp;&nbsp;</span></p>
+<p class="MsoBodyText">&nbsp;<o:p>
+</o:p>
+</p>
+<h3><a name="_Toc534775005">1.3.2<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Custom connections</a></h3>
+<p class="MsoBodyText">It’s possible to specify a program to connect to the
+databases instead of the connection parameters. By using a program you can
+connect with data-driven logic if necessary. Say your customers want to have
+their data separated from other customers databases, then you could connect on
+the fly using such a routine. For disconnection the specific database you should
+custom program “end-request” routine to disconnect the customer specific
+databases after the program has been run.</p>
+<h3><a name="_Toc534775006">1.3.3<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Progress Dynamics</a></h3>
+<p class="MsoBodyText">In Progress Dynamics the connection manager will get the
+parameters that you would otherwise specify in [Databases]. In other words you
+would not specify the Progress Dynamics configured databases unless you have to override
+the Progress Dynamics configuration for custom connection logic reasons.</p>
+<p class="MsoBodyText">Selective connections have to be specified in DbGroup and
+DbObject as usual even with Progress Dynamics.</p>
+<h2><a name="_Toc534775007">1.4<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Progress Dynamics integration&nbsp;hook</a></h2>
+<p class="MsoBodyText">The procedure “afreqsrvrp.p”, Request Manager
+contains function code for session context functionality using the Progress Dynamics
+databases and it also does following.</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Automatically detected by “session:icfparameter”</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Looks for XML startup-file</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Starts Progress Dynamics managers</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Configures automatic database reconnection. (Not yet)</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Starts UI Managers and the handle will be switched on the fly by
+the request.</p>
+<p class="MsoBodyText" style="margin-left:.75in;text-indent:-.25in;mso-list:l16 level1 lfo86;
+tab-stops:list .75in left 279.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span>Overrides the “run-web-object” to check for Progress Dynamics *.icf
+extension mappings.</p>
+</body>
+</html>

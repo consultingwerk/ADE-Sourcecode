@@ -466,7 +466,7 @@ PSC
 filename=rym_data_version
 records=0000000000463
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:52
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

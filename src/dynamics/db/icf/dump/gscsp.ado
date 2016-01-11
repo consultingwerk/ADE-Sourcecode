@@ -1,87 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="73"><dataset_header DisableRI="yes" DatasetObj="1007600138.08" DateFormat="mdy" FullHeader="yes" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSP" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="90" NumericSeparator=","><deploy_dataset_obj>1007600138.08</deploy_dataset_obj>
-<dataset_code>GSCSP</dataset_code>
-<dataset_description>gsc_session_property - Session Prop</dataset_description>
-<disable_ri>yes</disable_ri>
-<source_code_data>no</source_code_data>
-<deploy_full_data>yes</deploy_full_data>
-<xml_generation_procedure></xml_generation_procedure>
-<default_ado_filename></default_ado_filename>
-<deploy_additions_only>no</deploy_additions_only>
-<enable_data_versioning>yes</enable_data_versioning>
-<deletion_dataset>yes</deletion_dataset>
-<dataset_entity><dataset_entity_obj>1007600139.08</dataset_entity_obj>
-<deploy_dataset_obj>1007600138.08</deploy_dataset_obj>
-<entity_sequence>1</entity_sequence>
-<entity_mnemonic>GSCSP</entity_mnemonic>
-<primary_entity>yes</primary_entity>
-<join_entity_mnemonic></join_entity_mnemonic>
-<join_field_list>session_property_name</join_field_list>
-<filter_where_clause></filter_where_clause>
-<delete_related_records>yes</delete_related_records>
-<overwrite_records>yes</overwrite_records>
-<keep_own_site_data>no</keep_own_site_data>
-<use_relationship>no</use_relationship>
-<relationship_obj>0</relationship_obj>
-<deletion_action></deletion_action>
-<exclude_field_list>default_property_value,always_used</exclude_field_list>
-<entity_mnemonic_description>gsc_session_property</entity_mnemonic_description>
-<entity_dbname>ICFDB</entity_dbname>
-</dataset_entity>
-<table_definition><name>gsc_session_property</name>
-<dbname>icfdb</dbname>
-<index-1>XAK1gsc_session_property,1,0,0,session_property_name,0</index-1>
-<index-2>XPKgsc_session_property,1,1,0,session_property_obj,0</index-2>
-<field><name>session_property_obj</name>
-<data-type>decimal</data-type>
-<extent>0</extent>
-<format>-&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;9.999999999</format>
-<initial>                  0.000000000</initial>
-<label>Session property obj</label>
-<column-label>Session property obj</column-label>
-</field>
-<field><name>session_property_name</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Session property name</label>
-<column-label>Session property name</column-label>
-</field>
-<field><name>session_property_description</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Session property description</label>
-<column-label>Session property description</column-label>
-</field>
-<field><name>system_owned</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>System owned</label>
-<column-label>System owned</column-label>
-</field>
-<field><name>default_property_value</name>
-<data-type>character</data-type>
-<extent>0</extent>
-<format>X(70)</format>
-<initial></initial>
-<label>Default property value</label>
-<column-label>Default property value</column-label>
-</field>
-<field><name>always_used</name>
-<data-type>logical</data-type>
-<extent>0</extent>
-<format>YES/NO</format>
-<initial>NO </initial>
-<label>Always used</label>
-<column-label>Always used</column-label>
-</field>
-</table_definition>
-</dataset_header>
+<dataset Transactions="75"><dataset_header DisableRI="yes" DatasetObj="1007600138.08" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCSP" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="03/06/2003" version_time="65741" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="1131.7692" record_version_obj="1132.7692" version_number_seq="1.09" secondary_key_value="IDETemplate" import_version_number_seq="1.09"><session_property_obj>1131.7692</session_property_obj>
 <session_property_name>IDETemplate</session_property_name>
 <session_property_description>Comma delimited list of template objects to load for the appBuilder</session_property_description>
@@ -266,7 +184,7 @@
 <always_used>no</always_used>
 </contained_record>
 </dataset_transaction>
-<dataset_transaction TransactionNo="24" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="10/16/2003" version_time="59465" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="910862.24" record_version_obj="910863.24" version_number_seq="2.09" secondary_key_value="DynamicsVersion" import_version_number_seq="2.24"><session_property_obj>910862.24</session_property_obj>
+<dataset_transaction TransactionNo="24" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="10/16/2003" version_time="59465" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="910862.24" record_version_obj="910863.24" version_number_seq="2.09" secondary_key_value="DynamicsVersion" import_version_number_seq="2.09"><session_property_obj>910862.24</session_property_obj>
 <session_property_name>DynamicsVersion</session_property_name>
 <session_property_description>Dynamics Version No</session_property_description>
 <system_owned>yes</system_owned>
@@ -628,7 +546,7 @@
 </dataset_transaction>
 <dataset_transaction TransactionNo="69" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="03/19/2003" version_time="58153" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="3000044723.09" record_version_obj="3000044724.09" version_number_seq="2.09" secondary_key_value="OG_ValidateFrom" import_version_number_seq="2.09"><session_property_obj>3000044723.09</session_property_obj>
 <session_property_name>OG_ValidateFrom</session_property_name>
-<session_property_description>Used by OG to determine
+<session_property_description>Used by OG to determine
  validation logic within DLProc</session_property_description>
 <system_owned>yes</system_owned>
 <default_property_value></default_property_value>
@@ -665,6 +583,22 @@
 <system_owned>yes</system_owned>
 <default_property_value></default_property_value>
 <always_used>no</always_used>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="74" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="02/06/2004" version_time="39411" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="3000072617.09" record_version_obj="3000072618.09" version_number_seq="2.09" secondary_key_value="print_preview_preference" import_version_number_seq="2.09"><session_property_obj>3000072617.09</session_property_obj>
+<session_property_name>print_preview_preference</session_property_name>
+<session_property_description>Output preference for the print preview</session_property_description>
+<system_owned>yes</system_owned>
+<default_property_value>XML</default_property_value>
+<always_used>yes</always_used>
+</contained_record>
+</dataset_transaction>
+<dataset_transaction TransactionNo="75" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_session_property" version_date="05/13/2004" version_time="56182" version_user="admin" deletion_flag="no" entity_mnemonic="gscsp" key_field_value="3000072619.09" record_version_obj="3000072620.09" version_number_seq="4.19" secondary_key_value="print_preview_stylesheet" import_version_number_seq="2.09"><session_property_obj>3000072619.09</session_property_obj>
+<session_property_name>print_preview_stylesheet</session_property_name>
+<session_property_description>Stylesheet to be used for print preview</session_property_description>
+<system_owned>yes</system_owned>
+<default_property_value>af/rep/xmlreport.xsl</default_property_value>
+<always_used>yes</always_used>
 </contained_record>
 </dataset_transaction>
 </dataset_records>

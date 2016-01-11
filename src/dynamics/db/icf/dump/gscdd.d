@@ -1,3 +1,4 @@
+2511.38 "GSCTG" "gsc_tag_data -  Data Tags" yes no yes "" "" no yes yes
 9843.24 "RYCRE" "ryc_relationship" yes no yes "" "rycre.ado" no yes yes
 9849.24 "RYCRI" "ryc_ri_default" yes no yes "" "rycri.ado" no yes yes
 500371.24 "RYCRT" "ryc_render_type - Render Types" yes no yes "" "rycrt.ado" no yes yes
@@ -10,7 +11,7 @@
 1007600081.08 "RYCLA" "ryc_layout - Layouts" yes no yes "" "" no yes yes
 1007600083.08 "RYCAT" "ryc_attribute - Attribute Dataset" yes no yes "" "" no yes yes
 1007600103.08 "GSMLG" "gsm_login_company - Login Company" yes no yes "" "" no yes yes
-1007600105.08 "GSCSQ" "gsc_sequence - Sequences" yes no yes "" "" yes yes yes
+1007600105.08 "GSCSQ" "gsc_sequence - Sequences" yes no yes "" "" yes yes no
 1007600108.08 "GSCGD" "gsc_global_defaults - Global deflt" yes no yes "" "" no yes yes
 1007600111.08 "GSCGC" "gsc_global_control - Global Control" yes no yes "" "" no yes yes
 1007600113.08 "GSMCR" "gsm_currency - Currencies" yes no yes "" "" no yes yes
@@ -59,12 +60,12 @@
 .
 PSC
 filename=gsc_deploy_dataset
-records=0000000000058
+records=0000000000059
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:37
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000004804
+0000004876

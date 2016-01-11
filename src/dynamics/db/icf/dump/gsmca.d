@@ -8,7 +8,7 @@ PSC
 filename=gsm_category
 records=0000000000005
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:38
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP

@@ -1,15 +1,15 @@
-UPDATE FIELD "event_parameter" OF "ryc_ui_event"
-  FORMAT "X(500)"
-  VALMSG "s_small_text_block"
-  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
-  SQL-WIDTH 1000
-
-UPDATE SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 20017
-  MAX-VAL 20017
-
-.
-PSC
-cpstream=UTF-8
-.
-0000000272
+UPDATE FIELD "event_parameter" OF "ryc_ui_event"
+  FORMAT "X(500)"
+  VALMSG "s_small_text_block"
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 8 SCROLLBAR-VERTICAL MAX-CHARS 500"
+  SQL-WIDTH 1000
+
+UPDATE SEQUENCE "seq_ICFDB_DBVersion"
+  INITIAL 20017
+  MAX-VAL 20017
+
+.
+PSC
+cpstream=UTF-8
+.
+0000000272

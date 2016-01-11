@@ -1,198 +1,198 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-
-<html>
-
-<head>
-<meta name="wsoptions" content="no-output">
-<title>##DetailTitle##</title>
-</head>
-
-<center>
-
-<!-- Detail Screen Title -->
-<p><strong>##DetailTitle##</strong><br><br></p>
-
-<script language="JavaScript">
-  function AddMode() {
-    document.DetailForm.SwitchToAddMode.value = "Yes";
-    document.DetailForm.submit();
-  }
-</script>
-
-<script language="SpeedScript">
-
-  /*--------------------------------------------------------------------
-    Template: detail.html
-
-    Description: Detail Database Screen.
-
-  --------------------------------------------------------------------*/
-
-  DEF VAR search-value   AS CHAR NO-UNDO.
-  DEF VAR Navigate       AS CHAR NO-UNDO.
-  DEF VAR NavRowid       AS CHAR NO-UNDO.
-  DEF VAR LinkRowid      AS CHAR NO-UNDO.
-  DEF VAR i-count        AS INTEGER NO-UNDO.
-  DEF VAR TmpUrl         AS CHAR NO-UNDO.
-  DEF VAR MaintOption    AS CHAR NO-UNDO.
-  DEF VAR DelimiterField AS CHAR NO-UNDO.
-
-  /* Get all the fields from the input */
-  ASSIGN
-    search-value = get-field("search-name":U)
-    Navigate     = get-field("Navigate":U)
-    NavRowid     = get-field("NavRowid":U)
-    LinkRowid    = get-field("LinkRowid":U)
-    MaintOption  = get-field("MaintOption":U).
-
-  IF get-field("SwitchToAddMode":U) eq "Yes" THEN
-    MaintOption = "Add".
-
-  TmpUrl = url-format(?,'search-name,LinkRowid',?).
-  IF INDEX(TmpUrl,"?") > 0
-    THEN DelimiterField = ?.
-    ELSE DelimiterField = "?".
-
-  /* Display "Search" Form. */
-  IF SearchForm THEN DO:
-</script>
-
-<form action="`SelfURL`" method="POST" name="SearchForm">
-    <input type="hidden" name="Navigate" value="Search">
-    <input type="hidden" name="LinkRowid" value="`LinkRowid`">
-    <p><strong>`##SearchLabel##`
-    <input type="text" size="20" name="search-name" value="`html-encode(search-value)`">
-    <input type="submit" name="submit-jumpto" value="Search">
-    </strong></p>
-    <hr>
-</form>
-
-<script language="SpeedScript">
-  END. /* Close of "IF SearchForm THEN DO:" */
-</script>
-
-<form action="`SelfURL`" method="POST" name="DetailForm">
-    <input type="hidden" name="SwitchToAddMode">
-
-<script language="SpeedScript">
-
-  CASE MaintOption:
-    WHEN "Add":U THEN DO:
-      {&OUT} '    <input type="hidden" name="NavRowid" value="Add Mode">~n':U.
-    END.
-    WHEN "Submit":U THEN DO TRANSACTION:
-    END.
-    WHEN "Delete":U THEN DO TRANSACTION:
-    END.
-  END CASE.
-  
-  /* External Table Reference */
-
-</script>
-    <input type="hidden" name="LinkRowid" value="`LinkRowid`">
-<script language="SpeedScript">
-
-  IF MaintOption ne "Add":U THEN DO:   
-    /* Define the Query */
-
-    /* Open the Query */
-
-    IF Navigate ne "":U THEN DO:
-      /* "Search" form posted.  Find the first record that meets the
-         "Search" criteria.  This works correctly if "Search" blank */
-      IF Navigate eq "Search":U THEN DO:
-        GET FIRST Browse-Qry NO-LOCK.
-        IF AVAILABLE ##Query-Table## ##SearchString## THEN DO:
-          DO WHILE AVAILABLE ##Query-Table## ##SearchString##:
-            GET NEXT Browse-Qry NO-LOCK.
-          END.
-          IF NOT AVAILABLE ##Query-Table## THEN
-            {&OUT} '<p>No records found meeting selection criteria.  Repositioning to first record.</p>~n':U.
-        END.
-      END. /* Close of "IF Navigate eq "Search":U THEN DO:" */
-      /* First, Prev, Next, Last navigation selected or no "SearchForm"
-         requested */
-      ELSE DO:
-        CASE Navigate:
-          WHEN "Prev" THEN DO:
-              ELSE
-                GET FIRST Browse-Qry NO-LOCK.
-            END.
-          END.
-          WHEN "Next" THEN DO:
-                IF NOT AVAILABLE ##Query-Table## THEN 
-                  GET LAST Browse-Qry NO-LOCK.
-              END.
-              ELSE
-                GET LAST Browse-Qry NO-LOCK.
-            END.
-          END.
-          WHEN "Last" THEN DO:
-            GET LAST Browse-Qry NO-LOCK.
-          END.
-        END CASE.
-      END. /* Close of "IF Navigate eq "Search":U THEN DO:...ELSE DO:" */
-    END.
-
-    IF NOT AVAILABLE ##Query-Table## THEN
-      GET FIRST Browse-Qry NO-LOCK.
-
-    /* End of Navigation Section */
-
-    IF AVAILABLE ##Query-Table## THEN DO:
-      TmpUrl = TmpUrl + url-field('NavRowid',STRING(ROWID(##Query-Table##)),DelimiterField).
-      IF INDEX(TmpUrl,"?") > 0
-        THEN DelimiterField = ?.
-        ELSE DelimiterField = "?".
-      {&OUT} '    <input type="hidden" name="NavRowid" value="':U + STRING(ROWID(##Query-Table##)) + '">~n':U.
-      /* If more than one table defined in Query, add ROWID here. */
-      /* Update data display values and formats */
-    END.
-    /* No query table available */
-  END. /* Close of "IF MaintOption ne "Add":U THEN DO: */
-
-</script>
-<!-- Display Table Definition -->
-<!-- Output the requested Display Fields --> 
-</table>
-<!-- Update Capabilities -->
-</form>
-<script language="SpeedScript">
-
-    IF NavPanel AND MaintOption ne "Add":U THEN DO: 
-
-</script>
-
-<table border="2">
-    <tr>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','First',DelimiterField)`"
-        onmouseover="window.status='First';return true"
-        onmouseout="window.status='';return true"><img
-        src="/webspeed/images/first-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Prev',DelimiterField)`"
-        onmouseover="window.status='Previous';return true"
-        onmouseout="window.status='';return true"><img
-        src="/webspeed/images/prev-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Next',DelimiterField)`"
-        onmouseover="window.status='Next';return true"
-        onmouseout="window.status='';return true"><img
-        src="/webspeed/images/next-au.gif" border="0" width="16"
-        height="16"></a></td>
-        <td><a
-        href="`TmpUrl%20+%20url-field('Navigate','Last',DelimiterField)`"
-        onmouseover="window.status='Last';return true"
-        onmouseout="window.status='';return true"><img
-        src="/webspeed/images/last-au.gif" border="0" width="16"
-        height="16"></a></td>
-    </tr>
-</table>
-</center><script language="SpeedScript">
-    END. /* Close of "IF NavPanel THEN DO:" */
-</script>
-</body>
-</html>
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+
+<html>
+
+<head>
+<meta name="wsoptions" content="no-output">
+<title>##DetailTitle##</title>
+</head>
+
+<center>
+
+<!-- Detail Screen Title -->
+<p><strong>##DetailTitle##</strong><br><br></p>
+
+<script language="JavaScript">
+  function AddMode() {
+    document.DetailForm.SwitchToAddMode.value = "Yes";
+    document.DetailForm.submit();
+  }
+</script>
+
+<script language="SpeedScript">
+
+  /*--------------------------------------------------------------------
+    Template: detail.html
+
+    Description: Detail Database Screen.
+
+  --------------------------------------------------------------------*/
+
+  DEF VAR search-value   AS CHAR NO-UNDO.
+  DEF VAR Navigate       AS CHAR NO-UNDO.
+  DEF VAR NavRowid       AS CHAR NO-UNDO.
+  DEF VAR LinkRowid      AS CHAR NO-UNDO.
+  DEF VAR i-count        AS INTEGER NO-UNDO.
+  DEF VAR TmpUrl         AS CHAR NO-UNDO.
+  DEF VAR MaintOption    AS CHAR NO-UNDO.
+  DEF VAR DelimiterField AS CHAR NO-UNDO.
+
+  /* Get all the fields from the input */
+  ASSIGN
+    search-value = get-field("search-name":U)
+    Navigate     = get-field("Navigate":U)
+    NavRowid     = get-field("NavRowid":U)
+    LinkRowid    = get-field("LinkRowid":U)
+    MaintOption  = get-field("MaintOption":U).
+
+  IF get-field("SwitchToAddMode":U) eq "Yes" THEN
+    MaintOption = "Add".
+
+  TmpUrl = url-format(?,'search-name,LinkRowid',?).
+  IF INDEX(TmpUrl,"?") > 0
+    THEN DelimiterField = ?.
+    ELSE DelimiterField = "?".
+
+  /* Display "Search" Form. */
+  IF SearchForm THEN DO:
+</script>
+
+<form action="`SelfURL`" method="POST" name="SearchForm">
+    <input type="hidden" name="Navigate" value="Search">
+    <input type="hidden" name="LinkRowid" value="`LinkRowid`">
+    <p><strong>`##SearchLabel##`
+    <input type="text" size="20" name="search-name" value="`html-encode(search-value)`">
+    <input type="submit" name="submit-jumpto" value="Search">
+    </strong></p>
+    <hr>
+</form>
+
+<script language="SpeedScript">
+  END. /* Close of "IF SearchForm THEN DO:" */
+</script>
+
+<form action="`SelfURL`" method="POST" name="DetailForm">
+    <input type="hidden" name="SwitchToAddMode">
+
+<script language="SpeedScript">
+
+  CASE MaintOption:
+    WHEN "Add":U THEN DO:
+      {&OUT} '    <input type="hidden" name="NavRowid" value="Add Mode">~n':U.
+    END.
+    WHEN "Submit":U THEN DO TRANSACTION:
+    END.
+    WHEN "Delete":U THEN DO TRANSACTION:
+    END.
+  END CASE.
+  
+  /* External Table Reference */
+
+</script>
+    <input type="hidden" name="LinkRowid" value="`LinkRowid`">
+<script language="SpeedScript">
+
+  IF MaintOption ne "Add":U THEN DO:   
+    /* Define the Query */
+
+    /* Open the Query */
+
+    IF Navigate ne "":U THEN DO:
+      /* "Search" form posted.  Find the first record that meets the
+         "Search" criteria.  This works correctly if "Search" blank */
+      IF Navigate eq "Search":U THEN DO:
+        GET FIRST Browse-Qry NO-LOCK.
+        IF AVAILABLE ##Query-Table## ##SearchString## THEN DO:
+          DO WHILE AVAILABLE ##Query-Table## ##SearchString##:
+            GET NEXT Browse-Qry NO-LOCK.
+          END.
+          IF NOT AVAILABLE ##Query-Table## THEN
+            {&OUT} '<p>No records found meeting selection criteria.  Repositioning to first record.</p>~n':U.
+        END.
+      END. /* Close of "IF Navigate eq "Search":U THEN DO:" */
+      /* First, Prev, Next, Last navigation selected or no "SearchForm"
+         requested */
+      ELSE DO:
+        CASE Navigate:
+          WHEN "Prev" THEN DO:
+              ELSE
+                GET FIRST Browse-Qry NO-LOCK.
+            END.
+          END.
+          WHEN "Next" THEN DO:
+                IF NOT AVAILABLE ##Query-Table## THEN 
+                  GET LAST Browse-Qry NO-LOCK.
+              END.
+              ELSE
+                GET LAST Browse-Qry NO-LOCK.
+            END.
+          END.
+          WHEN "Last" THEN DO:
+            GET LAST Browse-Qry NO-LOCK.
+          END.
+        END CASE.
+      END. /* Close of "IF Navigate eq "Search":U THEN DO:...ELSE DO:" */
+    END.
+
+    IF NOT AVAILABLE ##Query-Table## THEN
+      GET FIRST Browse-Qry NO-LOCK.
+
+    /* End of Navigation Section */
+
+    IF AVAILABLE ##Query-Table## THEN DO:
+      TmpUrl = TmpUrl + url-field('NavRowid',STRING(ROWID(##Query-Table##)),DelimiterField).
+      IF INDEX(TmpUrl,"?") > 0
+        THEN DelimiterField = ?.
+        ELSE DelimiterField = "?".
+      {&OUT} '    <input type="hidden" name="NavRowid" value="':U + STRING(ROWID(##Query-Table##)) + '">~n':U.
+      /* If more than one table defined in Query, add ROWID here. */
+      /* Update data display values and formats */
+    END.
+    /* No query table available */
+  END. /* Close of "IF MaintOption ne "Add":U THEN DO: */
+
+</script>
+<!-- Display Table Definition -->
+<!-- Output the requested Display Fields --> 
+</table>
+<!-- Update Capabilities -->
+</form>
+<script language="SpeedScript">
+
+    IF NavPanel AND MaintOption ne "Add":U THEN DO: 
+
+</script>
+
+<table border="2">
+    <tr>
+        <td><a
+        href="`TmpUrl%20+%20url-field('Navigate','First',DelimiterField)`"
+        onmouseover="window.status='First';return true"
+        onmouseout="window.status='';return true"><img
+        src="/webspeed/images/first-au.gif" border="0" width="16"
+        height="16"></a></td>
+        <td><a
+        href="`TmpUrl%20+%20url-field('Navigate','Prev',DelimiterField)`"
+        onmouseover="window.status='Previous';return true"
+        onmouseout="window.status='';return true"><img
+        src="/webspeed/images/prev-au.gif" border="0" width="16"
+        height="16"></a></td>
+        <td><a
+        href="`TmpUrl%20+%20url-field('Navigate','Next',DelimiterField)`"
+        onmouseover="window.status='Next';return true"
+        onmouseout="window.status='';return true"><img
+        src="/webspeed/images/next-au.gif" border="0" width="16"
+        height="16"></a></td>
+        <td><a
+        href="`TmpUrl%20+%20url-field('Navigate','Last',DelimiterField)`"
+        onmouseover="window.status='Last';return true"
+        onmouseout="window.status='';return true"><img
+        src="/webspeed/images/last-au.gif" border="0" width="16"
+        height="16"></a></td>
+    </tr>
+</table>
+</center><script language="SpeedScript">
+    END. /* Close of "IF NavPanel THEN DO:" */
+</script>
+</body>
+</html>

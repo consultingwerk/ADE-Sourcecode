@@ -47,7 +47,7 @@
 948.5053 "rycntbplip.p" 0 493 1004874702.09 1003516362 "Container Builder PLIP" "ry/app" "" yes no no no "SRV" yes no no no yes "ANY" "" "" 0 0 948.5053 yes
 949.7692 "PaletteSDB" 0 503.7692 13899.81 1003516362 "Palette Smart Data Browse" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 949.7692 yes
 961.7692 "PaletteSDV" 0 503.7692 13899.81 1003516362 "Palette Smart Data Viewer" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 961.7692 yes
-973.7692 "PaletteSDF" 0 503.7692 13899.81 1003516362 "Palette Smart DataField" "ry/tem" "" no no no no "" no yes yes no yes "" "" "" 0 0 973.7692 yes
+973.7692 "PaletteSDF" 0 503.7692 13899.81 1003516362 "Palette Smart DataField" "ry/tem" "" yes no no no "" no yes yes no yes "" "" "" 0 0 973.7692 yes
 1001.6893 "cachemainv.w" 0 1003600316 1004874707.09 1003516362 "Dynamic Cache Viewer" "ry/obj" "" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 1001.6893 yes
 1003.6893 "cachefoldw" 0 1003498202 1004874710.09 1007500101.09 "Client Cache View Container" "ry/uib" "" no no no no "" yes yes yes no yes "" "" "" 0 0 1003.6893 yes
 1022.6893 "cacheclasv.w" 0 1003600316 1004874707.09 1003516362 "Class Cache Viewer" "ry/obj" "" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 1022.6893 yes
@@ -113,9 +113,20 @@
 2049.7692 "PaletteSmartB2B" 0 503.7692 13899.81 1003516362 "Palette SmartB2B Object" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2049.7692 yes
 2066.7692 "PaletteSmartSender" 0 503.7692 13899.81 1003516362 "Palette SmartSender" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2066.7692 yes
 2076.7692 "PaletteSmartReceiver" 0 503.7692 13899.81 1003516362 "Palette SmartReceiver" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2076.7692 yes
+2089.38 "gsc_object_type.custom_object_type_obj" 0 1005091923.09 3000005456.09 0 "DataField for custom_object_type_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2089.38 yes
 2121.7692 "rydynframewiz" 0 32212.48 13899.81 1003516362 "rydynframewiz" "ry/tem" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 2121.7692 yes
 2122.7692 "afgensbologp" 0 493 1004874676.09 1003516362 "Generate SBO DataLogic Procedure" "af/app" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 2122.7692 yes
 2124.7692 "rytemsbologic" 0 3000001840.09 1004874707.09 1003516362 "Data Logic Procedure Library Template for SBO" "ry/obj" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 2124.7692 yes
+2131.38 "gscotcuslk" 0 1005097658.101 1004874707.09 0 "Custom Class Lookup" "ry/obj" "" no no no no "" no no no no yes "ANY" "" "" 0 0 2131.38 yes
+2352.38 "gsc_data_tag.data_tag_obj" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2352.38 yes
+2372.38 "gsm_tagged_data.tagged_data_obj" 0 1005091923.09 3000005456.09 0 "DataField for tagged_data_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2372.38 yes
+2392.38 "gsc_data_tag.data_tag_code" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_code" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2392.38 yes
+2412.38 "gsm_tagged_data.owning_entity_mnemonic" 0 1005091923.09 3000005456.09 0 "DataField for owning_entity_mnemonic" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2412.38 yes
+2431.38 "gsc_data_tag.data_tag_description" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_description" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2431.38 yes
+2451.38 "gsm_tagged_data.owning_reference" 0 1005091923.09 3000005456.09 0 "DataField for owning_reference" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2451.38 yes
+2476.38 "gsm_tagged_data.data_tag_obj" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2476.38 yes
+2498.38 "gsc_data_tag" 0 36339.48 3000005456.09 0 "Entity object for table gsc_data_tag" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2498.38 yes
+2505.38 "gsm_tagged_data" 0 36339.48 3000005456.09 0 "Entity object for table gsm_tagged_data" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2505.38 yes
 2602.7692 "_ryobjectab" 0 493 3000040739.09 1003516362 "Supports calling code to create _RyObject ""open"" record for AB." "adeuib" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 2602.7692 yes
 2605.7692 "_gendatalog" 0 493 3000040739.09 1003516362 "Generate DataLogic Procedure" "adeuib" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 2605.7692 yes
 2607.7692 "datalogic" 0 493 3000040732.09 1003516362 "datalogic.p" "adm2/template" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 2607.7692 yes
@@ -135,8 +146,6 @@
 3861.19 "gsc_package_dataset.deploy_full_data" 0 1005091923.09 3000005456.09 0 "DataField for deploy_full_data" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 3861.19 no
 3892.19 "gsc_package_dataset.deploy_package_obj" 0 1005091923.09 3000005456.09 0 "DataField for deploy_package_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 3892.19 no
 3923.19 "gsc_package_dataset.package_dataset_obj" 0 1005091923.09 3000005456.09 0 "DataField for package_dataset_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 3923.19 no
-4002.6893 "datafieldv" 0 1003600316 1004874683.09 1003516362 "Entity Data Field Maintenance" "af/obj2" "w" yes no no no "" no no no no yes "ANY" "" "" 0 0 4002.6893 yes
-4147.6893 "datafieldw" 0 1003498200 1004874679.09 1007500101.09 "Datafield Maintenance" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 4147.6893 yes
 4166.6893 "cacheaftr2" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 4166.6893 yes
 4174.6893 "secenqdtlv" 0 1003498162 1004874683.09 0 "Security Enquiry Viewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 3.99 0 4174.6893 yes
 4186.6893 "secenqsuprp" 0 493 1004874676.09 0 "Security Enquiry Viewer super proc" "af/app" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 4186.6893 yes
@@ -146,6 +155,8 @@
 4287.19 "gst_dataset_file.deploy_dataset_obj" 0 1005091923.09 3000005456.09 0 "DataField for deploy_dataset_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 4287.19 no
 4318.19 "gst_dataset_file.loaded_date" 0 1005091923.09 3000005456.09 0 "DataField for loaded_date" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 4318.19 no
 4349.19 "gst_dataset_file.loaded_time" 0 1005091923.09 3000005456.09 0 "DataField for loaded_time" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 4349.19 no
+4401.7692 "rytemstaticlobfield" 0 54840.66 13899.81 0 "" "ry/tem" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 4401.7692 yes
+4403.7692 "PaletteLOB" 0 503.7692 13899.81 1003516362 "Palette Object for LOBs" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 4403.7692 yes
 4712.66 "dopendialog" 0 1003183339 1004874707.09 1003516362 "dopendialog.w" "ry/obj" "w" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 4712.66 yes
 4858.6893 "securenqry" 0 493 1004874676.09 0 "Security Enquiry data extraction" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 4858.6893 yes
 4866.6893 "secenqgrpv" 0 1003498162 1004874683.09 0 "Security Enquiry Group Viewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 3.99 0 4866.6893 yes
@@ -220,81 +231,113 @@
 10071.81 "sbocustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10151.81 yes
 10075.81 "producercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10139.81 yes
 10081.81 "browsercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10097.81 yes
+10091.5498 "ryttDataField.tClassName" 0 1005091923.09 3000005456.09 0 "DataField for tClassName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10091.5498 yes
 10105.81 "containrcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10105.81 yes
+10107.5498 "ryttDataField.tFieldName" 0 1005091923.09 3000005456.09 0 "DataField for tFieldName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10107.5498 yes
 10109.81 "datacustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10109.81 yes
 10121.81 "filtercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10121.81 yes
+10123.5498 "ryttDataField.tInstanceName" 0 1005091923.09 3000005456.09 0 "DataField for tInstanceName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10123.5498 yes
 10125.81 "lookupcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10125.81 yes
 10129.81 "messagingcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10129.81 yes
 10135.81 "panelcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10135.81 yes
+10139.5498 "ryttDataField.tInstanceOrder" 0 1005091923.09 3000005456.09 0 "DataField for tInstanceOrder" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10139.5498 yes
 10141.81 "querycustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10141.81 yes
 10145.81 "routercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10145.81 yes
 10155.81 "selectcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10155.81 yes
+10156.5498 "ryttDataField.tDataType" 0 1005091923.09 3000005456.09 0 "DataField for tDataType" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10156.5498 yes
 10159.81 "smartcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10159.81 yes
 10163.81 "toolbarcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10163.81 yes
 10167.81 "treeviewcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10167.81 yes
 10171.81 "tvcontnrcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10171.81 yes
+10172.5498 "ryttDataField.tFormat" 0 1005091923.09 3000005456.09 0 "DataField for tFormat" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10172.5498 yes
 10175.81 "viewercustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10175.81 yes
 10179.81 "visualcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10179.81 yes
 10183.81 "xmlcustom" 0 493 3000040729.09 0 "" "adm2/custom" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10183.81 yes
 10187.81 "_wizdel" 0 493 3000040731.09 0 "" "adm2/support" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10187.81 yes
+10188.5498 "ryttDataField.tLabel" 0 1005091923.09 3000005456.09 0 "DataField for tLabel" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10188.5498 yes
 10191.81 "b2bd" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10191.81 yes
 10195.81 "consumerd" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10195.81 yes
 10199.81 "db2b" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10199.81 yes
 10203.81 "dconsumer" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10203.81 yes
+10204.5498 "ryttDataField.tColumnLabel" 0 1005091923.09 3000005456.09 0 "DataField for tColumnLabel" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10204.5498 yes
 10207.81 "drouter" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10207.81 yes
 10211.81 "routerd" 0 489 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10211.81 yes
 10215.81 "vb2bdata" 0 491 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10215.81 yes
 10219.81 "brouter" 0 1003183454 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10219.81 yes
+10220.5498 "ryttDataField.tDefaultValue" 0 1005091923.09 3000005456.09 0 "DataField for tDefaultValue" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10220.5498 yes
 10223.81 "vb2b" 0 1003498165 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10223.81 yes
 10227.81 "vconsumer" 0 1003498165 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10227.81 yes
 10231.81 "_wizbkgr" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10231.81 yes
 10235.81 "_wizdfld" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10235.81 yes
+10236.5498 "ryttDataField.tProductModuleObj" 0 1005091923.09 3000005456.09 0 "DataField for tProductModuleObj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10236.5498 yes
 10239.81 "_wizdo" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10239.81 yes
 10243.81 "_wizds" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10243.81 yes
 10247.81 "_wizend" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10247.81 yes
 10251.81 "_wizetbl" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10251.81 yes
+10253.5498 "ryttDataField.tIncludeListView" 0 1005091923.09 3000005456.09 0 "DataField for tIncludeListView" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10253.5498 yes
 10255.81 "_wizfld" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10255.81 yes
 10259.81 "_wizhref" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10259.81 yes
 10263.81 "_wizhtml" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10263.81 yes
 10267.81 "_wizlog" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10267.81 yes
+10271.5498 "ryttDataField.tIncludeView" 0 1005091923.09 3000005456.09 0 "DataField for tIncludeView" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10271.5498 yes
 10271.81 "_wizmap" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10271.81 yes
 10275.81 "_wizntro" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10275.81 yes
 10279.81 "_wizqry" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10279.81 yes
 10283.81 "_wizstyl" 0 492 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10283.81 yes
+10289.5498 "ryttDataField.tSchemaFormat" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaFormat" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10289.5498 yes
 10292.81 "callprocp" 0 493 3000040732.09 0 "" "adm2/template" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10292.81 yes
 10302.81 "dynbrow" 0 243156 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10302.81 yes
+10305.5498 "ryttDataField.tSchemaLabel" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaLabel" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10305.5498 yes
 10306.81 "cntnrdlg" 0 489 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10306.81 yes
 10310.81 "dynfold" 0 490 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10310.81 yes
 10314.81 "cntnrfrm" 0 243157 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10314.81 yes
 10320.81 "cntnrsimpl" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10320.81 yes
+10321.5498 "ryttDataField.tSchemaColumnLabel" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaColumnLabel" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10321.5498 yes
 10324.81 "cntnrwin" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10324.81 yes
 10328.81 "dynmenc" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10328.81 yes
 10332.81 "dynobjc" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10332.81 yes
 10336.81 "receiver" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10336.81 yes
+10337.5498 "ryttDataField.tSchemaInitial" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaInitial" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10337.5498 yes
 10342.81 "sender" 0 491 3000040732.09 0 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10342.81 yes
+10353.5498 "ryttDataField.tSchemaHelp" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaHelp" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10353.5498 yes
+10369.5498 "ryttDataField.tSchemaViewAs" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaViewAs" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10369.5498 yes
+10385.5498 "ryttDataField.tSchemaValExp" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaValExp" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10385.5498 yes
 10388.81 "browsed" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10454.81 yes
 10390.81 "datad" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10390.81 yes
 10394.81 "fieldd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10394.81 yes
 10398.81 "filterd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10398.81 yes
+10401.5498 "ryttDataField.tSchemaValMsg" 0 1005091923.09 3000005456.09 0 "DataField for tSchemaValMsg" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10401.5498 yes
 10402.81 "folderd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10402.81 yes
 10406.81 "n-paneld" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10406.81 yes
 10410.81 "producerd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10410.81 yes
 10414.81 "sbod" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10414.81 yes
 10418.81 "selectd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10418.81 yes
+10419.5498 "ryttDataField" 0 36339.48 3000005456.09 0 "Entity object for table ryttDataField" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10419.5498 yes
 10422.81 "senderd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10422.81 yes
 10426.81 "toold" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10426.81 yes
 10430.81 "treeviewd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10430.81 yes
 10434.81 "u-paneld" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10434.81 yes
 10438.81 "visuald" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10438.81 yes
 10442.81 "_so-attr" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10442.81 yes
+10444.5498 "rydfdatao" 0 1003183339 1004874707.09 0 "Datafield maintenance SDO" "ry/obj" "w" yes no no no "SRV,CLN" no no no no no "ANY" "" "" 0 0 10444.5498 yes
 10446.81 "_so-info" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10446.81 yes
+10447.5498 "rydfnameb" 0 1003498159 1004874707.09 0 "Dynamic Browse for ryttDataField" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 10444.5498 0 10447.5498 yes
 10450.81 "_wizard" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10450.81 yes
+10455.5498 "rydfdatalog" 0 3000001840.09 1004874707.09 0 "Datafield SDO data logic procedure" "ry/obj" "p" yes no no no "SRV,CLN" no no no no no "ANY" "" "" 0 0 10455.5498 yes
+10458.5498 "rydfviewv" 0 1003498162 1004874707.09 0 "Dynamic Viewer for ryttDataField" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 10444.5498 0 10458.5498 yes
 10461.81 "dialog" 0 10386.81 10458.81 1007500101.09 "" "template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10461.81 yes
 10465.81 "window" 0 492 10458.81 1007500101.09 "" "template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10465.81 yes
 10467.81 "tty-wind" 0 492 10458.81 1007500101.09 "" "template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10467.81 yes
 10469.81 "tty-dial" 0 10386.81 10458.81 1007500101.09 "" "template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 10469.81 yes
 10471.81 "procedur" 0 493 10458.81 1007500101.09 "" "template" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 10471.81 yes
+10479.5498 "rydfviewvsupr" 0 493 1004874707.09 0 "Datafield viewer custom super proc" "ry/obj" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 10500.5498 yes
+10537.5498 "ryttDataField.tProductModule" 0 1005091923.09 3000005456.09 0 "DataField for tProductModule" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10537.5498 yes
+10659.5498 "ryttDataField.tEditMaster" 0 1005091923.09 3000005456.09 0 "DataField for tEditMaster" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10659.5498 yes
+10900.5498 "ryttDataField.tOrigIncludeView" 0 1005091923.09 3000005456.09 0 "DataField for tOrigIncludeView" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10900.5498 yes
+10918.5498 "ryttDataField.tOrigIncludeListView" 0 1005091923.09 3000005456.09 0 "DataField for tOrigIncludeListView" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 10918.5498 yes
+11104.5498 "lkDataField" 0 1005097658.101 1004874707.09 0 "Datafield lookup" "ry/obj" "" no no no no "" no no no no yes "ANY" "" "" 0 0 11104.5498 yes
 11304.24 "ryrisrvrp.p" 0 493 1004874702.09 1003516362 "Referential Integrity Manager" "ry/app" "" yes no no yes "SRV" no no no no yes "ANY" "" "" 0 0 11304.24 yes
+12048.19 "gsc_logical_service.connect_at_startup" 0 1005091923.09 3000005456.09 0 "DataField for connect_at_startup" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 12048.19 yes
 12142.81 "dynbrowserd" 0 1003183339 3000040731.09 0 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 12142.81 yes
 12146.81 "viewerd" 0 10386.81 3000040731.09 1007500101.09 "" "adm2/support" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 12146.81 yes
 12150.81 "dyntvcontnr" 0 1003600316 3000040732.09 1007500101.09 "" "adm2/template" "w" yes no no no "" no no no no no "ANY" "" "" 0 0 12150.81 yes
@@ -354,7 +397,9 @@
 13432.81 "gsm_node" 0 36339.48 3000005456.09 0 "Entity object for table gsm_node" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13432.81 yes
 13434.81 "gsm_object_menu_structure" 0 36339.48 3000005456.09 0 "Entity object for table gsm_object_menu_structure" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13434.81 yes
 13436.81 "gsm_physical_service" 0 36339.48 3000005456.09 0 "Entity object for table gsm_physical_service" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13436.81 yes
+13438.57221 "afwebconmgrp" 0 493 1004874676.09 0 "WebServices Connection Manager" "af/app" "p" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 13438.57221 yes
 13438.81 "gsm_profile" 0 36339.48 3000005456.09 0 "Entity object for table gsm_profile" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13438.81 yes
+13440.57221 "gsmpywebdfv.w" 0 1003600284 1004874683.09 0 "WebService maintenance Object" "af/obj2" "" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 13440.57221 yes
 13440.81 "gsm_profile_alpha_options" 0 36339.48 3000005456.09 0 "Entity object for table gsm_profile_alpha_options" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13440.81 yes
 13442.81 "gsm_profile_alpha_value" 0 36339.48 3000005456.09 0 "Entity object for table gsm_profile_alpha_value" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13442.81 yes
 13444.81 "gsm_profile_data" 0 36339.48 3000005456.09 0 "Entity object for table gsm_profile_data" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13444.81 yes
@@ -411,6 +456,8 @@
 13548.81 "rym_customization" 0 36339.48 3000005456.09 0 "Entity object for table rym_customization" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13548.81 yes
 13550.81 "rym_data_version" 0 36339.48 3000005456.09 0 "Entity object for table rym_data_version" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13550.81 yes
 13554.81 "ryt_dbupdate_status" 0 36339.48 3000005456.09 0 "Entity object for table ryt_dbupdate_status" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 13554.81 yes
+13704.5498 "rydfobjcw" 0 1003498202 1004874710.09 1007500101.09 "Datafield maint (single)" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 13704.5498 yes
+13713.5498 "rydfwsupr" 0 493 1004874710.09 0 "Datafield maint container super" "ry/uib" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 13713.5498 yes
 13914.81 "rytemstaticdcsdf" 0 1003600284 13899.81 1007500101.09 "Template/Palette Static Dec SDField" "ry/tem" "w" yes no yes no "" no no yes no no "" "" "" 0 0 13914.81 yes
 13921.81 "rytemstaticfcsdf" 0 1003600284 13899.81 1007500101.09 "Template/Palette Static Filtered SD" "ry/tem" "w" yes no yes no "" no no yes no no "" "" "" 0 0 13921.81 yes
 13933.81 "rytemstaticmcsdf" 0 1003600284 13899.81 1007500101.09 "Template/Palette Static Master SDF" "ry/tem" "w" yes no yes no "" no no yes no no "" "" "" 0 0 13933.81 yes
@@ -475,7 +522,6 @@
 17055.0766 "gscnalogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsc_nationality" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 17044.0766 0 17055.0766 yes
 17057.0766 "gscnafullb" 0 1003498159 1004874683.09 0 "Dynamic browse for gsc_nationality" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 17044.0766 0 17057.0766 yes
 17060.0766 "gscnaviewv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsc_nationality" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 17044.0766 0 17060.0766 yes
-17066.5053 "rycslfoldw" 0 1003498200 1004874710.09 1007500101.09 "Supported Link Folder Window" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 17066.5053 yes
 17075.0766 "gscnaobjcw" 0 1003498202 1004874679.09 1007500101.09 "Nationality Control" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 17075.0766 yes
 17082.0766 "gsmcyfullo" 0 18007.409 1004874683.09 0 "DynSDO for gsm_country" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 17082.0766 yes
 17093.0766 "gsmcylogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_country" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 17082.0766 0 17093.0766 yes
@@ -515,7 +561,7 @@
 25830.409 "rycstlow" 0 1003498202 1004874707.09 1007500101.09 "Custom Layout Specification Window" "ry/obj" "" no no no no "" no yes yes no yes "" "" "" 0 0 25830.409 yes
 25901.409 "rycusmodw" 0 491 1004874708.09 1003516362 "Presents users with a resizeable window containing 2 selection lists," "ry/prc" "w" yes no no no "CLN" no no yes no yes "ANY" "" "" 0 0 25901.409 yes
 28555.0766 "gsmucful3o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_user_category" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 28555.0766 yes
-28567.0766 "gsmuclog3p" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_user_category" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 28555.0766 0 28567.0766 yes
+28567.0766 "gsmuclog3p" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_user_category" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 28555.0766 0 28567.0766 yes
 28569.0766 "gsmucful3b" 0 1003498159 1004874683.09 0 "Dynamic browse for gsm_user_category" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 28555.0766 0 28569.0766 yes
 28573.0766 "gsmucvie3v" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_user_category" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 28555.0766 0 28573.0766 yes
 28594.0766 "gsmucobj3w" 0 1003498202 1004874679.09 1007500101.09 "User Category Control" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 28594.0766 yes
@@ -545,6 +591,8 @@
 50520.9875 "dcDflProdMod" 0 1005111020.101 1004874683.09 0 "Product Module Data Fields" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 50520.9875 yes
 50615.9875 "dcSDBProdMod" 0 1005111020.101 1004874683.09 0 "Product Module SDB" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 50615.9875 yes
 50633.9875 "dcSDVProdMod" 0 1005111020.101 1004874683.09 0 "Product Module SDV" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 50633.9875 yes
+54843.66 "lobfield.p" 0 493 3000031144.09 1007500101.09 "Lobfield class super procedure" "adm2" "" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 54843.66 yes
+54845.66 "lobfield" 0 54840.66 3000040732.09 1007500101.09 "Template for SmartLOBField" "adm2/template" "" yes no no no "" no no yes no yes "ANY" "" "" 0 0 54845.66 no
 63528.48 "rygenomngp" 0 493 1004874702.09 0 "Design Manager: Object Gen Procedures" "ry/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 63528.48 yes
 63530.48 "rydesgecfp" 0 493 1004874702.09 0 "AppServer pass-through wrapper for generateCalculatedField()" "ry/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 63530.48 yes
 63532.48 "rydesgdlop" 0 493 1004874702.09 0 "AppServer pass-through wrapper for generateDataLogicObject()" "ry/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 63532.48 yes
@@ -570,33 +618,99 @@
 90312.9875 "rysdfchseb" 0 1003498159 1004874707.09 0 "Choose Existing SDF Browser" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 90325.9875 0 90312.9875 yes
 90325.9875 "rycsofullo" 0 18007.409 1004874707.09 0 "DynSDO for ryc_smartobject" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 0 0 90325.9875 yes
 90344.9875 "rysdfchsep" 0 493 1004874708.09 1003516362 "Choose Existing SDF Browser Super Proc" "ry/prc" "p" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 90344.9875 yes
+94974.48 "classviewsupr" 0 493 1004874708.09 0 "Custom Super Procedure for classviewsupr.p" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 95700.48 yes
+95545.48 "classtreewsuper" 0 493 1004874708.09 1007500101.09 "" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 95545.48 yes
+95812.48 "ryclsfoldw" 0 1003498200 1004874710.09 1007500101.09 "Class Maintenance" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 95812.48 yes
+95876.48 "rycatcls1v" 0 1003498162 1004874707.09 0 "Attribute Definition Main Viewer (Class)" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 1003571922 0 95876.48 yes
+95914.48 "rycatcls2v" 0 1003498162 1004874707.09 0 "Attribute Group Advanced Viewer" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 1003571922 0 95914.48 yes
+96175.48 "rycatclsfr" 0 32212.48 1004874710.09 1007500101.09 "Attribute Definition Maintenance Fr" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 96175.48 yes
+97589.48 "ryclspropo" 0 1003183339 1004874707.09 0 "" "ry/obj" "w" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 97589.48 yes
+97592.48 "ryclspropb" 0 1003498159 1004874707.09 0 "CLass Properties Upd Browser" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 97589.48 0 97592.48 yes
+97598.48 "ryclspropbsupr" 0 493 1004874708.09 0 "Custom Super Procedure for ryclspropbsupr.p" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 97598.48 yes
+97619.48 "classtree2supr" 0 493 1004874708.09 0 "" "ry/prc" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 97619.48 yes
+97704.48 "rycavclswo" 0 18007.409 1004874707.09 0 "Attribute Value Class Where Used SDO" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 0 0 97704.48 yes
+97721.48 "rycavclswologcp" 0 3000001840.09 1004874707.09 0 "Logic Procedure for ryc_attribute,ryc_attribute_value,gsc_object_type" "ry/obj" "p" yes no no no "" no no no no no "ANY" "" "" 97704.48 0 97721.48 yes
+97728.48 "rycavclswb" 0 1003498159 1004874707.09 0 "Class Attribute Where Used Browser" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 97704.48 0 97728.48 yes
+97788.48 "ttSupportedLink.ClassName" 0 1005091923.09 3000005456.09 0 "DataField for ClassName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97788.48 yes
+97804.48 "ttSupportedLink.LinkName" 0 1005091923.09 3000005456.09 0 "DataField for LinkName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97804.48 yes
+97820.48 "ttSupportedLink.IsLinkSource" 0 1005091923.09 3000005456.09 0 "DataField for IsLinkSource" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97820.48 yes
+97839.48 "ttSupportedLink.IsLinkTarget" 0 1005091923.09 3000005456.09 0 "DataField for IsLinkTarget" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97839.48 yes
+97877.48 "ttSupportedLink.WhereStored" 0 1005091923.09 3000005456.09 0 "DataField for WhereStored" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97877.48 yes
+97895.48 "ttSupportedLink" 0 36339.48 3000005456.09 0 "Entity object for table ttSupportedLink" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97895.48 yes
+97920.48 "ryclslinko" 0 1003183339 1004874707.09 0 "" "ry/obj" "w" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 98406.48 yes
+97935.48 "ryclslinkologcp" 0 3000001840.09 1004874707.09 0 "Logic Procedure for ttSupportedLink" "ry/obj" "p" yes no no no "" no no no no no "ANY" "" "" 97920.48 0 97935.48 yes
+97937.48 "ttUiEvent.tClassName" 0 1005091923.09 3000005456.09 0 "DataField for tClassName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97937.48 yes
+97953.48 "ttUiEvent.tSmartObjectObj" 0 1005091923.09 3000005456.09 0 "DataField for tSmartObjectObj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97953.48 yes
+97971.48 "ttUiEvent.tObjectInstanceObj" 0 1005091923.09 3000005456.09 0 "DataField for tObjectInstanceObj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97971.48 yes
+97989.48 "ttUiEvent.tEventName" 0 1005091923.09 3000005456.09 0 "DataField for tEventName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 97989.48 yes
+98005.48 "ttUiEvent.tActionType" 0 1005091923.09 3000005456.09 0 "DataField for tActionType" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98005.48 yes
+98021.48 "ttUiEvent.tActionTarget" 0 1005091923.09 3000005456.09 0 "DataField for tActionTarget" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98021.48 yes
+98037.48 "ttUiEvent.tEventAction" 0 1005091923.09 3000005456.09 0 "DataField for tEventAction" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98037.48 yes
+98053.48 "ttUiEvent.tEventParameter" 0 1005091923.09 3000005456.09 0 "DataField for tEventParameter" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98053.48 yes
+98069.48 "ttUiEvent.tEventDisabled" 0 1005091923.09 3000005456.09 0 "DataField for tEventDisabled" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98069.48 yes
+98088.48 "ttUiEvent.tWhereStored" 0 1005091923.09 3000005456.09 0 "DataField for tWhereStored" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98088.48 yes
+98104.48 "ttUiEvent.tRenderTypeObj" 0 1005091923.09 3000005456.09 0 "DataField for tRenderTypeObj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98104.48 yes
+98124.48 "ttUiEvent" 0 36339.48 3000005456.09 0 "Entity object for table ttUiEvent" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98124.48 yes
+98137.48 "ttClassAttribute.tClassName" 0 1005091923.09 3000005456.09 0 "DataField for tClassName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98137.48 yes
+98153.48 "ttClassAttribute.tAttributeLabel" 0 1005091923.09 3000005456.09 0 "DataField for tAttributeLabel" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98153.48 yes
+98169.48 "ttClassAttribute.tNarrative" 0 1005091923.09 3000005456.09 0 "DataField for tNarrative" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98169.48 yes
+98185.48 "ttClassAttribute.tLookupType" 0 1005091923.09 3000005456.09 0 "DataField for tLookupType" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98185.48 yes
+98201.48 "ttClassAttribute.tLookupValue" 0 1005091923.09 3000005456.09 0 "DataField for tLookupValue" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98201.48 yes
+98217.48 "ttClassAttribute.tDesignOnly" 0 1005091923.09 3000005456.09 0 "DataField for tDesignOnly" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98217.48 yes
+98236.48 "ttClassAttribute.tRuntimeOnly" 0 1005091923.09 3000005456.09 0 "DataField for tRuntimeOnly" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98236.48 yes
+98255.48 "ttClassAttribute.tGroupName" 0 1005091923.09 3000005456.09 0 "DataField for tGroupName" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98255.48 yes
+98271.48 "ttClassAttribute.tGroupNarrative" 0 1005091923.09 3000005456.09 0 "DataField for tGroupNarrative" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98271.48 yes
+98287.48 "ttClassAttribute.tDataType" 0 1005091923.09 3000005456.09 0 "DataField for tDataType" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98287.48 yes
+98305.48 "ttClassAttribute.tAttributeValue" 0 1005091923.09 3000005456.09 0 "DataField ttClassAttribute.tAttributeValue" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98305.48 yes
+98321.48 "ttClassAttribute.tWhereConstant" 0 1005091923.09 3000005456.09 0 "DataField for tWhereConstant" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98321.48 yes
+98337.48 "ttClassAttribute.tWhereStored" 0 1005091923.09 3000005456.09 0 "DataField for tWhereStored" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98337.48 yes
+98353.48 "ttClassAttribute.tRenderTypeObj" 0 1005091923.09 3000005456.09 0 "DataField for tRenderTypeObj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98353.48 yes
+98373.48 "ttClassAttribute" 0 36339.48 3000005456.09 0 "Entity object for table ttClassAttribute" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98373.48 yes
+98389.48 "ryclsevnto" 0 1003183339 1004874707.09 0 "" "ry/obj" "w" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 98409.48 yes
+98404.48 "ryclsevntologcp" 0 3000001840.09 1004874707.09 0 "Logic Procedure for ttUiEvent" "ry/obj" "p" yes no no no "" no no no no no "ANY" "" "" 98389.48 0 98404.48 yes
+98459.48 "ryclspropologcp" 0 3000001840.09 1004874707.09 0 "Class Properties SDO Logic Procedure" "ry/obj" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 98459.48 yes
+98461.48 "ryclslinkb" 0 1003498159 1004874707.09 0 "Class Supported Link Browser" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 97920.48 0 98461.48 yes
+98467.48 "ryclslinkbsupr" 0 493 1004874708.09 0 "Custom Super Procedure for ryclslinkbsupr.p" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 98467.48 yes
+98485.48 "ryclsevntb" 0 1003498159 1004874707.09 0 "Class Ui Event Browser" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 98389.48 0 98485.48 yes
+98492.48 "ryclsevntbsupr" 0 493 1004874708.09 0 "" "ry/prc" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 98492.48 yes
+98504.48 "rycstclsfw" 0 32212.48 1004874710.09 1007500101.09 "Smartlink Type Frame (Class)" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 98504.48 yes
+98576.48 "ttSupportedLink.DeactivateOnHide" 0 1005091923.09 3000005456.09 0 "DataField for DeactivateOnHide" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 98576.48 yes
+98628.48 "ryclsfoldwsupr" 0 493 1004874708.09 0 "Class Folder Super Procedure" "ry/prc" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 98628.48 yes
+98715.48 "rycatcls2vsupr" 0 493 1004874708.09 0 "" "ry/prc" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 98715.48 yes
+98738.48 "ryclsprefw" 0 1003498200 1004874710.09 1007500101.09 "Class User Preferences Window" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 98738.48 yes
+98754.48 "ryclsprefv" 0 1003600316 1004874707.09 0 "" "ry/obj" "w" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 98754.48 yes
+98762.48 "ryclsprefvsupr" 0 493 1004874708.09 0 "Class User Prefs Viewer Super Proc" "ry/prc" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 98762.48 yes
+99838.48 "stringValue" 0 17917.66 1004874707.09 0 "CalculatedField stringValue" "ry/obj" "" yes no no no "" no no no no no "ANY" "" "" 0 0 99838.48 no
+99844.48 "rycatcls3v" 0 1003498162 1004874707.09 0 "Class Attribute (Lookup) Viewer" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 1003571922 0 99844.48 yes
+99847.48 "rycatcls3vsupr" 0 493 1004874708.09 0 "Custom Super Proc for rycatcls3v" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 99849.48 yes
+99903.48 "rycatcmbc" 0 1005111020.101 1004874707.09 0 "Attribute Group Combo" "ry/obj" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 99903.48 yes
 100369.48 "rydynsdfcp" 0 493 1004874702.09 1003516362 "Dynamics Field Class Object Proc" "ry/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 100369.48 yes
 122173.9875 "lkUserGroup" 0 1005097658.101 1004874683.09 0 "Lookup Users or Group - Security" "af/obj2" "" no no no no "" no no no no yes "ANY" "" "" 0 0 122173.9875 yes
 122218.9875 "CbLoginCompany" 0 1005111020.101 1004874683.09 0 "Login Company Combo - Security" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 122218.9875 yes
 122237.9875 "sectpviewv" 0 1003498162 1004874683.09 0 "Security Header Viewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 3.99 0 122237.9875 yes
-122285.9875 "sectpviewvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for sectpviewvsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 122285.9875 yes
+122285.9875 "sectpviewvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for sectpviewvsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 122285.9875 yes
 122289.9875 "secacfoldw" 0 1003498202 1004874679.09 1007500101.09 "Security Allocation Folder" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 122289.9875 yes
 122423.9875 "secacselbv" 0 1003498162 1004874683.09 0 "Security - Actions - Allocation Viewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 3.99 0 122423.9875 yes
-122464.9875 "secacselbvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for secacselbvsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 122464.9875 yes
+122464.9875 "secacselbvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for secacselbvsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 122464.9875 yes
 122510.9875 "secgetdata" 0 493 1004874676.09 1003516362 "Get Security Data PLIP" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 122510.9875 yes
 122625.9875 "secfilterv" 0 1003498162 1004874683.09 0 "Security Filter Viewer - Dynamic" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 3.99 0 122625.9875 yes
-122627.9875 "secfiltervsupr" 0 493 1004874683.09 0 "Custom Super Procedure for secfiltervsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 122627.9875 yes
+122627.9875 "secfiltervsupr" 0 493 1004874683.09 0 "Custom Super Procedure for secfiltervsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 122627.9875 yes
 123313.9875 "SecEntityMnemonicLkup" 0 1005097658.101 1004874683.09 1005097657.101 "Security Entity Mnemonic Lookup" "af/obj2" "" no no no no "" no no no no yes "ANY" "" "" 0 0 123313.9875 yes
 123406.9875 "securtreew" 0 1005097659.101 1004874679.09 1005097657.101 "Security Control Treeview" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 123406.9875 yes
 123421.9875 "secacsuprp" 0 493 1004874683.09 1003516362 "Security Allocation Folder Super Proc" "af/obj2" "p" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 123421.9875 yes
 123508.9875 "gscscful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsc_security_control" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 123508.9875 yes
-123519.9875 "gscsclogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsc_security_control" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 123508.9875 0 123519.9875 yes
+123519.9875 "gscsclogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsc_security_control" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 123508.9875 0 123519.9875 yes
 123521.9875 "gscscdynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsc_security_control" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 123508.9875 0 123521.9875 yes
 123641.9875 "cbSCMTool" 0 1005111020.101 1004874683.09 0 "SCM Tool Combo - Security Control" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 123641.9875 yes
 123745.9875 "gsmsesuprp" 0 493 1004874683.09 0 "Security Control Viewer Super Procedure" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 123745.9875 yes
 123768.9875 "gsmlgful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_login_company" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 123768.9875 yes
-123779.9875 "gsmlglogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_login_company" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 123768.9875 0 123779.9875 yes
+123779.9875 "gsmlglogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_login_company" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 123768.9875 0 123779.9875 yes
 123781.9875 "gsmlgdynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_login_company" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 123768.9875 0 123781.9875 yes
 123813.9875 "gsmlgfoldw" 0 1003498202 1004874679.09 1007500101.09 "Login Company Folder Window" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 123813.9875 yes
-123858.9875 "gsmtologcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_token" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 123935.9875 0 123858.9875 yes
+123858.9875 "gsmtologcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_token" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 123935.9875 0 123858.9875 yes
 123860.9875 "gsmtodynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_token" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 123860.9875 yes
 123888.9875 "gsmssful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_security_structure" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 123888.9875 yes
-123899.9875 "gsmsslogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_security_structure" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 123888.9875 0 123899.9875 yes
+123899.9875 "gsmsslogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_security_structure" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 123888.9875 0 123899.9875 yes
 123901.9875 "gsmssdynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_security_structure" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 123888.9875 0 123901.9875 yes
 123935.9875 "gsmtoful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_token" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 123935.9875 yes
 123946.9875 "gsmtofoldw" 0 1003498200 1004874679.09 1007500101.09 "Action Folder Window" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 123946.9875 yes
@@ -606,22 +720,22 @@
 124048.9875 "lkInstanceAttrSecStruc" 0 1005097658.101 1004874683.09 0 "Lookup Instance Attribute - GSMSS" "af/obj2" "" no no no no "" no no no no yes "ANY" "" "" 0 0 124048.9875 yes
 124087.9875 "gsmsssuprp" 0 493 1004874683.09 0 "Security Structure Super Procedure" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 124087.9875 yes
 124114.9875 "gsmffful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_field" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 124114.9875 yes
-124125.9875 "gsmfflogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_field" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 124114.9875 0 124125.9875 yes
+124125.9875 "gsmfflogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_field" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 124114.9875 0 124125.9875 yes
 124127.9875 "gsmffdynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_field" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124114.9875 0 124127.9875 yes
 124155.9875 "gsmfffoldw" 0 1003498200 1004874679.09 1007500101.09 "Field Security Folder Window" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 124155.9875 yes
 124240.9875 "gsmffsuprp" 0 493 1004874683.09 0 "Field Security Super Procedure" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 124240.9875 yes
 124249.9875 "gsmraful2o" 0 18007.409 1004874683.09 0 "DynSDO for gsm_range" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 124249.9875 yes
-124260.9875 "gsmralogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_range" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 124249.9875 0 124260.9875 yes
+124260.9875 "gsmralogcp" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_range" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 124249.9875 0 124260.9875 yes
 124262.9875 "gsmradynv" 0 1003498162 1004874683.09 0 "Dynamic viewer for gsm_range" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124249.9875 0 124262.9875 yes
 124290.9875 "gsmrafoldw" 0 1003498200 1004874679.09 1007500101.09 "Data Range Security Folder Window" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 124290.9875 yes
-124354.9875 "gsmuslog2p" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_user" "af/obj2/" "p" yes no no no "" no no no no no "ANY" "" "" 124343.9875 0 124354.9875 yes
+124354.9875 "gsmuslog2p" 0 3000001840.09 1004874683.09 0 "Logic Procedure for gsm_user" "af/obj2/" "p" yes no no no "CLN" no no no no no "ANY" "" "" 124343.9875 0 124354.9875 yes
 124356.9875 "gsmusgrplb" 0 1003498159 1004874683.09 1003516362 "Dynamic browse for gsm_user" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 125488.9875 0 124356.9875 yes
 124362.9875 "grpmtviewv" 0 1003498162 1004874683.09 0 "Security Group SmartDataViewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 125488.9875 0 124362.9875 yes
 124388.9875 "grpmtfoldw" 0 1003498200 1004874679.09 1007500101.09 "Group Maintenance Folder Window" "af/cod2" "" no no no no "" no yes yes no yes "" "" "" 0 0 124388.9875 yes
 124447.9875 "grpusrviwv" 0 1003498162 1004874683.09 0 "Security Group User Allocations" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124343.9875 0 124447.9875 yes
-124474.9875 "grpusrsupr" 0 493 1004874683.09 0 "Custom Super Procedure for grpusrsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 124474.9875 yes
+124474.9875 "grpusrsupr" 0 493 1004874683.09 0 "Custom Super Procedure for grpusrsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 124474.9875 yes
 124594.9875 "usrgrpviwv" 0 1003498162 1004874683.09 0 "User Security Group Allocations" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 124594.9875 yes
-124678.9875 "usrgrpviwvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for usrgrpviwvsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 124678.9875 yes
+124678.9875 "usrgrpviwvsupr" 0 493 1004874683.09 0 "Custom Super Procedure for usrgrpviwvsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 124678.9875 yes
 124766.9875 "lkBasedOnProfile" 0 1005097658.101 1004874683.09 0 "" "af/obj2" "" no no no no "" no no no no yes "ANY" "" "" 0 0 124766.9875 yes
 124790.9875 "cbUserCategory" 0 1005111020.101 1004874683.09 0 "" "af/obj2" "" no no no no "" no no yes no yes "ANY" "" "" 0 0 124790.9875 yes
 124807.9875 "gsmusdyno" 0 18007.409 1004874683.09 0 "Dynamic DataObject from gsmusdyno" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 124807.9875 yes
@@ -635,11 +749,11 @@
 124857.9875 "oldPasswordExpiryDate" 0 17917.66 1004874683.09 0 "Calculated field oldPasswordExpiryDate" "af/obj2" "" yes no no no "" no no no no no "ANY" "" "" 0 0 124857.9875 no
 124862.9875 "gsmusdyn1v" 0 1003498162 1004874683.09 0 "User Maintenance - Detail viewer" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124807.9875 0 124966.9875 yes
 124959.9875 "gsmussupr" 0 493 1004874683.09 0 "Custom Super Procedure for gsmussupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 124959.9875 yes
-125064.9875 "gsmussupr1" 0 493 1004874683.09 0 "Custom Super Procedure for gsmussupr1.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 125064.9875 yes
+125064.9875 "gsmussupr1" 0 493 1004874683.09 0 "Custom Super Procedure for gsmussupr1.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 125064.9875 yes
 125066.9875 "lkLoginCompany" 0 1005097658.101 1004874683.09 0 "Dynamic Lookup" "af/obj2" "" no no no no "" no no no no yes "ANY" "" "" 0 0 125066.9875 yes
 125136.9875 "gsmusdyn2v" 0 1003498162 1004874683.09 0 "User Maintenance - Other Details" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124807.9875 0 125136.9875 yes
 125328.9875 "grpcomdynv" 0 1003498162 1004874683.09 0 "Group to Company Allocation" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 124807.9875 0 125328.9875 yes
-125330.9875 "grpcomsupr" 0 493 1004874683.09 0 "Custom Super Procedure for grpcomsupr.p" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 125330.9875 yes
+125330.9875 "grpcomsupr" 0 493 1004874683.09 0 "Custom Super Procedure for grpcomsupr.p" "af/obj2" "p" yes no no no "CLN" no no no no no "ANY" "" "" 0 0 125330.9875 yes
 125488.9875 "secgrpfullo" 0 18007.409 1004874683.09 0 "DynSDO for gsm_user" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 0 0 125488.9875 yes
 131770.9875 "gsmndvie2v" 0 1003498162 1004874683.09 0 "Node Control Dynamic Viewer No 2" "af/obj2" "" no no no no "" no no no no no "ANY" "" "" 1005096014.101 0 131770.9875 yes
 131821.9875 "gsmndvsup2" 0 493 1004874683.09 0 "Custom Super Procedure for gsmnd" "af/obj2" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 131821.9875 yes
@@ -813,7 +927,6 @@
 1000708996.09 "SimpleToolbar" 0 1003498168 1004874707.09 0 "SimpleToolbar" "ry/obj" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1000708996.09 yes
 1000709041.09 "TopToolOkCancelNoNav" 0 1003498168 1004874707.09 0 "TopToolOkCancelNoNav" "ry/obj" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1000709041.09 yes
 1003183706 "rydyncontw.w" 0 491 1004874710.09 0 "Dynamic Object Controller" "ry/uib" "" yes yes no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003183706 yes
-1003464283 "rycstobjcw.w" 0 491 1004874710.09 0 "rycst Object Controller" "ry/uib" "" yes no no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003464283 yes
 1003465720 "rydynbrowb.w" 0 1003183454 1004874707.09 0 "Generic Dynamic SDB #2" "ry/obj" "" yes yes no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003465720 yes
 1003500211 "afprogrunw.w" 0 492 1004874679.09 0 "ICF Protool Container Launch" "af/cod2" "" yes no no yes "CLN" yes no no no yes "ANY" "" "" 0 0 1003500211 yes
 1003500212 "aftemlognw.w" 0 492 1004874679.09 0 "ICF Login Window (no db connection)" "af/cod2" "" yes no no yes "CLN" no no no no yes "ANY" "" "" 0 0 1003500212 yes
@@ -836,7 +949,6 @@
 1003592236 "rysttbconw.w" 0 491 1004874710.09 0 "Template ICF SmartWindow Template" "ry/uib" "" yes no no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003592236 yes
 1003592237 "rysttbfrmw.w" 0 491 1004874710.09 0 "rysttbfrmw.w" "ry/uib" "" yes no no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003592237 yes
 1003599905 "rywizmencw" 0 1003554179 1004874710.09 1003501078 "Development Menu" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1003599905 yes
-1003619188 "rycsofeldw.w" 0 491 1004874710.09 0 "Maintain ryc_smartobject_field info." "ry/uib" "" yes no no yes "CLN" no yes yes no yes "ANY" "" "" 0 0 1003619188 yes
 1003630279 "rycbdfullb" 0 1003498159 1004874707.09 0 "Band Browser" "ry/obj" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1003630279 yes
 1003676871 "gscotfullo.w" 0 1003183339 1004874683.09 1003516362 "Object Type Maintenance" "af/obj2" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1003676871 yes
 1003681581 "gscotviewv.w" 0 1003498165 1004874683.09 1003516362 "Object Type Smart Data Viewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1003681581 yes
@@ -972,9 +1084,6 @@
 1004870927.09 "gscsqviewv.w" 0 1003498165 1004874683.09 1003516362 "Sequence SmartDataViewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004870927.09 yes
 1004870953.09 "gscsqfol2w" 0 1003498200 1004874679.09 1003501078 "Sequence Folder" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004870953.09 yes
 1004882616.09 "gscrffullb" 0 1003498159 1004874683.09 0 "Reference Browser" "af/obj2" "" no no no no "" no yes yes no yes "ANY" "" "" 1004882606.09 0 1004882616.09 yes
-1004883865.09 "gsmulviewv.w" 0 1003498165 1004874683.09 1003516362 "Lookup Browser Viewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004883865.09 yes
-1004883874.09 "gsmullkpfv.w" 0 1003498165 1004874683.09 1003516362 "Lookup Filter Viewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004883874.09 yes
-1004883883.09 "gsmulfol2w" 0 1003498200 1004874679.09 1003501078 "Security Allocations" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004883883.09 yes
 1004884320.09 "gscpmfullo.w" 0 1003183339 1004874683.09 1003516362 "SDO for gsc_product_module" "af/obj2" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1004884320.09 yes
 1004885403.09 "gscpmfullb" 0 1003498159 1004874683.09 0 "Product Module Browser" "af/obj2" "" no no no no "" no yes yes no yes "ANY" "" "" 1004884320.09 0 1004885403.09 yes
 1004885779.09 "gscpmviewv.w" 0 1003498165 1004874683.09 1003516362 "Product Module SmartDataViewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004885779.09 yes
@@ -1014,7 +1123,6 @@
 1004899245.09 "gsclsdcsfv.w" 0 1003600284 1004874683.09 1003516362 "Logical Service Combo SmartDataField" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004899245.09 yes
 1004899255.09 "gscstfol2" 0 1003498200 1004874679.09 1003501078 "Service Type Folder" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004899255.09 yes
 1004899438.09 "gscstfol2w" 0 1003498200 1004874679.09 1003501078 "Service Type Folder" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004899438.09 yes
-1004900141.09 "gsmulvie2v.w" 0 1003498165 1004874683.09 1003516362 "Security Allocations Smart Data Viewer" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004900141.09 yes
 1004900910.09 "gsclsfullo.w" 0 1003183339 1004874683.09 1003516362 "SDO for gsc_logical_service" "af/obj2" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1004900910.09 yes
 1004900919.09 "gsclsfullb" 0 1003498159 1004874683.09 0 "Logical Service Browser" "af/obj2" "" no no no no "" no yes yes no yes "ANY" "" "" 1004900910.09 0 1004900919.09 yes
 1004900936.09 "gsclsobjcw" 0 1003498202 1004874679.09 1003501078 "Logical Service Object Controller" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004900936.09 yes
@@ -1044,7 +1152,6 @@
 1004910213.09 "gsmsedtf1v.w" 0 1003600284 1004874683.09 1003516362 "Session Type Physical Session List SDF" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004910213.09 yes
 1004910247.09 "gsmomfullo.w" 0 1003183339 1004874683.09 1003516362 "SDO for gsm_object_menu_structure" "af/obj2" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1004910247.09 yes
 1004911032.09 "gsmsedtf2v.w" 0 1003600284 1004874683.09 1003516362 "Session Type Valid OS List SDF" "af/obj2" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1004911032.09 yes
-1004913610.09 "gscotfoldw" 0 1003498200 1004874679.09 1007500101.09 "Object Type Maintenance" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004913610.09 yes
 1004914447.09 "gscspfullo.w" 0 1003183339 1004874683.09 1003516362 "SDO for gsc_session_property" "af/obj2" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1004914447.09 yes
 1004914457.09 "gscspfullb" 0 1003498159 1004874683.09 0 "Session Property Browser" "af/obj2" "" no no no no "" no yes yes no yes "ANY" "" "" 1004914447.09 0 1004914457.09 yes
 1004914475.09 "gscspobjcw" 0 1003498202 1004874679.09 1003501078 "Session Property Object Controller" "af/cod2" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1004914475.09 yes
@@ -1176,8 +1283,6 @@
 1005122990.101 "rycueful2b" 0 1003498159 1004874707.09 0 "UI Event Browse OI" "ry/obj" "" no no no no "" no yes yes no yes "ANY" "" "" 1005121504.101 0 1005122990.101 yes
 1005123000.101 "rycueobj2w" 0 1003498202 1004874710.09 1004899067 "UI Event Control (OI)" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1005123000.101 yes
 1005124320.101 "rycsotreew" 0 1005097659.101 1004874710.09 1005097657.101 "Repository Object Maintenance" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1005124320.101 yes
-1005124520.101 "rycavful5o.w" 0 1003183339 1004874707.09 1003516362 "SDO for ryc_attribute_value" "ry/obj" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1005124520.101 yes
-1005124662.101 "rycavflt3w" 0 1003498200 1004874710.09 1003501078 "Attribute Value Folder (Obj Type)" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1005124662.101 yes
 1005126822.101 "rycoiful4o.w" 0 1003183339 1004874707.09 1003516362 "SDO for ryc_object_instance" "ry/obj" "" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 1005126822.101 yes
 1007500176.09 "rytemfullb" 0 1003498159 1004874707.09 0 "Template Browser" "ry/obj" "" no no yes no "" no yes yes no yes "ANY" "" "" 3.99 0 1007500176.09 yes
 1007500190.09 "rytemviewv" 0 1003498165 1004874707.09 1003516362 "Template Static SmartDataViewer" "ry/obj" "w" yes no yes no "CLN" yes no no no yes "ANY" "" "" 0 0 1007500190.09 yes
@@ -2254,7 +2359,7 @@
 3000031304.09 "afcfgwritep" 0 493 1004874676.09 1003516362 "afcfgwritep.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031304.09 yes
 3000031312.09 "afcobuildp" 0 493 1004874676.09 1003516362 "afcobuildp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031312.09 yes
 3000031314.09 "afddo" 0 493 1004874676.09 1003516362 "afddo.p" "af/app" "p" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000031314.09 yes
-3000031320.09 "afdynuser" 0 493 1004874676.09 1003516362 "afdynuser.p" "af/app" "p" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000031320.09 yes
+3000031320.09 "afdynuser" 0 493 1004874676.09 1003516362 "afdynuser.p" "af/app" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000031320.09 yes
 3000031326.09 "afgendlogp" 0 493 1004874676.09 1003516362 "afgendlogp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031326.09 yes
 3000031328.09 "afgenplipp" 0 493 1004874676.09 1003516362 "afgenplipp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031328.09 yes
 3000031330.09 "afgetgansp" 0 493 1004874676.09 1003516362 "afgetgansp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031330.09 yes
@@ -2283,7 +2388,6 @@
 3000031408.09 "gscedttabp" 0 493 1004874676.09 1003516362 "gscedttabp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031408.09 yes
 3000031410.09 "gscpfexprt" 0 493 1004874676.09 1003516362 "gscpfexprt.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031410.09 yes
 3000031414.09 "gsgetstatp" 0 493 1004874676.09 1003516362 "gsgetstatp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031414.09 yes
-3000031416.09 "gsmulplipp" 0 493 1004874676.09 1003516362 "gsmulplipp.p" "af/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000031416.09 yes
 3000031418.09 "gsmusplipp" 0 493 1004874676.09 1003516362 "gsmusplipp.p" "af/app" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000031418.09 yes
 3000031420.09 "afcompile" 0 492 1004874678.09 1003516362 "afcompile.w" "af/cod" "w" yes no no no "CLN" yes no yes no yes "ANY" "" "" 0 0 3000031420.09 yes
 3000031422.09 "afsvwizdw" 0 489 1004874678.09 1003516362 "afsvwizdw.w" "af/cod" "w" yes no no no "CLN" yes no no no yes "ANY" "" "" 0 0 3000031422.09 yes
@@ -2990,15 +3094,12 @@
 3000032864.09 "rywebspeed" 0 493 1004874702.09 1003516362 "rywebspeed.p" "ry/app" "p" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 3000032864.09 yes
 3000032866.09 "blayoutlookup" 0 1003183454 1004874707.09 1003516362 "blayoutlookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032866.09 yes
 3000032868.09 "blookup" 0 1003183454 1004874707.09 1003516362 "blookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032868.09 yes
-3000032870.09 "bobjectlookup" 0 1003183454 1004874707.09 1003516362 "bobjectlookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032870.09 yes
 3000032872.09 "bopendialog" 0 1003183454 1004874707.09 1003516362 "bopendialog.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032872.09 yes
 3000032874.09 "dlayoutlookup" 0 1003183339 1004874707.09 1003516362 "dlayoutlookup.w" "ry/obj" "w" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 3000032874.09 yes
 3000032876.09 "dlookup" 0 1003183339 1004874707.09 1003516362 "dlookup.w" "ry/obj" "w" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 3000032876.09 yes
-3000032878.09 "dobjectlookup" 0 1003183339 1004874707.09 1003516362 "dobjectlookup.w" "ry/obj" "w" yes no no no "CLN,SRV" no no no no yes "ANY" "" "" 0 0 3000032878.09 yes
 3000032880.09 "glayoutLookup" 0 489 1004874707.09 1003516362 "glayoutLookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032880.09 yes
 3000032882.09 "glookup" 0 489 1004874707.09 1003516362 "glookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032882.09 yes
 3000032884.09 "gmodlookup" 0 1003600283 1004874707.09 1003516362 "gmodlookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032884.09 yes
-3000032886.09 "gobjectlookup" 0 489 1004874707.09 1003516362 "gobjectlookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032886.09 yes
 3000032888.09 "gobjectPropd" 0 489 1004874707.09 1003516362 "gobjectPropd.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032888.09 yes
 3000032890.09 "gopendialog" 0 489 1004874707.09 1003516362 "gopendialog.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032890.09 yes
 3000032892.09 "gpartiallookup" 0 1003600283 1004874707.09 1003516362 "gpartiallookup.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032892.09 yes
@@ -3013,7 +3114,6 @@
 3000032910.09 "ryaddfile" 0 489 1004874707.09 1003516362 "ryaddfile.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032910.09 yes
 3000032912.09 "rycavlog3p" 0 3000001840.09 1004874707.09 1003516362 "rycavlog3p.p" "ry/obj" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000032912.09 yes
 3000032914.09 "rycavlog4p" 0 3000001840.09 1004874707.09 1003516362 "rycavlog4p.p" "ry/obj" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000032914.09 yes
-3000032916.09 "rycavlog5p" 0 3000001840.09 1004874707.09 1003516362 "rycavlog5p.p" "ry/obj" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000032916.09 yes
 3000032918.09 "rycavupdtv" 0 1003498165 1004874707.09 1003516362 "rycavupdtv.w" "ry/obj" "w" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 3000032918.09 yes
 3000032920.09 "ryccrlogcp" 0 3000001840.09 1004874707.09 1003516362 "ryccrlogcp.p" "ry/obj" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000032920.09 yes
 3000032922.09 "ryccylogcp" 0 3000001840.09 1004874707.09 1003516362 "ryccylogcp.p" "ry/obj" "p" yes no no no "SRV,CLN" no no no no yes "ANY" "" "" 0 0 3000032922.09 yes
@@ -3224,6 +3324,7 @@
 3000051516.09 "gsc_object_type.cache_on_client" 0 1005091923.09 3000005456.09 0 "DataField for cache_on_client" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 3000051516.09 yes
 3000051539.09 "ryc_attribute_value.applies_at_runtime" 0 1005091923.09 3000005456.09 0 "DataField for applies_at_runtime" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 3000051539.09 yes
 3000060249.09 "rydesredap" 0 493 1004874702.09 1003516362 "." "ry/app" "p" yes no no yes "SRV" no no no no no "ANY" "" "" 0 0 3000060249.09 yes
+3000072615.09 "ryxmlplip2" 0 493 1004874708.09 0 "" "ry/prc" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 3000072615.09 yes
 178000000002.5566 "rycntbffmv" 0 1003498162 1004874707.09 0 "Dynamic Viewer for rycntbffmv" "ry/obj" "" no no no no "" no no no no no "ANY" "" "" 3000032964.09 0 178000000002.5566 yes
 178000000020.5566 "rycntbffmp" 0 493 1004874708.09 0 "Custom Super Procedure for rycntbffmp.p" "ry/prc" "p" yes no no no "" no no no no no "ANY" "" "" 0 0 178000000020.5566 yes
 178000000022.5566 "rycntbffmw" 0 1003498202 1004874710.09 1007500101.09 "Container Builder Preference Window" "ry/uib" "" no no no no "" no yes yes no yes "" "" "" 0 0 178000000022.5566 yes
@@ -3279,12 +3380,12 @@
 .
 PSC
 filename=ryc_smartobject
-records=0000000003278
+records=0000000003379
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:51
+timestamp=2004/07/16-15:10:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000566657
+0000583664

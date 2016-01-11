@@ -66,21 +66,23 @@
 3000005164.09 "AB_source_code_directory" "AppBuilder source code root directory" no "#_start_in_directory#" no
 3000005166.09 "AB_compile_into_directory" "AppBuilder object code root directory" no "#_start_in_directory#" no
 3000044721.09 "login_procedure" "Login procedure to be used at session startup." yes "af/cod2/aftemlognw.w" no
-3000044723.09 "OG_ValidateFrom" "Used by OG to determine
+3000044723.09 "OG_ValidateFrom" "Used by OG to determine
  validation logic within DLProc" yes "" no
 3000044727.09 "ClassIgnoreContainedInstances" "Comma-delimited list of class names used by repository manager" yes "" no
 3000044734.09 "menu_images" "Display images on menu (treeview) if set to ""enabled""." yes "disabled" no
 3000051363.09 "image_path" "Web image directory path" yes "ry/img/,../img/" no
 3000052907.09 "client_cache_directory" "Absolute path to the client cache directory" yes "" no
+3000072617.09 "print_preview_preference" "Output preference for the print preview" yes "XML" yes
+3000072619.09 "print_preview_stylesheet" "Stylesheet to be used for print preview" yes "af/rep/xmlreport.xsl" yes
 .
 PSC
 filename=gsc_session_property
-records=0000000000073
+records=0000000000075
 ldbname=ICFDB
-timestamp=2003/12/12-15:17:38
+timestamp=2004/07/16-15:10:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=utf-8
 .
-0000006946
+0000007160

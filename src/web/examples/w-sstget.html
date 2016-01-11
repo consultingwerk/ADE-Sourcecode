@@ -1,77 +1,77 @@
-<!--------------------------------------------------------------------
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
---------------------------------------------------------------------->
-<HTML>
-<HEAD>
-<META HTTP-EQUIV="Content-Type"
-CONTENT="text/html; CHARSET=iso-8859-1">
-<TITLE>Customer Get</TITLE>
-</HEAD>
-
-<BODY BGCOLOR="#FFFFFF">
-<H1>Customer Information</H1>
-<!--WSS IF get-value("CustNum") <> "" THEN
-  FIND Customer WHERE CustNum = INTEGER(get-value("CustNum")) NO-ERROR. -->
-<TABLE>
-  <FORM NAME="form1" ACTION="w-sstget.html" METHOD="POST">
-  <TR>
-    <TD>Enter<BR>Customer ID:</TD>
-    <TD><INPUT NAME="CustNum" SIZE="20" 
-      VALUE=`IF AVAILABLE(Customer) THEN STRING(CustNum) ELSE ""`></TD>
-    <TD COLSPAN="2"><INPUT TYPE="SUBMIT" NAME="Button" VALUE="Find"></TD>
-  </TR>
-  <TR><TD COLSPAN="4"><HR></TD></TR>
-  
-  <!--WSS IF AVAILABLE(Customer) THEN DO: -->
-  <TR>
-    <TD>Name:</TD>
-    <TD><INPUT NAME="Name" SIZE="20" VALUE="`Name`"></TD>
-    <TD>Phone:</TD>
-    <TD><INPUT NAME="Phone" SIZE="20" VALUE="`Phone`"></TD>
-  </TR>
-  <TR>
-    <TD>Address 1:</TD>
-    <TD COLSPAN="3"><INPUT NAME="Address" SIZE="20" VALUE="`Address`"></TD>
-  </TR>
-  </TR>
-    <TD>Address 2:</TD>
-    <TD COLSPAN="3"><INPUT NAME="Address2" SIZE="20" VALUE="`Address2`"></TD>
-  </TR>
-  <TR>
-    <TD>City:</TD> 
-    <TD><INPUT NAME="City" SIZE="20" VALUE="`City`"></TD>
-    <TD>Zip:</TD>
-    <TD><INPUT NAME="PostalCode" SIZE="20" VALUE="`PostalCode`"></TD>
-  </TR>
-  <TR>
-    <TD>State:</TD>
-    <TD COLSPAN="3"><INPUT NAME="State" SIZE="20" VALUE="`State`"></TD>
-  </TR>
-  <TR WIDTH="100%">
-    <TD>Comments:</TD>
-    <TD COLSPAN="3"><TEXTAREA NAME="Comments" ROWS="3" COLS="60">`Comments`</TEXTAREA></TD>
-  </TR>
-  <!--WSS END. -->
-  </FORM>
-</TABLE>
-</BODY>
-</HTML>
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type"
+CONTENT="text/html; CHARSET=iso-8859-1">
+<TITLE>Customer Get</TITLE>
+</HEAD>
+
+<BODY BGCOLOR="#FFFFFF">
+<H1>Customer Information</H1>
+<!--WSS IF get-value("CustNum") <> "" THEN
+  FIND Customer WHERE CustNum = INTEGER(get-value("CustNum")) NO-ERROR. -->
+<TABLE>
+  <FORM NAME="form1" ACTION="w-sstget.html" METHOD="POST">
+  <TR>
+    <TD>Enter<BR>Customer ID:</TD>
+    <TD><INPUT NAME="CustNum" SIZE="20" 
+      VALUE=`IF AVAILABLE(Customer) THEN STRING(CustNum) ELSE ""`></TD>
+    <TD COLSPAN="2"><INPUT TYPE="SUBMIT" NAME="Button" VALUE="Find"></TD>
+  </TR>
+  <TR><TD COLSPAN="4"><HR></TD></TR>
+  
+  <!--WSS IF AVAILABLE(Customer) THEN DO: -->
+  <TR>
+    <TD>Name:</TD>
+    <TD><INPUT NAME="Name" SIZE="20" VALUE="`Name`"></TD>
+    <TD>Phone:</TD>
+    <TD><INPUT NAME="Phone" SIZE="20" VALUE="`Phone`"></TD>
+  </TR>
+  <TR>
+    <TD>Address 1:</TD>
+    <TD COLSPAN="3"><INPUT NAME="Address" SIZE="20" VALUE="`Address`"></TD>
+  </TR>
+  </TR>
+    <TD>Address 2:</TD>
+    <TD COLSPAN="3"><INPUT NAME="Address2" SIZE="20" VALUE="`Address2`"></TD>
+  </TR>
+  <TR>
+    <TD>City:</TD> 
+    <TD><INPUT NAME="City" SIZE="20" VALUE="`City`"></TD>
+    <TD>Zip:</TD>
+    <TD><INPUT NAME="PostalCode" SIZE="20" VALUE="`PostalCode`"></TD>
+  </TR>
+  <TR>
+    <TD>State:</TD>
+    <TD COLSPAN="3"><INPUT NAME="State" SIZE="20" VALUE="`State`"></TD>
+  </TR>
+  <TR WIDTH="100%">
+    <TD>Comments:</TD>
+    <TD COLSPAN="3"><TEXTAREA NAME="Comments" ROWS="3" COLS="60">`Comments`</TEXTAREA></TD>
+  </TR>
+  <!--WSS END. -->
+  </FORM>
+</TABLE>
+</BODY>
+</HTML>
