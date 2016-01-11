@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -36,6 +20,8 @@ INPUT:
                             
 History: Copied _odb_get.p for MS Sql Server 7 DataServer
          04/24/00 Added logic not to support older versions D. McMann
+         02/28/06 Always skip table valued functions and skip system objects
+                  when running proto utility - 20060120-003 - fernando
                                                    
 */
 
@@ -75,6 +61,7 @@ DEFINE VARIABLE l_qual_f	 AS CHARACTER INITIAL ? NO-UNDO.
 DEFINE VARIABLE l_rep-presel     AS logical   NO-UNDO.
 DEFINE VARIABLE escape_char      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE quote_char       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE fromProto        AS LOGICAL   NO-UNDO INIT NO.
 
 DEFINE BUFFER gate-buff FOR gate-work.
 DEFINE stream s_stm_errors.
@@ -251,6 +238,10 @@ IF INDEX(msstyp,user_dbtype) = 0
   RETURN.
   END.
 
+/* check if we are automatically selecting all */
+IF user_env[25] BEGINS "AUTO" THEN
+   fromProto = YES.
+
 /* delete eventually left-over records from earlier schema-pulls */
 for each gate-work: delete gate-work. end.
 for each s_ttb_seq: delete s_ttb_seq. end.
@@ -414,6 +405,9 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
    /* A table for sequence implementation.				*/
    IF TRIM(DICTDBG.SQLTables_buffer.name) BEGINS "_SEQP_" THEN NEXT.
 
+   /* if from migration utility, don't need to pull system objects */
+   IF fromProto AND UPPER(TRIM(DICTDBG.SQLTables_buffer.owner)) = "SYS" THEN
+      NEXT.
    
    /* selection to be done on the client-side */
    /* This IF catches all matches except where one or both  
@@ -561,6 +555,14 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
     IF DICTDBG.SQLProcs_Buffer.name BEGINS "_SEQP_" THEN
         NEXT.
+
+    /* if from migration utility, don't need to pull system objects */
+    IF fromProto AND UPPER(TRIM(DICTDBG.SQLProcs_Buffer.owner)) = "SYS" THEN
+        NEXT.
+
+    /* skip table valued functions */
+    IF substring(DICTDBG.SQLProcs_Buffer.name,(length(DICTDBG.SQLProcs_Buffer.name) - 1)) = ";0" THEN
+       NEXT.
 
     ASSIGN
       SQLProcedures-name = TRIM(DICTDBG.SQLProcs_Buffer.name)

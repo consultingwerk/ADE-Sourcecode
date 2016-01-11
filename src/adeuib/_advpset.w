@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME d_advprocset
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS d_advprocset 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _advpset.w
@@ -425,7 +425,10 @@ DO:
         l = cb_proctype:ADD-FIRST(cb_proctype).
     cb_proctype:SCREEN-VALUE = cb_proctype.   
   END.
-  ELSE cb_proctype:SCREEN-VALUE = _P._TYPE.
+  /*If the 'New' button is pressed and then the 'Cancel' button is pressed, cb_proctype will be "", therefore
+    the TYPE has to be checked again. If TYPE = "SmartDataObject" and not db-aware is because the
+    SmartObject is a DataView*/
+  ELSE cb_proctype:SCREEN-VALUE = IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE.
 
   ASSIGN _P._TYPE = cb_proctype:SCREEN-VALUE.
   RUN adeuib/_admpset.p (INPUT RECID(_P)).
@@ -723,18 +726,19 @@ PROCEDURE Init :
     FOR EACH _palette_item WHERE _palette_item._type > {&P-BASIC}
                              AND _palette_item._New_Template <> ""  
                              AND _palette_item._New_Template <> ? 
-                             AND _palette_item._name <> 'DataView'
                              AND _palette_item._name <> "Folder":U:
       cb_proctype:ADD-LAST(_palette_item._label2) IN FRAME {&FRAME-NAME}.
     END.
   END. /* Initialize Combo-box... */
 
-  /* Find current in list */
-  i = cb_proctype:LOOKUP(_P._TYPE).
+/* Find current in list */
+ASSIGN c_type = IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE.
+/*If TYPE = "SmartDataObject" and not db-aware is because the smartObject is a DataView*/
+  i = cb_proctype:LOOKUP(c_type).
   IF i = 0 THEN /* if not found, add it */
-    l = cb_proctype:ADD-FIRST(_P._TYPE).
+    l = cb_proctype:ADD-FIRST(c_type).
   IF i <> ? THEN
-    cb_proctype:SCREEN-VALUE = _P._TYPE.
+    cb_proctype:SCREEN-VALUE = c_type.
    
   RUN Update_Screen.
 END PROCEDURE.

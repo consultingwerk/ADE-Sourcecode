@@ -1,28 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+
+/***********************************************************************
+*Copyright (C) 2005 by Progress Software Corporation.                  *
+*All rights reserved.  Prior versions of this work may contain portions*
+*contributed by participants of Possenet.                              *
+***********************************************************************/
+
 /*----------------------------------------------------------------------------
 
 File: _adm-crt.p
@@ -784,7 +769,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
   ( piPage AS INTEGER ) :
 /*------------------------------------------------------------------------------
   Purpose: To write code to set the tab order for a particular page. 
-    Notes: For each page, page 0 is included. 
+    Notes:
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER t_U   FOR _U.
   DEFINE BUFFER t_S   FOR _S.
@@ -795,7 +780,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
                    AND t_U._TYPE eq "SmartObject"
                    AND t_U._STATUS eq p_Status,
           EACH t_S WHERE RECID(t_S) eq t_U._x-recid AND
-                         (t_S._page-number = 0  OR t_S._page-number = piPage) AND
+                         (t_S._page-number = piPage) AND
                          NOT t_S._VISUAL:
      IF t_U._TAB-ORDER > 0 THEN t_U._TAB-ORDER = (0 - t_U._TAB-ORDER).
   END.                    
@@ -807,7 +792,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
                       AND t_U._TYPE eq "SmartObject"
                       AND t_U._STATUS <> "EXPORT":U,
              EACH t_S WHERE RECID(t_S) eq t_U._x-recid AND
-                            (t_S._page-number = 0 OR t_S._page-number = piPage):
+                            (t_S._page-number = piPage):
         IF t_U._TAB-ORDER > 0 THEN t_U._TAB-ORDER = (0 - t_U._TAB-ORDER).
      END.                    
   END. /* If Export */
@@ -818,7 +803,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
                  AND t_U._TYPE eq "SmartObject"
                  AND t_U._STATUS eq p_Status,
         EACH t_S WHERE RECID(t_S) eq t_U._x-recid AND
-                    (t_S._page-number = 0 OR t_S._page-number = piPage) AND
+                    (t_S._page-number = piPage) AND
                      t_S._VISUAL
         BY t_U._tab-order:
      IF t_U._tab-order > 1 THEN DO:  /* This is not first, move after something */
@@ -854,7 +839,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
          ASSIGN move-method = "AFTER":U
                 i-tab-ord = xx_U._tab-order.
          FIND FIRST xx_S WHERE RECID(xx_S) eq xx_U._x-recid AND
-                         (xx_S._page-number = 0 OR xx_S._page-number = piPage) NO-ERROR.
+                         (xx_S._page-number = piPage) NO-ERROR.
        END.  /* IF AVAIABLE xx_U */
      END.  /* Not first in the tab order */
      IF t_U._tab-order = 1 OR NOT AVAILABLE xx_U THEN DO:  /* move before something */
@@ -875,7 +860,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
           DO WHILE AVAILABLE xx_U:
             FIND xxx_S WHERE RECID(xxx_S) EQ xx_U._x-recid NO-ERROR.
             IF NOT AVAILABLE xxx_S /* not smart */ OR 
-              xxx_S._page-number = 0 OR xxx_S._page-number = piPage THEN
+              xxx_S._page-number = piPage THEN
               LEAVE FIND-FIRST.
             ELSE
               FIND NEXT xx_U WHERE xx_U._WINDOW-HANDLE eq _U._HANDLE AND
@@ -888,7 +873,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
          ASSIGN move-method = "BEFORE":U
                 i-tab-ord = xx_U._TAB-ORDER.
           FIND FIRST xx_S WHERE RECID(xx_S) eq xx_U._x-recid AND
-                          (xx_S._page-number = 0 OR xx_S._page-number = piPage) NO-ERROR.
+                          (xx_S._page-number = piPage) NO-ERROR.
        END.  /* If available xx_U */
      END.  /* If this is first in the tab order */
 
@@ -930,7 +915,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
                    AND t_U._TYPE eq "SmartObject"
                    AND t_U._STATUS eq p_Status,
           EACH t_S WHERE RECID(t_S) eq t_U._x-recid AND
-                     (t_S._page-number = 0 OR t_S._page-number = piPage) AND
+                     (t_S._page-number = piPage) AND
                      NOT t_S._VISUAL:
      IF t_U._TAB-ORDER < 0 THEN t_U._TAB-ORDER = (0 - t_U._TAB-ORDER).
   END.                    
@@ -941,7 +926,7 @@ FUNCTION setTabOrder RETURNS LOGICAL
                       AND t_U._TYPE eq "SmartObject"
                       AND t_U._STATUS <> "EXPORT":U,
              EACH t_S WHERE RECID(t_S) eq t_U._x-recid AND
-                        (t_S._page-number = 0 OR t_S._page-number = piPage) :
+                        (t_S._page-number = piPage) :
         IF t_U._TAB-ORDER < 0 THEN t_U._TAB-ORDER = (0 - t_U._TAB-ORDER).
      END.                    
   END. /* If Export */

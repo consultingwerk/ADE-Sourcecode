@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _ldicont.p
@@ -165,7 +149,9 @@ FOR EACH x_U WHERE x_U._WINDOW-HANDLE eq _U._HANDLE
                 + {&EOL} + '    ch':U + x_U._NAME + ' = ':U + x_U._NAME + ':COM-HANDLE':U
                 + {&EOL} + '    UIB_S = ch':U + x_U._NAME
                 + ':LoadControls( OCXFile, ':U 
-                + '"' + x_U._NAME + '":U' + ')':U.
+                + '"' + x_U._NAME + '":U' + ')':U
+                /*Bug# 20051202-051. If the object is a Window or Dialog (not smart), the name of the control-frame is assigned in the control_load procedure*/
+                + (IF _P._adm-version NE "" THEN "" ELSE {&EOL} + '    ' + x_U._NAME + ':NAME = "' + x_U._NAME + '":U':U).
   /* With a lot of OCX controls, it is possible for this ASSIGN statement
      to get too large (i.e. > 4096), so if it is getting big, split it */
   IF LENGTH(assignCode) > 3700 THEN

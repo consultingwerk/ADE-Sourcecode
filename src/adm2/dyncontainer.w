@@ -554,7 +554,7 @@ PROCEDURE serverCreateDataObjects :
  DEFINE VARIABLE cFetchOnOpen          AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE lDestroyStateless     AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE cStartProps           AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE hChildSDO             AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE hContainer            AS HANDLE     NO-UNDO.
  
  DO iProc = 1 TO NUM-ENTRIES(pcObjects):
    ASSIGN 
@@ -565,13 +565,13 @@ PROCEDURE serverCreateDataObjects :
      cPhysicalObject = ENTRY(1,cPhysicalObject,':')
      cClientName     = ENTRY(iProc,pcClientNames)
      hParent         = ? 
-     hChildSDO       = ?
      cStartProps     = '':U.   /* desperate default value */
 
    IF cPhysicalObject <> '':U THEN
    DO:
      IF cLogicalName > '' THEN
-        cStartProps = "LaunchLogicalName":U + CHR(4) + cLogicalName.  
+        cStartProps = "LaunchLogicalName":U + CHR(4) + cLogicalName.
+
      RUN constructObject (cPhysicalObject /*cPhysicalObject*/,
                           ?,
                           cStartProps,
@@ -595,30 +595,18 @@ PROCEDURE serverCreateDataObjects :
          iParentInstance = LOOKUP(cParent,pcClientNames).
        
        IF iParentInstance > 0 THEN
-         hParent = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects)) 
-         NO-ERROR.
-       /* Parent reference may be indirect to container (SBO), but colon is a 
-          valid direct ID reference ALSO, so we check after first lookup. 
-          (could have checked the weird format: handle:<container>  above, 
-           but SDO child (not contained) of SBO in same request is also rare) */ 
-       ELSE 
-       IF NUM-ENTRIES(cParent,':':U) = 2 
-       AND ENTRY(2,cParent,':':U) = '<Container>':U THEN 
        DO:
-         ASSIGN
-           cParent = ENTRY(1,cParent,':') 
-           iParentInstance = LOOKUP(cParent,pcClientNames)
-           hChildSDO = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects))
-           NO-ERROR.
-         /* find the SBO of this SDO to use as parent */ 
-         IF VALID-HANDLE(hChildSDO) THEN
-           {get ContainerSource hParent hChildSDO}.
-       END.
+         hParent = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects)).
+         /* Parent reference may be indirect to container (SBO)*/ 
+         {get ContainerSource hContainer hParent}.
+         IF hContainer <> TARGET-PROCEDURE THEN
+           hParent = hContainer.
 
-       IF VALID-HANDLE(hParent) THEN
-       DO:
-         RUN addLink IN TARGET-PROCEDURE(hParent,'Data':u,hObject).
-         hParent = ?.
+         IF VALID-HANDLE(hParent) THEN
+         DO:
+           RUN addLink IN TARGET-PROCEDURE(hParent,'Data':u,hObject).
+           hParent = ?.
+         END.
        END.
        {set ForeignFields cForeignFields hObject}.
      END.
@@ -630,14 +618,11 @@ PROCEDURE serverCreateDataObjects :
          cParent         = ENTRY(1,cPositionFields)  
          iParentInstance = LOOKUP(cParent,pcClientNames)
          hParent         = WIDGET-HANDLE(ENTRY(iParentInstance,cContainedDataObjects)) NO-ERROR.
-
        IF VALID-HANDLE(hParent) THEN
-       DO:
          cFetchOnOpen = 'findRowFromObject':U    + CHR(2)
                       + ENTRY(2,cPositionFields) + CHR(2)
                       + ENTRY(3,cPositionFields) + CHR(2)
-                      + STRING(hParent).          
-       END.
+                      + STRING(hParent).    
      END.
 
      {get ObjectType cObjectType hObject}.

@@ -78,7 +78,7 @@ DEFINE TEMP-TABLE ttDComboCopy LIKE ttDCombo.
 &IF DEFINED(EXCLUDE-buildFieldQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD buildFieldQuery Procedure 
-FUNCTION buildFieldQuery RETURNS CHARACTER 
+FUNCTION buildFieldQuery RETURNS CHARACTER
   ( pcValue AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1994,9 +1994,7 @@ PROCEDURE initializeLookup :
     IF NOT hDynLookupBuf:AVAILABLE THEN
        hDynLookupBuf:BUFFER-CREATE().
     hDynLookupBuf:BUFFER-COPY(BUFFER ttLookup:HANDLE, 
-                     'cBufferList,cPhysicalTableNames,
-                      cTempTableNames,cRowIdent,cScreenValue,
-                      lMoreFound,cFoundDataValues,cForEach').
+                 'cBufferList,cPhysicalTableNames,cTempTableNames,cRowIdent,cScreenValue,lMoreFound,cFoundDataValues,cForEach').
   END.
   
   RUN disableField IN TARGET-PROCEDURE.
@@ -2773,13 +2771,17 @@ PROCEDURE rowSelected :
   END.
 
   ASSIGN
-    cScreenValue     = hLookup:INPUT-VALUE
     cNewKeyValue     = ENTRY(1, cColumnValues, CHR(1))
     cNewDisplayValue = ENTRY(2, cColumnValues, CHR(1)).
 
   /* Update TT record and display with new values */
   IF glUseNewAPI THEN DO:
     hDynLookupBuf = {fn returnLookupBuffer}.
+    
+    ASSIGN
+      hLookup:SCREEN-VALUE = cNewDisplayValue 
+      cScreenValue         = hLookup:INPUT-VALUE.
+
     IF hDynLookupBuf:AVAILABLE THEN
       ASSIGN
         hdynLookupBuf:BUFFER-FIELD('cFoundDataValues':U):BUFFER-VALUE = cColumnValues
@@ -2999,7 +3001,7 @@ END PROCEDURE.
 &IF DEFINED(EXCLUDE-buildFieldQuery) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION buildFieldQuery Procedure 
-FUNCTION buildFieldQuery RETURNS CHARACTER 
+FUNCTION buildFieldQuery RETURNS CHARACTER
   ( pcValue AS CHAR ) :
 /*------------------------------------------------------------------------------
   Purpose:     Returns the query with search criteria on the DisplayedField.                

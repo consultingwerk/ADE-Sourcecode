@@ -57,19 +57,6 @@ DEFINE TEMP-TABLE ttLinkedFile NO-UNDO
 
 /* ************************  Function Prototypes ********************** */
 
-&IF DEFINED(EXCLUDE-addWindow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addWindow Procedure 
-FUNCTION addWindow RETURNS LOGICAL
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          hWindow     AS HANDLE)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-displayEmbeddedWindow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD displayEmbeddedWindow Procedure 
@@ -361,6 +348,45 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-addWindow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addWindow Procedure 
+PROCEDURE addWindow :
+/*------------------------------------------------------------------------------
+  Purpose: Adds a 4GL window to the specified view
+  Parameters:
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER viewId      AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER secondaryId AS CHARACTER  NO-UNDO.
+DEFINE INPUT PARAMETER hWindow     AS HANDLE     NO-UNDO.
+
+DEFINE VARIABLE wHwnd AS INTEGER       NO-UNDO.
+DEFINE VARIABLE lVisible AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cResult AS CHARACTER   NO-UNDO.
+
+&IF "{&NO_EMBEDDED_WINDOWS}" EQ "YES" &THEN
+    RETURN.
+&ENDIF
+IF NOT OEIDE_ABEmbedded AND (secondaryId BEGINS "DesignView":U OR
+                             secondaryId BEGINS "PropertiesWindow":U) THEN RETURN.
+IF NOT VALID-HANDLE(hWindow) THEN RETURN.
+
+DEFINE VARIABLE iParentWindow AS INTEGER    NO-UNDO.
+
+RUN getViewHwnd (viewId, secondaryId, OUTPUT iParentWindow).
+
+IF iParentWindow <> 0 THEN
+    ASSIGN hWindow:IDE-WINDOW-TYPE = 1 /* virtual desktop */ 
+           hWindow:IDE-PARENT-HWND = iParentWindow.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-displayWindow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayWindow Procedure 
@@ -382,17 +408,15 @@ IF NOT OEIDE_ABEmbedded AND (secondaryId BEGINS "DesignView":U OR
                              secondaryId BEGINS "PropertiesWindow":U) THEN RETURN.
 IF NOT VALID-HANDLE(hWindow) THEN RETURN.
 
-/* TODO Use IDE-PARENT-HWND attribute */
-/* DEFINE VARIABLE iParentWindow AS INTEGER    NO-UNDO. */
+DEFINE VARIABLE iParentWindow AS INTEGER    NO-UNDO.
 
 showView(viewId, secondaryId, {&VIEW_ACTIVATE}).
-/* RUN getViewHwnd (viewId, secondaryId, OUTPUT iParentWindow). */
-addWindow(viewId, secondaryId, hWindow).
-/*
+RUN getViewHwnd (viewId, secondaryId, OUTPUT iParentWindow).
+
 IF iParentWindow <> 0 THEN
     ASSIGN hWindow:IDE-WINDOW-TYPE = 1 /* virtual desktop */ 
            hWindow:IDE-PARENT-HWND = iParentWindow.
-*/           
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -888,47 +912,6 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-
-&IF DEFINED(EXCLUDE-addWindow) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addWindow Procedure 
-FUNCTION addWindow RETURNS LOGICAL
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          hWindow     AS HANDLE) :
-/*------------------------------------------------------------------------------
-  Purpose: Adds a 4GL window to the specified view
-    Notes:  
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE wHwnd AS INTEGER       NO-UNDO.
-    DEFINE VARIABLE lVisible AS LOGICAL    NO-UNDO.
-    DEFINE VARIABLE cResult AS CHARACTER   NO-UNDO.
-  
-&IF "{&NO_EMBEDDED_WINDOWS}" EQ "YES" &THEN
-    RETURN TRUE.
-&ENDIF
-    IF NOT OEIDE_ABEmbedded AND (secondaryId BEGINS "DesignView":U OR
-                                 secondaryId BEGINS "PropertiesWindow":U) THEN RETURN TRUE.
-    IF hWindow:HWND = ? THEN
-    DO:
-        lVisible = hWindow:VISIBLE.
-        hWindow:VISIBLE = TRUE.
-        hWindow:VISIBLE = lVisible.
-    END.
-    RUN GetParent (hWindow:HWND, OUTPUT wHwnd).
-       
-    RUN sendRequest("IDE addWindow ":U 
-                  + viewId + " " 
-                  + QUOTER(secondaryId) + " " 
-                  + STRING(wHwnd), FALSE, OUTPUT cResult).
-    RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-displayEmbeddedWindow) = 0 &THEN
 

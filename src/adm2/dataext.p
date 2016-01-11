@@ -334,6 +334,17 @@ FUNCTION getIsRowObjUpdExternal RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyFields Procedure 
+FUNCTION getKeyFields RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyTableId Procedure 
@@ -2498,7 +2509,7 @@ Parameters:  <none>
     
     IF cContAsdiv = 'client':U OR cASDivision = 'Client':U THEN
     DO:
-      /* Check again as this is should be retrieved at start up fromthe calls 
+      /* Check again as this is should be retrieved at start up from the calls 
         above */
       cDBNames = SUPER().  
       /* Just in case something went wrong go and get it */
@@ -2889,6 +2900,159 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFields Procedure 
+FUNCTION getKeyFields RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the comma-separated KeyFields property.
+   Params:  This is defined in the Entity Control for Dynamics, while 
+            standard ADM (or a static SDO with no corresponding Entity in 
+            the Repository) uses the indexInformation to figure out the default 
+            KeyFields list. 
+            - This is currently restricted to cases where: 
+              - The First Table in the join is the Only enabled table.
+              - All the fields of the index is present is the SDO.             
+            
+              The following index may be selected.                                     
+              1. Primary index if unique.
+              2. First Unique index. 
+            
+            There's currently no check whether the field is mandatory.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cKeyFields     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAppServer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cASDivision    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContAsDiv     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryObject   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lAsHasStarted  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lClient        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cIndexInfo     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledTables AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTables        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cUniqueList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPrimaryList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnList    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iIdx           AS INTEGER    NO-UNDO.
+
+  cKeyFields = SUPER().
+  
+  IF cKeyFields = "":U THEN
+  DO:    
+    {get ContainerSource hContainer}.
+    /* If SBO (query container) then use its ASDivision . (IZ 4319) */
+    {get QueryObject lQueryObject hContainer} NO-ERROR.
+    IF lQueryObject THEN
+      {get ASDivision cContASDiv hContainer} NO-ERROR.
+    ELSE 
+      {get ASDivision cASDivision}.
+    
+    /* If we're on the client then the AppServer may not have returned this 
+       property value yet. */
+    IF cContASDiv = 'Client':U OR cASDivision = 'Client':U THEN
+    DO:
+      lClient = TRUE.
+      /* This is one of the "first-time" properties, so there is no point 
+         in attempting to retrieve this AGAIN if AsHasStarted is true.
+         This will also retrieve the IndexInformation, which is needed to 
+         derive the key if not defined in entity control  */
+      {get AsHasStarted lAsHasStarted}.
+      IF NOT lAsHasStarted THEN
+      DO:
+        IF cContASDiv = 'Client':U THEN
+          RUN startServerObject IN hContainer.
+        ELSE 
+         /* This will retrieve all Server properties  */
+          {get ASHandle hAppServer}.        
+        /* We may need to unbind if this call did the bind (getASHandle) */
+        RUN unbindServer IN TARGET-PROCEDURE (?). 
+        cKeyFields = SUPER().
+      END. /* not AsHasStarted */
+    END. /* on client */
+
+    IF cKeyFields = '':U THEN
+    DO:
+      IF NOT lClient THEN
+      DO:
+        /* This property is a Dynamics Entity prop, so retrieve it from the 
+           Entity Control data if we're on the server (or running locally) */
+        {get UseRepository lUseRepository}.
+        IF lUseRepository THEN 
+        DO:
+          RUN initializeEntityDetails IN TARGET-PROCEDURE.
+          cKeyFields = SUPER().
+        END.
+      END. /* not on client */
+
+      IF cKeyFields = '':U THEN
+      DO:
+        &SCOPED-DEFINE xp-assign
+        {get EnabledTables cEnabledTables}
+        {get Tables cTables}
+         .
+        &UNDEFINE xp-assign
+        /* Currently we only create a default KeyFields when omly one table
+           or ONE enabled table and it's the FIRST table  */
+        IF NUM-ENTRIES(cTables) = 1 
+        OR (NUM-ENTRIES(cEnabledTables) = 1 
+            AND cEnabledTables = ENTRY(1,cTables)) THEN
+        DO:
+          {get IndexInformation cIndexInfo}.
+          IF cIndexInfo <> ? THEN
+          DO:
+            ASSIGN
+              /* Get the unique indexes from the IndexInformation function */
+              cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                              'unique':U, /* query  */
+                                              'yes':U,     /* table delimiter */
+                                              cIndexInfo)
+              /* only the first table's indexes*/ 
+              cUniqueList = ENTRY(1,cUniqueList,CHR(2))
+      
+              /* Get the primary index(es) from the IndexInformation function */
+              cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
+                                              'primary':U, /* query  */
+                                              'yes':U,     /* table delimiter */
+                                              cIndexInfo)
+        
+              /* only the first table's indexes*/ 
+              cPrimaryList = ENTRY(1,cPrimaryList,CHR(2))
+              .
+
+            /* if the primary index is unique and all fields in SDO 
+               (fields not in the SDO is qualifed ) */
+            IF LOOKUP(cPrimaryList,cUniqueList,CHR(1)) > 0 
+            AND INDEX(cPrimaryList,'.':U) = 0 THEN
+              cKeyFields = cPrimaryList.
+            ELSE /* find the first unique index with all fields in SDO */  
+            DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
+              cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)).
+              IF INDEX(cColumnList,'.':U) = 0 THEN
+              DO:
+                cKeyFields = cColumnList.
+                LEAVE.
+              END.
+            END. /* do i = 1 to num-entries cUniqueList */
+            IF cKeyFields > '' THEN
+              {set KeyFields cKeyFields}.
+          END. /* if indexinfo <> */
+        END. /* cinfo <> ? */
+      END. /* cKeyFields = '':U */
+    END.  /* cKeyFields = '':U */
+  END.  /* cKeyFields = '':U (initially) */
+  
+  RETURN cKeyFields.
+      
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyTableId Procedure 
@@ -2901,50 +3065,76 @@ FUNCTION getKeyTableId RETURNS CHARACTER
                used on the server side to join to comments/auditing etc
                This is also the dump name of that table
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyTableId   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hAppServer    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cASDivision   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCOntAsDiv    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainer    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lQueryObject  AS LOGICAL    NO-UNDO.
-  
+  DEFINE VARIABLE cKeyTableId    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAppServer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cASDivision    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContAsDiv     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hContainer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQueryObject   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseRepository AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lAsHasStarted  AS LOGICAL    NO-UNDO.
+
   cKeyTableId = SUPER().
   
   IF cKeyTableId = "":U THEN
-  DO:
+  DO:    
     {get ContainerSource hContainer}.
-    /* Only use ASDivision from query containers, where its value is consistent. IZ 4319 */
-    {get queryObject lQueryObject hContainer} NO-ERROR.
+    /* If SBO (query container) then use its ASDivision . (IZ 4319) */
+    {get QueryObject lQueryObject hContainer} NO-ERROR.
     IF lQueryObject THEN
       {get ASDivision cContASDiv hContainer} NO-ERROR.
-
-    IF cContASDiv = 'Client':U THEN
-      RUN startServerObject IN hContainer.
-    ELSE DO:
+    ELSE 
       {get ASDivision cASDivision}.
-      /* If we're on the client then the AppServer haven't return this property 
-         value yet. */
-      IF cASDivision = 'Client':U THEN
-       /* This will retrieve all Server properties including KeyTable */
-        {get ASHandle hAppServer}.
-    END.
+    
+    /* If we're on the client then the AppServer may not have returned this 
+       property value yet. */
     IF cContASDiv = 'Client':U OR cASDivision = 'Client':U THEN
     DO:
-      cKeyTableId = SUPER().
-      /* We should have got it now, but if something is wrong let's just go 
-         and get it ourselves */ 
-      IF cKeyTableId = '':U THEN 
+      /* This is one of the "first-time" properties, so there is no point 
+         in attempting to retrieve this if AsHasStarted is true.  
+        (Static SDOs may have blank values in Dynamics if the Entities are 
+         not defined in the Repository, causing invalid handle (ashandle) errors
+         when this then was called as part of obtainContextForServer 
+         - initializeServerObject) */
+      {get AsHasStarted lAsHasStarted}.
+      IF NOT lAsHasStarted THEN
       DO:
-        {get AsHandle hAppServer}.
-        IF VALID-HANDLE(hAppServer) AND hAppServer <> TARGET-PROCEDURE THEN 
+        IF cContASDiv = 'Client':U THEN
+          RUN startServerObject IN hContainer.
+        ELSE 
+         /* This will retrieve all Server properties including KeyTable */
+          {get ASHandle hAppServer}.
+
+        /* re-read property, since the previous call will retrieve context 
+           when AsHasStarted = false  */
+        cKeyTableId = SUPER().
+
+        /* We should have got it now, but if something is wrong let's just go 
+           and get it ourselves... */ 
+        IF cKeyTableId = '':U THEN 
         DO:
-          cKeyTableId = DYNAMIC-FUNCTION("getKeyTableId":U IN hAppServer).
-          IF cKeyTableId <> '':U THEN
-            {set KeyTableId cKeyTableId}. 
-        END.     /* END DO IF Valid A/S handle */      
+          /* get in case we just called startServerObject in the SBO above  */
+          {get ASHandle hAppServer}.
+          IF VALID-HANDLE(hAppServer) AND hAppServer <> TARGET-PROCEDURE THEN 
+          DO:
+            cKeyTableId = DYNAMIC-FUNCTION("getKeyTableId":U IN hAppServer).
+            IF cKeyTableId <> '':U THEN
+              {set KeyTableId cKeyTableId}. 
+          END.     /* END DO IF Valid A/S handle */      
+        END.
+        /* We may need to unbind if this call did the bind (getASHandle) */
+        RUN unbindServer IN TARGET-PROCEDURE (?). 
+      END. /* not AsHasStarted */
+    END.
+    ELSE DO: /* server or local connection */
+      /* This property is a Dynamics Entity prop, so we need to retrieve it from 
+         the Entity Control data. There's nothing more to do for non-dynamics. */
+      {get UseRepository lUseRepository}.
+      IF lUseRepository THEN 
+      DO:
+        RUN initializeEntityDetails IN TARGET-PROCEDURE.
+        cKeyTableId = SUPER().
       END.
-       /* We may need to unbind if this call did the bind (getASHandle) */
-      RUN unbindServer IN TARGET-PROCEDURE (?). 
     END.
   END.           /* END DO IF OpenQuery not yet defined locally. */
   

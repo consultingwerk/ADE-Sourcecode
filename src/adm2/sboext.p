@@ -185,6 +185,17 @@ FUNCTION getContainedDataObjects RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getContextForServer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getContextForServer Procedure 
+FUNCTION getContextForServer RETURNS CHARACTER 
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCurrentUpdateSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentUpdateSource Procedure 
@@ -1327,6 +1338,38 @@ FUNCTION getContainedDataObjects RETURNS CHARACTER
   DEFINE VARIABLE cObjects AS CHARACTER NO-UNDO.
   {get ContainedDataObjects cObjects}.
   RETURN cObjects.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getContextForServer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getContextForServer Procedure 
+FUNCTION getContextForServer RETURNS CHARACTER 
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a paired chr(4) delimited list of context properties and 
+           values for this object.   
+    Notes: Called from obtainContext to add the container's own context to the 
+           context. 
+         - Overrides containr in order to add updateOrder to context 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cUpdateOrder AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContext     AS CHARACTER  NO-UNDO.
+
+  cContext = SUPER().
+  
+  {get UpdateOrder cUpdateOrder}.
+  
+  cContext = cContext 
+           + (IF cContext = '' THEN '' ELSE CHR(4))
+           + 'UpdateOrder':U + CHR(4) + cUpdateOrder.
+  
+  RETURN cContext.
 
 END FUNCTION.
 

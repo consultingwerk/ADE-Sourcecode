@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2006 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -53,7 +53,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {src/adm2/globals.i}
 {destdefi.i}             /* Definitions for dynamics design-time temp-tables. */
-
 
 DEFINE INPUT  PARAMETER phWindow        AS HANDLE       NO-UNDO.
 DEFINE INPUT  PARAMETER pPrecid         AS RECID        NO-UNDO.
@@ -124,7 +123,6 @@ DEFINE VARIABLE cRootDirectory AS CHARACTER  NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-
 DO ON STOP UNDO, LEAVE:
     /* Call the Add to Repository dialog. Passes data back in an _RyObject record. */
     RUN ry/prc/rytoReposw.w
@@ -200,10 +198,28 @@ DEFINE VARIABLE phDataObject  AS HANDLE    NO-UNDO.
 DEFINE VARIABLE cTableName    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE cInheritClasses AS CHARACTER NO-UNDO.
 DEFINE VARIABLE ghDesignManager AS HANDLE    NO-UNDO.
+define variable cStaticObjectName as character no-undo.
+define variable hAttributeBuffer as handle no-undo.
+define variable hDummy           as handle    no-undo.
+define variable cDummy           as character no-undo.
+define variable lDummy           as logical no-undo.
 
 AB-BLOCK:
 DO TRANSACTION ON ERROR UNDO, LEAVE:
     RUN adecomm/_setcurs.p ("WAIT":U).
+    
+    /* Get the name of the static object that we're converting to dynamic.
+       
+       We use this name to find the properties that are stored against the 
+       static master object, and that need to be created against the new dynamic
+       object. Some properties are transferred, because they exist as fields in
+       the _P (or other _* temp-tables), but there are a large number of properties 
+       that are not managed this way (they are handled by the DPS) and these need
+       to be created against the new (dynamic) object.       
+     */
+    /* _P is found in the main block */
+    cStaticObjectName = _P.object_filename.
+    
     /* Get the info we need to complete the add and save the window
        as a static repository object. */
     BUFFER-COPY _RyObject TO _P.
@@ -242,23 +258,48 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
        IF AVAIL ttClassAttribute then
           _P._PARTITION = ttClassAttribute.tAttributeValue.       
     END.
-
+    
     /* save_window_static is a misnomer.  It now does both dynamic and static */
     RUN save_window_static  IN _h_uib (INPUT RECID(_P), OUTPUT gcError).
-  
+
+    /* Don't need this anymore. It's passed back the info we needed. */
+    DELETE _RyObject.
+    
     /* save_window_static has displayed the error message, indicate that it has 
        been shown */
     IF gcError NE "" AND NOT gcError BEGINS "Associated data":U THEN 
     DO:
       gcError = "Shown":U.
-      DELETE _RyObject.
       UNDO AB-BLOCK, LEAVE AB-BLOCK.
     END.
-    /* Don't need this anymore. It's passed back the info we needed. */
-    DELETE _RyObject.
-    
+        
     IF gcError = "" OR gcError BEGINS "Associated data":U THEN
     DO:
+        /* We now have a brand-new dynamic object. Get the properties off
+           the static object and set in the dynamic object.
+         */
+        hAttributeBuffer = dynamic-function('copyReposProps':u in _h_menubar_proc, cStaticObjectName, recid(_P)).
+        if valid-handle(hAttributeBuffer) then
+        do:
+            hDummy = ?.
+            run storeAttributeValues in gshRepositoryManager (input hAttributeBuffer, input table-handle hDummy) no-error.
+            if return-value ne '' or error-status:error then
+            do:
+                /* Let's format the error message before doing anything with it. */
+                run afmessagep in gshSessionManager (input  return-value,
+                                                     input  '':u,     /* pcButtonList */
+                                                     input  '':u,     /* pcMessageTitle */
+                                                     output cDummy,   /* cSummaryMessages */
+                                                     output gcError,  /* cFullMessages */
+                                                     output cDummy,   /* cButtonList */
+                                                     output cDummy,   /* cMessageTitle */
+                                                     output lDummy,   /* lUpdateErrorLog */
+                                                     output lDummy ). /* lSuppressDisplay */
+                
+                undo AB-BLOCK, leave AB-BLOCK.
+            end.    /* error storing attributes */
+        end.    /* valid attribute buffer */
+      
       ASSIGN
           h_title_win        = _P._WINDOW-HANDLE:WINDOW
           OldTitle           = h_title_win:TITLE

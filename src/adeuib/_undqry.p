@@ -1,25 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+*Copyright (C) 2000-2006 by Progress Software Corporation.                *
+*All rights reserved.  Prior versions of this work may contain portions   *
+*contributed by participants of Possenet.                                 *
+**************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _undqry.p
@@ -120,11 +103,14 @@ DO:
          Y            = 0
          HEIGHT-P     = {&ImageSize} - 2 
          WIDTH-P      = {&ImageSize} - 2
-         HIDDEN       = false
+         HIDDEN       = FALSE
+         CONVERT-3D-COLORS = TRUE
          .
   /* The image name is stored in _palette_item for many known types.
-     Otherwise, just use a default icon */
-  FIND _palette_item WHERE _palette_item._name eq "QUERY" NO-ERROR.
+     Otherwise, just use a default icon.
+     Because the SmartDataObject has a query in it, this procedure is called to draw its query. Therefore
+     if the object is a SmartDataObject the proper image has to be loaded*/
+  FIND _palette_item WHERE _palette_item._name eq IF _P._type = "SmartDataObject":U THEN _P._type ELSE "Query":U NO-ERROR.
   IF AVAILABLE _palette_item
   THEN ldummy = h:LOAD-IMAGE (_palette_item._icon_up,
                               _palette_item._icon_up_x + 1,

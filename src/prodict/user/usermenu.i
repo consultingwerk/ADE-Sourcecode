@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -85,6 +85,8 @@ kmcintos 09/01/05   Moved setting of user_env[9] to before call to table list
                     20050831-019.
 kmcintos 10/28/05   Changed audit event inserter perm requirement to audit admin
                     bug # 20051026-058.
+fernando 01/04/06   Changes for 20051230-006.
+
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
 
@@ -1806,12 +1808,12 @@ END.
 /*----- Create Schema -----*/
 on choose of menu-item mi_Odb_Create    in menu mnu_Odbc
    run Perform_Func
-      ("?ODBC,1=add,3=ODBC,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_odb_get,_odb_pul,_gat_cro").
+      ("?ODBC,1=add,3=ODBC,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_odb_get,25=add,_odb_pul,_gat_cro").
  
 /*----- Update File Def -----*/
 on choose of menu-item mi_Odb_UpdFile   in menu mnu_Odbc
    run Perform_Func 
-     ("!ODBC,1=upd,_gat_ini,*C,_gat_con,_odb_get,_odb_pul,_gat_cro").
+     ("!ODBC,1=upd,_gat_ini,*C,_gat_con,_odb_get,25=upd,_odb_pul,_gat_cro").
  
 /*----- Verify File Def -----*/
 on choose of menu-item mi_Odb_VerFile   in menu mnu_Odbc

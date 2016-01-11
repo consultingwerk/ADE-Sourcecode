@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -50,6 +50,8 @@ History:
                          fields are of an unsupported data-type 20050215-011
     D. Slutz 08/10/05 Added extent_char 20050531-001
     D. Moloney 11/11/05 Added schema holder version processing variables 20050531-001
+    fernando   01/04/06 Message added for 20050531-001 should be a warning
+	                    and should not come up during migration - 20051230-006.
 */
 
 /*
@@ -189,6 +191,7 @@ DEFINE VARIABLE efound           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE sh_ver           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE sh_max_ver       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE clnt_vers        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE odb_perform_mode AS CHARACTER NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -347,6 +350,14 @@ assign
 IF NOT batch-mode then assign SESSION:IMMEDIATE-DISPLAY = yes.
 
 RUN adecomm/_setcurs.p ("WAIT").
+
+/* 20051230-006 */
+IF user_env[25] BEGINS "AUTO" THEN
+    ASSIGN odb_perform_mode = "M". /* migration */
+ELSE IF user_env[25] = "add" THEN
+    ASSIGN odb_perform_mode = "C". /* create schema */
+ELSE IF user_env[25] = "upd" THEN
+    ASSIGN odb_perform_mode = "U". /* update schema */
 
 assign
   cache_dirty = TRUE

@@ -924,6 +924,8 @@ Please see the log files for details of the failures and correct these before tr
          <DBDump>#path_src#\#dynamics_rootname#\db\icf\dump</DBDump>
          <patch PatchLevel="0" DBBuild="Yes" NodeURL="db/icf/dfd/icfdbbuild.xml"/>         
 		 <!-- No upgrades available for 101001, it is the first release of the 10.1x branch -->
+		 <patch PatchLevel="101002" NodeURL="db/icf/dfd/icfdb101002adolist.xml"/>
+ 		 <patch PatchLevel="101002" NodeURL="db/icf/dfd/icfdb101002patch.xml"/>
       </database>
    </setup>
    <setup SetupType="Migrate21Setup">

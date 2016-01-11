@@ -476,8 +476,7 @@ DO:
         /* Position new window at same location as old one */
         ASSIGN hNewWindow:X          = hOldWindow:X
                hNewWindow:Y          = hOldWindow:Y NO-ERROR.          
-        /* TODO - Remove this call once that core support for parenting windows is available */           
-        RUN SetWindowPosition IN hOEIDEService (iParentWindow, hNewWindow, hOldWindow).
+
     END.            
 
     FIND _SEW_U WHERE _SEW_U._HANDLE = hNewWindow NO-LOCK NO-ERROR.

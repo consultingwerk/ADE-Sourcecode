@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _wrcont.p
@@ -174,12 +174,18 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE eq ph_win
    /* Get the Layout information */
    FIND _L WHERE _L._u-recid = RECID(_U) AND _L._LO-NAME = "Master Layout".
 
-   /* Find the parent */
-   FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
+   /*Bug# 20051202-051.
+     If the object is a Window or Dialog (not smart), the name of the
+     control-frame is assigned in the control_load procedure*/
+   IF _P._adm-version NE "" THEN
+   DO:
+       /* Find the parent */
+       FIND parent_U WHERE RECID(parent_U) eq _U._parent-recid.
    
-   PUT STREAM P_4GL UNFORMATTED SKIP
-       "      ":U + _U._NAME + ":NAME = ~"" _U._NAME "~":U":U " .":U SKIP
-   .
+       PUT STREAM P_4GL UNFORMATTED SKIP
+           "      ":U + _U._NAME + ":NAME = ~"" _U._NAME "~":U":U " .":U SKIP
+       .
+   END.
 
    /*
     * Write out only the vbx load statement. For RUN or

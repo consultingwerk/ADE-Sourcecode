@@ -25,11 +25,12 @@
   History:
     kmcintos Sep 1, 2005   Added shared buffers to workaround core bug
                            (core bug # 20050830-017) 20050901-009.
+    fernando Dec 23,2005   Removed before-table dom shared temp-tables
 ------------------------------------------------------------------------*/
 
 DEFINE {1} SHARED VARIABLE ghDataSet    AS HANDLE      NO-UNDO.
 
-DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO BEFORE-TABLE clientSessBefore
+DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO
     FIELD _Client-session-uuid           AS CHARACTER 
                                             LABEL "Client session uuid" 
                                             FORMAT "X(28)"
@@ -83,7 +84,7 @@ DEFINE {1} SHARED TEMP-TABLE clientSess NO-UNDO BEFORE-TABLE clientSessBefore
     INDEX _Session-uuid IS PRIMARY UNIQUE _Client-session-uuid
     INDEX _Userid _User-id.
 
-DEFINE {1} SHARED TEMP-TABLE audDataValue NO-UNDO BEFORE-TABLE audDataValueBefore
+DEFINE {1} SHARED TEMP-TABLE audDataValue NO-UNDO
     FIELD _Audit-data-guid               AS CHARACTER 
                                             LABEL "Audit data guid" 
                                             FORMAT "X(28)"
@@ -144,7 +145,7 @@ DEFINE {1} SHARED TEMP-TABLE audDataValue NO-UNDO BEFORE-TABLE audDataValueBefor
                                               _Continuation-sequence
     INDEX _Field-name _Field-name.
 
-DEFINE {1} SHARED TEMP-TABLE audData NO-UNDO BEFORE-TABLE audDataBefore
+DEFINE {1} SHARED TEMP-TABLE audData NO-UNDO
     FIELD _Audit-date-time               AS DATETIME-TZ 
                                             LABEL "Audit date / time" 
                                         FORMAT "99/99/9999 HH:MM:SS.SSS+HH:MM" 

@@ -965,19 +965,12 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDisplayedField  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisplayValue    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNewValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cKeyField        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSelection       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lModify          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNewValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOldValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cOldDisplayValue AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataColumns     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLargeColumns    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLarge           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEntry           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cLarge           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cColumnValues    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainer       AS HANDLE     NO-UNDO.
 
   /* no datasource here is unlikely, but it would be meaningless so just return*/ 
   {get DataSource hDataSource}.
@@ -999,53 +992,35 @@ PROCEDURE dataAvailable :
     &SCOPED-DEFINE xp-assign
     {get DisplayedField cDisplayedField}
     {get KeyField cKeyField}
-    {get DataValue cOldValue}        
-    {get DisplayValue cOldDisplayValue}
+    {get DisplayValue cOldDisplayValue}        
+    {get DataValue cOldValue}
     .             
     &UNDEFINE xp-assign
+    ASSIGN
+      cNewValue     = {fnarg columnValue cKeyField hDataSource}
+      cDisplayValue = {fnarg columnValue cDisplayedField hDataSource}.
 
-    ASSIGN      
-      cDisplayValue           = {fnarg columnValue cDisplayedField hDataSource}
-      cNewValue               = {fnarg columnValue cKeyField hDataSource}
-      cDataColumns            = {fn getDataColumns hDataSource}
-      cLargeColumns           = {fn getLargeColumns hDataSource}
-      hSelection:SCREEN-VALUE = cDisplayValue    
-      .
-    
-    /* We must store the DisplayValue as getDisplayValue cannot rely on the 
-      SDO keeping its position  */ 
-    {set DisplayValue cDisplayValue}.
-    DO iLarge = 1 TO NUM-ENTRIES(cLargeColumns):      
-      ASSIGN
-        iEntry = LOOKUP(ENTRY(iLarge,cLargeColumns),cDataColumns)
-        cDataColumns = DYNAMIC-FUNCTION('deleteEntry':U IN TARGET-PROCEDURE,
-                                         iEntry,
-                                         cDataColumns,
-                                         ','). 
-    END.
     IF cNewValue <> cOldValue THEN
-    DO:
-      /* setDataValue does not call repositionDataSource when called internally
-        (currently not at all for fill-in... ) */
+       /* setDataValue does not call repositionDataSource when called internally
+          (currently not at all for fill-in... ) */
       {set DataValue cNewValue}.
-      /* don't signal value changed if no record available */
-      IF NOT ({fn getQueryPosition hDataSource} BEGINS 'NoRecordAvail':U)  THEN
-       /* valuechanged does not call repositionDataSource when get = setDataValue
-         (currently not at all for fill-in... ) */
+
+    IF cOldDisplayValue <> hSelection:INPUT-VALUE
+    OR cOldDisplayValue <> cDisplayValue   THEN
+    DO:
+      ASSIGN 
+        cDisplayValue           = {fnarg columnValue cDisplayedField hDataSource}
+        cNewValue               = {fnarg columnValue cKeyField hDataSource}
+        hSelection:SCREEN-VALUE = cDisplayValue    
+        .
+      {set DisplayValue cDisplayValue}.  
+
+      /* if not called from setDataValue then valuechanged  */
+      IF cNewValue <> cOldValue THEN
+        /* valuechanged does not call repositionDataSource when DataValue
+           matches datasource */
         RUN valueChanged IN TARGET-PROCEDURE.
-
-      cColumnValues = {fnarg colValues cDataColumns hDataSource}.    
-      PUBLISH "lookupComplete":U FROM hContainer 
-         (cDataColumns,     /* CSV of all the columns in the SDO */
-          cColumnValues,    /* CHR(1) delim list of all the values of the above columns */
-          cNewValue,        /* the key field value of the selected record */
-          cDisplayValue,    /* the value displayed on screen (may be the same as the key field value ) */
-          cOldDisplayValue, /* the old value displayed on screen (may be the same as the key field value ) */
-          FOCUS <> hSelection,  /* YES = lookup browser used, NO = manual value entered */
-          TARGET-PROCEDURE     /* Handle to lookup - use to determine which lookup has been left */
-         ).
-
-    END. /* cNewValue <> cOldValue */
+    END.
   END. /* valid hSelection and fill-in */
   
   RETURN. 
@@ -1873,16 +1848,14 @@ PROCEDURE leaveSelect :
   DEFINE VARIABLE cKeyField             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cKeyFieldValue        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisplayedField       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cScreenValue          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataValue            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisplayValue         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cColumnValues         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cColumnNames          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hContainer            AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFound                AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iLookup               AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lModified             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cOldValue             AS CHARACTER  NO-UNDO.
   
   &SCOPED-DEFINE xp-assign
   {get DataModified lModified}
@@ -1898,6 +1871,7 @@ PROCEDURE leaveSelect :
     {get DataSource hDataSource}
     {get DataValue cDataValue}
     {get DisplayedField cDisplayedField}
+    {get DisplayValue cOldValue}
     .
     &UNDEFINE xp-assign
 
@@ -1910,45 +1884,7 @@ PROCEDURE leaveSelect :
     IF cDataValue   <> cKeyFieldValue 
     OR cScreenValue <> cDisplayValue THEN
     DO:
-      IF cScreenValue <> "":U THEN 
-      DO:
-        /* Tell dataAvailable to take this seriously.. */
-        {set Modify TRUE}.
-
-        /* qualify with RowObject. as signal that this is the SDO ColumnName, 
-           which may be different than the table's fieldname */     
-        IF NUM-ENTRIES(cDisplayedField,".":U) = 1 THEN
-           cDisplayedField = "RowObject.":U + cDisplayedField.
-
-        lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
-                              cDisplayedField,
-                              cScreenValue,
-                              '=/BEGINS':U).
-        {set Modify FALSE}.
-      END.
-      IF NOT lFound THEN
-      DO:
-        ASSIGN 
-          cScreenValue    = hSelection:INPUT-VALUE
-          cKeyFieldValue  = IF cDisplayedField = cKeyField 
-                            THEN cScreenValue
-                            ELSE ? 
-          cColumnNames    = "":U
-          cColumnValues   = "":U.
-    
-          {set DataValue cKeyFieldValue}.    
-          {get ContainerSource hContainer}.
-    
-          PUBLISH "lookupComplete":U FROM hContainer 
-                ('',  /* CSV of all the columns in the SDO */
-                 '',   /* CHR(1) delim list of all the values of the above columns */
-                 cKeyFieldValue,    /* the key field value of the selected record */
-                 cScreenValue,      /* the value displayed on screen (may be the same as the key field value ) */
-                 ?,     /* the old value is not known here. */
-                 NO,                /* YES = lookup browser used, NO = manual value entered */
-                 TARGET-PROCEDURE   /* Handle to lookup - use to determine which lookup has been left */
-                ). 
-      END.
+      RUN valueChanged IN TARGET-PROCEDURE.
     END.
   END. /* Modified */
 
@@ -2073,6 +2009,86 @@ Parameters: See smart.p
       RUN dataAvailable IN TARGET-PROCEDURE('reset':U).
     END.
   END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-publishLookupComplete) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE publishLookupComplete Procedure 
+PROCEDURE publishLookupComplete PRIVATE :
+/*------------------------------------------------------------------------------
+  Purpose:  Publish the lookup complete event    
+  Parameters:  <none>
+  Notes:    This is 1 of 3 alternative ways to notify the container and is 
+            the default if UseRepository and source is dbaware and eventonchange
+            is blank. 
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER plAvail        AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER pcOldDispValue AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cColumnValues AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataColumns  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLargeColumns AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNewValue     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayValue AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hSelection    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hViewer       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLarge        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEntry        AS INTEGER    NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get DataSource hDataSource}
+  {get DataValue cNewValue}
+  {get DisplayValue cDisplayValue}
+  {get FieldHandle hSelection}
+  {get ContainerSource hViewer}
+  .
+  &UNDEFINE xp-assign
+  
+  IF plAvail THEN
+  DO:
+    ASSIGN 
+      cColumnValues = {fnarg colValues cDataColumns hDataSource}    
+      cDataColumns  = {fn getDataColumns hDataSource}
+      cLargeColumns = {fn getLargeColumns hDataSource}.
+    
+    DO iLarge = 1 TO NUM-ENTRIES(cLargeColumns):      
+        ASSIGN
+          iEntry = LOOKUP(ENTRY(iLarge,cLargeColumns),cDataColumns)
+          cDataColumns = DYNAMIC-FUNCTION('deleteEntry':U IN TARGET-PROCEDURE,
+                                           iEntry,
+                                           cDataColumns,
+                                           ','). 
+    END.
+    cColumnValues = {fnarg colValues cDataColumns hDataSource}.  
+    PUBLISH "lookupComplete":U FROM hViewer 
+           (cDataColumns,     /* CSV of all the columns in the SDO */
+            cColumnValues,    /* CHR(1) delim list of all the values of the above columns */
+            cNewValue,        /* the key field value of the selected record */
+            cDisplayValue,    /* the value displayed on screen (may be the same as the key field value ) */
+            pcOldDispValue, /* the old value displayed on screen (may be the same as the key field value ) */
+            FOCUS <> hSelection,  /* YES = lookup browser used, NO = manual value entered */
+            TARGET-PROCEDURE     /* Handle to lookup - use to determine which lookup has been left */
+           ).          
+  END.
+  ELSE 
+    PUBLISH "lookupComplete":U FROM hViewer 
+                ('',  /* CSV of all the columns in the SDO */
+                 '',   /* CHR(1) delim list of all the values of the above columns */
+                 cNewValue,    /* the key field value of the selected record */
+                 cDisplayValue,  /* the value displayed on screen (may be the same as the key field value ) */
+                 pcOldDispValue, /* the old value  */
+                 NO,                /* YES = lookup browser used, NO = manual value entered */
+                 TARGET-PROCEDURE   /* Handle to lookup - use to determine which lookup has been left */
+                ). 
+
+  RETURN.
 
 END PROCEDURE.
 
@@ -2274,10 +2290,9 @@ PROCEDURE valueChanged :
            changed.      
   Parameters:  <none>
   Notes:   Defined as a PERSISTENT value-changed trigger in the dynamic-widget
-           Also called from dataAvailable when modify is true, AFTER 
-           setDisplayValue to be able to identify the difference between the 
-           trigger that need to call reposition and store values and the
-           event that just need to setDataModifed and publish events  
+           and also called from dataAvailable when modify is true, AFTER 
+           setDataValue to be able to identify whether the datasource
+           need to be positioned. 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cEvent          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cKeyField       AS CHARACTER  NO-UNDO.
@@ -2288,56 +2303,82 @@ PROCEDURE valueChanged :
   DEFINE VARIABLE lRepos          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDisplayedField AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisplayValue   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataValue      AS CHARACTER  NO-UNDO. 
-  
+  DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFieldName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDbAware        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFound          AS LOGICAL    NO-UNDO.
+
   /* Set modified true to make the viewer save the value */
-  {set DataModified YES}.
-  {get ViewAs cViewAs}.
-  {get KeyField cKeyField}.
-  {get SelectionHandle hSelection}.
-  {get DisplayValue cDisplayValue}.    
-  {get DataSource hDataSource}.
-  
-  cScreenValue = hSelection:INPUT-VALUE.  
- 
-  IF hSelection:TYPE <> "Fill-In":U THEN
+  &SCOPED-DEFINE xp-assign
+  {set DataModified YES}
+  {get ViewAs cViewAs}
+  {get KeyField cKeyField}
+  {get DisplayedField cDisplayedField}
+  {get DataValue cDataValue}
+  {get SelectionHandle hSelection}
+  {get DisplayValue cOldValue} /* not old when called from dataavail.. */   
+  {get DataSource hDataSource}
+   .
+  &UNDEFINE xp-assign
+  IF cViewAs <> 'Browser':U THEN
+    {get RepositionDataSource lRepos}.   
+  ELSE
+    lRepos = TRUE.
+
+  /* fired from trigger valuechanged / leaveSelect */
+  IF lRepos AND cOldValue <> hSelection:INPUT-VALUE  THEN
   DO:
-    /* if old <> current then this is called from the trigger */   
-    IF cDisplayValue <> cScreenValue THEN
-    DO:
-      {get RepositionDataSource lRepos}.   
-      IF lRepos THEN  
-        /* We can call reposition with input-value since it always corresponds 
-           to keyfield value for non-fillin. This need to change when support 
-           is added for repos on valuechanged of fill-in */ 
-        {fnarg repositionDataSource hSelection:INPUT-VALUE}.
+    cScreenValue = hSelection:INPUT-VALUE.
+    {set DisplayValue cScreenValue}. 
+
+    IF cKeyField = cDisplayedField OR cViewAs <> 'Browser':U THEN
+      lFound = {fnarg repositionDataSource cScreenValue}.
+    ELSE DO:
+      {set Modify TRUE}.
+  
+       /* qualify with RowObject. as signal that this is the SDO ColumnName, 
+          which may be different than the table's fieldname */     
+      IF NUM-ENTRIES(cDisplayedField,".":U) = 1 THEN
+        cDisplayedField = "RowObject.":U + cDisplayedField.
+      lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
+                             cDisplayedField,
+                             cScreenValue,
+                             '=/BEGINS':U).
+      {set Modify FALSE}.
     END.
-  END. /* hSelection:type <> fill-in */
-  ELSE DO:    
-    /* if old <> current then this is called from the trigger */   
-    IF cDisplayValue <> cScreenValue THEN
+    IF NOT lFound AND cViewAs = 'Browser':U THEN
     DO:
-      {get DisplayedField cDisplayedField}.
-      /* Cannot use ? in expression in {set prop expression} */
-      cDisplayValue = IF hSelection:INPUT-VALUE <> ? 
-                      THEN hSelection:INPUT-VALUE
-                      ELSE '?':U.
-      {set DisplayValue cDisplayValue}.    
       IF cKeyField = cDisplayedField THEN
-        {set DataValue cDisplayValue}.
-      ELSE /* we have no clue what the value is */
+        {set DataValue cScreenValue}.
+      ELSE 
         {set DataValue ?}.
     END.
   END.
+
+   /* Publish or run event to/in container  */
+  &SCOPED-DEFINE xp-assign
+  {get ChangedEvent cEvent} 
+  {get FieldName cFieldName} 
+  {get ContainerSource hContainer}
+  .
+  &UNDEFINE xp-assign
   
-  /* Should we Publish event with new value to container? */
-  {get ChangedEvent cEvent}. 
   IF cEvent NE "":U THEN
   DO:
     {get DataValue cDataValue}.
     PUBLISH cEvent FROM TARGET-PROCEDURE (cDataValue).
   END. /* cevent <> '' */
+  ELSE IF lRepos THEN 
+  DO:
+    {get DbAware lDbAware hDataSource}.
+    IF NOT lDbAware THEN
+      RUN displayRelationFields IN hContainer (cFieldName).
+    ELSE 
+      RUN publishLookupComplete IN TARGET-PROCEDURE(lFound,cOldValue).
+  END.
+
+  RETURN. 
 
 END PROCEDURE.
 
@@ -2887,32 +2928,52 @@ FUNCTION getDisplayValue RETURNS CHARACTER
            Note: in this case, unique data values must be used otherwise the first
            displayed value found in the list will be returned.
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hSelection      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hDataSource     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cDisplayedField AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cKeyField       AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cDataValue      AS CHAR      NO-UNDO.
-  DEFINE VARIABLE lUsedPair       AS LOG       NO-UNDO.
+  DEFINE VARIABLE hSelection      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDisplayedField AS CHAR       NO-UNDO.
+  DEFINE VARIABLE cKeyField       AS CHAR       NO-UNDO.
+  DEFINE VARIABLE cDataValue      AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lUsedPair       AS LOG        NO-UNDO.
   DEFINE VARIABLE cViewAs         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lOptional       AS LOG       NO-UNDO.
+  DEFINE VARIABLE lRepos          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOptional       AS LOG        NO-UNDO.
 
   {get SelectionHandle hSelection}.
    
   IF NOT VALID-HANDLE(hSelection) THEN
     RETURN ERROR. 
 
-  {get UsePairedList lUsedPair}.
-  {get KeyField cKeyField}.
-  {get DisplayedField cDisplayedField}.
-  {get Optional lOptional}.
-  {get DataSource hDataSource}.
-  {get ViewAs cViewAs}.
+  &SCOPED-DEFINE xp-assign
+  {get UsePairedList lUsedPair}
+  {get KeyField cKeyField}
+  {get DisplayedField cDisplayedField}
+  {get Optional lOptional}
+  {get DataSource hDataSource}
+  {get ViewAs cViewAs}
+   .
+  &UNDEFINE xp-assign
   
+  IF cViewAs <> "browser":U  THEN
+  DO:
+    {get RepositionDataSource lRepos}.   
+
+    /* This is the case where the display value may be different than the 
+       datavalue */
+    IF lOptional THEN 
+    DO:
+      {get DataValue cDataValue}.
+      IF (cDataValue = "?":U OR cDataValue = ?) THEN
+        RETURN "?":U.
+    END.
+  END.
+
   /* From 9.1C we store the DisplayValue (and DataValue) for browser in 
      dataAvailable or setDataValue to avoid returning the current SDO value 
      as this may not be correct if the user has not chosen the record with 
-    'default-action' */
-  IF cViewAs = "browser":U THEN
+    'default-action' 
+     From 10.1a01 we also do this for any repositionsource case to be able 
+     to detect change in trigger procedures also for non browser */
+  IF cViewAs = "browser":U OR lRepos THEN
     RETURN SUPER().
   
   {get DataValue cDatavalue}.
@@ -2923,13 +2984,8 @@ FUNCTION getDisplayValue RETURNS CHARACTER
      we want to return the cDataValue. */  
   IF NOT lUsedPair OR cKeyField = cDisplayedField THEN 
     RETURN cDataValue.
-     
-  /* This is the case where the display value may be different than the 
-     datavalue */
-  IF lOptional AND (cDataValue = "?":U OR cDataValue = ?) THEN
-    RETURN "?":U.
-  
-  /* get display value from list-item-pairs given the data value */
+
+    /* get display value from list-item-pairs given the data value */
   IF CAN-QUERY(hSelection,'LIST-ITEM-PAIRS':U) THEN 
      cDataValue = DYNAMIC-FUNCTION('mappedEntry':U IN TARGET-PROCEDURE,
                                     {fnarg formattedValue cDataValue TARGET-PROCEDURE}, 
@@ -3399,11 +3455,12 @@ FUNCTION repositionDataSource RETURNS LOGICAL
      which may be different than the table's fieldname */   
   IF NUM-ENTRIES(cKeyField,".":U) = 1 THEN
     cKeyField = "RowObject.":U + cKeyField.
-  
+ 
   lFound = DYNAMIC-FUNC("findRowWhere":U IN hDataSource, 
                          cKeyField,
                          pcValue,
                         '':U).
+
   {set Modify FALSE}. 
 
   RETURN lFound.

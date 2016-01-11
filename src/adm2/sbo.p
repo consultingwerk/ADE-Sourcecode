@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -1226,6 +1226,121 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-applyUpdateTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE applyUpdateTables Procedure 
+PROCEDURE applyUpdateTables :
+/*------------------------------------------------------------------------------
+  Purpose:    Apply update tables to the SBO and its SDOs after
+              they have been received from the client before the commit AS HANDLE NO-UNDO. 
+  Parameters: phHandle1 - 20  -tabler handle 
+  Notes:      Called from procedures that receives the tables from the client,
+              remoteCommitTransaction and adm2/committransaction AS HANDLE NO-UNDO.p AS HANDLE NO-UNDO. 
+------------------------------------------------------------------------------*/
+ DEFINE INPUT PARAMETER  phRowObjUpd1 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd2 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd3 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd4 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd5 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd6 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd7 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd8 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd9 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd10 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd11 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd12 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd13 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd14 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd15 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd16 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd17 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd18 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd19 AS HANDLE NO-UNDO. 
+ DEFINE INPUT PARAMETER  phRowObjUpd20 AS HANDLE NO-UNDO. 
+ 
+ DEFINE VARIABLE cContained   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE hTable       AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cTableList   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cOrdering    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lDynamicData AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lDynamicSDO  AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hDO          AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE iParam         AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iEntry       AS INTEGER    NO-UNDO.
+
+ &SCOPED-DEFINE xp-assign
+ {get ContainedDataObjects cContained}
+ {get DataObjectOrdering cOrdering}
+ {get DynamicData lDynamicData}
+ .
+
+ &UNDEFINE xp-assign
+ /* Set the SDOs RowObjUpd Tables to be the ones passed from the client. */
+ /* Note that we need to do this *after* the contained SDOs have been initialized */
+ /* to account for the order (DataObjectOrdering) of contained SDOs */
+ /* For dynamic SBOs, the DataObjectOrdering property is not updated until */
+ /* contained SDOs are initialized */
+ IF cOrdering = '':U THEN
+ DO:
+   cOrdering = {fn initDataObjectOrdering}.
+   {set DataObjectOrdering cOrdering}.
+ END. 
+ 
+ DO iParam = 1 TO NUM-ENTRIES(cOrdering):
+   ASSIGN
+     hDO  = WIDGET-HANDLE(ENTRY(INTEGER(ENTRY(iParam, cOrdering)), cContained)). 
+   CASE iParam:
+     WHEN 1 THEN hTable = phRowObjUpd1.
+     WHEN 2 THEN hTable = phRowObjUpd2.
+     WHEN 3 THEN hTable = phRowObjUpd3.
+     WHEN 4 THEN hTable = phRowObjUpd4.
+     WHEN 5 THEN hTable = phRowObjUpd5.
+     WHEN 6 THEN hTable = phRowObjUpd6.
+     WHEN 7 THEN hTable = phRowObjUpd7.
+     WHEN 8 THEN hTable = phRowObjUpd8.
+     WHEN 9 THEN hTable = phRowObjUpd9.
+     WHEN 10 THEN hTable = phRowObjUpd10.
+     WHEN 11 THEN hTable = phRowObjUpd11.
+     WHEN 12 THEN hTable = phRowObjUpd12.
+     WHEN 13 THEN hTable = phRowObjUpd13.
+     WHEN 14 THEN hTable = phRowObjUpd14.
+     WHEN 15 THEN hTable = phRowObjUpd15.
+     WHEN 16 THEN hTable = phRowObjUpd16.
+     WHEN 17 THEN hTable = phRowObjUpd17.
+     WHEN 18 THEN hTable = phRowObjUpd18.
+     WHEN 19 THEN hTable = phRowObjUpd19.
+     WHEN 20 THEN hTable = phRowObjUpd20.
+   END CASE.
+   
+   IF VALID-HANDLE(hTable) THEN
+   DO:
+     /* if dynamic SBO then synch with the SDOs here */
+     IF lDynamicData THEN
+     DO:
+       {get DynamicData lDynamicSDO hDO}.
+       IF NOT lDynamicSDO THEN
+       DO:
+         RUN pushRowObjUpdTable IN hDO (INPUT TABLE-HANDLE hTable) .
+         {get RowObjUpdTable hTable hDO}.
+       END.
+       ELSE 
+         {set RowObjUpdTable hTable hDO}.      
+     END.
+   END.
+   cTableList = cTableList 
+           + (IF iParam = 1 THEN "" ELSE ",") 
+           + STRING(hTable).
+
+ END.  /* DO 'setRowObjUpdTable' for all contained SDOs */
+ {set updateTables cTableList}.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignMaxGuess) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE assignMaxGuess Procedure 
@@ -1988,9 +2103,6 @@ PROCEDURE commitTransaction :
 
   &SCOPED-DEFINE xp-assign
   {get ContainedDataObjects cContained}
-  /* If we're on the client side pass the RowObjUpd table to the server. 
-     Rearrange the table order as necessary to match the AppBuilder-generated 
-     order, which is the order of the parameters. */
   {get DataObjectOrdering cOrdering}.
   &UNDEFINE xp-assign
 
@@ -2008,8 +2120,15 @@ PROCEDURE commitTransaction :
       {get RowObjUpdTable hTable hDO}
       {get RowObject hRowObject hDO}.
       &UNDEFINE xp-assign
+      
+      IF NOT VALID-HANDLE(hTable) THEN
+      DO:
+        {fn createRowObjUpdTable hDO}.
+        {get RowObjUpdTable hTable hDO}.
+      END.
+
       /* Skip SDOs that have no updates, and keep track of them for use
-         after the server transaction. */
+         after the server transaction. */      
       IF VALID-HANDLE(hTable) AND hTable:HAS-RECORDS THEN  
       DO:
         cHasRecords = cHasRecords + 
@@ -2024,7 +2143,7 @@ PROCEDURE commitTransaction :
                  ENTRY(iDO, cOrdering).
         rRowid[iDO] = hROwObject:ROWID.
         RUN doBuildUpd IN hDO. /* (OUTPUT TABLE-HANDLE hTable) REMOVED! */
-      END.         /* END DO IF HAS-RECORDS */
+      END. 
       CASE iDO:
           WHEN 1 THEN hTable1 = hTable.
           WHEN 2 THEN hTable2 = hTable.
@@ -2060,11 +2179,11 @@ PROCEDURE commitTransaction :
       IF hAppService = ? THEN
         RETURN 'ADM-ERROR':U.
     END.
-    ELSE 
+    ELSE
       {get ASHandle hAsHandle}.
     cContext = {fn obtainContextForServer}.
   END.
-  
+
   IF VALID-HANDLE(hAppService)  THEN
   DO:
     &SCOPED-DEFINE xp-assign
@@ -2376,6 +2495,57 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-connectServer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE connectServer Procedure 
+PROCEDURE connectServer :
+/*------------------------------------------------------------------------------
+  Purpose:     Override to show potential error message   
+  Parameters:  <none>
+  Notes:       AppService must be set before this is called
+------------------------------------------------------------------------------*/
+  DEFINE OUTPUT PARAMETER phAppService AS HANDLE   NO-UNDO.
+
+  DEFINE VARIABLE cMsg             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lHasConnected    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cAppService      AS CHARACTER  NO-UNDO.
+
+  /* check if connected in order to registerAppService in container after */
+  {get AsHasConnected lHasConnected}.
+  RUN SUPER (OUTPUT phAppService) NO-ERROR.
+  
+  /* Handles only one message, which is sufficient with the current appserver 
+     class */
+  IF {fn anyMessage} THEN
+  DO:
+    cMsg = ENTRY(1,{fn fetchMessages},CHR(4)).
+     /*{fnarg showMessage cMsg}. */
+    RUN showMessageProcedure IN TARGET-PROCEDURE(cMsg,OUTPUT cMsg). 
+    RETURN ERROR 'ADM-ERROR':U.
+  END.
+  ELSE IF ERROR-STATUS:ERROR THEN
+    RETURN ERROR RETURN-VALUE.
+
+  IF NOT lHasConnected THEN
+  DO:
+    &SCOPED-DEFINE xp-assign 
+    {get ContainerSource hContainerSource} 
+    {get AppService cAppService}
+    .
+    &UNDEFINE xp-assign
+    
+    IF VALID-HANDLE(hContainerSource) THEN
+      {fnarg registerAppService cAppservice hContainerSource}. 
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-createData) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createData Procedure 
@@ -2424,10 +2594,14 @@ PROCEDURE createObjects :
    DEFINE VARIABLE lCheckDefs      AS LOGICAL    NO-UNDO.
    DEFINE VARIABLE hRowObjectTable AS HANDLE     NO-UNDO.
    DEFINE VARIABLE lOpenOnInit     AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE lHasConnected   AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE hAppService     AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE cAppService     AS CHARACTER  NO-UNDO.
 
    &SCOPED-DEFINE xp-assign
    {get ObjectInitialized lInitialized}
-   {get ObjectsCreated lCreated}. 
+   {get ObjectsCreated lCreated} 
+    .
    &UNDEFINE xp-assign
    
    IF lCreated OR lInitialized THEN
@@ -2435,14 +2609,28 @@ PROCEDURE createObjects :
 
    lOpenOnInit = {fn canOpenOnInit}.
 
-   RUN SUPER.  
-   
+   RUN SUPER. 
+
+   /* connect to ensure correct asdivision and register of appservice in container */ 
+   {get AsHasConnected lHasConnected}.
+   IF NOT lHasConnected THEN
+   DO:
+     {get AppService cAppService}.  
+     IF cAppService > '' THEN      
+     DO:                           
+       RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
+       IF hAppService = ? THEN
+         RETURN ERROR 'ADM-ERROR':U.  
+     END. 
+   END.
+
    {get AsDivision cAsDivision}.
+
    /* Currently the SDO calls createObject itself when 'SERVER' 
       if 'CLIENT' avoid this since it will be done on the server 
       UNLESS there will be no server call (openoninit false) */   
-   IF (cAsDivision <> 'CLIENT':U AND NOT lOpenOnInit) 
-   OR cAsDivision = '' THEN
+   IF (cAsDivision = 'CLIENT':U AND NOT lOpenOnInit) 
+   OR cAsDivision = ''  THEN
    DO:
        /* In design mode where the SBO is running standalone we may need to 
         fetch definitions from server. This can only happen if we are not 
@@ -3915,17 +4103,11 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hRowObjectTable  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lFetchDefs       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lHasConnected    AS LOGICAL    NO-UNDO.
 
-  
-  /* Skip connection if division already set or in design mode. 
-     (AsDivision returns ? when undefined and ObjectInitialized is false) */
-  &SCOPED-DEFINE xp-assign
-  {get UIBMode cUIBMode}
-  {get AsDivision cAsDivision}
-  .
-  &UNDEFINE xp-assign
-  
-  IF cUIBMode = "":U AND cAsDivision = ? THEN
+  {get UIBMode cUIBMode}.
+
+  IF cUIBMode = "":U THEN
   DO:
     /* Ensure that initialization only happens once */
     {get ObjectInitialized lInitialized}.
@@ -3935,11 +4117,13 @@ PROCEDURE initializeObject :
     {get AppService cAppService}. 
     IF cAppService NE "":U THEN
     DO:
-      RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
-      IF hAppService = ? THEN
-        RETURN ERROR 'ADM-ERROR':U.    
-      {get ContainerSource hContainerSource}.                       
-      {fnarg registerAppService cAppservice hContainerSource}. 
+      {get AsHasConnected lHasConnected}.
+      IF NOT lHasConnected THEN
+      DO:
+        RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
+        IF hAppService = ? THEN
+          RETURN ERROR 'ADM-ERROR':U.    
+      END.                  
     END.  /* IF AppService NE "":U */
     ELSE
     DO:
@@ -4613,7 +4797,6 @@ PROCEDURE postCreateObjects :
   {set DataColumns cSBODataColumns}.
   &UNDEFINE xp-assign
 
-
   /* This maps the AppBuilder-generated Update Table order to the 
      DataObjectNames order. The code is in sbo.i for static SBOs 
      and in sbo.p for dynamic SBOs. For dynamic SBOs we want to wait 
@@ -4678,6 +4861,7 @@ i-o pcTempTables   Temp-table handles. comma-separated
  DEFINE INPUT-OUTPUT PARAMETER pcTables        AS CHARACTER  NO-UNDO.
 
  DEFINE VARIABLE cContained       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cObjectNames     AS CHAR       NO-UNDO.
  DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cAllQueries      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cTtList          AS CHARACTER  NO-UNDO.
@@ -4804,6 +4988,7 @@ i-o pcTempTables   Temp-table handles. comma-separated
 
    &SCOPED-DEFINE xp-assign
    {get ContainedDataObjects cContained}
+   {get DataObjectNames cObjectNames}
    /* Will use LogicalObjectName for repository objectws in the future */ 
    {get LogicalObjectName cLogicalName}
    {get ServerFileName cPhysicalName}
@@ -4851,10 +5036,10 @@ i-o pcTempTables   Temp-table handles. comma-separated
                      + cAllQueries
      pcTables        = pcTables
                      + (IF lFirst THEN '':U ELSE ',':U)
-                     + cTtList
+                     + cTTList
      pcQualNames     = pcQualNames
                      + (IF lFirst THEN '':U ELSE ',':U)
-                     + cQualName  + FILL(',':U,NUM-ENTRIES(cContained) - 1) 
+                     + LEFT-TRIM(REPLACE(',' + cObjectNames,',',',' + cQualName + ':'),',')
      pcPhysicalNames = pcPhysicalNames
                      + (IF lFirst THEN '':U ELSE ',':U)
                      + cPhysicalName + ':' + cLogicalName + FILL(',':U,NUM-ENTRIES(cContained) - 1)
@@ -4863,10 +5048,10 @@ i-o pcTempTables   Temp-table handles. comma-separated
                      + cForeignFields + FILL(CHR(1),NUM-ENTRIES(cContained) - 1).   
  END. /* not looking for visualtargets */
 
+ /* prepare data targets of the sbo */
  {get DataTarget cTargets}.
  DO iTarget = 1 TO NUM-ENTRIES(cTargets):
    hTarget = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-   lQuery = FALSE.
    {get QueryObject lQuery hTarget}.
    {get ContainerType cContainerType hTarget}.  
    
@@ -5488,97 +5673,94 @@ DEFINE OUTPUT PARAMETER pcUndoIds  AS CHARACTER   NO-UNDO.
 
 DEFINE VARIABLE cUpdateTables AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iCount        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cOrdering     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE hTable        AS HANDLE     NO-UNDO.
+DEFINE VARIABLE hUpdateTT     AS HANDLE     NO-UNDO.
+DEFINE VARIABLE lSetOrdering  AS LOGICAL    NO-UNDO.
 
   RUN setContextAndInitialize IN TARGET-PROCEDURE(pcContext).
-
-  DO iCount = 1 TO 20:
-    CASE iCount:
-      WHEN 1 THEN
-        IF VALID-HANDLE(phRowObjUpd1) THEN
-          cUpdateTables = STRING(phRowObjUpd1).
-        ELSE LEAVE.
-      WHEN 2 THEN
-        IF VALID-HANDLE(phRowObjUpd2) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd2).
-        ELSE LEAVE.
-      WHEN 3 THEN
-        IF VALID-HANDLE(phRowObjUpd3) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd3).
-        ELSE LEAVE.
-      WHEN 4 THEN
-        IF VALID-HANDLE(phRowObjUpd4) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd4).
-        ELSE LEAVE.
-      WHEN 5 THEN
-        IF VALID-HANDLE(phRowObjUpd5) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd5).
-        ELSE LEAVE.
-      WHEN 6 THEN
-        IF VALID-HANDLE(phRowObjUpd6) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd6).
-        ELSE LEAVE.
-      WHEN 7 THEN
-        IF VALID-HANDLE(phRowObjUpd7) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd7).
-        ELSE LEAVE.
-      WHEN 8 THEN
-        IF VALID-HANDLE(phRowObjUpd8) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd8).
-        ELSE LEAVE.
-      WHEN 9 THEN
-        IF VALID-HANDLE(phRowObjUpd9) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd9).
-        ELSE LEAVE.
-      WHEN 10 THEN
-        IF VALID-HANDLE(phRowObjUpd10) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd10).
-        ELSE LEAVE.
-      WHEN 11 THEN
-        IF VALID-HANDLE(phRowObjUpd11) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd11).
-        ELSE LEAVE.
-      WHEN 12 THEN
-        IF VALID-HANDLE(phRowObjUpd12) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd12).
-        ELSE LEAVE.
-      WHEN 13 THEN
-        IF VALID-HANDLE(phRowObjUpd13) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd13).
-        ELSE LEAVE.
-      WHEN 14 THEN
-        IF VALID-HANDLE(phRowObjUpd14) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd14).
-        ELSE LEAVE.
-      WHEN 15 THEN
-        IF VALID-HANDLE(phRowObjUpd15) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd15).
-        ELSE LEAVE.
-      WHEN 16 THEN
-        IF VALID-HANDLE(phRowObjUpd16) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd16).
-        ELSE LEAVE.
-      WHEN 17 THEN
-        IF VALID-HANDLE(phRowObjUpd17) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd17).
-        ELSE LEAVE.
-      WHEN 18 THEN
-        IF VALID-HANDLE(phRowObjUpd18) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd18).
-        ELSE LEAVE.
-      WHEN 19 THEN
-        IF VALID-HANDLE(phRowObjUpd19) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd19).
-        ELSE LEAVE.
-      WHEN 20 THEN
-        IF VALID-HANDLE(phRowObjUpd20) THEN
-          cUpdateTables = cUpdateTables + "," + STRING(phRowObjUpd20).
-        ELSE LEAVE.
-    END CASE.
-  END.
-  {set UpdateTables cUpdateTables}.
+  RUN applyUpdateTables IN TARGET-PROCEDURE
+                              (phRowObjUpd1,
+                               phRowObjUpd2,
+                               phRowObjUpd3,
+                               phRowObjUpd4,
+                               phRowObjUpd5,
+                               phRowObjUpd6,
+                               phRowObjUpd7,
+                               phRowObjUpd8,
+                               phRowObjUpd9,
+                               phRowObjUpd10,
+                               phRowObjUpd11,
+                               phRowObjUpd12,
+                               phRowObjUpd13,
+                               phRowObjUpd14,
+                               phRowObjUpd15,
+                               phRowObjUpd16,
+                               phRowObjUpd17,
+                               phRowObjUpd18,
+                               phRowObjUpd19,
+                               phRowObjUpd20).
 
   RUN bufferCommitTransaction IN TARGET-PROCEDURE
-                 (OUTPUT pcMessages, OUTPUT pcUndoIds). 
+                              (OUTPUT pcMessages, 
+                               OUTPUT pcUndoIds). 
+
+
+  {get UpdateTables cUpdateTables}.
+  {get DataObjectOrdering cOrdering}.
+  
+  /* if this dynamic SBO has a static SDO then its table is used as updateTable 
+     and must be returned to the client */ 
+  DO iCount = 1 TO NUM-ENTRIES(cOrdering):
+    CASE iCount:
+      WHEN 1 THEN hTable = phRowObjUpd1.
+      WHEN 2 THEN hTable = phRowObjUpd2.
+      WHEN 3 THEN hTable = phRowObjUpd3.
+      WHEN 4 THEN hTable = phRowObjUpd4.
+      WHEN 5 THEN hTable = phRowObjUpd5.
+      WHEN 6 THEN hTable = phRowObjUpd6.
+      WHEN 7 THEN hTable = phRowObjUpd7.
+      WHEN 8 THEN hTable = phRowObjUpd8.
+      WHEN 9 THEN hTable = phRowObjUpd9.
+      WHEN 10 THEN hTable = phRowObjUpd10.
+      WHEN 11 THEN hTable = phRowObjUpd11.
+      WHEN 12 THEN hTable = phRowObjUpd12.
+      WHEN 13 THEN hTable = phRowObjUpd13.
+      WHEN 14 THEN hTable = phRowObjUpd14.
+      WHEN 15 THEN hTable = phRowObjUpd15.
+      WHEN 16 THEN hTable = phRowObjUpd16.
+      WHEN 17 THEN hTable = phRowObjUpd17.
+      WHEN 18 THEN hTable = phRowObjUpd18.
+      WHEN 19 THEN hTable = phRowObjUpd19.
+      WHEN 20 THEN hTable = phRowObjUpd20.
+    END CASE.
+    hUpdateTT = WIDGET-HANDLE(ENTRY(INTEGER(ENTRY(iCount, cOrdering)), cUpdateTables)).
+    IF hUpdateTT <> hTable THEN 
+    DO:
+      CASE iCount:
+        WHEN 1 THEN phRowObjUpd1 = hUpdateTT.
+        WHEN 2 THEN phRowObjUpd2 = hUpdateTT.
+        WHEN 3 THEN phRowObjUpd3 = hUpdateTT.
+        WHEN 4 THEN phRowObjUpd4 = hUpdateTT.
+        WHEN 5 THEN phRowObjUpd5 = hUpdateTT.
+        WHEN 6 THEN phRowObjUpd6 = hUpdateTT.
+        WHEN 7 THEN phRowObjUpd7 = hUpdateTT.
+        WHEN 8 THEN phRowObjUpd8 = hUpdateTT.
+        WHEN 9 THEN phRowObjUpd9 = hUpdateTT.
+        WHEN 10 THEN phRowObjUpd10 = hUpdateTT.
+        WHEN 11 THEN phRowObjUpd11 = hUpdateTT.
+        WHEN 12 THEN phRowObjUpd12 = hUpdateTT.
+        WHEN 13 THEN phRowObjUpd13 = hUpdateTT.
+        WHEN 14 THEN phRowObjUpd14 = hUpdateTT.
+        WHEN 15 THEN phRowObjUpd15 = hUpdateTT.
+        WHEN 16 THEN phRowObjUpd16 = hUpdateTT.
+        WHEN 17 THEN phRowObjUpd17 = hUpdateTT.
+        WHEN 18 THEN phRowObjUpd18 = hUpdateTT.
+        WHEN 19 THEN phRowObjUpd19 = hUpdateTT.
+        WHEN 20 THEN phRowObjUpd20 = hUpdateTT.
+      END CASE.
+    END.
+  END.
 
   pccontext = {fn obtainContextForClient}.
 
@@ -8799,7 +8981,6 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
  DEFINE VARIABLE cObjectName    AS CHARACTER  NO-UNDO.
   
   {get ContainedDataObjects cDOList}.
-
   DO iCount = 1 TO NUM-ENTRIES(cDOList):
     ASSIGN
       hDO = WIDGET-HANDLE(ENTRY(iCount, cDOList))
@@ -8812,7 +8993,7 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
          with the actual table handle when it's known */
       cTableList = cTableList + (IF cTableList = "" THEN "" ELSE ",") +
                    cObjectName. /* placeholder */
-
+       
     IF VALID-HANDLE(hDO) THEN 
     DO:
       {get RowObjUpdTable hROU hDO}.
@@ -8824,7 +9005,7 @@ FUNCTION initDataObjectOrdering RETURNS CHARACTER
       END.
     END.
   END.
-
+ 
   {set UpdateTables cTableList}.
 
   RETURN cOrdering.

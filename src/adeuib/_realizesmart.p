@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
     File        : adeuib/_undsmar.p 
     Purpose     : realize (undelete) a SmartObject.  
@@ -443,6 +443,18 @@ PROCEDURE createVisualization PRIVATE :
         HIDDEN       = yes
         PRIVATE-DATA = "Type"
         .
+    
+        /*Check if the object subtype is "SmartDataObject" and db-aware is false;
+          if that condition is true is because the SmartObject is a DataView*/
+        IF _U._SUBTYPE EQ "SmartDataObject" AND
+                          _S._valid-object AND
+                          VALID-HANDLE(_S._handle) AND
+                          NOT ({fn getDBAware _S._handle}) THEN
+           ASSIGN hdl:SCREEN-VALUE = "DataView":U.
+        
+        ELSE
+           ASSIGN hdl:SCREEN-VALUE = _U._SUBTYPE. /* e.g. "SmartViewer" */
+    
     CREATE TEXT hdl ASSIGN
         WIDTH-P      = 2
         FONT         = {&Text-Font}

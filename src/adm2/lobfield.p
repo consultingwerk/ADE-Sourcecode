@@ -256,7 +256,7 @@ PROCEDURE displayField :
 /*------------------------------------------------------------------------------
   Purpose: display field value    
   Parameters:  <none>
-  Notes:  Published from the viewer when a record is available   
+  Notes:  Published/called from the viewer when a record is available   
          - clearfield is called when no record is avail.   
 ------------------------------------------------------------------------------*/
    DEFINE VARIABLE lAutoFill  AS LOGICAL    NO-UNDO.

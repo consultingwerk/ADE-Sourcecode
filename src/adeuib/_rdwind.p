@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2206 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdwind.p
@@ -351,7 +351,10 @@ DO:
 END.
 IF OEIDEIsRunning THEN
 DO:
-    RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), _h_win).
+  DEFINE VARIABLE hWindow AS HANDLE NO-UNDO.
+  hWindow = _h_win. /* Temporary fix for 20051027-068 */
+    RUN displayWindow IN hOEIDEService ("com.openedge.pdt.oestudio.views.OEAppBuilderView", "DesignView_" + getProjectName(), hWindow).
+  _h_win = hWindow.
 END.
 
 /* Carefully load attributes that may conflict with others.  Note: conflicts */
@@ -490,3 +493,7 @@ END.
 
 /* Now load the title and file-name */
 RUN adeuib/_wintitl.p (_h_win, _U._LABEL, _U._LABEL-ATTR, _P._SAVE-AS-FILE).
+
+/*The opened object in the AppBuilder is a DataView*/
+IF _P._type = "SmartDataObject":U AND NOT _P._db-aware
+    THEN RUN adeuib/_unddv.p (RECID(_U)).

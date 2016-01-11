@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -52,7 +52,8 @@ Modified:
     09/25/01  jep  - jep-icf: Added ICF custom files handling. Search on
                      _custom_files_savekey and _custom_files_default.
     10/02/01  jep  - IZ 1981 Saving asks for Module even if already given in New dialog
-                     Fix: Saving static objects is processed in save_window now.
+                     Fix: Saving static objects is processed in save_window
+                      now.
     10/10/01  jep-icf IZ 2101 Run button enabled when editing dynamic objects.
                      Renamed h_button_bar to _h_button_bar (new shared).
     10/12/01  jep-icf IZ 2381 Save static file always asks to save to repository.
@@ -2401,6 +2402,8 @@ PROCEDURE save_window:
       END.
       ELSE
         _save_file = FILE-INFO:FULL-PATHNAME.
+
+      _save_file = REPLACE(_save_file, "/", "~\":U).
 
     END. /* NOT remote_file */
 

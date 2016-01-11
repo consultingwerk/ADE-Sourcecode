@@ -652,7 +652,9 @@
 70361.66 "dataviewcustom.p" 0 493 3000040729.09 0 "DataView custom super procedure" "adm2/custom" "" yes no no no "WEB,CLN,SRV" no no no no no "ANY" "" "" 0 0 70361.66 yes
 70363.66 "datasetcustom.p" 0 493 3000040729.09 0 "Dataset custom super procedure" "adm2/custom" "" yes no no no "" no no no no no "ANY" "" "" 0 0 70363.66 yes
 70399.66 "rysdfdatasource" 0 70401.66 1004874707.09 0 "Lookup DataSource on SDF maint" "ry/obj" "w" yes no no yes "CLN" yes no no no yes "ANY" "" "" 0 0 70399.66 yes
+70426.66 "datacontainer.p" 0 493 3000031144.09 0 "datacontainer" "adm2" "" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 70426.66 yes
 71375.66 "toggleframe.w" 0 492 3000040731.09 0 "Scrollable frame w/toggle box input" "adm2/support" "" yes no no yes "CLN" no no no no no "ANY" "" "" 0 0 71375.66 yes
+78404.66 "serviceadapter.p" 0 493 3000031144.09 0 "Service adapter for data requests" "adm2" "" yes no no no "WEB,CLN,SRV" no no no no yes "ANY" "" "" 0 0 78404.66 yes
 86075.84725 "aftrntrmip" 0 493 1004874676.09 0 "Proxy for TrnMgr translateMenuItem" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 86075.84725 yes
 86077.84725 "aftrntrmep" 0 493 1004874676.09 0 "AS Proxy for TranMgr translateMenu" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 86077.84725 yes
 90297.9875 "rysdfchsev" 0 1003498165 1004874707.09 1003516362 "Choose Existing Dynamic SDF Object" "ry/obj" "w" yes no no no "CLN" yes no yes no yes "ANY" "" "" 90325.9875 0 90297.9875 yes
@@ -3436,12 +3438,12 @@
 .
 PSC
 filename=ryc_smartobject
-records=0000000003435
+records=0000000003437
 ldbname=ICFDB
-timestamp=2005/10/03-14:01:42
+timestamp=2006/02/01-15:01:11
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=UTF-8
 .
-0000592636
+0000592948

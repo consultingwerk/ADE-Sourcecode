@@ -26,6 +26,7 @@
        user_env[25] = create sequences
        user_env[30] = write exit at end of SQL.
        user_env[33] = Use _Field._Width for size of field.
+       user_env[34] = DB2 db type or the unknown value.
        
        * = When the datatype is decimals and no decimals are present
       ** = Name of character field when max for regular char is exceeded
@@ -46,6 +47,8 @@
                                    (user_library)  
                D. Slutz  08/10/05 Set dft ext char to __ for DB2 20050531-001
                K. McIntosh  10/25/05 Fixed x8override functionality 20051018-006
+               fernando     01/04/06 Handle decimals for DB2/400 20051214-009
+
 */           
 
 { prodict/user/uservar.i }
@@ -189,6 +192,7 @@ ASSIGN user_env[1]   = "ALL"
        user_env[24]  = "15"
        user_env[26]  = odb_username
        user_env[31]  = "-- ** "
+       user_env[34]  = ?
        user_library = odb_library
        user_dbname   = odb_dbname
        odb_pdbname   = odb_dbname.
@@ -240,7 +244,8 @@ CASE odb_type:
            user_env[28] = (IF odb_type = "DB2/400" THEN "30" ELSE "18")
            user_env[29] = (IF odb_type = "DB2/400" THEN "30" ELSE "18")
            user_env[30] = "no"
-           user_env[32] = "DB2".
+           user_env[32] = "DB2"
+           user_env[34] = odb_type.
            
   WHEN "MS Access" OR WHEN "MSAccess" THEN
     ASSIGN user_env[5]  = ";"

@@ -4,6 +4,10 @@
 113315.48 113310.48 910733.24 "Progress Dynamics Configuration Utility"
 113318.48 113310.48 113316.48 "D21"
 149997.9875 1004955892.09 149994.9875 "10"
+163731.84725 163728.84725 910727.24 "Migrate100Setup"
+163732.84725 163728.84725 910730.24 "db/icf/dfd/setup101A.xml"
+163733.84725 163728.84725 113316.48 "OE100"
+163734.84725 163728.84725 910733.24 "Progress Dynamics Configuration Utility"
 910729.24 910722.24 910727.24 "ProgressSetup"
 910732.24 910722.24 910730.24 "db/icf/dfd/setup101A.xml"
 910735.24 910722.24 910733.24 "Progress Dynamics Configuration Utility"
@@ -54,12 +58,12 @@
 .
 PSC
 filename=gsm_session_type_property
-records=0000000000053
+records=0000000000057
 ldbname=ICFDB
-timestamp=2005/08/09-15:43:41
+timestamp=2006/04/18-11:58:18
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000002469
+0000002712

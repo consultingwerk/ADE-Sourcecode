@@ -75,8 +75,8 @@ DEFINE VARIABLE gcQueryOld AS CHARACTER  NO-UNDO.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS cBusinessEntity cDataSet cDataTable cSort ~
-btnSort fObjectname fRowsToBatch lToggleDataTargets togPromptOnDelete ~
-radFieldList rRect RECT-5 
+fObjectname fRowsToBatch lToggleDataTargets togPromptOnDelete radFieldList ~
+rRect rRectPrompt 
 &Scoped-Define DISPLAYED-OBJECTS cSort fObjectname fRowsToBatch ~
 radFieldList 
 
@@ -165,6 +165,13 @@ FUNCTION initDataView RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initObjects Attribute-Dlg 
 FUNCTION initObjects RETURNS LOGICAL
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initRectangle Attribute-Dlg 
+FUNCTION initRectangle RETURNS LOGICAL
+  ( phRect AS HANDLE )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -268,13 +275,14 @@ DEFINE VARIABLE raSort AS CHARACTER
 "Descending", "DESCENDING"
      SIZE 31.2 BY .86 NO-UNDO.
 
-DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 53.2 BY 3.71.
-
 DEFINE RECTANGLE rRect
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 64.8 BY 3.05.
+     SIZE 64.8 BY 3.05
+     FGCOLOR 3 .
+
+DEFINE RECTANGLE rRectPrompt
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 53.2 BY 3.43.
 
 DEFINE VARIABLE cSort AS CHARACTER 
      CONTEXT-HELP-ID 0
@@ -328,14 +336,13 @@ DEFINE FRAME Attribute-Dlg
      "Dataset" VIEW-AS TEXT
           SIZE 8 BY .62 AT ROW 1.24 COL 5.4
      "Display fields for prompt" VIEW-AS TEXT
-          SIZE 23.2 BY .62 AT ROW 19.62 COL 17
+          SIZE 23.2 BY .62 AT ROW 19.71 COL 17
      "View:" VIEW-AS TEXT
           SIZE 5.8 BY .62 AT ROW 6.38 COL 8.8 WIDGET-ID 14
      "Sort by:" VIEW-AS TEXT
           SIZE 7 BY .62 AT ROW 9.76 COL 6.8 WIDGET-ID 16
      rRect AT ROW 1.57 COL 3
-     RECT-5 AT ROW 19.91 COL 14.6
-     SPACE(0.79) SKIP(0.18)
+     rRectPrompt AT ROW 20.05 COL 14.6
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "DataView Properties":L.
@@ -362,6 +369,8 @@ ASSIGN
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
 
 /* SETTINGS FOR BUTTON btnDisplayed IN FRAME Attribute-Dlg
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON btnSort IN FRAME Attribute-Dlg
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN cBusinessEntity IN FRAME Attribute-Dlg
    NO-DISPLAY                                                           */
@@ -404,36 +413,16 @@ ASSIGN
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Attribute-Dlg Attribute-Dlg
 ON GO OF FRAME Attribute-Dlg /* DataView Properties */
 DO:
-  DEFINE VARIABLE lAnswer AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cTables AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQuery  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAnswer    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hSource    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTables    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQuery     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields AS CHARACTER  NO-UNDO.
 
   ASSIGN 
     cBusinessEntity
     cDataset
     cDatatable.
-  
-  IF cBusinessEntity <> '':U AND cDataset = '':U THEN
-  DO:
-    lanswer = YES. 
-    MESSAGE
-       "Dataset instance name is blank. It will be set to '" 
-        + cBusinessEntity + "' from the Business entity."  
-    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lanswer.
-    IF lanswer THEN
-      cDataset = cBusinessEntity. 
-    ELSE DO:
-      APPLY 'ENTRY':U TO cDataset.
-      RETURN NO-APPLY.
-    END.
-  END.
-  
-  /*
-  {fnarg setBusinessEntity cBusinessEntity p_hSMO}.
-  {fnarg setDatasetName cDataset p_hSMO}.
-  {fnarg setDataTable cDataTable p_hSMO}.
-  */
 
   hSource = {fn getDatasetSource p_hSMO}.
   IF cBusinessEntity = '' THEN
@@ -454,6 +443,30 @@ DO:
       APPLY "ENTRY":U TO cBusinessEntity.
       RETURN NO-APPLY.
   END. 
+  IF cDataset = '':U THEN
+  DO:
+    lanswer = YES. 
+    MESSAGE
+       "Dataset instance name is blank. It will be set to '" 
+        + cBusinessEntity + "' from the Business entity."  
+    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK-CANCEL UPDATE lanswer.
+    IF lanswer THEN
+      cDataset = cBusinessEntity. 
+    ELSE DO:
+      APPLY 'ENTRY':U TO cDataset.
+      RETURN NO-APPLY.
+    END.
+  END.
+
+  IF INDEX(cDataset,'(':U) > 0 THEN
+  DO:
+    MESSAGE "The Dataset instance name contains an invalid character: (" SKIP
+            "Please enter another name."                                                                
+      VIEW-AS ALERT-BOX INFORMATION.
+
+     APPLY "ENTRY":U TO cDataset.
+     RETURN NO-APPLY.
+  END.
   IF cDataTable = '' THEN
   DO:
      MESSAGE 'You need to select a Data Table.':U 
@@ -463,14 +476,17 @@ DO:
       RETURN NO-APPLY.
 
   END. 
-  IF INDEX(cDataset,'(':U) > 0 THEN
+
+  {get KeyFields cKeyFields p_hSMO}.
+  IF cKeyFields = '' THEN
   DO:
-    MESSAGE "The Dataset instance name contains an invalid character: (" SKIP
-            "Please enter another name."                                                                
+    MESSAGE "The selected DataTable has no key." SKIP
+            "It must have a key defined by a unique primary index to be used in a DataView."                                                                
       VIEW-AS ALERT-BOX INFORMATION.
 
-     APPLY "ENTRY":U TO cDataset.
+     APPLY "ENTRY":U TO cDataTable.
      RETURN NO-APPLY.
+
   END.
 
   DYNAMIC-FUNCTION("setRowsToBatch":U IN p_hSMO,
@@ -495,16 +511,25 @@ DO:
                     ).
   DYNAMIC-FUNCTION("setPromptColumns":U IN p_hSMO,
                    gcPromptColumns).
- 
+
+  /* Businessentity and datatable changes are set immediately on 
+     change in initDataView, just reset anyway.. 
+     Tables and queryString  are blanked 
+     (cancelDataView resets old values if cancel) */
+  
+  {fnarg setBusinessEntity cBusinessEntity p_hSMO}.
+  {fnarg setDataTable cDataTable p_hSMO}.
+
   ASSIGN
     cQuery = getQueryString(hSource,cDataTable)
     cTables = getViewTables(cDataTable).
-  /* Businessentity and datatable changes are set immediately on 
-     change in initDataView  while vTables and queryString  are blanked 
-     (cancelDataView resets old values if cancel) */
+ 
   {fn destroyView  p_hSMO}.
+
   {fnarg setDataQueryString cQuery p_hSMO}.
   {fnarg setTables cTables  p_hSMO}.
+  {fnarg setDatasetName cDataset p_hSMO}.
+
   RUN createObjects IN p_hSMO.
 
 END.
@@ -787,7 +812,8 @@ DEFINE VARIABLE lGo AS LOGICAL    NO-UNDO.
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-   
+  initRectangle(rRect:HANDLE).   
+  initRectangle(rRectPrompt:HANDLE).   
   initTableList(cDataTable:ROW + 1.14,cDataTable:COL,3.0,cDataTable:WIDTH,cDataTable:HANDLE).
 
   /* Get the values of the attributes in the SmartObject that can be 
@@ -844,9 +870,8 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY cSort fObjectname fRowsToBatch radFieldList 
       WITH FRAME Attribute-Dlg.
-  ENABLE cBusinessEntity cDataSet cDataTable cSort btnSort fObjectname 
-         fRowsToBatch lToggleDataTargets togPromptOnDelete radFieldList rRect 
-         RECT-5 
+  ENABLE cBusinessEntity cDataSet cDataTable cSort fObjectname fRowsToBatch 
+         lToggleDataTargets togPromptOnDelete radFieldList rRect rRectPrompt 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -1102,8 +1127,8 @@ FUNCTION getQueryString RETURNS CHARACTER
   DEFINE VARIABLE cQuerySort AS CHARACTER  NO-UNDO.
   
   cTables = getSortTables(pcTable).
-  cQuery = {fnarg dataquerystring cTables phDatasetsource}.
-  csort = REPLACE(cSort:LIST-ITEMS IN FRAME {&FRAME-NAME},',',' BY ':U).
+  cQuery = {fnarg dataQueryString cTables phDatasetsource}.
+  cSort = REPLACE(cSort:LIST-ITEMS IN FRAME {&FRAME-NAME},',',' BY ':U).
   IF cSort > '' THEN
      cQuery = cQuery + ' BY ':U + csort.
   RETURN cQuery.
@@ -1165,6 +1190,7 @@ FUNCTION initDataView RETURNS LOGICAL
   DEFINE VARIABLE cKeyFields           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRelatedTables       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTable               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lEntityOk            AS LOGICAL    NO-UNDO.
 
 
   {get DataTable cCurrentTable p_hSMO}.
@@ -1185,8 +1211,8 @@ FUNCTION initDataView RETURNS LOGICAL
     /* make viewtables return default */
     {set Tables '' p_hSMO}.
     {set DataQueryString '' p_hSMO}.
-    {fn addDatasetSource p_hSMO}.
-  
+    lEntityOk = {fn addDatasetSource p_hSMO}.
+    
     DO WITH FRAME {&FRAME-NAME}:
       IF radFieldList = 3 THEN
       DO:
@@ -1197,25 +1223,37 @@ FUNCTION initDataView RETURNS LOGICAL
         gcPromptColumns = ''.
         DISPLAY radFieldList.
       END.
-
-      RUN createObjects IN p_hSmo.
-
     END.
-   {get KeyFields cKeyFields p_hSMO}.
-    cSort:LIST-ITEMS = cDataTable + '.' + ENTRY(1,cKeyFields).
+    IF lEntityOk THEN
+    DO:
+      RUN createObjects IN p_hSmo.
+  
+      {get KeyFields cKeyFields p_hSMO}.
+    END.
+    IF cKeyFields > '' THEN
+    DO:
+      cSort:LIST-ITEMS = cDataTable + '.' + ENTRY(1,cKeyFields).
+      btnSort:SENSITIVE = TRUE.
+    END.
+    ELSE 
+      cSort:LIST-ITEMS = ''.
     showSortOption(cSort:HANDLE).
   END.
+
   {get DatasetSource hDatasetSource p_hSMO}.
 
   /* if changed or initial display  */
   IF cBusinessEntity <> cCurrentEntity OR cDataTable:LIST-ITEMS = ? THEN
   DO:
-    {get DatasetSource hDatasetSource p_hSMO}.
-    /* container builder ..*/
-    IF cDataTable:LIST-ITEMS = ? AND NOT VALID-HANDLE(hDatasetSource) THEN
+    IF lEntityOk THEN
     DO:
-      RUN createObjects IN p_hSmo.
       {get DatasetSource hDatasetSource p_hSMO}.
+      /* container builder ..*/
+      IF cDataTable:LIST-ITEMS = ? AND NOT VALID-HANDLE(hDatasetSource) THEN
+      DO:
+        RUN createObjects IN p_hSmo.
+        {get DatasetSource hDatasetSource p_hSMO}.
+      END.
     END.
 
     IF VALID-HANDLE(hDatasetSource) THEN
@@ -1282,6 +1320,26 @@ FUNCTION initObjects RETURNS LOGICAL
   END.
   RETURN TRUE.
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initRectangle Attribute-Dlg 
+FUNCTION initRectangle RETURNS LOGICAL
+  ( phRect AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: convert rect to XP look..  
+    Notes:  
+------------------------------------------------------------------------------*/
+  
+  IF SESSION:window-system = 'ms-winxp' THEN
+    ASSIGN
+      phRect:EDGE-PIXELS = 1
+      phRect:GROUP-BOX = TRUE.
+
+  RETURN TRUE.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1378,10 +1436,13 @@ FUNCTION showSortOption RETURNS LOGICAL
         raSort:SCREEN-VALUE = ENTRY(2,cValue,' ').
       ELSE 
         rasort:SCREEN-VALUE = 'ASCENDING'.
-      raSort:SENSITIVE = TRUE .
+      ASSIGN
+        btnSort:SENSITIVE = TRUE 
+        raSort:SENSITIVE = TRUE .
     END.
     ELSE
       ASSIGN
+        btnSort:SENSITIVE = IF phSort:LIST-ITEMS > '' THEN TRUE ELSE FALSE
         raSort:SENSITIVE = FALSE
         rasort:SCREEN-VALUE = 'ASCENDING'.
   END.

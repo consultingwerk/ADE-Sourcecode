@@ -2261,25 +2261,25 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE cWindowName AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE cClassName  AS CHARACTER  NO-UNDO.
-    DEFINE VARIABLE hContainer  AS HANDLE     NO-UNDO.
     
-    {get ContainerHandle hContainer}.
+    /* Look to see if this container is a window, and try to
+       retrieve the title from the window. If not, then use
+	   the WindowName property from the ADMProps table.
+     */
+    cWindowName = super().
     
-    IF valid-handle(hContainer) and hContainer:TYPE = 'WINDOW':U THEN
-      RETURN hContainer:TITLE.
-      
-    {get ClassName cClassName}.      
-
-    IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
-                        INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
-            &SCOPED-DEFINE xpWindowName
-            {get WindowName cWindowName}.
-            &UNDEFINE xpWindowName
-    
-    IF cWindowName > '':U THEN
-      RETURN cWindowName.
-    
-    RETURN ?.
+    if cWindowName eq ? then
+    do:
+        {get ClassName cClassName}.
+        
+        IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
+                            INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
+                &SCOPED-DEFINE xpWindowName
+                {get WindowName cWindowName}.
+                &UNDEFINE xpWindowName
+    end.    /* object realised as a frame */
+        
+    RETURN cWindowName.
 END FUNCTION.   /* getWindowName */
 
 /* _UIB-CODE-BLOCK-END */
@@ -2418,17 +2418,19 @@ FUNCTION setWindowName RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hWindow                 AS HANDLE                   NO-UNDO.
     DEFINE VARIABLE cClassName              AS CHARACTER                NO-UNDO.
-
-    {get ContainerHandle hWindow}.
-    IF VALID-HANDLE(hWindow) AND hWindow:TYPE = 'WINDOW':U THEN
-      ASSIGN hWindow:TITLE = pcWindowName.    
-    ELSE 
+    
+    /* Try to set the window's title property. If that fails,
+       then set the property in the ADMProps table. This is 
+       possible when the current container is a DynFrame object,
+       as when a container is used in a treeview.
+     */
+    if not super(pcWindowName) then
     DO:
-        {get ClassName cClassName}.        
+        {get ClassName cClassName}.
         IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
                             INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
+            /* Set the value in the ADMProps table */                                
             &SCOPED-DEFINE xpWindowName
             {set WindowName pcWindowName}.
             &UNDEFINE xpWindowName

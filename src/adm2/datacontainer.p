@@ -1,12 +1,13 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/***************************************************************************/
-/* Copyright (c) 2005 Progress Software Corporation, All rights reserved.  */
-/***************************************************************************/
+/******************************************************************************/
+/* Copyright (c) 2005,2006 Progress Software Corporation, All rights reserved.*/
+/******************************************************************************/
 /*------------------------------------------------------------------------
-    File        : 
-    Purpose     :
+    File        : adm2/datacontainer.p
+    Purpose     : Manages data and data requests including batching for dataview 
+                  objects.  
 
     Syntax      :
 
@@ -14,7 +15,10 @@
 
     Author(s)   :
     Created     :
-    Notes       :
+    Notes       : The data container communicates with the Service Adapter, 
+                  as the connector between this and a standard service.    
+                  The ADM issues all requests to this so from the ADM's 
+                  perspective this is the data service 
   ----------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -29,7 +33,7 @@
 CREATE WIDGET-POOL.
 
 DEFINE VARIABLE ghService AS HANDLE     NO-UNDO.
-
+/* exclude included function in order to override here, undefined in main-block */
 &SCOPED-DEFINE exclude-getobjecttype
 
 /* This TT is used to keep track of the requested datasets.
@@ -53,6 +57,23 @@ DEFINE TEMP-TABLE ttError NO-UNDO
   FIELD IsRejected     AS LOGICAL 
   INDEX Change   AS PRIMARY UNIQUE ChgHandle ChgRowid
   INDEX TableIDx TableName.
+
+/* Note: the current relationship to ttDataset is using 3 fields...,
+         this is however not exposed in code, so not a big deal..
+         Can also be changed without code changes 
+         ( OF is being used in code, the assumption being that no amateur 
+           adds ambiguous relations..)  */  
+DEFINE TEMP-TABLE ttDataTable NO-UNDO
+  FIELD Requestor        AS HANDLE
+  FIELD DatasetName      AS CHARACTER
+  FIELD BusinessEntity   AS CHARACTER
+  FIELD DataTable        AS CHARACTER 
+  FIELD RequestType      AS CHARACTER
+  FIELD NumRows          AS INTEGER
+  FIELD NextContext      AS CHARACTER
+  FIELD PrevContext      AS CHARACTER
+  INDEX DataTable AS PRIMARY 
+    UNIQUE Requestor DatasetName BusinessEntity DataTable.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -128,11 +149,33 @@ FUNCTION getObjectType RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRequestDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRequestDelimiter Procedure 
+FUNCTION getRequestDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getServiceAdapter) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getServiceAdapter Procedure 
 FUNCTION getServiceAdapter RETURNS HANDLE
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTableDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTableDelimiter Procedure 
+FUNCTION getTableDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -155,6 +198,18 @@ FUNCTION newDataset RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD originDataset Procedure 
 FUNCTION originDataset RETURNS CHARACTER
   ( phDatasetProcedure AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD relationFields Procedure 
+FUNCTION relationFields RETURNS CHARACTER
+  ( pcRelationFields AS CHAR,
+    pcEntityNames    AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -303,374 +358,421 @@ END PROCEDURE.
 PROCEDURE retrieveData :
 /*------------------------------------------------------------------------------
   Purpose:    Retrieve data from the service  
-  Parameters:  -- one entry per dataset  ---  
-                phRequestor      - The requesting object passes its handle,
-                                   which currently is used as the key to 
-                                   identify the scope of the dataset.
-                                   The new dataset procedure subscribes to this 
-                                   object's destroyObject event, but is not added
-                                   as a container target. 
+  Parameters:   phRequestor      - The requesting object passes its handle,
+                                   which is used as the key to identify the 
+                                   scope of the dataset.
+                                   The new dataset procedure subscribes to the 
+                                   requesting object's destroyObject event, but 
+                                   is not added as a container target. 
+                                   (the requestor may be the actual dataview)
+                plRefresh        - Refresh, empties existing data 
+                plAppend         - Append to existing data. This is the 
+                                   equivalent of RebuildOnReposition, except 
+                                   for NEXT and PREV which currently always 
+                                   appends. 
+                                   The reason why there are both an Refresh
+                                   and Append is that it is valid to have a 
+                                   refresh = yes and append = yes which means 
+                                   start from top (Pass 'FIRST' in the 
+                                   navcontext to the service adapter)                                                        
+                plFill           - fill batch
+               --- one entry per table ------- 
+    
+                pcRequests       - chr(1) separated (may have query with comma)
+                pcDataTables     - Comma separated list of tables                                       
+                pcQueries        - chr(1) separated ( query may have comma)
+                pcBatchSizes     - Comma separated list of tables
+                pcForeignFields  - chr(1) separated ( has comma)
+                pcPositionFields - chr(1) separated ( has comma)
+                pcContext        - chr(1) separated  
+               -- one entry per dataset  ---  
                 pcDatasetSources - Comma separated list of dataset procedures
                                    ? on first request 
                 pcEntities       - Comma separated list of entities 
                 pcEntityNames    - Comma separated list of entity instance names
-               
-               --- one entry per table ------- 
-               
-                pcHandles        - 
-                pcDataTables     - Comma separated list of tables                                       
-                pcQueries        - Semi colon separated ( query may have comma)
-                pcBatchSizes     - Comma separated list of tables
-                pcForeignFields  - Semi colon separated ( has comma)
-                pcPositionFields - Semi colon separated ( has comma)
-                pcRequests       - Semi colon separated (may have query with comma)
-             ----- single ---     
-                pcNavContext     - Navigation Context 
-                plFill           - fill batch
-                
-  Notes:   As of current this receives the dataview handles in order to set the 
-           batch information, datasetsource and calls createObjects.  
-        -  expected to become more loosely coupled and just deal with the request
+                            
+  Notes:   
 ------------------------------------------------------------------------------*/  
   DEFINE INPUT PARAMETER phRequestor      AS HANDLE     NO-UNDO.
-  DEFINE INPUT PARAMETER pcDatasetSources AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcEntities       AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcEntityNames    AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcHandles        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER plRefresh        AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER plAppend         AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER plFill           AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pcRequests       AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcDataTables     AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcQueries        AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcBatchSizes     AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcForeignFields  AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcPositionFields AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcRequests       AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pcNavContext     AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER plFill           AS LOGICAL    NO-UNDO.
+  DEFINE INPUT PARAMETER pcContext        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcDatasetSources AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcEntities       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcEntityNames    AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE cEntity         AS CHARACTER  NO-UNDO EXTENT.
+     /* Define extents to pass to the service adapter */
   DEFINE VARIABLE hDataset        AS HANDLE     NO-UNDO EXTENT.
+  DEFINE VARIABLE cEntity         AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cDataTables     AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cQueries        AS CHARACTER  NO-UNDO EXTENT.
+  DEFINE VARIABLE cNumRecords     AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cJoins          AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cPositions      AS CHARACTER  NO-UNDO EXTENT.
-  DEFINE VARIABLE cNumRecords     AS CHARACTER  NO-UNDO EXTENT.
-  DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cRequests       AS CHARACTER  NO-UNDO EXTENT.
+  DEFINE VARIABLE cContextLists   AS CHARACTER  NO-UNDO EXTENT.
+  /* to be returned from service adapter */ 
   DEFINE VARIABLE cStartPosition  AS CHARACTER  NO-UNDO EXTENT.
   DEFINE VARIABLE cEndPosition    AS CHARACTER  NO-UNDO EXTENT.
+
+  /* support extents */
+  DEFINE VARIABLE hDSProcedure    AS HANDLE     NO-UNDO EXTENT.
   
-  DEFINE VARIABLE iNumEntities  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEntity       AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hEntity       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iNumTables    AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cTable        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cForeignField AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPosField     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFirst        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLast         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNavContext     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iNumEntities    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iNumTables      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iTable          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cTable          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRequest        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTableContext   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iEntity         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cEntityName     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cForeignField   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cPosField       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lFirstTable     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lAddTable       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iTablePos       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cPrev           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cNext           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAppendBatch    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iNumRecords     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cDlmTable       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDlmRequest     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDlmADM         AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE iTable         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iTableExt      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lFirstExt      AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hObject        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hVar           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cOldList       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDatasetSource AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lDefs          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iField         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cOtherField    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cOtherTable    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iObject        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cRequest       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hTable         AS HANDLE     NO-UNDO.
+ /* DEFINE VARIABLE iNumRecords     AS INTEGER    NO-UNDO.*/
 
-  iNumEntities = NUM-ENTRIES(pcEntityNames).  
+  DEFINE BUFFER bDataset   FOR TEMP-TABLE ttDataset.
+  DEFINE BUFFER bDataTable FOR TEMP-TABLE ttDataTable.
+
+  ASSIGN
+    iNumEntities = NUM-ENTRIES(pcEntityNames)  
+    iNumTables   = NUM-ENTRIES(pcDataTables)
+    cDlmRequest  = {fn getRequestDelimiter}
+    cDLmTable    = {fn getTableDelimiter}
+    cDlmADM      = CHR(1).
+  
   IF iNumEntities = 0  THEN
     RETURN. 
-  
-  iNumTables = NUM-ENTRIES(pcDataTables).
 
-  IF pcRequests = ? THEN
-    pcRequests = ''.
-
+  /* Dim the input(-output) extent parameters */
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT hDataset).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cEntity).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cContext).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cDataTables).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cQueries).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cPositions).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cNumRecords).
+  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cPositions).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cJoins).
   RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cRequests). 
+  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cContextLists). 
   
-  DO iEntity = 1 TO iNumEntities:
-    ASSIGN
-      cEntity[iEntity] = ENTRY(iEntity,pcEntities)
-      hDatasetsource   = WIDGET-HANDLE(ENTRY(iEntity,pcDatasetSources)).
+  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT hDSProcedure). 
 
-    IF VALID-HANDLE(hDatasetsource) THEN
-    DO:
-      {get DatasetHandle hDataset[iEntity] hDatasetsource}.
-      cOldList = cOldList + STRING(iEntity) + ',':U.  
-      
-      /* We currently empty tables here if the parent is on another entity */ 
-      IF iEntity > 1 THEN
-      DO:
-        DO iTable = 1 TO iNumTables:
-          ASSIGN
-            cTable        = ENTRY(iTable,pcDataTables)
-            cTable        = ENTRY(2,cTable,'.':U)
-            cForeignField = ENTRY(iTable,pcForeignFields,';':U)
-            cOtherField   = IF cForeignField > '' 
-                            THEN ENTRY(2,cForeignField)
-                            ELSE ''.
-
-          IF NUM-ENTRIES(cOtherField,'.') = 3 THEN
-            {fnarg emptyBatch cTable hDatasetsource}.
-        END.
-      END.
-    END.
-    ELSE DO:
-      FIND ttDataset WHERE ttDataset.Requestor      = phRequestor
-                     AND   ttDataset.DatasetName    = ENTRY(iEntity,pcEntityNames)
-                     AND   ttDataset.BusinessEntity = ENTRY(iEntity,pcEntities)
-                     NO-ERROR.
-      IF AVAIL ttDataset THEN 
-      DO:
-        hDataset[iEntity] = {fn getDatasetHandle ttDataset.DatasetProcedure}.
-        DO iTable = 1 TO iNumTables:
-          cTable = ENTRY(iTable,pcDataTables).
-          IF cTable BEGINS ttDataset.datasetname + '.' THEN
-          DO:
-            cTable = ENTRY(2,cTable,'.':U).
-            hTable = {fnarg DataTableHandle cTable ttDataset.DatasetProcedure}.
-            IF hTable:TABLE-HANDLE:HAS-RECORDS THEN
-            DO:
-              IF {fnarg isReposition cTable ttDataset.DatasetProcedure} THEN
-              DO:  
-                ASSIGN
-                  pcDataTables = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcDataTables,',')
-                  pcQueries    = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcQueries,';')
-                  pcBatchSizes = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcBatchsizes,',')
-                  pcForeignFields    = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcForeignFields,';')
-                  pcPositionFields    = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcPositionFields,';')
-                  pcRequests    = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                  iTable,pcRequests,';')
-                  .
-                ASSIGN
-                  iNumTables = NUM-ENTRIES(pcDataTables)
-                  iTable     = iTable - 1.
-              END.
-              ELSE
-              DO:
-                hTable:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
-                hTable:EMPTY-TEMP-TABLE.
-              END.
-            END.
-          END.
-        END.
-      END. /* avail ttDataset */
-      ELSE
+  IF pcDataTables = '' THEN
+  DO:
+    IF pcRequests = 'DEFS':U THEN
+    DO iEntity = 1 TO iNumEntities:
+      ASSIGN
+        cEntity[iEntity]  = ENTRY(iEntity,pcEntities)
+        cRequests[iEntity] = 'DEFS':U         
         hDataset[iEntity] = ?.
     END.
-    
-    /* Support 'DEFS' request with no table definition */
-    IF pcRequests = 'DEFS':U AND pcDataTables = '' THEN
-      ASSIGN
-        cRequests[iEntity] = 'DEFS':U
-        cQueries[iEntity]  = 'DEFS':U. 
-
-  END. /* do iEntity  */
-  
-  DO iTable = 1 TO iNumTables:
-    ASSIGN
-      cTable               = ENTRY(iTable,pcDataTables)
-      iEntity              = LOOKUP(ENTRY(1,cTable,'.':U),pcEntityNames)
-      cTable               = ENTRY(2,cTable,'.':U)
-      cForeignField        = ENTRY(iTable,pcForeignFields,';':U)
-      cPosField            = ENTRY(iTable,pcPositionFields,';':U).
-
-    /* Check for Foreignfield links across Business Entities */ 
-    DO iField = 2 TO NUM-ENTRIES(cForeignField) BY 2:
-      cOtherField = ENTRY(iField,cForeignField).
-      
-      /* if 2 qualifiers (3 entries) then change dataset instance name 
-         qualifier to array ref (we don't pass the instance name to the service) */
-      IF NUM-ENTRIES(cOtherField,'.') = 3 THEN
-      DO:
-        ASSIGN
-          cOtherTable = ENTRY(1,cOtherField,'.':U).
-          ENTRY(iField,cForeignField) = STRING(LOOKUP(cOtherTable,pcEntityNames))
-                                      + '.':U
-                                      + ENTRY(2,cOtherField,'.':U)
-                                      + '.':U
-                                      + ENTRY(3,cOtherField,'.':U).
-      END. /* 3 entries in otherfield */
-    END. /* iField = 2 to num-entries(ForeignField) by 2  */
-
-    /* Check for Position links across Business Entities */ 
-    DO iField = 2 TO NUM-ENTRIES(cPosField) BY 2:
-      cOtherField = ENTRY(iField,cPosField).
-      
-      /* if 2 qualifiers (3 entries) then change dataset instance name 
-         qualifier to array ref (we don't pass the instance name to the service) */
-      IF NUM-ENTRIES(cOtherField,'.') = 3 THEN
-      DO:
-        ASSIGN
-          cOtherTable = ENTRY(1,cOtherField,'.').
-          ENTRY(iField,cPosField) = STRING(LOOKUP(cOtherTable,pcEntityNames))
-                                  + '.':U
-                                  + ENTRY(2,cOtherField,'.')
-                                  + '.':U
-                                  + ENTRY(3,cOtherField,'.').
-      END. /* 3 entries in otherfield */
-    END. /* iField = 2 to num-entries(PosField) by 2  */
-
-    ASSIGN
-      lFirstExt            = cDataTables[iEntity] = ''
-      cDataTables[iEntity] = cDataTables[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ',':U) 
-                           +  cTable
-      cNumRecords[iEntity] = cNumRecords[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ',':U) 
-                           + ENTRY(iTable,pcBatchSizes) 
-      cQueries[iEntity]    = cQueries[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ';':U) 
-                           + ENTRY(iTable,pcQueries,';':U)
-      cRequests[iEntity]   = cRequests[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ';':U) 
-                           + ENTRY(iTable,pcRequests,';':U)
-      cJoins[iEntity]      = cJoins[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ';':U) 
-                           + cForeignField      
-      cPositions[iEntity]  = cPositions[iEntity] 
-                           + (IF lFirstExt THEN '':U ELSE ';':U) 
-                           + cPosField      
-      .
-    
-  END. /* do iTable = 1 to num-entries  */
-/*                                                     */
-/*    MESSAGE                                          */
-/*     'Tables'  cDataTables[1] SKIP                   */
-/*     'Queries' REPLACE(cQueries[1],';',CHR(10)) SKIP */
-/*     'Joins '  cJoins[1] SKIP                        */
-/*     'positions' cPositions[1] SKIP                  */
-/*      'Requests' cRequests[1] SKIP                   */
-/*                                                     */
-/*     VIEW-AS ALERT-BOX INFO BUTTONS OK.              */
-
-  RUN retrieveData IN {fn getServiceAdapter}
-                          (cEntity,
-                           cDataTables,
-                           cQueries,
-                           cJoins,
-                           cPositions,
-                           cRequests,
-                           pcNavContext,
-                           plFill,
-                           INPUT-OUTPUT cNumRecords,
-                           INPUT-OUTPUT hDataset,  
-                           INPUT-OUTPUT cContext,
-                           OUTPUT cStartPosition,
-                           OUTPUT cEndPosition) NO-ERROR.
-  
-  IF ERROR-STATUS:ERROR THEN
-  DO:
-    RETURN ERROR IF RETURN-VALUE > '' 
-                 THEN RETURN-VALUE 
-                 ELSE ERROR-STATUS:GET-MESSAGE(1).
+    ELSE RETURN ERROR.
   END.
-  
-  DO iEntity = 1 TO EXTENT(hDataSet):
-    IF LOOKUP(STRING(iEntity),cOldList) = 0 THEN 
-    DO:
-      IF NOT VALID-HANDLE(hDataset[iEntity]) THEN
+  ELSE
+  DO iTable = 1 TO iNumTables:    
+    ASSIGN 
+      lAddTable    = FALSE 
+      iTablePos    = 0
+      cRequest     = ENTRY(iTable,pcRequests,cDlmADM)
+      cTable       = ENTRY(iTable,pcDataTables)
+      cEntityName  = ENTRY(1,cTable,'.':U)
+      cTable       = ENTRY(2,cTable,'.':U)
+      iEntity      = LOOKUP(cEntityName,pcEntityNames)
+      lFirstTable  = cDataTables[iEntity] = ''.
+
+    IF cEntity[iEntity] = '' THEN
+      ASSIGN 
+        cEntity[iEntity]      = ENTRY(iEntity,pcEntities)
+        hDSProcedure[iEntity] = WIDGET-HANDLE(ENTRY(iEntity,pcDatasetSources)).
+    
+    FIND bDataTable WHERE bDataTable.Requestor = phRequestor
+                    AND   bDataTable.DatasetName = cEntityName
+                    AND   bDataTable.BusinessEntity = ENTRY(iEntity,pcEntities)
+                    AND   bDataTable.DataTable = cTable
+                    NO-ERROR.
+    /* first request for this entity and table(s) */
+    IF NOT VALID-HANDLE(hDSProcedure[iEntity]) THEN
+    DO: 
+      hDataset[iEntity] = ?.
+      /* next, prev and last requests are currently only allowed on existing data 
+         (We may loosen this restriction, at least for last requests) */
+      IF cRequest = 'ALL':U OR cRequest = 'DEFS':U OR cRequest = 'FIRST':U OR cRequest BEGINS 'WHERE ':U THEN
       DO:
-        RETURN ERROR 'Could not retrieve dataset for entity "' 
-                       + entry(iEntity,pcEntities) + '"'.
-      END.
-      /* create new dataset instace */
-      IF hDataset[iEntity]:TYPE = 'DATASET':U THEN
-        ASSIGN
-          hVar              = hDataset[iEntity]
-          hDataset[iEntity] = {fnarg newDataset hVar}.
-      /* all smart objects publishes destroyobject */
-      SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'destroyObject':U IN phRequestor
-        RUN-PROCEDURE "destroyRequestorDatasets":U.
+        /* If this table and dataset is already requested either in a previous 
+           request or another entry in this request, we ensure that it is a 
+           request that indicates that it is legal, either for the same object
+           or a child object.  */            
+        IF AVAIL bDataTable THEN
+        DO:
+          /* Deny request from separate object than an earlier request */
+          IF cRequest = 'DEFS':U
+          OR (    bDataTable.RequestType <> 'DEFS':U  
+              AND bDataTable.RequestType <> 'ALL':U) THEN
+          DO:
+            RETURN ERROR
+             'Duplicate request "' + cRequest 
+             + '" for "' 
+             + cEntityName + '" "' + cTable  + '". '
+             + 'A "' + bDataTable.RequestType + '" request has already been issued by '
+             +  phRequestor:FILE-NAME + '.'.
 
-      FIND ttDataset WHERE ttDataset.Requestor      = phRequestor
-                     AND   ttDataset.DatasetName    = ENTRY(iEntity,pcEntityNames)
-                     AND   ttDataset.BusinessEntity = ENTRY(iEntity,pcEntities)
-                     NO-ERROR.
-      IF NOT AVAIL ttDataset THEN
-      DO:
-        CREATE ttDataset.
-        ASSIGN 
-          ttDataset.Requestor        = phRequestor
-          ttDataset.DatasetName      = ENTRY(iEntity,pcEntityNames)
-          ttDataset.BusinessEntity   = ENTRY(iEntity,pcEntities)
-          ttDataset.DatasetProcedure = hDataset[iEntity].
-      END.
-    END. /**/
+          END.
+          ELSE DO:
+             /* Check if the table is part of this request (could be a 
+               viewTable of another object) in which case we do some 
+               changes to current criteria below. Otherwise the table is 
+               not added as we can use existing data. */
+            iTablePos = LOOKUP(cTable,cDataTables[iEntity],cDlmTable).
 
-  END. /* do iEntity = 1 to */  
-  
-  DO iTable = 1 TO iNumTables:
-    hObject   = WIDGET-HANDLE(ENTRY(iTable,pcHandles)).
-    IF VALID-HANDLE(hObject) THEN
+          END.
+        END.
+        ELSE 
+          lAddTable = TRUE.
+      END. /* if crequest = ..OR OR . */
+      ELSE 
+        RETURN ERROR
+         'Invalid dataset for request "' + cRequest + '" for "' + cTable  + '"'.
+    END. /* first request (not valid dataset procedure)  */
+    ELSE 
     DO:
-      ASSIGN
-        lDefs     = pcQueries = 'Defs':U 
-                    OR ENTRY(iTable,pcQueries,';':U) = 'Defs':U
-        cTable    = ENTRY(iTable,pcDataTables)
-        cRequest  = ENTRY(iTable,pcRequests,';':U) 
-        iEntity   = LOOKUP(ENTRY(1,cTable,'.':U),pcEntityNames)
-        cTable    = ENTRY(2,cTable,'.':U)
-        iTableExt = LOOKUP(cTable,cDataTables[iEntity])
-        cFirst    = IF NUM-ENTRIES(cStartPosition[iEntity]) >= iTableExt 
-                    THEN ENTRY(iTableExt,cStartPosition[iEntity])
-                    ELSE '':U
-        cLast     = IF NUM-ENTRIES(cEndPosition[iEntity]) >= iTableExt 
-                    THEN ENTRY(iTableExt,cEndPosition[iEntity])
-                    ELSE '':U
-        hDatasetsource = IF LOOKUP(STRING(iEntity),cOldList) = 0  
-                         THEN hDataset[iEntity]
-                         ELSE WIDGET-HANDLE(ENTRY(iEntity,pcDatasetSources))
-       .  
-
-      IF NOT lDefs 
-      /* don't set batchprops for non scrollable if default request ('all') */  
-      AND ({fnarg isScrollable cTable hDatasetsource} 
-           OR 
-           cRequest <> 'ALL':U)  THEN
-      DO:   
-        /* Set backwards read batch info unless this was an appending next
-           request, which cannot overwrite current backwards read information */
-        IF cRequest <> 'NEXT':U OR pcNavContext = '':U THEN
+      lAddTable = TRUE.
+      {get DatasetHandle hDataset[iEntity] hDSProcedure[iEntity]}.
+      /* If this is the first requested table and entity then store or empty 
+         batch */
+      IF iEntity = 1 AND lFirstTable THEN
+      DO:
+        IF cRequest = 'PREV':U THEN
+          cNavContext = {fnarg tablePrevContext cTable hDSProcedure[iEntity]}.
+        ELSE IF cRequest = 'NEXT':U THEN
+          cNavContext = {fnarg tableNextContext cTable hDSProcedure[iEntity]}.        
+        ELSE IF plAppend THEN
         DO:
-          IF cFirst = 'FIRST':U OR cFirst = '':U THEN
-            {set FirstResultRow '':U hObject}.       
-          ELSE 
-            {set FirstResultRow cFirst hObject}.
+          IF NOT plRefresh THEN
+            cNavContext = {fnarg tableNextContext cTable hDSProcedure[iEntity]}.        
+          IF cNavContext = '':U THEN
+            cNavContext = 'FIRST':U. 
+        END. /* if plappend */
+        IF plAppend AND NOT plRefresh THEN
+          {fnarg storeBatch cTable hDSProcedure[iEntity]}.
+        ELSE  
+          {fnarg emptyBatch cTable hDSProcedure[iEntity]}.
+      END. /* first table of entity in this equest */
+      ELSE IF iEntity = 1 THEN
+      DO:
+        /* Ensure that secondary tables in the first entity also are emptied 
+           when necessary. */
+        IF NOT plAppend OR plRefresh THEN
+        DO:
+          /* A secondary non-child table must be emptied. 
+            (if append it will have been stored away by storebatch above 
+             and merged after the request) */    
+          IF LOOKUP(cTable,
+                   {fnarg childTables ENTRY(1,pcDataTables) hDSProcedure[iEntity]}
+                   ) = 0 THEN 
+            {fnarg emptyBatch cTable hDSProcedure[iEntity]}.
         END.
-
-        /* Set forwards read batch info unless this was an appending prev 
-           request, which cannot overwrite current forwards read information */
-        IF cRequest <> 'PREV':U OR pcNavContext = '':U THEN
+        /* Appending parent; empty child tables if not 'ALL' mode (keep them
+           if 'ALL' mode). 
+           (non appending parent takes care of this through emptyBatch above) */
+        ELSE IF cRequest <> 'ALL':U THEN
         DO:
-          IF cLast = 'LAST':U OR cLast = '':U THEN
-            {set LastResultRow '' hObject}.
-          ELSE 
-            {set LastResultRow cLast hObject}.
+          IF LOOKUP(cTable,
+               {fnarg childTables ENTRY(1,pcDataTables) hDSProcedure[iEntity]}
+               ) > 0 THEN 
+          {fnarg emptyBatch cTable hDSProcedure[iEntity]}.
         END.
       END.
-    END. /* valid-handle(hObject) */
-  END. /* iTable loop numtables */
+      ELSE        
+        /* currently just empty (could possibly check if current data is 
+              complete for position dataviews)*/ 
+        {fnarg emptyBatch cTable hDSProcedure[iEntity]}.
+     
+    END.  /* else (valid dataset)*/
+    
+    IF NOT AVAIL bDataTable THEN
+    DO:
+      CREATE bDataTable.
+      ASSIGN bDataTable.Requestor   = phRequestor
+             bDataTable.DatasetName = cEntityName
+             bDataTable.BusinessEntity = ENTRY(iEntity,pcEntities)
+             bDataTable.DataTable = cTable.
+    END.
+
+    ASSIGN
+      bDataTable.RequestType = cRequest
+      cForeignField  = DYNAMIC-FUNCTION('relationFields':U IN TARGET-PROCEDURE,
+                                         ENTRY(iTable,pcForeignFields,cDlmADM),
+                                         pcEntityNames) 
+      cPosField      = DYNAMIC-FUNCTION('relationFields':U IN TARGET-PROCEDURE,
+                                         ENTRY(iTable,pcPositionFields,cDlmADM),
+                                         pcEntityNames)
+      cTableContext  = (IF NUM-ENTRIES(pcContext) >= iTable 
+                        THEN ENTRY(iTable,pcContext,cDlmADM)
+                        ELSE '':U). 
    
+    IF lAddTable THEN
+      ASSIGN
+        cDataTables[iEntity]   = cDataTables[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmTable) 
+                               +  cTable
+        cNumRecords[iEntity]   = cNumRecords[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmTable) 
+                               + ENTRY(iTable,pcBatchSizes) 
+        cQueries[iEntity]      = cQueries[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmRequest) 
+                               + ENTRY(iTable,pcQueries,cDlmADM)
+        cRequests[iEntity]     = cRequests[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmRequest) 
+                               + cRequest
+        cJoins[iEntity]        = cJoins[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmRequest) 
+                               + cForeignField      
+        cPositions[iEntity]    = cPositions[iEntity] 
+                               + (IF lFirstTable THEN '':U ELSE cDlmRequest) 
+                               + cPosField 
+        /* if no context ensure adapter also receives blank */
+        cContextLists[iEntity] = IF pcContext = '' THEN '' 
+                                 ELSE (cContextLists[iEntity]
+                                      + (IF lFirstTable THEN '':U ELSE cDlmRequest) 
+                                      + cTablecontext).   
+    /* second entry for same table is legal in some cases (handled above)          
+       We deliberately avoid setting the query as we need all data and 
+       also ensure that rowstobatch is 0  */
+    ELSE IF iTablePos > 0 THEN
+    DO:
+      ASSIGN 
+        ENTRY(iTablePos,cNumRecords[iEntity])      = '0':U
+        ENTRY(iTablePos,cRequests[iEntity],cDlmRequest)  = cRequest
+        ENTRY(iTablePos,cPositions[iEntity],cDlmRequest) = cPosField
+        ENTRY(iTablePos,cJoins[iEntity],cDlmRequest)     = cForeignField.
+      IF pcContext > '':U THEN
+        ENTRY(iTablePos,cContextLists[iEntity],cDlmRequest) = cTableContext.
+    END.
+
+  END.  /* do iTable = 1 to iNumTables */
+  
+  /* avoid request if none of the tables needed data */
+  IF cDataTables[1] > '' OR pcRequests = 'DEFS':U THEN
+  DO:
+    RUN retrieveData IN {fn getServiceAdapter}
+                            (cEntity,
+                             cDataTables,
+                             cQueries,
+                             cJoins,
+                             cPositions,
+                             cRequests,
+                             cNavContext,
+                             plFill,
+                             INPUT-OUTPUT cNumRecords,
+                             INPUT-OUTPUT hDataset,  
+                             INPUT-OUTPUT cContextLists,
+                             OUTPUT cStartPosition,
+                             OUTPUT cEndPosition) NO-ERROR.
+    
+    IF ERROR-STATUS:ERROR THEN
+    DO:
+      RETURN ERROR IF RETURN-VALUE > '' 
+                   THEN RETURN-VALUE 
+                   ELSE ERROR-STATUS:GET-MESSAGE(1).
+    END.
+    DO iEntity = 1 TO iNumEntities:
+      IF NOT VALID-HANDLE(hDSProcedure[iEntity]) THEN
+      DO:    
+        IF NOT VALID-HANDLE(hDataset[iEntity]) THEN
+        DO:
+          RETURN ERROR 'Could not retrieve dataset for entity "' 
+                     + entry(iEntity,pcEntities) + '"'.
+        END.
+  
+        hDSprocedure[iEntity] = {fnarg newDataset hDataset[iEntity]}.
+        /* all smart objects publish destroyobject */
+        SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'destroyObject':U IN phRequestor
+          RUN-PROCEDURE "destroyRequestorDatasets":U.
+        CREATE bDataset.
+        ASSIGN 
+          bDataset.Requestor        = phRequestor
+          bDataset.DatasetName      = ENTRY(iEntity,pcEntityNames)
+          bDataset.BusinessEntity   = ENTRY(iEntity,pcEntities)
+          bDataset.DatasetProcedure = hDSprocedure[iEntity].
+      END. /* not valid dataset procedure */
+  
+      DO iTable = 1 TO NUM-ENTRIES(cDataTables[iEntity],cDlmTable):
+        ASSIGN
+          cTable        = ENTRY(iTable,cDataTables[iEntity],cDlmTable)
+          cRequest      = ENTRY(iTable,cRequests[iEntity],cDlmRequest)
+          cTableContext = (IF NUM-ENTRIES(cContextLists[iEntity],cDlmRequest) >= iTable 
+                           THEN ENTRY(iTable,cContextLists[iEntity],cDlmRequest)
+                           ELSE '':U)
+          .
+        
+        IF iEntity = 1 AND iTable = 1 AND plAppend AND NOT plRefresh THEN
+          {fnarg mergeBatch cTable hDSProcedure[iEntity]}.
+        
+        IF cRequest <> 'DEFS':U THEN
+        DO:
+          /* 'ALL' - default dataset child retrieval, 
+              we have all data if scrollable and don't know if not */  
+          IF cRequest = 'ALL':U THEN
+          DO:
+            lAppendBatch = FALSE.
+            IF {fnarg isScrollable cTable hDSProcedure[iEntity]} THEN
+              ASSIGN
+                cPrev = '' 
+                cNext = ''.
+            ELSE 
+              ASSIGN
+                cPrev = ?
+                cNext = ?. 
+          END.
+          ELSE
+            ASSIGN
+              lAppendBatch = iEntity = 1 AND iTable = 1 AND plAppend AND NOT plRefresh                     
+              cPrev = IF NUM-ENTRIES(cStartPosition[iEntity],cDlmTable) >= iTable 
+                      THEN ENTRY(iTable,cStartPosition[iEntity],cDlmTable)
+                      ELSE '':U
+              cNext = IF NUM-ENTRIES(cEndPosition[iEntity],cDlmTable) >= iTable 
+                      THEN ENTRY(iTable,cEndPosition[iEntity],cDlmTable)
+                      ELSE '':U.
+
+          iNumRecords = INT(ENTRY(iTable,cNumRecords[iEntity],cDlmTable)). 
+          
+          DYNAMIC-FUNCTION('assignTableInformation':U IN hDSProcedure[iEntity],
+                     cTable,
+                     cTableContext,
+                     /* append */
+                     iEntity = 1 AND iTable = 1 AND plAppend AND NOT plRefresh,
+                     cRequest <> 'PREV':U, /* forward */
+                     cPrev,
+                     cNext,
+                     iNumRecords).
+        END.
+        ELSE 
+          DYNAMIC-FUNCTION('assignTableContext':U IN hDSProcedure[iEntity],
+                           cTable,cTableContext).
+
+
+      END.  /* do iTable = 1 to */    
+    END. /* do iEntity = 1 to  */
+  END. /* if any tables requested */
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -684,7 +786,7 @@ END PROCEDURE.
 PROCEDURE retrieveDataset :
 /*------------------------------------------------------------------------------
   Purpose: Retrieve the dataset handle for the specified requestor 
-           datasetinstance and enttydefintion pouirposes    
+           datasetinstance and entitydefintion pouirposes    
   Parameters: 
             phRequestor   - The requesting object passes its handle,
                             which currently is used as the key to 
@@ -709,18 +811,19 @@ DEFINE OUTPUT PARAMETER phDataset     AS HANDLE     NO-UNDO.
  DO:
    RUN retrieveData IN {fn getDataContainerHandle}
                          (phRequestor,
-                          ?,
-                          pcEntity,
-                          pcEntityName,
-                          phRequestor,
+                          NO,
+                          NO,
+                          NO,
+                          'DEFS':U,  /* requests */
                           '',       /* table */
                           'DEFS':U, /* queries */
                           '':U,
                           '':U,
                           '':U,
-                          'DEFS':U,  /* requests */
-                          '',
-                          ?) NO-ERROR.
+                          '':U,
+                          ?,
+                          pcEntity,
+                          pcEntityName).
 
    IF ERROR-STATUS:ERROR THEN
    DO:
@@ -733,7 +836,6 @@ DEFINE OUTPUT PARAMETER phDataset     AS HANDLE     NO-UNDO.
                    AND   bttDataset.BusinessEntity = pcEntity
                    AND   bttDataset.DatasetName    = pcEntityName
                    NO-ERROR.
-
  END. /* not avail bttDataset */
 
  IF AVAIL bttDataset THEN 
@@ -760,6 +862,7 @@ PROCEDURE submitDataset :
   DEFINE INPUT  PARAMETER phDatasetSource  AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER pcEntity         AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcDataTable      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcContext        AS CHARACTER  NO-UNDO.
   
   DEFINE OUTPUT PARAMETER plSuccess        AS LOGICAL    NO-UNDO.
 
@@ -789,7 +892,7 @@ PROCEDURE submitDataset :
   
   /* dim the rowid */
   hChangedDataset[1]:CREATE-LIKE(hDataSet, cChangePrefix).
-
+  cContext[1] = pcContext.
   cSubmitTables = RIGHT-TRIM(pcDataTable 
                              + ',':U
                              + {fnarg childTables pcDataTable phDatasetSource},','). 
@@ -824,6 +927,10 @@ PROCEDURE submitDataset :
   END.
   ELSE 
   DO:
+    IF cContext[1] > '' THEN
+      DYNAMIC-FUNCTION('assignTableContext':U IN phDatasetSource,
+                           pcDataTable,cContext[1]).
+
     /* Check the ERROR status that might have been returned. */
     IF hChangedDataset[1]:ERROR THEN
     DO:
@@ -975,10 +1082,17 @@ FUNCTION destroyDataset RETURNS LOGICAL
            Called from destroyRequestorDatasets and destroyObject.    
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER bttDataset FOR ttDataset.
+  DEFINE BUFFER bttDataTable FOR ttDataTable. 
 
   FIND bttDataset WHERE bttDataset.DatasetProcedure = phDatasetProcedure NO-ERROR.
   IF AVAIL bttDataset THEN
   DO:
+    /* OF is perfectly valid (the relationship can be changed without changes 
+       to this code ) */
+    FOR EACH bttDataTable OF bttDataset: 
+      DELETE bttDataTable.
+    END.
+
     /* We subscribed datasetDestroyed to this event and delete the record there
        in case someone calls destroyObject directly in the dataset procedure */ 
     RUN destroyObject IN bttDataset.DatasetProcedure.
@@ -1004,11 +1118,18 @@ END FUNCTION.
 FUNCTION getChangePrefix RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the prefix to use for changes 
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  RETURN "ch_":U.  
+  Purpose: Returns the change prefix to use for changed tables 
+    Notes: Uses service adapter value if defined. 
+------------------------------------------------------------------------------*/ 
+  DEFINE VARIABLE cPrefix    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAdapter   AS HANDLE     NO-UNDO.
+  
+  hAdapter = {fn getServiceAdapter}.
+  cPrefix  = {fn getChangePrefix hAdapter} NO-ERROR.
+  IF cPrefix > '' THEN
+    RETURN cPrefix.
+  ELSE 
+    RETURN "ch_":U.  
 
 END FUNCTION.
 
@@ -1023,7 +1144,7 @@ END FUNCTION.
 FUNCTION getDatasetProcedure RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose: Return the renderer/wrapper for dataset     
     Notes:  
 ------------------------------------------------------------------------------*/
 
@@ -1054,6 +1175,34 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRequestDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRequestDelimiter Procedure 
+FUNCTION getRequestDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the delimiter to use for table request service adapter 
+           parameters that cannot use comma as delimiter;
+           Requests, Queries, ForeignFields, Joins and Context            
+    Notes:  
+------------------------------------------------------------------------------*/ 
+  DEFINE VARIABLE cDelimiter AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAdapter   AS HANDLE     NO-UNDO.
+  
+  hAdapter = {fn getServiceAdapter}.
+  cDelimiter = {fn getRequestDelimiter hAdapter} NO-ERROR.
+  IF cDelimiter > '' THEN
+    RETURN cDelimiter.
+  ELSE 
+    RETURN CHR(1).  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getServiceAdapter) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getServiceAdapter Procedure 
@@ -1075,19 +1224,49 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getTableDelimiter) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTableDelimiter Procedure 
+FUNCTION getTableDelimiter RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the delimiter to use for table request service adapter 
+           parameters that can use comma as delimiter;
+           Tables, BatchSizes, DatasetSources, PrevContext, NextContext          
+    Notes:  
+------------------------------------------------------------------------------*/ 
+  DEFINE VARIABLE cDelimiter AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hAdapter   AS HANDLE     NO-UNDO.
+  
+  hAdapter = {fn getServiceAdapter}.
+  cDelimiter = {fn getTableDelimiter hAdapter} NO-ERROR.
+  IF cDelimiter > '' THEN
+    RETURN cDelimiter.
+  ELSE 
+    RETURN ',':U.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-newDataset) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION newDataset Procedure 
 FUNCTION newDataset RETURNS HANDLE
   ( phDataset AS HANDLE ) :
 /*------------------------------------------------------------------------------
-  Purpose: instanitate a dataset procedure for the passed prodataset 
+  Purpose: instantiate a dataset procedure for the passed prodataset 
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hProc AS HANDLE     NO-UNDO.
+  
   DO ON STOP UNDO,LEAVE:
     RUN VALUE({fn getDatasetProcedure}) PERSISTENT SET hProc.
     {set DatasetHandle phDataset hProc}.
+    /* Ensure cleanup here if the dataset is destroyed from outside */
     SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'destroyObject':U IN hProc 
       RUN-PROCEDURE 'datasetDestroyed':U. 
   END.
@@ -1136,6 +1315,51 @@ FUNCTION originDataset RETURNS CHARACTER
   END.
   
   RETURN ''.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION relationFields Procedure 
+FUNCTION relationFields RETURNS CHARACTER
+  ( pcRelationFields AS CHAR,
+    pcEntityNames    AS CHAR) :
+/*------------------------------------------------------------------------------
+   Purpose: Return field relations to pass to the service with numbered 
+            entity references if relation to a different entity.
+Parameters: pcRelationfields - paired list of child , parent  optionally 
+                               qualified with entitynames for cross entity 
+                               reference.
+            pcentityNames - list of entity instancenames of request                            
+     Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cOtherField AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOtherTable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iField      AS INTEGER    NO-UNDO.
+
+  DO iField = 2 TO NUM-ENTRIES(pcRelationFields) BY 2:
+    cOtherField = ENTRY(iField,pcRelationFields).
+      
+    /* if 2 qualifiers (3 entries) then change dataset instance name 
+       qualifier to array ref (we don't pass the instance name to the service) */
+    IF NUM-ENTRIES(cOtherField,'.') = 3 THEN
+    DO:
+      ASSIGN
+        cOtherTable = ENTRY(1,cOtherField,'.').
+        ENTRY(iField,pcRelationFields) = STRING(LOOKUP(cOtherTable,pcEntityNames))
+                                + '.':U
+                                + ENTRY(2,cOtherField,'.')
+                                + '.':U
+                                + ENTRY(3,cOtherField,'.').
+    END. /* 3 entries in otherfield */
+  END. /* iField = 2 to num-entries(PosField) by 2  */
+
+  RETURN pcRelationFields.
 
 END FUNCTION.
 

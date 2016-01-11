@@ -649,6 +649,8 @@ ON CLOSE OF THIS-PROCEDURE DO:
      RUN ProcessPage NO-ERROR. 
      IF ERROR-STATUS:ERROR THEN RETURN NO-APPLY.  
    END.
+   IF VALID-HANDLE(ghSDOSelect) THEN
+     RUN destroyObject IN ghSDOSelect.
    RUN disable_UI.
 END.
 
@@ -661,7 +663,6 @@ MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
   RUN enable_UI.
- 
   IF NOT THIS-PROCEDURE:PERSISTENT THEN
     WAIT-FOR CLOSE OF THIS-PROCEDURE.
 END.
@@ -862,12 +863,11 @@ PROCEDURE ProcessPage :
       END.   
     END.
   END. /* if lastbutton = next */
-
+ 
   /* store and check */
   IF storeDataObjectList(LastButton = 'NEXT':U) = FALSE THEN
     RETURN ERROR .
-  IF VALID-HANDLE(ghSDOSelect)  THEN
-    RUN destroyObject IN ghSDOSelect.
+
   /* 
   Store even if we are going back in order to have what we entered
   if we come back to this page
@@ -882,6 +882,7 @@ PROCEDURE ProcessPage :
                         OUTPUT lok).
   
   RUN adecomm/_setcurs.p("":U). 
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1096,9 +1097,11 @@ FUNCTION initDataObjectList RETURNS HANDLE
   DEFINE VARIABLE deHeight AS DECIMAL    NO-UNDO.
 
   DISPLAY cSBOLabel WITH FRAME {&FRAME-NAME}.
+  
   IF NOT VALID-HANDLE(ghSDOSelect)  THEN
   DO:
     RUN adm2/support/toggleframe.w PERSISTENT SET ghSDOSelect.
+
     {fnarg setRow 7.14 ghSDOSelect}.
     {fnarg setCol 2 ghSDOSelect}.
      hFrame = FRAME {&FRAME-NAME}:HANDLE.
@@ -1114,7 +1117,7 @@ FUNCTION initDataObjectList RETURNS HANDLE
   END.
   ELSE 
     {fn deleteItems ghSDOSelect}. 
-  
+
   RETURN ghSDOSelect.   
 
 END FUNCTION.

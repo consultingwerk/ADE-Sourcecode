@@ -411,7 +411,7 @@ PROCEDURE buildDataRequest :
             DataViews are expected to be datasources for SDFs.
           - This overrides the container's implementation in order to 
             pass on the viewer entity. 
-  Parameters: 
+  Parameters: see data.p version for detailed explanation of parameters
        phOwner        -  
        pcDataSource   - Data source entity name in the case this request is from
                         a data source. 
@@ -422,37 +422,37 @@ PROCEDURE buildDataRequest :
                         SDF and position info need to be collected. The object
                         may still be a child of another object on the viewer so 
                         foreignfields are also collected. 
+                        
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcOwner         AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcDataSource    AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcViewerSource  AS CHARACTER  NO-UNDO.
-  
-  DEFINE INPUT-OUTPUT PARAMETER pcDatasetSources AS CHARACTER  NO-UNDO.
-  DEFINE INPUT-OUTPUT PARAMETER pcEntities       AS CHARACTER  NO-UNDO.
-  DEFINE INPUT-OUTPUT PARAMETER pcEntityNames    AS CHARACTER  NO-UNDO.
-  DEFINE INPUT-OUTPUT PARAMETER pcHandles        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcRequests       AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcDataTables     AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcQueries        AS CHARACTER  NO-UNDO.
-  DEFINE INPUT-OUTPUT PARAMETER pcRequests       AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcBatchSizes     AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcForeignFields  AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER pcPositionFields AS CHARACTER  NO-UNDO.
-   
+  DEFINE INPUT-OUTPUT PARAMETER pcContext        AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcDatasetSources AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcEntities       AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcEntityNames    AS CHARACTER  NO-UNDO.
+
   PUBLISH "buildDataRequest":U FROM TARGET-PROCEDURE
                                (INPUT pcOwner,
                                 INPUT '',
                                 INPUT pcDataSource, /* viewer source */
-                                INPUT-OUTPUT pcDatasetSources,
-                                INPUT-OUTPUT pcEntities,
-                                INPUT-OUTPUT pcEntityNames,
-                                INPUT-OUTPUT pcHandles,
+                                INPUT-OUTPUT pcRequests,                               
                                 INPUT-OUTPUT pcDataTables,
                                 INPUT-OUTPUT pcQueries,
-                                INPUT-OUTPUT pcRequests,                               
                                 INPUT-OUTPUT pcBatchSizes,
                                 INPUT-OUTPUT pcForeignFields,
-                                INPUT-OUTPUT pcPositionFields).
+                                INPUT-OUTPUT pcPositionFields,
+                                INPUT-OUTPUT pcContext,
+                                INPUT-OUTPUT pcDatasetSources,
+                                INPUT-OUTPUT pcEntities,
+                                INPUT-OUTPUT pcEntityNames).
 
 END PROCEDURE.
 
@@ -692,7 +692,7 @@ PROCEDURE createObjects :
         &UNDEFINE xp-assign     
       END. /* lSBO */
     END. /* valid(datasource) */
-   
+    
     /* Build list of frames and fieldnames for identification in widgetloop */
     DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
       hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
@@ -760,7 +760,7 @@ PROCEDURE createObjects :
             cTable = ENTRY(1,cFieldName,'.').
 
           IF lLocal then
-          do:
+          DO:
             /* Only add the SDF to the list of enabled objects if it is,
                in fact, meant to be enabled. */           
             if lEnable then
@@ -771,7 +771,7 @@ PROCEDURE createObjects :
                 cEnabledObjHdls = cEnabledObjHdls 
                                 + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
                                 + STRING(hTarget). 
-          end.    /* local sdf */
+          END.    /* local sdf */
           ELSE DO:
             IF lDisplay THEN
               ASSIGN 
@@ -784,7 +784,7 @@ PROCEDURE createObjects :
             IF lEnable THEN
             DO:
               /* add to list (unless SBO and not in updateTargetNames) */          
-              IF NOT lSBO OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
+              IF NOT lSBO OR cTable = '' OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
                 ASSIGN 
                   cEnabledFields  = cEnabledFields 
                                   + (IF cEnabledFields = '' THEN '' ELSE ',':U) 
@@ -955,7 +955,6 @@ PROCEDURE disableFields :
   DEFINE VARIABLE lEnabled       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE cObjectsToDisable AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cName          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hPopup         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lInitialized   AS LOGICAL    NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
@@ -1000,9 +999,8 @@ PROCEDURE disableFields :
            IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
              hField:READ-ONLY = yes.  
            ELSE hField:SENSITIVE = no.     
-           hPopup = {fnarg popupHandle hField}.
-           IF VALID-HANDLE(hPopup) THEN
-             hPopup:SENSITIVE = NO.
+           DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                             hField, NO).
          END.  /* END DO NOT HIDDEN */
       END.     /* END DO iField     */
       
@@ -1024,10 +1022,9 @@ PROCEDURE disableFields :
            DO:
              IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
                hField:READ-ONLY = yes.  
-             ELSE hField:SENSITIVE = no.     
-             hPopup = {fnarg popupHandle hField}.
-             IF VALID-HANDLE(hPopup) THEN
-               hPopup:SENSITIVE = NO.
+             ELSE hField:SENSITIVE = no.   
+             DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                               hField, NO).
            END.  /* END DO NOT HIDDEN */
          END.
       END.     /* END DO iField     */
@@ -1048,117 +1045,141 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-displayFields) = 0 &THEN
+&IF DEFINED(EXCLUDE-displayFieldList) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayFields Procedure 
-PROCEDURE displayFields :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayFieldList Procedure 
+PROCEDURE displayFieldList :
 /*------------------------------------------------------------------------------
-  Purpose:     "Displays" the current row values by moving them to the frame's
-               screen-values.
-  Parameters:  INPUT pcColValues AS CHARACTER -- CHR(1) - delimited list of the
-               BUFFER-VALUEs of the requested columns; the first entry in the
-               list is the RowIdent code.
-  Notes:       When a frame field is a SmartObject (for example, a
-               SmartField), setDataValue is invoked in the SmartObject to set 
-               its value.
+   Purpose: Display a list of fields from a source and/or from a list of values.       
+Parameters:  pcFieldList  - List of fields to display.
+             pcFromSource - List of fields that should get their value from 
+                            the passed or default datasource .
+                            Special values:
+                            - Blank = default, read large column values from source
+                            - (All) - read all values from source
+                            - (None) - don't read any data from source
+                            - (Large) - large .. default...
+             phDataSource   - Datasource for the fields specified in pcFromSource.
+                            ? - use the viewer's datasource for source fields. 
+                            passing the viewer's datasource will clear the 
+                            fields if no record is available.   
+             pcColValues  - Chr(1) separated list of values to display if not 
+                            display from source.
+                            ? - Clear all fields if datasource not specified.
+                            
+     Notes:  The passed fields must be in the viewer's displayedFields.
+             This could possibly be changed, so this could serve as a generic 
+             display also for local fields.
+           - setDataValue is not called in SDFs if the passed datasource is 
+             different from the source. Interdependencies between SDFs are 
+             handled by their datasources, causing valuechange in dependant 
+             SDFs, which may end up here on their own .   
+           - LOB SDFs are currently not displayed from here if the viewer's 
+             datasource is used. (they currently subscribe to dispalyField,
+             which is published from displayFields.) 
+           - all handle  - disp values from passed source if avail
+           - all ?       - disp values from source if avail
+           - none handle values - disp values if avail
+           - none ? values - disp values 
+           - none ? ? - clear values 
+           - none handle ?  - clear values            
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcColValues AS CHARACTER NO-UNDO.
+  DEFINE INPUT  PARAMETER pcFieldList  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcFromSource AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER phDataSource AS HANDLE     NO-UNDO.
+  DEFINE INPUT  PARAMETER pcColValues  AS CHARACTER  NO-UNDO.
   
-  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iValue             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cFieldHandles      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRowIdent          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValue             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iSecuredEntry      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hGASource          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDisplayFromSource AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLargeColumns      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lLargeColumn       AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDataSource        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjFldsToDisable AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lRefreshDataFields AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFieldHandles    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecuredFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cLargeColumns    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iField           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iSecPos          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cFieldName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldPos        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hField           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lClear           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lPosition        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lSecured         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDataSourceNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryPosition   AS CHARACTER  NO-UNDO.
 
-  /* Used for Dynamic Combos */
-  DEFINE VARIABLE cWidgetNames  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cWidgetValues AS CHARACTER  NO-UNDO.
-
-    /* Field Security Check */
-  DEFINE VARIABLE cAllFieldHandles AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cSecuredFields   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iFieldPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE hFrameHandle     AS HANDLE    NO-UNDO.
-
-  /* Used for RowUserProp - Row User Property functions */
-  DEFINE VARIABLE cDataSourceNames   AS CHARACTER      NO-UNDO.
-  DEFINE VARIABLE cRowUserProp       AS CHARACTER      NO-UNDO.                                                             
-  DEFINE VARIABLE cRowUserPropName   AS CHARACTER      NO-UNDO.
-  DEFINE VARIABLE cQualifier         AS CHARACTER      NO-UNDO.
-  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER      NO-UNDO.
-  DEFINE VARIABLE iPropLoop          AS INTEGER        NO-UNDO.
-   
   &SCOPED-DEFINE xp-assign
   {get FieldHandles cFieldHandles}
-  {get AllFieldHandles cAllFieldHandles}
+  {get DisplayedFields cDisplayedFields}
+  {get AllFieldNames cAllFieldNames}
   {get FieldSecurity cSecuredFields}
   {get DataSource hDataSource}
-  {get GroupAssignSource hGASource}
-  {get InternalDisplayFromSource cDisplayFromSource}
-  {get DisplayedFields cDisplayedFields}
+  {get DataSourceNames cDataSourceNames}
   .
   &UNDEFINE xp-assign
   
-  IF VALID-HANDLE(hDataSource) THEN
+  IF VALID-HANDLE(phDataSource) THEN
   DO:
-    {get LargeColumns cLargeColumns hDataSource}.
-    CASE cDisplayFromSource:
-      WHEN '(Large)':U OR WHEN '' OR WHEN ? THEN
-        cDisplayFromSource = cLargeColumns.
-      WHEN  '(All)':U THEN
-        cDisplayFromSource = cDisplayedFields.
-      WHEN  '(None)':U THEN
-        cDisplayFromSource = '':U.
-    END.
+    {get LargeColumns cLargeColumns phDataSource}.
+    {get QueryPosition cQueryPosition phDataSource}.
+    lClear = cQueryPosition BEGINS 'NoRecordAvail':U. 
+    IF phDataSource <> hDataSource THEN
+      lPosition = TRUE.
   END.
-  /* This is an implicit sanity check for the logic below ..
-     The DataSource is only called for fields in this list */
-  ELSE  
-    cDisplayFromSource = '':U.
- 
-  /* Save off the row number, which is always the first value returned. */
-  cRowIdent = ENTRY(1, pcColValues, CHR(1)). 
-  {set RowIdent cRowIdent}.
-
-  DO iValue = 1 TO NUM-ENTRIES(cFieldHandles):
+  ELSE DO:
     ASSIGN
-      cFieldName   = ENTRY(iValue,cDisplayedFields)
-      /* The field may be a SmartObject procedure handle. */
-      hField  = WIDGET-HANDLE(ENTRY(iValue,cFieldHandles))
-      iFieldPos    = LOOKUP(STRING(hField),cAllFieldHandles).
-    
-    /* Qualify field name if necessary */
-    IF INDEX(cDisplayFromSource,".") > 0 AND INDEX(cFieldName,".") = 0 THEN
-    DO:
-      {get DataSourceNames cDataSource}.
-      cFieldName = cDataSource + "." + cFieldName.
-    END.
+      phDataSource = hDataSource
+      lClear       = (pcColValues = ?).
+    /* implicit sanity check for logic below to work with no source
+       (we only call source if pcFromSource has values) */
+    IF NOT VALID-HANDLE(phDataSource) THEN
+      pcFromSource = '':U.
+  END.
 
-    /* Check Security for hidden fields */
-    IF (iFieldPos <> 0 
-        AND NUM-ENTRIES(cSecuredFields) >= iFieldPos 
-        AND ENTRY(iFieldPos,cSecuredFields) <> "Hidden":U) 
-    OR iFieldPos = 0 
-    OR cSecuredFields = "":U THEN 
+  CASE pcFromSource:
+    WHEN '(Large)':U OR WHEN '' OR WHEN ? THEN
+      pcFromSource = cLargeColumns.
+    WHEN '(All)':U THEN
+      pcFromSource = cDisplayedFields.
+    WHEN '(None)':U THEN
+      pcFromSource = '':U.
+  END.
+ 
+  DO iField = 1 TO NUM-ENTRIES(pcFieldList):
+    ASSIGN
+      cFieldName = ENTRY(iField,pcFieldList)    
+      iFieldPos  = LOOKUP(cFieldName,cDisplayedFields)
+      /* The field may be a SmartObject procedure handle. */
+      hField  = WIDGET-HANDLE(ENTRY(iFieldPos,cFieldHandles))
+    .
+    /* As of 10.1a01 we don't rely on allfieldnames for the main loop 
+      logic due to the fact that the viewer histroically always have used
+      displayedFields for display and other logic, so we use a second 
+      lookup for security. (allfield* is newer, but reliably synchronized, so  
+      this may/can change (see aslo notes)*/
+    IF cSecuredFields > '':U THEN
+      ASSIGN
+        iSecPos  = LOOKUP(cFieldName,cAllFieldNames)
+        lSecured = NUM-ENTRIES(cSecuredFields) >= iSecPos 
+                   AND ENTRY(iSecPos,cSecuredFields) = "Hidden":U.
+    ELSE 
+      lSecured = NO.
+     
+    IF NOT lSecured THEN
     DO:
-      /* some data was passed ...(record available)  */
-      IF pcColValues NE ? THEN
+      IF NOT lClear THEN
       DO: 
-        /* LargeColumns in SDFs handles its data on the displayfield event */
+        /* Qualify field name if necessary  */
+        IF INDEX(pcFromSource,".") > 0 AND INDEX(cFieldName,".") = 0 THEN
+          cFieldName = cDataSourceNames + "." + cFieldName.
+   
+          /* LargeColumns in SDFs handles its data on the displayfield event */
         IF hField:TYPE = 'PROCEDURE':U AND CAN-DO(cLargeColumns,cFieldName) THEN
+        DO:
+
+          IF lPosition THEN
+            RUN displayField IN hField.         
           NEXT.
+        END.
 
         /**** BEGIN: get value ***/
         /* If not DisplayFromSource get the value from the parameter 
@@ -1166,24 +1187,27 @@ PROCEDURE displayFields :
            since we currently support passing data in parameter also to 
            large columns by specifying a list of fields or '(none)' 
            in the DisplayFromSource property... ) */         
-        IF NOT CAN-DO(cDisplayFromSource,cFieldName) THEN 
-          cValue = RIGHT-TRIM(ENTRY(iValue + 1, pcColValues, CHR(1))).
+        IF NOT CAN-DO(pcFromSource,cFieldName) THEN 
+          cValue = RIGHT-TRIM(ENTRY(iField, pcColValues, CHR(1))).
         
         /** else get the value from the SDO... unless this is a longchar widget
             in which case it is assigned directly below.. 
             Note: cDisplayFromSource is set to blank above if no valid-handle
                   so no sanity check is needed here  */        
         ELSE IF hField:TYPE = 'PROCEDURE':U OR hField:DATA-TYPE <> 'LONGCHAR':U THEN
-          cValue = {fnarg columnValue cFieldName hDataSource}.        
+          cValue = {fnarg columnValue cFieldName phDataSource}.        
         ELSE  
           cValue     = '':U. /* cValue is not used when longchar, but just in case... */
         /**** END get value ***/
         /*** BEGIN display value ***/
         IF hField:TYPE = 'PROCEDURE':U THEN 
         DO:
-         /* Make sure that we do not set the value of the data field here 
-           for Dynamic Combos - this takes care of the flashing problems */  
-          IF LOOKUP("dynamicCombo":U,hField:INTERNAL-ENTRIES) = 0 THEN     
+         /* Do not set if position (see notes)
+            Also do not set the value for Dynamic Combos 
+            - they get data thru publish displayfield in displayfields   */  
+
+          IF NOT lPosition 
+          AND LOOKUP("dynamicCombo":U,hField:INTERNAL-ENTRIES) = 0 THEN 
             {set DataValue cValue hField}.
         END.
         ELSE 
@@ -1194,7 +1218,7 @@ PROCEDURE displayFields :
            fieldnames is explicitly defined it may not be included. 
            Whether this is a nice feature or a just a problem 
            waiting to happen is debatable............)  */       
-        OR NOT CAN-DO(cDisplayFromSource,cFieldName) THEN
+        OR NOT CAN-DO(pcFromSource,cFieldName) THEN
         DO:
            /* multiple selection lists appends screen-value, so reset it */
           IF hField:TYPE = "SELECTION-LIST":U AND hField:MULTIPLE THEN
@@ -1202,17 +1226,17 @@ PROCEDURE displayFields :
 
           /* A combo with blank in list-items needs screen-value = space */         
           IF hField:TYPE = "COMBO-BOX":U AND cValue = "":U THEN
-             cValue = " ":U.
+            cValue = " ":U.
           /* (toggle boxes need special treatment as they do not handle 
              'no' or 'yes' with non-default format)  */
           IF hField:TYPE = "TOGGLE-BOX":U THEN
-             hField:SCREEN-VALUE = IF cValue = "yes":U THEN
-                                      ENTRY(1,hField:FORMAT,"/":U)
-                                   ELSE
-                                      ENTRY(2,hField:FORMAT,"/":U)
-                                   NO-ERROR.
+            hField:SCREEN-VALUE = IF cValue = "yes":U THEN
+                                     ENTRY(1,hField:FORMAT,"/":U)
+                                  ELSE
+                                     ENTRY(2,hField:FORMAT,"/":U)
+                                  NO-ERROR.
           ELSE
-             hField:SCREEN-VALUE = cValue NO-ERROR.
+            hField:SCREEN-VALUE = cValue NO-ERROR.
           
           /* Deal with "Supported" bad behaviors. For various reasons some
              errors have been ignored in old versions of this method. 
@@ -1235,7 +1259,7 @@ PROCEDURE displayFields :
                Everyone is better off with explicit error when data cannot be 
                displayed properly.. Silent forgiveness in this area is bad, 
                But as the exceptions above indicates also habit forming and 
-               difficult to get rid of..  */  
+               difficult to get rid of..   */  
             ELSE
               MESSAGE  
                 ERROR-STATUS:GET-MESSAGE(1) VIEW-AS ALERT-BOX ERROR.
@@ -1245,10 +1269,10 @@ PROCEDURE displayFields :
            Note: cDisplayFromSource is set to blank above if no valid-handle
                  so no sanity check is needed here  */               
         ELSE
-          hField:SCREEN-VALUE = {fnarg columnLongCharValue cFieldName hDataSource}.
-        /*** END display value ***/
+          hField:SCREEN-VALUE = {fnarg columnLongCharValue cFieldName phDataSource}.
+          /*** END display value ***/
       END.
-      /* parameter is ? (Typically Recordstate=NoRecordAvailable)   */
+        /* lClear */
       ELSE DO:
         IF hField:TYPE = 'PROCEDURE':U THEN
           RUN clearField IN hField.
@@ -1268,36 +1292,105 @@ PROCEDURE displayFields :
           hField:SCREEN-VALUE = ENTRY(2,hField:RADIO-BUTTONS) NO-ERROR. 
         ELSE  
           hField:SCREEN-VALUE = "".
-      END. /* no data */      
+      END. /* no data */  
+      IF hField:TYPE <> 'PROCEDURE':U THEN
+        hField:MODIFIED = NO.  
+      ELSE 
+       {set DataModified NO hField}.  
     END. /* if not secured and hidden  */     
     ELSE IF hField:TYPE = 'PROCEDURE':U THEN
     DO:
       {set Secured TRUE hField} NO-ERROR.
       RUN hideObject IN hField NO-ERROR.
     END.
-    
-    /* For Combos and Selection lists (old lookupapi). Avoid LargeColumns. 
-       Note that cValue is not set for LONGCHAR, but the assumption is that 
-       LONGCHAR always is one of the LargeColumns */ 
-    IF NOT CAN-DO(cLargeColumns,cFieldName) AND NOT glUseNewAPI THEN
-      ASSIGN cWidgetNames  = cWidgetNames
-                           + CHR(3)
-                           + cFieldName        
-             cWidgetValues = cWidgetValues 
-                           + CHR(3)
-                           + (IF cValue = ? OR cValue = "?":U 
-                              THEN "":U 
-                              ELSE cValue).
-    
-    IF hField:TYPE <> 'PROCEDURE':U THEN
-      hField:MODIFIED = NO.  
-    ELSE 
-      {set DataModified NO hField}.  
-  END. /* field loop */
+  END.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-displayFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayFields Procedure 
+PROCEDURE displayFields :
+/*------------------------------------------------------------------------------
+  Purpose:     "Displays" the current row values by moving them to the frame's
+               screen-values.
+  Parameters:  INPUT pcColValues AS CHARACTER -- CHR(1) - delimited list of the
+               BUFFER-VALUEs of the requested columns; the first entry in the
+               list is the RowIdent code.
+  Notes:       When a frame field is a SmartObject (for example, a SmartField), 
+               setDataValue is invoked in the SmartObject to set its value.
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcColValues AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iValue             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cRowIdent          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldPos          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iSecuredEntry      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hGASource          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDisplayFromSource AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFldsToDisable AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lRefreshDataFields AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDisplayValues     AS CHARACTER  NO-UNDO.
+ 
+  /* Used for Dynamic Combos */
+  DEFINE VARIABLE cWidgetNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cWidgetValues AS CHARACTER  NO-UNDO.
+
+  /* Field Security Check */
+  DEFINE VARIABLE cAllFieldNames   AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE cSecuredFields   AS CHARACTER NO-UNDO.
+
+  /* Used for RowUserProp - Row User Property functions */
+  DEFINE VARIABLE cDataSourceNames   AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cRowUserProp       AS CHARACTER      NO-UNDO.                                                             
+  DEFINE VARIABLE cRowUserPropName   AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cQualifier         AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER      NO-UNDO.
+  DEFINE VARIABLE iPropLoop          AS INTEGER        NO-UNDO.
+   
+  &SCOPED-DEFINE xp-assign
+  {get FieldSecurity cSecuredFields}
+  {get GroupAssignSource hGASource}
+  {get InternalDisplayFromSource cDisplayFromSource}
+  {get DisplayedFields cDisplayedFields}
+  .
+  &UNDEFINE xp-assign
+ 
+  /* Save off the row number, which is always the first value returned
+     and remove it in the parameter to displayfieldList . */
+  ASSIGN
+    cRowIdent      = ENTRY(1, pcColValues, CHR(1))
+    cDisplayValues = IF pcColValues = ? 
+                     THEN ?
+                          /* add chr(1) at end to avoid error if single value 
+                            or blank (not really supported, but did not give
+                            an error here before..)*/
+                     ELSE SUBSTRING(pcColValues,INDEX(pcColValues + CHR(1),CHR(1)) + 1).
+      
+  {set RowIdent cRowIdent}.
+
+  RUN displayfieldList IN TARGET-PROCEDURE 
+                      (cDisplayedFields,
+                       cDisplayFromSource,
+                       ?, /* use datasource for data, but not to check 
+                             availability. (clear screen if displayValues = ? )*/
+                       cDisplayValues).
+                        
     /* Handle Autocomments and combo/lookups if using repository  */
   IF {fn getUseRepository} THEN 
-  DO:     
+  DO:
+    {get DataSource hDataSource}.
     IF VALID-HANDLE(hDataSource) AND NOT VALID-HANDLE(hGASource) THEN 
     DO:
       IF {fnarg instanceOf 'SBO':U hDataSource} THEN
@@ -1374,6 +1467,36 @@ PROCEDURE displayFields :
               BUFFER-COPY ttDCombo TO ttDComboCopy.
               DELETE ttDCombo.
             END.
+
+            ASSIGN 
+              cWidgetNames  = REPLACE(cDisplayedFields,",":U,CHR(3))
+              cWidgetValues = REPLACE(cDisplayValues,CHR(1),CHR(3)).
+      
+            /* backwards compabitility requires blank instead of unknown,
+                pre and append chr(3) for first and last value, 
+                loop in case of successive values), 
+                substring (not trim) in case of blank */
+            DO WHILE INDEX(CHR(3) + cWidgetValues + CHR(3),CHR(3) + '?':U + CHR(3)) > 0:
+              ASSIGN 
+                cWidgetValues = REPLACE(CHR(3) + cWidgetValues + CHR(3),
+                                        CHR(3) + '?':U + CHR(3),
+                                        CHR(3) + CHR(3))
+                cWidgetValues = SUBSTR(cWidgetValues,2,LENGTH(cWidgetValues) - 2).
+        
+            END.
+        
+            /* blank secured fields */
+            IF cSecuredFields <> "":U AND cWidgetValues > '' THEN
+            DO:
+              {get AllFieldNames cAllFieldNames}.
+              DO iValue =  1 TO NUM-ENTRIES(cSecuredFields):
+                IF ENTRY(iValue,cSecuredFields) = "Hidden":U THEN
+                  ASSIGN 
+                    cFieldName = ENTRY(iValue,cAllFieldNames)
+                    iFieldPos =  LOOKUP(cFieldName,cDisplayedFields)
+                    ENTRY(iFieldPos,cWidgetValues,CHR(3))  = '':U.
+              END.
+            END.
     
             /* If the SDF Cache manager is running, get the data from there */
             IF VALID-HANDLE(ghSDFCacheManager) THEN
@@ -1419,7 +1542,7 @@ PROCEDURE displayFields :
 
   RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
   
-  /*  publish displayField if record avail ( pcColValues <> ? ) 
+  /* publish displayField if record avail ( pcColValues <> ? ) 
      clearField is being run in all SDFs above if no record avail*/
   IF pcColValues <> ? OR lRefreshDataFields THEN
     PUBLISH 'displayField':U FROM TARGET-PROCEDURE.  
@@ -1427,6 +1550,86 @@ PROCEDURE displayFields :
   RETURN.
 
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-displayRelationFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE displayRelationFields Procedure 
+PROCEDURE displayRelationFields :
+/*------------------------------------------------------------------------------
+  Purpose: Display fields for relation     
+  Parameters:  fieldname of SDF that manages relation
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcFieldName AS CHARACTER  NO-UNDO.
+
+  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldHandles      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hFieldSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataTable         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataColumns       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iColumn            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cColumn            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRelationFields    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyValue          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyfield          AS CHARACTER  NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get DisplayedFields cDisplayedFields}
+  {get FieldHandles cFieldHandles}
+  .
+  &UNDEFINE xp-assign
+
+  hField = WIDGET-HANDLE(ENTRY(LOOKUP(pcFieldName,cDisplayedFields),cFieldHandles))
+           NO-ERROR.
+  IF VALID-HANDLE(hField) THEN
+  DO:
+    {get DataSource hFieldSource hField}.
+    IF VALID-HANDLE(hFieldSource) THEN
+    DO:
+      {get DataTable cDataTable hFieldSource}.
+      IF cDataTable <> 'RowObject':U AND cDataTable > '' THEN
+      DO:
+        {get KeyField cKeyField hField}.
+        {get DataColumns cDataColumns hFieldSource}.
+     
+        /* Displayfields decides the order */
+        DO iColumn = 1 TO NUM-ENTRIES(cDisplayedFields):
+          cColumn = ENTRY(iColumn,cDisplayedFields).
+          IF LOOKUP(cColumn,cDataColumns) > 0 AND ENTRY(1,cColumn,'.') = cDataTable THEN
+            cRelationFields = cRelationFields
+                            + ','
+                            + cColumn. 
+
+        END.
+        cRelationFields = LEFT-TRIM(cRelationFields,',').
+        IF cRelationFields > '' THEN
+        DO:
+          IF {fnarg columnValue cKeyField hFieldSource} = {fn getDataValue hField} THEN 
+            RUN displayfieldList IN TARGET-PROCEDURE 
+                  (cRelationFields,
+                   '(ALL)':U,
+                   hFieldSource, 
+                   '').
+          ELSE /* clear fields */
+            RUN displayfieldList IN TARGET-PROCEDURE 
+                 (cRelationFields,
+                  '(NONE)':U,
+                  ?,
+                  ?).
+
+        END.
+      END.
+    END.
+  END.
+    
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1455,7 +1658,6 @@ PROCEDURE enableFields :
   DEFINE VARIABLE cUpdateTarget  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hGASource      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hFrameHandle   AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hPopup         AS HANDLE     NO-UNDO.
   
   /* Field Security Check */
   DEFINE VARIABLE cAllFieldHandles AS CHARACTER NO-UNDO.
@@ -1550,11 +1752,9 @@ PROCEDURE enableFields :
             /* don't enable if read-only (can-query is ok as only fields can 
                have popups) */
             IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
-            DO:
-              hPopup = {fnarg popupHandle hField}.
-              IF VALID-HANDLE(hPopup) THEN
-                hPopup:SENSITIVE = YES.
-            END.
+              DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                                hField, YES). 
+            
          END.  /* IF security check succeeds */
         END.  /* If the field is not hidden */
       END.  /* If hField is a valid handle */
@@ -1603,11 +1803,8 @@ PROCEDURE enableFields :
              /* don't enable if read-only (can-query is ok as only fields can 
                 have popups) */
               IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
-              DO:
-                hPopup = {fnarg popupHandle hField}.
-                IF VALID-HANDLE(hPopup) THEN
-                  hPopup:SENSITIVE = YES.
-              END.
+                DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                                  hField, YES). 
             END.  /* If security check succeeds */
           END.  /* If the field isn't hidden */
         END.  /* IF it is a valid field */
@@ -1626,7 +1823,8 @@ PROCEDURE enableFields :
     &SCOPED-DEFINE xp-assign
     {get EnabledHandles cEnableFields}
     {get EnabledObjHdls cEnableObjects}
-    {get EnabledObjFldsToDisable cObjectsToDisable}.
+    {get EnabledObjFldsToDisable cObjectsToDisable}
+     .
     &UNDEFINE xp-assign
     DO iField = 1 TO NUM-ENTRIES(cEnableFields):
       ASSIGN
@@ -1644,10 +1842,9 @@ PROCEDURE enableFields :
           IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
             hField:READ-ONLY = yes.  
           ELSE 
-            hField:SENSITIVE = NO.     
-          hPopup = {fnarg popupHandle hField}.
-          IF VALID-HANDLE(hPopup) THEN
-            hPopup:SENSITIVE = NO.
+            hField:SENSITIVE = NO.   
+          DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                           hField, NO). 
         END.  /* END DO NOT HIDDEN */
       END.  /* If hField is valid */
     END.     /* END DO iField     */
@@ -1675,10 +1872,9 @@ PROCEDURE enableFields :
             IF hField:TYPE = "EDITOR":U THEN /* Editors must be sensitive, not R-O*/
               hField:READ-ONLY = YES.  
             ELSE 
-              hField:SENSITIVE = NO.   
-            hPopup = {fnarg popupHandle hField}.
-            IF VALID-HANDLE(hPopup) THEN
-              hPopup:SENSITIVE = NO.
+              hField:SENSITIVE = NO.  
+            DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                              hField, NO).
           END.  /* END DO NOT HIDDEN */
         END.  /* If a valid handle */
       END.

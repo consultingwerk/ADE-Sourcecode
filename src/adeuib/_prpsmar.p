@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -522,8 +506,15 @@ PROCEDURE setup :
                 _U._SUBTYPE:SCREEN-VALUE  = "Unknown [Object could not be run]"
                 .
     ELSE DO:
-      ASSIGN _U._SUBTYPE:SCREEN-VALUE = _U._SUBTYPE 
-             int-entries = _S._HANDLE:INTERNAL-ENTRIES.
+      /*If subtype=SmartDataObject and db-aware=no is because the SmartObject is a DataView*/
+      IF _U._SUBTYPE EQ "SmartDataObject":U AND
+                        VALID-HANDLE(_S._handle) AND
+                        NOT ({fn getDBAware _S._handle}) THEN
+      ASSIGN _U._SUBTYPE:SCREEN-VALUE = "DataView":U.
+      ELSE
+      ASSIGN _U._SUBTYPE:SCREEN-VALUE = _U._SUBTYPE.
+      
+      ASSIGN int-entries = _S._HANDLE:INTERNAL-ENTRIES.
 
       IF admVersion LT "ADM2":U THEN DO:
          IF NOT CAN-DO (int-entries, "get-attribute-list") OR

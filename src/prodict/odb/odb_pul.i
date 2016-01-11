@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progrss Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -44,6 +28,8 @@ History:
     moloney     11/11/05 Modify the schema holder version number if
                          the new array character feature is implemented.
                          20050531-001
+    fernando    01/04/06 Message added for 20050531-001 should be a warning
+	                     and should not come up during migration - 20051230-006.
 
 --------------------------------------------------------------------*/
 
@@ -85,13 +71,17 @@ ASSIGN
           DICTDB._Db._Db-misc2[7] = SUBSTRING(DICTDB._Db._Db-misc2[7], 1, found - 1, "character").
           ASSIGN
             DICTDB._Db._Db-misc2[7] = DICTDB._Db._Db-misc2[7] + STRING({&ODBC_SCH_VER2}).
-          RUN adecomm/_setcurs.p ("").
-          MESSAGE
-            "The schema holder version " + STRING(sh_ver) + 
-            " was automatically upgraded to version " + STRING({&ODBC_SCH_VER2}) + "." SKIP
-            "Version " + STRING({&ODBC_SCH_VER2}) + " schema holder features were located."
-            VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-          RUN adecomm/_setcurs.p ("WAIT").
+
+          /* 20051230-006 - don't show this if running migration or create schema */
+          IF NOT CAN-DO("M,C",odb_perform_mode) THEN DO:
+              RUN adecomm/_setcurs.p ("").
+              MESSAGE
+                "The schema holder version " + STRING(sh_ver) + 
+                " was automatically upgraded to version " + STRING({&ODBC_SCH_VER2}) + "." SKIP
+                "Version " + STRING({&ODBC_SCH_VER2}) + " schema holder features were located."
+                VIEW-AS ALERT-BOX WARNING BUTTONS OK.
+              RUN adecomm/_setcurs.p ("WAIT").
+          END.
 
           /* Now just check that the schema holder level you've upgraded to hasn't
            * exceeded the client (very unlikely but should be checked just in case)

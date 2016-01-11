@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: visuald.w 
@@ -289,17 +289,17 @@ DEFINE FRAME Attribute-Dlg
          TITLE "Viewer Instance Properties":L
          DEFAULT-BUTTON BUTTON-2.
 
-DEFINE FRAME frModifyObjects
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 19.4 ROW 12.38
-         SIZE 46.6 BY 3.76.
-
 DEFINE FRAME frDisabledObjects
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 19.4 ROW 7.14
          SIZE 46.6 BY 3.67.
+
+DEFINE FRAME frModifyObjects
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 19.4 ROW 12.38
+         SIZE 46.6 BY 3.76.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -719,9 +719,11 @@ PROCEDURE get-SmO-attributes :
     ELSE 
       cDisableObjects = '(None)':U.
   
+    ASSIGN gcDisableObjects = cDisableObjects.
+
     initDisableObjects(). 
     initModifyObjects(). 
-        
+
     /* Choose Layout. */
     /* V8: RUN get-attribute IN p_hSMO ("Layout-Options":U). */
     ASSIGN c_Layout = DYNAMIC-FUNC("getLayoutOptions":U IN p_hSMO) NO-ERROR.
@@ -756,7 +758,7 @@ PROCEDURE get-SmO-attributes :
                          ELSE c_Layout
            orig-layout = c_Layout.
   END. /* DO WITH FRAME... */
-    
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

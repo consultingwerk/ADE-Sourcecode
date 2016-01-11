@@ -208,7 +208,7 @@ DO:
      ghADMProps:ADD-NEW-FIELD('Tables':U, 'CHAR':U, 0, ?, '':U).
      ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
      ghADMProps:ADD-NEW-FIELD('TransferChildrenForAll':U, 'LOGICAL':U, 0, ?, NO).
-     ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, '':U).
+     ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, ?).
      ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'CHARACTER':U).
   &ENDIF  /* "{&ADMSuper}" = "" */
 

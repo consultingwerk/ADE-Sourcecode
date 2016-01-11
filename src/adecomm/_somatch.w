@@ -1,28 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _somatch.w
@@ -140,6 +124,20 @@ DEFINE TEMP-TABLE ttMismatch
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-unqualifyDataTableColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD unqualifyDataTableColumns Procedure 
+FUNCTION unqualifyDataTableColumns RETURNS CHARACTER
+  (INPUT phDataObject AS HANDLE,
+   INPUT pcFields     AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -158,8 +156,8 @@ DEFINE TEMP-TABLE ttMismatch
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 5.05
-         WIDTH              = 60.
+         HEIGHT             = 10.81
+         WIDTH              = 53.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -330,6 +328,17 @@ DO:
    ELSE
    DO:
       ASSIGN pl_objectsMatch = YES.
+
+       /*The DataView always qualifies the field names with the entity name (i.e.: eCustomer.name), but
+         a viewer built on a SDO does not qualify the field names, therefore the signature won't match.
+         If the data-source is a DataView (getObjectType = "SmartDataObject and getDBAware = NO),
+         and the viewer was built on a SDO (columns are not qualified, INDEX(".",c_SVisualColumns) = 0) then
+         we have to unqualify the column names.*/
+       IF DYNAMIC-FUNCTION('getObjectType':U IN h_SQueryObject) = "SmartDataObject":U AND
+          DYNAMIC-FUNCTION('getDBAware':U IN h_SQueryObject) = FALSE AND
+          INDEX(c_SVisualColumns,".") = 0 THEN
+          ASSIGN c_SQueryColumns = unqualifyDataTableColumns(h_SQueryObject, c_SQueryColumns).
+
       /* A visualization that does not use ANY queryObject fields 
        * still successfully matches a queryObject... meaning we can
        * still use that viewer with that queryObject
@@ -407,6 +416,17 @@ DO:
          ASSIGN  pl_objectsMatch = ?.
       ELSE
       DO:
+
+       /*The DataView always qualifies the field names with the entity name (i.e.: eCustomer.name), but
+         a viewer built on a SDO does not qualify the field names, therefore the signature won't match.
+         If the data-source is a DataView (getObjectType = "SmartDataObject and getDBAware = NO),
+         and the viewer was built on a SDO (columns are not qualified, INDEX(".",c_SVisualColumns) = 0) then
+         we have to unqualify the column names.*/
+       IF DYNAMIC-FUNCTION('getObjectType':U IN h_SQueryObject) = "SmartDataObject":U AND
+          DYNAMIC-FUNCTION('getDBAware':U IN h_SQueryObject) = FALSE AND
+          INDEX(c_EnabledFlds,".") = 0 THEN
+          ASSIGN c_updatableFlds = unqualifyDataTableColumns(h_SQueryObject, c_updatableFlds).
+
          /* A visualization that does not have ANY enabled fields 
           * still successfully matches a queryObject's updatable fields... 
           * meaning we can still use that viewer with that queryObject
@@ -445,4 +465,44 @@ END. /* Update Link */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+
+/* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-unqualifyDataTableColumns) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION unqualifyDataTableColumns Procedure 
+FUNCTION unqualifyDataTableColumns RETURNS CHARACTER
+  (INPUT phDataObject AS HANDLE,
+   INPUT pcFields     AS CHARACTER) :
+/*-------------------------------------------------------------------------------
+   Purpose: Returns an unqualified list of the fields.
+Parameters: phDataObject: Handle of the data-source object
+            pcFields:     List of qualified fields to be unqualified.
+    
+    Notes:  Only fields that are qualified with the DataTable will be unqualified
+-------------------------------------------------------------------------------*/
+DEFINE VARIABLE iField        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cField        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cReturnFields AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataTable    AS CHARACTER  NO-UNDO.
+
+{get DataTable cDataTable phDataObject}.
+
+DO iField = 1 TO NUM-ENTRIES(pcFields):
+    ASSIGN cField = ENTRY(iField, pcFields).
+    
+    IF ENTRY(1, cField, ".") NE cDataTable THEN
+        NEXT.
+
+    ASSIGN cReturnFields = cReturnFields + ENTRY(2, cField, ".") + ",".
+END.
+
+RETURN TRIM(cReturnFields, ",").
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 

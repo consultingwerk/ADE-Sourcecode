@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _qssuckr.p
@@ -2688,9 +2688,11 @@ PROCEDURE setRepositoryObject:
         IF LOOKUP("DynBrow":U, _P.PARENT_classes) <> 0
         OR LOOKUP("DynSDO":U, _P.PARENT_classes)  <> 0
         OR LOOKUP("DynView":U, _P.PARENT_classes) <> 0
+        OR LOOKUP("DynDataView":U, _P.PARENT_classes) <> 0
         OR _P.OBJECT_type_code = "DynBrow":U
         OR _P.OBJECT_type_code = "DynSDO":U
         OR _P.OBJECT_type_code = "DynView":U
+        OR _P.OBJECT_type_code = "DynDataView":U
         THEN DO:
           ASSIGN
             _P.object_filename = _P._save-as-file

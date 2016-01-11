@@ -553,6 +553,17 @@ FUNCTION receiveData RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-refreshQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD refreshQuery Procedure 
+FUNCTION refreshQuery RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-removeQuerySelection) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeQuerySelection Procedure 
@@ -651,7 +662,7 @@ FUNCTION updateRow RETURNS LOGICAL
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 14.76
+         HEIGHT             = 13.86
          WIDTH              = 55.8.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -3202,8 +3213,8 @@ i-o pcTempTables   Temp-table handles. comma-separated
  DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cLogicalName     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cSourceType      AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE hSBOSDO          AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cSBOSDO          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cSourceName      AS CHARACTER  NO-UNDO.
 
  {get AppService cAppService}.
  IF pcAppservice <> ? AND cAppService <> pcAppservice THEN
@@ -3326,37 +3337,36 @@ i-o pcTempTables   Temp-table handles. comma-separated
        IF NOT lPosition AND NOT lVisualtargets THEN 
        DO:
          IF pcSourceName <> ? AND pcSourceName <> '':U THEN
-         DO:       
-           IF CAN-DO(pcQualNames,pcSourceName) THEN
+         DO: 
+           {get DataSource hDataSource}.
+           IF VALID-HANDLE(hDataSource) THEN
            DO:
-             &SCOPED-DEFINE xp-assign
-             {get ForeignFields cForeignFields}
-             {get DataSource hDataSource}.
-             &UNDEFINE xp-assign
-             /* Late-change-risk-protection: invalid SDO is not really an 
-                option here...  */
-             IF VALID-HANDLE(hDataSource) THEN
-             DO:
-               {get ObjectType cSourceType hDataSource}.
-               /* The SBO IDent is not part of server context, so in that case
-                  grap the SDO from the first qualifier and mark as <container>.
-                  It does not really matter which SDO.. the server code will 
-                  use the SDO to find the SBO for foreign values */     
-               IF cSourceType = 'SmartBusinessObject':U THEN
-               DO:
-                 ASSIGN 
-                   cSBOSDO = ENTRY(2,cForeignFields)
-                   cSBOSDO = ENTRY(1,cSBOSDO,'.':U)
-                   hSBOSDO = {fnarg dataObjectHandle cSBOSDO hDataSource}
-                   cForeignFields = STRING(hSBOSDO) + ':<CONTAINER>':U 
-                                 + ',':U + cForeignFields. 
-               END.
-               ELSE 
-                 cForeignFields = STRING(hDataSource) + ',':U + cForeignFields.
-             END.
-             cMode = 'Child':U.
-           END.
-           ELSE /* parent not part of request, set mode to add foreignfields */
+             {get ObjectType cSourceType hDataSource}.
+             
+             {get ForeignFields cForeignFields}.             
+             /* The SBO IDent is not part of server context and  will thus 
+                not be found in pcQualNames, so grab the SDO from the first 
+                qualifier in order to use the SDO name to check if the SBO 
+                is part of this request. 
+                Note that we pass the SDO name as parent id to the server.
+                This will be used to link to the SBO on server */ 
+             IF cSourceType = 'SmartBusinessObject':U THEN
+               ASSIGN 
+                 cSBOSDO     = ENTRY(2,cForeignFields)
+                 cSBOSDO     = ENTRY(1,cSBOSDO,'.':U)
+                 cSourceName = pcSourcename + ":":U + cSBOSDO.
+             ELSE 
+               cSourceName = pcSourcename.
+
+             IF CAN-DO(pcQualNames,cSourceName) THEN
+               ASSIGN
+                 cForeignFields = cSourceName + ',':U + cForeignFields
+                 cMode          = 'Child':U.
+
+             ELSE /* parent not part of request, set mode to add foreignfields */
+               cMode = 'ClientChild':U.
+           END. /* valid datasource */
+           ELSE /* this should not happen, but set mode to add foreignfields */
              cMode = 'ClientChild':U.
          END.
          ELSE IF CAN-DO(pcOptions,'Batch':U) THEN
@@ -3369,15 +3379,6 @@ i-o pcTempTables   Temp-table handles. comma-separated
              cMode = 'ClientChild':U.
          END.
        END.
-       
-       /***********  Not yet 
-       IF lUseRepository THEN
-        {get LogicalObjectName cRunName}.
-       /* If logicalObjectname is blank use serverfilename. This is the case if 
-        we do not use the Repository OR if the file isn't in the Repository
-       */  
-       IF cRunName = '':U THEN
-       ***************/
        cQuery = {fnarg prepareForFetch cMode}.
      END. /* if NOT lSkip */
      ELSE 
@@ -7533,7 +7534,8 @@ Parameters: pcQueryData
               - A complete database query string. 
               - Rowident - semi colon separated list of rowids for each table. 
      Notes: This is the wrapper for the call to the server and should be called 
-            from code that first checks if the record is on the client.            Called from fetchRowident and findRowWhere. 
+            from code that first checks if the record is on the client.            
+         
           - Used by fetchRowident and findRowWhere  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cRowObjectState  AS CHARACTER  NO-UNDO.
@@ -7603,7 +7605,6 @@ Parameters: pcQueryData
              FALSE,  
              iRowsToBatch, 
              OUTPUT iRowsReturned).
-  
   IF iRowsReturned = 0 AND NOT lRebuild THEN
   DO:
     {get DataHandle hDataQuery}.
@@ -7626,7 +7627,6 @@ Parameters: pcQueryData
   IF lBrowsed THEN
     PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
 
-  
   RETURN iRowsReturned > 0.
 
 END FUNCTION.
@@ -7852,7 +7852,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
           OUTPUT cColumn, 
           OUTPUT cOperator,
           OUTPUT cValue). 
-
+   
    IF cColumn > '':U THEN
    DO:
      ASSIGN
@@ -7869,13 +7869,15 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
      /* Build a list of the columns that has equality operators to check
         against the index information to decide whether the request can be 
         resolved on the client.
-       (Note that the column names are the RowObject names so they can be 
-        checked against the IndexInformation property, which also returns 
-        RowObject names for columns in the SDO)  */ 
+       (Note that the column names are the RowObject names and need to be 
+        unqualified to be checked against the IndexInformation property, 
+        which returns unqualified RowObject names for columns in the SDO)  */ 
      IF CAN-DO('=,EQ':U,cOperator) THEN 
        cEqualColumns = cEqualColumns
                      + (IF cEqualcolumns = '' THEN '' ELSE ',')
-                     + cColumn.
+                     + IF cColumn BEGINS 'RowObject':U 
+                       THEN ENTRY(2,cColumn,'.':U) 
+                       ELSE cColumn.
    END. /* cColumn > '' */
 
    /* If 'contains' is used as operator, we cannot resolve the request on the 
@@ -9552,6 +9554,59 @@ FUNCTION receiveData RETURNS LOGICAL
     {set RowobjectTable phTable}.
     {fnarg openDataQuery 'FIRST':U}.
   END.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-refreshQuery) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION refreshQuery Procedure 
+FUNCTION refreshQuery RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+ Purpose: Refresh browse query and reposition to currently selected row
+   Notes: This is a refresh of the current query, so a never opened or closed 
+          query will not be refreshed by this. 
+        - Currently refreshes all dependant active child queries.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRowIdent AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOpen     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOk       AS LOGICAL    NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get Rowident cRowIdent}
+  {get QueryOpen lOpen}
+  {get QueryOpen lOpen}
+  .
+  &UNDEFINE xp-assign
+  
+  IF lOpen THEN
+  DO:
+    {fn closeQuery}.
+
+    IF cRowIdent > "":U THEN
+      {fnarg fetchRowWhere cRowIdent}.
+
+    /* fetchRowWhere() doesn't reset the recordAvailable() property in Data targets,
+       which causes funky behaviour with toolbars (nav, tableio). We thus always need
+       to run it (it won't re-run sendRows).
+     */
+    RUN fetchFirst IN TARGET-PROCEDURE. 
+    
+    /* Reposition to the previously selected row. The fetchFirst call above messes up
+       the reposition done by the fetchRowWhere().
+     */
+    IF cRowIdent > '':U THEN
+      {fnarg findRowObjectUseRowident cRowident}.
+    
+    RETURN TRUE.
+  END.
+
+  RETURN FALSE. 
 
 END FUNCTION.
 

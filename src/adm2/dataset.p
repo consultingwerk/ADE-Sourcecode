@@ -1,9 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/***************************************************************************/
-/* Copyright (c) 2005, Progress Software Corporation, All rights reserved.  */
-/***************************************************************************/
+/**********************************************************************************/
+/* Copyright (C) 2005,2006 by Progress Software Corporation. All rights reserved. */
+/* Prior versions of this work may contain portions contributed by participants   */      
+/* of Possenet.                                                                   */               
+/**********************************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataset.p
     Purpose     : Super procedure for dataset class.
@@ -31,6 +33,19 @@ DEFINE TEMP-TABLE ttBatch NO-UNDO
      FIELD TTHandle  AS HANDLE
      INDEX BatchTable AS UNIQUE TargetProcedure TableName.
 
+/* DataTable props are currently stored in adm-data 
+   Tests indicates that a temp-table is faster, this was not a 
+   scalability test though and the temp-table access was not wrapped 
+   in any function, which it would be to support multiple props . 
+DEFINE TEMP-TABLE ttDataTable NO-UNDO
+     FIELD TargetProcedure AS HANDLE  
+     FIELD TableName       AS CHAR
+     FIELD NumRecords      AS CHAR 
+     FIELD NextContext     AS CHAR 
+     INDEX DataTable AS UNIQUE TargetProcedure TableName.
+
+*/
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -50,6 +65,47 @@ DEFINE TEMP-TABLE ttBatch NO-UNDO
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-assignTableContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableContext Procedure 
+FUNCTION assignTableContext RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    pcContext AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableInformation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableInformation Procedure 
+FUNCTION assignTableInformation RETURNS LOGICAL
+  ( pcTable         AS CHARACTER,
+    pcContext       AS CHARACTER,
+    plAppend        AS LOGICAL,
+    plForward       AS LOGICAL,
+    pcPrev          AS CHARACTER,
+    pcNext          AS CHARACTER,
+    piNumRecords    AS INTEGER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableNumRecords) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableNumRecords Procedure 
+FUNCTION assignTableNumRecords RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    piNumRecords AS INT )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-childTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD childTables Procedure 
@@ -64,7 +120,7 @@ FUNCTION childTables RETURNS CHARACTER
 &IF DEFINED(EXCLUDE-columnName) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnName Procedure 
-FUNCTION columnName RETURNS CHARACTER 
+FUNCTION columnName RETURNS CHARACTER
   ( phField AS HANDLE  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -240,6 +296,18 @@ FUNCTION isScrollable RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isUniqueID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isUniqueID Procedure 
+FUNCTION isUniqueID RETURNS LOGICAL
+  (INPUT pcFields AS CHARACTER,
+   INPUT pcTable  AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-lookupProperty) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD lookupProperty Procedure 
@@ -327,6 +395,62 @@ FUNCTION sortTables RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD storeBatch Procedure 
 FUNCTION storeBatch RETURNS LOGICAL
   ( pcTable AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableContext Procedure 
+FUNCTION tableContext RETURNS CHARACTER
+  ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableIndexInformation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableIndexInformation Procedure 
+FUNCTION tableIndexInformation RETURNS CHARACTER
+  (INPUT pcTable AS CHARACTER,
+   INPUT pcQuery AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableNextContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableNextContext Procedure 
+FUNCTION tableNextContext RETURNS CHARACTER
+  ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableNumRecords) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableNumRecords Procedure 
+FUNCTION tableNumRecords RETURNS INTEGER
+  ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tablePrevContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tablePrevContext Procedure 
+FUNCTION tablePrevContext RETURNS CHARACTER
+  ( pcTable AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -489,6 +613,129 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-assignTableContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableContext Procedure 
+FUNCTION assignTableContext RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    pcContext AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  /*  possible future store props per table and possibly remove successfully 
+      applied entries so they don't get applied to dataview ??
+  DEFINE VARIABLE iContext AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cProp    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cValue   AS CHARACTER  NO-UNDO.
+
+  DO iContext = 1 TO NUM-ENTRIES(pcContext,CHR(4)):
+    ASSIGN cProp  = ENTRY(1,pcContext,CHR(4))
+           cValue = ENTRY(2,pcContext,CHR(4)).
+    IF cValue = '?':U THEN
+      cValue = ?.
+    DYNAMIC-FUNCTION('assignTable':U + cProp IN TARGET-PROCEDURE,
+                      cTable,cValue) NO-ERROR.
+
+  END.
+  */
+  DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                    TARGET-PROCEDURE, pcTable,'TableContext':U,pcContext).
+  RETURN TRUE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableInformation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableInformation Procedure 
+FUNCTION assignTableInformation RETURNS LOGICAL
+  ( pcTable         AS CHARACTER,
+    pcContext       AS CHARACTER,
+    plAppend        AS LOGICAL,
+    plForward       AS LOGICAL,
+    pcPrev          AS CHARACTER,
+    pcNext          AS CHARACTER,
+    piNumRecords    AS INTEGER) :
+ /*------------------------------------------------------------------------------
+  Purpose: Receive table information from datacontainer/service after a 
+           service request has been completed.        
+  Parameters: pcTable      = table name
+              pcContext    = optional context
+              plAppend     = data was appended to exisitng data
+              plForward    = Direction of the append 
+              pcPrev       = Prev context returned from service  
+              pcNext       = Next context returned from service 
+              piNumRecords = Number of records 
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE iNumRecords AS INTEGER NO-UNDO.
+
+  IF pcContext > '' THEN
+    DYNAMIC-FUNCTION('assignTableContext':U IN TARGET-PROCEDURE,
+                     pcTable,pcContext).
+
+  IF NOT plAppend OR plForward = FALSE THEN
+  DO:
+    IF pcPrev = 'FIRST':U THEN
+      pcPrev = '':U.
+    DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                         TARGET-PROCEDURE, pcTable,'PrevContext':U,pcPrev).
+
+  END.
+  
+  IF NOT plAppend OR plForward THEN
+  DO:
+    IF pcNext = 'LAST':U THEN
+      pcNext = '':U.
+    DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                          TARGET-PROCEDURE, pcTable,'NextContext':U,pcNext).
+  END.
+
+  IF plAppend THEN
+  DO:
+    iNumRecords = {fnarg tableNumRecords pcTable}.
+    IF iNumRecords > 0 THEN
+      piNumRecords =  piNumRecords + iNumRecords.
+  END.
+
+  DYNAMIC-FUNCTION('assignTableNumRecords':U IN TARGET-PROCEDURE,
+                    pcTable,piNumRecords).
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableNumRecords) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableNumRecords Procedure 
+FUNCTION assignTableNumRecords RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    piNumRecords AS INT ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                    TARGET-PROCEDURE, pcTable,'NumRecords':U,STRING(piNumRecords)).
+  RETURN TRUE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-childTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION childTables Procedure 
@@ -531,7 +778,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-columnName) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION columnName Procedure 
-FUNCTION columnName RETURNS CHARACTER 
+FUNCTION columnName RETURNS CHARACTER
   ( phField AS HANDLE  ) :
 /*------------------------------------------------------------------------------
   Purpose: Resolves the external unique name of the column from the passed 
@@ -681,7 +928,10 @@ FUNCTION dataQueryString RETURNS CHARACTER
   DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cSortTables     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQuery          AS CHARACTER  NO-UNDO.
- 
+  DEFINE VARIABLE iField          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cParentField    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cChildField     AS CHARACTER  NO-UNDO.
+
   hBuffer = {fnarg dataTableHandle "entry(1,pcTableList)"}.
   IF VALID-HANDLE(hBuffer) THEN
   DO:
@@ -701,6 +951,28 @@ FUNCTION dataQueryString RETURNS CHARACTER
                   + cQuery.
       END.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
+    hRelation = hBuffer:PARENT-RELATION.
+    IF VALID-HANDLE(hRelation)
+    AND LOOKUP(hRelation:PARENT-BUFFER:NAME,pcTableList) > 0 
+    AND {fnarg relationType hRelation} MATCHES 'one-*':U THEN
+    DO:
+      cQuery = "EACH " + hRelation:PARENT-BUFFER:NAME 
+             + " WHERE ".
+      DO iField = 1 TO NUM-ENTRIES(hRelation:RELATION-FIELDS) BY 2:
+        cQuery = cQuery  
+               + (IF iField > 1 THEN ' AND ' ELSE '')   
+               + hRelation:PARENT-BUFFER:NAME 
+               + '.' 
+               + ENTRY(iField,hRelation:RELATION-FIELDS)
+               + ' = ' 
+               + hRelation:CHILD-BUFFER:NAME 
+               + '.' 
+               + ENTRY(iField + 1,hRelation:RELATION-FIELDS).
+      END.
+      cQueries = cQueries + ", ":U 
+                + cQuery.
+
+    END. /* join parent to our query.. */
   END.  /* valid hbuffer */
 
   RETURN cQueries.  
@@ -832,7 +1104,7 @@ FUNCTION emptyBatch RETURNS LOGICAL
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
       IF NOT hRelation:REPOSITION THEN
-        {fnarg emptyBatch  hRelation:CHILD-BUFFER:NAME}.
+        {fnarg emptyBatch hRelation:CHILD-BUFFER:NAME}.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
 
@@ -944,6 +1216,7 @@ FUNCTION getTableProperty RETURNS CHAR PRIVATE
   Purpose: Retrieve table prop 
     Notes: Currently stored as chr(1) paired list in the ADM-DATA of the 
            Temp-table. 
+   NOT OVERRIDEABLE - currently called directly and not in target
    PRIVATE 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDataSet AS HANDLE     NO-UNDO.
@@ -1079,6 +1352,72 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isUniqueID) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isUniqueID Procedure 
+FUNCTION isUniqueID RETURNS LOGICAL
+  (INPUT pcFields AS CHARACTER,
+   INPUT pcTable  AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns TRUE if the fields passed as parameter for the specified
+           table match with the fields in an unique index,
+           otherwise it returns FALSE
+  Parameters: pcFields: Field list to be compared with the index fields
+              pcTable: ProDataSet table name
+  Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hBuffer           AS HANDLE    NO-UNDO.
+DEFINE VARIABLE iKey              AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iIndex            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE iField            AS INTEGER   NO-UNDO.
+DEFINE VARIABLE cField            AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cIndexFields      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cIndexInformation AS CHARACTER NO-UNDO.
+
+hBuffer = {fnarg dataTableHandle pcTable}.
+
+IF NOT VALID-HANDLE(hBuffer) THEN
+RETURN ?.
+
+DO WHILE TRUE:
+   IF iIndex = 0 THEN
+     ASSIGN cIndexFields = hBuffer:KEYS
+            iIndex       = 1.
+   ELSE DO:
+      IF iIndex = 1 THEN
+        ASSIGN cIndexInformation = DYNAMIC-FUNCTION('tableIndexInformation':U IN TARGET-PROCEDURE, pcTable, 'UNIQUE':U).
+ 
+      ASSIGN cIndexFields =  ENTRY(iIndex,cIndexInformation, CHR(1))
+             iIndex       = iIndex + 1 NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN LEAVE.
+   END.
+
+   IF cIndexfields = pcFields THEN
+      RETURN TRUE.
+
+   ELSE IF NUM-ENTRIES(pcFields) LT NUM-ENTRIES(cIndexFields) THEN NEXT.
+
+   ELSE DO iField = 1 TO NUM-ENTRIES(pcFields):
+        ASSIGN cField = ENTRY(iField,pcFields)
+               iKey   = LOOKUP(cField,cIndexFields).
+
+        IF iKey > 0 THEN
+           ENTRY(iKey,cIndexFields) = ''. 
+   END.
+
+   IF TRIM(cIndexFields, ",") = '' THEN 
+      RETURN TRUE.
+END.
+
+RETURN FALSE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-lookupProperty) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION lookupProperty Procedure 
@@ -1089,6 +1428,7 @@ FUNCTION lookupProperty RETURNS INTEGER PRIVATE
   Purpose: return the position of the prop name in the passed chr(1) delimited 
            list.
     Notes:  
+   NOT OVERRIDEABLE - called directly  
    PRIVATE
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE iLookup AS INTEGER    NO-UNDO.
@@ -1239,57 +1579,28 @@ Parameter:
              
     Notes:          
  ------------------------------------------------------------------------------*/
+DEFINE VARIABLE iField        AS INTEGER     NO-UNDO.
+DEFINE VARIABLE cRelFields    AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cChildFields  AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cParentFields AS CHARACTER   NO-UNDO.
 
-  DEFINE VARIABLE cRelFields  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cChildKeys  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cParentKeys AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iField      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cField      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iKey        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lParent     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cChildRel   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cParentRel  AS CHARACTER  NO-UNDO.
-  
-  IF NOT VALID-HANDLE(phRelation) THEN
-    RETURN ''.
+IF NOT VALID-HANDLE(phRelation) THEN
+RETURN ''.
 
-  ASSIGN
-    cRelFields  = phRelation:RELATION-FIELDS 
-    cParentKeys = phRelation:PARENT-BUFFER:KEYS
-    cChildKeys  = phRelation:CHILD-BUFFER:KEYS.
+ASSIGN cRelFields = phRelation:RELATION-FIELDS.
 
-  DO iField = 1 TO NUM-ENTRIES(cRelFields):
-    ASSIGN
-      cField  = ENTRY(iField,cRelFields).
-      lParent = NOT lParent.
-    IF lParent THEN
-    DO:
-      iKey = LOOKUP(cField,cParentKeys).
-      IF iKey > 0 THEN
-        ENTRY(iKey,cParentKeys) = ''.
-    END.
-    ELSE IF phRelation:REPOSITION = FALSE THEN
-    DO:
-      iKey = LOOKUP(cField,cChildKeys).
-      IF iKey > 0 THEN
-        ENTRY(iKey,cChildKeys) = ''.
-    END.
-  END. /* do ifield to num-entries(cRelfields)*/
-  
-  IF TRIM(cParentKeys,",") = '' THEN
-    cParentRel = 'One':U.
-  ELSE 
-    cParentRel = 'Many':U.
+DO iField = 1 TO NUM-ENTRIES(cRelFields) BY 2:
+   ASSIGN cParentFields = cParentFields + ENTRY(iField,     cRelFields) + ","
+          cChildFields  = cChildFields  + ENTRY(iField + 1, cRelFields) + ",".
+END.
 
-  IF phRelation:REPOSITION THEN 
-    cChildRel = 'One':U.
-  ELSE
-  IF TRIM(cChildKeys,",") = '' THEN
-    cChildRel = 'One':U.
-  ELSE 
-    cChildRel = 'Many':U.
+ASSIGN cParentFields = TRIM(cParentFields, ",")
+       cChildFields  = TRIM(cChildFields,  ",").
 
-  RETURN cParentRel + '-':U + cChildRel. 
+RETURN (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, INPUT cParentFields, INPUT phRelation:PARENT-BUFFER:NAME) THEN "One":U ELSE "Many":U)
+       + "-" +
+       (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, INPUT cChildFields,  INPUT phRelation:CHILD-BUFFER:NAME)  THEN "One":U ELSE "Many":U).
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1345,7 +1656,7 @@ FUNCTION setTableProperty RETURNS LOGICAL PRIVATE
   ASSIGN
     cList   = IF hTable:ADM-DATA = ? THEN '' ELSE hTable:ADM-DATA
     iLookup = lookupProperty(pcProperty,cList).
-  
+
   IF iLookup > 0 THEN 
     ENTRY(iLookup + 1,cList,CHR(1)) = pcValue. 
   
@@ -1355,8 +1666,9 @@ FUNCTION setTableProperty RETURNS LOGICAL PRIVATE
             + (IF cList = "":U THEN "":U ELSE CHR(1))
             + pcProperty
             + CHR(1)
-            + pcValue
-      hTable:ADM-DATA = cList.  
+            + pcValue.
+
+  hTable:ADM-DATA = cList.  
 
   RETURN TRUE.
 
@@ -1375,7 +1687,8 @@ FUNCTION sortTables RETURNS CHARACTER
 /*------------------------------------------------------------------------------
   Purpose: Returns the tables that can be sorted together with the passed table 
     Notes: The parent relation is either part of this table's query or a 
-           reposition parent and is thus not included in the sort.          
+           reposition parent and is thus not included in the sort. 
+        -  DataView QuetyTables defaults to thid.            
  ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDataset        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
@@ -1456,6 +1769,175 @@ Parameter:
   END.  /* valid hbuffer */
 
   RETURN lStored OR lStoredChild.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableContext Procedure 
+FUNCTION tableContext RETURNS CHARACTER
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN getTableProperty(TARGET-PROCEDURE, pcTable,'TableContext':U).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableIndexInformation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableIndexInformation Procedure 
+FUNCTION tableIndexInformation RETURNS CHARACTER
+  (INPUT pcTable AS CHARACTER,
+   INPUT pcQuery AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  Purpose: Return index Information for the ProDataSet table passed
+            as parameter.
+            Each index is separated with chr(1).
+                        
+  Parameters: pcTable - ProDataSet table name.
+
+              pcQuery - What information? 
+                - 'All'             All indexed fields
+                - 'Standard' or ''  All indexed fields excluding word indexes    
+                - 'Word'            Word Indexed 
+                - 'Unique'          Unique indexes 
+                - 'NonUnique'       Non Unique indexes 
+                - 'Primary'         Primary index    
+
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE hBuffer      AS HANDLE      NO-UNDO.
+DEFINE VARIABLE lFound       AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iIdx         AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iField       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cIndexInfo   AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cReturnValue AS CHARACTER  NO-UNDO.
+
+  hBuffer = {fnarg dataTableHandle pcTable}.
+
+  IF NOT VALID-HANDLE(hBuffer) THEN
+  RETURN "":U.
+  
+IndexBlock:
+DO WHILE TRUE:
+    ASSIGN iIdx         = iIdx + 1
+           cIndexInfo   = hBuffer:INDEX-INFORMATION(iIdx).
+
+    IF cIndexInfo = ? THEN 
+        LEAVE IndexBlock.    
+    
+    CASE pcQuery:
+        WHEN 'Standard':U OR WHEN '':U THEN
+          lFound = ENTRY(4,cIndexInfo) = "0":U.
+          
+        WHEN "Info":U OR WHEN "All" THEN
+          lFound = TRUE.
+          
+        WHEN "Word":U THEN
+          lFound = ENTRY(4,cIndexInfo) = "1":U.
+          
+        WHEN "Unique":U THEN
+          lFound = ENTRY(2,cIndexInfo) = "1":U.
+          
+        WHEN "NonUnique":U THEN
+          lFound = ENTRY(2,cIndexInfo) = "0":U AND 
+                   ENTRY(4,cIndexInfo) = "0":U.
+          
+        WHEN "Primary" THEN
+          lFound = ENTRY(3,cIndexInfo) = "1":U.
+          
+        OTHERWISE
+        DO:
+          /* Design time error */
+          MESSAGE "ADM Error:"
+                  "Function getIndexInformation() does not understand"
+                  "parameter '" + pcQuery "'"
+                    
+          VIEW-AS ALERT-BOX ERROR.
+          RETURN ?.
+        END.
+    END CASE. /* pcQuery */
+    IF lFound THEN
+    DO:
+        ASSIGN cReturnValue = cReturnValue + CHR(1).
+
+        DO iField = 5 TO NUM-ENTRIES(cIndexInfo) BY 2:
+           ASSIGN cReturnValue = cReturnValue + ENTRY(iField, cIndexInfo) + ",".
+        END.
+        
+        ASSIGN cReturnValue = TRIM(cReturnValue, ",").
+    END. /*IF lFound*/
+END. /*DO WHILE*/
+
+ASSIGN cReturnValue = TRIM(cReturnValue, CHR(1)).
+
+RETURN cReturnValue.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableNextContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableNextContext Procedure 
+FUNCTION tableNextContext RETURNS CHARACTER
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the next context for the table
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN getTableProperty(TARGET-PROCEDURE, pcTable,'NextContext':U).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tableNumRecords) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tableNumRecords Procedure 
+FUNCTION tableNumRecords RETURNS INTEGER
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the num records of the table
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN INT(getTableProperty(TARGET-PROCEDURE, pcTable,'NumRecords':U)).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-tablePrevContext) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION tablePrevContext Procedure 
+FUNCTION tablePrevContext RETURNS CHARACTER
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the prev context for the table
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN getTableProperty(TARGET-PROCEDURE, pcTable,'PrevContext':U).
 
 END FUNCTION.
 

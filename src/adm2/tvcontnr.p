@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : tvcontnr.p
     Purpose     : Super procedure for tvcontnr class.
@@ -2064,7 +2064,7 @@ PROCEDURE loadSDOSBOData :
       pcParentNodeKey = hTreeBuffer:BUFFER-FIELD("parent_node_key":U):BUFFER-VALUE
       pdChildNodeObj  = DECIMAL(hTreeBuffer:BUFFER-FIELD("node_obj":U):BUFFER-VALUE).
 
-    {set QueryWhere '' hSDOHandle}.
+    {fn resetQueryString hSDOHandle}.
 
     /* apply filter values, if allowed */
     RUN applyFilter IN TARGET-PROCEDURE 
@@ -2628,7 +2628,7 @@ PROCEDURE manageSDOs :
   END.
   ELSE DO:
     phSDOHandle = buRunningSDOs.hSDOHandle.
-    {set QueryWhere '' phSDOHandle}.
+    {fn resetQueryString phSDOHandle}.
   END.
 
   IF NOT VALID-HANDLE(phSDOHandle) THEN
@@ -3459,7 +3459,7 @@ DEFINE VARIABLE hTreeViewOCX    AS HANDLE     NO-UNDO.
           END.  /* foreignFields > "" */
 
           /* reset the query */
-          {set queryWhere '' hNodeSDO}.
+          {fn resetQueryString hNodeSDO}.
 
           /* use the key values to reposition */
           DYNAMIC-FUNCT("assignQuerySelection" IN hNodeSDO, 
@@ -3526,7 +3526,7 @@ DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
         DO:
           /* prepare the node query so that only one record will be returned */
           {set ForeignValues ? hThisNodeSDO}.
-          {set QueryWhere '' hThisNodeSDO}.
+          {fn resetQueryString hThisNodeSDO}.
           DYNAMIC-FUNCT("assignQuerySelection" IN hThisNodeSDO, 
                         string(hTreeNodeBuf:BUFFER-FIELD("key_fields":U):BUFFER-VALUE),
                         STRING(hTreeNodeBuf:BUFFER-FIELD("record_ref":U):BUFFER-VALUE),
@@ -4515,9 +4515,20 @@ PROCEDURE tvNodeSelected :
     DO:
       {get QueryPosition cQueryPosition hNodeSDO}.
       PUBLISH "queryPosition":U FROM hNodeSDO (INPUT cQueryPosition).
-      PUBLISH "dataAvailable":U FROM hNodeSDO (INPUT "RESET":U).
     END.
   END.
+  
+    /* We need to publish DataAvailable/Reset if we are re-using an SDO,
+       or when this is a Text node. If we don't do this for a Text node,
+       then we have problems with data in the associated launch container.
+       See bug 20051223-005 for details.
+       
+       [PJ] I'm a little wary of always publishing DataAvailable, since 
+       it may cause an AppServer hit.       
+     */
+    if (not lNewRun or ttNode.data_source_type eq 'Txt') and
+       valid-handle(hNodeSdo) then
+        publish 'dataAvailable':U from hNodeSDO (input 'Reset':u).
 
   DELETE OBJECT hDataTableBuf NO-ERROR.
   hDataTableBuf = ?.

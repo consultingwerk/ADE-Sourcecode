@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -203,7 +203,7 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    "Copyright (c) 1984-2005 Progress Software Corp." + CHR(10) +
+    "Copyright (c) 1984-2006 Progress Software Corp." + CHR(10) +
     "All rights reserved" + CHR(10).
 
   IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN

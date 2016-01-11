@@ -1,13 +1,6 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Include _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
 Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
@@ -18,6 +11,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
+/*************************************************************/
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydesmngrp.i
 
@@ -269,6 +269,13 @@ FUNCTION getCurrentProductModule RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getDataSourceClasses Include 
+FUNCTION getDataSourceClasses RETURNS CHARACTER
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIndexFields Include 
 FUNCTION getIndexFields RETURNS CHARACTER
     ( INPUT pcTable AS CHARACTER)  FORWARD.
@@ -355,8 +362,8 @@ FUNCTION openRyObjectAB RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD PrepareObjectName Include 
-FUNCTION PrepareObjectName RETURNS CHARACTER
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD prepareObjectName Include 
+FUNCTION prepareObjectName RETURNS CHARACTER
   ( INPUT pcObjectName   AS CHAR,  INPUT pcResultCode AS CHAR ,
     INPUT pcObjectString AS CHAR,  INPUT pcAction     AS CHAR, 
     INPUT pcObjectType   AS CHAR,  INPUT pcEntityName AS CHAR, 
@@ -439,390 +446,6 @@ SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO "repositoryCacheCleared" ANYWHERE RUN-PR
 
 
 /* **********************  Internal Procedures  *********************** */
-&IF DEFINED(EXCLUDE-insertSupportedLink) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertSupportedLink Procedure
-PROCEDURE insertSupportedLink :
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PUBLIC
-  Purpose:     Adds or updates a supported link record for a class
-  Parameters:  pcClassName - mandatory. the name of the class for which the
-  							 link is supported. blanks and the unknown value 
-  							 not allowed.
-  			   pcLinkName - mandatory. the name of the link being added. this
-  			   				link must exist as a smartlink_type. blanks and 
-  			   				the unknown value not allowed.
-  			   plHideOnDeactivate - If set to YES, this link for this type of 
-  			   					    smartobject will be automatically deactivated 
-  			   					    when the object is hidden, and activated again
-  			   					    when the object is viewed. The unknown value keeps
-  			   					    the existing value.
-  			   plIsLinkSource - If set to YES, objects of this smart type are 
-  			   					capable of acting as the source for the specified 
-  			   					link. The unknown value keeps the existing value.
-  			   plIsLinkTarget - If set to YES, objects of this smart type are 
-  			   					capable of acting as the target for the specified 
-  			   					link. The unknown value keeps the existing value.
-			  pdSupportedLinkObj - the object id of the updated record.  			   					
-  Notes:       
-------------------------------------------------------------------------------*/
-    DEFINE input parameter pcClassName                as character        no-undo.
-    DEFINE input parameter pcLinkName                 as character        no-undo.
-    DEFINE input parameter plDeactivateOnHide         as logical          no-undo.
-    DEFINE input parameter plIsLinkSource             as logical          no-undo.
-    DEFINE input parameter plIsLinkTarget             as logical          no-undo.
-    DEFINE output parameter pdSupportedLinkObj        as decimal          no-undo.
-    
-    &IF DEFINED(Server-Side) EQ 0 &THEN    
-    { dynlaunch.i 
-        &PLIP  = 'RepositoryDesignManager'
-        &iProc = 'insertSupportedLink'
-		&mode1 = input  &parm1 = pcClassName        &dataType1 = character
-		&mode2 = input  &parm2 = pcLinkName         &dataType2 = character
-		&mode3 = input  &parm3 = plDeactivateOnHide &dataType3 = logical
-		&mode4 = input  &parm4 = plIsLinkSource     &dataType4 = logical
-		&mode5 = input  &parm5 = plIsLinkTarget     &dataType5 = logical
-		&mode6 = output  &parm6 = pdSupportedLinkObj &dataType6 = decimal
-    }
-    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
-    &ELSE
-    DEFINE buffer gscot        for gsc_object_type.
-    DEFINE buffer rycst        for ryc_smartlink_type.
-    DEFINE buffer rycsl        for ryc_supported_link.
-    
-    /* Class is mandatory */
-    if pcClassName eq '' or pcClassName eq ? then
-        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
-        
-    find gscot where
-         gscot.object_type_code = pcClassName
-         no-lock no-error.
-         
-    if not available gscot then
-        return error {aferrortxt.i 'AF' '5' '?' '?' '"class"' "'Class name: ' + pcClassName"}.    
-    
-    /* Link type is mandatory */    
-    if pcLinkName eq '' or pcLinkName eq ? then
-        return error {aferrortxt.i 'AF' '1' '?' '?' '"link name"'}.
-        
-    find rycst where
-         rycst.link_name = pcLinkName
-         no-lock no-error.
-         
-    if not available rycst then
-        return error {aferrortxt.i 'AF' '5' '?' '?' '"link"' "'Link name: ' + pcLinkName"}.    
-    
-    /* Now check whether to create or update */
-    find rycsl where
-         rycsl.object_type_obj    = gscot.object_type_obj and
-         rycsl.smartlink_type_obj = rycst.smartlink_type_obj
-         exclusive-lock no-wait no-error.
-
-    if locked rycsl then    
-        return error {aferrortxt.i 'AF' '104' '?' '?' '"supported link"'}.
-        
-    if not available rycsl then
-    do:
-        create rycsl no-error.
-        if error-status:error or return-value ne '' then return error return-value.
-        
-        assign rycsl.object_type_obj = gscot.object_type_obj
-               rycsl.smartlink_type_obj = rycst.smartlink_type_obj
-               no-error.
-        if error-status:error or return-value ne '' then return error return-value.
-    end.    /* create class */
-
-    /* always return the object id */
-    assign pdSupportedLinkObj = rycsl.supported_link_obj.
-    
-    if plDeactivateOnHide ne ? then rycsl.deactivated_link_on_hide = plDeactivateOnHide no-error.
-    if plIsLinkSource ne ? then rycsl.link_source = plIsLinkSource no-error.
-    if plIsLinkTarget ne ? then rycsl.link_target = plIsLinkTarget no-error.
-    
-    validate rycsl no-error.
-    if error-status:error or return-value ne '' then return error return-value.    
-    &ENDIF
-        
-    error-status:error = no.
-    return.
-END PROCEDURE.    /* insertSupportedLink */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-removeSupportedLink) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeSupportedLink Procedure
-PROCEDURE removeSupportedLink :
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PUBLIC
-  Purpose:     Removes a supported link record for a class
-  Parameters:  pcClassName - mandatory. the name of the class for which the
-  							 link is supported. blanks and the unknown value 
-  							 not allowed.
-  			   pcLinkName - mandatory. the name of the link being added. this
-  			   				link must exist as a smartlink_type. blanks and 
-  			   				the unknown value not allowed.
-  Notes:       
-------------------------------------------------------------------------------*/
-    DEFINE input parameter pcClassName                as character        no-undo.
-    DEFINE input parameter pcLinkName                 as character        no-undo.
-    
-    &IF DEFINED(Server-Side) EQ 0 &THEN    
-    { dynlaunch.i 
-        &PLIP  = 'RepositoryDesignManager'
-        &iProc = 'removeSupportedLink'
-		&mode1 = input  &parm1 = pcClassName        &dataType1 = character
-		&mode2 = input  &parm2 = pcLinkName         &dataType2 = character
-    }
-    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
-    &ELSE
-    DEFINE buffer gscot        for gsc_object_type.
-    DEFINE buffer rycst        for ryc_smartlink_type.
-    DEFINE buffer rycsl        for ryc_supported_link.
-    
-    /* Class is mandatory */
-    if pcClassName eq '' or pcClassName eq ? then
-        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
-        
-    find gscot where
-         gscot.object_type_code = pcClassName
-         no-lock no-error.
-         
-    if not available gscot then
-        return error {aferrortxt.i 'AF' '5' '?' '?' '"class"' "'Class name: ' + pcClassName"}.    
-    
-    /* Link type is mandatory */    
-    if pcLinkName eq '' or pcLinkName eq ? then
-        return error {aferrortxt.i 'AF' '1' '?' '?' '"link name"'}.
-        
-    find rycst where
-         rycst.link_name = pcLinkName
-         no-lock no-error.
-         
-    if not available rycst then
-        return error {aferrortxt.i 'AF' '5' '?' '?' '"link"' "'Link name: ' + pcLinkName"}.    
-    
-    /* Now check whether to create or update */
-    find rycsl where
-         rycsl.object_type_obj    = gscot.object_type_obj and
-         rycsl.smartlink_type_obj = rycst.smartlink_type_obj
-         exclusive-lock no-wait no-error.
-
-    if locked rycsl then    
-        return error {aferrortxt.i 'AF' '104' '?' '?' '"supported link"'}.
-        
-    if not available rycsl then
-        return error {aferrortxt.i 'AF' '5' '?' '?' '"supported link"'}.
-    
-    delete rycsl no-error.
-    if error-status:error or return-value ne '' then return error return-value.    
-    &ENDIF
-        
-    error-status:error = no.
-    return.
-END PROCEDURE.    /* removeSupportedLink */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-insertClass) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertClass Procedure
-PROCEDURE insertClass :
-/*------------------------------------------------------------------------------
-ACCESS_LEVEL=PUBLIC
-  Purpose:     Adds and modifies a class to/in the repository.
-  Parameters:  unless specified:
-  					non-mandatory.
-  				 	? keeps existing value.
-  				 	blanks allowed.
-  	pcClassName: unique name of class. mandatory.
-  	pcClassDescription: description of class. blanks not allowed.
-  	pcExtendsClassName: name of class that this class extends. 
-  	pcCustomClassName: name of class that customises this class. The custom
-  					   class cannot inherit from the same class that pcClassName
-  					   does.
-  	plClassDisabled: whether class is disabled
-  	plLayoutSupported: whether layouts supported for this class
-  	pcDeploymentType: where objects deployed by default.
-  	                  one or more of 'Cli,Srv,Web' or blank.
-  	plStaticObject:
-  	plCacheOnClient: whether P-code can be generated and deployed onto client.
-  	pcClassObjectName: class object name. not used. matches a smartobject record
-  					   of procedure type.  	
-	pdClassObj: _obj of the class being maintained  					   
-  Notes: * attributes are set using the storeAttributeValues() API.
-  		 * events, supported links have their own api too.       
-------------------------------------------------------------------------------*/
-    DEFINE input parameter pcClassName            as character         no-undo.
-    DEFINE input parameter pcClassDescription     as character         no-undo.
-    DEFINE input parameter pcExtendsClassName     as character         no-undo.
-    DEFINE input parameter pcCustomClassName      as character         no-undo.    
-    DEFINE input parameter plClassDisabled        as logical           no-undo.
-    DEFINE input parameter plLayoutSupported      as logical           no-undo.
-    DEFINE input parameter pcDeploymentType       as character         no-undo.
-    DEFINE input parameter plStaticObject         as logical           no-undo.
-    DEFINE input parameter plCacheOnClient        as logical           no-undo.    
-    DEFINE input parameter pcClassObjectName      as character         no-undo.    
-    DEFINE output parameter pdClassObj            as decimal           no-undo.
-    
-    &IF DEFINED(Server-Side) EQ 0 &THEN    
-    { dynlaunch.i 
-        &PLIP  = 'RepositoryDesignManager'
-        &iProc = 'insertClass'
-		&mode1  = input  &parm1  = pcClassName        &dataType1  = character
-		&mode2  = input  &parm2  = pcClassDescription &dataType2  = character
-		&mode3  = input  &parm3  = pcExtendsClassName &dataType3  = character
-		&mode4  = input  &parm4  = pcCustomClassName  &dataType4  = character
-		&mode5  = input  &parm5  = plClassDisabled    &dataType5  = logical
-		&mode6  = input  &parm6  = plLayoutSupported  &dataType6  = logical
-		&mode7  = input  &parm7  = pcDeploymentType   &dataType7  = character
-		&mode8  = input  &parm8  = plStaticObject     &dataType8  = logical
-		&mode9  = input  &parm9  = plCacheOnClient    &dataType9  = logical
-		&mode10 = input  &parm10 = pcClassObjectName  &dataType10 = character
-		&mode11 = output &parm11 = pdClassObj         &dataType11 = decimal
-    }
-    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
-    &ELSE
-    DEFINE variable iLoop                as integer                        no-undo.
-    DEFINE variable dClassObj            as decimal                        no-undo.
-    DEFINE variable cBaseParents         as character                      no-undo.
-    
-    DEFINE buffer gscot        for gsc_object_type.
-    DEFINE buffer gscot_extend for gsc_object_type.
-    
-    /* Class name is mandatory */
-    if pcClassName eq '' or pcClassName eq ? then
-        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
-        
-    find gscot where
-         gscot.object_type_code = pcClassName
-         exclusive-lock no-wait no-error.
-         
-    if locked gscot then    
-        return error {aferrortxt.i 'AF' '104' '?' '?' "'class ' + pcClassName"}.
-        
-    if not available gscot then
-    do:
-        create gscot no-error.
-        if error-status:error or return-value ne '' then return error return-value.
-        
-        assign gscot.object_type_code = pcClassName no-error.        
-        if error-status:error or return-value ne '' then return error return-value.
-    end.    /* create class */
-    
-    assign pdClassObj = gscot.object_type_obj.
-    
-    /* update existing class */
-    case pcClassDescription:
-        when '' then return error {aferrortxt.i 'AF' '1' 'gscot' 'object_type_description' '"class description"'}.
-        when ? then
-        do:
-            /* new classes must have a description. */
-            if new gscot then
-                return error {aferrortxt.i 'AF' '1' 'gscot' 'object_type_description' '"class description"'}.
-        end.    /* value is ? */
-        otherwise gscot.object_type_description = pcClassDescription.
-    end case.    /* description */    
-    
-    /* get the parent class name */
-    if pcExtendsClassName ne ? then
-    do:
-        if pcExtendsClassName eq '' then
-            dClassObj = 0.
-        else
-        do:
-            find gscot_extend where
-                 gscot_extend.object_type_code = pcExtendsClassName
-                 no-lock no-error.
-            if not available gscot_extend then
-                return error {aferrortxt.i 'AF' '5' 'gscot_extend' 'object_type_code' '"class"' "'Class name: ' + pcExtendsClassName"}.
-            
-            dClassObj = gscot_extend.object_type_obj.
-        end.    /* non-blank */
-                
-        gscot.extends_object_type_obj = dClassObj.
-    end.    /* extends class name changed */    
-        
-    /* get the custom class name */
-    if pcCustomClassName ne ? then
-    do:
-        if pcCustomClassName eq '' then
-            dClassObj = 0.
-        else
-        do:
-            find gscot_extend where
-                 gscot_extend.object_type_code = pcCustomClassName
-                 no-lock no-error.
-            if not available gscot_extend then
-                return error {aferrortxt.i 'AF' '5' 'gscot_extend' 'object_type_code' '"class"' "'Class name: ' + pcCustomClassName"}.
-            
-            dClassObj = gscot_extend.object_type_obj.
-        end.    /* non-blank */
-        
-        /* now that it exists, does it live in the same tree as
-           the class that it customises?
-           
-           if this is a new class then check against the class' parent
-           class.           
-         */
-        if new gscot then
-            cBaseParents = {fnarg getClassParents pcExtendsClassName gshRepositoryManager} no-error.
-        else
-            cBaseParents = {fnarg getClassParents pcClassName gshRepositoryManager} no-error.
-        
-        if cBaseParents ne '' and
-           dynamic-function("classIsA":U in gshRepositoryManager,
-                            pcCustomClassName, entry(num-entries(cBaseParents), cBaseParents)) then                            
-            return error {aferrortxt.i 'AF' '40' 'gsc_object_type' 'custom_object_type_obj'
-                                       "'The selected class cannot inherit from the ' + entry(num-entries(cBaseParents), cBaseParents) + ' class when used for customising this class.'"}.
-        
-        gscot.custom_object_type_obj = dClassObj.
-    end.    /* custom class name changed */    
-    
-    /* logicals, no validation */        
-    if plClassDisabled ne ? then gscot.disabled = plClassDisabled.
-    if plLayoutSupported ne ? then gscot.layout_supported = plLayoutSupported.
-    if plStaticObject ne ? then gscot.static_object = plStaticObject.
-    if plCacheOnClient ne ? then gscot.cache_on_client = plCacheOnClient.
-    
-    /* deployment type */
-    if pcDeploymentType ne ? then
-    do:
-        do iLoop = 1 to num-entries(pcDeploymentType):
-            if not can-do('Cli,Srv,Web,', entry(iLoop, pcDeploymentType)) then
-                return error {aferrortxt.i 'AF' '5' 'gscot' 'deployment_type' '"deployment type options"' '"Only Srv, Cli, Web or (blank) are valid values."'}.
-        end.    /* loop through deployment type */
-                                    
-        gscot.deployment_type = pcDeploymentType.
-    end.    /* deployment type */
-    
-    /* class object name */
-    if pcClassObjectName ne ? then
-    do:
-        if pcClassObjectName eq '' then
-            gscot.class_smartobject_obj = 0.
-        /* NOT USED */        
-    end.    /* class object name */
-    
-    /* after all updates applied, validate */
-    validate gscot no-error.
-    if error-status:error or return-value ne '' then return error return-value.
-    &ENDIF
-    
-    error-status:error = no.            
-    return.
-END PROCEDURE.    /* insertClass */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addMasterAttrs Include 
 PROCEDURE addMasterAttrs :
@@ -3064,6 +2687,196 @@ END PROCEDURE.  /* insertAttributeValues */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertClass Include 
+PROCEDURE insertClass :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Adds and modifies a class to/in the repository.
+  Parameters:  unless specified:
+                                        non-mandatory.
+                                        ? keeps existing value.
+                                        blanks allowed.
+        pcClassName: unique name of class. mandatory.
+        pcClassDescription: description of class. blanks not allowed.
+        pcExtendsClassName: name of class that this class extends. 
+        pcCustomClassName: name of class that customises this class. The custom
+                                           class cannot inherit from the same class that pcClassName
+                                           does.
+        plClassDisabled: whether class is disabled
+        plLayoutSupported: whether layouts supported for this class
+        pcDeploymentType: where objects deployed by default.
+                          one or more of 'Cli,Srv,Web' or blank.
+        plStaticObject:
+        plCacheOnClient: whether P-code can be generated and deployed onto client.
+        pcClassObjectName: class object name. not used. matches a smartobject record
+                                           of procedure type.   
+        pdClassObj: _obj of the class being maintained                                             
+  Notes: * attributes are set using the storeAttributeValues() API.
+                 * events, supported links have their own api too.       
+------------------------------------------------------------------------------*/
+    DEFINE input parameter pcClassName            as character         no-undo.
+    DEFINE input parameter pcClassDescription     as character         no-undo.
+    DEFINE input parameter pcExtendsClassName     as character         no-undo.
+    DEFINE input parameter pcCustomClassName      as character         no-undo.    
+    DEFINE input parameter plClassDisabled        as logical           no-undo.
+    DEFINE input parameter plLayoutSupported      as logical           no-undo.
+    DEFINE input parameter pcDeploymentType       as character         no-undo.
+    DEFINE input parameter plStaticObject         as logical           no-undo.
+    DEFINE input parameter plCacheOnClient        as logical           no-undo.    
+    DEFINE input parameter pcClassObjectName      as character         no-undo.    
+    DEFINE output parameter pdClassObj            as decimal           no-undo.
+    
+    &IF DEFINED(Server-Side) EQ 0 &THEN    
+    { dynlaunch.i 
+        &PLIP  = 'RepositoryDesignManager'
+        &iProc = 'insertClass'
+                &mode1  = input  &parm1  = pcClassName        &dataType1  = character
+                &mode2  = input  &parm2  = pcClassDescription &dataType2  = character
+                &mode3  = input  &parm3  = pcExtendsClassName &dataType3  = character
+                &mode4  = input  &parm4  = pcCustomClassName  &dataType4  = character
+                &mode5  = input  &parm5  = plClassDisabled    &dataType5  = logical
+                &mode6  = input  &parm6  = plLayoutSupported  &dataType6  = logical
+                &mode7  = input  &parm7  = pcDeploymentType   &dataType7  = character
+                &mode8  = input  &parm8  = plStaticObject     &dataType8  = logical
+                &mode9  = input  &parm9  = plCacheOnClient    &dataType9  = logical
+                &mode10 = input  &parm10 = pcClassObjectName  &dataType10 = character
+                &mode11 = output &parm11 = pdClassObj         &dataType11 = decimal
+    }
+    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
+    &ELSE
+    DEFINE variable iLoop                as integer                        no-undo.
+    DEFINE variable dClassObj            as decimal                        no-undo.
+    DEFINE variable cBaseParents         as character                      no-undo.
+    
+    DEFINE buffer gscot        for gsc_object_type.
+    DEFINE buffer gscot_extend for gsc_object_type.
+    
+    /* Class name is mandatory */
+    if pcClassName eq '' or pcClassName eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
+        
+    find gscot where
+         gscot.object_type_code = pcClassName
+         exclusive-lock no-wait no-error.
+         
+    if locked gscot then    
+        return error {aferrortxt.i 'AF' '104' '?' '?' "'class ' + pcClassName"}.
+        
+    if not available gscot then
+    do:
+        create gscot no-error.
+        if error-status:error or return-value ne '' then return error return-value.
+        
+        assign gscot.object_type_code = pcClassName no-error.        
+        if error-status:error or return-value ne '' then return error return-value.
+    end.    /* create class */
+    
+    assign pdClassObj = gscot.object_type_obj.
+    
+    /* update existing class */
+    case pcClassDescription:
+        when '' then return error {aferrortxt.i 'AF' '1' 'gscot' 'object_type_description' '"class description"'}.
+        when ? then
+        do:
+            /* new classes must have a description. */
+            if new gscot then
+                return error {aferrortxt.i 'AF' '1' 'gscot' 'object_type_description' '"class description"'}.
+        end.    /* value is ? */
+        otherwise gscot.object_type_description = pcClassDescription.
+    end case.    /* description */    
+    
+    /* get the parent class name */
+    if pcExtendsClassName ne ? then
+    do:
+        if pcExtendsClassName eq '' then
+            dClassObj = 0.
+        else
+        do:
+            find gscot_extend where
+                 gscot_extend.object_type_code = pcExtendsClassName
+                 no-lock no-error.
+            if not available gscot_extend then
+                return error {aferrortxt.i 'AF' '5' 'gscot_extend' 'object_type_code' '"class"' "'Class name: ' + pcExtendsClassName"}.
+            
+            dClassObj = gscot_extend.object_type_obj.
+        end.    /* non-blank */
+                
+        gscot.extends_object_type_obj = dClassObj.
+    end.    /* extends class name changed */    
+        
+    /* get the custom class name */
+    if pcCustomClassName ne ? then
+    do:
+        if pcCustomClassName eq '' then
+            dClassObj = 0.
+        else
+        do:
+            find gscot_extend where
+                 gscot_extend.object_type_code = pcCustomClassName
+                 no-lock no-error.
+            if not available gscot_extend then
+                return error {aferrortxt.i 'AF' '5' 'gscot_extend' 'object_type_code' '"class"' "'Class name: ' + pcCustomClassName"}.
+            
+            dClassObj = gscot_extend.object_type_obj.
+        end.    /* non-blank */
+        
+        /* now that it exists, does it live in the same tree as
+           the class that it customises?
+           
+           if this is a new class then check against the class' parent
+           class.           
+         */
+        if new gscot then
+            cBaseParents = {fnarg getClassParents pcExtendsClassName gshRepositoryManager} no-error.
+        else
+            cBaseParents = {fnarg getClassParents pcClassName gshRepositoryManager} no-error.
+        
+        if cBaseParents ne '' and
+           dynamic-function("classIsA":U in gshRepositoryManager,
+                            pcCustomClassName, entry(num-entries(cBaseParents), cBaseParents)) then                            
+            return error {aferrortxt.i 'AF' '40' 'gsc_object_type' 'custom_object_type_obj'
+                                       "'The selected class cannot inherit from the ' + entry(num-entries(cBaseParents), cBaseParents) + ' class when used for customising this class.'"}.
+        
+        gscot.custom_object_type_obj = dClassObj.
+    end.    /* custom class name changed */    
+    
+    /* logicals, no validation */        
+    if plClassDisabled ne ? then gscot.disabled = plClassDisabled.
+    if plLayoutSupported ne ? then gscot.layout_supported = plLayoutSupported.
+    if plStaticObject ne ? then gscot.static_object = plStaticObject.
+    if plCacheOnClient ne ? then gscot.cache_on_client = plCacheOnClient.
+    
+    /* deployment type */
+    if pcDeploymentType ne ? then
+    do:
+        do iLoop = 1 to num-entries(pcDeploymentType):
+            if not can-do('Cli,Srv,Web,', entry(iLoop, pcDeploymentType)) then
+                return error {aferrortxt.i 'AF' '5' 'gscot' 'deployment_type' '"deployment type options"' '"Only Srv, Cli, Web or (blank) are valid values."'}.
+        end.    /* loop through deployment type */
+                                    
+        gscot.deployment_type = pcDeploymentType.
+    end.    /* deployment type */
+    
+    /* class object name */
+    if pcClassObjectName ne ? then
+    do:
+        if pcClassObjectName eq '' then
+            gscot.class_smartobject_obj = 0.
+        /* NOT USED */        
+    end.    /* class object name */
+    
+    /* after all updates applied, validate */
+    validate gscot no-error.
+    if error-status:error or return-value ne '' then return error return-value.
+    &ENDIF
+    
+    error-status:error = no.            
+    return.
+END PROCEDURE.    /* insertClass */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertObjectInstance Include 
 PROCEDURE insertObjectInstance :
 /*------------------------------------------------------------------------------
@@ -4020,6 +3833,115 @@ ACCESS_LEVEL=PUBLIC
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.  /* insertObjectPage */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE insertSupportedLink Include 
+PROCEDURE insertSupportedLink :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Adds or updates a supported link record for a class
+  Parameters:  pcClassName - mandatory. the name of the class for which the
+                                                         link is supported. blanks and the unknown value 
+                                                         not allowed.
+                           pcLinkName - mandatory. the name of the link being added. this
+                                                        link must exist as a smartlink_type. blanks and 
+                                                        the unknown value not allowed.
+                           plHideOnDeactivate - If set to YES, this link for this type of 
+                                                                    smartobject will be automatically deactivated 
+                                                                    when the object is hidden, and activated again
+                                                                    when the object is viewed. The unknown value keeps
+                                                                    the existing value.
+                           plIsLinkSource - If set to YES, objects of this smart type are 
+                                                                capable of acting as the source for the specified 
+                                                                link. The unknown value keeps the existing value.
+                           plIsLinkTarget - If set to YES, objects of this smart type are 
+                                                                capable of acting as the target for the specified 
+                                                                link. The unknown value keeps the existing value.
+                          pdSupportedLinkObj - the object id of the updated record.                                                             
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE input parameter pcClassName                as character        no-undo.
+    DEFINE input parameter pcLinkName                 as character        no-undo.
+    DEFINE input parameter plDeactivateOnHide         as logical          no-undo.
+    DEFINE input parameter plIsLinkSource             as logical          no-undo.
+    DEFINE input parameter plIsLinkTarget             as logical          no-undo.
+    DEFINE output parameter pdSupportedLinkObj        as decimal          no-undo.
+    
+    &IF DEFINED(Server-Side) EQ 0 &THEN    
+    { dynlaunch.i 
+        &PLIP  = 'RepositoryDesignManager'
+        &iProc = 'insertSupportedLink'
+                &mode1 = input  &parm1 = pcClassName        &dataType1 = character
+                &mode2 = input  &parm2 = pcLinkName         &dataType2 = character
+                &mode3 = input  &parm3 = plDeactivateOnHide &dataType3 = logical
+                &mode4 = input  &parm4 = plIsLinkSource     &dataType4 = logical
+                &mode5 = input  &parm5 = plIsLinkTarget     &dataType5 = logical
+                &mode6 = output  &parm6 = pdSupportedLinkObj &dataType6 = decimal
+    }
+    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
+    &ELSE
+    DEFINE buffer gscot        for gsc_object_type.
+    DEFINE buffer rycst        for ryc_smartlink_type.
+    DEFINE buffer rycsl        for ryc_supported_link.
+    
+    /* Class is mandatory */
+    if pcClassName eq '' or pcClassName eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
+        
+    find gscot where
+         gscot.object_type_code = pcClassName
+         no-lock no-error.
+         
+    if not available gscot then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"class"' "'Class name: ' + pcClassName"}.    
+    
+    /* Link type is mandatory */    
+    if pcLinkName eq '' or pcLinkName eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"link name"'}.
+        
+    find rycst where
+         rycst.link_name = pcLinkName
+         no-lock no-error.
+         
+    if not available rycst then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"link"' "'Link name: ' + pcLinkName"}.    
+    
+    /* Now check whether to create or update */
+    find rycsl where
+         rycsl.object_type_obj    = gscot.object_type_obj and
+         rycsl.smartlink_type_obj = rycst.smartlink_type_obj
+         exclusive-lock no-wait no-error.
+
+    if locked rycsl then    
+        return error {aferrortxt.i 'AF' '104' '?' '?' '"supported link"'}.
+        
+    if not available rycsl then
+    do:
+        create rycsl no-error.
+        if error-status:error or return-value ne '' then return error return-value.
+        
+        assign rycsl.object_type_obj = gscot.object_type_obj
+               rycsl.smartlink_type_obj = rycst.smartlink_type_obj
+               no-error.
+        if error-status:error or return-value ne '' then return error return-value.
+    end.    /* create class */
+
+    /* always return the object id */
+    assign pdSupportedLinkObj = rycsl.supported_link_obj.
+    
+    if plDeactivateOnHide ne ? then rycsl.deactivated_link_on_hide = plDeactivateOnHide no-error.
+    if plIsLinkSource ne ? then rycsl.link_source = plIsLinkSource no-error.
+    if plIsLinkTarget ne ? then rycsl.link_target = plIsLinkTarget no-error.
+    
+    validate rycsl no-error.
+    if error-status:error or return-value ne '' then return error return-value.    
+    &ENDIF
+        
+    error-status:error = no.
+    return.
+END PROCEDURE.    /* insertSupportedLink */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -5386,6 +5308,80 @@ PROCEDURE removePageInstance :
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.  /* removePageInstance */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE removeSupportedLink Include 
+PROCEDURE removeSupportedLink :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose:     Removes a supported link record for a class
+  Parameters:  pcClassName - mandatory. the name of the class for which the
+                                                         link is supported. blanks and the unknown value 
+                                                         not allowed.
+                           pcLinkName - mandatory. the name of the link being added. this
+                                                        link must exist as a smartlink_type. blanks and 
+                                                        the unknown value not allowed.
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE input parameter pcClassName                as character        no-undo.
+    DEFINE input parameter pcLinkName                 as character        no-undo.
+    
+    &IF DEFINED(Server-Side) EQ 0 &THEN    
+    { dynlaunch.i 
+        &PLIP  = 'RepositoryDesignManager'
+        &iProc = 'removeSupportedLink'
+                &mode1 = input  &parm1 = pcClassName        &dataType1 = character
+                &mode2 = input  &parm2 = pcLinkName         &dataType2 = character
+    }
+    IF RETURN-VALUE <> "":U or error-status:error THEN RETURN ERROR RETURN-VALUE.   
+    &ELSE
+    DEFINE buffer gscot        for gsc_object_type.
+    DEFINE buffer rycst        for ryc_smartlink_type.
+    DEFINE buffer rycsl        for ryc_supported_link.
+    
+    /* Class is mandatory */
+    if pcClassName eq '' or pcClassName eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"class name"'}.
+        
+    find gscot where
+         gscot.object_type_code = pcClassName
+         no-lock no-error.
+         
+    if not available gscot then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"class"' "'Class name: ' + pcClassName"}.    
+    
+    /* Link type is mandatory */    
+    if pcLinkName eq '' or pcLinkName eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"link name"'}.
+        
+    find rycst where
+         rycst.link_name = pcLinkName
+         no-lock no-error.
+         
+    if not available rycst then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"link"' "'Link name: ' + pcLinkName"}.    
+    
+    /* Now check whether to create or update */
+    find rycsl where
+         rycsl.object_type_obj    = gscot.object_type_obj and
+         rycsl.smartlink_type_obj = rycst.smartlink_type_obj
+         exclusive-lock no-wait no-error.
+
+    if locked rycsl then    
+        return error {aferrortxt.i 'AF' '104' '?' '?' '"supported link"'}.
+        
+    if not available rycsl then
+        return error {aferrortxt.i 'AF' '5' '?' '?' '"supported link"'}.
+    
+    delete rycsl no-error.
+    if error-status:error or return-value ne '' then return error return-value.    
+    &ENDIF
+        
+    error-status:error = no.
+    return.
+END PROCEDURE.    /* removeSupportedLink */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -6966,6 +6962,88 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getDataSourceClasses Include 
+FUNCTION getDataSourceClasses RETURNS CHARACTER
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+ACCESS_LEVEL=PUBLIC
+  Purpose: Returns a comma delimited list of the class names that could be used
+           as Data-Source in a data link.
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cValidObjectTypes AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE cClassesToRetrieve AS CHARACTER   NO-UNDO INITIAL "SBO,DataView":U.
+DEFINE VARIABLE cQueryClasses      AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cDataClasses       AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cQueryClass        AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE iCounter           AS INTEGER     NO-UNDO.
+DEFINE VARIABLE iQueryCounter      AS INTEGER     NO-UNDO.
+DEFINE VARIABLE iNotValid          AS INTEGER     NO-UNDO.
+
+&IF DEFINED(server-side) = 0 &THEN
+    {
+     dynlaunch.i &PLIP      = 'RepositoryManager'
+     &IProc                 = 'getDataSourceClasses'
+     &mode1 = OUTPUT &parm1 = cValidObjectTypes &datatype1 = CHARACTER
+    }
+    IF RETURN-VALUE <> "":U THEN RETURN ERROR RETURN-VALUE.
+&ELSE
+
+    DO iCounter = 1 TO NUM-ENTRIES(cClassesToRetrieve).
+        cValidObjectTypes = cValidObjectTypes + {fnarg getClassChildrenFromDB "ENTRY(iCounter, cClassesToRetrieve)" gshRepositoryManager} + ",".
+    END.
+
+    ASSIGN cValidObjectTypes = TRIM(cValidObjectTypes, ",").
+
+    /* Get rid of the ADM classes themselves. */
+    DO iCounter = 1 TO NUM-ENTRIES(cValidObjectTypes):
+        CASE ENTRY(iCounter, cValidObjectTypes):
+        WHEN "Query" THEN
+        DO:
+            /* query is below dataview and above data, 
+               remove all extended objects that not are part of the data class */
+            cQueryClasses = {fnarg getClassChildrenFromDB 'Query' gshRepositoryManager}.
+            cDataClasses  = {fnarg getClassChildrenFromDB 'Data' gshRepositoryManager}.
+              
+            DO iQueryCounter = 1 TO NUM-ENTRIES(cQueryClasses):
+               cQueryClass = ENTRY(iQueryCounter , cQueryClasses).
+               IF LOOKUP(cQueryClass,cDataClasses) = 0 THEN
+               DO:
+                 iNotValid = LOOKUP(cQueryClass,cValidObjectTypes).
+                 IF iNotValid > 0 THEN
+                   ENTRY(iNotValid, cValidObjectTypes) = "":U.
+               END.
+            END.
+        END.
+        WHEN "DataView":U OR
+        WHEN "Data":U     OR
+        WHEN "Toolbar":U  OR
+        WHEN "Panel":U    OR
+        WHEN "Viewer"     OR
+        WHEN "Browser":U THEN 
+            ENTRY(iCounter, cValidObjectTypes) = "":U.
+        END CASE.   /* obejct type */
+
+    END. /*DO iCounter = 1 TO NUM-ENTRIES(cValidObjectTypes). Loop through valid object types */
+
+    /* Clear off double commas left because of the replace */
+    DO WHILE INDEX(cValidObjectTypes, ",,":U) <> 0:
+        cValidObjectTypes = REPLACE(cValidObjectTypes, ",,":U, ",":U).
+    END.
+
+    /* Clear off any extra commas */
+    ASSIGN cValidObjectTypes = TRIM(cValidObjectTypes, ",":U).
+
+&ENDIF
+
+RETURN cValidObjectTypes.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIndexFields Include 
 FUNCTION getIndexFields RETURNS CHARACTER
     ( INPUT pcTable AS CHARACTER) :
@@ -7669,7 +7747,7 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION PrepareObjectName Include 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION prepareObjectName Include 
 FUNCTION prepareObjectName RETURNS CHARACTER
   ( INPUT pcObjectName   AS CHAR,  INPUT pcResultCode AS CHAR ,
     INPUT pcObjectString AS CHAR,  INPUT pcAction     AS CHAR, 

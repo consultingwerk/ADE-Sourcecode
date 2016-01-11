@@ -28,9 +28,9 @@ af/cod/aftemwizpw.w
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2005-2006 by Progress Software Corporation.          *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 /*---------------------------------------------------------------------------------
@@ -733,6 +733,7 @@ PROCEDURE adjustWidgets :
   DEFINE VARIABLE dSDFRow                   AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE hSDFFrame                 AS HANDLE     NO-UNDO.
   define variable dColonPos                 as decimal    no-undo.
+  define variable cLabelText                as character  no-undo.
 
     /* Separate the {get}s because each of them needs to be
        called no-error.
@@ -816,12 +817,14 @@ PROCEDURE adjustWidgets :
        ( LOOKUP(STRING(hSideLabel), cAllFieldHandles) EQ 0 OR
          hSideLabel:TYPE                              EQ "LITERAL":U ) 
     THEN DO:
-        ASSIGN hSideLabel:SCREEN-VALUE = IF INDEX(hSideLabel:SCREEN-VALUE, ":":U) = 0
-                                         THEN (hSideLabel:SCREEN-VALUE + ": ":U)
-                                         ELSE hSideLabel:SCREEN-VALUE
-                                         NO-ERROR.
+        /* Don't add a colon to the label text itself, since the 
+            4GL automatically adds one.
+         */
+        cLabelText = IF INDEX(hSideLabel:SCREEN-VALUE, ":":U) = 0
+                     THEN (hSideLabel:SCREEN-VALUE + ":":U)
+                     ELSE hSideLabel:SCREEN-VALUE.
         /* X and WIDTH-PIXELS are the same units. WIDTH-CHARS and COLUMN are not. Use the former. */
-        hSideLabel:width-pixels = font-table:get-text-width-pixels(hSideLabel:Screen-value, hSideLabel:Font) + 3 no-error.        
+        hSideLabel:width-pixels = font-table:get-text-width-pixels(cLabelText, hSideLabel:Font) + 3 no-error.
         hSideLabel:x = hWidget:x - hSideLabel:width-pixels no-error.
     END.
     
@@ -2574,7 +2577,7 @@ PROCEDURE establishSession :
             cError = {af/sup2/aferrortxt.i 'ICF' '6' '?' '?' "cSessType"}.
           RETURN ERROR cError.
         END.
-        
+
         CREATE bgst_session.
         ASSIGN
           bgst_session.session_creation_date = TODAY

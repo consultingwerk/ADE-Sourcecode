@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : combo.p
     Purpose     : Super procedure for combo class.
@@ -330,6 +330,17 @@ FUNCTION getSecured RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSort Procedure 
 FUNCTION getSort RETURNS LOGICAL
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD parentJoinTables Procedure 
+FUNCTION parentJoinTables RETURNS CHARACTER 
+  ( pcParentFilterQuery AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1325,14 +1336,16 @@ PROCEDURE initializeCombo :
   ASSIGN hFrame:HEIGHT = hCombo:HEIGHT NO-ERROR.
   /* create a label if not blank */  
   IF cLabel NE "":U THEN
-      {fnarg createLabel cLabel}.     
+      {fnarg createLabel cLabel}.
+
+  IF DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE, INPUT "_debug_tools_on":U) = "YES":U THEN
+     ON CTRL-ALT-SHIFT-Q OF hCombo
+       PERSISTENT RUN showQuery IN TARGET-PROCEDURE.
 
   IF cUIBMode BEGINS "DESIGN":U THEN
   DO:
     ON END-MOVE OF hFrame 
       PERSISTENT RUN endMove      IN TARGET-PROCEDURE. 
-    ON CTRL-ALT-SHIFT-Q OF hCombo
-      PERSISTENT RUN showQuery IN TARGET-PROCEDURE.
   END.
   ELSE DO:    
     /* create an entry/leave trigger always, code is defined */
@@ -2938,6 +2951,35 @@ FUNCTION getSort RETURNS LOGICAL
   DEFINE VARIABLE lSort AS LOGICAL NO-UNDO.
   {get Sort lSort}.
   RETURN lSort.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION parentJoinTables Procedure 
+FUNCTION parentJoinTables RETURNS CHARACTER 
+  ( pcParentFilterQuery AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a comma separated list of the tables that corresponds to the 
+           passed ParentFilterQuery. 
+    Notes: This is implemented to separate out old subclass difference from 
+           buildQuery. The dyncombo class joins to the first table while the 
+           dynlookup joins to the last in the case where the query only has one 
+           entry and there's more than one table in the query.
+         - Overrides lookupfield to default to first table   
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cQueryTables AS CHARACTER  NO-UNDO.
+ 
+ {get QueryTables cQueryTables}.
+ IF INDEX(pcParentFilterQuery,"|":U) = 0 THEN 
+   RETURN ENTRY(1,cQueryTables).  
+ ELSE 
+   RETURN cQueryTables.    
 
 END FUNCTION.
 

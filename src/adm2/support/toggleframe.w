@@ -509,7 +509,7 @@ FUNCTION addItem RETURNS LOGICAL
             BGCOLOR = hFrame:bgcolor
            BOX  = FALSE
             HIDDEN = FALSE.
-     ghScrollFrame:MOVE-TO-BOTTOM().
+/*      ghScrollFrame:MOVE-TO-BOTTOM(). */
   END.
 
   FIND LAST bItem NO-ERROR.
@@ -581,16 +581,26 @@ END FUNCTION.
 FUNCTION createFrameBorder RETURNS LOGICAL
   (phFrame AS HANDLE ) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose: Create a border for the frame to make it appear as a widget 
+    Notes: Use editor to ensure correct style on both XP and Classic 
 ------------------------------------------------------------------------------*/
-   DEFINE VARIABLE hLeft AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE hBorder AS HANDLE     NO-UNDO.
+   CREATE EDITOR hBorder 
+     ASSIGN
+      WIDTH = phFrame:width
+      HEIGHT = phFrame:height
+      X = 0
+      Y = 0 
+     FRAME = phFrame
+     HIDDEN =FALSE.
+
+     /*
    DEFINE VARIABLE hTop AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hBottom1 AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hBottom2 AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hRight1 AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hRight2  AS HANDLE     NO-UNDO.
-   
+
    CREATE RECTANGLE hleft
      ASSIGN   
        FGCOLOR = {fn getColor3DShadow}
@@ -650,7 +660,7 @@ FUNCTION createFrameBorder RETURNS LOGICAL
        WIDTH-P = 1
        FRAME = phFrame 
        HIDDEN =FALSE.
-
+   */
   RETURN true. 
 END FUNCTION.
 

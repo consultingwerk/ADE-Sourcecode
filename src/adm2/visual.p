@@ -459,7 +459,7 @@ FUNCTION getFieldSecurity RETURNS CHARACTER
 &IF DEFINED(EXCLUDE-getFont) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFont Procedure 
-FUNCTION getFont RETURNS INTEGER 
+FUNCTION getFont RETURNS INTEGER
 (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -683,6 +683,18 @@ FUNCTION popupHandle RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetWidgetValue Procedure 
 FUNCTION resetWidgetValue RETURNS LOGICAL
   ( INPUT pcNameList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-sensitizePopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD sensitizePopup Procedure 
+FUNCTION sensitizePopup RETURNS LOGICAL
+  ( phField     AS HANDLE,
+    plSensitive AS LOG )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1128,8 +1140,8 @@ FUNCTION widgetValueList RETURNS CHARACTER
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 20.71
-         WIDTH              = 64.2.
+         HEIGHT             = 20.24
+         WIDTH              = 62.2.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -1364,7 +1376,6 @@ PROCEDURE disableObject :
   DEFINE VARIABLE iField          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hField          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lObjectHidden   AS LOGICAL    NO-UNDO.  
-  DEFINE VARIABLE hPopup          AS HANDLE     NO-UNDO.
 
   {get EnabledObjHdls cEnabledObjHdls}.
   IF cEnabledObjHdls NE "":U THEN
@@ -1382,11 +1393,9 @@ PROCEDURE disableObject :
      IF CAN-SET(hField, "HIDDEN":U) 
      AND NOT hField:HIDDEN THEN 
      DO:
-       hPopup = {fnarg popupHandle hField}.
-       /* Skip fields hidden for multi-layout etc.*/
-       ASSIGN
-         hField:SENSITIVE = NO
-         hPopup:SENSITIVE = NO NO-ERROR. 
+       hField:SENSITIVE = NO.
+       DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                         hField, NO).
      END.
   END.   /* END DO iField */
     
@@ -1418,7 +1427,6 @@ PROCEDURE enableObject :
     DEFINE VARIABLE iFieldPos        AS INTEGER    NO-UNDO.
     DEFINE VARIABLE hField           AS HANDLE     NO-UNDO.
     DEFINE VARIABLE lObjectHidden    AS LOGICAL    NO-UNDO.
-    DEFINE VARIABLE hPopup           AS HANDLE     NO-UNDO.
     
     &SCOPED-DEFINE xp-assign
     {get FieldSecurity cSecuredFields}
@@ -1470,11 +1478,8 @@ PROCEDURE enableObject :
           /* don't enable if read-only (can-query is ok as only fields can 
              have popups) */
           IF CAN-QUERY(hField,'read-only':U) AND NOT hField:READ-ONLY THEN
-          DO:
-            ASSIGN 
-              hPopup = {fnarg popupHandle hField}
-              hPopup:SENSITIVE = YES NO-ERROR.
-          END.
+            DYNAMIC-FUNCTION('sensitizePopup':U IN TARGET-PROCEDURE,
+                              hField, YES).
         END.
       END. /* If hField is a valid-handle */
     END.    /* loop thorough handles */
@@ -2656,7 +2661,6 @@ DEFINE VARIABLE cFieldObjectName      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFldsToDisable        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cQualifier            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPopup                AS HANDLE      NO-UNDO.
 DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iFieldNum             AS INTEGER    NO-UNDO.
@@ -2690,21 +2694,18 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
       DO:
         hField:SENSITIVE = NO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
-        ELSE DO:
-          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
-          IF VALID-HANDLE(hPopup) THEN
-            hPopup:SENSITIVE = NO NO-ERROR.
-        END.
+        ELSE 
+          DYNAMIC-FUNCTION('sensitizePopup':U IN hTarget,
+                            hField, NO).
+        
       END.  /* if can set sensitive - viewer */
       ELSE IF CAN-SET(hField, 'READ-ONLY':U) THEN
       DO:
         hField:READ-ONLY = YES NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
-        ELSE DO:
-          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
-          IF VALID-HANDLE(hPopup) THEN
-            hPopup:SENSITIVE = NO NO-ERROR.
-        END.
+        ELSE 
+          DYNAMIC-FUNCTION('sensitizePopup':U IN hTarget,
+                            hField, NO).
       END.  /* if can set read-only - browser */
       ELSE lInvalid = YES.
       IF NOT lInvalid THEN
@@ -2807,7 +2808,6 @@ DEFINE VARIABLE cFieldObjectName      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cFldsToDisable        AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cQualifier            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hField                AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hPopup                AS HANDLE      NO-UNDO.
 DEFINE VARIABLE hTarget               AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iField                AS INTEGER    NO-UNDO.
 DEFINE VARIABLE iFieldNum             AS INTEGER    NO-UNDO.
@@ -2839,21 +2839,17 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
       DO:
         hField:SENSITIVE = YES.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
-        ELSE DO:
-          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
-          IF VALID-HANDLE(hPopup) THEN
-            hPopup:SENSITIVE = YES NO-ERROR.
-        END.
+        ELSE 
+          DYNAMIC-FUNCTION('sensitizePopup':U IN hTarget,
+                            hField, YES).
       END.  /* if can set sensitive - viewer */
       ELSE IF CAN-SET(hField, 'READ-ONLY':U) THEN
       DO:
         hField:READ-ONLY = NO NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
-        ELSE DO:
-          hPopup = DYNAMIC-FUNCTION('popupHandle':U IN hTarget, INPUT hField) NO-ERROR.
-          IF VALID-HANDLE(hPopup) THEN
-            hPopup:SENSITIVE = YES NO-ERROR.
-        END.
+        ELSE 
+          DYNAMIC-FUNCTION('sensitizePopup':U IN hTarget,
+                            hField, YES).
       END.  /* if can set read-only - browser */
       ELSE lInvalid = YES.
       IF NOT lInvalid THEN
@@ -3442,7 +3438,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-getFont) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFont Procedure 
-FUNCTION getFont RETURNS INTEGER 
+FUNCTION getFont RETURNS INTEGER
 (  ) :
 /*------------------------------------------------------------------------------
   Purpose: get the font of the frame 
@@ -4062,9 +4058,11 @@ Parameters: pcFieldName - char
   DEFINE VARIABLE cHandle            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hPopup             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iPos               AS INTEGER    NO-UNDO.
-  
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+
+  hField = WIDGET-HANDLE(pcField) NO-ERROR.
   /* if not valid widget then assume a name is passed */
-  IF NOT VALID-HANDLE(WIDGET-HANDLE(pcField)) THEN
+  IF NOT VALID-HANDLE(hField) THEN
   DO:
     /* Although this only applies to enabled fields we check the Displayed list
       as the EnabledFields may change while the object is running */
@@ -4161,6 +4159,42 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
 
   /* Return FALSE if any field was invalid. */
   RETURN NOT lInvalid.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-sensitizePopup) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION sensitizePopup Procedure 
+FUNCTION sensitizePopup RETURNS LOGICAL
+  ( phField     AS HANDLE,
+    plSensitive AS LOG ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hPopup AS HANDLE     NO-UNDO.
+  
+  hPopup = {fnarg popupHandle phField}.
+  IF VALID-HANDLE(hPopup) THEN
+  DO:
+    hPopup:SENSITIVE = plSensitive.
+    IF SESSION:WINDOW-SYSTEM ="MS-WINXP":U THEN 
+      ASSIGN
+        hPopup:BGCOLOR = IF plSensitive 
+                         THEN IF phField:BGCOLOR = ? 
+                              THEN 15 
+                              ELSE phField:BGCOLOR
+                         ELSE ?.
+
+    RETURN TRUE. 
+  END.
+
+  RETURN FALSE.    
 
 END FUNCTION.
 

@@ -1,12 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -29,6 +22,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 
+
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject
        {"ry/obj/ryemptysdo.i"}.
@@ -36,6 +30,13 @@ DEFINE TEMP-TABLE RowObject
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rygridobjv1.w
 
@@ -230,8 +231,8 @@ DEFINE VARIABLE giGLColor           AS INTEGER    NO-UNDO INITIAL 0.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS rctBackground buNonLayoutObjects edSource ~
-edTarget buLayoutPreview fiObjectInstances fiQuickLink 
+&Scoped-Define ENABLED-OBJECTS rctBackground edSource edTarget ~
+buNonLayoutObjects buLayoutPreview fiObjectInstances fiQuickLink 
 &Scoped-Define DISPLAYED-OBJECTS fiInstanceName fiObjectDescription ~
 edForeignFields coDataSources coUpdateTargets coNavTarget ~
 toResizeHorizontal toResizeVertical raLCR coLink edSource edTarget ~
@@ -239,10 +240,10 @@ fiObjectInstances fiForeignFieldLabel fiJustification fiQuickLink
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
-&Scoped-define ADM-ASSIGN-FIELDS buProperties buLayoutObjects ~
-buNonLayoutObjects buOldProperties coDataSources buSwap coUpdateTargets ~
-buSource coNavTarget buTarget coLink buAdd buCancel buCancelCoC buCopy ~
-buCut buDelete buPaste buSaveLink 
+&Scoped-define ADM-ASSIGN-FIELDS buProperties coDataSources buLayoutObjects ~
+coUpdateTargets coNavTarget coLink buNonLayoutObjects buOldProperties ~
+buSwap buSource buTarget buAdd buCancel buCancelCoC buCopy buCut buDelete ~
+buPaste buSaveLink 
 &Scoped-define List-2 fiInstanceName fiObjectDescription buCancel 
 &Scoped-define List-3 buProperties buSource buTarget buAdd 
 &Scoped-define List-5 buAdd buCancelCoC buDelete buPaste 
@@ -761,26 +762,26 @@ DEFINE VARIABLE toResizeVertical AS LOGICAL INITIAL no
 
 DEFINE FRAME frMain
      buProperties AT ROW 12.33 COL 46.8
-     buLayoutObjects AT ROW 1.29 COL 131.2
-     buNonLayoutObjects AT ROW 3 COL 131.2
      fiInstanceName AT ROW 3.14 COL 16 COLON-ALIGNED
      fiObjectDescription AT ROW 4.19 COL 16 COLON-ALIGNED
-     buOldProperties AT ROW 12.33 COL 42
      edForeignFields AT ROW 6.33 COL 18 NO-LABEL
      coDataSources AT ROW 6.33 COL 16 COLON-ALIGNED
+     buLayoutObjects AT ROW 1.29 COL 131.2
      buMapFields AT ROW 6.38 COL 58.8
-     buSwap AT ROW 14.95 COL 53.4
      coUpdateTargets AT ROW 7.38 COL 16 COLON-ALIGNED
-     buSource AT ROW 14.14 COL 3.4
      coNavTarget AT ROW 8.43 COL 16 COLON-ALIGNED
      toResizeHorizontal AT ROW 9.62 COL 18
      toResizeVertical AT ROW 9.62 COL 39.8
-     buTarget AT ROW 14.14 COL 87
      raLCR AT ROW 11.19 COL 20.2 NO-LABEL
-     buReset AT ROW 12.33 COL 11.4
      coLink AT ROW 14 COL 51 COLON-ALIGNED
      edSource AT ROW 14.19 COL 12 NO-LABEL NO-TAB-STOP 
      edTarget AT ROW 14.19 COL 95.6 NO-LABEL NO-TAB-STOP 
+     buNonLayoutObjects AT ROW 3 COL 131.2
+     buOldProperties AT ROW 12.33 COL 42
+     buSwap AT ROW 14.95 COL 53.4
+     buSource AT ROW 14.14 COL 3.4
+     buTarget AT ROW 14.14 COL 87
+     buReset AT ROW 12.33 COL 11.4
      buAdd AT ROW 12.33 COL 1.8
      buCancel AT ROW 12.33 COL 16.2
      buCancelCoC AT ROW 12.33 COL 31.6
@@ -5871,48 +5872,29 @@ FUNCTION evaluateLookupQuery RETURNS LOGICAL
   DEFINE VARIABLE cQueryString        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectView         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCounter            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iQueryCounter       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iExtent             AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iIndex              AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hSelectedWidget     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cQueryClasses       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQueryClass         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataClasses        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iNotValid           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hDesignManager      AS HANDLE     NO-UNDO.
+
   DEFINE BUFFER ttWidget FOR ttWidget.
 
   /* Check if the class information has already been retrieved */
   IF gcRetrievedClasses[1] = "":U THEN
   DO:
-    DO iExtent = 1 TO EXTENT(gcRetrievedClasses):
+    ASSIGN hDesignManager = DYNAMIC-FUNCTION('getManagerHandle':U IN TARGET-PROCEDURE, INPUT "RepositoryDesignManager":U)
+           gcRetrievedClasses[1] = DYNAMIC-FUNCTION('getDataSourceClasses':U IN hDesignManager).
+
+    DO iExtent = 2 TO EXTENT(gcRetrievedClasses):
       gcRetrievedClasses[iExtent] = {fnarg getClassChildrenFromDB gcClassesToRetrieve[iExtent] gshRepositoryManager}.
 
       /* Step through the entries and remove the base classes which should not be in the list */
       DO iCounter = 1 TO NUM-ENTRIES(gcRetrievedClasses[iExtent], CHR(3)).
         cValidObjectTypes = ENTRY(iCounter, gcRetrievedClasses[iExtent], CHR(3)).
-        
+
         /* Get rid of the ADM classes themselves. */
         DO iIndex = 1 TO NUM-ENTRIES(cValidObjectTypes):
           CASE ENTRY(iIndex, cValidObjectTypes):
-            WHEN "Query" THEN
-            DO:
-              /* query is below dataview and above data, 
-                 remove all extended objects that not are part of the data class */
-              cQueryClasses = {fnarg getClassChildrenFromDB 'Query' gshRepositoryManager}.
-              cDataClasses  = {fnarg getClassChildrenFromDB 'Data' gshRepositoryManager}.
-              
-              DO iQueryCounter = 1 TO NUM-ENTRIES(cQueryClasses):
-                cQueryClass = ENTRY(iQueryCounter , cQueryClasses).
-                IF LOOKUP(cQueryClass,cDataClasses) = 0 THEN
-                DO:
-                  iNotValid = LOOKUP(cQueryClass,cValidObjectTypes).
-                  IF iNotValid > 0 THEN
-                    ENTRY(iNotValid, cValidObjectTypes) = "":U.
-                END.
-              END.
-            END.
-            WHEN "DataView":U OR
-            WHEN "Data":U     OR
             WHEN "Toolbar":U  OR
             WHEN "Panel":U    OR
             WHEN "Viewer"     OR

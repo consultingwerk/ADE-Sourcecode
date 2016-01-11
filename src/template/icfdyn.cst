@@ -51,7 +51,13 @@ TYPE            DynBrow
 NEW-TEMPLATE    ry/obj/rydynsdowizw.w
 TYPE            DynSDO
 
+*NEW-SMARTOBJECT Dynamic DataView (DynDataView)
+TYPE		 DynDataView
+NEW-TEMPLATE     ry/tem/rytemdyndataview.w
+
 *NEW-SMARTOBJECT Dynamic SmartData&Viewer (DynView)
 NEW-TEMPLATE    ry/obj/rydynvwwizw.w
 TYPE            DynView
+
+
 

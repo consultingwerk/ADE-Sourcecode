@@ -825,12 +825,12 @@ PROCEDURE checkForStaticSDF :
   DEFINE VARIABLE hRepDesignManager AS HANDLE     NO-UNDO.  
   DEFINE VARIABLE cViewerFields     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDataSourceHandle AS HANDLE     NO-UNDO.
-
+  
   glStaticSDF = FALSE.
 
   {get RunAttribute cRunAttribute ghContainerSource}.
   {get ContainerHandle hContainer ghContainerSource}.
-  
+       
   IF cRunAttribute <> "":U THEN
     ASSIGN ghSDFObject = WIDGET-HANDLE(ENTRY(1,cRunAttribute,CHR(3))) NO-ERROR.
   IF cRunAttribute = "":U OR 
@@ -984,13 +984,15 @@ PROCEDURE checkForStaticSDF :
            glIsDynView = FALSE THEN
           ENABLE fiFieldName toUseCache WITH FRAME {&FRAME-NAME}.
 
-        /* If we are on a DynViewer and the BrowseQueryString field is 
-           blank the chances are that we are adding a new SDF and we need
-           to ensure that we create a Master object too */
+        /* If we are on a DynViewer, and we have been told by the caller
+           that we are a NEW SDF, then ensure that we create a new Master
+           object in addition (well, prior to) to the instance.
+         */
         IF glIsDynView AND 
-           TRIM(ghDataTable:BUFFER-FIELD("cBaseQueryString":U):BUFFER-VALUE) = "":U AND 
-           ghDataTable:BUFFER-FIELD("cDataSourceName":U):BUFFER-VALUE = "":U THEN
+           num-entries(cRunAttribute, chr(3)) ge 2 and
+           entry(2, cRunAttribute, chr(3)) eq 'New':u then
           glUpdateMasterOnly = TRUE.
+          
         IF ghDataTable:BUFFER-FIELD("cSDFFileName":U):BUFFER-VALUE = "":U THEN DO:
           ASSIGN toSave:CHECKED IN FRAME {&FRAME-NAME} = FALSE.
           glCheckChange = FALSE.

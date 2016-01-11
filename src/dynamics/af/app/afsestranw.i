@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -25,6 +25,12 @@
 
   Update Notes: Initial Implementation. Code moved here to avoid
    			    blowing up Section Editor limits.
+   			    
+   			    Program flow:
+                1. Get translated strings from Translation Manager
+                2. Calculate column offsets so as to fit translated labels on frame
+                3. Resize frame
+                4. Apply translations to field-level widgets
 ---------------------------------------------------------------------------------*/      
   DEFINE VARIABLE hDataSource               AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSideLabel                AS HANDLE     NO-UNDO.  
@@ -64,6 +70,8 @@
   DEFINE VARIABLE lFrameVisible             AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cWidgetName               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lKeepChildPositions       AS LOGICAL    NO-UNDO.
+  define variable lShowLabelTooltip         as logical    no-undo.
+  
   DEFINE BUFFER btViewerCol FOR ttViewerCol.
   
   &SCOPED-DEFINE xp-assign
@@ -72,7 +80,7 @@
   {get AllFieldNames cAllFieldNames phObject}
   .
   &UNDEFINE xp-assign
-
+  
   RUN multiTranslation IN gshTranslationManager (INPUT NO, INPUT-OUTPUT TABLE ttTranslate).
   
   EMPTY TEMP-TABLE ttViewerCol.
@@ -113,7 +121,9 @@
   ASSIGN lFrameVisible = NOT phFrame:HIDDEN.
   IF lFrameVisible THEN
     ASSIGN phFrame:HIDDEN = YES.
-
+        
+  /* Calculate column offsets
+   */
   IF cAllFieldHandles > "":U  THEN 
   DO:
     field-loop:
@@ -206,7 +216,6 @@
           END.  /* there is a translation. */
           else
               ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont).
-              dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText + "   ", iFont).
       END.  /* ELSE-BLK: there is a LABEL attribute */
       
       /* We need to make space for the label at least */
@@ -354,7 +363,7 @@
                      OUTPUT cJunk,
                      OUTPUT cJunk,
                      OUTPUT lJunk,
-                      OUTPUT lJunk).
+                     OUTPUT lJunk).
       IF cFullMessage <> "":U THEN
           MESSAGE cFullMessage
               VIEW-AS ALERT-BOX WARNING.
@@ -376,7 +385,7 @@
   {get keepChildPositions lKeepChildPositions phObject} NO-ERROR.
   IF lKeepChildPositions = ? THEN 
      lKeepChildPositions = NO. /* Ensure lKeepChildPositions is yes/no */
-
+  
   /* Need to resize frame to fit new labels */
   IF CAN-FIND(FIRST ttViewerCol WHERE ttViewerCol.dColumn <> ttViewerCol.dNewCol) THEN 
   DO:
@@ -423,7 +432,8 @@
   /* Now apply the translations to the widgets */
   translate-loop:
   FOR EACH ttTranslate:
-
+    hSideLabel = ?.
+    
     IF NOT VALID-HANDLE(ttTranslate.hWidgetHandle)
     OR (ttTranslate.cTranslatedLabel = "":U 
     AND ttTranslate.cTranslatedTooltip = "":U) THEN 
@@ -447,12 +457,13 @@
           END.
           IF ttTranslate.cTranslatedTooltip <> "":U THEN
               ASSIGN ttTranslate.hWidgetHandle:TOOLTIP = ttTranslate.cTranslatedTooltip NO-ERROR.
-      END.
+      END.    /* browser */
       WHEN "COMBO-BOX":U OR 
       WHEN "SELECTION-LIST":U THEN 
       DO:
           IF ttTranslate.cTranslatedLabel NE "":U AND ttTranslate.cTranslatedLabel NE ? THEN
           DO:
+              /* The widget entry indicates the label. Entries > 0 are items in the combo/sellist */
               IF ttTranslate.iWidgetEntry EQ 0 THEN 
               DO:
                   IF CAN-QUERY(ttTranslate.hWidgetHandle,"FILE-NAME":U) 
@@ -460,33 +471,54 @@
                   AND lHasFieldLabel THEN
                       DYNAMIC-FUNCTION("setLabel":U IN phObject, INPUT ttTranslate.cTranslatedLabel).                                  
                   ELSE DO:
-                      IF lKeepChildPositions THEN
-                         ASSIGN ttTranslate.hWidgetHandle:LABEL = 
-                                   SUBSTRING(ttTranslate.cTranslatedLabel, 1, 
-                                             INTEGER(ttTranslate.hWidgetHandle:SIDE-LABEL-HANDLE:WIDTH-CHARS))
-                                ttTranslate.hWidgetHandle:SIDE-LABEL-HANDLE:TOOLTIP = ttTranslate.cTranslatedLabel NO-ERROR.
-                     else
-                     do:
-                         ttTranslate.cTranslatedLabel = ttTranslate.cTranslatedLabel
-                                                       + (IF INDEX(ttTranslate.cTranslatedLabel, ":":U) eq 0 THEN ":":U ELSE "":U).
-                         dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT)
-                                        /* Prevent colon being hard up against the combo/sel-list */
-                                        + 3.
-                         hSideLabel = ttTranslate.hWidgetHandle:side-label-handle.
-                         
-                         /* Position the label. We use pixels here since X and WIDTH-PIXELS
-                            are denominated in the same units, unlike COLUMN and WIDTH-CHARS.
-                          */
-                         if dNewLabelLength gt ttTranslate.hWidgetHandle:x then
-                             dLabelWidth = ttTranslate.hWidgetHandle:x - 1.
-                         else
-                             dLabelWidth = dNewLabelLength.
-                         
-                         hSideLabel:format = 'x(':u + string(length(ttTranslate.cTranslatedLabel, 'Column':u)) + ')':u.
-                         hSideLabel:x = ttTranslate.hWidgetHandle:X - dLabelWidth no-error.
-                         hSideLabel:screen-value = ttTranslate.cTranslatedLabel no-error.
-                         hSideLabel:width-pixels = dLabelWidth no-error.
-                     end.    /* don't keep pos */
+                    if can-query(ttTranslate.hWidgetHandle, 'Side-Label-Handle':u) then
+                        hSideLabel = ttTranslate.hWidgetHandle:side-label-handle.
+                    
+                    /* The AB doesn't allow  explicit adding of labels to selection lists */
+                    if valid-handle(hSideLabel) then
+                    do:
+                        /* The colon to the static fill-ins are added by the 4GL, for
+                           dynamics fill-ins we need to manually add the colon*/
+                        IF hSideLabel:DYNAMIC THEN
+                           ASSIGN ttTranslate.cTranslatedLabel = ttTranslate.cTranslatedLabel
+                                                            + (IF INDEX(ttTranslate.cTranslatedLabel, ":":U) eq 0 THEN ":":U ELSE "":U).
+                        
+                        ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT)
+                                               /* Prevent colon being hard up against the fill-in */
+                                               + 3.
+                        
+                        /** Position the label. We use pixels here since X and WIDTH-PIXELS
+                         *  are denominated in the same units, unlike COLUMN and WIDTH-CHARS.
+                         *----------------------------------------------------------------------- **/
+                        IF dNewLabelLength > ttTranslate.hWidgetHandle:X THEN
+                            ASSIGN dLabelWidth = ttTranslate.hWidgetHandle:X - 1
+                                lShowLabelTooltip = yes.
+                        ELSE
+                            ASSIGN dLabelWidth = dNewLabelLength
+                                   lShowLabelTooltip = no.
+                        
+                        IF dLabelWidth LE 0 THEN
+                            ASSIGN dLabelWidth = 1.
+        
+                        IF CAN-SET(hSideLabel, "FORMAT":U) THEN
+                            ASSIGN hSideLabel:FORMAT = "x(" + STRING(LENGTH(ttTranslate.cTranslatedLabel, "Column":U)) + ")":U.
+                        
+                        IF lKeepChildPositions THEN
+                           ASSIGN hSideLabel:SCREEN-VALUE = SUBSTRING(ttTranslate.cTranslatedLabel, 1, 
+                                                                      INTEGER(hSideLabel:WIDTH-CHARS))
+                                  hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel
+                                  hSideLabel:TOOLTIP      = ttTranslate.cTranslatedLabel when lShowLabelTooltip
+                                  NO-ERROR.
+                        ELSE DO:
+                            ASSIGN hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel NO-ERROR.
+                            /* Make sure we leave enough room for the label and the colon. */
+                            ASSIGN hSideLabel:X            = ttTranslate.hWidgetHandle:X - dLabelWidth - 3 NO-ERROR.
+                            /* Ensure that label is large enough to take all the space from the
+                               left edge of the text to the widget.
+                             */
+                            ASSIGN hSideLabel:WIDTH-PIXELS = dLabelWidth + 3 NO-ERROR.
+                        END.    /* reposition label */
+                    end.    /* valid side-label-handle */
                   END.    /* non-SDF */
               END.  /* label translation */
               ELSE DO:
@@ -509,6 +541,7 @@
               ELSE
                   ASSIGN ttTranslate.hWidgetHandle:TOOLTIP = ttTranslate.cTranslatedTooltip.          
           END.    /* translate tooltip */
+
       END.  /* combo or selection list */
       WHEN "radio-set":U 
       THEN DO:
@@ -550,7 +583,7 @@
                                                              ELSE ttTranslate.hWidgetHandle:WIDTH-CHARS NO-ERROR.
           END.
           ASSIGN ttTranslate.hWidgetHandle:RADIO-BUTTONS = cRadioButtons NO-ERROR.
-      END.
+      END.    /* radio-set */
       WHEN "text":U THEN 
       DO:
           IF CAN-SET(ttTranslate.hWidgetHandle, "PRIVATE-DATA":U) THEN
@@ -573,7 +606,7 @@
           ASSIGN cTranslatedTextsAndValues = cTranslatedTextsAndValues
                                            + (IF cTranslatedTextsAndValues = "":U THEN "":U ELSE CHR(27))
                                            + STRING(ttTranslate.hWidgetHandle) + CHR(2) + ttTranslate.cTranslatedLabel.
-      END.
+      END.    /* text */
       OTHERWISE DO:
           /* Check for Dynamic Lookups and combos */
           IF ttTranslate.cTranslatedLabel <> "":U 
@@ -602,9 +635,13 @@
              * objects on the viewer. */             
             IF VALID-HANDLE(hSideLabel)
             THEN DO:
-                assign ttTranslate.cTranslatedLabel = ttTranslate.cTranslatedLabel
-                                                    + (IF INDEX(ttTranslate.cTranslatedLabel, ":":U) eq 0 THEN ":":U ELSE "":U)
-                       dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT)
+                /*The colon to the static fill-ins are added by the 4GL, for
+                  dynamics fill-ins we need to manually add the colon*/
+                IF ttTranslate.hWidgetHandle:SIDE-LABEL-HANDLE:DYNAMIC THEN
+                   ASSIGN ttTranslate.cTranslatedLabel = ttTranslate.cTranslatedLabel
+                                                    + (IF INDEX(ttTranslate.cTranslatedLabel, ":":U) eq 0 THEN ":":U ELSE "":U).
+                
+                ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-PIXELS(ttTranslate.cTranslatedLabel, ttTranslate.hWidgetHandle:FONT)
                                        /* Prevent colon being hard up against the fill-in */
                                        + 3.
                 
@@ -612,9 +649,11 @@
                  *  are denominated in the same units, unlike COLUMN and WIDTH-CHARS.
                  *----------------------------------------------------------------------- **/
                 IF dNewLabelLength > ttTranslate.hWidgetHandle:X THEN
-                    ASSIGN dLabelWidth = ttTranslate.hWidgetHandle:X - 1.
+                    ASSIGN dLabelWidth = ttTranslate.hWidgetHandle:X - 1
+                        lShowLabelTooltip = yes.
                 ELSE
-                    ASSIGN dLabelWidth = dNewLabelLength.
+                    ASSIGN dLabelWidth = dNewLabelLength
+                           lShowLabelTooltip = no.
 
                 IF dLabelWidth LE 0 THEN
                     ASSIGN dLabelWidth = 1.
@@ -626,12 +665,16 @@
                    ASSIGN hSideLabel:SCREEN-VALUE = SUBSTRING(ttTranslate.cTranslatedLabel, 1, 
                                                               INTEGER(hSideLabel:WIDTH-CHARS))
                           hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel
-                          hSideLabel:TOOLTIP      = ttTranslate.cTranslatedLabel 
+                          hSideLabel:TOOLTIP      = ttTranslate.cTranslatedLabel when lShowLabelTooltip
                           NO-ERROR.
                 ELSE DO:
-                    ASSIGN hSideLabel:X            = ttTranslate.hWidgetHandle:X - dLabelWidth NO-ERROR.
                     ASSIGN hSideLabel:SCREEN-VALUE = ttTranslate.cTranslatedLabel NO-ERROR.
-                    ASSIGN hSideLabel:WIDTH-PIXELS = dLabelWidth NO-ERROR.
+                    /* Make sure we leave enough room for the label and the colon. */
+                    ASSIGN hSideLabel:X            = ttTranslate.hWidgetHandle:X - dLabelWidth - 3 NO-ERROR.
+                    /* Ensure that label is large enough to take all the space from the
+                       left edge of the text to the widget.
+                     */
+                    ASSIGN hSideLabel:WIDTH-PIXELS = dLabelWidth + 3 NO-ERROR.
                 END.
             END.   /* valid side-label */
             ELSE
@@ -650,12 +693,12 @@
           END.
       END.    /* other widget types */
     END CASE. /* widget type */
-  END.
+  END.    /* TRANSLATE-LOOP: each ttTranslate */
 
   /* We need to store translated FILL-IN VIEW-AS TEXTs and their translated   *
    * values in the viewer.  This is because the untranslated text is stored   *
    * in the INITIAL-VALUE of the fill-in, and displayed by the displayObjects *
-   * API (in datavis.i).  This API overwrites our translations, but will then * 
+   * API (in datavis.i).  This API overwrites our translations, but will then *
    * check this property and redisplay the translated label. */
   IF VALID-HANDLE(phObject) 
   AND cTranslatedTextsAndValues <> "":U THEN 

@@ -1,11 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/******************************************************************************/
-/* Copyright (C) 2005 by Progress Software Corporation. All rights reserved.  */
-/* Prior versions of this work may contain portions contributed by            */
-/* participants of Possenet.                                                  */             
-/******************************************************************************/
+/**********************************************************************************/
+/* Copyright (C) 2005-2006 by Progress Software Corporation. All rights reserved. */
+/* Prior versions of this work may contain portions contributed by                */
+/* participants of Possenet.                                                      */             
+/**********************************************************************************/
 /*--------------------------------------------------------------------------
     File        : query.p
     Purpose     : Super procedure for ADM objects which retrieve data from
@@ -418,6 +418,17 @@ FUNCTION removeForeignKey RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-resetQueryString) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetQueryString Procedure 
+FUNCTION resetQueryString RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resolveBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resolveBuffer Procedure 
@@ -447,18 +458,6 @@ FUNCTION rowidWhereCols RETURNS CHARACTER
   (pcColumns     AS CHARACTER,   
    pcValues      AS CHARACTER,    
    pcOperators   AS CHARACTER) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-XremoveQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD XremoveQuerySelection Procedure 
-FUNCTION XremoveQuerySelection RETURNS LOGICAL
-  (pcColumns   AS CHARACTER,
-   pcOperators AS CHARACTER) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -6795,6 +6794,25 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-resetQueryString) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resetQueryString Procedure 
+FUNCTION resetQueryString RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: data-source interface for resetting the query to default.
+    Notes: setQueryWhere is not implemented in DataView.
+------------------------------------------------------------------------------*/
+{set QueryWhere ''}.
+  RETURN TRUE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-resolveBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resolveBuffer Procedure 
@@ -6952,322 +6970,6 @@ FUNCTION rowidWhereCols RETURNS CHARACTER
                               cQueryString).
   
   RETURN cRowids.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-XremoveQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION XremoveQuerySelection Procedure 
-FUNCTION XremoveQuerySelection RETURNS LOGICAL
-  (pcColumns   AS CHARACTER,
-   pcOperators AS CHARACTER):
-/*------------------------------------------------------------------------------
-  Purpose:     Remove field expression(s) for specified column(s) and operator(s) 
-               added by assignQuerySelection from the query. 
-  Parameters: 
-     pcColumns   - Column names (Comma separated)                    
-                   Fieldname of a table in the query in the form of 
-                   TBL.FLDNM or DB.TBL.FLDNM (only if qualified with db is specified),
-                   (RowObject.FLDNM should be used for SDO's)  
-                   If the fieldname isn't qualified it checks the tables in 
-                   the TABLES property and assumes the first with a match.              
-     pcOperators - Operator - one for all columns
-                              - blank - defaults to (EQ)  
-                              - Use slash to define alternative string operator
-                                EQ/BEGINS etc..
-                            - comma separated for each column/value
-
-  Notes:       This procedure modifies the QueryString property and is designed 
-               to run on the client and called several times before QueryString
-               is used in a QUERY-PREPARE method to modify the database query.
-               
-               openQuery will prepare the query using the QueryString property.
-               
-               The removal of the actual field expression is done by the help 
-               of the position and length stored in the QueryColumns property. 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cQueryString   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cBufferList    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cBuffer        AS CHARACTER NO-UNDO.
-  
-  /* We need the columns name and the parts */  
-  DEFINE VARIABLE cColumn        AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cColumnName    AS CHARACTER NO-UNDO.
-    
-  DEFINE VARIABLE iBuffer        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iColumn        AS INTEGER   NO-UNDO.
-  
-  DEFINE VARIABLE cUsedNums      AS CHAR      NO-UNDO.
-  
-  DEFINE VARIABLE cOperator      AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cStringOp      AS CHARACTER NO-UNDO.
-          
-  /* Used to store and maintain offset and length */    
-  DEFINE VARIABLE iValLength     AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iValPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iPos           AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iDiff          AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cQueryColumns  AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cQueryBufCols  AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cNewCols       AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cQueryColOp    AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cRemoveList    AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iOldEntries    AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iLowestChanged AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iBufPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iColPos        AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE iWhereBufPos   AS INTEGER   NO-UNDO.
-
-  DEFINE VARIABLE cQuerySplit1   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cQuerySplit2   AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE iNumWords      AS INTEGER   NO-UNDO.
-  DEFINE VARIABLE cWord          AS CHARACTER NO-UNDO.
-
-  &SCOPED-DEFINE xp-assign
-  {get Tables cBufferList}    
-  {get QueryString cQueryString}
-  {get QueryColumns cQueryColumns}.
-  &UNDEFINE xp-assign
-    
-  /* If no QueryString or QueryColumns just return now */ 
-  IF cQueryString = "":U OR cQueryColumns = "":U THEN
-    RETURN FALSE.
-  
-  DO iBuffer = 1 TO NUM-ENTRIES(cBufferList):
-    ASSIGN
-      cBuffer        = ENTRY(iBuffer,cBufferList)
-      iBufPos        = LOOKUP(cBuffer,cQueryColumns,":":U)
-      cQueryBufCols  = IF iBufPos > 0 
-                       THEN ENTRY(iBufPos + 1,cQueryColumns,":":U) 
-                       ELSE "":U
-      iOldEntries    = NUM-ENTRIES(cQueryBufCols) / 3    
-      cRemoveList    = "":U
-      iLowestChanged = 0.
-    
-    ColumnLoop:    
-    DO iColumn = 1 TO NUM-ENTRIES(pcColumns):
-      IF CAN-DO(cUsedNums,STRING(iColumn)) THEN 
-        NEXT ColumnLoop.      
-      
-      ASSIGN
-        cColumn     = ENTRY(iColumn,pcColumns).
-      
-      /* Get the operator for this valuelist. 
-         Make sure we handle '',? and '/begins' as default */                                                  
-        cOperator   = IF pcOperators = "":U 
-                      OR pcOperators BEGINS "/":U 
-                      OR pcOperators = ?                       
-                      THEN "=":U 
-                      ELSE IF NUM-ENTRIES(pcOperators) = 1 
-                           THEN ENTRY(1,pcOperators,"/":U)                                                 
-                           ELSE ENTRY(iColumn,pcOperators).
-        
-         
-      /* Convert rowObject reference to db reference */
-      IF cColumn BEGINS "RowObject" + "." THEN        
-        cColumn =  DYNAMIC-FUNCTION("columnDBColumn":U IN TARGET-PROCEDURE,
-                                    ENTRY(2,cColumn,".":U)) NO-ERROR.                                      
-      
-      /* Unqualified fields will use the first buffer that has a match
-         because the columnDataType below searches all buffers in the query */           
-      ELSE IF INDEX(cColumn,".":U) = 0 THEN       
-        cColumn = cBuffer + ".":U + cColumn.  
-     
-      /* Wrong buffer */
-      IF NOT (cColumn BEGINS cBuffer + ".":U) THEN 
-      DO: 
-        /* If the column db qualification does not match the query's we do 
-           an additionl check to see if it is the correct table after all */                                
-        IF NUM-ENTRIES(cColumn,".":U) - NUM-ENTRIES(cBuffer,".":U) <> 1 THEN
-        DO:
-          IF {fnarg columnTable cColumn} <> cBuffer THEN 
-            NEXT ColumnLoop.  
-        END.
-        ELSE
-          NEXT ColumnLoop.
-      END.
-
-      cColumnName = ENTRY(NUM-ENTRIES(cColumn,".":U),cColumn,".":U).
-      
-        
-      cQueryColOp = cOperator.
-      
-      cQueryColOp = TRIM(     IF cQueryColOp = "GE":U THEN ">=":U
-                             ELSE IF cQueryColOp = "LE":U THEN "<=":U
-                             ELSE IF cQueryColOp = "LT":U THEN "<":U
-                             ELSE IF cQueryColOp = "GT":U THEN ">":U
-                             ELSE IF cQueryColOp = "EQ":U THEN "=":U
-                             ELSE    cQueryColOp).
-      
-      cStringOp   = IF NUM-ENTRIES(pcOperators) = 1 
-                    AND NUM-ENTRIES(pcOperators,"/":U) = 2  
-                    THEN ENTRY(2,pcOperators,"/":U)
-                    ELSE "":U.                                                 
-      
-      /* First check if this was a string with stringoperator */  
-      IF cStringOp <> "":U THEN  
-        iPos        = LOOKUP(cColumnName + ".":U + cStringOp,cQueryBufCols).
-      ELSE iPos = 0.
-      
-      IF iPos = 0 THEN
-        iPos        = LOOKUP(cColumnName + ".":U + cQueryColOp,cQueryBufCols).
-      
-    
-        /* If the column + operator was found in the list
-           we build a list of the columns to remove from the QueryString further 
-           down.
-           We also build a list of the numbers to remove. */         
-      IF iPos > 0 THEN
-      DO:        
-        ASSIGN
-            iLowestChanged = MIN(iPos,IF iLowestChanged = 0 
-                                      THEN iPos 
-                                      ELSE iLowestChanged)
-            cRemoveList   = cRemoveList 
-                            + (IF cRemoveList = "":U THEN "":U ELSE ",":U)
-                            + STRING(INT((iPos - 1) / 3 + 1))     
-             cUsedNums     = cUsedNums
-                            + (IF cUsedNums = "":U THEN "":U ELSE ",":U)
-                            + STRING(iColumn). 
-     
-      END. /* IF ipos > 0 */           
-    END. /* do icolumn = 1 to  */ 
-    
-    /* Get the buffers position in the where clause (always the
-       first entry in a dynamic query because there's no 'of <external>')*/ 
-    ASSIGN
-      iWhereBufPos = INDEX(cQueryString + " "," ":U + cBuffer + " ":U)
-      iPos         = INDEX(cQueryString,      " ":U + cBuffer + ",":U)
-      iWhereBufPos = (IF iWhereBufPos > 0 AND iPos > 0
-                      THEN MIN(iPos,iWhereBufPos) 
-                      ELSE MAX(iPos,iWhereBufPos))
-                      + 1
-      iDiff        = 0
-      cNewCols     = "":U.                          
-
-    IF iLowestChanged > 0 THEN 
-    DO iColumn = 1 TO NUM-ENTRIES(cQueryBufCols) - 2 BY 3:       
-      
-      ASSIGN
-        iValPos      = INT(ENTRY(iColumn + 1,cQueryBufCols))
-        iValLength   = INT(ENTRY(iColumn + 2,cQueryBufCols))
-        iValPos      = iValPos - iDiff.
-      
-      /* Remove value, operator, columnname and eventual AND in the
-         parenthesized expression. If it's the last expression in the parenthesis
-         we also remove it and any AND/OR after or WHERE/AND/OR before. */
-           
-      IF CAN-DO(cRemoveList,STRING(INT((iColumn - 1) / 3 + 1))) THEN       
-      DO:
-         ASSIGN 
-          /*Split query in two, remove value quotes and blanks */
-          cQuerySplit1 = 
-     RIGHT-TRIM(SUBSTR(cQueryString,1,iValPos + iWhereBufPos - 1)," '~"":U) 
-          cQuerySplit2 =
-     LEFT-TRIM(SUBSTR(cQueryString,iValPos + iWhereBufPos + iVallength)," '~"":U) 
-
-          /* Count words in left part */
-          iNumWords   = NUM-ENTRIES(cQuerySplit1," ":U)
-         
-          /* Remove Operator */ 
-          ENTRY(iNumWords,cQuerySplit1," ":U) = "":U
-           
-          cQuerySplit1 = RIGHT-TRIM(cQuerySplit1," ":U)
-          
-          /* find columnname */
-          cWord       = ENTRY(iNumWords - 1,cQuerySplit1," ":U).
-             
-         /* if columnname has parenthesis this is the beginning of an exp */
-         IF cWord BEGINS "(":U THEN
-         DO:
-           /* We are removing the first column/value pair in the parenthesis*/
-           IF cQuerySplit2 BEGINS "AND":U THEN
-           DO:
-             /* Remove the previous word (columnname), but keep parenthesis */
-             ENTRY(iNumWords - 1,cQuerySplit1," ":U) = "(":U.
-             
-             /* Remove AND in right part */
-             ENTRY(1,cQuerySplit2," ":U) = "":U.
-             cQuerySplit2 = LEFT-TRIM(cQuerySplit2," ":U).
-           END.  /* if cquerysplit2 begins and */
-           ELSE IF cQuerySplit2 BEGINS ") ":U THEN
-           DO:
-             /* Remove columnname and parenthesises around the expression */
-             ENTRY(iNumWords - 1,cQuerySplit1," ":U) = "":U.
-             cQuerySplit1 = RIGHT-TRIM(cQuerySplit1," ":U).
-             cQuerySplit2 = LEFT-TRIM(SUBSTR(cQuerySplit2,2)," ":U).
-             
-             cWord = ENTRY(iNumWords - 2,cQuerySplit1," ":U).
-             
-             /* Now remove AND or OR used to join an eventual expression */ 
-             IF cQuerySplit2 BEGINS "AND ":U OR cQuerySplit2 BEGINS "OR ":U THEN
-               ENTRY(1,cQuerySplit2," ":U) = "":U.
-             
-             /* There were no and after, so remove WHERE,AND or OR before */  
-             ELSE IF CAN-DO("WHERE,AND,OR":U,cWord) THEN
-               ENTRY(iNumWords - 2,cQuerySplit1," ":U) = "":U.                                  
-             
-             /* No where/and/or or and/or removed so add a blank before we join
-                the splitted query  */
-             ELSE cQuerySplit2 = " ":U + cQuerySplit2.
-           
-           END.             
-         END. /* word begins '(' */ 
-         ELSE 
-         DO: 
-           /* Now remove the prev word (columnname) */
-           ENTRY(iNumWords - 1,cQuerySplit1," ":U) = "":U.
-           
-           /* Remove blanks in order to find the prev word */
-           cQuerySplit1 = RIGHT-TRIM(cQuerySplit1," ":U).
-           
-           /* Now remove AND */
-           ENTRY(iNumWords - 2,cQuerySplit1," ":U) = "":U.          
-           
-           /* If we removed the last column/value pair,
-              we leave no space between the parenthesis */
-           IF cQuerySplit2 BEGINS ")":U THEN 
-             cQuerySplit1 = RIGHT-TRIM(cQuerySplit1).  
-         END.  
-         /* Keep track of shrinkage */          
-         iDiff = iDiff + (LENGTH(cQueryString) 
-                           - LENGTH(cQuerySplit1 + cQuerySplit2)).   
-         
-         cQueryString = cQuerySplit1 + cQuerySplit2.  
-      END. /* if can-do(cRemoveList,... */       
-      
-      ELSE  /* not removed, store the position adjusted for shrinkage  */
-        cNewCols = cNewCols 
-                   + (IF cNewCols = "":U THEN "":U ELSE ",":U)
-                   + ENTRY(icolumn,cQueryBufCols)
-                   + ",":U
-                   + STRING(iValPos)
-                   + ",":U
-                   + (ENTRY(iColumn + 2,cQueryBufCols)).
-    
-    END. /* else if ilowestchanged do icolumn = ilowestChanged to num-entries */  
-    
-    IF cNewCols <> "" THEN 
-    DO:
-      ENTRY(iBufPos + 1,cQueryColumns,":":U) = cNewCols.        
-    END.
-    ELSE IF iLowestChanged > 0 THEN
-      ASSIGN
-        ENTRY(iBufPos,cQueryColumns,":":U) = "":U
-        ENTRY(iBufPos + 1,cQueryColumns,":":U) = "":U
-        cQueryColumns = TRIM(REPLACE(cQueryColumns,":::":U,":":U),":":U).
-  END.  
-  &SCOPED-DEFINE xp-assign
-  {set QueryColumns cQueryColumns}
-  {set QueryString cQueryString}.
-  &UNDEFINE xp-assign
-  
-  RETURN TRUE.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 /* Procedure Description
 "The Dialog-Box for TableIO SmartPanels
 
@@ -9,36 +9,20 @@ This dialog-box is used to set the TableIO SmartPanel-specific attributes during
 &Scoped-define FRAME-NAME SP-attr-dialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS SP-attr-dialog 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*------------------------------------------------------------------------
 
-  File: u-paneld.w
+  File: adm2/support/toold.w
 
   Description: ADM2 Dialog for getting setable attributes of a Smarttoolbar
                
 
   Input Parameters:
-      Handle of the calling SmartPanel.
+      Handle of the calling toolbar.
 
   Output Parameters:
       <none>
@@ -84,9 +68,12 @@ DEFINE VARIABLE gcImagePath           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glUseRepository       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcInitToolbar         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcEditSingleInstance  AS CHARACTER  NO-UNDO.
+
 DEFINE VARIABLE xcToolbarObjectType   AS CHARACTER  NO-UNDO INIT 'SmartToolbar'. /* Note this variable gets reassigned in getToolbars */
 DEFINE VARIABLE xdScrollToggleHeight  AS DECIMAL    NO-UNDO INIT 0.72.
 DEFINE VARIABLE xdScrollToggleCol     AS DECIMAL    NO-UNDO INIT 1.12.
+DEFINE VARIABLE xdToggleWidth         AS DECIMAL    NO-UNDO INIT 2.0.
+DEFINE VARIABLE xiVertScrollbarWidth  AS INTEGER    NO-UNDO INIT 18.
 
 DEFINE VARIABLE cSubModules AS CHARACTER NO-UNDO.
 DEFINE VARIABLE v-SPtype AS CHARACTER NO-UNDO.
@@ -188,7 +175,7 @@ bPAge:HIDDEN IN FRAME {&FRAME-NAME} = TRUE.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME SP-attr-dialog
 
 /* Standard List Definitions                                            */
@@ -253,6 +240,18 @@ FUNCTION createMenuBands RETURNS LOGICAL
   (pcBand             AS CHARACTER,
    INPUT-OUTPUT pdRow AS DECIMAL,
    pdCol              AS DECIMAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createText SP-attr-dialog 
+FUNCTION createText RETURNS HANDLE
+  ( phFrame     AS HANDLE,
+    plSelection AS LOGICAL,
+    pcType      AS CHARACTER,
+    pcLabel     AS CHARACTER,
+    pdRow       AS DECIMAL,
+    pdCol       AS DECIMAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -430,15 +429,15 @@ DEFINE VARIABLE ldeactivateTargetOnHide AS LOGICAL
      SIZE 35.4 BY 1.62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 95.4 BY 2.38.
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 96 BY 2.38.
 
 DEFINE RECTANGLE rMenu
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 54.8 BY 7.71.
 
 DEFINE RECTANGLE rToolbar
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 39.8 BY 7.71.
 
 DEFINE VARIABLE lAutoSize AS LOGICAL INITIAL no 
@@ -514,33 +513,15 @@ DEFINE FRAME SP-attr-dialog
      fiActionLabel AT ROW 14.57 COL 42.8 COLON-ALIGNED NO-LABEL
      fiMenuBandLabel AT ROW 9.91 COL 44.6 COLON-ALIGNED NO-LABEL
      fiCategoryLabel AT ROW 14.52 COL 1.6 COLON-ALIGNED NO-LABEL
+     "Deactivation of link to hidden target" VIEW-AS TEXT
+          SIZE 35.2 BY .62 AT ROW 3.1 COL 5.4
      RECT-1 AT ROW 3.38 COL 3.4
      rMenu AT ROW 6.38 COL 44.8
      rToolbar AT ROW 6.38 COL 3.4
-     "Deactivation of link to hidden target" VIEW-AS TEXT
-          SIZE 35.2 BY .62 AT ROW 3.1 COL 5.4
-     SPACE(60.79) SKIP(18.94)
+     SPACE(57.39) SKIP(8.15)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartToolbar Properties".
-
-DEFINE FRAME frMenubands
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 46.6 ROW 10.57
-         SIZE 50.4 BY 2.86.
-
-DEFINE FRAME frToolbarBands
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 5.2 ROW 10.57
-         SIZE 35.4 BY 2.86.
-
-DEFINE FRAME frActions
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 44.8 ROW 15.24
-         SIZE 54.6 BY 6.67.
 
 DEFINE FRAME frMain
      c_SDOList AT ROW 3.38 COL 9 NO-LABEL
@@ -550,6 +531,24 @@ DEFINE FRAME frMain
          SIDE-LABELS NO-UNDERLINE 
          AT COL 3.4 ROW 15.24
          SIZE 39 BY 6.67.
+
+DEFINE FRAME frActions
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 44.8 ROW 15.24
+         SIZE 53.8 BY 6.67.
+
+DEFINE FRAME frToolbarBands
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 5.2 ROW 10.57
+         SIZE 35.4 BY 2.86.
+
+DEFINE FRAME frMenubands
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 46.6 ROW 10.57
+         SIZE 50.4 BY 2.86.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -596,7 +595,7 @@ ASSIGN
 /* SETTINGS FOR FRAME frToolbarBands
                                                                         */
 /* SETTINGS FOR DIALOG-BOX SP-attr-dialog
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 
 DEFINE VARIABLE XXTABVALXX AS LOGICAL NO-UNDO.
 
@@ -784,7 +783,7 @@ END.
 &Scoped-define FRAME-NAME SP-attr-dialog
 &Scoped-define SELF-NAME iMenuMergeOrder
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iMenuMergeOrder SP-attr-dialog
-ON ANY-PRINTABLE OF iMenuMergeOrder IN FRAME SP-attr-dialog /* Merge order */
+ON ANY-PRINTABLE OF iMenuMergeOrder IN FRAME SP-attr-dialog
 DO:
   IF KEYFUNCTION(LASTKEY) = '0' THEN
     RETURN NO-APPLY.
@@ -1274,18 +1273,48 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE onClick SP-attr-dialog 
 PROCEDURE onClick :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose: Category trigger that ensures that click only fires valuechanged
+           when clicking on the actual visible toggle      
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcType  AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pcName  AS CHAR NO-UNDO.
-
-  IF LAST-EVENT:COL < SELF:COL + 4  THEN
+   
+  
+  IF LAST-EVENT:COL <= SELF:COL + xdToggleWidth THEN
     RUN onValueChanged(pctype,pcName).
-  ELSE SELF:CHECKED = CAN-DO(gcActionGroups,pcName)
-                      OR  glUseRepository AND NOT {fnarg canfindCategory pcNAME p_hSMO}.
 
+  /* keep as-is if click on text */
+  ELSE IF NOT glUseRepository OR {fnarg canfindCategory pcNAME p_hSMO} THEN
+  DO:
+    SELF:CHECKED =  NOT SELF:CHECKED.
+  END.
+  ELSE /* keep checked if not a category - <none> */
+    SELF:CHECKED = TRUE .
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE onDblClick SP-attr-dialog 
+PROCEDURE onDblClick :
+/*------------------------------------------------------------------------------
+  Purpose: Category trigger that ensures that click only fires valuechanged
+           when clicking on the actual visible toggle      
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER pcType  AS CHARACTER  NO-UNDO.
+  DEFINE INPUT PARAMETER pcName  AS CHAR NO-UNDO.
+  
+  SELF:CHECKED = NOT SELF:CHECKED. 
+  
+  RUN onValueChanged(pcType,pcName).
+  
   RETURN.
 
 END PROCEDURE.
@@ -1327,6 +1356,7 @@ PROCEDURE onEntry :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+ 
   DEFINE INPUT  PARAMETER h AS HANDLE     NO-UNDO.
   FIND tAction WHERE tAction.Hdl = h NO-ERROR.
   IF AVAIL taction THEN
@@ -1411,7 +1441,7 @@ PROCEDURE onValueChanged :
       DO:
         tAction.Hdl:CHECKED = TRUE.
       END.
-      
+  
       RUN enableActionWidgets(pcName,tAction.Hdl:CHECKED).
     
       IF SELF:CHECKED AND NOT CAN-DO(gcActionGroups,pcName) THEN
@@ -2133,6 +2163,60 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createText SP-attr-dialog 
+FUNCTION createText RETURNS HANDLE
+  ( phFrame     AS HANDLE,
+    plSelection AS LOGICAL,
+    pcType      AS CHARACTER,
+    pcLabel     AS CHARACTER,
+    pdRow       AS DECIMAL,
+    pdCol       AS DECIMAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hTxt AS HANDLE     NO-UNDO.
+  
+  pcLabel = CAPS(SUBSTR(pcLabel,1,1)) + LC(SUBSTR(pcLabel,2)). 
+
+  CREATE TEXT hTxt
+  ASSIGN 
+      FRAME        = phFrame
+      FORMAT       = "X(60)"
+      SCREEN-VALUE = pcLabel 
+      SENSITIVE = FALSE 
+      HIDDEN  = TRUE
+      HEIGHT  = xdScrollToggleHeight.
+
+   IF plSelection THEN                                                                                           
+   DO:  
+                                                                                                        
+    /* The required triggers are defined on the toggle and works when 
+       clicking on the text, since the text does not receive any event 
+      The size is adjusted in viewContents in order to avoid horizontal 
+      scrollbars if vertical scrollbars are needed  */ 
+/*     ON "LEFT-MOUSE-DBLCLICK":U OF hTxt PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType, TRIM(pcLabel)). */
+/*     ON "LEFT-MOUSE-CLICK":U    OF hTxt PERSISTENT RUN onClick        IN THIS-PROCEDURE (pcType, TRIM(pcLabel)). */
+/*     ON "ENTRY":U               OF hTxt PERSISTENT RUN onEntry        IN THIS-PROCEDURE (hTxt).                  */
+/*     ON "LEAVE":U               OF hTxt PERSISTENT RUN onLeave        IN THIS-PROCEDURE (hTxt).                  */
+/*     ON "CURSOR-RIGHT":U        OF hTxt PERSISTENT RUN onDown         IN THIS-PROCEDURE (hTxt).                  */
+/*     ON "CURSOR-DOWN":U         OF hTxt PERSISTENT RUN onDown         IN THIS-PROCEDURE (hTxt).                  */
+/*     ON "CURSOR-LEFT":U         OF hTxt PERSISTENT RUN onUp           IN THIS-PROCEDURE (hTxt).                  */
+/*     ON "CURSOR-UP":U           OF hTxt PERSISTENT RUN onUp           IN THIS-PROCEDURE (hTxt).                  */
+                                                                                                        
+  END.                                                                                                  
+
+  ASSIGN
+      hTxt:COL = pdCol
+      hTxt:ROW = pdRow  NO-ERROR.
+
+  RETURN hTxt.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createToggle SP-attr-dialog 
 FUNCTION createToggle RETURNS HANDLE
   ( phFrame     AS HANDLE,
@@ -2146,20 +2230,29 @@ FUNCTION createToggle RETURNS HANDLE
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hToggle AS HANDLE     NO-UNDO.
-
+  
   pcLabel = CAPS(SUBSTR(pcLabel,1,1)) + LC(SUBSTR(pcLabel,2)). 
 
   CREATE TOGGLE-BOX hToggle
   ASSIGN 
       FRAME   = phFrame
-      LABEL   = pcLabel + IF plSelection THEN FILL(" ":U, 100) ELSE "":U
+      LABEL   = IF plSelection THEN '' ELSE pcLabel 
+    /*
+    pcLabel + IF plSelection THEN FILL(" ":U, 100) ELSE "":U
+    */
       HIDDEN  = TRUE
       HEIGHT  = xdScrollToggleHeight.
 
-  /* if Selection add triggers to override default value-changed */ 
-  IF plSelection THEN 
+  /* if Selection add triggers to override default value-changed */
+  IF plSelection THEN
   DO:
-    ON "LEFT-MOUSE-DBLCLICK":U OF hToggle PERSISTENT RUN onValueChanged IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
+    /* Due to the fact that xp-manifest does not support FGCOLOR on toggle  
+       the selecton toggle list was changed to create a separate text widget.
+       These triggers continue to work because the toggle width is adjusted 
+       in viewContents and receives the event also when the text is on top. */  
+     
+    ON "LEFT-MOUSE-DBLCLICK":U OF hToggle PERSISTENT RUN onDblClick
+       IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
     ON "LEFT-MOUSE-CLICK":U    OF hToggle PERSISTENT RUN onClick        IN THIS-PROCEDURE (pcType, TRIM(pcLabel)).
     ON "ENTRY":U               OF hToggle PERSISTENT RUN onEntry        IN THIS-PROCEDURE (hToggle).
     ON "LEAVE":U               OF hToggle PERSISTENT RUN onLeave        IN THIS-PROCEDURE (hToggle).
@@ -2167,8 +2260,6 @@ FUNCTION createToggle RETURNS HANDLE
     ON "CURSOR-DOWN":U         OF hToggle PERSISTENT RUN onDown         IN THIS-PROCEDURE (hToggle).
     ON "CURSOR-LEFT":U         OF hToggle PERSISTENT RUN onUp           IN THIS-PROCEDURE (hToggle).
     ON "CURSOR-UP":U           OF hToggle PERSISTENT RUN onUp           IN THIS-PROCEDURE (hToggle).
-
-    hToggle:WIDTH = phFrame:WIDTH - (pdCol + 2.5).
   END.
 
   ON VALUE-CHANGED OF hToggle
@@ -2177,7 +2268,7 @@ FUNCTION createToggle RETURNS HANDLE
   ASSIGN
       hToggle:COL = pdCol
       hToggle:ROW = pdRow  NO-ERROR.
-
+  
   RETURN hToggle.   /* Function return value. */
 
 END FUNCTION.
@@ -2245,20 +2336,20 @@ FUNCTION initActions RETURNS LOGICAL
   IF gcCurrentCategory <> ? THEN 
   DO:
     FIND tAction WHERE tAction.Name = gcCurrentCategory NO-ERROR.
-    IF AVAIL tAction AND VALID-HANDLE(tAction.Hdl) THEN 
+    IF AVAIL tAction AND VALID-HANDLE(tAction.TxtHdl) THEN 
       ASSIGN 
-        tAction.Hdl:BGCOLOR = ?
-        tAction.hdl:FGCOLOR = ?.
+        tAction.TxtHdl:BGCOLOR = ?
+        tAction.Txthdl:FGCOLOR = ?.
     viewHideActions(gcCurrentCategory, FALSE).
   END.
 
   FIND tAction WHERE tAction.Name = pcCategory NO-ERROR.
   
-  IF AVAIL tAction AND VALID-HANDLE(tAction.Hdl) THEN 
+  IF AVAIL tAction AND VALID-HANDLE(tAction.TxtHdl) THEN 
     ASSIGN 
-      tAction.Hdl:BGCOLOR = 1
-      tAction.hdl:FGCOLOR = 15.
-  
+      tAction.TxtHdl:BGCOLOR = 1
+      tAction.TxtHdl:FGCOLOR = 15.
+       
   lOk = viewHideActions(pcCategory, TRUE).
   
   IF NOT lok THEN
@@ -2312,7 +2403,7 @@ FUNCTION initContents RETURNS LOGICAL
   ASSIGN
     cMenuActions    = DYNAMIC-FUNCTION("getAvailMenuActions" IN p_hSMO)
     cToolbarActions = DYNAMIC-FUNCTION("getAvailToolbarActions" IN p_hSMO).
-
+   
   DO i = 1 TO NUM-ENTRIES(cMenuActions):
     CREATE tAction.    
     ASSIGN 
@@ -2358,6 +2449,12 @@ FUNCTION initContents RETURNS LOGICAL
                                 tAction.NAME,
                                 dRow,
                                 dCol).
+    tAction.Txthdl = createText(FRAME frMain:HANDLE,
+                                YES, /* selection checklist */
+                                'Category':U,
+                                tAction.NAME,
+                                dRow,
+                                dCol + tAction.hdl:COL + xdToggleWidth).
     tAction.hdl:CHECKED   = CAN-DO(pcContents,tAction.Name)
                             /* Checked is true for undefined category
                                (cannot be unchecked) */
@@ -2749,10 +2846,13 @@ FUNCTION viewContents RETURNS LOGICAL
     IF VALID-HANDLE(tAction.hdl) THEN  
     DO:
       IF lScroll = ? THEN
-         lScroll = tAction.Hdl:ROW + taction.Hdl:HEIGHT > FRAME frMain:HEIGHT. 
+        lScroll = tAction.Hdl:ROW + taction.Hdl:HEIGHT > FRAME frMain:HEIGHT. 
       
-      IF NOT lScroll THEN
-         taction.Hdl:WIDTH = FRAME frMain:WIDTH - tAction.Hdl:COL  + 1.
+      taction.Hdl:WIDTH-P = FRAME frMain:WIDTH-P - tAction.Hdl:X 
+                        - (IF lScroll THEN xiVertScrollbarWidth ELSE 0).
+
+      taction.TxtHdl:WIDTH-P = FRAME frMain:WIDTH-P - tAction.TxtHdl:X
+                          - (IF lScroll THEN xiVertScrollbarWidth ELSE 0).
 
       tAction.hdl:HIDDEN = FALSE NO-ERROR.
     END.

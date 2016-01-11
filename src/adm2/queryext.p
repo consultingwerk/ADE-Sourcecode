@@ -210,6 +210,17 @@ FUNCTION getFetchOnOpen RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFirstResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFirstResultRow Procedure 
+FUNCTION getFirstResultRow RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFields Procedure 
@@ -247,6 +258,17 @@ FUNCTION getKeyTableId RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLabel Procedure 
 FUNCTION getLabel RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLastResultRow Procedure 
+FUNCTION getLastResultRow RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -573,6 +595,17 @@ FUNCTION setFetchHasComment RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setFirstResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFirstResultRow Procedure 
+FUNCTION setFirstResultRow RETURNS LOGICAL
+  ( pcFirstResultRow AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyFields Procedure 
@@ -589,6 +622,17 @@ FUNCTION setKeyFields RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setKeyTableId Procedure 
 FUNCTION setKeyTableId RETURNS LOGICAL
   ( pcKeyTableId AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setLastResultRow Procedure 
+FUNCTION setLastResultRow RETURNS LOGICAL
+  ( pcLastResultRow AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1162,6 +1206,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getFirstResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getFirstResultRow Procedure 
+FUNCTION getFirstResultRow RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the FirstResultRow (unknown if first row hasn't been
+            fetched, 1 concatinated with the rowid if it has.)
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cFirstResultRow AS CHARACTER NO-UNDO.
+  {get FirstResultRow cFirstResultRow}.
+  RETURN cFirstResultRow.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignFields Procedure 
@@ -1202,93 +1268,15 @@ FUNCTION getKeyFields RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
   Purpose:  Returns the comma-separated KeyFields property.
-   Params:  The indexInformation will be used to try to figure out the
-            default KeyFields list, but this is currently restricted to cases 
-            where: 
-            - The First Table in the join is the Only enabled table.
-            - All the fields of the index is present is the SDO.             
-            The following index may be selected.                 
-                     
-            1. Primary index if unique.
-            2. First Unique index. 
-            
-            There's currently no check whether the field is mandatory.                                      
+   Params:  none                                    
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cKeyFields     AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cIndexInfo     AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cEnabledTables AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cTables        AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cUniqueList    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cPrimaryList   AS CHAR  NO-UNDO.
-  DEFINE VARIABLE cColumnList    AS CHAR  NO-UNDO.
-  DEFINE VARIABLE iIDx           AS INT   NO-UNDO.
   
-  /* temorary define the xp so we can go directly to the property buffer */
+  /* define the xp temporarily so we can go directly to the property buffer */
   &SCOPED-DEFINE xpKeyFields 
   {get KeyFields cKeyFields}.
   &UNDEFINE xpKeyFields 
-
-  IF cKeyFields = "":U THEN
-  DO:
-    &SCOPED-DEFINE xp-assign
-    {get EnabledTables cEnabledTables}
-    {get Tables cTables}.
-    &UNDEFINE xp-assign
-    
-    /* Currently we only create a default KeyFields when omly one table
-       or ONE enabled table and it's the FIRST table  */
-    IF NUM-ENTRIES(cTables) = 1 
-    OR NUM-ENTRIES(cEnabledTables) = 1 AND cEnabledTables = ENTRY(1,cTables) THEN
-    DO:
-      {get IndexInformation cIndexInfo}.
-      
-      /* check again.... it may have been passed from the server together 
-         with IndexInformation...  */
-      &SCOPED-DEFINE xpKeyFields 
-      {get KeyFields cKeyFields}.
-      &UNDEFINE xpKeyFields 
-
-      IF cIndexInfo <> ? AND cKeyFields = '':U THEN
-      DO:
-        ASSIGN
-          /* Get the unique indexes from the IndexInformation function */
-          cUniqueList  = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                          'unique':U, /* query  */
-                                          'yes':U,     /* table delimiter */
-                                          cIndexInfo)
-          /* only the first table's indexes*/ 
-          cUniqueList = ENTRY(1,cUniqueList,CHR(2))
-      
-          /* Get the primary index(es) from the IndexInformation function */
-          cPrimaryList = DYNAMIC-FUNCTION('indexInformation' IN TARGET-PROCEDURE,
-                                          'primary':U, /* query  */
-                                          'yes':U,     /* table delimiter */
-                                          cIndexInfo)
-        
-          /* only the first table's indexes*/ 
-          cPrimaryList = ENTRY(1,cPrimaryList,CHR(2))
-          .
-
-        /* if the primary index is unique and all fields in SDO 
-          (fields not in the SDO is qualifed ) */
-        IF LOOKUP(cPrimaryList,cUniqueList,CHR(1)) > 0 
-        AND INDEX(cPrimaryList,'.':U) = 0 THEN
-          cKeyFields = cPrimaryList.
-        ELSE /* find the first unique index with all fields in SDO */  
-        DO iIdx = 1 TO NUM-ENTRIES(cUniqueList,CHR(1)):
-          cColumnList = ENTRY(iIdx,cUniquelist,CHR(1)).
-          IF INDEX(cColumnList,'.':U) = 0 THEN
-          DO:
-            cKeyFields = cColumnList.
-            LEAVE.
-          END.
-        END. /* do i = 1 to num-entries cUniqueList */
-        IF cKeyFields > '' THEN
-          {set KeyFields cKeyFields}.
-      END. /* if indexinfo <> */
-    END. /* cinfo <> ? */
-  END. /* KeyFields = '' */
-
+   
   RETURN cKeyFields.
 
 END FUNCTION.
@@ -1313,7 +1301,7 @@ FUNCTION getKeyTableId RETURNS CHARACTER
   &SCOPED-DEFINE xpKeyTableId
   {get KeyTableId cKeyTableId}.
   &UNDEFINE xpKeyTableId
- 
+
   RETURN cKeyTableID.
 
 END FUNCTION.
@@ -1375,6 +1363,28 @@ FUNCTION getLabel RETURNS CHARACTER
   END.
 
   RETURN cLabel.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLastResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getLastResultRow Procedure 
+FUNCTION getLastResultRow RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns the LastResultRow (unknown if last row hasn't been
+            fetched, RowNum concatinated with the rowid if it has.)
+    Notes:  
+------------------------------------------------------------------------------*/
+
+  DEFINE VARIABLE cLastResultRow AS CHARACTER NO-UNDO.
+  {get LastResultRow cLastResultRow}.
+  RETURN cLastResultRow.
 
 END FUNCTION.
 
@@ -2109,6 +2119,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setFirstResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFirstResultRow Procedure 
+FUNCTION setFirstResultRow RETURNS LOGICAL
+  ( pcFirstResultRow AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the FirstResultRow property which is unknow if the first
+            row has not been fetched, otherwise 1 concatinated with the
+            rowid if it has
+   Params:  pcFirstResultRow -- Row-num:RowId of the first row
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set FirstResultRow pcFirstResultRow}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setKeyFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setKeyFields Procedure 
@@ -2151,6 +2183,28 @@ FUNCTION setKeyTableId RETURNS LOGICAL
   {set KeyTableId pcKeyTableId}.
   &UNDEFINE xpKeyTableId
    
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setLastResultRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setLastResultRow Procedure 
+FUNCTION setLastResultRow RETURNS LOGICAL
+  ( pcLastResultRow AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Sets the LastResultRow property which is unknown if the last
+            row has not been fetched, otherwise its rownum concatinated
+            with the rowid if it has
+   Params:  pcLastResultRow -- Row-num:RowId of the last row
+    Notes:  
+------------------------------------------------------------------------------*/
+  {set LastResultRow pcLastResultRow}.
   RETURN TRUE.
 
 END FUNCTION.

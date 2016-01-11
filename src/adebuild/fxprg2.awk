@@ -25,10 +25,10 @@ BEGIN {startwriting=0; rightsetup=0}
     #turn minver from char into number
     minver=minver+0
     
-    #print a list of versions less than 
+    #print a list of versions less than the minver
     while (ver<=minver) {
       if(length(ver)==5)ver="0" ver
-      print "delta " ver
+      print ver " MinimumVersion"
       ver++
     }
   }

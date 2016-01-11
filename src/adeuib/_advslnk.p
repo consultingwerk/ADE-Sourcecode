@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r2 GUI
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _advslnk.p
@@ -824,7 +824,8 @@ PROCEDURE fill-link :
                        (IF opt-cnt > 1 THEN  "," ELSE "") +  
                        "Add. Create link " +
                        (IF link-end eq "Source" THEN "to " ELSE "from ") + 
-                       x_U._SUBTYPE + " " + x_U._NAME + ".," + 
+                        (IF x_U._SUBTYPE EQ "SmartDataObject" AND NOT ({fn getDBAware x_S._handle}) THEN "DataView":U ELSE x_U._SUBTYPE) + /*If subtype=SmartDataObject and db-aware=no is because the SmartObject is a DataView*/
+                       " " + x_U._NAME + ".," + 
                        STRING(RECID(x_U)) + 
                        (IF more-info eq "":U THEN "":U ELSE "|" + more-info).
         
@@ -861,12 +862,13 @@ PROCEDURE fill-link :
          (opt-cnt > 1  AND {&NA-Add-Link2-advslnk} eq NO)
       THEN DO:
         RUN adeuib/_advisor.w (
-        /* Text */        INPUT _U._SUBTYPE + " " + _U._NAME + crecommend + " be a " +
+        /* Text */        INPUT (IF _U._SUBTYPE EQ "SmartDataObject" AND NOT ({fn getDBAware _S._handle}) THEN "DataView":U ELSE _U._SUBTYPE) + /*If subtype=SmartDataObject and db-aware=no is because the SmartObject is a DataView*/
+                                " " + _U._NAME + crecommend + " be a " +
                                 link-type + " " + link-end + 
                                 " for some other SmartObject. " +
                                 CHR(10) + CHR(10) +
                                 "The {&UIB_NAME} can automatically add a " +
-                                link-type + " SmartLink for you." 
+                                link-type + " SmartLink for you."  
                                 ,
         /* Options */     INPUT opt-list + 
                                  /* Decided not to allow Edit option from
@@ -920,7 +922,8 @@ PROCEDURE fill-link :
                  ASSIGN
                     l-srcSTRINGRECID_U = STRING(RECID(xx_U))
                     l-srcU_NAME        = xx_U._NAME
-                    l-srcU_SUBTYPE     = xx_U._SUBTYPE
+                    l-srcU_SUBTYPE     = IF xx_U._SUBTYPE EQ "SmartDataObject" AND NOT ({fn getDBAware xx_S._handle})
+                                            THEN "DataView":U ELSE xx_U._SUBTYPE /*If subtype=SmartDataObject and db-aware=no is because the SmartObject is a DataView*/
                     l-srcS_HANDLE      = xx_S._HANDLE
                     l-destSTRINGRECID_U = STRING(RECID(_U))
                     l-destU_NAME        = _U._NAME
@@ -1050,7 +1053,7 @@ PROCEDURE fill-link :
                                 "to choose an existing " +
                                 IF admVersion LT "ADM2":U THEN 
                                      "SmartQuery":U 
-                                ELSE "SmartDataObject":U +
+                                ELSE "SmartDataObject or DataView":U +
                                 ", or create a new one, and add " +
                                 "it to this " + _P._TYPE + "."
                                 ,

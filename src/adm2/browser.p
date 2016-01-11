@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : browser.p
     Purpose     : Super procedure for SmartDataBrowser objects
@@ -2802,6 +2802,7 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lSBO              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cSourceFieldName  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQual             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cQueryTables      AS CHARACTER   NO-UNDO.
 
   /* store TARGET-PROCEDURE so the source can identify it if it's an SBO */
   ghTargetProcedure = TARGET-PROCEDURE.
@@ -2830,7 +2831,11 @@ PROCEDURE initializeObject :
     .
     &UNDEFINE xp-assign
     lSBO = cSourceType = 'SmartBusinessObject':U.
-    IF VALID-HANDLE(hDataQuery) then
+
+    IF NOT lSBO THEN
+      {get QueryTables cQueryTables hDataSource}.
+
+    IF VALID-HANDLE(hDataQuery) THEN
     DO:
       /* keep track of the SDOs position */
       IF hDataQuery:IS-OPEN THEN
@@ -2912,7 +2917,17 @@ PROCEDURE initializeObject :
            only columns belonging to the default table (or sdo) is added */
         IF cDefaultTable = '' OR INDEX(cSourceFieldName,'.':U) = 0 
         OR ENTRY(1,cSourceFieldName,'.':U) = cDefaultTable THEN
-        DO:  
+        DO:
+
+          /*If the datasource is not a SBO and the field is qualified,
+            is because the data-source is a DataView.
+            If the table of the field is not involved in the query
+            (LOOKUP(ENTRY(1,cfield,'.'),cQueryTables) = 0) then we ignore that field*/
+          IF NOT lSBO AND
+             INDEX(cField, '.':U) > 0 AND
+             LOOKUP(ENTRY(1,cfield,'.'),cQueryTables) = 0 THEN
+            NEXT.
+
           hField = {fnarg columnHandle cSourceFieldName hDataSource}.
           
           /* Add the requested columns to the browse. */
@@ -3930,19 +3945,15 @@ PROCEDURE refreshQuery :
   
   IF VALID-HANDLE(hSource) THEN
   DO:
-    cRowident = DYNAMIC-FUNCTION('getRowIdent':U IN hSource).
-    IF cRowIdent > "":U THEN
-    DO:
-      DO iLoop = 1 TO hBrowse:DOWN:
-        IF hBrowse:IS-ROW-SELECTED(iLoop) THEN
-            LEAVE.
+    IF hBrowse:NUM-SELECTED-ROWS EQ 1 THEN 
+    DO iLoop = 1 TO hBrowse:DOWN:
+      IF hBrowse:IS-ROW-SELECTED(iLoop) THEN
+      DO:
+        hBrowse:SET-REPOSITIONED-ROW(iLoop,"CONDITIONAL":U).
+        LEAVE.
       END.
-      DYNAMIC-FUNCTION('closeQuery' IN hSource).
-      hBrowse:SET-REPOSITIONED-ROW(iLoop,"CONDITIONAL":U).
-      cRows = DYNAMIC-FUNCTION('fetchRowIdent' IN hSource, cRowIdent, '':U).
-      IF cRows = ? THEN
-          RUN fetchFirst IN hSource.
-    END.
+    END.    
+    {fn refreshQuery hSource}.
   END.
 
   hBrowse:REFRESHABLE = YES.

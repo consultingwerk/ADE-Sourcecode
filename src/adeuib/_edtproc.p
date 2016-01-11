@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /*----------------------------------------------------------------------------
@@ -558,7 +542,7 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
   /***********************************************************************/
        
   /* Assign various initial values. */  
-  ASSIGN proc-type  = _P._TYPE + IF _P._template THEN " [Template]" ELSE ""
+  ASSIGN proc-type  = (IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE) + (IF _P._template THEN " [Template]" ELSE "")
          /* Not all procedures have a compile-into, or a OCX-file */
          l_OCX-file = (OPSYS = "WIN32":u) AND _P._FILE-TYPE = "w"
          l_can-run  = _P._FILE-TYPE <> "i" 
@@ -974,7 +958,7 @@ PROCEDURE File_Type_Chk:
       _P._compile:LABEL = "&Compile " + 
                           (IF _P._template THEN "Master ":U ELSE "":U) +
                           "on Save"                                
-      proc-type:SCREEN-VALUE = _P._TYPE + 
+      proc-type:SCREEN-VALUE = (IF _P._TYPE = "SmartDataObject":U AND NOT _P._db-aware THEN "DataView":U ELSE _P._TYPE) + 
                                IF _P._template THEN " [Template]" ELSE ""
       .
 

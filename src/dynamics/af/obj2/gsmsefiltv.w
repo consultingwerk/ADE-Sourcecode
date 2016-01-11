@@ -29,7 +29,7 @@ DEFINE TEMP-TABLE RowObject
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -695,9 +695,9 @@ FUNCTION refreshTree RETURNS LOGICAL
     PUBLISH "filterDataAvailable":U FROM THIS-PROCEDURE ("":U).
 
     RUN repositionToSessionType (INPUT pcReposToSessionType).
-
+    
     ASSIGN
-        cNodeKey = getSessionTypeNodeKey(ENTRY(2, cLabels), {fn getCurrentNodeKey ghContainerSource})
+        cNodeKey = getSessionTypeNodeKey(ENTRY(2, cLabels), DYNAMIC-FUNCTION("getProperty":U IN ghTreeViewOCX, "SELECTEDITEM":U, "":U))
         lSuccess = {fnarg expandNode "cNodeKey, TRUE" ghTreeViewOCX}
         cNodeKey = getSessionTypeNodeKey(ENTRY(1, cLabels), cNodeKey)
         lSuccess = {fnarg selectNode cNodeKey ghTreeViewOCX}.

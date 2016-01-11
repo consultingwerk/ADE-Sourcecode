@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2005,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookupfield.p
     Purpose     : Super procedure for abstract lookup class. 
@@ -427,6 +427,17 @@ FUNCTION newWhereClause RETURNS CHARACTER
    pcExpression AS char,  
    pcWhere      AS CHAR,
    pcAndOr      AS CHAR) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD parentJoinTables Procedure 
+FUNCTION parentJoinTables RETURNS CHARACTER
+  ( pcParentFilterQuery AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1931,29 +1942,20 @@ FUNCTION buildQuery RETURNS CHARACTER
     DEFINE VARIABLE cQueryTables      AS CHARACTER  NO-UNDO.
     DEFINE VARIABLE iLoop             AS INTEGER    NO-UNDO.
 
-    {get BaseQueryString cFieldQuery}.
-    
+    {get BaseQueryString cFieldQuery}.  
     /* Set Parent-Child filter */
     RUN returnParentFieldValues IN TARGET-PROCEDURE (OUTPUT cParentFilterList).
     IF cParentFilterList > "":U THEN 
     DO:
-      {get QueryTables cQueryTables}.
-      IF NUM-ENTRIES(cParentFilterList,"|":U) > 1 
-      AND NUM-ENTRIES(cQueryTables) > 1 THEN
+      cQueryTables = {fnarg parentJoinTables cParentFilterList}.
       DO iLoop = 1 TO NUM-ENTRIES(cParentFilterList,"|":U):
-          IF TRIM(ENTRY(iLoop,cParentFilterList,"|":U)) > "":U THEN
-            cFieldQuery = DYNAMIC-FUNCTION("newWhereClause" IN TARGET-PROCEDURE,
-                                         ENTRY(iLoop,cQueryTables),
-                                         ENTRY(iLoop,cParentFilterList,"|":U),
-                                         cFieldQuery,
-                                         "AND":U).
+        IF TRIM(ENTRY(iLoop,cParentFilterList,"|":U)) > "":U THEN
+           cFieldQuery = DYNAMIC-FUNCTION("newWhereClause" IN TARGET-PROCEDURE,
+                                           ENTRY(iLoop,cQueryTables),
+                                           ENTRY(iLoop,cParentFilterList,"|":U),
+                                           cFieldQuery,
+                                           "AND":U).
       END.
-      ELSE
-          cFieldQuery = DYNAMIC-FUNCTION("newWhereClause" IN TARGET-PROCEDURE,
-                                       ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables),
-                                       cParentFilterList,
-                                        cFieldQuery,
-                                       "AND":U).
     END. /* parentFilter > '' */
 
     /* Process any filter set phrases in the query string */
@@ -2981,6 +2983,34 @@ FUNCTION newWhereClause RETURNS CHARACTER
    cString = cNextWhere.  
  END. /* do while true. */
  RETURN pcWhere.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION parentJoinTables Procedure 
+FUNCTION parentJoinTables RETURNS CHARACTER
+  ( pcParentFilterQuery AS CHAR) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a comma separated list of the tables that corresponds to the 
+           passed ParentFilterQuery. 
+    Notes: This is implemented to separate out old subclass difference from 
+           buildQuery. The dyncombo class joins to the first table while the 
+           dynlookup joins to the last in the case where the query only has one 
+           entry and there's more than one table in the query.
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cQueryTables AS CHARACTER  NO-UNDO.
+ 
+ {get QueryTables cQueryTables}.
+ IF INDEX(pcParentFilterQuery,"|":U) = 0 THEN 
+   RETURN ENTRY(NUM-ENTRIES(cQueryTables),cQueryTables).  
+ ELSE 
+   RETURN cQueryTables.    
 
 END FUNCTION.
 

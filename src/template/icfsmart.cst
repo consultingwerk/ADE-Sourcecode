@@ -22,6 +22,18 @@ DIRECTORY-LIST  .,adm2
 FILTER          *.w,*.r,*.*,b*.*,d*.*,v*.*
 TITLE           Choose a SmartObject
 
+#DataView &Default
+UP-IMAGE-FILE    adeicon/wp_up 24,480
+DOWN-IMAGE-FILE  adeicon/wp_down 24,480
+LABEL            DataView
+NEW-TEMPLATE     ry/tem/rytemstaticdataview.w
+DIRECTORY-LIST   .,adm2
+FILTER           dv*.w,dv*.r,dv*.*,*.*
+TITLE            Choose DataView
+
+*DataView &Dynamic DataView
+USE             adm2/dyndataview.w
+
 *NEW-SMARTOBJECT Static Simple Smart&Object
 TYPE            SmartObject.
 NEW-TEMPLATE    src/adm2/template/smart.w
@@ -48,6 +60,10 @@ USE             adm2/pnavlbl.w
 USE             adm2/pupdsav.w
 *SmartPanel     C&ommit Panel 
 USE             adm2/pcommit.w
+
+*NEW-SMARTOBJECT Static DataView (StaticDataView)
+TYPE		 DataView
+NEW-TEMPLATE     ry/tem/rytemstaticdataview.w
 
 *NEW-SMARTOBJECT Static Smart&DataObject
 TYPE		 SmartDataObject

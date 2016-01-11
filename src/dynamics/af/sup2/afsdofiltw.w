@@ -2240,7 +2240,10 @@ PROCEDURE viewObject :
   
   FIND FIRST ttDataObject.
   IF NOT ttDataObject.tDbAware THEN 
-    EdManualQuery:READ-ONLY = TRUE.
+    ASSIGN EdManualQuery:READ-ONLY = TRUE
+           fiRowsToBatch:SENSITIVE = FALSE
+           toRebuild:SENSITIVE     = FALSE.
+
 
   RUN SUPER.
 

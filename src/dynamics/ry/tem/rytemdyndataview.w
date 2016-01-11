@@ -16,8 +16,8 @@ Use this template to create a new DataView with the assistance of a Wizard. When
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Static DataView Wizard" dTables _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
-/* Static SmartDataObject Wizard
-Welcome to the Static DataView Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
+/* Dynamic DataView Wizard
+Welcome to the Dynamic DataView Wizard! During the next few steps, the wizard will lead you through all the stages necessary to create this type of object. If you cancel the wizard at any time, then all your changes will be lost. Once the wizard is completed, it is possible to recall parts of the wizard using the LIST option from the section editor. Press Next to proceed.
 af/cod/aftemwiziw.w,af/cod/aftemwizpw.w,af/cod/aftemwizew.w 
 */
 /* _UIB-CODE-BLOCK-END */

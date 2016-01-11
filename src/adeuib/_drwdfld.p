@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -507,25 +507,22 @@ DEFINE BUFFER x_S FOR _S.
 
 FOR EACH fld_U WHERE fld_U._PARENT-Recid = RECID(parent_U) AND 
                      fld_U._STATUS <> "DELETED":U NO-LOCK:
-
-    IF fld_U._TABLE > '' THEN
-    DO:
-      IF fld_U._BUFFER = "RowObject":U OR fld_U._TABLE = "RowObject":U THEN
-        ASSIGN cExcludeFields = cExcludeFields + fld_U._NAME + ",":U.
-      ELSE
-        ASSIGN cExcludeFields = cExcludeFields + fld_U._TABLE + ".":U +
+        IF fld_U._subtype = "SmartDataField":U THEN 
+        DO:
+           FIND x_S WHERE RECID(x_S) = fld_U._x-recid. 
+           If dynamic-function('getLocalField' IN X_S._HANDLE) = FALSE then 
+           Do:
+             cFieldName = dynamic-function('getFieldName' IN X_S._HANDLE).
+             ASSIGN cExcludeFields = cExcludeFields + cFieldName + ',' NO-ERROR.
+           End. 
+        END.
+        ELSE IF fld_U._BUFFER = "RowObject":U OR fld_U._TABLE = "RowObject":U THEN
+           ASSIGN cExcludeFields = cExcludeFields + fld_U._NAME + ",":U.
+        ELSE IF fld_U._TABLE > '' THEN
+           ASSIGN cExcludeFields = cExcludeFields + fld_U._TABLE + ".":U +
                                                  fld_U._NAME + ",":U.
     END.
-    /* special case is when the table is ? but the subtype is a smart
-     * data field. We need to go and get the actual field name so we exclude
-     * it from the list too.
-     */
-    ELSE IF fld_U._subtype = "SmartDataField":U THEN DO:
-      FIND x_S WHERE RECID(x_S) = fld_U._x-recid. 
-      cFieldName = dynamic-function('getFieldName' IN X_S._HANDLE).
-      ASSIGN cExcludeFields = cExcludeFields + cFieldName + ',' NO-ERROR.
-    END. /* end else if subtype*/
-END. /* end for each */
+
 ASSIGN cExcludeFields = TRIM(cExcludeFields, ',') NO-ERROR.   
 
 RUN adecomm/_mfldsel.p

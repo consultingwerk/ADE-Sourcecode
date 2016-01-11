@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -41,7 +41,8 @@
       kmcintos Sept 19, 2005 Added processing for events 10500-10611 
                              20050919-021.
       fernando Oct  31, 2005 Support for auditing streamed mode
-      fernando Nov  03, 2005 Support for dump/load audit events                      
+      fernando Nov  03, 2005 Support for dump/load audit events
+      fernando Apr  10, 2006 Adjust reports - _event-detail may now be empty 20060404-014
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -1819,22 +1820,32 @@ PROCEDURE audDataAfterRowFill:
           "Audit Policy changes committed".
     WHEN "10100" OR /* Start DB - _mprosrv */
     WHEN "10101"    /* Stop DB - _mprshut */ THEN DO:
-      cRunOpt = unQuote(hADBuff::_event-detail,
-                        "~"").
+        
+        /* detail info may be empty, in which case, we have nothing to add other than the event itself */
+        IF hADBuff::_event-detail = "" THEN DO:
+            IF cEventId EQ "10100"  THEN
+                cRunOpt = "Started".
+            ELSE
+                cRunOpt = "Shut down".
 
-      IF cEventId EQ "10101" THEN
-         hADBuff::_formatted-event-context = "Database " + cRunOpt.
-      ELSE DO:
+            hADBuff::_formatted-event-context = "Database " + cRunOpt.
 
-         hADBuff::_formatted-event-context = "Database " + ENTRY(1, cRunOpt, ".").
-          
-         ASSIGN i = INDEX (cRunOpt, ".").
+        END.
+        ELSE DO:
+        
+              cRunOpt = unQuote(hADBuff::_event-detail, "~"").
 
-         hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-            ", with effective parameters " + QUOTER (TRIM(SUBSTRING(cRunOpt, i + 2))).
-
-      END.
-
+              IF cEventId EQ "10101" THEN
+                 hADBuff::_formatted-event-context = "Database " + cRunOpt.
+              ELSE DO:
+        
+                     hADBuff::_formatted-event-context = "Database " + ENTRY(1, cRunOpt, ".").
+                  
+                     ASSIGN i = INDEX (cRunOpt, ".")
+                                  hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                                            ", with effective parameters " + QUOTER (TRIM(SUBSTRING(cRunOpt, i + 2))).
+              END.
+        END.
     END.
     WHEN "10202" OR /* Binary Dump - proutil dump */
     WHEN "10203" OR /* Binary Load - proutil load */
@@ -1885,7 +1896,7 @@ PROCEDURE audDataAfterRowFill:
           cUser + " performed a " + cCommand + " operation on the database" +
           cVerb + cToEntity + ".".
       ELSE
-       hADBuff::_formatted-event-context = cRunOpt.
+       hADBuff::_formatted-event-context = cCommand + " operation performed on the database. "  + cRunOpt.
 
       hADBuff::_event-detail            = cRunOpt.
     END.
@@ -1951,35 +1962,38 @@ PROCEDURE audDataAfterRowFill:
                       "Audit data dumped from database " +
                       QUOTER(hADBuff::_event-context).
 
-        IF LOOKUP("auditarchive", hADBuff::_Event-Detail, " ") > 0 THEN DO:
-           i = INDEX(hADBuff::_Event-Detail,"auditarchive") + 12.
-
-           hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-                    ', through the "audit archive" utility'.
-
-           cCommand = TRIM(SUBSTRING(hADBuff::_Event-Detail,i)).
-           IF cCommand NE "" THEN
+        /* event detail may be empty */
+        IF  hADBuff::_Event-Detail NE "" THEN DO:
+        
+            IF LOOKUP("auditarchive", hADBuff::_Event-Detail, " ") > 0 THEN DO:
+               i = INDEX(hADBuff::_Event-Detail,"auditarchive") + 12.
+    
                hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-               ", with options " + QUOTER(cCommand).
-           ELSE
+                        ', through the "audit archive" utility'.
+    
+               cCommand = TRIM(SUBSTRING(hADBuff::_Event-Detail,i)).
+               IF cCommand NE "" THEN
+                   hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                   ", with options " + QUOTER(cCommand).
+               ELSE
+                   hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                   ", with no optional parameters".
+    
+            END.
+    
+            IF ENTRY(1,hADBuff::_Event-Detail," ") = "Data" AND
+               ENTRY(2,hADBuff::_Event-Detail," ") = "Administration" THEN DO:
+    
                hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-               ", with no optional parameters".
-
+                        ', through the "Data Administration" tool'.
+    
+               /* log the date range if specified */
+               IF NUM-ENTRIES(hADBuff::_Event-Detail," ") = 4 THEN
+                   hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                         " (date range: " + ENTRY(3,hADBuff::_Event-Detail," ") +
+                         " " + ENTRY(4,hADBuff::_Event-Detail," ")  + ").".
+            END.
         END.
-
-        IF ENTRY(1,hADBuff::_Event-Detail," ") = "Data" AND
-           ENTRY(2,hADBuff::_Event-Detail," ") = "Administration" THEN DO:
-
-           hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-                    ', through the "Data Administration" tool'.
-
-           /* log the date range if specified */
-           IF NUM-ENTRIES(hADBuff::_Event-Detail," ") = 4 THEN
-               hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-                     " (date range: " + ENTRY(3,hADBuff::_Event-Detail," ") +
-                     " " + ENTRY(4,hADBuff::_Event-Detail," ")  + ").".
-        END.
-
     END.
     WHEN "10302" THEN DO: /* Load Audit Data */
         cRunOpt = formatCommandLine(hADBuff::_event-detail).
@@ -2000,27 +2014,38 @@ PROCEDURE audDataAfterRowFill:
                       "Audit data loaded into database " +
                       QUOTER(hADBuff::_event-context).
 
-        IF ENTRY(1,hADBuff::_Event-Detail," ") = "Data" AND
-           ENTRY(2,hADBuff::_Event-Detail," ") = "Administration" THEN
-           hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-                    ', through the "Data Administration" tool'.
-        ELSE
-           hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
-                     ', through the "audit archive" utility'.
-
+        /* event detail may be empty */
+        IF  hADBuff::_Event-Detail NE "" THEN DO:
+            IF ENTRY(1,hADBuff::_Event-Detail," ") = "Data" AND
+               ENTRY(2,hADBuff::_Event-Detail," ") = "Administration" THEN
+               hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                        ', through the "Data Administration" tool'.
+            ELSE
+               hADBuff::_formatted-event-context = hADBuff::_formatted-event-context +
+                         ', through the "audit archive" utility'.
+        END.
     END.
     WHEN "10303" OR           /* Dump Audit Policy */
     WHEN "10304" THEN DO:     /* Load Audit Policy */ 
 
       ASSIGN cCommand = REPLACE(SUBSTRING(hADBuff::_event-context,INDEX(hADBuff::_event-context,".") + 1), CHR(7), ", ").
 
-      IF cEventId = "10303" THEN
-          cVerb = " of database " + ENTRY(1,hADBuff::_event-detail) + " dumped".
-      ELSE
-          cVerb = " loaded into database " + ENTRY(1,hADBuff::_event-detail).
-
-        hADBuff::_formatted-event-context = "Audit Policy " + 
-                  QUOTER(cCommand) + cVerb + ", from " + QUOTER(ENTRY(1, hADBuff::_event-context, ".")).
+      IF hADBuff::_event-detail NE "" THEN DO:
+      
+          IF cEventId = "10303" THEN
+              cVerb = " of database " + ENTRY(1,hADBuff::_event-detail) + " dumped".
+          ELSE
+              cVerb = " loaded into database " + ENTRY(1,hADBuff::_event-detail).
+      END.
+      ELSE DO:
+          IF cEventId = "10303" THEN
+              cVerb = " dumped".
+          ELSE
+              cVerb = " loaded".
+     END.
+     
+     hADBuff::_formatted-event-context = "Audit Policy " + 
+               QUOTER(cCommand) + cVerb + ", from " + QUOTER(ENTRY(1, hADBuff::_event-context, ".")).
 
       IF NUM-ENTRIES(hADBuff::_event-detail) > 1 THEN
          cVerb = ", in " + ENTRY(2,hADBuff::_event-detail) + " format".

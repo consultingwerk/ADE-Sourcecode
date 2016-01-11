@@ -30,12 +30,12 @@ DEFINE TEMP-TABLE RowObject
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: gsmndviewv.w
 
@@ -168,7 +168,7 @@ DEFINE BUTTON buFindPhysical
 DEFINE VARIABLE coDataSourceType AS CHARACTER FORMAT "X(256)" INITIAL "SDO" 
      LABEL "Data source type" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "SDO/SBO","SDO",
+     LIST-ITEM-PAIRS "SDO/SBO/DataView","SDO",
                      "Extract Program","PRG",
                      "Menu Structure","MNU",
                      "Plain Text","TXT"
@@ -226,12 +226,12 @@ DEFINE FRAME frMain
           LABEL "Data source type"
           VIEW-AS FILL-IN 
           SIZE 8.6 BY 1
-     cPlainText AT ROW 7.29 COL 28.2 COLON-ALIGNED
-     cExtractProgram AT ROW 7.29 COL 28.2 COLON-ALIGNED
      RowObject.data_source AT ROW 7.29 COL 28.2 COLON-ALIGNED
           LABEL "Data source"
           VIEW-AS FILL-IN 
           SIZE 78.4 BY 1
+     cExtractProgram AT ROW 7.29 COL 28.2 COLON-ALIGNED
+     cPlainText AT ROW 7.29 COL 28.2 COLON-ALIGNED
      buFindPhysical AT ROW 7.33 COL 104.2
      fiSDOChildren AT ROW 8.81 COL 103 COLON-ALIGNED NO-LABEL
      fiChar AT ROW 9.76 COL 80.2 NO-LABEL
@@ -573,16 +573,13 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelData SourceFieldTooltipSelect Data Source SDO/SBO nameKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
-                     WHERE gsc_object_type.object_type_code = "SDO":U
-                     OR gsc_object_type.object_type_code = "DYNSDO":U
-                     OR gsc_object_type.object_type_code = "SBO":U,
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelData SourceFieldTooltipSelect Data Source SDO/SBO nameKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK,
                      EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.OBJECT_type_obj = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
                      WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj
                      AND [&FilterSet=|&EntityList=GSCPM,RYCSO]
-                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filenameQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsgsc_product_module.product_module_code,ryc_smartobject.object_filename,ryc_smartobject.object_description,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,characterBrowseFieldFormatsX(35)|X(70)|X(35)|X(70)RowsToBatch200BrowseTitleData Source LookupViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldfiSDOChildrenParentFilterQueryLOOKUP(gsc_object_type.object_type_code, "&1") > 0MaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldNamecSDODataSourceDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_DataSource ).
        RUN repositionObject IN h_DataSource ( 7.29 , 30.20 ) NO-ERROR.
        RUN resizeObject IN h_DataSource ( 1.00 , 50.00 ) NO-ERROR.
@@ -668,7 +665,7 @@ PROCEDURE adm-create-objects :
        RUN adjustTabOrder ( h_ParentNodeCode ,
              RowObject.node_description:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_DataSource ,
-             cExtractProgram:HANDLE IN FRAME frMain , 'AFTER':U ).
+             cPlainText:HANDLE IN FRAME frMain , 'AFTER':U ).
        RUN adjustTabOrder ( h_MenuCode ,
              h_DataSource , 'AFTER':U ).
        RUN adjustTabOrder ( h_primarySDO ,
@@ -922,9 +919,10 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE VARIABLE hDesignManager AS HANDLE      NO-UNDO.
 
-  ASSIGN fiSDOChildren:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "Data")
-         fiSDOChildren:SCREEN-VALUE = fiSDOChildren:SCREEN-VALUE + "," + DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "SBO")
+  ASSIGN hDesignManager = DYNAMIC-FUNCTION('getManagerHandle':U IN TARGET-PROCEDURE, INPUT "RepositoryDesignManager":U)
+         fiSDOChildren:SCREEN-VALUE IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getDataSourceClasses":U IN hDesignManager)
          fiSDOChildren.
   /* Code placed here will execute PRIOR to standard behavior. */
   
@@ -1034,3 +1032,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+

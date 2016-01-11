@@ -74,12 +74,6 @@ FUNCTION setEmbeddedWindow RETURNS LOGICAL
           hWindow     AS HANDLE)
          IN hOEIDEService.
          
-FUNCTION addWindow RETURNS LOGICAL 
-         (viewId      AS CHARACTER,
-          secondaryId AS CHARACTER,
-          hWindow     AS HANDLE)
-         IN hOEIDEService.
-         
 FUNCTION getProjectName RETURNS CHARACTER 
          ()
          IN hOEIDEService.
