@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdfill.p
@@ -121,15 +121,16 @@ END.
        
 
 ASSIGN _U._SUBTYPE             = pcSubtype
-       _F._DATA-TYPE           = IF {&AFF_data-type} = "1" THEN "Character" ELSE
-                                 IF {&AFF_data-type} = "2" THEN "Date" ELSE
-                                 IF {&AFF_data-type} = "3" THEN "Logical" ELSE
-                                 IF {&AFF_data-type} = "4" THEN "Integer" ELSE
-                                 IF {&AFF_data-type} = "5" THEN "Decimal" ELSE
-                                 IF {&AFF_data-type} = "7" THEN "RECID" ELSE
-                                 IF {&AFF_data-type} = "34" THEN "Datetime" ELSE
-                                 IF {&AFF_data-type} = "40" THEN "Datetime-Tz" ELSE
-                                                             "WIDGET-HANDLE"
+       _F._DATA-TYPE           = IF {&AFF_data-type} = "1"  THEN "Character":U ELSE
+                                 IF {&AFF_data-type} = "2"  THEN "Date":U ELSE
+                                 IF {&AFF_data-type} = "3"  THEN "Logical":U ELSE
+                                 IF {&AFF_data-type} = "4"  THEN "Integer":U ELSE
+                                 IF {&AFF_data-type} = "5"  THEN "Decimal":U ELSE
+                                 IF {&AFF_data-type} = "7"  THEN "RECID":U ELSE
+                                 IF {&AFF_data-type} = "34" THEN "Datetime":U ELSE
+                                 IF {&AFF_data-type} = "40" THEN "Datetime-Tz":U ELSE
+                                 IF {&AFF_data-type} = "41" THEN "INT64":U ELSE
+                                                            "WIDGET-HANDLE":U
        _U._ALIGN               = IF f_side_labels       THEN "C" ELSE "L"
        _F._FORMAT              = {&AFF_format}
        _F._FORMAT-ATTR         = IF {&AFF_format-sa} ne ? 

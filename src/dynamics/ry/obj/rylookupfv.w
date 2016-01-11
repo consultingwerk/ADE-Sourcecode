@@ -19,12 +19,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: rylookupfv.w
 
@@ -491,6 +488,7 @@ CREATE BROWSE ghBrowse
               ALLOW-COLUMN-SEARCHING = TRUE
               READ-ONLY        = NO
               QUERY            = ghQuery
+              name             = 'LookupFilterBrowser':u
         TRIGGERS:            
           ON 'row-leave':U
             PERSISTENT RUN rowLeave IN THIS-PROCEDURE.

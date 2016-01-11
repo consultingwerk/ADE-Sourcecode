@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -45,6 +29,7 @@ History:
                             there are more then 1 db left after disconnect
                             1. commit transaction; 
                             2. call this routine again
+    fernando    02/17/06    Handle V9 db's - don't let user select them - 20050510-008
 
 */
 
@@ -76,7 +61,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE fast_track AS LOGICAL. /* FT active? */
 DEFINE VARIABLE old_dbver AS CHARACTER            NO-UNDO.
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 22 NO-UNDO INITIAL [
   /*  1*/ "Are you sure that you want to disconnect database",
   /*  2*/ "Nothing was disconnected.",
   /*  3*/ "Cannot disconnect a database if it is not connected.",
@@ -84,19 +69,21 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
   /*  5*/ "There are only" , 
   /*  6*/ "databases connected.  Please use the ",
   /*  7*/ "dictionary from ", 
-  /*  8*/ "Progress to view/edit these databases.",
+  /*  8*/ "{&PRO_DISPLAY_NAME} to view/edit these databases.",
   /*  9*/ "ERROR! Database type inconsistency in _usrsget.p",
 /*10,11*/ "Database", "is not connected.  Would you like to connect it?",
   /* 12*/ "",  /* reserved */
   /* 13*/ "is the only database connected - it is already selected.",
   /* 14*/ "You have been automatically switched to database",
-/*15,16*/ "The", "Dictionary can not be used with a PROGRESS",
+/*15,16*/ "The", "Dictionary can not be used with a {&PRO_DISPLAY_NAME}",
   /* 17*/ "database.",
   /* 18*/ "There are no databases connected to select!",
-  /* 19*/ "This copy of PROGRESS does not support database type",
+  /* 19*/ "This copy of {&PRO_DISPLAY_NAME} does not support database type",
   /* 20*/ "There are no databases connected for you to disconnect.",
-  /* 21*/ "You have to leave Fast Track before disconnecting a database"
+  /* 21*/ "You have to leave Fast Track before disconnecting a database",
+  /* 22*/ "is the only selectable database connected - it is already selected."
 ].
+
 FORM
   d_char[1] FORMAT "x(18)"  LABEL "Logical DBName"  ATTR-SPACE SPACE(0)
   d_char[2] FORMAT "x(20)"  LABEL "Physical DBName"
@@ -109,6 +96,9 @@ FORM
 	     + " ".
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
+
+FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER) FORWARD.
+
 
 is_dis = user_env[1] = "dis".
 
@@ -135,14 +125,8 @@ END.
 
 DO i = 1 TO cache_db#:
   IF cache_db_l[i] = user_dbname AND old_db = ? THEN old_db = i.
-  IF  index(cache_db_t[i],"/V5") <> 0
-   or index(cache_db_t[i],"/V6") <> 0
-   or index(cache_db_t[i],"/V7") <> 0
-   or index(cache_db_t[i],"/V8") <> 0
-   OR INDEX(CACHE_db_t[i],"/V9") <> 0
-   /*CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[i])*/
-   THEN oldbs = oldbs + 1.
-        old_dbver = "V" + DBVERSION(cache_db#).
+  IF  isOlderDBVersion(i) THEN oldbs = oldbs + 1.
+  old_dbver = "V" + DBVERSION(cache_db#).
 END.
 
 ASSIGN
@@ -184,6 +168,28 @@ IF cache_db# = 1 AND NOT look THEN DO:
     (user_env[1] = "new"
     OR (user_env[1] = "sys" AND user_dbname <> cache_db_l[1])) THEN
     MESSAGE new_lang[14] '"' + cache_db_l[1] + '"'. /* auto-switch to db... */
+END.
+ELSE IF ((cache_db# - oldbs) = 1) AND NOT look THEN DO:
+
+  /* check if we only have one db that can be selected, for instance, if you have
+     a db from an older version and a db from the current release, then you can only
+     select the current version db. We do that only if the user is trying to select
+     a different database, or it's a db that just got connected.
+  */
+  IF (user_env[1] = "get" AND user_dbname <> "") OR user_env[1] = "new" THEN DO:
+     /* there is only 1 db that can be selected - find out which one */      
+     choice = 1.
+
+     DO WHILE isOlderDBVersion(choice) AND choice <= cache_db#:
+           choice = choice + 1.
+     END.
+    
+     /* message is only needed if the user is trying to select a db */
+     IF user_env[1] = "get" THEN
+         MESSAGE cache_db_l[choice] new_lang[22] /* only 1 selectable db */
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  END.
+  
 END.
 
 DO WHILE choice = ?:
@@ -316,13 +322,9 @@ DO WHILE choice = ?:
   IF CAN-DO("GO,RETURN,END-ERROR",KEYFUNCTION(LASTKEY)) THEN DO:
     l = KEYFUNCTION(LASTKEY) = "END-ERROR".
     IF NOT l AND NOT is_dis
-      AND (index(cache_db_t[rpos],"/V5") <> 0
-      or   index(cache_db_t[rpos],"/V6") <> 0
-      or   index(cache_db_t[rpos],"/V7") <> 0 
-      or   index(cache_db_t[rpos],"/V8") <> 0 )
-      /*CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[rpos])*/
-      THEN DO:
-      old_dbver = "V" + DBVERSION(cache_db#).
+      AND isOlderDBVersion(rpos)   THEN DO:
+      /*old_dbver = "V" + DBVERSION(cache_db#).*/
+	  old_dbver = "V" + DBVERSION(cache_db_l[rpos]).
       MESSAGE new_lang[15] PROVERSION new_lang[16] old_dbver new_lang[17] VIEW-AS ALERT-BOX. /* cannot use V5/V6/V7/V8 db and V9 dict together */
       NEXT.
     END.
@@ -381,7 +383,8 @@ IF is_dis THEN _discon: DO: /*-----------------------------*/ /* disconnect */
     DO i = 1 TO cache_db#:
       IF  ( cache_db_l[i] <> dbpick
         OR  cache_db_t[i] <> "PROGRESS" )
-        AND cache_db_s[i] <> dbpick       
+        AND cache_db_s[i] <> dbpick AND
+        NOT isOlderDBVersion(i)           
         THEN j = j + 1.
     END.
 
@@ -418,3 +421,18 @@ END. /*---------------------------------------------------------------------*/
 
 HIDE FRAME schema_stuff NO-PAUSE.
 RETURN.
+
+
+FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
+
+  IF index(cache_db_t[pos],"/V5") <> 0
+   or index(cache_db_t[pos],"/V6") <> 0
+   or index(cache_db_t[pos],"/V7") <> 0
+   or index(cache_db_t[pos],"/V8") <> 0
+   or index(cache_db_t[pos],"/V9") <> 0 THEN  
+   /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[pos])*/
+     RETURN YES.
+   ELSE 
+     RETURN NO.
+   
+END FUNCTION.

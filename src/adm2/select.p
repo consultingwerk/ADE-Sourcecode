@@ -2340,7 +2340,7 @@ PROCEDURE valueChanged :
                              cDisplayedField,
                              cScreenValue,
                              '=/BEGINS':U).
-        /* the ui just remains as is, so give some feedback...*/
+      /* the ui just remains as is, so give some feedback...*/
       IF NOT lFound THEN 
         BELL. 
       {set Modify FALSE}.

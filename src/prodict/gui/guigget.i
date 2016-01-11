@@ -1,12 +1,14 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
+
 /*----------------------------------------------------------------------------
 
 File: prodict/gui/guigget.i
+
 
 Description:   
    Select one or more objects from the list of records in the gatework
@@ -269,7 +271,7 @@ FORM
 
     assign
       l_header1 = fill(" ",integer(5 - length(p_gate,"character") / 2))
-                + "Results of comparison of the PROGRESS image with the " 
+                + "Results of comparison of the {&PRO_DISPLAY_NAME} image with the " 
                 + p_Gate + " DB's schema"
       l_header2 = ( if user_dbtype = "ORACLE"
                       then "SH-Name="     + SDBNAME("DICTDBG")   + " "
@@ -746,7 +748,7 @@ if not available gate-work
 if      p_sel-type = "Create"
  then assign
   text1 = "Below is a list of objects from the &1 database."
-  text2 = "For each Object you choose its PROGRESS image will be created.".
+  text2 = "For each Object you choose its {&PRO_DISPLAY_NAME} image will be created.".
 else if p_sel-type = "Compare"
  then assign
   text1 = "Below is a list of all the objects you chose to be verified."
@@ -757,7 +759,7 @@ else if p_sel-type = "Compare"
   text2 = "you choose the info will get prepared to be used later on.".
  else assign    /* = "Update" */
   text1 = "Below is a list of objects from the &1 database."
-  text2 = "For each Object you choose its PROGRESS image will be updated.".
+  text2 = "For each Object you choose its {&PRO_DISPLAY_NAME} image will be updated.".
 
 /* we don't need this - preselect query w/num-results() is better...
 for each gate-work

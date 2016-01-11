@@ -106,7 +106,7 @@ END PROCEDURE.
 
 &Scoped-define ADM-SUPPORTED-LINKS Data-Target,Data-Source,Page-Target,Update-Source,Update-Target,Filter-target,Filter-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME fMain
 &Scoped-define BROWSE-NAME BrwMain
 
@@ -128,8 +128,8 @@ END PROCEDURE.
     ~{&OPEN-QUERY-BrwMain}
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS RECTTop RECTBottom RECT-5 coFilter BrwMain ~
-btnRebuild fiLog btnLog btnView btnCompare btnOpen btnExit 
+&Scoped-Define ENABLED-OBJECTS RECTTop coFilter BrwMain RECTBottom RECT-5 ~
+fiLog btnLog btnRebuild btnView btnCompare btnOpen btnExit 
 &Scoped-Define DISPLAYED-OBJECTS coFilter fiLog 
 
 /* Custom List Definitions                                              */
@@ -268,7 +268,7 @@ DEFINE BUTTON btnExit  NO-FOCUS FLAT-BUTTON
 DEFINE BUTTON btnImport  NO-FOCUS FLAT-BUTTON
      LABEL "Entity Import" 
      CONTEXT-HELP-ID 0
-     SIZE 15 BY 1.1 TOOLTIP "Import Entities for selected tables".
+     SIZE 15.4 BY 1.1 TOOLTIP "Import Entities for selected tables".
 
 DEFINE BUTTON btnLog 
      LABEL "Log" 
@@ -283,7 +283,7 @@ DEFINE BUTTON btnOpen  NO-FOCUS FLAT-BUTTON
 DEFINE BUTTON btnRebuild  NO-FOCUS FLAT-BUTTON
      LABEL "Rebuild TEMP-DB" 
      CONTEXT-HELP-ID 0
-     SIZE 18 BY 1.1 TOOLTIP "Rebuild TEMP-DB database for selected tables".
+     SIZE 19.6 BY 1.1 TOOLTIP "Rebuild TEMP-DB database for selected tables".
 
 DEFINE BUTTON btnView  NO-FOCUS FLAT-BUTTON
      LABEL "View" 
@@ -308,15 +308,15 @@ DEFINE VARIABLE fiLog AS CHARACTER FORMAT "X(100)":U
      SIZE 62 BY 1 NO-UNDO.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE .4 BY 1.38.
 
 DEFINE RECTANGLE RECTBottom
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 104.8 BY .1.
 
 DEFINE RECTANGLE RECTTop
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 104.8 BY .1.
 
 /* Query definitions                                                    */
@@ -343,16 +343,16 @@ DEFINE BROWSE BrwMain
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME fMain
-     btnImport AT ROW 1.14 COL 37.8
-     coFilter AT ROW 1.19 COL 59 COLON-ALIGNED
+     coFilter AT ROW 1.19 COL 58.4 COLON-ALIGNED
      BrwMain AT ROW 2.67 COL 2
-     btnRebuild AT ROW 1.14 COL 18.6
+     btnImport AT ROW 1.14 COL 38.6
      fiLog AT ROW 24.33 COL 12 COLON-ALIGNED
      btnLog AT ROW 24.33 COL 76
+     btnRebuild AT ROW 1.14 COL 18.6
      btnView AT ROW 1.14 COL 2
      btnCompare AT ROW 1.14 COL 12.6
      btnOpen AT ROW 1.14 COL 7.4
-     btnExit AT ROW 1.1 COL 98
+     btnExit AT ROW 1.1 COL 98.8
      RECTTop AT ROW 1 COL 1
      RECTBottom AT ROW 2.29 COL 1
      RECT-5 AT ROW 1 COL 17.8
@@ -418,7 +418,7 @@ ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU MENU-BAR-wWin:HANDLE.
 /* SETTINGS FOR WINDOW wWin
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME fMain
-                                                                        */
+   FRAME-NAME Custom                                                    */
 /* BROWSE-TAB BrwMain coFilter fMain */
 ASSIGN 
        BrwMain:ALLOW-COLUMN-SEARCHING IN FRAME fMain = TRUE
@@ -2024,9 +2024,9 @@ ASSIGN hFrame                = FRAME {&FRAME-NAME}:HANDLE
        hFrame:VIRTUAL-WIDTH  = hFrame:WIDTH
        hFrame:VIRTUAL-HEIGHT = hFrame:HEIGHT
        hFrame:SCROLLABLE     = FALSE
-       RectTop:WIDTH         = pdWidth - RectTop:COL 
-       Rectbottom:WIDTH      = pdWidth - RectBottom:COL 
-       btnExit:COL           = MAX(coFilter:COL + 20, pdWidth - btnExit:WIDTH - 1)
+       RectTop:WIDTH         = pdWidth - RectTop:COL + 1
+       Rectbottom:WIDTH      = pdWidth - RectBottom:COL + 1
+       btnExit:COL           = MAX(coFilter:COL + 20, pdWidth - btnExit:WIDTH)
        coFilter:WIDTH        = MAX(20,BtnExit:COL - BtnImport:COL - BtnImport:WIDTH - 10)
        Brwmain:COL           = {&Margin-Sides} + 1
        BrwMain:WIDTH         = pdWidth - brwMain:COL - {&Margin-Sides} + 1
@@ -2041,7 +2041,6 @@ ASSIGN hFrame                = FRAME {&FRAME-NAME}:HANDLE
        fiLog:WIDTH           = MAX(50, pdWidth - fiLog:COL  - 5.5)
        btnLog:COL            = fiLog:COL + fiLog:WIDTH + .1
        NO-ERROR.
-
 
 RUN repositionObject IN h_folder(dFolderRow, dFolderCol).
 RUN resizeObject IN h_folder(dFolderHeight, dFolderWidth).

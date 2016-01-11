@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -153,7 +153,7 @@ DEFINE BUTTON btnSave
      BGCOLOR 8 .
 
 DEFINE VARIABLE Description AS CHARACTER 
-     VIEW-AS EDITOR MAX-CHARS 500 SCROLLBAR-VERTICAL
+     VIEW-AS EDITOR MAX-CHARS 1970 SCROLLBAR-VERTICAL
      SIZE 82 BY 4.05 NO-UNDO.
 
 DEFINE VARIABLE Event-id AS INTEGER FORMAT "->>>>>9":U INITIAL 0 
@@ -1120,6 +1120,12 @@ PROCEDURE doResetRecord :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    /* if record is not available, it could be because a save operation failed */
+    IF NOT hEventBuffer:AVAILABLE THEN
+       hEventBuffer:FIND-FIRST("where _Event-id = " 
+                               + event-id:SCREEN-VALUE IN FRAME {&FRAME-NAME}) NO-ERROR.
+
+
     /* restore the value in the record to the fill-ins */
     APPLY "value-changed" TO hBrowse.
 

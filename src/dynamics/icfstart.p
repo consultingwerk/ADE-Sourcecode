@@ -386,6 +386,7 @@ PROCEDURE ICFCFM_Login :
   DEFINE VARIABLE cToolbarsToCache                    AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE cObjectsToCacheMenusFor             AS CHARACTER    NO-UNDO.
   DEFINE VARIABLE lForceUserProp                      AS LOGICAL    NO-UNDO.
+  define variable cCachedTranslations                 as character no-undo.
 
   cLoginProc = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                                 "login_procedure":U).
@@ -426,21 +427,31 @@ PROCEDURE ICFCFM_Login :
     RETURN "QUIT":U.
 
   /* Must have logged in ok, set appropriate values in Client Session Manager,
-   which will also set values in Context database via Server Session Manager
-  */
+     which will also set values in Context database via Server Session Manager.
+     
+     The values we get below need to be set on the server, and are hard-coded
+     in the Session Manager's initializePropertyList() procedure, but only on
+     a client session. We need to fetch them and pass them across to the server.
+     
+     If this seems odd, it is. */
   IF tCurrentProcessDate = ? THEN ASSIGN tCurrentProcessDate = TODAY.
   
+  cPropertyList = 'DateFormat,CachedTranslationsOnly':u.
   IF SESSION = gshAstraAppserver THEN /* client-server */
-      cDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                         INPUT "dateFormat":U,
+      cValueList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                         INPUT cPropertyList,
                                                          INPUT NO).
   ELSE /* If we're running Appserver, these properties have already been set on the Appserver by the call batching mechanism, we only need to set client side */
-      cDateFormat = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                         INPUT "dateFormat":U,
+      cValueList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
+                                                         INPUT cPropertyList,
                                                          INPUT YES).
-  
+    /* Parse out the values */
+    cDateFormat = entry(lookup('DateFormat':u, cPropertyList), cValueList, chr(3)) no-error.
+    cCachedTranslations = entry(lookup('CachedTranslationsOnly':u, cPropertyList), cValueList, chr(3)) no-error.
+    
   ASSIGN
     cPropertyList = "CurrentUserObj,CurrentUserLogin,CurrentUserName,CurrentUserEmail,CurrentOrganisationObj,CurrentOrganisationCode,CurrentOrganisationName,CurrentOrganisationShort,CurrentLanguageObj,CurrentLanguageName,CurrentProcessDate,CurrentLoginValues,DateFormat,LoginWindow":U
+                  + ',CachedTranslationsOnly':u
     cValueList = STRING(dCurrentUserObj) + CHR(3) +
                  cCurrentUserLogin + CHR(3) +
                  cCurrentUserName + CHR(3) +
@@ -454,8 +465,8 @@ PROCEDURE ICFCFM_Login :
                  STRING(tCurrentProcessDate,cDateFormat) + CHR(3) +
                  cCurrentLoginValues + CHR(3) +
                  cDateFormat + CHR(3) +
-                 cLoginProc.
-
+                 cLoginProc + chr(3) +
+                 cCachedTranslations.
 
   lForceUserProp = LOGICAL(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                                             "forceUserPropertiesToServer":U)).

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -80,6 +80,10 @@ History:
                         dialog 20050629-018.
     kmcintos 08/31/05   Added special case for audit policies as text
                         20050629-018.
+    kmcintos 01/04/06   Reset user_env[2] when read-only db or some other
+                        fatal error having to do with permission checking
+                        20051031-030.
+    fernando 03/14/06   Handle case with too many tables selected - bug 20050930-006.
 */
 /*h-*/
 
@@ -117,6 +121,10 @@ DEFINE VARIABLE do-screen     AS LOGICAL   NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-file   AS LOGICAL   NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-screen AS LOGICAL   NO-UNDO INIT TRUE.
 DEFINE VARIABLE oldsession    AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
+DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
+DEFINE VARIABLE cItem      AS CHARACTER  NO-UNDO.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
@@ -1033,7 +1041,7 @@ ELSE  IF class = "h":U THEN DO:
              PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
                 "Load of " user_env[2] " into database " 
                 LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
-                SKIP " Progress error numbers (" _msg(1) ") " .
+                SKIP " {&PRO_DISPLAY_NAME} error numbers (" _msg(1) ") " .
                 IF _msg(2) > 0 THEN 
                      PUT UNFORMATTED "and (" _msg(2) ")." SKIP(1).
                  ELSE PUT UNFORMATTED "."  SKIP(1) . 
@@ -1117,6 +1125,11 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
   IF NOT is-all AND NOT is-some THEN
     FIND DICTDB._File WHERE _Db-recid = drec_db AND _File-name = user_env[1]
                         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").
+  
+  /* using base_lchar to make code below simplier */
+  IF is-one OR is-some THEN
+     base_lchar = user_env[1].
+
   ASSIGN
     user_env[2] = prefix + (IF is-all OR is-some THEN "" ELSE
                   (IF DICTDB._File._Dump-name = ?
@@ -1129,8 +1142,8 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
                 + " " + (IF is-all THEN "All Tables" /*allfiles*/
                   ELSE  IF is-some THEN "Some Tables" /*somefiles*/
                   ELSE "Table ~"" + user_env[1] + "~"")
-    base        = (IF is-one OR is-some THEN user_env[1] ELSE "")
     user_env[1] = ""
+    user_longchar = ""
     comma       = ""
     i           = 1.
 
@@ -1148,18 +1161,23 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
     BY DICTDB._File._File-name:
     IF DICTDB._File._Owner = "_FOREIGN" AND DICTDB._File._For-Type <> "TABLE" THEN
         NEXT.
-    base = base + (IF base = "" THEN "" ELSE ",") + DICTDB._File._File-name.
+    base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + DICTDB._File._File-name.
   END.
 
   /* Run through the file list and cull out the ones that the user
      is not allowed to dump for some reason.
   */
   user_env[5] = "".
-  DO i = 1 TO NUM-ENTRIES(base):
+
+  ASSIGN numCount = NUM-ENTRIES(base_lchar).
+
+  DO i = 1 TO numCount:
     err = ?.
     dis_trig = "y".
+    cItem = ENTRY(i,base_lchar).
+
     FIND DICTDB._File
-      WHERE _Db-recid = drec_db AND _File-name = ENTRY(i,base)
+      WHERE _Db-recid = drec_db AND _File-name = cItem
         AND (_Owner = "PUB" OR _Owner = "_FOREIGN").   
     IF DICTDB._File._Owner = "_FOREIGN" AND DICTDB._File._For-type <> "TABLE" THEN DO:
       MESSAGE 'The file "' DICTDB._File._File-name  '" does not have a foreign' SKIP
@@ -1198,7 +1216,7 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
 
     IF err = ? THEN
       ASSIGN
-        user_env[1] = user_env[1] + comma + DICTDB._File._File-name
+        user_longchar = user_longchar + comma + DICTDB._File._File-name
         user_env[5] = user_env[5] + comma + dis_trig
         comma       = ",".
     ELSE IF err <> "" THEN DO:
@@ -1213,7 +1231,10 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
   END.
 
   /* subsequent removal of files changed from many to one, so reset ui stuff */
-  IF (is-some OR is-all) AND NUM-ENTRIES(user_env[1]) = 1 THEN DO:
+  IF (is-some OR is-all) AND NUM-ENTRIES(user_longchar) = 1 THEN DO:
+    ASSIGN user_env[1] = user_longchar
+           user_longchar ="".
+
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid = drec_db
         AND DICTDB._File._File-name = user_env[1]
@@ -1228,6 +1249,14 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
       io-file     = TRUE
       io-title    = "Load Data Contents for Table ~"" + user_env[1] + "~""
       base        = user_env[1].
+  END.
+  ELSE DO:
+      /* see if we can put user_longchar into user_env[1] */
+      ASSIGN user_env[1] = user_longchar NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN
+         ASSIGN user_longchar = "".
+      ELSE
+         ASSIGN user_env[1] = "".
   END.
 
 END.
@@ -1267,15 +1296,17 @@ END.
 IF msg-num > 0 THEN DO:
   MESSAGE (
     IF msg-num = 1 THEN
-      "Cannot load User information for non-PROGRESS database."
+      "Cannot load User information for non-{&PRO_DISPLAY_NAME} database."
     ELSE IF msg-num = 2 THEN
-      "Cannot load View information for non-PROGRESS database."
+      "Cannot load View information for non-{&PRO_DISPLAY_NAME} database."
     ELSE IF msg-num = 3 THEN
       "The dictionary is in read-only mode - alterations not allowed."
     ELSE
       "You do not have permission to use this option.")
     VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   user_path = "".
+  IF CAN-DO("t,x,y",class) THEN
+    user_env[2] = ?.
   RETURN.
 END.
 

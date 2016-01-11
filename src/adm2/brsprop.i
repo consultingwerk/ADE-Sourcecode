@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : brsprop.i
     Purpose     : Basic Property definition include file for 
@@ -36,20 +36,7 @@
   &GLOB xcInstanceProperties {&xcInstanceProperties},
 &ENDIF
   &GLOB xcInstanceProperties {&xcInstanceProperties}ScrollRemote,~
-NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd  
-/* SearchField is added as a property for non-DB browsers.
-   ForeignFields is added for DB Browsers. */
-&IF DEFINED(INTERNAL-TABLES) EQ 0 &THEN
-  &IF "{&xcInstanceProperties}":U NE "":U &THEN
-    &GLOB xcInstanceProperties {&xcInstanceProperties},
-  &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}SearchField
-&ELSEIF "{&INTERNAL-TABLES}":U NE "RowObject":U &THEN
-  &IF "{&xcInstanceProperties}":U NE "":U &THEN
-    &GLOB xcInstanceProperties {&xcInstanceProperties},
-  &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}ForeignFields
-&ENDIF
+NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd,UseSortIndicator,SearchField
 
 &ENDIF
 
@@ -142,7 +129,17 @@ NumDown,CalcWidth,MaxWidth,FetchOnReposToEnd
   &GLOB xpBrowseColumnLabelFonts
   &GLOB xpBrowseColumnLabels
   &GLOB xpBrowseColumnWidths
+  &GLOB xpBrowseColumnTypes
+  &GLOB xpBrowseColumnDelimiters
+  &GLOB xpBrowseColumnItems
+  &GLOB xpBrowseColumnItemPairs
+  &GLOB xpBrowseColumnInnerLines
+  &GLOB xpBrowseColumnSorts
+  &GLOB xpBrowseColumnMaxChars
+  &GLOB xpBrowseColumnAutoCompletions
+  &GLOB xpBrowseColumnUniqueMatches
   &GLOB xpTooltip
+  &GLOB xpUseSortIndicator
    
   {src/adm2/dvisprop.i}
 
@@ -185,7 +182,17 @@ DO:
   ghADMProps:ADD-NEW-FIELD('BrowseColumnWidths':U,'CHAR':U).
   ghADMProps:ADD-NEW-FIELD('BrowseColumnFormats':U,'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('BrowseColumnFonts':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnTypes':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnDelimiters':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnItems':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnItemPairs':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnInnerLines':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnSorts':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnMaxChars':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnAutoCompletions':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('BrowseColumnUniqueMatches':U,'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('Tooltip':U,'CHARACTER':U).
+  ghADMProps:ADD-NEW-FIELD('UseSortIndicator':U, 'LOGICAL':U, 0, ?, YES).
 
 &ENDIF
 

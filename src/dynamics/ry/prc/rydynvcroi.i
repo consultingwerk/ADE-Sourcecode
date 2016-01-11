@@ -1,10 +1,6 @@
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: rydynvcroi.i
 
@@ -291,8 +287,6 @@ do:
             RUN repositionObject IN hDataFieldProcedure (ttWidget.tRow, ttWidget.tColumn) NO-ERROR.
             RUN resizeObject     IN hDataFieldProcedure (dHeight, ttWidget.tWidth) NO-ERROR.
             
-
-
             &SCOPED-DEFINE xp-assign
             {get Width dWidgetWidth hDataFieldProcedure}
             {get Height dWidgetHeight hDataFieldProcedure}
@@ -302,26 +296,18 @@ do:
             /* Build lists of the fields to display and enable */
             IF lDisplayField AND NOT lLocalField THEN
               ASSIGN
-                cDisplayedFields = cDisplayedFields
-                                 + cWidgetName + ",":U
-                cFieldHandles    = cFieldHandles
-                                 + STRING(hDataFieldProcedure) + ",":U
-              .
-    
+                cDisplayedFields = cDisplayedFields + cWidgetName + ",":U
+                cFieldHandles    = cFieldHandles + STRING(hDataFieldProcedure) + ",":U.    
     
             IF lEnabled THEN
                 IF lLocalField THEN
                    ASSIGN 
                       cEnabledObjFlds = cEnabledObjFlds + cWidgetName + ",":U
-                      cEnabledObjHdls = cEnabledObjHdls + STRING(hDataFieldProcedure) + ",":U
-                    .
+                      cEnabledObjHdls = cEnabledObjHdls + STRING(hDataFieldProcedure) + ",":U.
                 ELSE
                    ASSIGN
-                      cEnabledFields  = cEnabledFields 
-                                      + cWidgetName + ",":U
-                      cEnabledHandles = cEnabledHandles
-                                      + STRING(hDataFieldProcedure) + ",":U
-                .
+                      cEnabledFields  = cEnabledFields + cWidgetName + ",":U
+                      cEnabledHandles = cEnabledHandles + STRING(hDataFieldProcedure) + ",":U.
             
             cSDFDataSource = ''.  
             {get DataSourceName cSDFDataSource hDataFieldProcedure} NO-ERROR.
@@ -359,7 +345,7 @@ do:
                them, as per the ShowPopup attribute of the viewer/frame.
              */
             IF ttWidget.tWidgetType EQ "FILL-IN":U         AND
-               CAN-DO("DATE,DECIMAL,INTEGER":U, cDataType) AND
+               CAN-DO("DATE,DECIMAL,INTEGER,INT64":U, cDataType) AND
                lViewerShowPopup                            THEN
             DO:
                 /* Is there value set on the widget? */
@@ -414,32 +400,21 @@ do:
             /* Build lists of the fields to display and enable */
             IF lDisplayField AND ttWidget.tTableName > "":U THEN
               ASSIGN 
-                cDisplayedFields = cDisplayedFields
-                                 + cWidgetName + ",":U
-                cFieldHandles    = cFieldHandles
-                                 + STRING(hField) + ",":U
-              .
-    
-    
+                cDisplayedFields = cDisplayedFields + cWidgetName + ",":U 
+                cFieldHandles    = cFieldHandles + STRING(hField) + ",":U.
+            
             /* display field */
             IF lEnabled THEN
                 IF ttWidget.tTableName EQ "":U THEN
-                   ASSIGN 
-                      cEnabledObjFlds = cEnabledObjFlds + cWidgetName + ",":U
-                      cEnabledObjHdls = cEnabledObjHdls + STRING(hField) + ",":U
-                    .
+                   ASSIGN cEnabledObjFlds = cEnabledObjFlds + cWidgetName + ",":U
+                          cEnabledObjHdls = cEnabledObjHdls + STRING(hField) + ",":U.
                 ELSE
                    ASSIGN
-                      cEnabledFields  = cEnabledFields 
-                                      + cWidgetName + ",":U
-                      cEnabledHandles = cEnabledHandles
-                                      + STRING(hField) + ",":U
-                    .
-                      
-    
-            /* Set widget attributes */
-           
-                /* CLOB must be visualized as longchar */
+                      cEnabledFields  = cEnabledFields  + cWidgetName + ",":U
+                      cEnabledHandles = cEnabledHandles + STRING(hField) + ",":U.
+            
+            /* Set widget attributes */           
+            /* CLOB must be visualized as longchar */
             IF cDataType = 'CLOB':U OR cDataType = 'LONGCHAR':U THEN 
               ASSIGN    
                 hField:LARGE = TRUE /* Large BEFORE datatype to avoid 4GL error  */
@@ -523,6 +498,16 @@ do:
                                hLabel:FGCOLOR = iLabelFgColor WHEN iLabelFgColor NE ?
                                hLabel:BGCOLOR = iLabelBGColor WHEN iLabelBGColor NE ?
                                hField:SIDE-LABEL-HANDLE = hLabel.
+                        
+                        /* When KCP = yes, make sure that the label doesn't overwrite any 
+                           other widget. When KCP=no, then we will sort out the layout a 
+                           little later. 
+                           
+                           We have no way of knowing what the original label width was
+                           with the current design of Dynamics, so we sweep the long
+                           label under the carpet, so to speak. */
+                        if lKeepPositions then
+                            hLabel:move-to-bottom().
                     END.    /* there is a valid label */
                 END.    /* there is a side-label-handle */
                 ELSE

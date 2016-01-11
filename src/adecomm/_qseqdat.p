@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -38,12 +22,14 @@ Date Created: 10/05/92
 
 Modified on 06/14/94 by Gerry Seidl. Added NO-LOCKs to file accesses.
             08/08/02 D. McMann Eliminated any sequences whose name begins "$" - Peer Direct
+            05/25/06 fernando  Added support for large sequences
 ----------------------------------------------------------------------------*/
 
 DEFINE INPUT PARAMETER p_DbId  AS RECID NO-UNDO.
 
 DEFINE SHARED STREAM rpt.
-DEFINE VAR max_min AS INTEGER NO-UNDO.
+DEFINE VAR max_min AS INT64 NO-UNDO.
+DEFINE VAR large_seq AS LOGICAL NO-UNDO.
 
 FORM
   _Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
@@ -54,17 +40,57 @@ FORM
   WITH FRAME shoseqs 
   DOWN USE-TEXT STREAM-IO.
 
+FORM
+  _Sequence._Seq-Name  FORMAT "x(32)"  	    COLUMN-LABEL "Sequence Name"
+  _Sequence._Seq-init  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  COLUMN-LABEL "Initial Value" SKIP
+  _Sequence._Seq-incr  FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9"  
+                       COLUMN-LABEL "Increment"
+  max_min              AT 30 FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" COLUMN-LABEL "Max/Min Value"
+  _Sequence._Cycle-Ok  FORMAT "yes/no"	    COLUMN-LABEL "Cycle?" SKIP(1)
+  WITH FRAME shoseqsl
+  DOWN USE-TEXT STREAM-IO.
+
+FIND FIRST _db WHERE RECID(_Db) = p_DbId.
+
+/* let's see if we can use the old format based on the values */
+IF _Db._db-res1[1] = 1 THEN DO: 
+    /* large sequence support is turned on */
+
+    FIND FIRST _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId
+                                 AND NOT _Sequence._Seq-name BEGINS "$" AND
+         (_Sequence._Seq-incr > 999999999 OR
+          _Sequence._Seq-max  > 999999999 OR
+          _Sequence._Seq-min  > 999999999 OR
+          _Sequence._Seq-init > 999999999) NO-ERROR.
+
+    IF AVAILABLE _Sequence THEN
+       /* we will need the expanded report format */
+       ASSIGN large_seq = YES.
+END.
+
 FOR EACH _Sequence NO-LOCK WHERE _Sequence._Db-recid = p_DbId
                              AND NOT _Sequence._Seq-name BEGINS "$":
    max_min = (IF _Sequence._Seq-incr > 0 THEN _Sequence._Seq-max
       	       	     	      	       	 ELSE _Sequence._Seq-min).
-   DISPLAY STREAM rpt
-      _Sequence._Seq-Name 
-      _Sequence._Seq-init 
-      _Sequence._Seq-incr 
-      max_min
-      _Sequence._Cycle-Ok 
-      WITH FRAME shoseqs.
-  DOWN STREAM rpt WITH FRAME shoseqs.
+   IF large_seq THEN DO:
+       DISPLAY STREAM rpt
+          _Sequence._Seq-Name 
+          _Sequence._Seq-init 
+          _Sequence._Seq-incr 
+          max_min
+          _Sequence._Cycle-Ok 
+          WITH FRAME shoseqsl.
+      DOWN STREAM rpt WITH FRAME shoseqsl.
+   END.
+   ELSE DO:
+       DISPLAY STREAM rpt
+          _Sequence._Seq-Name 
+          _Sequence._Seq-init 
+          _Sequence._Seq-incr 
+          max_min
+          _Sequence._Cycle-Ok 
+          WITH FRAME shoseqs.
+      DOWN STREAM rpt WITH FRAME shoseqs.
+   END.
 END.
 

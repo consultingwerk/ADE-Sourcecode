@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,6 +29,7 @@ Date Created: 02/05/92
     Modified: 04/01/98 D. McMann Added display of _field-rpos
               01/31/03 D. McMann Added support for Blobs
               08/26/03 D. McMann Display of updated LOB fields 20030826-013
+              06/08/06 fernando  Added support for int64
 
 ----------------------------------------------------------------------------*/
 
@@ -183,6 +184,16 @@ ELSE
           b_Field._Format:HIDDEN IN {&FRAME} = NO
           s_btn_Fld_Format:HIDDEN IN {&FRAME} = NO.
    
+/* For Progress db's, allow user to change an integer field to int64 by 
+   displaying the button. But only for 10.1B and later dbs.
+*/
+IF ispro AND NOT is-pre-101b-db AND b_field._dtype = {&DTYPE_INTEGER} THEN DO:
+
+    ASSIGN s_btn_toint64:HIDDEN IN {&FRAME} = NO
+           s_btn_toint64:SENSITIVE IN {&FRAME} = YES.
+END.
+ELSE 
+    ASSIGN s_btn_toint64:HIDDEN IN {&FRAME} = YES.
 
 /* The CHANGE_DATA_TYPE capability indicates if any types are changeable
    from any other.  Even then, certain types cannot be changed.  We can only
@@ -533,6 +544,10 @@ else do:
       s_Res = b_Field._Fld-case:move-after-tab-item
 		  (b_Field._Mandatory:handle in {&Frame}) in {&Frame}
       .
+
+  IF s_btn_toint64:SENSITIVE IN {&Frame} THEN
+     s_Res = s_btn_toint64:MOVE-BEFORE-TAB-ITEM
+            (b_Field._Format:handle in {&Frame}) in {&Frame}.
 
    apply "entry" to b_Field._Field-Name in {&Frame}.
    END.

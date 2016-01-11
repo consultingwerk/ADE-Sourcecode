@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -27,7 +27,9 @@
 &GLOBAL-DEFINE VALID-CONTAINERS               DynFold,DynMenc,DynObjc,DynFrame
 &GLOBAL-DEFINE VALID-DATA-CONTAINERS          DynSBO
 &GLOBAL-DEFINE VALID-VISIBLE-OBJECT-TYPES     DynBrow,DynView,SmartFolder,SmartPanel,SmartToolbar,SmartViewer,StaticSDV,StaticSO,SmartFrame,DynFrame
-&GLOBAL-DEFINE VALID-NON-VISIBLE-OBJECT-TYPES DataView,SBO
+/* replaced by call to getDataSourceClasses in design manager 
+&GLOBAL-DEFINE VALID-NON-VISIBLE-OBJECT-TYPES DataQuery,SBO
+*/ 
 
 DEFINE VARIABLE giCounter AS INTEGER  NO-UNDO.
 
@@ -249,7 +251,7 @@ FUNCTION isVisibleObjectType RETURNS LOGICAL
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
          HEIGHT             = 5.57
-         WIDTH              = 38.8.
+         WIDTH              = 54.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -295,15 +297,15 @@ FUNCTION isVisibleObjectType RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lVisibleObjectType  AS LOGICAL    NO-UNDO INITIAL FALSE.
-  DEFINE VARIABLE gcObjectClasses     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cClasses            AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDesignManager      AS HANDLE     NO-UNDO.
 
-  ASSIGN gcObjectClasses = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "{&VALID-NON-VISIBLE-OBJECT-TYPES}")
-         gcObjectClasses = REPLACE(gcObjectClasses, CHR(3), ",":U).
-  IF LOOKUP(pcObjectTypeCode, gcObjectClasses) = 0 THEN
-    lVisibleObjectType = TRUE.
+  ASSIGN 
+    hDesignManager = DYNAMIC-FUNCTION('getManagerHandle':U IN TARGET-PROCEDURE, 
+                                      "RepositoryDesignManager":U)
+    cClasses       = DYNAMIC-FUNCTION('getDataSourceClasses':U IN hDesignManager).
   
-  RETURN lVisibleObjectType.   /* Function return value. */
+  RETURN LOOKUP(pcObjectTypeCode, cClasses) = 0. 
 
 END FUNCTION.
 

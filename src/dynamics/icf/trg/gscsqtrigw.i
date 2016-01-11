@@ -27,29 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors: MIP Holdings (Pty) Ltd ("MIP")                       *
-*               PSC                                                  *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
 
   File: gscsqtrigw.i
@@ -132,6 +112,62 @@ af/cod/aftemwizpw.w
 /* ***************************  Main Block  *************************** */
 
     DEFINE VARIABLE lv_counter   AS INTEGER      NO-UNDO.
+    
+    /* (1) If we had multi transaction set, but have changed it back, delete the sequences 
+       and update the next sequence.
+
+       (2) If we are using multi_transaction sequences, and the value of the 
+       sequence next_value has changed, then also delete the next sequence records
+       so that we can re-create them,
+
+       (3) If the number of sequences changes, then delete the existing values so
+       that we can create the correct number of next sequence records. */
+    IF  ( NOT gsc_sequence.multi_transaction or
+          gsc_sequence.next_value ne o_gsc_sequence.next_value or
+          gsc_sequence.number_of_sequences ne o_gsc_sequence.number_of_sequences )
+    AND CAN-FIND(FIRST gsc_next_sequence
+                 WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj)
+    THEN DO:
+        /* if we've turned the multi_transaction flag off, then
+           set the sequence record's next_value to the next available value
+           in the set of next sequence records, before deleting the next
+           sequence records. 
+           
+           do NOT do this in the case of a changed next_sequence value,
+           since this would kinda invalidate the change we've just made.
+         */
+        if not gsc_sequence.multi_transaction then
+        do:    
+            FIND FIRST gsc_next_sequence EXCLUSIVE-LOCK
+                WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj
+                NO-WAIT NO-ERROR.
+            IF LOCKED gsc_next_sequence
+            THEN locked-blk:
+            REPEAT:
+                FIND FIRST gsc_next_sequence EXCLUSIVE-LOCK
+                     WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj
+                     NO-WAIT NO-ERROR.
+                IF AVAILABLE gsc_next_sequence
+                THEN LEAVE locked-blk.
+            END.
+            
+            ASSIGN
+                gsc_sequence.next_value = gsc_next_sequence.next_sequence_value.
+    
+            {af/sup/afvalidtrg.i &action = "VALIDATE" 
+                                 &table  = "gsc_next_sequence"
+            }
+        end.    /* not multi_transaction */
+        
+        FOR EACH gsc_next_sequence EXCLUSIVE-LOCK
+           WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj:
+
+            {af/sup/afvalidtrg.i &action = "DELETE" 
+                                 &table  = "gsc_next_sequence"
+            }
+
+        END.    /* actual delete next sequence records */
+    END.    /* deletion of next sequence records coming ...  */
 
     IF  gsc_sequence.multi_transaction
     AND NOT CAN-FIND(FIRST gsc_next_sequence
@@ -163,43 +199,6 @@ af/cod/aftemwizpw.w
         }
 
     END.
-
-    /* If we had multi transaction set, but have changed it back, delete the sequences and update the next sequence */
-
-    IF  NOT gsc_sequence.multi_transaction
-    AND CAN-FIND(FIRST gsc_next_sequence
-                 WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj)
-    THEN DO:
-        FIND FIRST gsc_next_sequence EXCLUSIVE-LOCK
-            WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj
-            NO-WAIT NO-ERROR.
-        IF LOCKED gsc_next_sequence
-        THEN locked-blk:
-        REPEAT:
-            FIND FIRST gsc_next_sequence EXCLUSIVE-LOCK
-                 WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj
-                 NO-WAIT NO-ERROR.
-            IF AVAILABLE gsc_next_sequence
-            THEN LEAVE locked-blk.
-        END.
-
-        ASSIGN
-            gsc_sequence.next_value = gsc_next_sequence.next_sequence_value.
-
-        {af/sup/afvalidtrg.i &action = "VALIDATE" 
-                             &table  = "gsc_next_sequence"
-        }
-
-        FOR EACH gsc_next_sequence EXCLUSIVE-LOCK
-           WHERE gsc_next_sequence.sequence_obj = gsc_sequence.sequence_obj:
-
-            {af/sup/afvalidtrg.i &action = "DELETE" 
-                                 &table  = "gsc_next_sequence"
-            }
-
-        END.
-
-      END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

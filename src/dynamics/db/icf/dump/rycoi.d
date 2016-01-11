@@ -267,6 +267,9 @@
 6043.9875 6039.9875 6037.9875 no "M11" "rycustprpv" "This viewer will read all the class definition files from a specified" 6044.9875 0
 6110.9875 6039.9875 6108.9875 no "M11" "rycustpr2v" "This viewer will read all the class definition files from a specified" 6111.9875 0
 6117.9875 6039.9875 1000708643.09 no "M21" "FolderTop" "FolderTop" 6111.9875 1
+6800.74251 1350.7692 15870.409 no "" "Fill-In (INT64)" "Fill-In (INT64)" 0 0
+6806.74251 3059.7692 6306.409 no "" "ComboBox (INT64)" "ComboBox (INT64)" 0 0
+6812.74251 3100.7692 6312.409 no "" "RadioSet (INT64)" "RadioSet (INT64)" 0 0
 7515.38 7507.38 7372.38 no "" "originating_site_number" "gst_deployment.originating_site_number" 0 1
 7545.38 7507.38 7186.38 no "" "deployment_number" "gst_deployment.deployment_number" 0 2
 7575.38 7507.38 7155.38 no "" "deployment_description" "gst_deployment.deployment_description" 0 3
@@ -1320,13 +1323,13 @@
 1004928248.09 1004928233.09 1004928202.09 no "centre2" "gstrvfullb" "gstrvfullb" 0 0
 1004928264.09 1004928233.09 1000708413.09 no "top" "ObjcTop" "ObjcTop" 0 0
 1004928325.09 1004928233.09 1000708781.09 no "bottom" "BrowseToolbarNoUpdate" "BrowseToolbarNoUpdate" 0 0
-1004933971 1003574037 1003571922 no "Centre" "rycatfullo.w" "rycatfullo.w" 0 0
-1004934006 1003574037 1004927970 no "centre1" "rycatfiltv.w" "rycatfiltv.w" 0 0
-1004934008 1003574037 1003571985 no "centre2" "rycatfullb" "rycatfullb" 0 0
+1004933971 1003574037 1003571922 no "M11" "rycatfullow" "rycatfullo.w" 0 0
+1004934006 1003574037 1004927970 no "M21" "rycatfiltv.w" "rycatfiltv.w" 0 0
+1004934008 1003574037 1003571985 no "M31" "rycatfullb" "rycatfullb" 0 0
 1004934008.09 1004930154.09 1003504456 no "M21" "afspfoldrw.w" "afspfoldrw.w" 0 0
-1004934035 1003574037 1000708413.09 no "top" "ObjcTop" "ObjcTop" 0 0
+1004934035 1003574037 1000708413.09 no "M11" "ObjcTop" "ObjcTop" 0 0
 1004934094.09 1004930154.09 1000708643.09 no "M11" "FolderTop" "FolderTop" 0 0
-1004934096 1003574037 1000708739.09 no "bottom" "BrowseToolbar" "BrowseToolbar" 0 0
+1004934096 1003574037 1000708739.09 no "M91" "BrowseToolbar" "BrowseToolbar" 0 0
 1004934171.09 1004930154.09 1004930384.09 no "M11" "gscdefullo.w" "gscdefullo.w" 1004934163.09 100
 1004934178.09 1004930154.09 3746.19 no "M11" "gstdffullo" "gstdffullo" 1004934167.09 101
 1004934193.09 1004930154.09 1004929909.09 no "M11" "gscddviewv.w" "gscddviewv.w" 1004934161.09 200
@@ -2639,12 +2642,12 @@
 .
 PSC
 filename=ryc_object_instance
-records=0000000002638
+records=0000000002641
 ldbname=ICFDB
-timestamp=2005/08/19-15:49:40
+timestamp=2006/10/12-14:55:15
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000215171
+0000215392

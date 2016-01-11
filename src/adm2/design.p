@@ -1,28 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 1984-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : design.p
     Purpose     : Super procedure for design class.
@@ -117,6 +101,17 @@ FUNCTION getFilterTarget RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getFuncLibHandle Procedure 
 FUNCTION getFuncLibHandle RETURNS HANDLE PRIVATE
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSubmitParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSubmitParent Procedure 
+FUNCTION getSubmitParent RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -351,6 +346,32 @@ FUNCTION getFuncLibHandle RETURNS HANDLE PRIVATE
     END.
   END.
   RETURN ghUIBFuncLib.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getSubmitParent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSubmitParent Procedure 
+FUNCTION getSubmitParent RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Design time override to return unknown  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lSubmitParent AS LOGICAL    NO-UNDO.
+  
+  DEFINE VARIABLE ghProp AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE glAdmOK AS LOGICAL    NO-UNDO.
+  &SCOPED-DEFINE xpSubmitParent
+  {get SubmitParent lSubmitParent}.
+  &UNDEFINE xpSubmitParent
+  
+  RETURN lSubmitParent.
 
 END FUNCTION.
 

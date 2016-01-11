@@ -403,14 +403,17 @@ PROCEDURE addHookProcedure :
     define input parameter pcHookFilename            as character            no-undo.
     
     define variable hSuper             as handle                             no-undo.
+        
+    if pcHookFilename eq ? or pcHookFilename eq '':u then
+        return error ('Invalid hook procedure specified':u).
     
     pcHookFilename = search(pcHookFilename).
     if pcHookFilename eq ? or pcHookFilename eq '' then
         return error ('Hook procedure could not be found ' + pcHookFilename).
     
     do on stop undo, leave:    
-            run value(pcHookFilename) persistent set hSuper.
-    end.    /* stop block */     
+        run value(pcHookFilename) persistent set hSuper.
+    end.    /* stop block */
     if valid-handle(hSuper) then
         this-procedure:add-super-procedure(hSuper, search-target).
     else

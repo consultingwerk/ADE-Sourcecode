@@ -98,22 +98,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
    {&List-4}: 'Update' mode buttons 
    {&List-5}: 'View'   mode buttons */
    
-/*
-[1] = Visual Classes (excl. SmartFolder classes)
-[2] = Non-visual classes (Data class, SDOs, SBOs)
-[3] = SmartFolder classes
-*/
-/*DEFINE VARIABLE gcClassesToRetrieve AS CHARACTER  NO-UNDO INITIAL "Data,SBO,Panel,Viewer,StaticSO,Browser,SmartFolder":U.*/
 
 DEFINE VARIABLE gcClassesToRetrieve AS CHARACTER  NO-UNDO EXTENT 3
-    INITIAL ["SBO,DataView" /*{&VALID-NON-VISIBLE-OBJECT-TYPES}"*/ ,
+    INITIAL ["" /* use getDataSourceClasses for this */ ,
              "Toolbar,Viewer,Browser,StaticSO,DynFrame,SmartFrame" /*{&VALID-VISIBLE-OBJECT-TYPES}"*/ ,
              "SmartFolder":U].
-/*
-/* Make sure the array contains the correct values. */
-ASSIGN gcClassesToRetrieve[1] = REPLACE(gcClassesToRetrieve[1], "SmartFolder":U, "":U)
-       gcClassesToRetrieve[1] = REPLACE(gcClassesToRetrieve[1], ",,":U, ",":U)
-       .*/
+
 /* This extent holds fields in the same order as above. */
 DEFINE VARIABLE gcRetrievedClasses  AS CHARACTER  NO-UNDO EXTENT 3.
 
@@ -231,8 +221,8 @@ DEFINE VARIABLE giGLColor           AS INTEGER    NO-UNDO INITIAL 0.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS rctBackground edSource edTarget ~
-buNonLayoutObjects buLayoutPreview fiObjectInstances fiQuickLink 
+&Scoped-Define ENABLED-OBJECTS rctBackground buNonLayoutObjects edSource ~
+edTarget buLayoutPreview fiObjectInstances fiQuickLink 
 &Scoped-Define DISPLAYED-OBJECTS fiInstanceName fiObjectDescription ~
 edForeignFields coDataSources coUpdateTargets coNavTarget ~
 toResizeHorizontal toResizeVertical raLCR coLink edSource edTarget ~
@@ -240,8 +230,8 @@ fiObjectInstances fiForeignFieldLabel fiJustification fiQuickLink
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
-&Scoped-define ADM-ASSIGN-FIELDS buProperties coDataSources buLayoutObjects ~
-coUpdateTargets coNavTarget coLink buNonLayoutObjects buOldProperties ~
+&Scoped-define ADM-ASSIGN-FIELDS buProperties buLayoutObjects coDataSources ~
+coUpdateTargets coNavTarget buNonLayoutObjects coLink buOldProperties ~
 buSwap buSource buTarget buAdd buCancel buCancelCoC buCopy buCut buDelete ~
 buPaste buSaveLink 
 &Scoped-define List-2 fiInstanceName fiObjectDescription buCancel 
@@ -762,22 +752,22 @@ DEFINE VARIABLE toResizeVertical AS LOGICAL INITIAL no
 
 DEFINE FRAME frMain
      buProperties AT ROW 12.33 COL 46.8
+     buLayoutObjects AT ROW 1.29 COL 131.2
      fiInstanceName AT ROW 3.14 COL 16 COLON-ALIGNED
      fiObjectDescription AT ROW 4.19 COL 16 COLON-ALIGNED
      edForeignFields AT ROW 6.33 COL 18 NO-LABEL
      coDataSources AT ROW 6.33 COL 16 COLON-ALIGNED
-     buLayoutObjects AT ROW 1.29 COL 131.2
      buMapFields AT ROW 6.38 COL 58.8
      coUpdateTargets AT ROW 7.38 COL 16 COLON-ALIGNED
      coNavTarget AT ROW 8.43 COL 16 COLON-ALIGNED
      toResizeHorizontal AT ROW 9.62 COL 18
      toResizeVertical AT ROW 9.62 COL 39.8
+     buNonLayoutObjects AT ROW 3 COL 131.2
      raLCR AT ROW 11.19 COL 20.2 NO-LABEL
      coLink AT ROW 14 COL 51 COLON-ALIGNED
+     buOldProperties AT ROW 12.33 COL 42
      edSource AT ROW 14.19 COL 12 NO-LABEL NO-TAB-STOP 
      edTarget AT ROW 14.19 COL 95.6 NO-LABEL NO-TAB-STOP 
-     buNonLayoutObjects AT ROW 3 COL 131.2
-     buOldProperties AT ROW 12.33 COL 42
      buSwap AT ROW 14.95 COL 53.4
      buSource AT ROW 14.14 COL 3.4
      buTarget AT ROW 14.14 COL 87
@@ -5884,7 +5874,7 @@ FUNCTION evaluateLookupQuery RETURNS LOGICAL
   DO:
     ASSIGN hDesignManager = DYNAMIC-FUNCTION('getManagerHandle':U IN TARGET-PROCEDURE, INPUT "RepositoryDesignManager":U)
            gcRetrievedClasses[1] = DYNAMIC-FUNCTION('getDataSourceClasses':U IN hDesignManager).
-
+   
     DO iExtent = 2 TO EXTENT(gcRetrievedClasses):
       gcRetrievedClasses[iExtent] = {fnarg getClassChildrenFromDB gcClassesToRetrieve[iExtent] gshRepositoryManager}.
 
@@ -5967,7 +5957,7 @@ FUNCTION evaluateLookupQuery RETURNS LOGICAL
   END.  /* avialable widget. */
 
   cQueryString = REPLACE(cQueryString, ", gsc_object_type.object_type_code":U, ", '":U + cValidObjectTypes + "'":U).
-
+ 
   {set BaseQueryString cQueryString hObjectFilename}.
 
   RETURN TRUE.   /* Function return value. */

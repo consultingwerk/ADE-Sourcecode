@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -35,6 +19,7 @@ Author: Laura Stern
 
 Date Created: 01/31/92 
      History: D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
+              fernando  06/12/06 Support for int64
 
 ----------------------------------------------------------------------------*/
   
@@ -54,6 +39,7 @@ Define var pro_type   as char    NO-UNDO.
 Define var gate_type  as char    NO-UNDO.
 Define var out1       as char    NO-UNDO.
 
+DEFINE VAR cTemp      AS CHAR    NO-UNDO.
 
 /*-------------------------Mainline Code-------------------------------*/
 
@@ -110,6 +96,25 @@ do:
    */
    run adedict/_setid.p (INPUT {&OBJ_DB}, OUTPUT s_DbRecId).   
    
+   /* check if this is a 10.1B db at least, so that we complain about int64 and
+      int64 values. If the LARGE_KEYS feature is not known by this db, then this
+      is a pre-101.B db 
+   */
+   ASSIGN is-pre-101b-db = YES
+          s_Large_Seq = ?.
+
+   RUN prodict/user/_usrinf3.p 
+      (INPUT  LDBNAME("DICTDB"),
+       INPUT  "PROGRESS",
+       OUTPUT ctemp, 
+       OUTPUT ctemp,
+       OUTPUT s_Large_Seq,
+       OUTPUT answer).
+      
+  /* if large_keys is not known by db, answer will be ? */
+  IF answer NE ? THEN
+     ASSIGN is-pre-101b-db = NO.
+
 end.
 else do:
    s_DictState = {&STATE_NO_DB_SELECTED}.

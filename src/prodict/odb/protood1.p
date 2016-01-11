@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -81,12 +81,12 @@ assign batch_mode    = SESSION:BATCH-MODE
 IF batch_mode THEN DO:
    PUT STREAM logfile UNFORMATTED
        " " skip
-       "Progress to ODBC Log" skip(2)
-       "Original Progress Database:            " pro_dbname skip
-       "Other Progress db connect parameters : " pro_conparms  skip
+       "{&PRO_DISPLAY_NAME} to ODBC Log" skip(2)
+       "Original {&PRO_DISPLAY_NAME} Database:            " pro_dbname skip
+       "Other {&PRO_DISPLAY_NAME} db connect parameters : " pro_conparms  skip
        "ODBC Data Source Name:                 " odb_dbname skip
        "Foreign DBMS Type:                     " odb_type skip
-       "Progress Schema Holder name:           " osh_dbname skip
+       "{&PRO_DISPLAY_NAME} Schema Holder name:           " osh_dbname skip
        "ODBC Username:                         " odb_username SKIP
        clctn_output
        "Field width calculation based on:      " (IF iFmtOption = 1 THEN
@@ -163,15 +163,15 @@ IF loadsql THEN DO:
     IF batch_mode THEN 
        PUT STREAM logfile UNFORMATTED 
                "Data Source Name " odb_dbname 
-               " must not be the same as schema holder or PROGRESS Database Name"
+               " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name"
                 skip(2).
     ELSE DO:
       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
            MESSAGE "Data Source Name " odb_dbname 
-             " must not be the same as schema holder or PROGRESS Database Name".
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name".
       &ELSE
            MESSAGE "Data Source name " odb_dbname 
-             " must not be the same as schema holder or PROGRESS Database Name"
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name"
              VIEW-AS ALERT-BOX ERROR.
       &ENDIF
     END.             

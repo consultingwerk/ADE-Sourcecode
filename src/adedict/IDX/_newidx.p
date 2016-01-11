@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -426,7 +426,7 @@ do:
       	 do:
       	    answer = yes.   /* set's yes as default button */
       	    message 
-      	       "If PROGRESS finds duplicate values while creating" SKIP
+      	       "If {&PRO_DISPLAY_NAME} finds duplicate values while creating" SKIP
       	       "this new unique index, it will UNDO the entire" SKIP
       	       "transaction, causing you to lose any schema changes" SKIP
       	       "made within the same transaction." SKIP(1)
@@ -789,7 +789,7 @@ find x_File where RECID(x_file) = s_TblRecId.
 
 if x_File._Db-lang >= {&TBLTYP_SQL} then
 do:
-   message "This is a PROGRESS/SQL table." SKIP
+   message "This is a {&PRO_DISPLAY_NAME}/SQL table." SKIP
       	   "You must use the CREATE INDEX statement."
 	   view-as ALERT-BOX ERROR buttons OK.
    return.

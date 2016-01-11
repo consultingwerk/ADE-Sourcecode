@@ -3,28 +3,11 @@
 &Scoped-define WINDOW-NAME    adv-dial
 &Scoped-define FRAME-NAME     adv-dial
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS adv-dial 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 /*------------------------------------------------------------------------
 
   File: _advprop.w
@@ -272,10 +255,11 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
               WIDTH             = _U._PRIVATE-DATA:WIDTH IN FRAME adv-dial
               DATA-TYPE         = IF _F._DATA-TYPE = "LongChar" THEN "CHARACTER":U ELSE _F._DATA-TYPE
               /* Set the format of the field based on what the data-type.  */
-              FORMAT            = IF _F._DATA-TYPE BEGINS "I" THEN "->,>>>,>>>,>>9":U ELSE
-                                  IF _F._DATA-TYPE BEGINS "DE" THEN _F._FORMAT ELSE
-                                  IF _F._DATA-TYPE BEGINS "DATETIME" THEN _F._FORMAT ELSE
-                                  IF _F._DATA-TYPE BEGINS "DA" THEN (
+              FORMAT            = IF _F._DATA-TYPE EQ "INTEGER":U THEN "->,>>>,>>>,>>9":U ELSE
+                                  IF _F._DATA-TYPE EQ "INT64":U   THEN "->,>>>,>>>,>>>,>>>,>>>,>>9":U ELSE
+                                  IF _F._DATA-TYPE BEGINS "DE":U  THEN _F._FORMAT ELSE
+                                  IF _F._DATA-TYPE BEGINS "DATETIME":U THEN _F._FORMAT ELSE
+                                  IF _F._DATA-TYPE BEGINS "DA":U THEN (
                                      IF INDEX(_orig_dte_fmt,"y":U) = 3 THEN "99/99/9999"
                                      ELSE IF INDEX(_orig_dte_fmt,"y":U) = 1 THEN "9999/99/99":U
                                      ELSE "99/9999/99":U) ELSE
@@ -301,12 +285,13 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
        TRIGGERS:
           ON LEAVE DO:
             /* Special Case: Not modified, then don't check */
-            IF SELF:MODIFIED THEN DO:              
+            IF SELF:MODIFIED THEN DO:
+             
               /* Tell user that we "old" SHARED variables ignore their initial
                  values. */
               IF _U._SHARED AND _F._INITIAL-DATA NE SELF:SCREEN-VALUE AND
                  ((_F._DATA-TYPE = "CHARACTER" AND SELF:SCREEN-VALUE NE "") OR
-                  (CAN-DO("INTEGER,DECIMAL",_F._DATA-TYPE)
+                  (CAN-DO("INTEGER,DECIMAL,INT64",_F._DATA-TYPE)
                           AND DECIMAL(SELF:SCREEN-VALUE) NE 0) OR
                   (_F._DATA-TYPE = "LOGICAL"
                           AND NOT CAN-DO("NO,FALSE",SELF:SCREEN-VALUE)) OR 
@@ -318,9 +303,11 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
               /* Parse the SCREEN-VALUE back into initial value based on type */
               CASE _F._DATA-TYPE:
                 WHEN "INTEGER":U   THEN _F._INITIAL-DATA = 
-                      STRING(INTEGER(SELF:SCREEN-VALUE), "->>>>>>>>>9":U).
+                      TRIM(STRING(INTEGER(SELF:SCREEN-VALUE), "->>>>>>>>>9":U)).
+                WHEN "INT64":U   THEN _F._INITIAL-DATA = 
+                      TRIM(STRING(INT64(SELF:SCREEN-VALUE), "->>>>>>>>>>>>>>>>>>9":U)).
                 WHEN "DECIMAL":U   THEN _F._INITIAL-DATA = 
-                      STRING(DECIMAL(SELF:SCREEN-VALUE), _F._FORMAT).
+                      TRIM(STRING(DECIMAL(SELF:SCREEN-VALUE), _F._FORMAT)).
                 WHEN "DATE":U   THEN DO:
                       /* Special case: user hits ? - screen-value is blank" */
                       IF TRIM(REPLACE(SELF:SCREEN-VALUE,"/":U,"":U)) eq "":U THEN
@@ -354,7 +341,20 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
                   WHEN "DECIMAL":U THEN DO:
                     CREATE FILL-IN ctemp
                       ASSIGN VISIBLE   = NO
-                             DATA-TYPE = "DECIMAL"
+                             DATA-TYPE = "DECIMAL":U
+                             FORMAT    = _F._FORMAT.
+                    ASSIGN ctemp:SCREEN-VALUE = _F._INITIAL-DATA NO-ERROR.
+                    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
+                      MESSAGE "The string '" + _F._INITIAL-DATA +
+                              "' doesn't fit the format mask" SKIP
+                              "'" + _F._FORMAT + "'." VIEW-AS ALERT-BOX ERROR.
+                      RETURN NO-APPLY.
+                    END.
+                  END.
+                  WHEN "INT64":U THEN DO:
+                    CREATE FILL-IN ctemp
+                      ASSIGN VISIBLE   = NO
+                             DATA-TYPE = "INT64":U
                              FORMAT    = _F._FORMAT.
                     ASSIGN ctemp:SCREEN-VALUE = _F._INITIAL-DATA NO-ERROR.
                     IF ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:
@@ -379,7 +379,7 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
                   END. /* INTEGER */
                 END CASE.  /* Data vs Format Check */
               END.  /* if a fill-in or combo-box */
-              
+
               /* Give warning if the user entered an invalid option for 
                  combo-boxes, radio-sets or selection-lists */
               IF CAN-DO("COMBO-BOX,RADIO-SET,SELECTION-LIST":U, _U._TYPE)
@@ -390,7 +390,7 @@ IF CAN-DO(_PROP._WIDGETS,_U._TYPE) THEN DO:
                 IF _U._TYPE = "RADIO-SET":U AND _F._INITIAL-DATA = "?" THEN
                   _F._INITIAL-DATA = "".
                 IF _F._INITIAL-DATA NE "" AND
-                   LOOKUP(_F._INITIAL-DATA, valid-items ,{&NL}) eq 0
+                   LOOKUP(TRIM(_F._INITIAL-DATA), valid-items ,{&NL}) eq 0
                 THEN MESSAGE 
                         "You have specified an initial value that does" {&SKP}
                         "not appear in your list of valid"

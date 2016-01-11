@@ -1,31 +1,16 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /* loaddefs.i - definitions for load .df file
 
 history:
    10/18/99  Mario B.   Create warning mechanisim and add warning for
    SQL-WIDTH.  BUG# 19990825-005.
     D. McMann 04/11/01 Added warning for SQL Table Updates ISSUE 310
+   fernando   08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)    
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} SHARED VARIABLE iarg AS CHARACTER NO-UNDO. /* usually = ilin[2] */
@@ -45,7 +30,11 @@ DEFINE {1} SHARED VARIABLE iwarnlst AS CHARACTER NO-UNDO. /* list for warnings *
 
 DEFINE {1} SHARED VARIABLE file-area-number AS INTEGER INITIAL 6 NO-UNDO.
 
-DEFINE {1} SHARED WORKFILE wdbs NO-UNDO LIKE _Db.
+&IF DEFINED(NO_TABLES) EQ 0 &THEN
+
+/* 20060413-001 - making wdbs a temp-table */
+DEFINE {1} SHARED TEMP-TABLE wdbs NO-UNDO LIKE _Db.
+
 DEFINE {1} SHARED WORKFILE wfil NO-UNDO LIKE _File.
 DEFINE {1} SHARED WORKFILE wfit NO-UNDO LIKE _File-trig.
 DEFINE {1} SHARED WORKFILE wfld NO-UNDO LIKE _Field.
@@ -53,6 +42,8 @@ DEFINE {1} SHARED WORKFILE wflt NO-UNDO LIKE _Field-trig.
 DEFINE {1} SHARED WORKFILE widx NO-UNDO LIKE _Index.
 DEFINE {1} SHARED WORKFILE wixf NO-UNDO LIKE _Index-field.
 DEFINE {1} SHARED WORKFILE wseq NO-UNDO LIKE _Sequence.
+
+&ENDIF
 
 /* gate_xxx - for lookup of _for-type -> _fld-stdtype converions */
 DEFINE {1} SHARED VARIABLE gate_dbtype AS CHARACTER NO-UNDO.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,7 +23,7 @@
              10/12/01 DLM Added logic to handle dumping DEFAULTs     
              06/04/02 DLM Added logic to handle error on creating hidden files 
              06/25/02 DLM Added logic for function based indexes
-             10/17/05 KSM Fixed X8OVERRIDE funcionality.      
+             10/17/05 KSM Fixed X8OVERRIDE funcionality.   
 */    
 
 { prodict/user/uservar.i }
@@ -50,12 +50,12 @@ assign batch_mode    = SESSION:BATCH-MODE
 IF batch_mode THEN DO:
    PUT STREAM logfile UNFORMATTED
        " " skip
-       "Progress to Oracle Log" skip(2)
-       "Original Progress Database:    " pro_dbname skip
-       "Other Progress db connect parameters : " pro_conparms  skip
+       "{&PRO_DISPLAY_NAME} to Oracle Log" skip(2)
+       "Original {&PRO_DISPLAY_NAME} Database:    " pro_dbname skip
+       "Other {&PRO_DISPLAY_NAME} db connect parameters : " pro_conparms  skip
        "Oracle Logical Database:       " ora_dbname skip
        "Version of Oracle:             " ora_version skip
-       "Progress Schema Holder name:   " osh_dbname skip
+       "{&PRO_DISPLAY_NAME} Schema Holder name:   " osh_dbname skip
        "Oracle Username:               " ora_username skip
        "Oracle Tablespace for tables:  " ora_tspace skip
        "Oracle Tablespace for indexes: " ora_ispace skip
@@ -68,7 +68,9 @@ IF batch_mode THEN DO:
                                                   ELSE "_Field._Format field")
                                                   SKIP
        "Create objects in Oracle:      " loadsql skip
-       "Moved data to Oracle:          " movedata skip(2).
+       "Moved data to Oracle:          " movedata /*skip
+       "Unicode Types:                 " unicodeTypes skip
+       "Allow NVARCHAR2(4000):         " nvchar_utf */ skip(2).
 END.
 
 IF loadsql THEN DO:
@@ -130,15 +132,15 @@ IF loadsql THEN DO:
     IF batch_mode THEN 
        PUT STREAM logfile UNFORMATTED 
                "Database " ora_dbname 
-               " must not be the same as schema holder or PROGRESS Database"
+               " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database"
                 skip(2).
     ELSE DO:
       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
            MESSAGE "Database " ora_dbname 
-             " must not be the same as schema holder or PROGRESS Database".
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database".
       &ELSE
            MESSAGE "Database " ora_dbname 
-             " must not be the same as schema holder or PROGRESS Database"
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database"
              VIEW-AS ALERT-BOX ERROR.
       &ENDIF
     END.             
@@ -146,8 +148,12 @@ IF loadsql THEN DO:
   END.
 END.
 
-IF ora_version > 7 THEN
-  ASSIGN user_env[18] = "VARCHAR2".
+IF ora_version > 7 THEN DO:
+   /* IF unicodeTypes THEN
+       ASSIGN user_env[18] = "NVARCHAR2".
+    ELSE */
+       ASSIGN user_env[18] = "VARCHAR2".
+END.
 ELSE
   ASSIGN user_env[18] = "long".
   
@@ -161,7 +167,8 @@ ASSIGN user_env[1]  = "ALL"
        user_env[7]  = (IF crtdefault THEN "y" ELSE "n")
        user_env[8]  = "y"
        user_env[9]  = "ALL"
-       user_env[11] = "char" 
+      /* user_env[10] = (IF nvchar_utf THEN "4000" ELSE "2000")*/
+       user_env[11] = "char"
        user_env[12] = "date"
        user_env[13] = "number"
        user_env[14] = "number"
@@ -306,7 +313,9 @@ IF loadsql THEN DO:
           TITLE "Moving Data".
 
     RUN "prodict/ora/_ora_md9.p".
-    HIDE FRAME ld-dt NO-PAUSE.
+
+    IF NOT batch_mode THEN
+       HIDE FRAME ld-dt NO-PAUSE.
 
     DISCONNECT VALUE (ora_dbname).
     DISCONNECT VALUE (osh_dbname).

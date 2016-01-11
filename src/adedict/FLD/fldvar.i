@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -20,6 +20,8 @@ Author: Laura Stern
 
 Date Created: 02/04/92
     Modified: 06/18/98 Change DTYPE_RAW from 6 to 8 DLM
+              05/24/06 fernando Added support int64 datatype
+              06/08/06 fernando Added s_btn_toint64
  
 ----------------------------------------------------------------------------*/
 
@@ -39,6 +41,8 @@ Define {1} var s_Fld_DType     as char format "x(32)" NO-UNDO.
 Define {1} var s_lst_Fld_Dtype as char
    view-as SELECTION-LIST SINGLE  
    INNER-CHARS 32 INNER-LINES 9 SCROLLBAR-VERTICAL.
+
+DEFINE BUTTON s_btn_toint64 LABEL "-> in&t64" {&STDPH_OKBTN}.
 
 DEFINE BUTTON s_btn_lob_Area IMAGE-UP FILE "btn-down-arrow".
 
@@ -127,6 +131,7 @@ Define {1} var s_Fld_Capab as char NO-UNDO.
 &global-define 	  DTYPE_XLOB       20 
 &global-define 	  DTYPE_DATETM     34
 &global-define 	  DTYPE_DATETMTZ   40  
+&global-define 	  DTYPE_INT64	   41
 
 /* adjusting of the InView and InIndex fields */
 do with frame fldprops:

@@ -20,6 +20,8 @@
       09/22/03 Added check for CLOB to have codepage and collation set.
       09/29/03 Added check for invalid data type 20030925-014
       07/09/04 Added abbreviations for data types 20040430-023
+      04/25/06 Added int64 to list of data types
+      06/12/06 Allow int->int64 type change and check for _Initial overflow
       08/16/06 Raw comparison when checking if char values are different - 20060301-002
 */    
     
@@ -56,7 +58,9 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
     (wfld._Charset = ? OR wfld._Collation = ?) THEN
     ierror = 46.
 
-  IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID") = 0 THEN 
+  /* allow int64 for 10.1B an later */
+  IF LOOKUP(wfld._Data-type,"CHARACTER,CHAR,DATE,DECIMAL,DEC,INTEGER,INT,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
+                            + (IF NOT is-pre-101b-db THEN ",INT64" ELSE "")) = 0 THEN 
     ASSIGN ierror = 47.
 
   IF ierror > 0 THEN RETURN.
@@ -93,7 +97,16 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
 
   fldrecid = RECID(_Field).
   IF wfld._Format  <> ?  THEN _Field._Format  = wfld._Format.
-  IF wfld._Initial <> "" THEN _Field._Initial = wfld._Initial. 
+  
+  IF wfld._Initial <> "" THEN DO:
+      /* check for overflow (in case this is an int/int64 field */
+      ASSIGN _Field._Initial = wfld._Initial NO-ERROR. 
+      IF ERROR-STATUS:ERROR THEN DO:
+        ierror = 52.
+        RETURN.
+      END.
+  END.
+  
   IF wfld._Field-rpos <> ? THEN _Field._Field-rpos = wfld._Field-rpos.
   IF wfld._Width <> ? THEN _Field._Width = wfld._Width.
   IF wfld._Charset <> ? THEN _Field._Charset = wfld._Charset.
@@ -103,8 +116,14 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
 END. /*---------------------------------------------------------------------*/
 ELSE
 IF imod = "m" THEN DO: /*---------------------------------------------------*/
-  IF _Field._Data-type <> wfld._Data-type THEN
-    ierror = 10. /* "Cannot change datatype of existing field" */
+  IF _Field._Data-type <> wfld._Data-type THEN DO:
+    /* allow integer to int64 updates for 10.1B and later */
+    IF (_Field._Data-type = "int" OR _Field._Data-type = "integer") AND 
+        wfld._Data-type = "int64" AND NOT is-pre-101b-db THEN
+        _Field._Data-type  = wfld._Data-type.
+    ELSE
+        ierror = 10. /* "Cannot change datatype of existing field" */
+  END.
   IF _Field._Extent <> wfld._Extent THEN
     ierror = 11. /* "Cannot change extent of existing field" */
   IF ierror > 0 THEN RETURN.

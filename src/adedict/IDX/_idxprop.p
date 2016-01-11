@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -42,6 +26,8 @@ Last modified on:
 05/14/98 by D. McMann 98-05-13-028 _Idx-num not assigned until committed must
                       use _ianum instead.
 08/16/00 D. McMann  Added _db-recid to StorageObject find 20000815029
+06/08/06 fernando   Support for large key entries
+08/21/06 fernando   Fix can-write check on _Index (20051216-011).
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -59,6 +45,8 @@ Define var capab     as char    NO-UNDO.
 Define var frstfld   as char	NO-UNDO init "".
 Define var lst_item  as char	NO-UNDO.
 Define var name_mod  as logical NO-UNDO. /* name modifiable */
+DEFINE VAR idx_mod   AS LOGICAL NO-UNDO INIT YES.
+
 /*============================Mainline code==================================*/
 
 find _File WHERE _file._File-name = "_Index"
@@ -69,6 +57,9 @@ do:
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
+if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+   ASSIGN idx_mod = NO.
+
 find _File WHERE _File._File-name = "_Index-Field"
              AND _File._Owner = "PUB" NO-LOCK.
 if NOT can-do(_File._Can-read, USERID("DICTDB")) then
@@ -77,6 +68,8 @@ do:
       view-as ALERT-BOX ERROR buttons Ok in window s_win_Browse.
    return.
 end.
+if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+   ASSIGN idx_mod = NO.
 
 /* Don't want Cancel if moving to next index - only when window opens */
 if s_win_Idx = ? then
@@ -164,13 +157,30 @@ END.
 ELSE ASSIGN ActRec:LABEL = "Ac&tive"
             ActRec       = b_Index._Active.
         
+IF _File._For-type = ? AND NOT is-pre-101b-db THEN DO:
+    /* for Progress db's, check if large key entries is not enabled, and display
+       information. We only have to do this for 10.1B and later dbs
+    */
+    FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
+    IF AVAILABLE DICTDB._Database-feature THEN DO:
+        IF DICTDB._Database-feature._DBFeature_Enabled EQ "1" THEN
+            s_msg = "".
+        ELSE
+            s_msg = "** Large key entries support not enabled".
+
+        RELEASE DICTDB._Database-feature.
+    END.
+    ELSE
+        s_msg = "".
+END.
+
 /* Set status line */
-display "" @ s_Status ActRec with frame idxprops. /* clears from last time */
+display "" @ s_Status s_msg ActRec with frame idxprops. /* clears from last time */
 
 s_Idx_ReadOnly = (s_DB_ReadOnly OR s_ReadOnly).
 if NOT s_Idx_ReadOnly then
 do:
-   if NOT can-do(_File._Can-write, USERID("DICTDB")) then
+   if NOT idx_mod then
    do:
       display s_NoPrivMsg + " modify index definitions." @ s_Status
       	 with frame idxprops.
@@ -186,7 +196,7 @@ do:
    end.
    ELSE IF _File._Db-lang > {&TBLTYP_SQL} THEN DO:
       s_Status:screen-value in frame idxprops =
-   	 "Note: PROGRESS/SQL92 table cannot be modified.".
+   	 "Note: {&PRO_DISPLAY_NAME}/SQL92 table cannot be modified.".
       s_Idx_ReadOnly = true.
    END.
 end.

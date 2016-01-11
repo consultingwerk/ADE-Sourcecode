@@ -1,14 +1,14 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dlg_NewName
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dlg_NewName 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File    :    _newfunc.w
@@ -105,7 +105,6 @@ DEFINE VARIABLE Type_Local    AS CHARACTER    NO-UNDO INIT "_LOCAL":U .
 DEFINE VARIABLE Invalid_Entry AS CHARACTER    NO-UNDO INIT "_INVALID-ENTRY":U .
 DEFINE VARIABLE Indent        AS CHARACTER    NO-UNDO INIT "   ":U.
 
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -117,7 +116,7 @@ DEFINE VARIABLE Indent        AS CHARACTER    NO-UNDO INIT "   ":U.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Dlg_NewName
 
 /* Standard List Definitions                                            */
@@ -151,12 +150,13 @@ FUNCTION GetFuncCode RETURNS CHARACTER
 DEFINE VARIABLE Returns-Type AS CHARACTER FORMAT "X(256)":U 
      LABEL "&Returns" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 14
-     LIST-ITEMS "CHARACTER","COM-HANDLE","DATE","DATETIME","DATETIME-TZ","DECIMAL","HANDLE","INTEGER","LOGICAL","LONGCHAR","MEMPTR","RAW","RECID","ROWID","WIDGET-HANDLE" 
+     LIST-ITEMS "CHARACTER","COM-HANDLE","DATE","DATETIME","DATETIME-TZ","DECIMAL","HANDLE","INTEGER","INT64","LOGICAL","LONGCHAR","MEMPTR","RAW","RECID","ROWID","WIDGET-HANDLE" 
+     DROP-DOWN-LIST
      SIZE 42 BY 1 NO-UNDO.
 
 DEFINE VARIABLE Smart_List AS CHARACTER FORMAT "X(64)":U 
      VIEW-AS COMBO-BOX SORT INNER-LINES 20
-     LIST-ITEMS "","" 
+     DROP-DOWN-LIST
      SIZE 42 BY 1
      FONT 2 NO-UNDO.
 
@@ -178,7 +178,7 @@ DEFINE VARIABLE Type AS CHARACTER
      SIZE 23 BY 2.86 NO-UNDO.
 
 DEFINE RECTANGLE RECT-4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 52 BY 4.81.
 
 
@@ -214,7 +214,7 @@ DEFINE FRAME Dlg_NewName
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dlg_NewName
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME Dlg_NewName:SCROLLABLE       = FALSE
        FRAME Dlg_NewName:HIDDEN           = TRUE.
@@ -304,12 +304,12 @@ DO:
 
       IF Returns-Type = "CHARACTER":U THEN
         ASSIGN Return_Value = '""'.
-      ELSE IF Returns-Type = "DECIMAL" THEN
+      ELSE IF Returns-Type = "DECIMAL":U THEN
         ASSIGN Return_Value = "0.00".
-      ELSE IF Returns-Type = "INTEGER" THEN
+      ELSE IF Returns-Type = "INTEGER":U OR Returns-Type = "INT64":U THEN
         ASSIGN Return_Value = "0".
-      ELSE IF Returns-Type = "LOGICAL" THEN
-        ASSIGN Return_Value = "FALSE".
+      ELSE IF Returns-Type = "LOGICAL":U THEN
+        ASSIGN Return_Value = "FALSE":U.
       ELSE Return_Value = "?".
       
       Code-Block =   Code-Block + {&EOL} +
@@ -472,7 +472,7 @@ RUN disable_UI.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Dlg_NewName _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI Dlg_NewName  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -489,7 +489,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Dlg_NewName _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI Dlg_NewName  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface

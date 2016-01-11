@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -46,7 +30,7 @@ Author: Tom Hutegger
 History:
     hutegger    94/05/23    creation
     Mario B     99/02/12    BUG 98-12-17-030 stop LC() on dumpname.  
-    
+    fernando    06/15/06    Expanding Dump-name to 32 characters    
 --------------------------------------------------------------------*/
 /*h-*/
 /*--------------------------------------------------------------------
@@ -58,8 +42,8 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
 
 /*---------------------------  MAIN-CODE  --------------------------*/
 
-  nam = SUBSTRING(nam,1,8,"character").
   IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
+     nam = SUBSTRING(nam,1,32,"character").
  
     IF CAN-FIND(_File WHERE _File._Db-recid = drec_db
                         AND _Dump-name = nam  
@@ -67,7 +51,7 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
       ASSIGN pass = 1 /*ABSOLUTE(_File-num)*/
              nam  = SUBSTRING(nam + "-------"
                       ,1
-                      ,8 - LENGTH(STRING(pass),"character")
+                      ,32 - LENGTH(STRING(pass),"character")
                       ,"character"
                       )
                        + STRING(pass).
@@ -78,13 +62,15 @@ DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
                          AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")):      
       ASSIGN nam = SUBSTRING(nam + "-------"
                    ,1
-                   ,8 - LENGTH(STRING(pass),"character")
+                   ,32 - LENGTH(STRING(pass),"character")
                    ,"character"
                    )
                    + STRING(pass).
     END.
   END.
   ELSE DO:
+    nam = SUBSTRING(nam,1,8,"character").
+
     IF CAN-FIND(_File WHERE _File._Db-recid = drec_db
                         AND _Dump-name = nam) THEN
       ASSIGN pass = 1 /*ABSOLUTE(_File-num)*/

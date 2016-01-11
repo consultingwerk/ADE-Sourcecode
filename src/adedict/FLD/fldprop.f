@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -24,6 +24,7 @@ Author: Laura Stern
 
 Date Created: 02/04/92 
     Modified: 04/01/98 Added display of _field-rpos
+              06/08/06 Support for int64
 
 ----------------------------------------------------------------------------*/
 
@@ -38,6 +39,7 @@ form
 
    s_Fld_DType          label "Data T&ype"      colon 18 {&STDPH_FILL} 
    s_btn_Fld_DType   
+   s_btn_toint64        at row-of s_btn_Fld_DType col-of  s_Fld_DType + 30 /*col-of s_btn_Fld_DType   */
    SKIP({&VM_WIDG})
 
    s_Optional           no-label                at    2 

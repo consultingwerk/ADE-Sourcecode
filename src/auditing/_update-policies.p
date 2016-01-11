@@ -406,6 +406,16 @@ PROCEDURE process-audit-field-policy :
                        UNDO, LEAVE.
                    END.
 
+                   /* make sure we don't get audit data tables */
+                   IF ttAuditFieldPolicy._File-name = "_aud-audit-data":U OR
+                      ttAuditFieldPolicy._File-name = "_aud-audit-data-value":U THEN DO:
+                       ASSIGN DATASET dsAudPolicy:ERROR = YES
+                              BUFFER ttAuditFieldPolicyBefore:ERROR = YES
+                              BUFFER ttAuditFieldPolicyBefore:ERROR-STRING = "Table " + ttAuditFieldPolicy._File-name + " cannot be audited (policy "
+                                 + QUOTER(hPolicyBuffer::_Audit-policy-name)  + ")".
+                       UNDO, LEAVE.
+                   END.
+
                    /* make sure levels are valid */
                    IF ttAuditFieldPolicy._Audit-create-level < -1 OR 
                       (ttAuditFieldPolicy._Audit-create-level > 2 AND ttAuditFieldPolicy._Audit-create-level NE 12 /* compressed mode */)  OR
@@ -531,6 +541,16 @@ DEFINE VARIABLE cIds AS CHARACTER NO-UNDO.
                           BUFFER ttAuditFilePolicyBefore:ERROR = YES
                           BUFFER ttAuditFilePolicyBefore:ERROR-STRING = "Table name and SQL owner are mandatory fields (policy "
                                  + ttAuditFilePolicy._Audit-policy-guid  + ")".
+                   UNDO, LEAVE.
+               END.
+
+               /* make sure we don't get audit data tables */
+               IF ttAuditFilePolicy._File-name = "_aud-audit-data":U OR
+                  ttAuditFilePolicy._File-name = "_aud-audit-data-value":U THEN DO:
+                   ASSIGN DATASET dsAudPolicy:ERROR = YES
+                          BUFFER ttAuditFilePolicyBefore:ERROR = YES
+                          BUFFER ttAuditFilePolicyBefore:ERROR-STRING =  "Table " + ttAuditFilePolicy._File-name + " cannot be audited (policy "
+                                 + QUOTER(hPolicyBuffer::_Audit-policy-name)  + ")".
                    UNDO, LEAVE.
                END.
 

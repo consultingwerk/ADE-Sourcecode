@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -15,6 +15,8 @@
     Author      : John Palazzo
     Date Created: 03/24/92
     Date Updated: May, 2000 9.1B
+
+		fernando  07/28/2006 Support for XREF-XML
 */
 
 &GLOBAL-DEFINE COMP_NAME "Application Compiler"
@@ -49,7 +51,10 @@
 &GLOBAL-DEFINE def_encrkey     ""
 &GLOBAL-DEFINE def_minsize     NO
 &GLOBAL-DEFINE def_gen_md5     NO
+&GLOBAL-DEFINE def_xrefxml     NO
 
+
+&GLOBAL-DEFINE LABEL_XREF "&Xref File"
 
 DEFINE {1} SHARED VAR s_propathdir AS CHAR NO-UNDO. /* dir to compile in */
 DEFINE {1} SHARED VAR s_fspecSaved AS CHAR NO-UNDO  /* file spec to compile */
@@ -91,7 +96,10 @@ DEFINE {1} SHARED VAR s_lplen    AS int NO-UNDO    /* listing page length */
   init {&def_lplen} LABEL "L&ength" format ">>9".
   
 DEFINE {1} SHARED VAR s_xref      AS char NO-UNDO  /* xref file name */
-  FORMAT "x(60)" VIEW-AS FILL-IN SIZE 31 BY 1 LABEL "&Xref File".
+  FORMAT "x(60)" VIEW-AS FILL-IN SIZE 31 BY 1 LABEL {&LABEL_XREF}.
+
+DEFINE {1} SHARED VAR s_xrefxml   AS log NO-UNDO  /* xref xml file */
+  view-as toggle-box init {&def_xrefxml} LABEL "XML Fo&rmat".
 DEFINE {1} SHARED VAR s_lappend   AS log NO-UNDO
   view-as toggle-box  /* listing append? */
   init {&def_lappend} LABEL "&Append".

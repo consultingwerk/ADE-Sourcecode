@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -39,6 +23,7 @@ Date Created: 10/02/92
     Modified: 01/07/98 DLM Added display of current storage area.
               07/10/98 DLM Added DBVERSION and _Owner check.
               10/17/03 DLM Added NO-LOCK to _Db find.
+              06/15/06 fernando   Adding support for long dump names    
 
 ----------------------------------------------------------------------------*/
 
@@ -54,11 +39,11 @@ DEFINE VARIABLE starea  AS CHARACTER FORMAT "x(4)" NO-UNDO.
 FORM
    _File._File-name  FORMAT "x(29)"  COLUMN-LABEL "Table!Name" 
    starea                            COLUMN-LABEL "St!Area"   
-   _File._Dump-name  FORMAT "x(8)"   COLUMN-LABEL "Dump!Name"
-   flags             FORMAT "x(5)"   COLUMN-LABEL "Table!Flags" 
+   _File._Dump-name  FORMAT "x(13)"   COLUMN-LABEL "Dump!Name"
+   flags             FORMAT "x(3)"   COLUMN-LABEL "Tbl!Flg" 
    fldcnt            FORMAT ">>>>9"  COLUMN-LABEL "Field!Count"
    _File._numkey     FORMAT ">>>>9"  COLUMN-LABEL "Index!Count"
-   _File._File-label FORMAT "x(15)"  COLUMN-LABEL "Table!Label" 
+   _File._File-label FORMAT "x(11)"  COLUMN-LABEL "Table!Label" 
    WITH FRAME shotable USE-TEXT STREAM-IO DOWN.
 
 ASSIGN

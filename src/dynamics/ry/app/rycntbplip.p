@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
@@ -27,6 +27,11 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/******************************************************************
+* Copyright (C) 2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions     *
+* contributed by participants of Possenet.                        *
+*******************************************************************/
 /*---------------------------------------------------------------------------------
   File: rycntbplip.p
 
@@ -278,6 +283,8 @@ FUNCTION isVisibleObject RETURNS LOGICAL
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
+
+ 
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
@@ -884,7 +891,7 @@ PROCEDURE getClassValues :
         END CASE.
 
         IF ttClassValues.cAttributeValue = ? THEN
-          ttClassValues.cAttributeValue = "":U.
+          ttClassValues.cAttributeValue = "?":U.
       END.
     END.
   END.
@@ -4431,7 +4438,7 @@ FUNCTION inheritsFrom RETURNS CHARACTER
             inherits from
     Notes:  
 ------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cReversedOTString    AS CHARACTER  	              NO-UNDO.
+    DEFINE VARIABLE cReversedOTString    AS CHARACTER                 NO-UNDO.
     DEFINE VARIABLE cInheritsFromOT      AS CHARACTER                 NO-UNDO.
     DEFINE variable cPropertyName        as character                 no-undo.
     DEFINE variable iCounter             as integer                   no-undo.

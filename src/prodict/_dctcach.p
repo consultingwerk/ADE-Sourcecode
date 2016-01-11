@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,6 +13,8 @@
            K. McIntosh 04/28/05 Refined logic to allow tables to show when
                                 called from options other than "Dump Contents" 
                                 and "Edit Security". 20050427-022
+           fernando  03/13/06 Using temp-table to hold table names - bug 20050930-006
+
 */
 
 { prodict/dictvar.i }
@@ -29,11 +31,16 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 1 NO-UNDO INITIAL [
 /* Include hidden tables in list? */                                  
 DEFINE INPUT PARAMETER p_hidden AS LOGICAL NO-UNDO.
 
-DEFINE VARIABLE c AS CHARACTER NO-UNDO.
+DEFINE VARIABLE c      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE useVar AS LOGICAL   NO-UNDO INIT YES.
+
+/* 20050930-006 - get rid of the caching information */
+EMPTY TEMP-TABLE tt_cache_file NO-ERROR.
 
 ASSIGN cache_dirty = FALSE
        cache_file# = 0
        cache_file  = ""
+       l_cache_tt = FALSE /* 20050930-006 - clear it out */
        c           = user_hdr.  /* save it */
 
 PAUSE 0 BEFORE-HIDE.  /* Added BEFORE-HIDE to prevent prior messages from 
@@ -62,18 +69,17 @@ IF p_hidden
        This prevents an unauthorized tool from seeing these tables. */
     cache_dirty = TRUE.
     
-    ASSIGN
-      cache_file# = cache_file# + 1
-      cache_file[cache_file#] = DICTDB._File._File-name.
+    RUN addEntry(INPUT DICTDB._File._File-name).
+
     END.
  ELSE FOR EACH DICTDB._File
     WHERE DICTDB._File._Db-recid = drec_db
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
       AND NOT DICTDB._File._Hidden
       BY DICTDB._File._File-name:
-    ASSIGN
-      cache_file# = cache_file# + 1
-      cache_file[cache_file#] = DICTDB._File._File-name.
+
+         RUN addEntry(INPUT DICTDB._File._File-name).
+
   END.
 
 {prodict/user/userhdr.i c}  /* restore header line */
@@ -87,3 +93,48 @@ DISPLAY (IF user_filename = "ALL"  THEN "ALL"
 
 RETURN.
 
+/* Added to fix 20050930-006 - we will store the table names in a temp-table
+   if we can't fit them into a character field
+*/
+PROCEDURE addEntry:
+    DEFINE INPUT PARAMETER cTableName AS CHARACTER NO-UNDO.
+
+    DEFINE VARIABLE iNum   AS INTEGER   NO-UNDO INIT 0.
+
+    ASSIGN cache_file# = cache_file# + 1.
+
+    IF NOT l_cache_tt THEN DO:
+
+       ASSIGN cache_file[cache_file#] = cTableName NO-ERROR.
+
+       IF ERROR-STATUS:ERROR THEN DO:
+           /* if an error occurred, it could be because there are too many
+              tables, or we hit the limit on the character variable size
+              (cache_file), so we will use a temp-table to hold the table
+              names 
+           */
+
+           /* copy them to the temp-table */
+           REPEAT iNum = 1 TO (cache_file# - 1):
+               CREATE tt_cache_file.
+               ASSIGN tt_cache_file.nPos = iNum
+                      tt_cache_file.cName = cache_file[iNum].
+           END.
+
+           /* now create an entry for the current table name */
+           CREATE tt_cache_file.
+           ASSIGN tt_cache_file.nPos = cache_file#
+                  tt_cache_file.cName = DICTDB._File._File-name.
+
+           /* clear out cache_file */
+           ASSIGN cache_file = ""
+                  l_cache_tt = YES.
+       END.
+    END.
+    ELSE DO:
+        CREATE tt_cache_file.
+        ASSIGN tt_cache_file.nPos = cache_file#
+               tt_cache_file.cName = DICTDB._File._File-name.
+    END.
+
+END PROCEDURE.

@@ -465,8 +465,8 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 
     FIND DICTDB._File
       WHERE DICTDB._File._Db-recid     = drec_db
-      AND   DICTDB._File._For-name     = sqltables-name
-      AND   DICTDB._File._For-owner    = TRIM(DICTDBG.SQLTables_buffer.owner)
+      AND   UPPER(DICTDB._File._For-name)  = UPPER(sqltables-name)
+      AND   UPPER(DICTDB._File._For-owner) = UPPER(TRIM(DICTDBG.SQLTables_buffer.owner))
       AND ( bug1
       OR    DICTDB._File._FIl-misc2[1] = TRIM(DICTDBG.SQLTables_buffer.qualifier)
           )

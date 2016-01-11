@@ -1,26 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -36,6 +19,8 @@ Arguments:
 Author: Laura Stern
 
 Date Created: 02/20/92 
+    Modified: 05/25/06 fernando   Support for large sequences
+
 ----------------------------------------------------------------------------*/
 
 
@@ -45,8 +30,8 @@ Define {1} frame newseq.    /* for adding a new sequence */
 Define {1} frame seqprops.  /* sequence properties */
 Define {1} var s_Seq_Type     as   char                      NO-UNDO. 
 Define {1} var s_Seq_Limit    like DICTDB._Sequence._Seq-max NO-UNDO.
-
-
+DEFINE {1} VAR s_Large_Seq_info    AS CHAR                   NO-UNDO.
+DEFINE {1} VAR s_Seq_Current_Value AS CHAR                   NO-UNDO.
 
 /* This is the form for the seqprops and newseq windows. */
 &IF "{&WINDOW-SYSTEM}" begins "MS-WIN" &THEN
@@ -58,6 +43,7 @@ Define {1} var s_Seq_Limit    like DICTDB._Sequence._Seq-max NO-UNDO.
      s_btn_Prev SPACE({&HM_DBTN}) s_btn_Next"
       &col1 = 19
       &col2 = 21
+      &prop = 1
    }
 &ENDIF
 

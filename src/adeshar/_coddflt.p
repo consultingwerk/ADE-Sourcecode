@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _coddflt.p
@@ -127,6 +127,7 @@ DEFINE VAR  tmp_code    AS CHAR       NO-UNDO.
 DEFINE VAR  tmp_line    AS CHAR       NO-UNDO.
 DEFINE VAR  tmp_string  AS CHAR       NO-UNDO.
 DEFINE VAR  token       AS CHAR       NO-UNDO.
+DEFINE VAR  tmp_viewas  AS CHARACTER  NO-UNDO.
 
 DEFINE BUFFER b_U      FOR _U.
 DEFINE BUFFER f_U      FOR _U.
@@ -316,7 +317,7 @@ CASE p_template:
   END. /* WHEN _CONTROL... */
 
  /**************************************************************************/
- /*                          _DEFINE-QUERY                                   */  
+ /*                          _DEFINE-QUERY                                 */  
  /**************************************************************************/
   WHEN "_DEFINE-QUERY":U THEN DO:
     FIND _C WHERE RECID(_C) = _U._x-recid.
@@ -414,6 +415,62 @@ CASE p_template:
                                   TRIM(STRING(_BC._LABEL-BGCOLOR,">>9")).
       IF _BC._LABEL-FONT NE ? THEN
          tmp_string = tmp_string + " LABEL-FONT " + TRIM(STRING(_BC._LABEL-FONT,">>9")).
+
+      IF _BC._VIEW-AS-TYPE NE "" AND
+         _BC._VIEW-AS-TYPE NE ?  AND
+         _BC._VIEW-AS-TYPE NE "FILL-IN":U THEN DO:
+
+         IF _BC._VIEW-AS-TYPE = "Toggle-box":U THEN
+            ASSIGN tmp_viewas = " VIEW-AS TOGGLE-BOX":U.
+
+         ELSE DO:
+            ASSIGN tmp_viewas = " VIEW-AS COMBO-BOX":U.
+
+            ASSIGN tmp_viewas = tmp_viewas +
+                                (IF _BC._VIEW-AS-SORT EQ YES THEN " SORT":U ELSE "") +                                
+                                (IF _BC._VIEW-AS-INNER-LINES NE 0 THEN " INNER-LINES ":U + STRING(_BC._VIEW-AS-INNER-LINES) ELSE "").
+
+            IF _BC._VIEW-AS-ITEMS = ? THEN DO:
+                ASSIGN tmp_viewas = tmp_viewas + CHR(10) + FILL(" ",21) + ' LIST-ITEM-PAIRS ':U.
+
+                DO i = 1 TO NUM-ENTRIES(_BC._VIEW-AS-ITEM-PAIRS,_BC._VIEW-AS-DELIMITER) BY 2:
+                    ASSIGN tmp_viewas = tmp_viewas + """"  + /* first item of pair (quoted) */
+                                        ENTRY(i,_BC._VIEW-AS-ITEM-PAIRS,_BC._VIEW-AS-DELIMITER) + '",' +
+                                        /* Quote the second item only if it's a CHAR field */
+                                        (IF _BC._DATA-TYPE = "Character":U THEN '"' + 
+                                         ENTRY(i + 1,_BC._VIEW-AS-ITEM-PAIRS,_BC._VIEW-AS-DELIMITER) + '"'
+                                         ELSE ENTRY(i + 1,_BC._VIEW-AS-ITEM-PAIRS,_BC._VIEW-AS-DELIMITER)) +
+                                        (IF i + 1 < NUM-ENTRIES(_BC._VIEW-AS-ITEM-PAIRS,_BC._VIEW-AS-DELIMITER) THEN ",":U + CHR(10) + FILL(" ",38) 
+                                         ELSE "").
+                END.  /* DO i = 1 to Num-Entries */
+
+                ASSIGN tmp_viewas = tmp_viewas + CHR(10).
+            END.
+
+            ELSE DO:
+
+                ASSIGN tmp_viewas = tmp_viewas + CHR(10) + FILL(" ",21) + ' LIST-ITEMS ':U.
+
+                DO i = 1 TO NUM-ENTRIES(_BC._VIEW-AS-ITEMS,_BC._VIEW-AS-DELIMITER):
+                     ASSIGN tmp_viewas = tmp_viewas + """"  + 
+                            ENTRY(i,_BC._VIEW-AS-ITEMS,_BC._VIEW-AS-DELIMITER) +
+                        (IF i < NUM-ENTRIES(_BC._VIEW-AS-ITEMS,_BC._VIEW-AS-DELIMITER) THEN
+                           """," ELSE """ ").
+                END.
+
+                ASSIGN tmp_viewas = tmp_viewas + CHR(10).
+            END.
+
+            ASSIGN tmp_viewas = tmp_viewas + FILL(" ",22) +
+                                _BC._VIEW-AS-TYPE + " " +
+                                (IF _BC._VIEW-AS-MAX-CHARS NE 0 THEN " MAX-CHARS ":U + STRING(_BC._VIEW-AS-MAX-CHARS) ELSE "") +
+                                (IF _BC._VIEW-AS-AUTO-COMPLETION EQ YES THEN " AUTO-COMPLETION ":U ELSE "") +
+                                (IF _BC._VIEW-AS-UNIQUE-MATCH EQ YES THEN " UNIQUE-MATCH ":U ELSE "").
+         END.
+
+         ASSIGN tmp_string = tmp_string + tmp_viewas.
+      END.
+
       IF tmp_string NE "" THEN
         p_code = p_code + "      " + tmp_string + {&EOL}.        
     END.  /* FOR EACH _BC */

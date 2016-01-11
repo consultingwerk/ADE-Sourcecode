@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,6 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: ry/prc/rydynsckrp.p
 
@@ -136,6 +136,15 @@ DEFINE VARIABLE gcBrwsColLabelFGColors    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBrwsColLabelFonts       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBrwsColLabels           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBrwsColWidths           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColTypes            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColDelimiters       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColItems            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColItemPairs        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColInnerLines       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColSorts            AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColMaxChars         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColAutoCompletions  AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcBrwsColUniqueMatches    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcCalcFieldList           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcCountTmp                AS INTEGER    EXTENT {&WIDGET-COUNT-DIMENSION} NO-UNDO.
 DEFINE VARIABLE gcDataColumns             AS CHARACTER  NO-UNDO.
@@ -834,37 +843,46 @@ PROCEDURE assignMasterCase :
  IF glMasterLayout THEN
  DO:
     CASE pcLabel:
-       WHEN "AppService":U                THEN _P._PARTITION         = pcValue.
-       WHEN "AssignList":U                THEN gcAssignList          = pcValue.
-       WHEN "ALLOW-COLUMN-SEARCHING":U    THEN _C._COLUMN-SEARCHING  = LOGICAL(pcValue).
-       WHEN "AppBuilderTabbing":U         THEN _C._TABBING           = pcValue.
-       WHEN "AUTO-VALIDATE":U             THEN _C._NO-AUTO-VALIDATE  = NOT LOGICAL(pcValue).
-       WHEN "BaseQuery":U                 THEN 
+       WHEN "AppService":U                 THEN _P._PARTITION         = pcValue.
+       WHEN "AssignList":U                 THEN gcAssignList          = pcValue.
+       WHEN "ALLOW-COLUMN-SEARCHING":U     THEN _C._COLUMN-SEARCHING  = LOGICAL(pcValue).
+       WHEN "AppBuilderTabbing":U          THEN _C._TABBING           = pcValue.
+       WHEN "AUTO-VALIDATE":U              THEN _C._NO-AUTO-VALIDATE  = NOT LOGICAL(pcValue).
+       WHEN "BaseQuery":U                  THEN 
          ASSIGN _Q._4GLQury = TRIM(pcValue)
                 _Q._4GLQury = IF _Q._4glQury BEGINS "FOR ":U 
                               THEN SUBSTRING(_Q._4GLQury, 5, -1, "CHARACTER":U) ELSE _Q._4GLQury.
-       WHEN "BGCOLOR":U                   THEN _L._BGCOLOR           = INTEGER(pcValue).
-       WHEN "BrowseColumnBGColors":U      THEN gcBrwsColBGColors      = pcValue.
-       WHEN "BrowseColumnFGColors":U      THEN gcBrwsColFGColors      = pcValue.
-       WHEN "BrowseColumnFonts":U         THEN gcBrwsColFonts         = pcValue.
-       WHEN "BrowseColumnFormats":U       THEN gcBrwsColFormats       = pcValue.
-       WHEN "BrowseColumnLabelBGColors":U THEN gcBrwsColLabelBGColors = pcValue.
-       WHEN "BrowseColumnLabelFGColors":U THEN gcBrwsColLabelFGColors = pcValue.
-       WHEN "BrowseColumnLabelFonts":U    THEN gcBrwsColLabelFonts    = pcValue.
-       WHEN "BrowseColumnLabels":U        THEN gcBrwsColLabels        = pcValue.
-       WHEN "BrowseColumnWidths":U        THEN gcBrwsColWidths        = pcValue.
-       WHEN "BOX":U                       THEN IF gcDynClass = "DynView":U
-                                                THEN x_L._NO-BOX = NOT LOGICAL(pcValue).
-                                                ELSE _L._NO-BOX  = NOT LOGICAL(pcValue).
-       WHEN "BOX-SELECTABLE":U            THEN _C._BOX-SELECTABLE    = LOGICAL(pcValue).
-       WHEN "CalcFieldList":U             THEN gcCalcFieldList       = pcValue.
-       WHEN "COLUMN-MOVABLE":U            THEN _C._COLUMN-MOVABLE    = LOGICAL(pcValue).
-       WHEN "COLUMN-RESIZABLE":U          THEN _C._COLUMN-RESIZABLE  = LOGICAL(pcValue).
-       WHEN "COLUMN-SCROLLING":U          THEN _C._COLUMN-SCROLLING  = LOGICAL(pcValue).
-       WHEN "CONTEXT-HELP-ID":U           THEN _U._CONTEXT-HELP-ID   = INTEGER(pcValue).
-       WHEN "DataColumns":U               THEN gcDataColumns          = pcValue.
-       WHEN "DataColumnsByTable":U        THEN gcDataColumnsByTable   = pcValue.
-       WHEN "DataLogicProcedure":U        THEN _C._DATA-LOGIC-PROC    = REPLACE(pcValue,"~\":U,"/":U).
+       WHEN "BGCOLOR":U                    THEN _L._BGCOLOR           = INTEGER(pcValue).
+       WHEN "BrowseColumnBGColors":U       THEN gcBrwsColBGColors      = pcValue.
+       WHEN "BrowseColumnFGColors":U       THEN gcBrwsColFGColors      = pcValue.
+       WHEN "BrowseColumnFonts":U          THEN gcBrwsColFonts         = pcValue.
+       WHEN "BrowseColumnFormats":U        THEN gcBrwsColFormats       = pcValue.
+       WHEN "BrowseColumnLabelBGColors":U  THEN gcBrwsColLabelBGColors = pcValue.
+       WHEN "BrowseColumnLabelFGColors":U  THEN gcBrwsColLabelFGColors = pcValue.
+       WHEN "BrowseColumnLabelFonts":U     THEN gcBrwsColLabelFonts    = pcValue.
+       WHEN "BrowseColumnLabels":U         THEN gcBrwsColLabels        = pcValue.
+       WHEN "BrowseColumnWidths":U         THEN gcBrwsColWidths        = pcValue.
+       WHEN "BrowseColumnTypes":U          THEN gcBrwsColTypes         = pcValue.
+       WHEN "BrowseColumnDelimiters":U     THEN gcBrwsColDelimiters = pcValue.
+       WHEN "BrowseColumnItems":U          THEN gcBrwsColItems = pcValue.
+       WHEN "BrowseColumnItemPairs":U      THEN gcBrwsColItemPairs = pcValue.
+       WHEN "BrowseColumnInnerLines":U     THEN gcBrwsColInnerLines = pcValue.
+       WHEN "BrowseColumnSorts":U          THEN gcBrwsColSorts = pcValue.
+       WHEN "BrowseColumnMaxChars":U       THEN gcBrwsColMaxChars = pcValue.
+       WHEN "BrowseColumnAutoCompletions":U THEN gcBrwsColAutoCompletions = pcValue.
+       WHEN "BrowseColumnUniqueMatches":U   THEN gcBrwsColUniqueMatches = pcValue.
+       WHEN "BOX":U                        THEN IF gcDynClass = "DynView":U
+                                                 THEN x_L._NO-BOX = NOT LOGICAL(pcValue).
+                                                 ELSE _L._NO-BOX  = NOT LOGICAL(pcValue).
+       WHEN "BOX-SELECTABLE":U             THEN _C._BOX-SELECTABLE    = LOGICAL(pcValue).
+       WHEN "CalcFieldList":U              THEN gcCalcFieldList       = pcValue.
+       WHEN "COLUMN-MOVABLE":U             THEN _C._COLUMN-MOVABLE    = LOGICAL(pcValue).
+       WHEN "COLUMN-RESIZABLE":U           THEN _C._COLUMN-RESIZABLE  = LOGICAL(pcValue).
+       WHEN "COLUMN-SCROLLING":U           THEN _C._COLUMN-SCROLLING  = LOGICAL(pcValue).
+       WHEN "CONTEXT-HELP-ID":U            THEN _U._CONTEXT-HELP-ID   = INTEGER(pcValue).
+       WHEN "DataColumns":U                THEN gcDataColumns          = pcValue.
+       WHEN "DataColumnsByTable":U         THEN gcDataColumnsByTable   = pcValue.
+       WHEN "DataLogicProcedure":U         THEN _C._DATA-LOGIC-PROC    = REPLACE(pcValue,"~\":U,"/":U).
        WHEN "DisplayedFields":U                THEN gcBrowseFields         = pcValue.
        WHEN "DOWN":U                           THEN _C._DOWN              = LOGICAL(pcValue).
        WHEN "DROP-TARGET":U                    THEN _U._DROP-TARGET       = LOGICAL(pcValue).
@@ -1143,7 +1161,8 @@ PROCEDURE createBrowseBC :
  DEFINE VARIABLE inumCol    AS INTEGER    NO-UNDO.
  DEFINE VARIABLE cField     AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iTable     AS INTEGER    NO-UNDO.
-
+ DEFINE VARIABLE cViewAs    AS CHARACTER  NO-UNDO.
+ 
  DO inumCol = 1 TO NUM-ENTRIES(gcBrowseFields):
    cField = ENTRY(inumCol,gcBrowseFields).
    IF VALID-HANDLE(ghSDO) 
@@ -1191,7 +1210,41 @@ PROCEDURE createBrowseBC :
           _BC._SEQUENCE   = inumCol
           _BC._WIDTH      = IF gcBrwsColWidths = "" THEN _BC._DEF-WIDTH
                             ELSE IF ENTRY(inumCol, gcBrwsColWidths, CHR(5)) EQ "?" THEN _BC._DEF-WIDTH
-                            ELSE INTEGER(ENTRY(inumCol, gcBrwsColWidths, CHR(5))). 
+                            ELSE INTEGER(ENTRY(inumCol, gcBrwsColWidths, CHR(5)))
+          _BC._VIEW-AS-DELIMITER       = IF gcBrwsColDelimiters = ? OR gcBrwsColDelimiters = "" THEN ""
+                                         ELSE ENTRY(inumCol, gcBrwsColDelimiters, CHR(5))
+          _BC._VIEW-AS-ITEMS           = IF gcBrwsColItems = ? OR gcBrwsColItems = "" THEN ?
+                                         ELSE ENTRY(inumCol, gcBrwsColItems, CHR(5))
+          _BC._VIEW-AS-ITEM-PAIRS      = IF gcBrwsColItemPairs = ? OR gcBrwsColItemPairs = "" THEN ?
+                                         ELSE ENTRY(inumCol, gcBrwsColItemPairs, CHR(5)).
+          _BC._VIEW-AS-INNER-LINES     = IF gcBrwsColInnerLines = ? OR gcBrwsColInnerLines = "" THEN 5
+                                         ELSE ENTRY(inumCol, gcBrwsColInnerLines, CHR(5)).
+          _BC._VIEW-AS-SORT            = IF gcBrwsColSorts = ? OR gcBrwsColSorts = "" THEN NO
+                                         ELSE IF ENTRY(inumCol, gcBrwsColSorts, CHR(5)) BEGINS "Y":U THEN YES
+                                         ELSE NO.
+          _BC._VIEW-AS-MAX-CHARS       = IF gcBrwsColMaxChars = ? OR gcBrwsColMaxChars = "" THEN 0
+                                         ELSE ENTRY(inumCol, gcBrwsColMaxChars, CHR(5)).
+          _BC._VIEW-AS-AUTO-COMPLETION = IF gcBrwsColAutoCompletions = ? OR gcBrwsColAutoCompletions = "" THEN NO
+                                         ELSE IF ENTRY(inumCol, gcBrwsColAutoCompletions, CHR(5)) BEGINS "Y":U THEN YES
+                                         ELSE NO.
+          _BC._VIEW-AS-UNIQUE-MATCH    = IF gcBrwsColUniqueMatches = ? OR gcBrwsColUniqueMatches = "" THEN NO
+                                         ELSE IF ENTRY(inumCol, gcBrwsColUniqueMatches, CHR(5)) BEGINS "Y":U THEN YES
+                                         ELSE NO.
+
+   IF gcBrwsColTypes = ? OR gcBrwsColTypes = "" THEN
+      ASSIGN _BC._VIEW-AS-TYPE = "Fill-in":U.
+
+   ELSE DO:
+        ASSIGN cViewAs = ENTRY(inumCol, gcBrwsColTypes, CHR(5)).
+
+        CASE cViewAs:
+            WHEN ? OR WHEN "?" OR WHEN "FI":U OR WHEN "" THEN ASSIGN _BC._VIEW-AS-TYPE = "Fill-in".
+            WHEN "TB":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "Toggle-box":U.
+            WHEN "DD":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN":U.
+            WHEN "DDL":U THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN-LIST":U.
+        END CASE.
+  END.
+
  END.  /* Do for each Browse Field */
  
  RUN adeuib/_undbrow.p (RECID(_U)).

@@ -608,296 +608,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-createObjects) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createObjects Procedure 
-PROCEDURE createObjects :
-/*------------------------------------------------------------------------------
-  Purpose:     Build list properties for contained objects/widgets
-  Parameters:  <none>
-  Notes:       Calls createDataSource in SDFs if necessary.
-------------------------------------------------------------------------------*/   
-  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTargetFrames      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTargetNames       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldHandles      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledFields     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledHandles    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTable             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataSourceNames   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lUpdateTargetSet   AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hObject            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hSDFDataSource     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cSDFDataSourceName AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lDisplay           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lEnable            AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iDisplay           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iEnable            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cDataFieldMapping  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iMap               AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cSourceType        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lSBO               AS LOGICAL    NO-UNDO.
-
-  RUN SUPER.
-                                          
-  {get AllFieldHandles cAllFieldhandles}.
-    
-  IF cAllFieldHandles = '' THEN
-  DO:
-    &SCOPED-DEFINE xp-assign
-    {get DataSource hDataSource}
-    {get ContainerTarget cTargets}
-    {get DisplayedFields cDisplayedFields}
-    {get EnabledObjFlds cEnabledObjFlds}
-    {get EnabledFields cEnabledFields}
-    {get ContainerHandle hFrame}
-    {get DataFieldMapping cDataFieldMapping}
-     .
-    &UNDEFINE xp-assign
-    IF VALID-HANDLE(hDataSource) THEN
-    DO:
-      {get ObjectType cSourceType hDataSource}.
-      lSBO = (cSourceType = 'SmartBusinessObject':U).
-
-      /*  If SBO call addTarget 
-          (it will set the mapping between the objects and most importantly 
-           set UpdateTargetNames and DataSourcenames if not defined) */
-      IF lSBO THEN
-      DO:
-        RUN addDataTarget IN hDataSource (TARGET-PROCEDURE). 
-        IF RETURN-VALUE = 'adm-error':U THEN
-          RETURN.
-        &SCOPED-DEFINE xp-assign
-        {get DataSourceNames cDataSourceNames}
-        {get UpdateTargetNames cUpdateTargetNames}
-        .
-        &UNDEFINE xp-assign     
-      END. /* lSBO */
-    END. /* valid(datasource) */
-    
-    /* Build list of frames and fieldnames for identification in widgetloop */
-    DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
-      hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
-      &SCOPED-DEFINE xp-assign 
-      {get ContainerHandle hChildFrame hTarget}
-      {get ObjectType cObjectType hTarget}
-      .
-      &UNDEFINE xp-assign 
-      IF cObjectType = 'SmartDataField':U OR cObjectType = 'SmartLOBField':U THEN
-        cTargetFrames = cTargetFrames + ',':U + STRING(hChildFrame). 
-      ELSE /* keep list in synch with cTargets
-         (blank is avoided as list is trimmed after loop) */
-        cTargetFrames = cTargetFrames + ',' + '?'.
-  
-    END. /* containerTarget loop */
-  
-    ASSIGN
-      cTargetFrames    = LEFT-TRIM(cTargetFrames,',':U)
-      cTargetNames     = LEFT-TRIM(cTargetNames,',':U)
-      hField           = hFrame:FIRST-CHILD:FIRST-CHILD
-      /* The order of the lists of handles must match the order of the 
-         DisplayedField and EnabledField properties, so initialise with the 
-         current number of entries */
-      cEnabledHandles  = FILL(",":U, NUM-ENTRIES(cEnabledFields)   - 1)
-      cFieldHandles    = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
-      cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
-      .
-
-    /* widgetloop */
-    DO WHILE VALID-HANDLE(hField): 
-      ASSIGN 
-        cFieldName  = ''
-        cTable      = '' 
-        lEnable     = FALSE
-        lDisplay    = FALSE
-        lLocal      = FALSE.
-  
-      IF hField:TYPE = 'FRAME':U THEN
-      DO:
-        iLookup = LOOKUP(STRING(hField),cTargetFrames).
-        IF iLookup > 0 THEN
-        DO:
-          hTarget    = WIDGET-HANDLE(ENTRY(iLookup,cTargets)).
-          &SCOPED-DEFINE xp-assign
-          {get FieldName  cFieldName hTarget}
-          {get DisplayField lDisplay hTarget}
-          {get EnableField lEnable hTarget}
-          {get LocalField  lLocal hTarget}
-          {get DataSource hSDFDataSource hTarget}
-           .
-          &UNDEFINE xp-assign
-          IF NOT VALID-HANDLE(hSDFDataSource) THEN
-          DO:
-            /*  no-error as Datasourcename is currently not implemented 
-                in all SDF classes */         
-            cSDFDataSourceName = ''.
-            {get DataSourceName cSDFDataSourceName hTarget} NO-ERROR.
-            /* if sourcename and no valid source then createdatasource here 
-               so that it can be included in the initial datarequest*/
-            IF cSDFDataSourceName > '' THEN
-              {fn createDataSource hTarget} NO-ERROR.
-          END.   /* not valid  hSDFDataSource*/
-
-          IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
-            cTable = ENTRY(1,cFieldName,'.').
-
-          IF lLocal then
-          DO:
-            /* Only add the SDF to the list of enabled objects if it is,
-               in fact, meant to be enabled. */           
-            if lEnable then
-              ASSIGN 
-                cEnabledObjFlds = cEnabledObjFlds 
-                                + (IF cEnabledObjFlds = '' THEN '' ELSE ',':U) 
-                                + cFieldName 
-                cEnabledObjHdls = cEnabledObjHdls 
-                                + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
-                                + STRING(hTarget). 
-          END.    /* local sdf */
-          ELSE DO:
-            IF lDisplay THEN
-              ASSIGN 
-                cDisplayedFields = cDisplayedFields
-                                 + (IF cDisplayedFields = '' THEN '' ELSE ',':U) 
-                                 + cFieldName 
-                cFieldHandles    = cFieldHandles  
-                                 + (IF cFieldHandles = '' THEN '' ELSE ',':U) 
-                                 + STRING(hTarget). 
-            IF lEnable THEN
-            DO:
-              /* add to list (unless SBO and not in updateTargetNames) */          
-              IF NOT lSBO OR cTable = '' OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
-                ASSIGN 
-                  cEnabledFields  = cEnabledFields 
-                                  + (IF cEnabledFields = '' THEN '' ELSE ',':U) 
-                                  + cFieldName 
-                  cEnabledHandles = cEnabledHandles 
-                                  + (IF cEnabledHandles = '' THEN '' ELSE ',':U) 
-                                  + STRING(hTarget). 
-            END. /* lenable */
-          END.
-        END.
-      END.    /* FRAME widget (ie SDF) */
-      ELSE
-      DO:
-        IF hField:TYPE = 'EDITOR':U THEN
-          ASSIGN
-            hField:SENSITIVE = TRUE
-            hField:READ-ONLY = TRUE. 
-        
-        /* Check if widget is mapped to a datafield 
-          (currently used for static longchar - datasource clob mapping) */ 
-        iMap = LOOKUP(hField:NAME,cDataFieldMapping).
-        IF iMap > 0 THEN
-          ASSIGN
-            cFieldName = ENTRY(iMap + 1,cDataFieldMapping)
-            cTable     = ENTRY(1,cFieldName,'.')
-            /* important for logic below that removes SBO objects from Enablelist  */
-            cTable     = IF cTable = 'RowObject':U THEN '' ELSE cTable
-            cFieldName = IF cTable = '':U THEN ENTRY(2,cFieldName,'.')
-                                          ELSE cFieldName.
-        ELSE 
-          ASSIGN
-            cTable     = (IF CAN-QUERY(hField,"TABLE":U) AND hField:TABLE <> 'RowObject':U 
-                          THEN hField:TABLE 
-                          ELSE '')
-            cFieldName = IF cTable > ''  
-                         THEN cTable + "." + hField:NAME 
-                         ELSE hField:NAME. 
-     
-        ASSIGN
-          iDisplay   = LOOKUP(cFieldName, cDisplayedFields)
-          iEnable    = LOOKUP(cFieldName, cEnabledFields)
-          iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
-
-        IF iDisplay > 0 THEN
-          ENTRY(iDisplay, cFieldHandles) = STRING(hField).
-        IF iEnable > 0 THEN
-        DO:
-          ENTRY(iEnable, cEnabledHandles) = STRING(hField).
-          
-          /* Remove from enabled lists if table qualified and SBO target,
-             but not in updateTargetNames */
-          IF lSBO AND cTable > '' AND LOOKUP(cTable,cUpdateTargetNames) = 0 THEN        
-            ASSIGN
-              cEnabledFields =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                 iEnable,cEnabledFields,',')
-              cEnabledHandles = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                                 iEnable,cEnabledHandles,',').
-        END.
-        IF iLocal > 0 THEN
-        DO:
-          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
-            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
-          ELSE
-            ASSIGN
-              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                         iLocal,cEnabledObjFlds,',')
-              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                         iLocal,cEnabledObjHdls,',').
-        END.
-        hTarget = hField.
-      END.
-
-      /* Anonymous widgets are not allowed (labels) */
-      IF cFieldName > '' THEN
-        ASSIGN
-          /* V10 will have qualified names here shortname is for v9 */
-          cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
-          cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
-  
-      hField = hField:NEXT-SIBLING.
-    END. /* do while */   
-    
-    ASSIGN
-      cAllFieldNames     = TRIM(cAllFieldNames,",")
-      cAllFieldHandles   = TRIM(cAllFieldHandles,",")
-      cUpdateTargetNames = TRIM(cUpdateTargetNames,",")
-      cDataSourceNames   = TRIM(cDataSourceNames,",").
-   
-  /* Store the properties */
-    &SCOPED-DEFINE xp-assign
-    {set DisplayedFields cDisplayedFields}
-    {set FieldHandles cFieldHandles}
-    {set EnabledFields cEnabledFields}
-    {set EnabledHandles cEnabledHandles}
-    {set EnabledObjFlds cEnabledObjFlds}
-    {set EnabledObjHdls cEnabledObjHdls}
-    {set AllFieldHandles cAllFieldHandles}
-    {set AllFieldNames cAllFieldNames}
-    {set UpdateTargetNames cUpdateTargetNames}
-    {set DataSourceNames cDataSourceNames}
-    .
-    &UNDEFINE xp-assign
-  END.
-
-  RETURN. 
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure 
@@ -1151,6 +861,7 @@ Parameters:  pcFieldList  - List of fields to display.
       /* The field may be a SmartObject procedure handle. */
       hField  = WIDGET-HANDLE(ENTRY(iFieldPos,cFieldHandles))
     .
+
     /* As of 10.1a01 we don't rely on allfieldnames for the main loop 
       logic due to the fact that the viewer histroically always have used
       displayedFields for display and other logic, so we use a second 
@@ -1549,7 +1260,7 @@ PROCEDURE displayFields :
      clearField is being run in all SDFs above if no record avail*/
   IF pcColValues <> ? OR lRefreshDataFields THEN
     PUBLISH 'displayField':U FROM TARGET-PROCEDURE.  
-
+  
   RUN updateTitle IN TARGET-PROCEDURE.
   
   RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
@@ -2523,6 +2234,315 @@ PROCEDURE updateDynComboTable :
   DELETE OBJECT hQuery.
 
   RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-updateFieldProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateFieldProperties Procedure 
+PROCEDURE updateFieldProperties :
+/*------------------------------------------------------------------------------
+  Purpose:    Build list properties for contained objects/widgets
+  Parameters: None
+    Notes: No processing takes place if AllFieldNames already is set. 
+         - AllFieldHandles and AllFieldNames are both updated.  
+         - DisplayedFields, EnabledObjFlds and EnabledFields is set before this 
+           is called, but entries may be removed from the Enabled* properties.
+         - EnabledObjHdls is set from EnabledObjFlds.
+         - FieldHandles is set form DisplayedFields.
+         - EnabledHandles is set from EnabledFields.
+         - Calls createDataSource in SDF if necessary.
+        ---
+       - This logic used to be implemented directly in createObjects, and 
+         was protected from conflict with visual's similar logic by the fact 
+         that the containr class does not call super.   
+       - The logic was separated in its own method in visual and here, as the 
+         containr also need similar logic to the one implemented in the visual 
+         class. 
+       - There is no createObjects in this class (as this was all it did). 
+       - This method should be called ONCE from the createObjects super hierachy
+         and is currently called from the container class createObjects, 
+         but it will also work if if the container createObjects is changed to 
+         call super instead of this method, since the visual class' 
+         createObjects also calls   this method.       
+------------------------------------------------------------------------------*/   
+  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetFrames      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargetNames       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDisplayedFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldHandles      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledFields     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledHandles    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cUpdateTargetNames AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataSourceNames   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lUpdateTargetSet   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hObject            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSDFDataSource     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cSDFDataSourceName AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lDisplay           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lEnable            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iDisplay           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEnable            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cDataFieldMapping  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iMap               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cSourceType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSBO               AS LOGICAL    NO-UNDO.
+  
+  {get AllFieldHandles cAllFieldhandles}.
+  IF cAllFieldHandles = '' THEN
+  DO:
+    &SCOPED-DEFINE xp-assign
+    {get ContainerHandle hFrame}
+    {get DataSource hDataSource}
+    {get DisplayedFields cDisplayedFields}
+    {get EnabledObjFlds cEnabledObjFlds}
+    {get EnabledFields cEnabledFields}
+    {get DataFieldMapping cDataFieldMapping}
+     .
+    &UNDEFINE xp-assign
+    IF VALID-HANDLE(hDataSource) THEN
+    DO:
+      {get ObjectType cSourceType hDataSource}.
+      lSBO = (cSourceType = 'SmartBusinessObject':U).
+
+      /*  If SBO call addTarget 
+          (it will set the mapping between the objects and most importantly 
+           set UpdateTargetNames and DataSourcenames if not defined) */
+      IF lSBO THEN
+      DO:
+        RUN addDataTarget IN hDataSource (TARGET-PROCEDURE). 
+        IF RETURN-VALUE = 'adm-error':U THEN
+          RETURN.
+        &SCOPED-DEFINE xp-assign
+        {get DataSourceNames cDataSourceNames}
+        {get UpdateTargetNames cUpdateTargetNames}
+        .
+        &UNDEFINE xp-assign     
+      END. /* lSBO */
+    END. /* valid(datasource) */
+    
+    /* NO-ERROR as static viewers with no Smart objects do not inherit containr */
+    {get ContainerTarget cTargets} NO-ERROR.
+
+    /* Build list of frames and fieldnames for identification in widgetloop */
+    DO iTarget = 1 TO NUM-ENTRIES(cTargets):  
+      hTarget    = WIDGET-HANDLE(ENTRY(iTarget,cTargets)).
+      &SCOPED-DEFINE xp-assign 
+      {get ContainerHandle hChildFrame hTarget}
+      {get ObjectType cObjectType hTarget}
+      .
+      &UNDEFINE xp-assign 
+      IF cObjectType = 'SmartDataField':U OR cObjectType = 'SmartLOBField':U THEN
+        cTargetFrames = cTargetFrames + ',':U + STRING(hChildFrame). 
+      ELSE /* keep list in synch with cTargets
+         (blank is avoided as list is trimmed after loop) */
+        cTargetFrames = cTargetFrames + ',' + '?'.
+  
+    END. /* containerTarget loop */
+  
+    ASSIGN
+      cTargetFrames    = LEFT-TRIM(cTargetFrames,',':U)
+      cTargetNames     = LEFT-TRIM(cTargetNames,',':U)
+      hField           = hFrame:FIRST-CHILD:FIRST-CHILD
+      /* The order of the lists of handles must match the order of the 
+         DisplayedField and EnabledField properties, so initialise with the 
+         current number of entries */
+      cEnabledHandles  = FILL(",":U, NUM-ENTRIES(cEnabledFields)   - 1)
+      cFieldHandles    = FILL(",":U, NUM-ENTRIES(cDisplayedFields) - 1)
+      cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
+      .
+
+    /* widgetloop */
+    DO WHILE VALID-HANDLE(hField): 
+      ASSIGN 
+        cFieldName  = ''
+        cTable      = '' 
+        lEnable     = FALSE
+        lDisplay    = FALSE
+        lLocal      = FALSE.
+  
+      IF hField:TYPE = 'FRAME':U THEN
+      DO:
+        iLookup = LOOKUP(STRING(hField),cTargetFrames).
+        IF iLookup > 0 THEN
+        DO:
+          hTarget    = WIDGET-HANDLE(ENTRY(iLookup,cTargets)).
+          &SCOPED-DEFINE xp-assign
+          {get FieldName  cFieldName hTarget}
+          {get DisplayField lDisplay hTarget}
+          {get EnableField lEnable hTarget}
+          {get LocalField  lLocal hTarget}
+          {get DataSource hSDFDataSource hTarget}
+           .
+          &UNDEFINE xp-assign
+          IF NOT VALID-HANDLE(hSDFDataSource) THEN
+          DO:
+            /*  no-error as Datasourcename is currently not implemented 
+                in all SDF classes */         
+            cSDFDataSourceName = ''.
+            {get DataSourceName cSDFDataSourceName hTarget} NO-ERROR.
+            /* if sourcename and no valid source then createdatasource here 
+               so that it can be included in the initial datarequest*/
+            IF cSDFDataSourceName > '' THEN
+              {fn createDataSource hTarget} NO-ERROR.
+          END.   /* not valid  hSDFDataSource*/
+
+          IF NUM-ENTRIES(cFieldName,'.') > 1 THEN
+            cTable = ENTRY(1,cFieldName,'.').
+
+          IF lLocal then
+          DO:
+            /* Only add the SDF to the list of enabled objects if it is,
+               in fact, meant to be enabled. */           
+            if lEnable then
+              ASSIGN 
+                cEnabledObjFlds = cEnabledObjFlds 
+                                + (IF cEnabledObjFlds = '' THEN '' ELSE ',':U) 
+                                + cFieldName 
+                cEnabledObjHdls = cEnabledObjHdls 
+                                + (IF cEnabledObjHdls = '' THEN '' ELSE ',':U) 
+                                + STRING(hTarget). 
+          END.    /* local sdf */
+          ELSE DO:
+            IF lDisplay THEN
+              ASSIGN 
+                cDisplayedFields = cDisplayedFields
+                                 + (IF cDisplayedFields = '' THEN '' ELSE ',':U) 
+                                 + cFieldName 
+                cFieldHandles    = cFieldHandles  
+                                 + (IF cFieldHandles = '' THEN '' ELSE ',':U) 
+                                 + STRING(hTarget). 
+            IF lEnable THEN
+            DO:
+              /* add to list (unless SBO and not in updateTargetNames) */          
+              IF NOT lSBO OR cTable = '' OR LOOKUP(cTable,cUpdateTargetNames) > 0 THEN        
+                ASSIGN 
+                  cEnabledFields  = cEnabledFields 
+                                  + (IF cEnabledFields = '' THEN '' ELSE ',':U) 
+                                  + cFieldName 
+                  cEnabledHandles = cEnabledHandles 
+                                  + (IF cEnabledHandles = '' THEN '' ELSE ',':U) 
+                                  + STRING(hTarget). 
+            END. /* lenable */
+          END.
+        END.
+      END.    /* FRAME widget (ie SDF) */
+      ELSE
+      DO:
+        IF hField:TYPE = 'EDITOR':U THEN
+          ASSIGN
+            hField:SENSITIVE = TRUE
+            hField:READ-ONLY = TRUE. 
+        
+        /* Check if widget is mapped to a datafield 
+          (currently used for static longchar - datasource clob mapping) */ 
+        iMap = LOOKUP(hField:NAME,cDataFieldMapping).
+        IF iMap > 0 THEN
+          ASSIGN
+            cFieldName = ENTRY(iMap + 1,cDataFieldMapping)
+            cTable     = ENTRY(1,cFieldName,'.')
+            /* important for logic below that removes SBO objects from Enablelist  */
+            cTable     = IF cTable = 'RowObject':U THEN '' ELSE cTable
+            cFieldName = IF cTable = '':U THEN ENTRY(2,cFieldName,'.')
+                                          ELSE cFieldName.
+        ELSE 
+          ASSIGN
+            cTable     = (IF CAN-QUERY(hField,"TABLE":U) AND hField:TABLE <> 'RowObject':U 
+                          THEN hField:TABLE 
+                          ELSE '')
+            cFieldName = IF cTable > ''  
+                         THEN cTable + "." + hField:NAME 
+                         ELSE hField:NAME. 
+     
+        ASSIGN
+          iDisplay   = LOOKUP(cFieldName, cDisplayedFields)
+          iEnable    = LOOKUP(cFieldName, cEnabledFields)
+          iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
+
+        IF iDisplay > 0 THEN
+          ENTRY(iDisplay, cFieldHandles) = STRING(hField).
+        IF iEnable > 0 THEN
+        DO:
+          ENTRY(iEnable, cEnabledHandles) = STRING(hField).
+          
+          /* Remove from enabled lists if table qualified and SBO target,
+             but not in updateTargetNames */
+          IF lSBO AND cTable > '' AND LOOKUP(cTable,cUpdateTargetNames) = 0 THEN        
+            ASSIGN
+              cEnabledFields =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                                 iEnable,cEnabledFields,',')
+              cEnabledHandles = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                                 iEnable,cEnabledHandles,',').
+        END.
+        IF iLocal > 0 THEN
+        DO:
+          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
+            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
+          ELSE
+            ASSIGN
+              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjFlds,',')
+              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                         iLocal,cEnabledObjHdls,',').
+        END.
+        hTarget = hField.
+      END.
+
+      /* Anonymous widgets are not allowed (labels) */
+      IF cFieldName > '' THEN
+        ASSIGN
+          /* V10 will have qualified names here shortname is for v9 */
+          cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
+          cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
+  
+      hField = hField:NEXT-SIBLING.
+    END. /* do while */   
+    
+    ASSIGN
+      cAllFieldNames     = TRIM(cAllFieldNames,",")
+      cAllFieldHandles   = TRIM(cAllFieldHandles,",")
+      cUpdateTargetNames = TRIM(cUpdateTargetNames,",")
+      cDataSourceNames   = TRIM(cDataSourceNames,",").
+   
+  /* Store the properties */
+    &SCOPED-DEFINE xp-assign
+    {set DisplayedFields cDisplayedFields}
+    {set FieldHandles cFieldHandles}
+    {set EnabledFields cEnabledFields}
+    {set EnabledHandles cEnabledHandles}
+    {set EnabledObjFlds cEnabledObjFlds}
+    {set EnabledObjHdls cEnabledObjHdls}
+    {set AllFieldHandles cAllFieldHandles}
+    {set AllFieldNames cAllFieldNames}
+    {set UpdateTargetNames cUpdateTargetNames}
+    {set DataSourceNames cDataSourceNames}
+    .
+    &UNDEFINE xp-assign
+  END.
+
+  RETURN. 
 
 END PROCEDURE.
 

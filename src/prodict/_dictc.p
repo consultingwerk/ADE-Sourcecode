@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -116,8 +116,8 @@ DEFINE NEW SHARED VARIABLE fast_track AS LOGICAL. /* FT active? */
 
 /*--- LANGUAGE DEPENDENCIES START ----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 8 NO-UNDO INITIAL [
-  /* 1*/ "the PROGRESS Data Dictionary",
-  /* 2*/ "PROGRESS Data Administration",
+  /* 1*/ "the {&PRO_DISPLAY_NAME} Data Dictionary",
+  /* 2*/ "{&PRO_DISPLAY_NAME} Data Administration",
   /* 3*/ "You are not allowed to use the dictionary on a database that",
   /* 4*/ "has a logical name",
   /* 5*/ "(alias is okay, but not ldbname).",

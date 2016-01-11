@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _sim_lbl.p
@@ -145,7 +145,7 @@ ELSE DO:
               txt                 = IF LENGTH(txt, "raw":U) >= _L._WIDTH THEN
                                       SUBSTRING(txt,1, INTEGER(_L._WIDTH))
                                     ELSE IF _U._SUBTYPE = "TEXT":U AND
-                                         CAN-DO("INTEGER,DECIMAL":U,_F._DATA-TYPE) AND
+                                         CAN-DO("INTEGER,DECIMAL,INT64":U,_F._DATA-TYPE) AND
                                          txt = "" THEN TRIM(STRING(0,_F._FORMAT))
                                     ELSE IF _U._SUBTYPE = "TEXT":U AND
                                             _F._DATA-TYPE NE "Character":U THEN txt

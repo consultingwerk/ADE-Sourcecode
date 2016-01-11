@@ -112,6 +112,12 @@ DEFINE            VARIABLE p-list         AS CHARACTER               NO-UNDO.
 DEFINE            VARIABLE p-comma        AS CHARACTER               NO-UNDO.
 DEFINE            VARIABLE p-foo          AS CHARACTER               NO-UNDO.
 DEFINE            VARIABLE p-foo2         AS CHARACTER               NO-UNDO.
+DEFINE            VARIABLE to-int64       AS LOGICAL                 NO-UNDO.
+DEFINE            VARIABLE i-to-int64     AS INTEGER                 NO-UNDO.
+DEFINE            VARIABLE numEntries     AS INTEGER                 NO-UNDO.
+DEFINE            VARIABLE num-diff       AS INTEGER                 NO-UNDO.
+
+
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
@@ -122,7 +128,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
   /* 5*/ "changed.  The incremental dump utility cannot be used to",   
   /* 6*/ "change database AREAS.  Create AREAS with the ""prostrct""",
   /* 7*/ "utility and move tables with the ""proutil tablemove""",    
-  /* 8*/ "utility.  See the Progress Database Administration Guide and", 
+  /* 8*/ "utility.  See the {&PRO_DISPLAY_NAME} Database Administration Guide and", 
   /* 9*/ "Reference for details.",
   /*10*/ "WARNING: The index ",
   /*11*/ " in database ",
@@ -130,7 +136,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
   /*13*/ "except they are in different database AREAS.  The incremental dump",
   /*14*/ "utility cannot be used to change database AREAS.  Create",
   /*15*/ "AREAS with the ""prostrct"" utility and move indices",
-  /*16*/ "with the ""proutil idxmove"" utility.  See the Progress",
+  /*16*/ "with the ""proutil idxmove"" utility.  See the {&PRO_DISPLAY_NAME}",
   /*17*/ "Database Administration Guide and Reference for details.",
   /*18*/ "WARNING: The .df contains at least one new definition of an unique",
   /*19*/ "index that has been created as inactive.  Remember to use", 
@@ -139,7 +145,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
   /*22*/ "in the target database.  This area must be created before",
   /*23*/ "loading this .df or an error will result.  The new index",       
   /*24*/ " is in this AREA.  See the ""PROSTRUCT""",
-  /*25*/ "entry in the Progress Database Administration Guide and",
+  /*25*/ "entry in the {&PRO_DISPLAY_NAME} Database Administration Guide and",
   /*26*/ "Reference for details.",
   /*27*/ "Warnings have been written to a file called "{&errFileName}"",
   /*28*/ "located in your current working directory.  Please check",   
@@ -150,7 +156,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 31 NO-UNDO INITIAL [
 
 new_lang[2] = "The incremental definitions file will contain at least "
             + "one new definition of an  unique index. "
-            + "If PROGRESS finds duplicate values when creating the new "
+            + "If {&PRO_DISPLAY_NAME} finds duplicate values when creating the new "
             + "unique index, it will UNDO the entire transaction, causing "
             + "you to lose any other schema changes made.  Creating an "
             + "inactive index and then building it with ~"proutil -C "
@@ -597,7 +603,7 @@ DO ON STOP UNDO, LEAVE:
       CREATE field-list.
       field-list.f1-name = DICTDB._Field._Field-name.
       IF AVAILABLE DICTDB2._Field THEN
-        field-list.f2-name = DICTDB._Field._Field-name.
+        ASSIGN field-list.f2-name = DICTDB._Field._Field-name.
     END.
 
     /* look for matches for renamed fields with user input.  A prompt 
@@ -679,6 +685,8 @@ DO ON STOP UNDO, LEAVE:
     END.
     IF ans THEN PUT STREAM ddl UNFORMATTED SKIP(1).
   
+    ASSIGN i-to-int64 = 0.
+
     /* handle new or potentially altered fields */
     FOR EACH field-list:
       FIND FIRST DICTDB._Field OF DICTDB._File
@@ -687,9 +695,37 @@ DO ON STOP UNDO, LEAVE:
         WHERE DICTDB2._Field._Field-name = field-list.f2-name NO-ERROR.
       IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
         DISPLAY field-list.f1-name @ fld2 WITH FRAME seeking.
-      l = AVAILABLE DICTDB2._Field.
-      IF l AND (DICTDB._Field._Data-type <> DICTDB2._Field._Data-type
-           OR   DICTDB._Field._Extent    <> DICTDB2._Field._Extent) THEN DO:
+
+      ASSIGN l = AVAILABLE DICTDB2._Field
+             to-int64 = FALSE.
+
+      /* 20060220-021 
+         In 10.1A, SQL timestamp is now datetime, in which case it's not a
+         difference, so we need to check if the dype if 34.
+      */
+      IF l THEN DO:
+
+
+        IF DICTDB._Field._Data-type <> DICTDB2._Field._Data-type THEN DO:
+            
+           /* check if this is a change from integer to int64 */
+           ASSIGN to-int64 = (DICTDB._Field._Dtype = 41 AND DICTDB2._Field._Dtype = 4).
+
+           IF DICTDB._Field._Dtype = DICTDB2._Field._Dtype AND
+              DICTDB._Field._Dtype = 34 THEN
+              ans = FALSE.
+           ELSE IF to-int64 THEN
+               /* we will allow integer to int64 changes */
+               ASSIGN ans = FALSE
+                      i-to-int64 = i-to-int64 + 1.
+           ELSE
+              ans = TRUE.
+        END.
+        ELSE
+           ans = FALSE.
+      END.
+      
+      IF l AND (ans OR   DICTDB._Field._Extent <> DICTDB2._Field._Extent) THEN DO:
 
         /* If DICTDB2 field is part of a primary index, we cannot simply drop it.
          * instead, we will rename it to something else, and delete it
@@ -745,7 +781,7 @@ DO ON STOP UNDO, LEAVE:
              ddl[1] = (IF l THEN "UPDATE" ELSE "ADD")
                       + ' FIELD "' + DICTDB._Field._Field-name
                       + '" OF "' + DICTDB._File._File-name + '"'
-                      + (IF l THEN "" ELSE " AS " + DICTDB._Field._Data-type).
+                      + (IF l AND NOT to-int64 THEN "" ELSE " AS " + DICTDB._Field._Data-type).
       RUN dctquot IN h_dmputil (DICTDB._Field._Desc,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Desc,"NE",DICTDB2._Field._Desc,"RAW") THEN 
            ddl[2] = "  DESCRIPTION " + c.
@@ -909,6 +945,9 @@ DO ON STOP UNDO, LEAVE:
         /* if ddl[i] = "" this doesn't do anything */
         PUT STREAM ddl UNFORMATTED ddl[i] SKIP.  
       END.
+      ELSE IF to-int64 AND ddl[1] <> "" THEN /* write the type change from int to int64 */
+          PUT STREAM ddl UNFORMATTED ddl[1] SKIP(1).  
+
       IF l THEN PUT STREAM ddl UNFORMATTED SKIP(1).
     END.         /* end FOR EACH field-list */  
   
@@ -932,9 +971,9 @@ DO ON STOP UNDO, LEAVE:
         FIND FIRST field-list
           WHERE field-list.f2-name = DICTDB2._Field._Field-name NO-ERROR.
         c = c + ","
+          + STRING(DICTDB2._Field._dtype) + ","
           + STRING(DICTDB2._Index-field._Ascending,"+/-")
           + STRING(DICTDB2._Index-field._Abbreviate,"y/n")
-          + STRING(DICTDB2._Field._dtype)    
           + (IF AVAILABLE field-list THEN field-list.f2-name ELSE "*").
       END.
       CREATE index-list.
@@ -956,9 +995,9 @@ DO ON STOP UNDO, LEAVE:
         FIND FIRST field-list
           WHERE field-list.f1-name = DICTDB._Field._Field-name NO-ERROR.  
         c = c + ","
+          + STRING(DICTDB._Field._dtype) + ","
           + STRING(DICTDB._Index-field._Ascending,"+/-")
           + STRING(DICTDB._Index-field._Abbreviate,"y/n")
-          + STRING(DICTDB._Field._dtype)    
           + (IF AVAIL field-list THEN field-list.f2-name ELSE DICTDB._Field._Field-name).
       END.
       CREATE index-list.
@@ -973,8 +1012,61 @@ DO ON STOP UNDO, LEAVE:
       FIND FIRST index-alt WHERE NOT index-alt.i1-i2 
                              AND index-alt.i1-name = index-list.i1-name NO-LOCK NO-ERROR.
       IF AVAILABLE index-alt AND index-list.i1-comp <> index-alt.i1-comp THEN DO:
+
+        /* let's check if the only change is a int->int64 change, i-to-int64 will not be 0
+           if we processed a int->int64 change for the current table
+        */
+        IF i-to-int64 NE 0 THEN DO:
+       
+            ASSIGN numEntries = NUM-ENTRIES(index-list.i1-comp)
+                   i-to-int64 = 0
+                   num-diff = 0.
+    
+            /* if the number of entries is different, then there were field deleted or added to the 
+               index, so we just process it as usual .
+            */
+            IF numEntries EQ NUM-ENTRIES(index-alt.i1-comp) THEN DO:
+                IF ENTRY(1, index-list.i1-comp) NE ENTRY(1, index-alt.i1-comp) THEN
+                    num-diff = num-diff + 1.
+                ELSE REPEAT i = 2 TO numEntries BY 2:
+                    IF ENTRY(i + 1, index-list.i1-comp) NE ENTRY(i + 1, index-alt.i1-comp) THEN DO:
+                       num-diff = num-diff + 1.
+                       /* if anything other than data type is different, we have to recreate it, so 
+                          leave now 
+                       */
+                       LEAVE.
+                    END.
+    
+                    IF ENTRY(i, index-list.i1-comp) NE ENTRY(i, index-alt.i1-comp) THEN DO:
+                        ASSIGN num-diff = num-diff + 1.
+    
+                        /* check if we are going from int->int64 */
+                        IF ENTRY(i, index-list.i1-comp) = "41" AND
+                           ENTRY(i, index-alt.i1-comp) = "4"  THEN
+                           ASSIGN i-to-int64 = i-to-int64 + 1.
+                        ELSE /* if other type change, leave now */
+                            LEAVE.
+                    END.
+                END.
+    
+                /* if the only changes are from int->int64, then we are all set */
+                IF num-diff EQ i-to-int64 THEN DO:
+                    /* primary is also ok, so make them the same so we don't try to update it later */
+                    IF pri1 = index-list.i1-comp AND pri2 = index-alt.i1-comp THEN
+                       ASSIGN pri1 = pri2.
+    
+                    DELETE index-alt.
+                    DELETE index-list.
+                    
+                    NEXT. /* go to the next index */
+                END.
+    
+            END.
+        END.
+
         RUN Check_Index_Conflict IN h_dmputil (INPUT index-alt.i1-name,
           INPUT DICTDB._File._File-name).
+
         CREATE drop-temp-idx.
         ASSIGN temp-name = index-alt.i1-name
                fil-name  = DICTDB._File._File-name.
@@ -1066,7 +1158,7 @@ DO ON STOP UNDO, LEAVE:
       IF NOT p-batchmode THEN  /* 02/01/29 vap (IZ# 1525) */
         DISPLAY index-list.i1-name @ idx2 WITH FRAME seeking.
       RUN Check_Index_Conflict IN h_dmputil (INPUT index-list.i1-name,
-          INPUT DICTDB._File._File-name).      
+          INPUT DICTDB._File._File-name).     
       PUT STREAM ddl UNFORMATTED
         'RENAME INDEX "' index-list.i2-name
         '" TO "' index-list.i1-name

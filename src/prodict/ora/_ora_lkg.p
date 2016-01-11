@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -49,7 +33,8 @@ History:
                             proper records 20010108-001     
     mcmann      02/09/10    Added check for num-entries for Synonyms
                             20020820-004               
-    
+    04/19/06    fernando    Oracle 10g - skip BIN$* tables
+   
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -260,6 +245,12 @@ for each DICTDBG.oracle_users
     /* Skip sequence generators created for compatible oracle tables */
       if DICTDBG.oracle_objects.name MATCHES "*_SEQ" then NEXT.
 
+      /* in Oracle 10g, there is a feature called flashback table which 
+         saves deleted tables, by renaming them to BIN$<some-string>.
+         We can skip these too.
+      */
+      IF DICTDBG.oracle_objects.NAME BEGINS "BIN$" THEN
+         NEXT.
 
     /* we try to find the object in the existing schema, because we need 
      * to make sure, that when it get's created later-on, it will get a 

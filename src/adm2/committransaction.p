@@ -134,7 +134,6 @@ DEFINE VARIABLE hTable                 AS HANDLE     NO-UNDO.
 DEFINE VARIABLE cTableList             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cOrdering              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lDynamicSDO            AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lAnyStatic             AS LOGICAL    NO-UNDO.
 
   /* This is necessary so that the callback function 'getCurrentLogicalName' will */
   /* return the proper name to 'prepareInstance */
@@ -166,78 +165,31 @@ DEFINE VARIABLE lAnyStatic             AS LOGICAL    NO-UNDO.
     DYNAMIC-FUNCTION('applyContextFromClient':U IN hObject,piocContext). 
 
     {set OpenOnInit FALSE hObject}. 
-
-    {get ContainedDataObjects cContained hObject}.
-    DO iPos = 1 TO NUM-ENTRIES(cContained):
-      hDO = WIDGET-HANDLE(ENTRY(iPos, cContained)).
-
-    END.
-    
-    /* Initialize SBO and SDOs. Having set 'IsRowObjUpdExternal' will avoid */
-    /* unnecessarily creating a RowObjUpd table in each contained SDO */
+   
     RUN initializeObject IN hObject.
 
-    /* Set the SDOs RowObjUpd Tables to be the ones passed from the client. */
-    /* Note that we need to do this *after* the contained SDOs have been initialized */
-    /* to account for the order (DataObjectOrdering) of contained SDOs */
-    /* For dynamic SBOs, the DataObjectOrdering property is not updated until */
-    /* contained SDOs are initialized */
-    {get DataObjectOrdering cOrdering hObject}.
-    {get updateTables cTableList hObject}.
-    IF cOrdering = '':U THEN
-    DO:
-      cOrdering = {fn initDataObjectOrdering hObject}.
-      {set DataObjectOrdering cOrdering hObject}.
-      {get updateTables cTableList hObject}.
-    END.
-
-    DO iPos = 1 TO NUM-ENTRIES(cOrdering):
-      ASSIGN
-        hDO = WIDGET-HANDLE(ENTRY(INTEGER(ENTRY(iPos, cOrdering)), cContained))
-        cObjectName = {fn getObjectName hDO}.      
-      
-      CASE iPos:
-        WHEN 1 THEN hTable = phRowObjUpd1.
-        WHEN 2 THEN hTable = phRowObjUpd2.
-        WHEN 3 THEN hTable = phRowObjUpd3.
-        WHEN 4 THEN hTable = phRowObjUpd4.
-        WHEN 5 THEN hTable = phRowObjUpd5.
-        WHEN 6 THEN hTable = phRowObjUpd6.
-        WHEN 7 THEN hTable = phRowObjUpd7.
-        WHEN 8 THEN hTable = phRowObjUpd8.
-        WHEN 9 THEN hTable = phRowObjUpd9.
-        WHEN 10 THEN hTable = phRowObjUpd10.
-        WHEN 11 THEN hTable = phRowObjUpd11.
-        WHEN 12 THEN hTable = phRowObjUpd12.
-        WHEN 13 THEN hTable = phRowObjUpd13.
-        WHEN 14 THEN hTable = phRowObjUpd14.
-        WHEN 15 THEN hTable = phRowObjUpd15.
-        WHEN 16 THEN hTable = phRowObjUpd16.
-        WHEN 17 THEN hTable = phRowObjUpd17.
-        WHEN 18 THEN hTable = phRowObjUpd18.
-        WHEN 19 THEN hTable = phRowObjUpd19.
-        WHEN 20 THEN hTable = phRowObjUpd20.
-      END CASE.
-      IF VALID-HANDLE(hTable) THEN
-      DO:
-        {get DynamicData lDynamicSDO hDO}.
-        IF NOT lDynamicSDO THEN
-        DO:
-          RUN pushRowObjUpdTable IN hDO (INPUT TABLE-HANDLE hTable) .
-          {get RowObjUpdTable hTable hDO}.
-          lAnyStatic = TRUE.
-        END.
-        ELSE 
-          {set RowObjUpdTable hTable hDO}.
-      
-        /* update the UpdateTables property */
-        iEntry = LOOKUP(cObjectName, cTableList).
-        IF iEntry > 0 THEN
-          ENTRY(iEntry, cTableList) = STRING(hTable).
-      END.
-    END.  /* DO 'setRowObjUpdTable' for all contained SDOs */
-
-    {set updateTables cTableList hObject}.
+    /* set UpdateTables and synch SDOs */
+    RUN applyUpdateTables IN hObject
+                            (phRowObjUpd1,
+                             phRowObjUpd2,
+                             phRowObjUpd3,
+                             phRowObjUpd4,
+                             phRowObjUpd5,
+                             phRowObjUpd6,
+                             phRowObjUpd7,
+                             phRowObjUpd8,
+                             phRowObjUpd9,
+                             phRowObjUpd10,
+                             phRowObjUpd11,
+                             phRowObjUpd12,
+                             phRowObjUpd13,
+                             phRowObjUpd14,
+                             phRowObjUpd15,
+                             phRowObjUpd16,
+                             phRowObjUpd17,
+                             phRowObjUpd18,
+                             phRowObjUpd19,
+                             phRowObjUpd20).
 
     RUN bufferCommitTransaction IN hObject (OUTPUT pocMessages, 
                                             OUTPUT pocUndoIds).
@@ -245,9 +197,11 @@ DEFINE VARIABLE lAnyStatic             AS LOGICAL    NO-UNDO.
     piocContext = {fn obtainContextForClient hObject}.
     
     /* If there was any SDOs with static TT we need to copy the TT back to 
-       the inout-output parameter handle, as the static TT in the SDO will 
-       be destroyed when the object is destroyed */    
-    IF lAnyStatic THEN
+       the input-output parameter handle, as the static TT in the SDO will 
+       be destroyed when the object is destroyed */   
+    {get ContainedDataObjects cContained hObject}.
+    {get DataObjectOrdering cOrdering hObject}.
+
     DO iPos = 1 TO NUM-ENTRIES(cOrdering):
       hDO = WIDGET-HANDLE(ENTRY(INTEGER(ENTRY(iPos, cOrdering)), cContained)).
       {get DynamicData lDynamicSDO hDO}.

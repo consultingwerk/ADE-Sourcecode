@@ -81,8 +81,8 @@ This field is maintained by the maintenance object as identified in the service 
 "
 
 UPDATE SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 101001
-  MAX-VAL 101001
+  INITIAL 101101
+  MAX-VAL 101101
 
 .
 PSC

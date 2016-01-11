@@ -1722,6 +1722,7 @@ PROCEDURE property_sheet:
   DEFINE VAR   h_temp           AS WIDGET                       NO-UNDO.
   DEFINE VAR   cType            AS CHARACTER                    NO-UNDO.
   DEFINE VAR   ldummy           AS LOGICAL                      NO-UNDO.
+  DEFINE VAR   r_U              AS ROWID                        NO-UNDO.
 
   /* Don't go into property sheets if the last event was a dbl-click and
      we were in draw mode */
@@ -1767,8 +1768,11 @@ PROCEDURE property_sheet:
   FIND _P WHERE _P._WINDOW-HANDLE = _U._WINDOW-HANDLE.
   IF _P._TYPE BEGINS "WEB":U THEN
     RUN choose_attributes.
-  ELSE
+  ELSE DO:
+    ASSIGN r_U = ROWID(_U).
     RUN adeuib/_proprty.p (h_self).
+    FIND _U WHERE ROWID(_U) = r_U.
+  END.
     
   /* For menus, the property sheet may have deleted the widget. */
   IF CAN-DO("MENU,MENU-ITEM,SUB-MENU",cTYPE) THEN DO:

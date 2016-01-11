@@ -203,6 +203,9 @@ DATA-TYPE      Decimal
 *FILL-IN       &Integer
 DESCRIPTION    Integer Fill-in
 DATA-TYPE      Integer
+*FILL-IN       I&NT64
+DESCRIPTION    INT64 Fill-in
+DATA-TYPE      INT64
 *FILL-IN       &Logical
 DESCRIPTION    Logical Fill-in
 DATA-TYPE      Logical
@@ -235,6 +238,9 @@ DATA-TYPE      Decimal
 *COMBO-BOX     &Integer
 DESCRIPTION    Integer Combo-Box
 DATA-TYPE      Integer
+*COMBO-BOX     I&NT64
+DESCRIPTION    INT64 Combo-Box
+DATA-TYPE      INT64
 *COMBO-BOX     &Logical
 DESCRIPTION    Logical Combo-Box
 DATA-TYPE      Logical
@@ -251,6 +257,9 @@ DATA-TYPE      Decimal
 *RADIO-SET     &Integer
 DESCRIPTION    Integer Radio-Set
 DATA-TYPE      Integer
+*RADIO-SET     I&NT64
+DESCRIPTION    INT64 Radio-Set
+DATA-TYPE      INT64
 *RADIO-SET     &Logical
 DESCRIPTION    Logical Radio-Set
 DATA-TYPE      Logical

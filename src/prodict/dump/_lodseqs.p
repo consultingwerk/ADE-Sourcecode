@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -8,6 +8,7 @@
 /* _lodseqs.p - load _Sequence file from _Seqvals.d and set w/ CURRENT-VALUE 
 
   History:  D. McMann 08/08/02  Eliminated any sequences whose name begins "$" - Peer Direct
+            fernando  05/25/06  Added support for large sequences
 */
 
 { prodict/dictvar.i }
@@ -25,29 +26,44 @@ RUN adecomm/_setcurs.p ("WAIT").
 RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
 OUTPUT TO VALUE(tmpfile) NO-MAP NO-ECHO NO-MAP.
 
-/* auditing - start a new application context so that one can report
-all the records that are loaded as a group.
+/* NOTE: now we have to check for overflow errors. Since we may be loading
+   sequence values into 32-bit and 64-bit sequences, the overflow is different
+   for each one of them (int X int64). So now we import and call current-value()
+   with the NO-ERROR clause and check for errors.
 */
-IF AUDIT-CONTROL:APPL-CONTEXT-ID = ? THEN DO:
- ASSIGN newAppCtx = YES.
- AUDIT-CONTROL:SET-APPL-CONTEXT("Data Administration", "Load Sequence Current Values", "").
-END.
-
 PUT UNFORMATTED
   'DEFINE VARIABLE seqname   AS CHARACTER NO-UNDO.' SKIP
   'DEFINE VARIABLE seqnumber AS CHARACTER NO-UNDO.' SKIP
-  'DEFINE VARIABLE seqvalue  AS INTEGER   NO-UNDO.' SKIP
+  'DEFINE VARIABLE seqvalue  AS INT64     NO-UNDO.' SKIP
   'REPEAT:' SKIP
-  '  IMPORT seqnumber seqname seqvalue.' SKIP
+  '  IMPORT seqnumber seqname seqvalue NO-ERROR.' SKIP
+  '  IF ERROR-STATUS:ERROR THEN DO:' SKIP
+  '     IF SESSION:WINDOW-SYSTEM NE "TTY" THEN' SKIP
+  '        MESSAGE "Error loading value for " seqname ": "' SKIP
+  '        ERROR-STATUS:GET-MESSAGE(1) VIEW-AS ALERT-BOX ERROR.' 
+  '     ELSE ' SKIP
+  '         MESSAGE "Error loading value for " seqname ": "' SKIP
+  '         ERROR-STATUS:GET-MESSAGE(1).' 
+  '  END.' SKIP
   '  IF INDEX(seqname,".") = 0 THEN seqname = "' LDBNAME(user_dbname)
     '." + seqname.' SKIP
   '  CASE seqname:' SKIP.
 FOR EACH _Sequence WHERE _Sequence._Db-recid = drec_db
                      AND NOT _Sequence._Seq-name BEGINS "$" NO-LOCK:
   PUT UNFORMATTED 
-    '    WHEN "' LDBNAME(user_dbname) '.' _Sequence._Seq-Name '" THEN' SKIP
+    '    WHEN "' LDBNAME(user_dbname) '.' _Sequence._Seq-Name '" THEN DO:' SKIP
     '      CURRENT-VALUE(' _Sequence._Seq-Name ',' LDBNAME(user_dbname)
-      ') = seqvalue.' SKIP.
+      ') = seqvalue NO-ERROR.' SKIP
+      '     IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 1 THEN DO:' SKIP
+      '      IF SESSION:WINDOW-SYSTEM NE "TTY" THEN' SKIP
+      '         MESSAGE "Error loading value for ' _Sequence._Seq-Name ': "' SKIP
+      '         ERROR-STATUS:GET-MESSAGE(1) VIEW-AS ALERT-BOX ERROR.' 
+      '      ELSE ' SKIP
+      '         MESSAGE "Error loading value for ' _Sequence._Seq-Name ': "' SKIP
+      '         ERROR-STATUS:GET-MESSAGE(1).' 
+      '     END.' SKIP
+      SKIP
+      'END.' SKIP.
 END.
 PUT UNFORMATTED
   '    OTHERWISE DO:' SKIP
@@ -69,6 +85,14 @@ OUTPUT CLOSE.
   &entries = " " 
   }  /* read trailer, sets variables: codepage and cerror */
 */
+
+/* auditing - start a new application context so that one can report
+all the records that are loaded as a group.
+*/
+IF AUDIT-CONTROL:APPL-CONTEXT-ID = ? THEN DO:
+ ASSIGN newAppCtx = YES.
+ AUDIT-CONTROL:SET-APPL-CONTEXT("Data Administration", "Load Sequence Current Values", "").
+END.
 
 ASSIGN codepage = user_env[10]. /* codepage set in _usrload.p */
 IF codepage <> "UNDEFINED" AND SESSION:CHARSET <> ? THEN

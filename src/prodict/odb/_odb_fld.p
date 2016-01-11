@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* odb_fld - field editor for Odbc files */
 
@@ -111,7 +95,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
   /* 4*/ "Cannot create &1 fields.  Must create on &1 side and",
   /* 5*/ "use ~"Update &1 definition~" to bring definition over.",
   /* 6*/ "You must enter a field name here.", /* reserved */
-  /* 7*/ "This is not an equivalent PROGRESS datatype for the &1 datatype",
+  /* 7*/ "This is not an equivalent &PRO_DISPLAY_NAME} datatype for the &1 datatype",
   /* 8*/ "Attempt to add with same name as existing field -switching to MODIFY",
   /* 9*/ "Invalid &1 datatype.",
   /*10*/ "Offset allready used by other field."
@@ -120,7 +104,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
 FORM
   dfields._Field-name   LABEL "  Field-Name" FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
-      "This name conflicts with a PROGRESS reserved keyword.") SPACE
+      "This name conflicts with a &PRO_DISPLAY_NAME} reserved keyword.") SPACE
   dfields._Data-type    LABEL    "Data-Type" FORMAT "x(9)"  SKIP
 
   edbtyp1            NO-LABEL AT  2          FORMAT "x(12)" SPACE

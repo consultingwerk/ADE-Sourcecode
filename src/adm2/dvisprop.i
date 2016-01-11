@@ -106,28 +106,30 @@ DataSourceNames,UpdateTargetNames,LogicalObjectName
 
   /* These preprocessors tell at compile time which properties can be
      retrieved directly from the property temp-table. */
-  &GLOBAL-DEFINE xpFieldsEnabled         
-  &GLOBAL-DEFINE xpDisplayedFields       
-  &GLOBAL-DEFINE xpEnabledHandles        
   &GLOBAL-DEFINE xpCreateHandles         
+  &GLOBAL-DEFINE xpDisplayedFields       
+  &GLOBAL-DEFINE xpDisplayedTables
   &GLOBAL-DEFINE xpEnabledFields         
+  &GLOBAL-DEFINE xpEnabledHandles        
   &GLOBAL-DEFINE xpFieldHandles          
+  &GLOBAL-DEFINE xpFieldsEnabled         
+  &GLOBAL-DEFINE xpGroupAssignSource     
+  &GLOBAL-DEFINE xpGroupAssignSourceEvents 
+  &GLOBAL-DEFINE xpGroupAssignTarget     
+  &GLOBAL-DEFINE xpGroupAssignTargetEvents 
+  &GLOBAL-DEFINE xpInternalDisplayFromSource
+  &GLOBAL-DEFINE xpModifyFields
+  &GLOBAL-DEFINE xpObjectMode
+  &GLOBAL-DEFINE xpRecordState           
+  &GLOBAL-DEFINE xpSaveSource            
   &GLOBAL-DEFINE xpTableIOSource         
   &GLOBAL-DEFINE xpTableIOSourceEvents   
-  &GLOBAL-DEFINE xpSaveSource            
-  &GLOBAL-DEFINE xpRecordState           
-  &GLOBAL-DEFINE xpUpdateTarget          
-  &GLOBAL-DEFINE xpGroupAssignSource     
-  &GLOBAL-DEFINE xpGroupAssignTarget     
-  &GLOBAL-DEFINE xpGroupAssignSourceEvents 
-  &GLOBAL-DEFINE xpGroupAssignTargetEvents 
-  &GLOBAL-DEFINE xpDisplayedTables
-  &GLOBAL-DEFINE xpWindowTitleField
-  &GLOBAL-DEFINE xpObjectMode
   &GLOBAL-DEFINE xpToolbarSource
   &GLOBAL-DEFINE xpToolbarSourceEvents
-  &GLOBAL-DEFINE xpModifyFields
-  &GLOBAL-DEFINE xpInternalDisplayFromSource
+  &GLOBAL-DEFINE xpUndoNew          
+  &GLOBAL-DEFINE xpUpdateTarget          
+  &GLOBAL-DEFINE xpWindowTitleField
+
   /* Include the next property file up the chain; we will add our field
      definitions to its list. As of 9.1A, if this visual object is also
      a SmartContainer, we include container properties as well. */
@@ -142,43 +144,44 @@ DataSourceNames,UpdateTargetNames,LogicalObjectName
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
 &IF "{&ADMSuper}":U = "":U &THEN
-  ghADMProps:ADD-NEW-FIELD('FieldsEnabled':U, 'LOGICAL':U, 0, ?, no). 
-  ghADMProps:ADD-NEW-FIELD('Editable':U, 'LOGICAL':U, 0, ?, ?). 
-  ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
-  ghADMProps:ADD-NEW-FIELD('NewRecord':U, 'CHAR':U, 0, ?, 'No':U). /* Values: Add, Copy, No */
-  ghADMProps:ADD-NEW-FIELD('RowIdent':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('DisplayedFields':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('EnabledHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('CreateHandles':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('EnabledFields':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('FieldHandles':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('TableIOSource':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('TableIOSourceEvents':U, 'CHAR':U, 0, ?, 
-    'addRecord,updateRecord,copyRecord,deleteRecord,resetRecord,cancelRecord,updateMode':U).
-  ghADMProps:ADD-NEW-FIELD('SaveSource':U, 'LOGICAL':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('RecordState':U, 'CHAR':U, 0, ?, 'NoRecordAvailable':U).
-  ghADMProps:ADD-NEW-FIELD('UpdateTarget':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('GroupAssignSource':U, 'HANDLE':U).
-  ghADMProps:ADD-NEW-FIELD('GroupAssignTarget':U, 'CHAR':U, 0, ?, '':U).
-  ghADMProps:ADD-NEW-FIELD('GroupAssignSourceEvents':U, 'CHAR':U, 0, ?, 
-    'addRecord,copyRecord,updateRecord,resetRecord,cancelRecord,enableFields,disableFields,collectChanges,validateFields':U).
-  ghADMProps:ADD-NEW-FIELD('GroupAssignTargetEvents':U, 'CHAR':U, 0, ?, 'updateState,LinkState':U).
+  ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
+  ghADMProps:ADD-NEW-FIELD('DisplayedFields':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('DisplayedTables':U, 'CHAR':U, 0, ?, 
   &IF "{&DISPLAYED-TABLES}":U NE "":U &THEN
     REPLACE("{&DISPLAYED-TABLES}":U, " ":U, ",":U)).
   &ELSE
     REPLACE("{&INTERNAL-TABLES}":U, " ":U, ",":U)).
   &ENDIF
-  ghADMProps:ADD-NEW-FIELD('UpdateTargetNames':U, 'CHAR':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('WindowTitleField':U, 'CHARACTER':U).  
-  ghADMProps:ADD-NEW-FIELD('ObjectMode':U,'CHARACTER':U, 0, ?, 'View':U).  
+  ghADMProps:ADD-NEW-FIELD('Editable':U, 'LOGICAL':U, 0, ?, ?). 
+  ghADMProps:ADD-NEW-FIELD('EnabledFields':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('EnabledHandles':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('EnabledObjFldsToDisable':U,'CHARACTER':U, 0, ?, ?).  
+  ghADMProps:ADD-NEW-FIELD('FieldHandles':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('FieldsEnabled':U, 'LOGICAL':U, 0, ?, no). 
+  ghADMProps:ADD-NEW-FIELD('GroupAssignSource':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('GroupAssignSourceEvents':U, 'CHAR':U, 0, ?, 
+    'addRecord,copyRecord,updateRecord,resetRecord,undoRecord,cancelRecord,enableFields,disableFields,collectChanges,validateFields':U).
+  ghADMProps:ADD-NEW-FIELD('GroupAssignTarget':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('GroupAssignTargetEvents':U, 'CHAR':U, 0, ?, 'updateState,LinkState':U).
+  ghADMProps:ADD-NEW-FIELD('InternalDisplayFromSource':U, 'CHARACTER':U, 0, ?,'(Large)':U).
   ghADMProps:ADD-NEW-FIELD('ModifyFields':U,'CHARACTER':U, 0, ?, '(All)':U).  
+  ghADMProps:ADD-NEW-FIELD('NewRecord':U, 'CHAR':U, 0, ?, 'No':U). /* Values: Add, Copy, No */
+  ghADMProps:ADD-NEW-FIELD('ObjectMode':U,'CHARACTER':U, 0, ?, 'View':U).  
+  ghADMProps:ADD-NEW-FIELD('PrintPreviewActive':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('RecordState':U, 'CHAR':U, 0, ?, 'NoRecordAvailable':U).
+  ghADMProps:ADD-NEW-FIELD('RowIdent':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('SaveSource':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('TableIOSource':U, 'HANDLE':U).
+  ghADMProps:ADD-NEW-FIELD('TableIOSourceEvents':U, 'CHAR':U, 0, ?, 
+    'addRecord,updateRecord,copyRecord,deleteRecord,resetRecord,undoChange,cancelRecord,updateMode':U).
   ghADMProps:ADD-NEW-FIELD('ToolbarSource':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('ToolbarSourceEvents':U, 'CHAR':U, 0, ?,
     'toolbar':U).
-  ghADMProps:ADD-NEW-FIELD('PrintPreviewActive':U, 'LOGICAL':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('InternalDisplayFromSource':U, 'CHARACTER':U, 0, ?,'(Large)':U).
+  ghADMProps:ADD-NEW-FIELD('UndoNew':U, 'LOGICAL':U, 0, ?, NO).
+  ghADMProps:ADD-NEW-FIELD('UpdateTarget':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('UpdateTargetNames':U, 'CHAR':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('WindowTitleField':U, 'CHARACTER':U).  
 
 &ENDIF
 

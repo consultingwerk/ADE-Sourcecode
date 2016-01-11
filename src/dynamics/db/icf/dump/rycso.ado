@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset EmptyDataset="YES"/>
+<dataset Transactions="1" deletion_flag="no" entity_mnemonic="GSTDF" import_version_number_seq="2.39" key_field_value="3000033335.09" record_version_obj="100000006046.39" secondary_key_value="" version_date="10/12/2006" version_number_seq="3.39" version_time="53151" version_user="admin"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="93" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DELETION"><contained_record deletion_flag="yes" entity_mnemonic="rycso" import_version_number_seq="6.74251" key_field_value="3000031572.09" record_version_obj="3000031573.09" secondary_key_value="afdynplipp#CHR(1)#0" version_date="07/19/2006" version_number_seq="6.74251" version_time="43199" version_user="admin"/>
+</dataset_transaction>
+</dataset_records>
+</dataset>

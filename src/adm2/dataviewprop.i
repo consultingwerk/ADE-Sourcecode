@@ -25,28 +25,19 @@
   /* Custom instance definition file */
   {src/adm2/custom/dataviewdefscustom.i}
 
-/* do not append these properties to the data class. The intention is to allow 
-   extensions of this class to get these, but not the data class. 
-   Appservice and UpdateFromSource are used because they both serves behavior
-   that does not apply to the dataview) */                                                         
-&IF (LOOKUP("AppService","{&xcInstanceProperties}":U) = 0 
-     AND 
-     LOOKUP("UpdateFromSource","{&xcInstanceProperties}":U) = 0)
-&THEN        
-     &IF "{&xcInstanceProperties}":U <> "":U &THEN 
-  &GLOB xcInstanceProperties {&xcInstanceProperties}, 
-     &ENDIF 
+  &IF "{&xcInstanceProperties}":U <> "":U &THEN 
+&GLOB xcInstanceProperties {&xcInstanceProperties},
+  &ENDIF 
   
 &GLOB xcInstanceProperties {&xcInstanceProperties}~
-BusinessEntity,DataSetName,DataTable,DataQueryString,Tables,ForeignFields,RowsToBatch,RebuildOnRepos,~
-ObjectName,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptColumns
+BusinessEntity,DataQueryString,DataSetName,DataTable,Tables,SubmitParent,~
+DataIsFetched,ResortOnSave 
+
 &ENDIF    
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
   &SCOP ADM-PROPERTY-DLG adm2/support/dataviewd.w
-&ENDIF
-      
 &ENDIF
 
 /* _UIB-CODE-BLOCK-END */
@@ -104,112 +95,29 @@ ObjectName,ToggleDataTargets,OpenOnInit,PromptOnDelete,PromptColumns
     {src/adm2/dataviewprto.i}
   &ENDIF
 &ENDIF  /* defined(adm-exclude-prototypes)  */
-
  
- /* if appserver aware add appserver properties  */ 
-&IF DEFINED(APP-SERVER-VARS) <> 0 &THEN
-  {src/adm2/appsprop.i}
-&ELSE
-  {src/adm2/smrtprop.i}
-&ENDIF   
+{src/adm2/dataqueryprop.i}
 
- &GLOBAL-DEFINE xpBufferHandles          
  &GLOBAL-DEFINE xpBusinessEntity
- &GLOBAL-DEFINE xpCommitSource           
- &GLOBAL-DEFINE xpCommitSourceEvents     
- &GLOBAL-DEFINE xpCommitTarget           
- &GLOBAL-DEFINE xpCommitTargetEvents     
- &GLOBAL-DEFINE xpCurrentRowid                                                                 
- &GLOBAL-DEFINE xpCurrentUpdateSource
- &GLOBAL-DEFINE xpDataColumns 
- &GLOBAL-DEFINE xpDataHandle
- &GLOBAL-DEFINE xpDataIsFetched
- &GLOBAL-DEFINE xpDataQueryString
  &GLOBAL-DEFINE xpDataSetName
  &GLOBAL-DEFINE xpDataSetSource
  &GLOBAL-DEFINE xpDataTable
- &GLOBAL-DEFINE xpFillBatchOnRepos
- &GLOBAL-DEFINE xpFilterSource           
- &GLOBAL-DEFINE xpFilterWindow           
- &GLOBAL-DEFINE xpFirstRowNum
- &GLOBAL-DEFINE xpFirstResultRow
- &GLOBAL-DEFINE xpForeignValues
- &GLOBAL-DEFINE xpLastResultRow            
- &GLOBAL-DEFINE xpLastRowNum                               
- &GLOBAL-DEFINE xpNavigationSource       
- &GLOBAL-DEFINE xpNavigationSourceEvents          
- &GLOBAL-DEFINE xpOpenOnInit
- &GLOBAL-DEFINE xpPromptOnDelete 
- &GLOBAL-DEFINE xpPrimarySDOSource
- &GLOBAL-DEFINE xpQueryColumns
- &GLOBAL-DEFINE xpQueryString
- &GLOBAL-DEFINE xpRebuildOnRepos
- &GLOBAL-DEFINE xpRowObject
- &GLOBAL-DEFINE xpRowsToBatch
- &GLOBAL-DEFINE xpTables 
- &GLOBAL-DEFINE xpToggleDataTargets
- &GLOBAL-DEFINE xpTransferChildrenForAll 
- &GLOBAL-DEFINE xpUpdateSource  
- &GLOBAL-DEFINE xpUpdatableColumns  
- 
+ &GLOBAL-DEFINE xpResortOnSave
+ &GLOBAL-DEFINE xpUndoOnConflict
+ &GLOBAL-DEFINE xpUndoDeleteOnSubmitError
+
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN  
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:
   &IF "{&ADMSuper}":U = "":U &THEN 
-     ghADMProps:ADD-NEW-FIELD('AutoCommit':U, 'LOGICAL':U, 0, ?, yes).
-     ghADMProps:ADD-NEW-FIELD('BLOBColumns':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('BufferHandles':U, 'CHAR':U, 0, ?, '':U).
      ghADMProps:ADD-NEW-FIELD('BusinessEntity':U, 'CHAR':U, 0,'X(40)':U, '':U). 
-     ghADMProps:ADD-NEW-FIELD('CLOBColumns':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('CommitSource':U, 'HANDLE':U).
-     ghADMProps:ADD-NEW-FIELD('CommitSourceEvents':U, 'CHAR':U, 0, ?, 
-       'commitTransaction,undoTransaction':U).
-     ghADMProps:ADD-NEW-FIELD('CommitTarget':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('CommitTargetEvents':U, 'CHAR':U, 0, ?, 'rowObjectState':U).
-     ghADMProps:ADD-NEW-FIELD('CurrentRowid':U, 'ROWID':U).
-     ghADMProps:ADD-NEW-FIELD('CurrentUpdateSource':U, 'HANDLE':U).
-     ghADMProps:ADD-NEW-FIELD('DataColumns':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('DataHandle':U, 'HANDLE':U).   
-     ghADMProps:ADD-NEW-FIELD('DataIsFetched':U, 'LOGICAL':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('DataModified':U, 'LOGICAL':U, 0, ?, no).
-     ghADMProps:ADD-NEW-FIELD('DataQueryBrowsed':U, 'LOGICAL':U, 0, ?, no).
-     ghADMProps:ADD-NEW-FIELD('DataQueryString':U, 'CHAR':U, 0, ?,'':U).
      ghADMProps:ADD-NEW-FIELD('DataSetName':U, 'CHAR':U, 0,'X(40)':U, '':U). 
      ghADMProps:ADD-NEW-FIELD('DataSetSource':U, 'HANDLE':U).   
-     ghADMProps:ADD-NEW-FIELD('DataTable':U, 'CHAR':U, 0,'X(20)':U, '':U).    
-     ghADMProps:ADD-NEW-FIELD('FetchOnOpen':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('FillBatchOnRepos':U, 'LOGICAL':U, 0, ?, YES).
-     ghADMProps:ADD-NEW-FIELD('FilterActive':U, 'LOGICAL':U, 0, ?, no).
-     ghADMProps:ADD-NEW-FIELD('FilterAvailable':U, 'LOGICAL':U, 0, ?, no).
-     ghADMProps:ADD-NEW-FIELD('FilterSource':U, 'HANDLE':U).
-     ghADMProps:ADD-NEW-FIELD('FilterWindow':U, 'CHAR':U).
-     ghADMProps:ADD-NEW-FIELD('FirstResultRow':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('FirstRowNum':U, 'INT':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('ForeignFields':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('ForeignValues':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('IndexInformation':U, 'CHARACTER':U, 0, ?,?). 
-     ghADMProps:ADD-NEW-FIELD('LargeColumns':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('LastResultRow':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('LastRowNum':U, 'INT':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('NavigationSource':U, 'CHAR':U).
-     ghADMProps:ADD-NEW-FIELD('NavigationSourceEvents':U, 'CHAR':U, 0, ?, 
-                              'fetchFirst,fetchNext,fetchPrev,fetchLast,startFilter':U).
-     ghADMProps:ADD-NEW-FIELD('OpenOnInit':U, 'LOGICAL':U, 0, ?, yes).
-     ghADMProps:ADD-NEW-FIELD('PrimarySDOSource':U, 'HANDLE':U).
-     ghADMProps:ADD-NEW-FIELD('PromptColumns':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('PromptOnDelete':U, 'LOGICAL':U, 0, ?, YES).
-     ghADMProps:ADD-NEW-FIELD('QueryColumns':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('QueryPosition':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('QueryString':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('RebuildOnRepos':U, 'LOGICAL':U, 0, ?, no).
-     ghADMProps:ADD-NEW-FIELD('RowObject':U, 'HANDLE':U, 0, ?, ?). 
-     ghADMProps:ADD-NEW-FIELD('RowObjectState':U, 'CHAR':U, 0, ?, 'NoUpdates':U).
-     ghADMProps:ADD-NEW-FIELD('RowsToBatch':U, 'INT':U, 0, ?, 200).  /* Rows per AppServer xfer */
-     ghADMProps:ADD-NEW-FIELD('Tables':U, 'CHAR':U, 0, ?, '':U).
-     ghADMProps:ADD-NEW-FIELD('ToggleDataTargets':U, 'LOGICAL':U, ?, ?, TRUE).
-     ghADMProps:ADD-NEW-FIELD('TransferChildrenForAll':U, 'LOGICAL':U, 0, ?, NO).
-     ghADMProps:ADD-NEW-FIELD('UpdatableColumns':U, 'CHAR':U, 0, ?, ?).
-     ghADMProps:ADD-NEW-FIELD('UpdateSource':U, 'CHARACTER':U).
+     ghADMProps:ADD-NEW-FIELD('DataTable':U, 'CHAR':U, 0,'X(20)':U, '':U). 
+     ghADMProps:ADD-NEW-FIELD('ResortOnSave':U, 'LOGICAL':U, 0,?,YES). 
+     ghADMProps:ADD-NEW-FIELD('SubmitParent':U, 'LOGICAL':U, 0,?,?). 
+     ghADMProps:ADD-NEW-FIELD('UndoOnConflict':U, 'CHAR':U, 0,'X(8)':U, 'BEFORE':U). 
+     ghADMProps:ADD-NEW-FIELD('UndoDeleteOnSubmitError':U, 'CHAR':U, 0,'X(8)':U, 'ERROR':U). 
   &ENDIF  /* "{&ADMSuper}" = "" */
 
   {src/adm2/custom/dataviewpropcustom.i}

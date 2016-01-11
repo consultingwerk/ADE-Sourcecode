@@ -69,6 +69,15 @@ DEFINE VARIABLE glUseRepository       AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcInitToolbar         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcEditSingleInstance  AS CHARACTER  NO-UNDO.
 
+DEFINE VARIABLE giImageHeightPxl      AS INTEGER    NO-UNDO.
+DEFINE VARIABLE giImageWidthPxl       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE gdActionHeight        AS DECIMAL    NO-UNDO.
+
+DEFINE VARIABLE ghFrameTB             AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghFrameMB             AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghFrameC              AS HANDLE     NO-UNDO.
+DEFINE VARIABLE ghFrameA              AS HANDLE     NO-UNDO.
+
 DEFINE VARIABLE xcToolbarObjectType   AS CHARACTER  NO-UNDO INIT 'SmartToolbar'. /* Note this variable gets reassigned in getToolbars */
 DEFINE VARIABLE xdScrollToggleHeight  AS DECIMAL    NO-UNDO INIT 0.72.
 DEFINE VARIABLE xdScrollToggleCol     AS DECIMAL    NO-UNDO INIT 1.12.
@@ -128,6 +137,7 @@ DEFINE TEMP-TABLE tChildAction NO-UNDO
  FIELD HideHdl  AS HANDLE
  FIELD TxtHdl   AS HANDLE
  FIELD ImageHdl AS HANDLE
+ FIELD lineHdl  AS HANDLE
  FIELD Sequence AS INT
  FIELD Row      AS DEC 
  FIELD Menu     AS LOG
@@ -141,6 +151,7 @@ DEFINE TEMP-TABLE tPage NO-UNDO
  FIELD Name    AS CHAR
  FIELD Caption AS CHAR FORMAT "X(255)"
  INDEX PageNum PageNum.
+
 
 DEFINE QUERY qPage FOR tPage.
 
@@ -180,9 +191,8 @@ bPAge:HIDDEN IN FRAME {&FRAME-NAME} = TRUE.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS ldeactivateTargetOnHide v-Toolbar ~
-cDrawDirection lAutoSize v-show v-Menu lOverrideMerge ~
-lCreateSubMenuOnConflict lRemoveMenuOnHide fiActionLabel fiCategoryLabel ~
-RECT-1 rMenu rToolbar 
+cDrawDirection lAutoSize v-show v-Menu lCreateSubMenuOnConflict ~
+lRemoveMenuOnHide fiActionLabel fiCategoryLabel RECT-1 rMenu rToolbar 
 &Scoped-Define DISPLAYED-OBJECTS ldeactivateTargetOnHide v-Toolbar ~
 cDrawDirection lAutoSize v-show v-Menu lOverrideMerge ~
 lCreateSubMenuOnConflict lRemoveMenuOnHide fiActionLabel fiCategoryLabel 
@@ -229,7 +239,7 @@ FUNCTION createAction RETURNS LOGICAL
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createFrameBorder SP-attr-dialog 
-FUNCTION createFrameBorder RETURNS LOGICAL
+FUNCTION createFrameBorder RETURNS HANDLE
   ( phFrame AS HANDLE)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -275,6 +285,13 @@ FUNCTION deleteActions RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD enableTableioWidgets SP-attr-dialog 
+FUNCTION enableTableioWidgets RETURNS LOGICAL
+  ( plSelected AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initActions SP-attr-dialog 
 FUNCTION initActions RETURNS LOGICAL
   (pcCategory AS CHAR)  FORWARD.
@@ -303,6 +320,13 @@ FUNCTION initPages RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initTheme SP-attr-dialog 
+FUNCTION initTheme RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initToolbar SP-attr-dialog 
 FUNCTION initToolbar RETURNS LOGICAL
     ( pcToolbar AS CHAR)  FORWARD.
@@ -313,6 +337,21 @@ FUNCTION initToolbar RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initToolbarBands SP-attr-dialog 
 FUNCTION initToolbarBands RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD loadImage SP-attr-dialog 
+FUNCTION loadImage RETURNS LOGICAL
+    ( phObject AS HANDLE, 
+      pcImage  AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD niceName SP-attr-dialog 
+FUNCTION niceName RETURNS CHARACTER
+  ( pcName AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -339,6 +378,22 @@ FUNCTION removeHiddenAction RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD repositoryValue SP-attr-dialog 
+FUNCTION repositoryValue RETURNS CHARACTER
+  ( pdSmartObj AS DECIMAL,
+    pdInstObj AS DECIMAL,
+    pcProperty AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetTableioUndoNew SP-attr-dialog 
+FUNCTION resetTableioUndoNew RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resizeRectangles SP-attr-dialog 
 FUNCTION resizeRectangles RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
@@ -346,16 +401,41 @@ FUNCTION resizeRectangles RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setActionActiveState SP-attr-dialog 
+FUNCTION setActionActiveState RETURNS LOGICAL
+  ( pcAction AS CHAR,
+    plActive AS LOG,
+    plChangeValues AS LOG )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setObjectStates SP-attr-dialog 
 FUNCTION setObjectStates RETURNS LOGICAL
-  (  )  FORWARD.
+  ( plChange AS LOGICAL )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTableioState SP-attr-dialog 
 FUNCTION setTableioState RETURNS LOGICAL
-  ( pcState AS CHAR )  FORWARD.
+  ( pcState AS CHAR,
+    plChange AS LOG )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTableioUndo SP-attr-dialog 
+FUNCTION setTableioUndo RETURNS LOGICAL
+  ( plUndo AS LOGICAL,
+    plState AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setTableioUndoNew SP-attr-dialog 
+FUNCTION setTableioUndoNew RETURNS LOGICAL
+  ( plUndoNew AS LOGICAL,plState AS logical )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -492,7 +572,19 @@ DEFINE VARIABLE v-type AS CHARACTER INITIAL "Save"
      RADIO-BUTTONS 
           "&Save", "Save":U,
 "&Update", "Update":U
-     SIZE 21.2 BY 1 NO-UNDO.
+     SIZE 21.2 BY 1 TOOLTIP "Save = Enable fields for editing, Update = Use update/modify action to edit" NO-UNDO.
+
+DEFINE VARIABLE lUndo AS LOGICAL INITIAL no 
+     LABEL "Undo changes" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 18.8 BY .81 TOOLTIP "Undo screen and saved changes and optionally undo add and copy mode" NO-UNDO.
+
+DEFINE VARIABLE lUndoNew AS LOGICAL INITIAL no 
+     LABEL "Undo add and copy mode" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 28.6 BY .81 TOOLTIP "Allow UndoChange to also undo add and copy mode" NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -518,14 +610,16 @@ DEFINE FRAME SP-attr-dialog
      RECT-1 AT ROW 3.38 COL 3.4
      rMenu AT ROW 6.38 COL 44.8
      rToolbar AT ROW 6.38 COL 3.4
-     SPACE(57.39) SKIP(8.15)
+     SPACE(57.39) SKIP(8.14)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartToolbar Properties".
 
 DEFINE FRAME frMain
      c_SDOList AT ROW 3.38 COL 9 NO-LABEL
-     v-type AT ROW 4.81 COL 12.6 NO-LABEL
+     v-type AT ROW 4.33 COL 8.2 NO-LABEL
+     lUndo AT ROW 5.33 COL 8.4 WIDGET-ID 8
+     lUndoNew AT ROW 6.14 COL 8.4 WIDGET-ID 10
      c_SDOLabel AT ROW 2.71 COL 8.6 COLON-ALIGNED NO-LABEL
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE 
@@ -595,7 +689,7 @@ ASSIGN
 /* SETTINGS FOR FRAME frToolbarBands
                                                                         */
 /* SETTINGS FOR DIALOG-BOX SP-attr-dialog
-   FRAME-NAME Custom                                                    */
+   NOT-VISIBLE FRAME-NAME Custom                                        */
 
 DEFINE VARIABLE XXTABVALXX AS LOGICAL NO-UNDO.
 
@@ -617,6 +711,8 @@ ASSIGN
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR FILL-IN iMenuMergeOrder IN FRAME SP-attr-dialog
    NO-DISPLAY NO-ENABLE ALIGN-L                                         */
+/* SETTINGS FOR TOGGLE-BOX lOverrideMerge IN FRAME SP-attr-dialog
+   NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -755,6 +851,7 @@ DO:
     ASSIGN cToolbar.
     IF glUseRepository THEN
       changeToolbar(cToolbar).
+
     initToolbar(cToolbar).
     
   END.
@@ -797,6 +894,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lOverrideMerge SP-attr-dialog
 ON VALUE-CHANGED OF lOverrideMerge IN FRAME SP-attr-dialog /* Override default merge order: */
 DO:
+  
   IF SELF:CHECKED THEN
    ASSIGN
      iMenuMergeOrder:SENSITIVE = TRUE
@@ -806,20 +904,49 @@ DO:
      iMenuMergeOrder:SENSITIVE = FALSE 
      iMenuMergeOrder:SCREEN-VALUE = ''.
 
-
+  ASSIGN lOverrideMerge.
 END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
+&Scoped-define FRAME-NAME frMain
+&Scoped-define SELF-NAME lUndo
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUndo SP-attr-dialog
+ON VALUE-CHANGED OF lUndo IN FRAME frMain /* Undo changes */
+DO:
+  ASSIGN lUndo.
+  setTableioUndo(lUndo,YES).
+  resetTableioUndoNew().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lUndoNew
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUndoNew SP-attr-dialog
+ON VALUE-CHANGED OF lUndoNew IN FRAME frMain /* Undo add and copy mode */
+DO:
+  ASSIGN lUndoNew.
+  setTableioUndoNew(lUndoNew,YES).
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define FRAME-NAME SP-attr-dialog
 &Scoped-define SELF-NAME v-Menu
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL v-Menu SP-attr-dialog
 ON VALUE-CHANGED OF v-Menu IN FRAME SP-attr-dialog /* Use menu */
 DO:
   IF NOT SELF:CHECKED THEN 
-    v-toolbar:CHECKED = TRUE. 
-  setObjectStates().
+    v-toolbar:CHECKED = TRUE.
+  ASSIGN v-toolbar
+         v-menu.
+  setObjectStates(TRUE).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -832,7 +959,10 @@ ON VALUE-CHANGED OF v-Toolbar IN FRAME SP-attr-dialog /* Use toolbar */
 DO:
   IF NOT SELF:CHECKED THEN 
     v-menu:CHECKED = TRUE.
-  setObjectStates().  
+  
+  ASSIGN v-toolbar
+         v-menu.
+  setObjectStates(true).  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -844,8 +974,10 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL v-type SP-attr-dialog
 ON VALUE-CHANGED OF v-type IN FRAME frMain
 DO:
-  ASSIGN v-type.
-  setTableioState(SELF:SCREEN-VALUE).
+  ASSIGN 
+    v-type.  
+  setTableioState(SELF:SCREEN-VALUE,YES).
+  resetTableioUndoNew().
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -896,10 +1028,10 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
         WHEN "DeactivateTargetOnHide":U THEN
            lDeactivateTargetOnHide = can-do('yes,true':U,attr-value).
         WHEN "TableioType":U THEN
-        DO:
-          v-type              = attr-value.
-          v-type:SCREEN-VALUE = attr-value.
-        END.
+          ASSIGN
+            v-type              = attr-value
+            v-type:SCREEN-VALUE = attr-value.
+        
         /*
         WHEN "AddFunction":U THEN
            v-add = attr-value.
@@ -907,7 +1039,7 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
         WHEN "Menu":U THEN
           v-Menu =  IF attr-value = 'Yes' THEN yes ELSE no.
         WHEN "ToolBar":U THEN
-          v-Toolbar =  IF attr-value = 'Yes' THEN yes ELSE no.        
+          v-Toolbar =  IF attr-value = 'Yes' THEN yes ELSE NO.        
         WHEN "ToolbarAutosize":U THEN
            lAutoSize = IF attr-value = 'Yes' THEN yes ELSE no.
         WHEN "actionGroups" THEN 
@@ -1000,7 +1132,10 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
   IF NOT glUseRepository THEN 
     ASSIGN cToolbar    = {fn getObjectName p_hSMO}    
            gcImagepath = {fn getImagePath p_hSMO}.
-
+ 
+  
+ 
+  initTheme().
   IF glUseRepository AND gcEditSingleInstance <> "YES" THEN
   DO:
     cToolbar:DELIMITER = CHR(1).
@@ -1012,8 +1147,11 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     cToolbar:LIST-ITEMS = cToolbar.
     cToolbar:SENSITIVE = FALSE.
   END.
-  ASSIGN cToolbar:SCREEN-VALUE = cToolbar
-         gcInitToolbar         = cToolbar.
+  ASSIGN 
+    cToolbar:SCREEN-VALUE = cToolbar
+    gcInitToolbar         = cToolbar.
+  
+  RUN ENABLEui.
 
   IF glUseRepository AND cToolbar <> '':U THEN
     initToolbar(cToolbar). 
@@ -1034,8 +1172,8 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
       fiMenuBandLabel. 
     fiToolbarBandLabel:HIDDEN = FALSE.
     fiMenuBandLabel:HIDDEN = FALSE.
-    createFrameborder(FRAME frToolbarBands:HANDLE).
-    createFrameborder(FRAME frMenuBands:HANDLE).
+    ghFrameTB = createFrameborder(FRAME frToolbarBands:HANDLE).
+    ghFrameMB = createFrameborder(FRAME frMenuBands:HANDLE).
   END.
   ELSE DO:
     HIDE FRAME frToolbarBands.
@@ -1056,21 +1194,28 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     FRAME {&frame-name}:COL    = FRAME {&frame-name}:COL.
     FRAME {&frame-name}:HEIGHT = FRAME {&frame-name}:HEIGHT - dDiff. 
   END.
-  createFrameborder(FRAME frMain:HANDLE).
-  createFrameborder(FRAME frActions:HANDLE).
+  ghFrameC = createFrameborder(FRAME frMain:HANDLE).
+  ghFrameA = createFrameborder(FRAME frActions:HANDLE).
   
-  RUN ENABLEui.
-  
+ 
     /* Set the cursor */
   RUN adecomm/_setcurs.p ("":U).
   
-  setObjectStates(). 
   APPLY "ENTRY" TO lDeactivateTargetonhide IN FRAME  {&FRAME-NAME}.
   
   WAIT-FOR GO OF FRAME {&FRAME-NAME}.
    
 END.
 deleteActions().
+IF VALID-HANDLE(ghFrameTB) THEN
+   DELETE OBJECT ghFrameTB.
+IF VALID-HANDLE(ghFrameMB) THEN
+   DELETE OBJECT ghFrameMB.
+IF VALID-HANDLE(ghFrameC) THEN
+   DELETE OBJECT ghFrameC.
+IF VALID-HANDLE(ghFrameA) THEN
+   DELETE OBJECT ghFrameA.
+  
 RUN disable_UI.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1109,20 +1254,33 @@ PROCEDURE enableActionWidgets :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER pcCategory AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER plSelected AS LOGICAL    NO-UNDO.
-  
-  DO WITH FRAME frmain :
-    CASE pcCategory:
-      WHEN "Navigation" THEN  c_SDOList:SENSITIVE = plSelected.
-      WHEN "TABLEIO"    THEN  v-type:SENSITIVE    = plSelected.
-    END CASE.
-  END.
-  
+ 
   FOR EACH tchildaction
      WHERE tChildAction.Category = pcCategory:
 
     IF VALID-HANDLE(tchildAction.DisableHdl) THEN tchildAction.DisableHdl:SENSITIVE = plSelected.
     IF VALID-HANDLE(tchildAction.HideHdl)    THEN tchildAction.HideHdl:SENSITIVE    = plSelected.
+
   END.
+
+  DO WITH FRAME frmain :
+    CASE pcCategory:
+      WHEN "Navigation" THEN  
+        c_SDOList:SENSITIVE = plSelected.
+      WHEN "TABLEIO"    THEN  
+      DO:
+        enableTableioWidgets(plSelected).
+    
+        IF plSelected THEN
+        DO:
+          setTableioState(v-type,NO).
+          setTableioUndo(lUndo,NO).
+          setTableioUndoNew(lUndoNew,NO).
+        END.
+      END.
+    END CASE.
+  END.
+  
 
 END PROCEDURE.
 
@@ -1259,6 +1417,8 @@ PROCEDURE hideActionWidgets :
   DO WITH FRAME frMain:
     ASSIGN
         v-type:HIDDEN = TRUE
+        lUndo:HIDDEN = TRUE
+        lUndoNew:HIDDEN = TRUE
         c_SDOlist:HIDDEN = TRUE
         c_SDOLabel:HIDDEN = TRUE.
   END.
@@ -1564,8 +1724,7 @@ PROCEDURE supportLinks :
           ASSIGN
             cSupplinks = cSuppLinks 
                          + (IF cSuppLinks = "":U THEN "":U ELSE ",":U)
-                         +  CAPS(SUBSTR(tAction.Link,1,1))
-                         + LC(SUBSTR(tAction.Link,2))
+                         + niceName(tAction.Link)
                           
              lAnyNew   = IF lAnyNew 
                          THEN lAnyNew 
@@ -1661,34 +1820,44 @@ PROCEDURE visualizeActionWidgets :
   DO WITH FRAME frmain:
     CASE pcAction:
       WHEN "TABLEIO":U THEN
-        ASSIGN v-type:HIDDEN = FALSE
-               v-type:ROW = pdRow
-               V-type:COL = pdCol 
-               hWidg = v-type:HANDLE NO-ERROR. 
+      DO:
+        ASSIGN v-type:HIDDEN   = FALSE
+               lUndo:HIDDEN    = FALSE
+               lUndoNew:HIDDEN = FALSE 
+               V-type:COL      = pdCol 
+               lUndo:COL       = pdCol 
+               lUndoNew:COL    = pdCol 
+               v-type:ROW      = pdRow
+               lUndo:ROW       = pdRow     + v-type:HEIGHT
+               lUndoNew:ROW    = lUndo:ROW + lUndo:HEIGHT
+               pdRow           = lUndoNew:ROW + lUndoNew:HEIGHT        
+               hWidg           = lUndoNew:HANDLE. 
+        v-Type:MOVE-AFTER(phToggle).
+        lUndo:MOVE-AFTER(v-Type:HANDLE).
+        lUndoNew:MOVE-AFTER(lUndo:HANDLE).
+        enableTableioWidgets(phToggle:CHECKED).
+      END.
       WHEN "NAVIGATION":U THEN
       DO:
         IF c_SDOList:NUM-ITEMS > 1 THEN
+        DO:
           ASSIGN 
               /* we do not use side-label-handle because it's not manageable 
                  before it's been viewed and we want to hide everything until
                  last  */
               c_SDOLabel:SCREEN-VALUE = c_SDOLabel
-              c_SDoLabel:COL = pdCol    
-              c_SDOList:COL = pdCol
-              c_sdoLabel:HIDDEN = FALSE
-              c_sdoList:HIDDEN = FALSE
-              c_SDOlabel:ROW = pdRow
-              c_SDOList:ROW = pdRow + c_SDOLabel:HEIGHT
-              hWidg = c_sdolist:HANDLE NO-ERROR.  
+              c_SDoLabel:COL          = pdCol    
+              c_SDOList:COL           = pdCol
+              c_sdoLabel:HIDDEN       = FALSE
+              c_sdoList:HIDDEN        = FALSE
+              c_SDOlabel:ROW          = pdRow
+              c_SDOList:ROW           = pdRow + c_SDOLabel:HEIGHT
+              pdRow                   = c_SDOList:ROW + c_SDOList:HEIGHT.  
+          c_SDOList:MOVE-AFTER(phToggle:HANDLE).
+
+        END.
       END.   /* END DO WHEN Navigation */
     END.
-  END.
-  IF VALID-HANDLE(hWidg) THEN
-  DO:
-    hwidg:MOVE-AFTER(phToggle).
-    ASSIGN
-        pdRow = hWidg:ROW + hWidg:HEIGHT  
-        pdCol = hWidg:COL + hWidg:WIDTH.
   END.
 
   RETURN.
@@ -1759,7 +1928,7 @@ RUN retrieveDesignObject IN hDesignManager ( INPUT  cToolBar:SCREEN-VALUE IN FRA
 IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN 
      RETURN FALSE.                                             
 /* Design time API to retrieve class infor */
- RUN retrieveDesignClass IN hDesignManager
+RUN retrieveDesignClass IN hDesignManager
                            ( INPUT  "SmartToolbar":U,
                              OUTPUT pcInheritsFromClasses,
                              OUTPUT TABLE ttClassAttribute,
@@ -1771,174 +1940,65 @@ IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN
 FIND FIRST ttObject WHERE ttObject.tLogicalObjectName = cToolBar:SCREEN-VALUE AND
                           ttObject.tResultCode        = "{&DEFAULT-RESULT-CODE}" NO-ERROR.
 IF NOT AVAIL ttObject THEN RETURN FALSE.
-
-       
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "DeactivateTargetOnHide":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN
-   lDeactivateTargetOnHide:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "DeactivateTargetOnHide":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     lDeactivateTargetOnHide:CHECKED = LOGICAL(ttClassAttribute.tAttributeValue) NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "Menu":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN
-   v-menu:CHECKED =  LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "Menu":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     v-menu:CHECKED = LOGICAL(ttClassAttribute.tAttributeValue) NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "ToolbarDrawDirection":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   cDrawDirection:SCREEN-VALUE = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ToolbarDrawDirection":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-    cDrawDirection:SCREEN-VALUE = ttClassAttribute.tAttributeValue NO-ERROR.
-
-END.   
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "ToolbarAutoSize":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   lAutoSize:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.   
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ToolbarAutoSize":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     lAutoSize:CHECKED = LOGICAL(ttClassAttribute.tAttributeValue) NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "ShowBorder":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   v-show:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.            
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ShowBorder":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     v-show:CHECKED = LOGICAL(ttClassAttribute.tAttributeValue) NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "TableIOType":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   cDrawDirection:SCREEN-VALUE = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "TableIOType":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     cDrawDirection:SCREEN-VALUE = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "ActionGroups":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   gcActionGroups = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ActionGroups":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     gcActionGroups = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "DisabledActions":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   gcDisabledActions = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "DisabledActions":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     gcDisabledActions = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                        AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                        AND ttObjectAttribute.tAttributeLabel = "HiddenActions":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   gcHiddenActions = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "HiddenActions":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     gcHiddenActions = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                         AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                         AND ttObjectAttribute.tAttributeLabel = "HiddenToolbarBands":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   gcHiddenToolbarBands = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "HiddenToolbarBands":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     gcHiddenToolbarBands = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                         AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                         AND ttObjectAttribute.tAttributeLabel = "HiddenMenuBands":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   gcHiddenMenuBands = ttObjectAttribute.tAttributeValue NO-ERROR.
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "HiddenMenuBands":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     gcHiddenMenuBands = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                         AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                         AND ttObjectAttribute.tAttributeLabel = "MenuMergeOrder":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-   v-type:SCREEN-VALUE IN FRAME frMain  = ttObjectAttribute.tAttributeValue NO-ERROR.    
-ELSE DO:
-   FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "MenuMergeOrder":U NO-ERROR.
-   IF AVAIL ttClassAttribute THEN
-     v-type:SCREEN-VALUE IN FRAME frMain = ttClassAttribute.tAttributeValue NO-ERROR.
-END.
-
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                         AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                         AND ttObjectAttribute.tAttributeLabel = "RemoveMenuOnHide":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-  lRemoveMenuOnHide:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.    
-ELSE DO:
-  FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ToolbarParentMenu":U NO-ERROR.
-  IF AVAIL ttClassAttribute THEN
-    lRemoveMenuOnHide:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.    
-END.
-
-FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = ttObject.tSmartObjectObj
-                         AND ttObjectAttribute.tObjectInstanceObj = ttObject.tObjectInstanceObj
-                         AND ttObjectAttribute.tAttributeLabel = "CreateSubMenuOnConflict":U NO-ERROR.
-IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN         
-  lCreateSubMenuOnConflict:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.    
-ELSE DO:
-  FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = "ToolbarParentMenu":U NO-ERROR.
-  IF AVAIL ttClassAttribute THEN
-    lCreateSubMenuOnConflict:CHECKED = LOGICAL(ttObjectAttribute.tAttributeValue) NO-ERROR.    
-END.
-
+   
+ASSIGN
+  lDeactivateTargetOnHide = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                    ttObject.tObjectInstanceObj,
+                                                    "DeactivateTargetOnHide":U))
+  v-menu                  = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                    ttObject.tObjectInstanceObj,
+                                                    "Menu":U))
+  cDrawDirection          = repositoryValue(ttObject.tSmartObjectObj,
+                                            ttObject.tObjectInstanceObj,
+                                            "ToolbarDrawDirection":U)
+  lAutoSize               = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                    ttObject.tObjectInstanceObj,
+                                                    "ToolbarAutoSize":U))
+  v-show                 = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                   ttObject.tObjectInstanceObj,
+                                                   "ShowBorder":U))
+  v-type                 = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "TableIOType":U)
+  gcActionGroups         = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "ActionGroups":U)
+  gcDisabledActions      = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "DisabledActions":U)
+  gcHiddenActions        = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "HiddenActions":U)
+  gcHiddenToolbarBands   = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "HiddenToolbarBands":U)
+  gcHiddenMenuBands      = repositoryValue(ttObject.tSmartObjectObj,
+                                           ttObject.tObjectInstanceObj,
+                                           "HiddenMenuBands":U)
+ 
+  iMenuMergeOrder        = INT(repositoryValue(ttObject.tSmartObjectObj,
+                                               ttObject.tObjectInstanceObj,
+                                               "MenuMergeOrder":U))
+                                              
+  lRemoveMenuOnHide      = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                   ttObject.tObjectInstanceObj,
+                                                   "RemoveMenuOnHide":U))
+  lCreateSubMenuOnConflict  = LOGICAL(repositoryValue(ttObject.tSmartObjectObj,
+                                                   ttObject.tObjectInstanceObj,
+                                                   "CreateSubMenuOnConflict":U))
+  .
+ 
+ 
+ASSIGN
+  lDeactivateTargetOnHide:SCREEN-VALUE = STRING(lDeactivateTargetOnhide)
+  v-menu:CHECKED                       = v-Menu
+  cDrawDirection:SCREEN-VALUE          = cDrawDirection
+  lAutosize:CHECKED                    = lAutoSize
+  v-show:CHECKED                       = v-Show
+  v-type:SCREEN-VALUE IN FRAME frmain  = v-type
+  iMenuMergeOrder:SCREEN-VALUE        = STRING(iMenuMergeOrder)  
+  lRemoveMenuOnHide:CHECKED            = lRemoveMenuOnHide
+  lCreateSubMenuOnConflict:CHECKED     = lCreateSubMenuOnConflict.
 
 RETURN TRUE.   /* Function return value. */
 
@@ -1960,9 +2020,8 @@ FUNCTION createAction RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hImage AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cImage AS CHARACTER  NO-UNDO.
-  
-  pcAction  = CAPS(SUBSTR(pcAction,1,1)) 
-                     + LC(SUBSTR(pcAction,2)). 
+
+  pcAction  = niceName(pcAction). 
   FIND tChildaction 
        WHERE tChildAction.NAME     = pcAction NO-ERROR.
   
@@ -1977,16 +2036,19 @@ FUNCTION createAction RETURNS LOGICAL
       ASSIGN 
         FRAME      = phframe
         SELECTABLE = TRUE
+        HEIGHT-P   = giImageHeightPxl
+        WIDTH-P    = giImageWidthPxl
         HIDDEN     = TRUE.
-    tChildAction.ImageHdl = hImage. 
-    cImage = {fnarg actionImage pcAction p_hSmO}.
     
+    tChildAction.ImageHdl = hImage. 
+
+    cImage = {fnarg actionImage pcAction p_hSmO}.
     IF NOT glUseRepository THEN
       cImage = gcImagePath 
                + (IF gcImagePath <> '':U THEN '/':U ELSE '':U)
                + cImage.
-
-    tChildAction.ImageHdl:LOAD-IMAGE(cImage) NO-ERROR.
+ 
+    loadImage(tChildAction.ImageHdl,cImage).
     
     CREATE TEXT tChildAction.TxtHdl
       ASSIGN 
@@ -2026,6 +2088,16 @@ FUNCTION createAction RETURNS LOGICAL
          ON VALUE-CHANGED 
            PERSISTENT RUN OnValueChangedChild(tChildAction.NAME).
         END.
+      /* 
+       CREATE RECTANGLE tChildAction.lineHdl
+         ASSIGN 
+           FRAME        = phFRAME
+           WIDTH        = phFrame:width
+           fGCOLOR      = 15
+           HEIGHT-P     = 1
+           HIDDEN       = FALSE                          
+         .
+        */
 
     ASSIGN
       tChildaction.Row            = pdRow
@@ -2040,7 +2112,9 @@ FUNCTION createAction RETURNS LOGICAL
       tChildAction.HideHdl:COL = tChildAction.DisableHdl:COL 
                                + tChildAction.DisableHdl:WIDTH + 1  
       tChildAction.HideHdl:ROW = pdRow
-     /* Running HideViewAction AFTER all actions have been created
+/*      tChildAction.lineHdl:Y = tChildAction.imageHdl:Y 
+                             + tChildAction.imageHdl:HEIGHT-P   */  
+    /* Running HideViewAction AFTER all actions have been created
         makes it seem faster....  ..   
       tChildAction.ImageHdl:HIDDEN = FALSE 
       tChildAction.TxtHdl:HIDDEN = FALSE
@@ -2056,64 +2130,30 @@ END FUNCTION.
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createFrameBorder SP-attr-dialog 
-FUNCTION createFrameBorder RETURNS LOGICAL
+FUNCTION createFrameBorder RETURNS HANDLE
   ( phFrame AS HANDLE) :
 /*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
+  Purpose: Add border to the scrollable frame  
+    Notes: Use of editor ensures that the border matches windows theme 
 ------------------------------------------------------------------------------*/
-     DEFINE VARIABLE hLeft AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hTop AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hBottom AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hRight AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hEditor AS HANDLE     NO-UNDO.
+
+  CREATE EDITOR hEditor 
+    ASSIGN
+      WIDTH-P = phFrame:WIDTH-P + 4
+      HEIGHT-P = phFrame:HEIGHT-P + 4
+      X = phFrame:X
+      Y = phFrame:y 
+     FRAME =FRAME {&FRAME-NAME}:HANDLE
+     HIDDEN =FALSE.
    
-   ASSIGN 
-    
-
-     phframe:Y        = phframe:Y + 2
-     phframe:X        = phframe:X + 2.
-
-   CREATE RECTANGLE hleft
-       ASSIGN   
-       FGCOLOR = 7
-          HEIGHT-P = phFrame:HEIGHT-P + 4
-          WIDTH-P = 2
-          X =  phFrame:X - 2
-       Y  = phFrame:y - 2
-        FRAME =FRAME {&FRAME-NAME}:HANDLE
-        HIDDEN =FALSE.
-
-   CREATE RECTANGLE htOP
-         ASSIGN   
-         FGCOLOR = 7
-            width-P = phFrame:width-P + 4
-            HEIGHT-P = 2
-            X  = phFrame:X - 2
-            Y  = phFrame:y - 2
-          FRAME =FRAME {&FRAME-NAME}:HANDLE
-
-          HIDDEN =FALSE.
-     CREATE RECTANGLE hbOTTOM
-         ASSIGN   
-         FGCOLOR = 15
-            width-P = phFrame:width-P + 3
-            HEIGHT-P = 1
-            X  = phFrame:X - 2
-            Y  = phFrame:y + phFrame:HEIGHT-P + 1
-          FRAME =FRAME {&FRAME-NAME}:HANDLE
-
-          HIDDEN =FALSE.
-     CREATE RECTANGLE hRight
-       ASSIGN   
-       FGCOLOR = 15
-          HEIGHT-P = phFrame:HEIGHT-P + 3
-          X  = phFrame:X + phFrame:width-P + 1
-          Y  = phFrame:y - 2
-          WIDTH-P = 1
-        FRAME =FRAME {&FRAME-NAME}:HANDLE
-
-        HIDDEN =FALSE.
-  RETURN true.   /* Function return value. */
+  hEditor:MOVE-TO-BOTTOM().
+   
+  ASSIGN 
+    phframe:Y        = phframe:Y + 2
+    phframe:X        = phframe:X + 2.
+   
+  RETURN hEditor. 
 
 END FUNCTION.
 
@@ -2150,7 +2190,7 @@ FUNCTION createMenuBands RETURNS LOGICAL
        tBand.hdl:CHECKED = NOT CAN-DO(gcHiddenMenuBands, tBand.NAME)
        pdRow             = pdRow + xdScrollToggleHeight
        cLabel            = REPLACE(DYNAMIC-FUNCTION("bandSubmenuLabel":U IN p_hSMO, pcBand, tBand.name), "&":U, "":U)
-       cLabel            = CAPS(SUBSTR(cLabel, 1, 1)) + LC(SUBSTR(cLabel, 2))
+       cLabel            = niceName(cLabel)
        tBand.hdl:LABEL   = cLabel.
 
     createMenuBands(tBand.NAME, INPUT-OUTPUT pdRow, pdCol + 3).
@@ -2177,7 +2217,7 @@ FUNCTION createText RETURNS HANDLE
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hTxt AS HANDLE     NO-UNDO.
   
-  pcLabel = CAPS(SUBSTR(pcLabel,1,1)) + LC(SUBSTR(pcLabel,2)). 
+  pcLabel = niceName(pcLabel). 
 
   CREATE TEXT hTxt
   ASSIGN 
@@ -2231,7 +2271,7 @@ FUNCTION createToggle RETURNS HANDLE
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hToggle AS HANDLE     NO-UNDO.
   
-  pcLabel = CAPS(SUBSTR(pcLabel,1,1)) + LC(SUBSTR(pcLabel,2)). 
+  pcLabel = niceName(pcLabel). 
 
   CREATE TOGGLE-BOX hToggle
   ASSIGN 
@@ -2283,6 +2323,7 @@ FUNCTION deleteActions RETURNS LOGICAL
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
+ 
   FOR EACH tAction:
     IF VALID-HANDLE(tAction.hdl) THEN 
       DELETE OBJECT tAction.hdl.
@@ -2310,8 +2351,28 @@ FUNCTION deleteActions RETURNS LOGICAL
       DELETE OBJECT tChildAction.Imagehdl.
     DELETE tChildAction.
   END.
-
+  
   RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION enableTableioWidgets SP-attr-dialog 
+FUNCTION enableTableioWidgets RETURNS LOGICAL
+  ( plSelected AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME frmain:
+    ASSIGN 
+      v-type:SENSITIVE    = plSelected
+      lUndo:SENSITIVE     = plSelected
+      lUndoNew:SENSITIVE  = NOT (v-type = 'Update':U) AND lUndo AND plselected.
+  END.
+  RETURN TRUE. 
 
 END FUNCTION.
 
@@ -2332,7 +2393,7 @@ FUNCTION initActions RETURNS LOGICAL
   DEFINE VARIABLE dRow     AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE hDL      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lOk      AS LOGICAL    NO-UNDO.
-  
+ 
   IF gcCurrentCategory <> ? THEN 
   DO:
     FIND tAction WHERE tAction.Name = gcCurrentCategory NO-ERROR.
@@ -2357,6 +2418,7 @@ FUNCTION initActions RETURNS LOGICAL
     cActions = IF glUseRepository 
                THEN {fnarg CategoryActions pcCategory p_hSMO}
                ELSE {fnarg ActionChildren pcCategory p_hSMO}.
+ 
     dRow = 1.
     dCol = 1.
     DO i = 1 TO NUM-ENTRIES(cActions):
@@ -2366,11 +2428,12 @@ FUNCTION initActions RETURNS LOGICAL
                    cAction, 
                    dRow,
                    dCol).
-      dRow = dRow + 1.
+      dRow = dRow + gdActionHeight.
     END.
     viewHideActions(pcCategory, TRUE).
   END.
   gcCurrentCategory = pcCategory.
+  RUN enableActionWidgets(tAction.name,TRUE).
 
   RETURN TRUE.   /* Function return value. */
 
@@ -2383,7 +2446,7 @@ END FUNCTION.
 FUNCTION initContents RETURNS LOGICAL
   (pcContents AS CHAR) :
 /*------------------------------------------------------------------------------
-  Purpose:  
+  Purpose:   
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE dRow AS DECIMAL    NO-UNDO.
@@ -2394,15 +2457,21 @@ FUNCTION initContents RETURNS LOGICAL
   DEFINE VARIABLE i AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cSort           AS CHAR   NO-UNDO INIT 
       "Navigation,Tableio,Transaction,Filter".
-        
-  RUN hideActionWidgets.
 
+  DEFINE VARIABLE cTableioActions  AS CHARACTER  NO-UNDO.
+  DEFINE BUFFER bChildAction FOR tChildaction.
+
+  RUN hideActionWidgets.
+  
   initToolbarBands().
   initMenuBands().
-
+  
   ASSIGN
-    cMenuActions    = DYNAMIC-FUNCTION("getAvailMenuActions" IN p_hSMO)
-    cToolbarActions = DYNAMIC-FUNCTION("getAvailToolbarActions" IN p_hSMO).
+    giImageWidthPxl     = {fn getToolWidthPxl p_hSMO} - 8 
+    giImageHeightPxl    = {fn getToolHeightPxl p_hSMO} - 6 
+    gdActionHeight      = (giImageHeightPxl + 1) / SESSION:PIXELS-PER-ROW
+    cMenuActions    = DYNAMIC-FUNCTION("getAvailMenuActions":U IN p_hSMO)
+    cToolbarActions = DYNAMIC-FUNCTION("getAvailToolbarActions":U IN p_hSMO).
    
   DO i = 1 TO NUM-ENTRIES(cMenuActions):
     CREATE tAction.    
@@ -2435,10 +2504,45 @@ FUNCTION initContents RETURNS LOGICAL
 
   END.       
   
+  /* Set default hidden actions for tableio 
+     (this is for Dynamics change of toolbar case, 
+      initializeObject in toolbar also takes care of this ) */
+  IF CAN-FIND(tAction WHERE tAction.NAME = 'Tableio':U)  THEN
+  DO:
+    /* we also do this call in initAction (feel free to merge)  */       
+    cTableioActions = IF glUseRepository 
+                      THEN {fnarg CategoryActions 'TableIo' p_hSMO}
+                      ELSE {fnarg ActionChildren 'Tableio' p_hSMO}.
+
+    IF LOOKUP('RESET':U,cTableioActions) > 0
+    AND LOOKUP('UndoChange':U,cTableioActions) > 0
+    AND LOOKUP("RESET":U,gcHiddenActions) = 0 
+    AND LOOKUP("UndoChange":U,gcHiddenActions) = 0 THEN
+      addHiddenAction("RESET":U).
+  
+    IF LOOKUP('UPDATE':U,cTableioActions) > 0
+    AND v-type = 'Save'  
+    AND LOOKUP("Update":U,gcHiddenActions) = 0 
+    AND LOOKUP("UndoChange":U,gcHiddenActions) = 0 THEN
+      addHiddenAction("Update":U).
+  END. /* one of the categories (tAction) is Tableio */
+  
+  DO WITH FRAME frMain:
+    ASSIGN
+      lUndo               = LOOKUP("RESET",gcHiddenActions) > 0
+                            AND LOOKUP("UndoChange",gcHiddenActions) = 0
+      lUndo:CHECKED       = lUndo  
+      lUndoNew            = lUndo 
+                            AND LOOKUP("CANCEL",gcHiddenActions) > 0
+                            AND v-type <> 'UPDATE'
+      lUndoNew:CHECKED    = lUndoNew.
+  END.
 
   dRow = 1.
   dCol = xdScrollToggleCol.  
   FOR EACH tAction WITH FRAME frMain : 
+
+
     tAction.link = IF glUseRepository 
                    THEN {fnarg categoryLink tAction.NAME p_hSMO}
                    ELSE {fnarg actionLink tAction.NAME p_hSMO}.
@@ -2474,10 +2578,10 @@ FUNCTION initContents RETURNS LOGICAL
                                tAction.Hdl,
                                INPUT-OUTPUT dRow,
                                INPUT-OUTPUT dcol2).
- 
-    RUN enableActionWidgets(tAction.name,TRUE).
+
   END.
   viewContents().
+  setObjectstates(FALSE).
   RETURN true.   /* Function return value. */
 
 END FUNCTION.
@@ -2595,6 +2699,30 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initTheme SP-attr-dialog 
+FUNCTION initTheme RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hWidget AS HANDLE     NO-UNDO.
+  hWidget = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
+  IF SESSION:WINDOW-SYSTEM = 'MS-WINXP':U THEN
+  DO WHILE VALID-HANDLE(hWidget):
+    IF hWidget:TYPE = "RECTANGLE":U AND hWidget:EDGE-PIXELS = 2 THEN
+      ASSIGN 
+        hWidget:GROUP-BOX = TRUE
+        hWidget:EDGE-PIXELS = 1.
+    hWidget = hWidget:NEXT-SIBLING.
+  END.
+  RETURN FALSE.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initToolbar SP-attr-dialog 
 FUNCTION initToolbar RETURNS LOGICAL
     ( pcToolbar AS CHAR) :
@@ -2603,11 +2731,9 @@ FUNCTION initToolbar RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   {set LogicalObjectName pcToolbar p_hSMO}.
-  
   RUN loadToolbar IN p_hSMO. 
   deleteActions().
   initContents(gcActionGroups).
-  setObjectstates().
   RETURN TRUE.
 END FUNCTION.
 
@@ -2644,6 +2770,72 @@ FUNCTION initToolbarBands RETURNS CHARACTER
   END.
 
   RETURN "".   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION loadImage SP-attr-dialog 
+FUNCTION loadImage RETURNS LOGICAL
+    ( phObject AS HANDLE, 
+      pcImage  AS CHAR) :
+  /*------------------------------------------------------------------------------
+    Purpose:  
+      Notes:  
+  ------------------------------------------------------------------------------*/
+ DEFINE VARIABLE cImage        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE iImageOffsetX AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iImageOffsetY AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iImageWidth   AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE iImageHeight  AS INTEGER    NO-UNDO.
+ DEFINE VARIABLE lImageLoad    AS LOGICAL    NO-UNDO.
+
+ /* If offsets are specified in the image load with specified offsets */
+ IF NUM-ENTRIES(pcImage) > 1 THEN
+ DO:
+    ASSIGN cImage        = ENTRY(1,pcImage)
+           iImageOffsetX = INT(ENTRY(2,pcImage))
+           iImageOffsetY = INT(ENTRY(3,pcImage)).
+
+   /* Corrupt bmp (or bug in load?) makes this fail for for certain 
+      offsets (0,0 16,0 32,0 fails 48,0 works..) when size is specified 
+       
+           iImageWidth   = INT(ENTRY(4,pcImage))
+           iImageHeight  = INT(ENTRY(5,pcImage))   
+    IF iImageWidth  = 0 THEN iImageWidth  = 16.
+    IF iImageHeight = 0 THEN iImageHeight = 16.
+    */
+    lImageLoad = phObject:LOAD-IMAGE( cImage,
+                                      iImageOffsetX,
+                                      iImageOffsetY
+                                      /*
+                                      iImageWidth,
+                                      iImageHeight */).
+ END.
+ ELSE
+    lImageLoad = phObject:LOAD-IMAGE(pcImage)  NO-ERROR.
+ 
+ RETURN lImageLoad.                                                      
+
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION niceName SP-attr-dialog 
+FUNCTION niceName RETURNS CHARACTER
+  ( pcName AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Convert upper case to lower case with upper first character. 
+    Notes:  
+------------------------------------------------------------------------------*/
+ IF COMPARE (CAPS(pcName), '=', pcName,"CASE-SENSITIVE") THEN
+   RETURN CAPS(SUBSTR(pcName,1,1))
+        + LC(SUBSTR(pcName,2)).
+
+  RETURN pcName.
 
 END FUNCTION.
 
@@ -2688,6 +2880,56 @@ FUNCTION removeHiddenAction RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   gcHiddenActions  = removeEntry(pcAction,gcHiddenActions).
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION repositoryValue SP-attr-dialog 
+FUNCTION repositoryValue RETURNS CHARACTER
+  ( pdSmartObj AS DECIMAL,
+    pdInstObj AS DECIMAL,
+    pcProperty AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+   
+FIND ttObjectAttribute WHERE ttObjectAttribute.tSmartObjectObj = pdSmartObj
+                       AND ttObjectAttribute.tObjectInstanceObj = pdInstObj
+                       AND ttObjectAttribute.tAttributeLabel = pcProperty NO-ERROR.
+IF AVAIL ttObjectAttribute AND  ttObjectAttribute.tAttributeValue <> ? THEN
+  RETURN ttObjectAttribute.tAttributeValue.
+ELSE DO:
+  FIND ttClassAttribute WHERE ttClassAttribute.tAttributeLabel = pcProperty NO-ERROR.
+  IF AVAIL ttClassAttribute THEN
+    RETURN ttClassAttribute.tAttributeValue.
+END.
+
+RETURN ''.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION resetTableioUndoNew SP-attr-dialog 
+FUNCTION resetTableioUndoNew RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME frMain:
+    lUndoNew:SENSITIVE  = NOT (v-type = 'Update':U) AND lUndo.
+    IF NOT lUndoNew:SENSITIVE AND lUndoNew = TRUE THEN
+    DO:
+      lUndoNew = FALSE.
+      setTableioUndoNew(lUndoNew,YES).
+      lUndoNew:CHECKED = lUndoNew.
+    END.
+  END.
 
 END FUNCTION.
 
@@ -2745,9 +2987,52 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setActionActiveState SP-attr-dialog 
+FUNCTION setActionActiveState RETURNS LOGICAL
+  ( pcAction AS CHAR,
+    plActive AS LOG,
+    plChangeValues AS LOG ) :
+/*------------------------------------------------------------------------------
+  Purpose: Control action hidden from other widgets 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE BUFFER btChildAction FOR tchildAction.
+
+  FIND FIRST btChildAction WHERE btChildAction.NAME = pcAction NO-ERROR.
+  
+  IF AVAIL btChildaction THEN
+  DO:
+
+    ASSIGN 
+      btChildAction.HideHdl:SENSITIVE     = plActive
+      btChildAction.DisableHdl:SENSITIVE  = plActive.
+    
+    IF plChangeValues THEN
+      ASSIGN
+        btChildAction.DisableHdl:CHECKED = FALSE
+        btChildAction.HideHdl:CHECKED    = NOT plActive.
+  END.  
+  
+  IF plChangeValues THEN
+  DO:
+    IF NOT plActive THEN
+      addHiddenAction(pcAction).
+    ELSE
+      removeHiddenAction(pcAction).
+    
+    removeDisabledAction(pcAction).
+  END.
+
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setObjectStates SP-attr-dialog 
 FUNCTION setObjectStates RETURNS LOGICAL
-  (  ) :
+  ( plChange AS LOGICAL ) :
 /*-----------------------------------------------------------------------------
   Purpose: Set sensitivity of dynamic toggle-boxes according to 
            whether menu and toolbar is checked  
@@ -2759,27 +3044,34 @@ FUNCTION setObjectStates RETURNS LOGICAL
            tAction.Hdl:SENSITIVE = tAction.Tool AND v-toolbar:CHECKED
                                    OR
                                    tAction.Menu AND v-Menu:CHECKED.
-
-       RUN enableActionWidgets(tAction.NAME,
-                               tAction.Hdl:SENSITIVE AND tAction.hdl:CHECKED).
+       IF plChange THEN 
+         RUN enableActionWidgets(tAction.NAME,
+                                 tAction.Hdl:SENSITIVE AND tAction.hdl:CHECKED).
     END. /* for each tAction */   
     FOR EACH tBand: 
        tBand.Hdl:SENSITIVE = tBand.Tool AND v-toolbar:CHECKED
                              OR
                              tBand.Menu AND v-Menu:CHECKED.
     END. /* for each tAction */   
+ 
+    ASSIGN v-show:SENSITIVE = v-toolbar
+           cDrawDirection:SENSITIVE = v-toolbar
+           lAutosize:SENSITIVE = v-toolbar
+           lCreateSubMenuOnConflict:SENSITIVE = v-menu 
+                                                AND 
+                                                gluseRepository
 
-    
-    ASSIGN v-show:SENSITIVE = v-toolbar:CHECKED
-           cDrawDirection:SENSITIVE = v-toolbar:CHECKED
-           lAutosize:SENSITIVE = v-toolbar:CHECKED
-           iMenuMergeOrder:SENSITIVE = v-menu:CHECKED
-           iMenuMergeOrder:SENSITIVE = v-menu:CHECKED
+           lRemoveMenuOnHide:SENSITIVE = v-menu 
+                                         AND 
+                                         gluseRepository
+           lOverrideMerge:SENSITIVE = v-menu
+                                      AND glUseRepository
+           iMenuMergeOrder:SENSITIVE = v-menu
                                        AND
                                        lOverrideMerge:CHECKED
-           lCreateSubMenuOnConflict:SENSITIVE = v-menu:CHECKED 
-           lRemoveMenuOnHide:SENSITIVE = v-menu:CHECKED
-           lOverrideMerge:SENSITIVE = v-menu:CHECKED .
+                                       AND 
+                                       gluseRepository
+      .
    
   END. 
 
@@ -2792,27 +3084,48 @@ END FUNCTION.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTableioState SP-attr-dialog 
 FUNCTION setTableioState RETURNS LOGICAL
-  ( pcState AS CHAR ) :
+  ( pcState AS CHAR,
+    plChange AS LOG ) :
 /*------------------------------------------------------------------------------
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE BUFFER btChildAction FOR tchildAction.
+  setActionActiveState('UPDATE':U,pcState = 'UPDATE':U,plChange).
+  RETURN TRUE.    
 
-  FIND FIRST btChildAction WHERE btChildAction.NAME = 'Update':U NO-ERROR.
-  
-  IF AVAIL btChildaction THEN
-  DO:
-    ASSIGN btChildAction.HideHdl:CHECKED   = pcState <> 'Update'
-           btChildAction.hideHdl:SENSITIVE = pcState = 'Update'. 
-  END.
+END FUNCTION.
 
-  IF pcState <> 'Update' THEN
-     addHiddenAction('Update':U).
-  ELSE
-     removeHiddenAction('Update':U).
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTableioUndo SP-attr-dialog 
+FUNCTION setTableioUndo RETURNS LOGICAL
+  ( plUndo AS LOGICAL,
+    plState AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ 
+  setActionActiveState('RESET':U,NOT plUndo,plState).
   
-  RETURN TRUE.   /* Function return value. */
+  setActionActiveState('UndoChange':U,plUndo,plState).
+  RETURN TRUE.    
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setTableioUndoNew SP-attr-dialog 
+FUNCTION setTableioUndoNew RETURNS LOGICAL
+  ( plUndoNew AS LOGICAL,plState AS logical ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  setActionActiveState('Cancel':U,NOT plUndoNew,plState).
+  RETURN TRUE.  
 
 END FUNCTION.
 
@@ -2910,10 +3223,7 @@ FUNCTION viewHideActions RETURNS LOGICAL
 
      lAny = TRUE.
   END.
-
-  IF pcCategory = 'TABLEIO':U AND plView THEN
-    setTableioState(v-type).
-
+   
   RETURN lAny.   /* Function return value. */
 
 END FUNCTION.

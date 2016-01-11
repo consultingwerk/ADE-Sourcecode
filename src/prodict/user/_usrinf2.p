@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -28,6 +12,7 @@
   Increased number of extents for propath so all .pl's will show 20010411-002
   
   D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS and remved PROGRESS
+  fernando  06/06/06 Large sequence and large index support.
 */
 
 { prodict/dictvar.i }
@@ -55,7 +40,12 @@ DEFINE VARIABLE sname     AS CHARACTER   	NO-UNDO.
 DEFINE VARIABLE sstream   AS CHARACTER   	NO-UNDO.
 DEFINE VARIABLE tmpfile   AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE uid       AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE yy	  AS INTEGER            NO-UNDO.
+DEFINE VARIABLE yy        AS INTEGER        NO-UNDO.
+DEFINE VARIABLE idx       AS INTEGER        NO-UNDO.
+DEFINE VARIABLE Large_Sequence AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Large_Keys     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE l_seq          AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE l_keys         AS LOGICAL   NO-UNDO.
 
 DEFINE SHARED STREAM rpt.
 
@@ -68,12 +58,28 @@ FORM
    dtype    FORMAT "x(50)"  LABEL "Database type"       COLON 19 SKIP
    dvers    FORMAT "x(50)"  LABEL "Database version"    COLON 19 SKIP
    drest    FORMAT "x(50)"  LABEL "Restrictions"        COLON 19 SKIP
-   uid      FORMAT "x(50)"  LABEL "Database User Id"    COLON 19 SKIP
+   uid      FORMAT "x(50)"  LABEL "Database user id"    COLON 19 SKIP
    codepage FORMAT "x(50)"  LABEL "Database code page"  COLON 19 SKIP
    collname FORMAT "x(50)"  LABEL "Database collation"  COLON 19 SKIP
    WITH FRAME dbs SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
    TITLE " Currently Selected Database ".
 
+FORM
+   num      FORMAT ">>9"    LABEL "Connected DBs"       COLON 19 SKIP
+   conn     FORMAT "yes/no" LABEL "Connected"           COLON 19 SKIP
+   pname    FORMAT "x(50)"  LABEL "Physical name"       COLON 19 SKIP
+   lname    FORMAT "x(50)"  LABEL "Logical name"        COLON 19 SKIP
+   sname    FORMAT "x(50)"  LABEL "Schema holder"       COLON 19 SKIP
+   dtype    FORMAT "x(50)"  LABEL "Database type"       COLON 19 SKIP
+   dvers    FORMAT "x(50)"  LABEL "Database version"    COLON 19 SKIP
+   drest    FORMAT "x(50)"  LABEL "Restrictions"        COLON 19 SKIP
+   uid      FORMAT "x(50)"  LABEL "Database user id"    COLON 19 SKIP
+   codepage FORMAT "x(50)"  LABEL "Database code page"  COLON 19 SKIP
+   collname FORMAT "x(50)"  LABEL "Database collation"  COLON 19 SKIP
+   Large_Sequence FORMAT "x(20)"  LABEL "64-bit Sequences" COLON 19 SKIP
+   Large_Keys     FORMAT "x(20)"  LABEL "Large key entries"  COLON 19 SKIP
+   WITH FRAME dbs-2 SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
+   TITLE " Currently Selected Database ".
 
 ASSIGN
   fpoint   = SUBSTRING(STRING(1,"9."),2,1)
@@ -87,9 +93,19 @@ ASSIGN
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
+IF user_dbname = ? OR user_dbname = "" THEN DO:
+  /* if only db is non-V10, show info on the first one. */
 
-IF user_dbname = ? OR user_dbname = "" THEN 
-  /* if only db is non-V7, show info on the first one. */
+  /* 20060209-012
+     Make sure we omit the password, after the '/' character, in case
+     this is an ORACLE schema.
+  */
+  ASSIGN uid = USERID(LDBNAME(1))
+         idx = INDEX(uid,"/").
+
+  IF idx > 0 THEN
+     uid = SUBSTRING(uid,1,idx - 1).
+
   DISPLAY STREAM rpt
     NUM-DBS      @ num
     IF NUM-DBS > 0 THEN yes ELSE no @ conn
@@ -99,16 +115,35 @@ IF user_dbname = ? OR user_dbname = "" THEN
     DBTYPE(1)	 @ dtype
     DBVERSION(1) @ dvers
     DBREST(1)    @ drest
-    USERID(LDBNAME(1)) @ uid  
+    uid  
     ?            @ codepage
     ?            @ collname
     WITH FRAME dbs.
+  END.
   ELSE DO:
     RUN prodict/user/_usrinf3.p 
       (INPUT  user_dbname,
        INPUT  user_dbtype,
        OUTPUT codepage, 
-       OUTPUT collname).
+       OUTPUT collname,
+       OUTPUT l_seq,
+       OUTPUT l_keys).
+
+    /* 20060209-012
+       Make sure we omit the password, after the '/' character, in case
+       this is an ORACLE schema.
+    */
+    ASSIGN uid = USERID(user_dbname)
+           idx = INDEX(uid,"/").
+
+    IF idx > 0 THEN
+       uid = SUBSTRING(uid,1,idx - 1).
+
+    /* if this is not a Progress db, or it's running with a pre-10.1B release,
+       where large sequence and large keys support is not available, don't bother 
+       displaying information.
+    */
+    IF user_dbtype NE "PROGRESS" OR (l_seq = ? AND l_keys = ?) THEN
     DISPLAY STREAM rpt
       NUM-DBS    	     @ num
       yes		     @ conn
@@ -118,10 +153,30 @@ IF user_dbname = ? OR user_dbname = "" THEN
       DBTYPE(user_dbname)    @ dtype
       DBVERSION(user_dbname) @ dvers
       DBREST(user_dbname)    @ drest
-      USERID(user_dbname)    @ uid
+      uid
       codepage
       collname
       WITH FRAME dbs.
+    ELSE
+      DISPLAY STREAM rpt
+            NUM-DBS    	     @ num
+            yes		     @ conn
+            PDBNAME(user_dbname)   @ pname
+            LDBNAME(user_dbname)   @ lname
+            SDBNAME(user_dbname)   @ sname
+            DBTYPE(user_dbname)    @ dtype
+            DBVERSION(user_dbname) @ dvers
+            DBREST(user_dbname)    @ drest
+            uid
+            codepage
+            collname
+            (IF l_seq = ? THEN "n/a" ELSE 
+                    IF l_seq THEN "enabled" 
+                        ELSE "not enabled") @ Large_Sequence
+            (IF l_keys = ? THEN "n/a" ELSE 
+                    IF l_keys THEN "enabled" 
+                        ELSE "not enabled") @ Large_Keys
+            WITH FRAME dbs-2.
     END.
         
 
@@ -130,7 +185,7 @@ DISPLAY STREAM rpt
   PROVERSION  FORMAT "x(55)" LABEL "PRO version"      COLON 18 SKIP
   DATASERVERS FORMAT "x(55)" LABEL "DataServers"      COLON 18 SKIP
   WITH FRAME ops SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
-  TITLE " PROGRESS and Operating System ".
+  TITLE " OpenEdge and Operating System ".
 
 DISPLAY STREAM rpt
   yy       FORMAT ">>>9"  LABEL "-yy century setting"     COLON 22

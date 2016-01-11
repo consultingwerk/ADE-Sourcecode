@@ -4,12 +4,20 @@
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 
+
 /* Temp-Table and Buffer definitions                                    */
 DEFINE TEMP-TABLE RowObject NO-UNDO
        {"adeuib/_calcseld.i"}.
 
 
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+/***********************************************************************
+* Copyright (C) 2004,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: _newcalcv.w
 
@@ -81,7 +89,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 /* Include file with RowObject temp-table definition */
 &Scoped-define DATA-FIELD-DEFS "adeuib/_calcseld.i"
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
@@ -231,7 +239,7 @@ END.
 /* SETTINGS FOR WINDOW vTableWin
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
@@ -306,7 +314,7 @@ DEFINE VARIABLE hRepDesignManager AS HANDLE     NO-UNDO.
 
   ASSIGN
     cClass:LIST-ITEMS IN FRAME {&FRAME-NAME} = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT 'CalculatedField':U)
-    cDataType:LIST-ITEMS IN FRAME {&FRAME-NAME} = 'Character,Decimal,Integer,Date,DateTime,DateTime-TZ,Logical,BLOB,CLOB,Raw':U
+    cDataType:LIST-ITEMS IN FRAME {&FRAME-NAME} = 'Character,Decimal,Integer,INT64,Date,DateTime,DateTime-TZ,Logical,BLOB,CLOB,Raw':U
     cClass:SCREEN-VALUE = 'CalculatedField':U.
   
   EMPTY TEMP-TABLE ttComboData.

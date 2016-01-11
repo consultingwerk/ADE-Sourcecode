@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -33,14 +33,18 @@ Date Created: June 8, 2005
 
 History: 
     kmcintos Aug 2, 2005  Changed permission check 20050721-007.
+    kmcintos Jan 4, 2006  Changed permission list to audit reader and audit 
+                          admin 20051108-060.
 ----------------------------------------------------------------------------*/
+
+&GLOBAL-DEFINE NOTTCACHE 1
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
 { prodict/sec/sec-func.i }
 
 DEFINE VARIABLE cRoles  AS CHARACTER   NO-UNDO
-            INITIAL "_sys.audit.reader,_sys.audit.archive,_sys.audit.admin".
+            INITIAL "_sys.audit.read,_sys.audit.admin".
 
 DEFINE VARIABLE iRole   AS INTEGER     NO-UNDO.
 

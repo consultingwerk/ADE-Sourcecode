@@ -1,25 +1,10 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/                          
+*********************************************************************/
+                          
 /*history
    D. McMann   04/11/01 Added warning for SQL Table Updates ISSUE 310
    D. McMann   02/24/03 Added LOB Support
@@ -33,6 +18,11 @@
    K. McIntosh 09/17/04 Increased number of elements of the error_text array to 60 
 			      and moved Max Sequences message to 51. 20030619-003
    K. McIntosh 09/17/04 Backed out fix for bug number 20040910-010
+   fernando    03/16/06 Handle case where error message was not displayed becasue
+                        the block was not retried - 20060316-011
+   fernando    05/25/06 Added support for large sequences
+   fernando    08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)
+   moloney     09/22/06 Set initial value for TIME & TIMESTAMP columns mapped to CHARCTER and load w/out an initial value
 */
 
 { prodict/dump/loaddefs.i NEW }
@@ -86,16 +76,19 @@ ASSIGN
   error_text[31] = "AREA NAME either not found in database or not type d (data).":t72
   error_text[32] = "CODEPAGE-NAME in the .df file is different from the db's current":t72
   error_text[33] = "codepage. To change the latter use the AdminTool for DataServers":t72
-  error_text[34] = "or PROUTIL for PROGRESS. This .df file can't be loaded.":t72
+  error_text[34] = "or PROUTIL for {&PRO_DISPLAY_NAME}. This .df file can't be loaded.":t72
   error_text[40] = "Errors occurred loading collation rules. Verify that definition":t72
   error_text[41] = "file is not corrupted.":t72
   error_text[43] = "Field-position and file-size don't match. File-size is too small.":t72
   error_text[44] = "Please use Dictionary to set the codepage for this database.":t72
-  error_text[45] = "Progress keywords can not be object names.":t72
+  error_text[45] = "{&PRO_DISPLAY_NAME} keywords can not be object names.":t72
   error_text[46] = "CLOB data type must have CODEPAGE and COLLATION DEFINEd.":t72
   error_text[47] = "Unknown data type in field definition. ":t72
   error_text[50] = "" /* DO NOT USE.  If ierror is 50, then it's a warning */
   error_text[51] = "Maximum number of sequences has been reached.":t72
+  error_text[52] = "Invalid Initial value":t25
+  error_text[53] = "Value is too large":t25
+  error_text[54] = "Invalid character in the Dump Name":35
 .
 
 &SCOPED-DEFINE WARN_MSG_SQLW 48
@@ -158,7 +151,8 @@ DEFINE VARIABLE rules         AS LONGCHAR            NO-UNDO.
 
 DEFINE variable minimum-index AS INTEGER initial 0.
 DEFINE variable new-number    AS INTEGER initial 0.
- 
+DEFINE VARIABLE hBuffer       AS HANDLE              NO-UNDO.
+
 /* messages for frames working2 and backout. */
 DEFINE VARIABLE msg1          AS CHARACTER           NO-UNDO FORMAT "x(53)":u.
 DEFINE VARIABLE msg2          AS CHARACTER           NO-UNDO FORMAT "x(56)":u.
@@ -724,14 +718,18 @@ END PROCEDURE.
 PROCEDURE Load_Tran_Collate_Tbl:
 
   DEFINE INPUT PARAMETER p_Dbfield AS CHAR NO-UNDO.
+  DEFINE INPUT PARAMETER p_index   AS INTEGER NO-UNDO.
 
   DEFINE VARIABLE changed AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE hParam  AS HANDLE NO-UNDO.
 
    IMPORT ilin.
    ipos = ipos + 1.
 
-   RUN prodict/dump/_lod_raw.i (INPUT ct_version, OUTPUT changed)
-                                              p_Dbfield 256 RECID(wdbs).
+   ASSIGN hParam = BUFFER wdbs:HANDLE
+          hParam = hParam:BUFFER-FIELD(p_dbfield).
+
+   RUN prodict/dump/_lod_raw.i (INPUT ct_version, INPUT hParam, INPUT p_index, OUTPUT changed) 256.
    ct_changed = ct_changed OR changed.
 
    ilin[1] = ?.  /* so we do a new import the next time around */
@@ -789,6 +787,23 @@ IF gate_dbtype <> "PROGRESS" THEN DO:
 
 ASSIGN dbload-e = LDBNAME("DICTDB") + ".e".
 
+/* check if this is a 10.1B db at least, so that we complain about int64 and
+   int64 values. If the 'Large Keys' feature is not known by this db, then this
+   is a pre-101.B db 
+*/
+is-pre-101b-db = YES.
+
+IF INTEGER(DBVERSION("DICTDB")) >= 10 THEN DO:
+    /* use a dyn buffer since v9 db's don't have the feature tbl */
+    CREATE BUFFER hBuffer FOR TABLE "DICTDB._Code-feature" NO-ERROR.
+    IF VALID-HANDLE(hBuffer) THEN DO:
+       hBuffer:FIND-FIRST('where _Codefeature_Name = "Large Keys"',NO-LOCK) NO-ERROR.
+       IF hBuffer:AVAILABLE THEN
+           is-pre-101b-db = NO.
+       DELETE OBJECT hBuffer.
+    END.
+END.
+
 /***** Don't need this right now...
 {prodict/dump/lodtrail.i
   &entries = " "
@@ -840,6 +855,17 @@ IF cerror = ?
     /* when IMPORT hits the end, it generates ENDKEY.  This is how loop ends */
     load_loop:
     REPEAT ON ERROR UNDO,RETRY ON ENDKEY UNDO, LEAVE:
+      
+      /* 20060316-011  - we will not get back here for a retry, if the line we
+         are processing is the left over of the previous line (see below where
+         we move the tokens bcased on inum), in which case the client will not
+         retry because there was no live io operation in that iteration of the
+         block (such as the import statement, which we don't run when moving
+         tokens that were left around). By explicitly adding the RETRY function
+         here, we are guarantee to always retry when the code calls
+         UNDO, RETRY.
+      */
+      IF RETRY THEN .
 
       IF ierror > 0 AND NOT inoerror THEN DO:
         RUN Put_Header (INPUT dbload-e, INPUT-OUTPUT hdr).
@@ -873,7 +899,7 @@ IF cerror = ?
           ilin[7] = (IF inum + 7 > 9 THEN ? ELSE ilin[inum + 7])
           ilin[8] = (IF inum + 8 > 9 THEN ? ELSE ilin[inum + 8])
           ilin[9] = ?.
-  
+
       /* If there's nothing of significant at the top of the array,
          read in the next line.  One token will go into each array element. 
       */
@@ -1368,17 +1394,17 @@ IF cerror = ?
            OR WHEN "CODEPAGE-NAME"            THEN wdbs._Db-xl-name = iarg.
           WHEN "COLLATION-NAME"               THEN wdbs._Db-coll-name = iarg.
           WHEN "INTERNAL-EXTERNAL-TRAN-TABLE" THEN 
-                                           RUN Load_Tran_Collate_Tbl ("_Db-xlate[1]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-xlate", 1).
           WHEN "EXTERNAL-INTERNAL-TRAN-TABLE" THEN 
-                                           RUN Load_Tran_Collate_Tbl ("_Db-xlate[2]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-xlate",2).
           WHEN "CASE-INSENSITIVE-SORT"        THEN
-                                           RUN Load_Tran_Collate_Tbl ("_Db-collate[1]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-collate",1).
           WHEN "CASE-SENSITIVE-SORT"          THEN
-                                           RUN Load_Tran_Collate_Tbl ("_Db-collate[2]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-collate",2).
           WHEN "UPPERCASE-MAP"                THEN 
-                                           RUN Load_Tran_Collate_Tbl ("_Db-collate[3]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-collate",3).
           WHEN "LOWERCASE-MAP"                THEN 
-                                           RUN Load_Tran_Collate_Tbl ("_Db-collate[4]").
+                                           RUN Load_Tran_Collate_Tbl ("_Db-collate",4).
           WHEN "ICU-RULES"                THEN
             IF SUBSTRING(ct_version,1,2) <> "5." THEN
               ASSIGN ierror = 4.
@@ -1414,11 +1440,58 @@ IF cerror = ?
   
         CASE ikwd:
           WHEN "SEQUENCE"       THEN wseq._Seq-Name = iarg.
-          WHEN "INITIAL"        THEN wseq._Seq-Init = INTEGER(iarg).
-          WHEN "INCREMENT"      THEN wseq._Seq-Incr = INTEGER(iarg).
+          WHEN "INITIAL"        THEN do:
+              /* this is just to catch an integer overflow */
+              IF is-pre-101b-db THEN
+                 ASSIGN wseq._Seq-Init = INT(IARG) NO-ERROR.
+              ELSE
+                 ASSIGN wseq._Seq-Init = INT64(IARG) NO-ERROR.
+
+              IF ERROR-STATUS:ERROR THEN
+                  ASSIGN ierror = 53.
+              ELSE
+                 ierror = 0.
+
+          END.
+          WHEN "INCREMENT"      THEN DO: 
+
+              /* this is just to catch an integer overflow */
+              IF is-pre-101b-db THEN
+                 ASSIGN wseq._Seq-Incr = INT(IARG) NO-ERROR.
+              ELSE
+                 ASSIGN wseq._Seq-Incr = INT64(IARG) NO-ERROR.
+
+              IF ERROR-STATUS:ERROR THEN
+                  ASSIGN ierror = 53.
+              ELSE
+                 ierror = 0.
+
+          END.
           WHEN "CYCLE-ON-LIMIT" THEN wseq._Cycle-Ok = (iarg = "yes").
-          WHEN "MIN-VAL"        THEN wseq._Seq-Min  = INTEGER(iarg).
-          WHEN "MAX-VAL"        THEN wseq._Seq-Max  = INTEGER(iarg).
+          WHEN "MIN-VAL"        THEN DO: 
+              /* this is just to catch an integer overflow */
+              IF is-pre-101b-db THEN
+                 ASSIGN wseq._Seq-Min = INT(IARG) NO-ERROR.
+              ELSE
+                 ASSIGN wseq._Seq-Min = INT64(IARG) NO-ERROR.
+
+              IF ERROR-STATUS:ERROR THEN
+                  ASSIGN ierror = 53.
+              ELSE
+                 ierror = 0.
+          END.
+          WHEN "MAX-VAL"        THEN DO:
+              /* this is just to catch an integer overflow */
+              IF is-pre-101b-db THEN
+                 ASSIGN wseq._Seq-Max = INT(IARG) NO-ERROR.
+              ELSE
+                 ASSIGN wseq._Seq-Max = INT64(IARG) NO-ERROR.
+
+              IF ERROR-STATUS:ERROR THEN
+                  ASSIGN ierror = 53.
+              ELSE
+                 ierror = 0.
+          END.
           WHEN "FOREIGN-NAME"   THEN wseq._Seq-Misc[1] = iarg.
           WHEN "FOREIGN-OWNER"  THEN wseq._Seq-Misc[2] = iarg.
           /* keywords for seq-misc elements 3-8 */ 
@@ -1475,7 +1548,13 @@ IF cerror = ?
           WHEN    "VALMSG-SA"      THEN wfil._Valmsg-SA    = iarg.
           WHEN    "FROZEN"         THEN wfil._Frozen       = (iarg = 'yes').
           WHEN    "HIDDEN"         THEN wfil._Hidden       = (iarg = 'yes').
-          WHEN    "DUMP-NAME"      THEN wfil._Dump-name    = iarg.
+          WHEN    "DUMP-NAME"      THEN DO:
+              /* check that there are no spaces in the dump name */
+              IF INDEX(iarg, " ") > 0 THEN
+                ASSIGN ierror = 54.
+              ELSE
+                wfil._Dump-name    = iarg.
+          END.
           WHEN    "FOREIGN-FLAGS"  THEN wfil._For-Flag     = INTEGER(iarg).
           WHEN    "FOREIGN-FORMAT" THEN wfil._For-Format   = iarg.
           WHEN    "FOREIGN-GLOBAL" THEN wfil._For-Cnt1     = INTEGER(iarg).
@@ -1544,7 +1623,28 @@ IF cerror = ?
                                ELSE iarg).                     
           WHEN    "FIELD"     OR WHEN "COLUMN"      THEN wfld._Field-name = iarg.
           WHEN    "DESC"      OR WHEN "DESCRIPTION" THEN wfld._Desc = iarg.
-          WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN wfld._Initial = iarg.
+          WHEN    "INITIAL"   OR WHEN "DEFAULT"     THEN DO:
+              /* check for integer overflow */
+              IF LOOKUP(wfld._Data-Type,"INT,INTEGER") > 0 THEN DO:
+                  /* if this is a pre-101b db, just make sure initial
+                     value for an integer is not too big. In theory,
+                     this could not happen since a field needs to be int64
+                     to overflow an integer, and we already prevent int64 from
+                     loading into a pre-10.1B db, but just in case the .df
+                     was manually changed.
+                  */
+                  IF is-pre-101b-db THEN DO:
+                      /* this is just to catch an integer overflow */
+                     ASSIGN ierror = INT(iarg) NO-ERROR.
+                     IF ERROR-STATUS:ERROR THEN
+                         ASSIGN ierror = 52.
+                     ELSE
+                         ierror = 0.
+                  END.
+              END.
+
+              wfld._Initial = iarg.
+          END.
           WHEN    "CAN-READ"  OR WHEN "CAN-SELECT"  THEN wfld._Can-Read = iarg.
           WHEN    "CAN-WRITE" OR WHEN "CAN-UPDATE"  THEN wfld._Can-Write = iarg.
           WHEN    "NULL" OR WHEN "NULL-ALLOWED" THEN wfld._Mandatory = (iarg = "no").
@@ -1633,7 +1733,15 @@ IF cerror = ?
                                                 wfld._Fld-stlen     = INTEGER(iarg)
                                                 l_Fld-stlen         = wfld._Fld-stlen.
           WHEN    "FOREIGN-SPACING"        THEN wfld._For-Spacing   = INTEGER(iarg).
-          WHEN    "FOREIGN-TYPE"           THEN wfld._For-Type      = iarg.
+          WHEN    "FOREIGN-TYPE"           THEN DO:
+
+             IF wfld._Data-type = "character" AND wfld._Initial = ""
+                AND (iarg = "time" OR iarg = "timestamp") THEN
+                wfld._Initial = ?.
+             wfld._For-Type = iarg.
+          
+             END.
+
           WHEN    "FOREIGN-XPOS"           THEN wfld._For-Xpos      = INTEGER(iarg).
           WHEN    "DSRVR-PRECISION"         
           OR WHEN "FIELD-MISC11"           THEN wfld._Fld-misc1[1]  = INTEGER(iarg).
@@ -1749,7 +1857,7 @@ IF cerror = ?
       END. /*-------------------------------------------------------------------*/
     
       IF ierror > 0 AND ierror <> 50 THEN UNDO,RETRY load_loop.
-    
+      
       ASSIGN stopped = false.
 
       END.  /* end repeat load_loop*/

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -593,7 +593,7 @@ do ON STOP UNDO, LEAVE:
                  "you are in the middle of a transaction."
             view-as ALERT-BOX INFORMATION buttons OK.
       else
-         message "Note: Because of the version of PROGRESS you are" SKIP
+         message "Note: Because of the version of {&PRO_DISPLAY_NAME} you are" SKIP
                  "using, the dictionary is in read-only mode."
             view-as ALERT-BOX INFORMATION buttons OK.
    

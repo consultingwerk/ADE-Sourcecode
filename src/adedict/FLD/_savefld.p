@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,6 +27,7 @@ History:
                     some foreign char fields where we store size information in
                     this field, we display a "?" on the screen instead, and we
                     will not be overwriting the size info with "?". 
+    fernando 06/08/06 Added support for int64                
 
 ----------------------------------------------------------------------------*/
 
@@ -68,6 +69,7 @@ assign
    neworder = input frame fldprops b_Field._Order.
 
 do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
+   
    run adecomm/_setcurs.p ("WAIT").
    
    /* Triggers, validation and gateway have already been saved.  We
@@ -92,6 +94,16 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
              b_Field._Width = s_lob_wdth.
    END.
    ELSE DO:
+       IF b_field._dtype = {&DTYPE_INT64} OR b_Field._Data-type = "int64" THEN DO:
+          IF DECIMAL(B_Field._Initial:SCREEN-VALUE) > 9223372036854775807 OR 
+             DECIMAL(B_Field._Initial:SCREEN-VALUE) < -9223372036854775808 THEN DO:
+              MESSAGE "Initial Value has value too large for int64"
+                  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+              RUN adecomm/_setcurs.p ("").
+              RETURN "error".
+          END.
+       END.
+
        ASSIGN
            input frame fldprops b_Field._Help
            input frame fldprops b_Field._Initial

@@ -1,28 +1,11 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/********************************************************************   *
+* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 /*--------------------------------------------------------------------------
     File        : 
     Purpose     :
@@ -54,7 +37,7 @@
  {adecomm/icondir.i}
 &ENDIF
 
-&SCOPED-DEFINE datatypes CHARACTER,DATE,DATETIME,DATETIME-TZ,DECIMAL,LOGICAL,INTEGER,RECID
+&SCOPED-DEFINE datatypes CHARACTER,DATE,DATETIME,DATETIME-TZ,DECIMAL,LOGICAL,INTEGER,INT64,RECID
 
 DEFINE INPUT  PARAM p_U_Type   AS CHAR  NO-UNDO.
 DEFINE INPUT  PARAM p_F-Rowid  AS ROWID NO-UNDO.
@@ -69,6 +52,7 @@ DEFINE INPUT  PARAM p_New-Type AS CHAR  NO-UNDO.
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
 
 
 
@@ -82,7 +66,7 @@ DEFINE INPUT  PARAM p_New-Type AS CHAR  NO-UNDO.
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Allow:      
+   Allow: 
    Frames: 0
    Add Fields to: Neither
    Other Settings: CODE-ONLY
@@ -94,8 +78,8 @@ DEFINE INPUT  PARAM p_New-Type AS CHAR  NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 2
-         WIDTH              = 40.
+         HEIGHT             = 19.48
+         WIDTH              = 77.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -115,6 +99,8 @@ RUN data-type_change.
 
 
 /* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-data-type_change) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE data-type_change Procedure 
 PROCEDURE data-type_change :
@@ -137,7 +123,7 @@ PROCEDURE data-type_change :
   /* new DATA-TYPE and get the default value for the format again.  Formats is */
   /* a CHR(10) delimited list of formats to use for each data-type.            */
   ASSIGN formats       =
-            REPLACE ("X(8)|99/99/99|99/99/9999 HH:MM:SS.SSS|99/99/9999 HH:MM:SS.SSS+HH:MM|->>,>>9.99|yes/no|->,>>>,>>9|>>>>>>9":U,
+            REPLACE ("X(8)|99/99/99|99/99/9999 HH:MM:SS.SSS|99/99/9999 HH:MM:SS.SSS+HH:MM|->>,>>9.99|yes/no|->,>>>,>>9|->,>>>,>>9|>>>>>>9":U,
                      "|":U,CHR(10))
          i             = LOOKUP(_F._DATA-TYPE, "{&datatypes}")
          ENTRY(i,formats,CHR(10)) = _F._FORMAT
@@ -146,28 +132,33 @@ PROCEDURE data-type_change :
          _F._FORMAT    = ENTRY(i,formats,CHR(10)).
 
   CASE _F._DATA-TYPE:
-    WHEN "CHARACTER" THEN
+    WHEN "CHARACTER":U THEN
       ASSIGN _F._INITIAL-DATA = _F._INITIAL-DATA.
-    WHEN "LOGICAL"   THEN 
+    WHEN "LOGICAL":U   THEN 
       ASSIGN _F._INITIAL-DATA = "No".
     WHEN "DECIMAL"   THEN
     DO:
       ASSIGN _F._INITIAL-DATA = STRING(DECIMAL(TRIM(_F._INITIAL-DATA))) NO-ERROR.
       IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
     END.
-    WHEN "INTEGER"   THEN
+    WHEN "INTEGER":U   THEN
     DO:
       ASSIGN _F._INITIAL-DATA = STRING(INTEGER(TRIM(_F._INITIAL-DATA))) NO-ERROR.
       IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
     END.
-    WHEN "RECID" THEN
+    WHEN "INT64":U   THEN
+    DO:
+      ASSIGN _F._INITIAL-DATA = STRING(INT64(TRIM(_F._INITIAL-DATA))) NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
+    END.
+    WHEN "RECID":U THEN
       ASSIGN _F._INITIAL-DATA = "?".
     OTHERWISE                             
      ASSIGN _F._INITIAL-DATA = ?.
   END CASE.
 
   /* A radio set - try to morph the values */
-  IF p_U_TYPE = "RADIO-SET" THEN
+  IF p_U_TYPE = "RADIO-SET":U THEN
   DO:
     ASSIGN _F._INITIAL-DATA = TRIM(_F._INITIAL-DATA)
            tmp-strng        = "".
@@ -181,6 +172,12 @@ PROCEDURE data-type_change :
                               IF i = 2 THEN "No,"  ELSE "?,") + CHR(10).
         WHEN "INTEGER" THEN DO:
           ASSIGN tmp-value = STRING(INTEGER(raw-value)) NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
+            tmp-value = tmp-value + "," + CHR(10).
+          ELSE tmp-value = "?," + CHR(10).
+        END.
+        WHEN "INT64" THEN DO:
+          ASSIGN tmp-value = STRING(INT64(RAW-VALUE)) NO-ERROR.
           IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
             tmp-value = tmp-value + "," + CHR(10).
           ELSE tmp-value = "?," + CHR(10).
@@ -215,4 +212,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 

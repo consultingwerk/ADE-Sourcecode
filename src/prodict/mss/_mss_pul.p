@@ -49,6 +49,10 @@ History:
     04/23/03 D. McMann Added logic to check sequence names - support on-line schema
     10/17/03 D. McMann Add NO-LOCK statement to _Db find in support of on-line schema add
     02/28/06 fernando  Skip table valued tables - 20060120-003
+    04/17/06 fernando  Unicode support
+    07/19/06 fernando  Unicode support - restrict to MSS 2005
+    08/24/06 fernando  Add warning about non utf-8 codepage and unicode columns - 20060802-024
+    10/06/06 fernando  Check object name in case it has underscore - 20031205-003
     
 */
 
@@ -173,6 +177,12 @@ DEFINE VARIABLE sqlstate         AS CHARACTER NO-UNDO.
 DEFINE VARIABLE s                AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE itype            AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE has_recid_idx    AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE lUnicode         AS LOGICAL   NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE tmp_str          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE isUnicodeType    AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE warn_tablename   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE warn_codepage    AS LOGICAL   NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -209,14 +219,17 @@ define INPUT PARAMETER error-nr         as INTEGER.
 define INPUT PARAMETER param1           as CHARACTER.
 define INPUT PARAMETER param2           as CHARACTER.
 
-define       variable  err-msg as character extent 7 initial [
+define       variable  err-msg as character extent 10 initial [
 /*  1 */ "WARNING: Column &1 is hidden; it cannot be an index component",
 /*  2 */ "ERROR: Table &1 has unsupported data types.",
 /*  3 */ "       Skipping this table...",
 /*  4 */ " &1 &2 ", /* intentionally left blank for div. error-messages */
-/*  5 */ "WARNING: No index for the RECID &1 field",
+/*  5 */ "WARNING: No index for the RECID &1 field of table &2",
 /*  6 */ "WARNING: The Driver sends wrong data about indexes, they cant be build automatically",
-/*  7 */ " "
+/*  7 */ "WARNING: Table &1 has Unicode data type, which is supported only with MS SQL Server 2005 and up",
+/*  8 */ "WARNING: Table &1 has Unicode data types and the schema holder's codepage is not utf-8.",
+/*  9 */ "It is recommended that you set the codepage to utf-8 in this case to avoid data loss!",
+/* 10 */ " "
     ].
 
     if param1 = ? then assign param1 = "".
@@ -307,14 +320,21 @@ end PROCEDURE.
 /*---------------------------  MAIN-CODE  --------------------------*/
 /*------------------------------------------------------------------*/
 
+IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
+  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
+
+  IF tmp_str BEGINS "Y" THEN
+      ASSIGN lUnicode = TRUE.
+END.
+
 assign
   batch-mode   = SESSION:BATCH-MODE
   edbtyp       = {adecomm/ds_type.i
                    &direction = "itoe"
                    &from-type = "user_dbtype"
                    }
-  l_char-types = "CHAR,VARCHAR,BINARY,VARBINARY"
-  l_chrw-types = "LONGVARBINARY,LONGVARCHAR,TIME"
+  l_char-types = "CHAR,VARCHAR,BINARY,VARBINARY,NCHAR,NVARCHAR"
+  l_chrw-types = "LONGVARBINARY,LONGVARCHAR,NLONGVARCHAR,TIME"
   l_date-types = "DATE"
   l_dcml-types = "DECIMAL,NUMERIC"
   l_floa-types = "DOUBLE,FLOAT,REAL"
@@ -346,10 +366,12 @@ RUN prodict/mss/_mss_typ.p
 
 /* Get the name of the foreign dbms and set the foreign_dbms name */
     define variable foreign_dbms            as character no-undo.
+    DEFINE VARIABLE foreign_dbms_version    AS INTEGER   NO-UNDO.
 
     RUN STORED-PROC DICTDBG.GetInfo (0).
     for each DICTDBG.GetInfo_buffer:
-       assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name ).
+       assign foreign_dbms = ( DICTDBG.GetInfo_buffer.dbms_name )
+              foreign_dbms_version = INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)).
     end.
 
     CLOSE STORED-PROC DICTDBG.GetInfo.
@@ -496,8 +518,17 @@ for each gate-work
 
     RUN STORED-PROC DICTDBG.SQLTables
                  (spclvar-1, uservar-1, namevar-1, typevar-1).
-  
     for each DICTDBG.SQLTables_buffer:
+
+      /* 20031205-003
+         If the table name has underscore (_), we may get records for
+         different tables, since '_' may be a search pattern depending on
+         the driver settings/version. So we need to filter out anything
+         that is not the table we are looking for.
+      */
+      IF TRIM(DICTDBG.SQLTables_buffer.name) NE ? AND 
+         trim(namevar-1) NE TRIM(DICTDBG.SQLTables_buffer.name) THEN
+         NEXT.
 
       assign
         table_name = ( if TRIM(DICTDBG.SQLTables_buffer.name) = ?
@@ -517,7 +548,6 @@ for each gate-work
                         else TRIM(DICTDBG.SQLTables_buffer.owner)
                    ).
 
-    
     end.
 
     CLOSE STORED-PROC DICTDBG.SQLTables.
@@ -620,7 +650,6 @@ for each gate-work
               (LENGTH(DICTDBG.GetFieldIds_buffer.field-name) - 6)) = "_IDENT_"
            THEN assign s_ttb_tbl.ds_msc22 = string(i) + ","
                        i = i + 1.
-                   
         NEXT _loop.
       END.  
       CREATE column-id.
@@ -654,9 +683,19 @@ for each gate-work
     RUN  prodict/mss/mss_fix.p (table_name, OUTPUT namevar-1, escp, no).
     RUN STORED-PROC DICTDBG.SQLColumns (spclvar-1, uservar-1, namevar-1, ?).
 
-    assign field-position = 0.
+    assign field-position = 0
+           warn_tablename = ?.
 
     for each DICTDBG.SQLColumns_buffer:
+
+     /* 20031205-003
+        If the table name has underscore (_), we may get records for
+        different tables, since '_' may be a search pattern depending on
+        the driver settings/version. So we need to filter out anything
+        that is not from the table we want.
+     */
+     IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
+        NEXT.
 
       find first column-id
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
@@ -703,8 +742,11 @@ for each gate-work
       do:
         { prodict/mss/mss_typ.i DICTDBG.SQLColumns_buffer.data-type  bug29 }
         ASSIGN m1 = 0.
+               isUnicodeType = (DICTDBG.SQLColumns_buffer.data-type <= -8 
+                                AND DICTDBG.SQLColumns_buffer.data-type >= -10).
 
-        IF l_dt = "UNDEFINED" THEN DO:
+        IF l_dt = "UNDEFINED" OR (NOT lUnicode AND isUnicodeType) THEN DO:
+
           RUN error_handling
             ( 2, 
               s_ttb_tbl.ds_name, "" 
@@ -721,6 +763,23 @@ for each gate-work
           END.
           NEXT _crtloop.
         END.
+        /* if not SQL Server 2005 and up, give warning message on Unicode data types -8,-9,-10 */
+        ELSE IF foreign_dbms_version < 9 AND isUnicodeType THEN DO:
+            /* display message only once per table */
+            IF warn_tablename NE s_ttb_tbl.ds_name THEN DO:
+               ASSIGN warn_tablename = s_ttb_tbl.ds_name.
+               /* WARNING: Table &1 has Unicode data type, which is supported only with MS SQL Server 2005 and up */
+               RUN error_handling(7, s_ttb_tbl.ds_name, "").
+            END.
+        END.
+        ELSE IF isUnicodeType THEN DO:
+            IF DICTDB._Db._Db-xl-name NE "utf-8" AND NOT warn_codepage THEN DO:
+               /* want the user about the codepage mismatch */
+               RUN error_handling(8, s_ttb_tbl.ds_name, "").
+               RUN error_handling(9, "", "").
+               ASSIGN warn_codepage = TRUE.
+            END.
+        END.
 
         if TRIM(DICTDBG.SQLColumns_buffer.column-name) MATCHES "*##1"
           and doextent then do:  /* Collect array elements & determine extent */
@@ -733,7 +792,7 @@ for each gate-work
                  (table_spcl, OUTPUT spclvar-1,  escp, bug1).
           RUN  prodict/mss/mss_fix.p 
                 (table_user,  OUTPUT uservar-1, escp, bug8).
-          RUN  prodict/mss/mss_fix.p 
+          RUN  prodict/mss/mss_fix.p                              
                 (table_name,  OUTPUT namevar-1,  escp, no).
 
 
@@ -741,6 +800,15 @@ for each gate-work
 		       (spclvar-1, uservar-1, namevar-1, ?).
 
 	      for each A_col where PROC-HANDLE = A_proc_handle:
+
+           /* 20031205-003
+              If the table name has underscore (_), we may get records for
+              different tables, since '_' may be a search pattern depending on
+              the driver settings/version. So we need to filter out anything
+              that is not from the table we want.
+           */
+           IF TRIM(namevar-1) NE TRIM(A_col.name) THEN
+              NEXT.
 
 	        if NOT A_col.column-name BEGINS array_name then NEXT.
 	        assign m2 = INTEGER (SUBSTR (A_col.column-name
@@ -788,12 +856,18 @@ for each gate-work
  
     assign
       indn         = 1
-      unique-prime = NO.
+      unique-prime = NO
+      has_recid_idx = NO.
 
     for each DICTDBG.SQLStatistics_buffer:
       /* Eliminate recid index and recid field */
       IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' OR
-         DICTDBG.SQLStatistics_buffer.Column-name MATCHES '*progress_recid*'  THEN NEXT.
+         DICTDBG.SQLStatistics_buffer.Column-name MATCHES '*progress_recid*'  THEN DO:
+          /* just remember if we've found the index for the recid field */
+          IF DICTDBG.SQLStatistics_buffer.index-name MATCHES '*progress_recid*' THEN
+             has_recid_idx = YES.
+          NEXT.
+      END.
 .
       /* Skip TBALE statistics.						*/
       if DICTDBG.SQLStatistics_buffer.type = 0 OR bug22 then NEXT. 
@@ -841,7 +915,7 @@ for each gate-work
     	     NEXT.
 	   end.        
         end.     /*  NOT available where s_ttb_fld */
-        
+
         if NOT available s_ttb_idx
            OR s_ttb_idx.ds_name <> TRIM(DICTDBG.SQLStatistics_buffer.index-name)
            OR s_ttb_idx.ttb_tbl <> RECID(s_ttb_tbl)
@@ -918,11 +992,13 @@ for each gate-work
     CLOSE STORED-PROC DICTDBG.SQLStatistics.
 
     /* If there is a progress_recid without an index then we gently complain */
-    if s_ttb_tbl.ds_recid > 0 /*and not has_id_ix*/ THEN DO:
+    if s_ttb_tbl.ds_recid > 0 AND NOT has_recid_idx /*and not has_id_ix*/ THEN DO:
        FIND FIRST s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl) NO-ERROR.
        IF NOT AVAILABLE s_ttb_idx 
-        then RUN error_handling(5, s_ttb_tbl.ds_msc23, "").
-                      /* "WARNING: No index for the RECID &1 field". */
+        then do:
+           RUN error_handling(5, s_ttb_tbl.ds_msc23, table_name).
+       END.
+                      /* "WARNING: No index for the RECID &1 field table &2". */
     END.
 
     /*------- Find a Field which doesn't participate in an index. ------*/
@@ -1094,6 +1170,17 @@ for each gate-work
 
      for each DICTDBG.SQLProcs_buffer:
 
+        /* 20031205-003
+           If the proc name has underscore (_), we may get records for
+           different procedures since '_' may be a search pattern depending on
+           the driver settings/version. So we need to filter out anything
+           that is not the procedure we are looking for.
+        */
+        IF TRIM(DICTDBG.SQLProcs_buffer.name) NE ? AND 
+           /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+           trim(namevar-1) NE SUBSTRING(TRIM(DICTDBG.SQLProcs_buffer.name),1,LENGTH(trim(namevar-1))) THEN
+           NEXT.
+
         assign table_name = ( if TRIM(DICTDBG.SQLProcs_buffer.name) = ?
                               then "%"
                               else TRIM(DICTDBG.SQLProcs_buffer.name)
@@ -1184,6 +1271,17 @@ for each gate-work
      
      _col-loop:
      for each DICTDBG.SQLProcCols_buffer:
+
+        /* 20031205-003
+           If the proc name has underscore (_), we may get records for
+           different procedures since '_' may be a search pattern depending on
+           the driver settings/version. So we need to filter out anything
+           that is not the procedure we are looking for.
+        */
+        /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+        IF trim(namevar-1) NE SUBSTRING(TRIM(DICTDBG.SQLProcCols_buffer.name),1,LENGTH(trim(namevar-1))) THEN
+           NEXT.
+
         assign field-position = field-position + 1
                fld-remark     = DICTDBG.SQLProcCols_buffer.remarks
                fld-properties = "".
@@ -1223,9 +1321,11 @@ for each gate-work
         do:
 
            { prodict/mss/mss_typ.i DICTDBG.SQLProcCols_buffer.data-type  bug29 }
-           ASSIGN m1 = 0.
+           ASSIGN m1 = 0
+                isUnicodeType = (DICTDBG.SQLProcCols_buffer.data-type <= -8 
+                                 AND DICTDBG.SQLProcCols_buffer.data-type >= -10).
 
-           IF l_dt = "UNDEFINED" THEN DO:
+           IF l_dt = "UNDEFINED" OR (NOT lUnicode AND isUnicodeType) THEN DO:
               RUN error_handling
                 ( 2, 
                   s_ttb_tbl.ds_name, "" 
@@ -1263,6 +1363,16 @@ for each gate-work
 		       (spclvar-1, uservar-1, namevar-1, ?).
 
 	     for each P_col where PROC-HANDLE = P_proc_handle:
+
+            /* 20031205-003
+               If the proc name has underscore (_), we may get records for
+               different procedures since '_' may be a search pattern depending on
+               the driver settings/version. So we need to filter out anything
+               that is not the procedure we are looking for.
+            */
+            /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+            IF trim(namevar-1) NE SUBSTRING(TRIM(P_col.name),1,LENGTH(trim(namevar-1))) THEN
+               NEXT.
 
 	        if NOT P_col.column-name BEGINS array_name then NEXT.
 	        assign m2 = INTEGER (SUBSTR (P_col.column-name

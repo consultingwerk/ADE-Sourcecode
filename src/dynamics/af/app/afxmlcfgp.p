@@ -384,15 +384,6 @@ FUNCTION setSessionParam RETURNS LOGICAL
 IF THIS-PROCEDURE:PERSISTENT THEN
   SESSION:ADD-SUPER-PROCEDURE(THIS-PROCEDURE).
 
-SESSION:SET-WAIT-STATE("GENERAL":U).
-RUN startProcedure IN TARGET-PROCEDURE
-  ("ONCE|af/sup2/afcfgprsrp.p":U, OUTPUT ghCFGParser).
-SESSION:SET-WAIT-STATE("":U).
-
-
-IF NOT VALID-HANDLE(ghCFGParser) THEN
-  RETURN "ICFSTARTUPERR: SESSION TYPE NOT RECOGNIZED":U.
-
 
 ON "CTRL-ALT-SHIFT-S":U ANYWHERE
 DO:
@@ -484,6 +475,15 @@ PROCEDURE initializeSession :
   DEFINE BUFFER bttParam              FOR ttParam.
   DEFINE BUFFER bttService            FOR ttService.
    
+  SESSION:SET-WAIT-STATE("GENERAL":U).
+  RUN startProcedure IN TARGET-PROCEDURE
+    ("ONCE|af/sup2/afcfgprsrp.p":U, OUTPUT ghCFGParser).
+  SESSION:SET-WAIT-STATE("":U).
+
+
+  IF NOT VALID-HANDLE(ghCFGParser) THEN
+    RETURN "ICFSTARTUPERR: UNABLE TO START CFG PARSER":U.
+
   /* What type of physical session are we? */
   cCurrPhysSessType = getPhysicalSessionType().
 

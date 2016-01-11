@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -19,8 +19,9 @@ Date Created: 12/04/92
 History:
     tomn    01/10/96    Added codepage to DB Properties form (s_Db _Cp)
     
-    fernando 05/24/2005 Added db-description and custom-details to the DB Properties form. Accessing
-                                  the _Db record with a dynamic buffer now
+    fernando 05/24/2005 Added db-description and custom-details to the DB Properties form.
+                        Accessing the _Db record with a dynamic buffer now
+    fernando 06/06/06  Added large sequence and large key support to the DB Properties form.
     
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -66,6 +67,35 @@ assign
    s_Db_Type   = s_DbCache_Type[s_DbCache_ix]
    s_Db_Cp     = if hBuffer_DB:AVAILABLE then hBuffer_DB::_db-xl-name else "".
 
+/* check large sequence and large key support, but only for Progress databases */
+IF hBuffer_DB:AVAILABLE AND hBuffer_DB::_Db-type = "PROGRESS" THEN DO:
+    /* For large key support, we look at the _Database-feature table.
+       For large sequence - if 'Large Keys' is not a valid feature, than this
+       is a pre-10.1B db in which case large sequences is not
+       applicable. Otherwise we look at db-res1[1].
+    */
+    FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Large Keys" NO-LOCK NO-ERROR.
+    IF AVAILABLE DICTDB._Database-feature THEN DO:
+
+        IF DICTDB._Database-feature._DBFeature_Enabled = "1" THEN
+           s_Db_Large_Keys = "enabled".
+        ELSE
+           s_Db_Large_Keys = "not enabled".
+
+         IF hBuffer_DB::_db-res1(1) = 1 THEN 
+             s_Db_Large_Sequence = "enabled".
+         ELSE
+             s_Db_Large_Sequence = "not enabled".
+    END.
+    ELSE 
+        ASSIGN s_Db_Large_Keys = "n/a"
+               s_Db_Large_Sequence = "n/a".
+END.
+ELSE
+    ASSIGN s_Db_Large_Sequence = "n/a"
+           s_Db_Large_Keys = "n/a".
+
+
 /* if we have data in the db-detail record to display, assign it now */
 IF has_db_detail AND VALID-HANDLE( hBuffer_DB-detail) THEN DO:
     
@@ -104,6 +134,8 @@ display s_CurrDb
 	s_Db_Holder
         s_Db_Type
         s_Db_Cp
+    s_Db_Large_Sequence
+    s_Db_Large_Keys
     s_db_description
     s_Db_Add_Details
 	with frame dbprops.

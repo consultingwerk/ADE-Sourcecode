@@ -643,7 +643,7 @@ DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
   hCombo = widgetHandle('tClassName':U).
   hCombo:LIST-ITEMS = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "DataField").
   hCombo = widgetHandle('tData-Type':U).
-  hCombo:LIST-ITEMS = 'Character,Decimal,Integer,Date,DateTime,DateTime-TZ,Logical,BLOB,CLOB,Raw':U.
+  hCombo:LIST-ITEMS = 'Character,Decimal,Integer,INT64,Date,DateTime,DateTime-TZ,Logical,BLOB,CLOB,Raw':U.
   
   RUN changeViewerState IN TARGET-PROCEDURE ('Initial':U).
 

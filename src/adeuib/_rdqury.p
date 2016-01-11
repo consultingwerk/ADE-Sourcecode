@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdqury.p
@@ -565,7 +565,9 @@ REPEAT:
                        _BC._FGCOLOR _BC._FONT _BC._LABEL-BGCOLOR _BC._LABEL-FGCOLOR 
                        _BC._LABEL-FONT _BC._ENABLED _BC._HELP 
                        tmp-dazap tmp-auto-ret tmp-width tmp-visible tmp-auto-rez tmp-col-ro
-                       tmp-formatAttr tmp-helpAttr tmp-labelAttr.
+                       tmp-formatAttr tmp-helpAttr tmp-labelAttr _BC._VIEW-AS-TYPE _BC._VIEW-AS-DELIMITER
+                       _BC._VIEW-AS-ITEMS _BC._VIEW-AS-ITEM-PAIRS _BC._VIEW-AS-INNER-LINES _BC._VIEW-AS-SORT
+                       _BC._VIEW-AS-MAX-CHARS _BC._VIEW-AS-AUTO-COMPLETION _BC._VIEW-AS-UNIQUE-MATCH.
                                                   /* It is necessary for the temporary char variable
                                                      so that we can read old .w files that don't have
                                                      these five fields.  Otherwise the UIB has errors. */

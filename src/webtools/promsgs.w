@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* Copyright (C) 2000,2006 by Progress Software Corporation ("PSC"),  *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
 *                                                                    *
@@ -118,8 +118,11 @@ PROCEDURE process-web-request :
   lForm = (c_field ne "no":U).
   
   /* Should there be access into the PROGRESS Kbase. */
+  /* 20030623-009 WebKB URL is invalid. Removing query button
   RUN GetField IN web-utilities-hdl ('KBase':U, OUTPUT c_field).
   lKBase = (c_field NE "no":U).
+  */
+  lKBase = no.
   
   /* Output the MIME header and create the HTML form. */
   RUN outputContentType IN web-utilities-hdl ("text/html":U).  

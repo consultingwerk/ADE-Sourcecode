@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000-2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -56,7 +40,8 @@ Date Created: 09/24/92
      History: 06/06/02 D. McMann Added check for timestamp's initial value.
               01/31/03 D. McMann Added support for lobs
               07/01/03 D. McMann Added support for DATETIME and DATETIME-TZ
-	      05/19/04 K. McIntosh Added case for RAW fields to set initial value to ""
+              05/19/04 K. McIntosh Added case for RAW fields to set initial value to ""
+              05/24/06 fernando    Added support for int64 fields
 
 ----------------------------------------------------------------------------*/
 
@@ -124,14 +109,15 @@ case s_Fld_Protype:
    when "Date"	       then s_Fld_Typecode = {&DTYPE_DATE}.
    when "Logical"      then s_Fld_Typecode = {&DTYPE_LOGICAL}.
    when "Integer"      then s_Fld_Typecode = {&DTYPE_INTEGER}.
+   when "Int64"        then s_Fld_Typecode = {&DTYPE_INT64}.
    when "Decimal"      then s_Fld_Typecode = {&DTYPE_DECIMAL}.
    when "RECID"	       then s_Fld_Typecode = {&DTYPE_RECID}.
    when "RAW"          then s_Fld_Typecode = {&DTYPE_RAW}.
    when "BLOB"         then s_Fld_Typecode = {&DTYPE_BLOB}.   
    WHEN "CLOB"         THEN s_Fld_Typecode = {&DTYPE_CLOB}. 
    WHEN "XLOB"         THEN s_Fld_Typecode = {&DTYPE_XLOB}.
-   WHEN "DATETIME"    THEN s_Fld_Typecode = {&DTYPE_DATETM}.
-   WHEN "DATETIME-TZ" THEN s_Fld_Typecode = {&DTYPE_DATETMTZ}.
+   WHEN "DATETIME"     THEN s_Fld_Typecode = {&DTYPE_DATETM}.
+   WHEN "DATETIME-TZ"  THEN s_Fld_Typecode = {&DTYPE_DATETMTZ}.
 end.
 
 /* Set format default based on data type.  This will also set initial
@@ -159,7 +145,7 @@ case s_Fld_Typecode:
       has been done in _dfltfmt.p */
    when {&DTYPE_LOGICAL} then .
       
-   when {&DTYPE_INTEGER} then
+   when {&DTYPE_INTEGER} OR WHEN {&DTYPE_INT64} then
    do:
       assign
          b_Field._Initial:screen-value in {&Frame} = "0".

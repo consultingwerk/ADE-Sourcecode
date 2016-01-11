@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -9,6 +9,7 @@
 
 /*
   user_env[1] = comma-delim file list
+                or it may be in user_longchar, if list was too big.
   user_env[2] = load path (for >1 file) or load filename (for 1 file)
   user_env[3] = "MAP <name>" or "NO-MAP" OR ""
   user_env[4] = error percentage
@@ -45,7 +46,9 @@ history
     kmcintos    Apr 25, 2005  Added Auditing Support
     kmcintos    May 10, 2005  Changed logic to rule out tables beginning 
                               with "_aud".  Bug # 20050510-001
-    fernando    Nov 03, 2005  Added code to audit dump operation                              
+    fernando    Nov 03, 2005  Added code to audit dump operation         
+    fernando    Mar 14, 20006 Handle case with too many tables selected - bug 20050930-006.                         
+    fernando    Sep 14, 2006  Log error messages when a stop condition was raised - 20060905-013
 */
 
 { prodict/dictvar.i }
@@ -85,9 +88,16 @@ DEFINE VARIABLE yy         AS INTEGER             NO-UNDO.
 DEFINE VARIABLE stopped    AS LOGICAL   INIT TRUE NO-UNDO.
 DEFINE VARIABLE NumProcRun AS LOGICAL             NO-UNDO.
 DEFINE VARIABLE lobdir     AS CHARACTER           NO-UNDO.
-DEFINE VARIABLE cTempList  AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE cTemp      AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE phDbName   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE newAppCtx  AS LOGICAL   INIT NO   NO-UNDO.
+
+DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
+DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE has_aud   AS LOGICAL      NO-UNDO.
+
 
 DEFINE STREAM dsfile.
 
@@ -109,20 +119,45 @@ DEFINE FRAME loaddata
   &THEN VIEW-AS DIALOG-BOX THREE-D SCROLLABLE WIDTH 84 TITLE "Load Table Contents"
   &ENDIF.  /* Move this here to scope above the internal procedure */
 
-cTempList = user_env[1].
+IF user_longchar <> "" AND user_longchar <> ? THEN
+   ASSIGN has_lchar = TRUE.
+
 /* The only Audit table that can be loaded through this program is the
    _audit-event table, so we remove it from the templist and check for 
    instances of the _aud string in the table list. */
-cTempList = REPLACE(cTempList,"_aud-event","").
-IF cTempList NE "" AND 
-   cTempList NE ? AND
-   (INDEX(cTempList,",_aud") NE 0 OR
-    cTempList BEGINS "_aud") THEN DO:
-  MESSAGE "Load Failed!" SKIP(1)
-          "You cannot load Audit Policies or Data through this utility!"
-      VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-  RETURN.
+
+IF NOT has_lchar THEN
+   user_longchar = user_env[1].
+
+IF user_longchar NE "" AND 
+   user_longchar NE ? THEN DO:
+
+   ASSIGN ix = INDEX(user_longchar,",_aud").
+
+   IF user_env[9] = "e" THEN DO:
+        ASSIGN iLast = INDEX(user_longchar,"_aud-event").
+
+       /* check if there is another aud table other than _aud-event */
+        IF iLast NE 0 AND ix NE 0 AND ix = (iLast - 1) THEN
+           ix = INDEX(user_longchar,",_aud",ix + 1).
+   END.
+   
+   IF ix NE 0 AND
+       NOT user_longchar BEGINS "_aud" THEN
+       has_aud = TRUE.
 END.
+
+/* free longchar if we don't need it */
+IF NOT has_lchar THEN
+   user_longchar = ?.
+
+IF has_aud THEN DO:
+   MESSAGE "Load Failed!" SKIP(1)
+           "You cannot load Audit Policies or Data through this utility!"
+       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   RETURN.
+END.
+
 
 /* LANGUAGE DEPENDENCIES START */ /*---------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
@@ -158,9 +193,9 @@ PROCEDURE NumFormatErr:
         NumProcRun = NOT NumProcRun.
         DISPLAY new_lang[12] @ msg WITH FRAME loaddata. /* !ERROR! */           
         PUT STREAM loaderr UNFORMATTED
-            "The numeric formats of this PROGRESS-session"   SKIP
+            "The numeric formats of this {&PRO_DISPLAY_NAME}-session"   SKIP
             "and the .d-file don't match!"                   SKIP   
-            "Please exit PROGRESS and start a new session"   SKIP.
+            "Please exit {&PRO_DISPLAY_NAME} and start a new session"   SKIP.
      END.
 
      /* What type of error do we want to output this time through? */
@@ -229,10 +264,12 @@ run adecomm/_setcurs.p ("WAIT").
 
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 { prodict/dictgate.i &action=query &dbtype=user_dbtype &dbrec=? &output=c }
+
+
 ASSIGN
   load_size = INTEGER(ENTRY(4,c))
   infinity  = TRUE /* use this to mark initial entry into loop */
-  use_ds    = INDEX(user_env[1],",") > 0
+  use_ds    = (IF has_lchar THEN (INDEX(user_longchar,",") > 0) ELSE (INDEX(user_env[1],",") > 0))
   lpath     = user_env[2] /* load path */
   error%    = INTEGER(user_env[4])
   dsname    = (IF user_dbtype = "PROGRESS"
@@ -262,21 +299,25 @@ END.
 
 ASSIGN phDbName = PDBNAME("DICTDB"). /* get the physical db name - for auditing */
 
+IF has_lchar THEN
+   numCount = NUM-ENTRIES(user_longchar).
+ELSE
+   numCount = NUM-ENTRIES(user_env[1]).
+
 stoploop:
 DO ON STOP UNDO, LEAVE:
-  DO WHILE ENTRY(1,user_env[1]) <> "":
+  DO ix = 1 to numCount /*WHILE ENTRY(1,user_env[1]) <> ""*/ :
+
+   ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
+
    IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
-      FIND DICTDB._File WHERE DICTDB._File._File-name = ENTRY(1,user_env[1])
+      FIND DICTDB._File WHERE DICTDB._File._File-name = cTemp
                           AND DICTDB._File._Db-recid = drec_db
                           AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
     ELSE    
-      FIND DICTDB._File WHERE DICTDB._File._File-name = ENTRY(1,user_env[1])
+      FIND DICTDB._File WHERE DICTDB._File._File-name = cTemp
                           AND DICTDB._File._Db-recid = drec_db.
         
-    user_env[1] = SUBSTRING(user_env[1]
-                           ,LENGTH(ENTRY(1,user_env[1]),"character") + 2
-                           ,-1
-                           ,"character").
     IF infinity THEN .
     ELSE do:
        &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
@@ -599,6 +640,18 @@ DO ON STOP UNDO, LEAVE:
   stopped = false. 
 END. /* end stop */
 
+/* 20060905-013
+   If a stop condition was raised, log the error messages to the .e file 
+*/
+IF STOPPED THEN DO:
+    IF ERROR-STATUS:NUM-MESSAGES > 0 THEN
+        DO i = 1 TO  ERROR-STATUS:NUM-MESSAGES:
+            PUT STREAM loaderr UNFORMATTED
+              ">> ERROR READING LINE #" recs + 1
+              " " ERROR-STATUS:GET-MESSAGE(i) SKIP.
+        END.
+END.
+
 IF use_ds THEN OUTPUT STREAM dsfile CLOSE.
 
 &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
@@ -640,4 +693,5 @@ HIDE FRAME loaddata NO-PAUSE.
 /* Make sure to turn on the suppress warnings again */
 SESSION:SUPPRESS-WARNINGS = YES.
 SESSION:IMMEDIATE-DISPLAY = no.
+ASSIGN user_longchar = "".
 RETURN.

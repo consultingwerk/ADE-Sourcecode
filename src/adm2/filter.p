@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : filter.p
     Purpose     : Super procedure for filter class.
@@ -2297,7 +2297,7 @@ Parameters: INPUT phFillIn - The handle of an actual fill-in
 
     /* Change digits to use 'Z' as format and remove decimal part for 
        numerics */ 
-    WHEN "DECIMAL":U OR WHEN 'INTEGER':U THEN 
+    WHEN "DECIMAL":U OR WHEN 'INTEGER':U OR WHEN "INT64":U THEN 
       {fnarg blankNumericFormat phFillin}.
 
     /* logical needs to have the NO part of the format blank */ 
@@ -2329,7 +2329,7 @@ FUNCTION blankNumericFormat RETURNS LOGICAL
   Purpose: Assign a format that will display as blank when the field
            is 0, but still are able to receive a 'paste' of any value that 
            the original format supports.   
-    Notes: Used for both integer and decimal. 
+    Notes: Used for integer, int64 and decimal. 
            The function simply omits the decimal part of the format. 
            The premiss for this is that it is not possible to paste a decimal
            value with the numeric-point into a decimal field in the first place, 
@@ -2967,6 +2967,7 @@ Parameters: INPUT pcColumn - The column's name in the data-source.
   DEFINE VARIABLE dz AS DATETIME-TZ NO-UNDO.
   DEFINE VARIABLE de AS DEC  NO-UNDO.
   DEFINE VARIABLE i  AS INT  NO-UNDO.
+  DEFINE VARIABLE i64 AS INT64 NO-UNDO.
   DEFINE VARIABLE lo AS LOG  NO-UNDO. 
 
   DEFINE VARIABLE cValue    AS CHAR   NO-UNDO.
@@ -2974,7 +2975,7 @@ Parameters: INPUT pcColumn - The column's name in the data-source.
   DEFINE VARIABLE cDataType AS CHAR   NO-UNDO.
   DEFINE VARIABLE cFormat   AS CHAR   NO-UNDO.
   
-  DEFINE FRAME X ch da de dt dz i lo WITH STREAM-IO.
+  DEFINE FRAME X ch da de dt dz i i64 lo WITH STREAM-IO.
   
   ASSIGN  
     cDataType = DYNAMIC-FUNCTION('columnDataType' IN TARGET-PROCEDURE,pcColumn).
@@ -3016,7 +3017,13 @@ Parameters: INPUT pcColumn - The column's name in the data-source.
        i:FORMAT         = cFormat
        i:SCREEN-VALUE   = pcValue  
        cValue           = STRING(INPUT i) NO-ERROR.
-    
+
+    WHEN "INT64":U THEN 
+     ASSIGN
+       i64:FORMAT         = cFormat
+       i64:SCREEN-VALUE   = pcValue  
+       cValue             = STRING(INPUT i64) NO-ERROR.
+
     WHEN "LOGICAL":U THEN 
       ASSIGN
         lo:FORMAT         = cFormat

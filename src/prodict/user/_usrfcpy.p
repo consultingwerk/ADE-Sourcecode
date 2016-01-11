@@ -1,25 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *                         *
+**********************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
 
@@ -99,13 +82,28 @@ ASSIGN
   pik_title   = new_lang[1] /* Source Tables */
   pik_wide    = FALSE.
 
+EMPTY TEMP-TABLE ttpik NO-ERROR.
+
 FOR EACH _File WHERE _File._Db-recid = drec_db 
                  AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                  AND NOT _File._Hidden
                   BY _File._File-name:
-  ASSIGN
-    pik_count = pik_count + 1
-    pik_list[pik_count] = _File._File-name.
+
+    ASSIGN pik_count = pik_count + 1.
+
+    /* 20060717-022
+       if we have too many tables, need to use temp-table, in case there are
+       too many fields with the same name.
+    */
+    IF l_cache_tt THEN DO:
+        CREATE ttpik.
+        ASSIGN ttpik.i_number = pik_count
+               ttpik.c_name = _File._File-name.
+        RELEASE ttpik.
+    END.
+    ELSE
+      ASSIGN
+        pik_list[pik_count] = _File._File-name.
 END.
 
 IF pik_count = 0 THEN DO:
@@ -120,6 +118,8 @@ IF pik_return = 0 THEN DO:
   HIDE FRAME copy-note NO-PAUSE.
   RETURN.
 END.
+
+EMPTY TEMP-TABLE ttpik NO-ERROR.
 
 FIND _File WHERE _File._Db-recid = drec_db 
              AND _File._File-name = pik_first

@@ -191,6 +191,18 @@ FUNCTION checkCustomChanges RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-formatListItemPairs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formatListItemPairs Procedure 
+FUNCTION formatListItemPairs RETURNS CHARACTER
+  (INPUT pcItems     AS CHARACTER,
+   INPUT pcDelimiter AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setAttributeChar) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setAttributeChar Procedure 
@@ -305,7 +317,7 @@ FUNCTION verifyObjectType RETURNS CHARACTER
 
 
 /* ***************************  Main Block  *************************** */
- ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
+ASSIGN ghRepDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
                                          INPUT "RepositoryDesignManager":U).
 
 
@@ -1346,51 +1358,78 @@ END PROCEDURE.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE collectBrowseColumns Procedure 
 PROCEDURE collectBrowseColumns :
-/*------------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------------------
   Purpose:     To make a single pass through the _BC records of a browse
                and retrieve all attribute information on them. 
   Parameters:  INPUT bRecid_U - The recid of the _U of the browse
-               OUTPUT fldList        - comma delimited list of browse column name
-                      cEnabledFields - comma delimited list of enabled fields
-                      cColBGCs       - CHR(5) delimited list of Background colors
-                      cColFGCs       - CHR(5) delimited list of Foreground colors
-                      cColFonts      - CHR(5) delimited list of Fonts
-                      cColFormats    - CHR(5) delimited list of Formats
-                      cLblBGCs       - CHR(5) delimited list of label BGCs
-                      cLblFGCs       - CHR(5) delimited list of label FGCs
-                      cLblFonts      - CHR(5) delimited list of label Fonts
-                      cLabels        - CHR(5) delimited list of labels
-                      cWidths        - CHR(5) delimited list of widths (integer 
-                                       values only)
+               OUTPUT fldList             - comma delimited list of browse column name
+                      cEnabledFields      - comma delimited list of enabled fields
+                      cColBGCs            - CHR(5) delimited list of Background colors
+                      cColFGCs            - CHR(5) delimited list of Foreground colors
+                      cColFonts           - CHR(5) delimited list of Fonts
+                      cColFormats         - CHR(5) delimited list of Formats
+                      cLblBGCs            - CHR(5) delimited list of label BGCs
+                      cLblFGCs            - CHR(5) delimited list of label FGCs
+                      cLblFonts           - CHR(5) delimited list of label Fonts
+                      cLabels             - CHR(5) delimited list of labels
+                      cWidths             - CHR(5) delimited list of widths (integer values only)
+               OUTPUT PARAMETERS for the browse column view-as property introduced in OE 10.1B:
+                      cColTypes           - CHR(5) delimited list of column Types
+                      cColDelimiters      - CHR(5) delimited list of column DELIMITERs for combo-boxes
+                      cColItems           - CHR(5) delimited list of column ITEMS for combo-boxes
+                      cColItemPairs       - CHR(5) delimited list of column ITEM-PAIRS for combo-boxes
+                      cColInnerLines      - CHR(5) delimited list of column INNER-LINES for combo-boxes
+                      cColSorts           - CHR(5) delimited list of column SORTs for combo-boxes
+                      cColMaxChars        - CHR(5) delimited list of column MAX-CHARS for combo-boxes
+                      cColAutoCompletions - CHR(5) delimited list of column AUTO-COMPLETIONs for combo-boxes
+                      cColUniqueMatches   - CHR(5) delimited list of column UNIQUE-MATCHes for combo-boxes
   Notes:  All CHR(5) delimited list must have the same number of entries as the
           fldlist.
           IF all values of a CHR(5) delimited list is the default value (usually
           ? or blank, then the entire list is blank  
           Called from setObjectMasterAttributes
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER bRecid_U           AS RECID      NO-UNDO.
-  DEFINE OUTPUT PARAMETER fldList            AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cEnabledFields     AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cColBGCs           AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cColFGCs           AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cColFonts          AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cColFormats        AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cLblBGCs           AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cLblFGCs           AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cLblFonts          AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cLabels            AS CHARACTER  NO-UNDO.
-  DEFINE OUTPUT PARAMETER cWidths            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE         iLoop              AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         NumCols            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iColBGCs           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iColFGCs           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iColFonts          AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iColFormats        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iLblBGCs           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iLblFGCs           AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iLblFonts          AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         iLabels            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE         hcol-hdl           AS HANDLE     NO-UNDO.
+------------------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER bRecid_U            AS RECID      NO-UNDO.
+  DEFINE OUTPUT PARAMETER fldList             AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cEnabledFields      AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColBGCs            AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColFGCs            AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColFonts           AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColFormats         AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cLblBGCs            AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cLblFGCs            AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cLblFonts           AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cLabels             AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cWidths             AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColTypes           AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColDelimiters      AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColItems           AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColItemPairs       AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColInnerLines      AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColSorts           AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColMaxChars        AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColAutoCompletions AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER cColUniqueMatches   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE         iLoop               AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         NumCols             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColBGCs            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColFGCs            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColFonts           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColFormats         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iLblBGCs            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iLblFGCs            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iLblFonts           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iLabels             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColTypes           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColDelimiters      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColItems           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColItemPairs       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColInnerLines      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColSorts           AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColMaxChars        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColAutoCompletions AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         iColUniqueMatches   AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE         hcol-hdl            AS HANDLE     NO-UNDO.
 
   DEFINE BUFFER brws_U FOR _U.
 
@@ -1412,50 +1451,90 @@ PROCEDURE collectBrowseColumns :
 
   FOR EACH _BC WHERE _BC._x-recid = bRecid_U:
     ASSIGN fldList = fldList + "," + _BC._disp-NAME
-           cEnabledFields = cEnabledFields + (IF _BC._ENABLED THEN ",":U + _BC._DISP-NAME ELSE "":U)
-           cColBGCs       = cColBGCs    + CHR(5) + IF _BC._BGCOLOR = ? THEN "?":U
-                                                   ELSE STRING(_BC._BGCOLOR)
-           cColFGCs       = cColFGCs    + CHR(5) + IF _BC._FGCOLOR = ? THEN "?":U
-                                                   ELSE STRING(_BC._FGCOLOR)
-           cColFonts      = cColFonts   + CHR(5) + IF _BC._FONT = ? THEN "?":U
-                                                   ELSE STRING(_BC._FONT)
-           cColFormats    = cColFormats + CHR(5) + IF _BC._FORMAT = _BC._DEF-FORMAT THEN "?":U
-                                                   ELSE _BC._FORMAT
-           cLblBGCs       = cLblBGCs    + CHR(5) + IF _BC._LABEL-BGCOLOR = ? THEN "?":U
-                                                   ELSE STRING(_BC._LABEL-BGCOLOR)
-           cLblFGCs       = cLblFGCs    + CHR(5) + IF _BC._LABEL-FGCOLOR = ? THEN "?":U
-                                                   ELSE STRING(_BC._LABEL-FGCOLOR)
-           cLblFonts      = cLblFonts   + CHR(5) + IF _BC._LABEL-FONT = ? THEN "?":U
-                                                   ELSE STRING(_BC._LABEL-FONT)
-           cLabels        = cLabels     + CHR(5) + IF _BC._LABEL = _BC._DEF-LABEL THEN "?":U
-                                                   ELSE _BC._LABEL
-           cWidths        = cWidths     + CHR(5) + STRING(INTEGER(_BC._WIDTH))
+           cEnabledFields      = cEnabledFields      + (IF _BC._ENABLED THEN ",":U + _BC._DISP-NAME ELSE "":U)
+           cColBGCs            = cColBGCs            + CHR(5) + IF _BC._BGCOLOR = ? THEN "?":U
+                                                                ELSE STRING(_BC._BGCOLOR)
+           cColFGCs            = cColFGCs            + CHR(5) + IF _BC._FGCOLOR = ? THEN "?":U
+                                                                ELSE STRING(_BC._FGCOLOR)
+           cColFonts           = cColFonts           + CHR(5) + IF _BC._FONT = ? THEN "?":U
+                                                                ELSE STRING(_BC._FONT)
+           cColFormats         = cColFormats         + CHR(5) + IF _BC._FORMAT = _BC._DEF-FORMAT THEN "?":U
+                                                                ELSE _BC._FORMAT
+           cLblBGCs            = cLblBGCs            + CHR(5) + IF _BC._LABEL-BGCOLOR = ? THEN "?":U
+                                                                ELSE STRING(_BC._LABEL-BGCOLOR)
+           cLblFGCs            = cLblFGCs            + CHR(5) + IF _BC._LABEL-FGCOLOR = ? THEN "?":U
+                                                                ELSE STRING(_BC._LABEL-FGCOLOR)
+           cLblFonts           = cLblFonts           + CHR(5) + IF _BC._LABEL-FONT = ? THEN "?":U
+                                                                ELSE STRING(_BC._LABEL-FONT)
+           cLabels             = cLabels             + CHR(5) + IF _BC._LABEL = _BC._DEF-LABEL THEN "?":U
+                                                                ELSE _BC._LABEL
+           cWidths             = cWidths             + CHR(5) + STRING(INTEGER(_BC._WIDTH))
+           cColTypes           = cColTypes           + CHR(5) + IF _BC._VIEW-AS-TYPE = ? OR _BC._VIEW-AS-TYPE = "?" OR _BC._VIEW-AS-TYPE = "Fi" OR _BC._VIEW-AS-TYPE = "" OR _BC._VIEW-AS-TYPE = "Fill-in":U THEN "?"
+                                                                ELSE IF _BC._VIEW-AS-TYPE = "DROP-DOWN":U THEN "DD":U
+                                                                ELSE IF _BC._VIEW-AS-TYPE = "DROP-DOWN-LIST":U THEN "DDL":U
+                                                                ELSE IF _BC._VIEW-AS-TYPE = "TOGGLE-BOX":U THEN "TB":U
+                                                                ELSE ""
+           cColDelimiters      = cColDelimiters      + CHR(5) + IF _BC._VIEW-AS-DELIMITER = ? OR _BC._VIEW-AS-DELIMITER = "" OR _BC._VIEW-AS-DELIMITER = "," THEN "?"
+                                                                ELSE _BC._VIEW-AS-DELIMITER
+           cColItems           = cColItems           + CHR(5) + IF _BC._VIEW-AS-ITEMS = ? OR _BC._VIEW-AS-ITEMS = "" THEN "?"
+                                                                ELSE REPLACE(_BC._VIEW-AS-ITEMS, CHR(10), _BC._VIEW-AS-DELIMITER)
+           cColItemPairs       = cColItemPairs       + CHR(5) + IF _BC._VIEW-AS-ITEM-PAIRS = ? OR _BC._VIEW-AS-ITEM-PAIRS = "" THEN "?"
+                                                                ELSE formatListItemPairs(_BC._VIEW-AS-ITEM-PAIRS, _BC._VIEW-AS-DELIMITER)
+           cColInnerLines      = cColInnerLines      + CHR(5) + IF _BC._VIEW-AS-INNER-LINES = 0 OR _BC._VIEW-AS-INNER-LINES = ? OR (NOT _BC._VIEW-AS-TYPE BEGINS "D" AND _BC._VIEW-AS-INNER-LINES = 5) THEN "?"
+                                                                ELSE STRING(_BC._VIEW-AS-INNER-LINES)
+           cColSorts           = cColSorts           + CHR(5) + IF _BC._VIEW-AS-SORT = NO THEN "?"
+                                                                ELSE "Y"
+           cColMaxChars        = cColMaxChars        + CHR(5) + IF _BC._VIEW-AS-MAX-CHARS = ? OR _BC._VIEW-AS-MAX-CHARS = 0 THEN "?"
+                                                                ELSE STRING(_BC._VIEW-AS-MAX-CHARS)
+           cColAutoCompletions = cColAutoCompletions + CHR(5) + IF _BC._VIEW-AS-AUTO-COMPLETION = NO OR _BC._VIEW-AS-AUTO-COMPLETION = ? THEN "?"
+                                                                ELSE "Y"
+           cColUniqueMatches   = cColUniqueMatches   + CHR(5) + IF _BC._VIEW-AS-UNIQUE-MATCH = NO OR _BC._VIEW-AS-UNIQUE-MATCH = ? THEN "?"
+                                                                ELSE "Y"
 
-           NumCols        = NumCols     + 1
-           iColBGCs       = iColBGCs    + IF _BC._BGCOLOR = ?              THEN 0 ELSE 1
-           iColFGCs       = iColFGCs    + IF _BC._FGCOLOR = ?              THEN 0 ELSE 1
-           iColFonts      = iColFonts   + IF _BC._FONT = ?                 THEN 0 ELSE 1
-           iColFormats    = iColFormats + IF _BC._FORMAT = _BC._DEF-FORMAT THEN 0 ELSE 1
-           iLblBGCs       = iLblBGCs    + IF _BC._LABEL-BGCOLOR = ?        THEN 0 ELSE 1
-           iLblFGCs       = iLblFGCs    + IF _BC._LABEL-FGCOLOR = ?        THEN 0 ELSE 1
-           iLblFonts      = iLblFonts   + IF _BC._LABEL-FONT = ?           THEN 0 ELSE 1
-           iLabels        = iLabels     + IF _BC._LABEL = _BC._DEF-LABEL   THEN 0 ELSE 1
+           NumCols             = NumCols             + 1
+           iColBGCs            = iColBGCs            + IF _BC._BGCOLOR = ?              THEN 0 ELSE 1
+           iColFGCs            = iColFGCs            + IF _BC._FGCOLOR = ?              THEN 0 ELSE 1
+           iColFonts           = iColFonts           + IF _BC._FONT = ?                 THEN 0 ELSE 1
+           iColFormats         = iColFormats         + IF _BC._FORMAT = _BC._DEF-FORMAT THEN 0 ELSE 1
+           iLblBGCs            = iLblBGCs            + IF _BC._LABEL-BGCOLOR = ?        THEN 0 ELSE 1
+           iLblFGCs            = iLblFGCs            + IF _BC._LABEL-FGCOLOR = ?        THEN 0 ELSE 1
+           iLblFonts           = iLblFonts           + IF _BC._LABEL-FONT = ?           THEN 0 ELSE 1
+           iLabels             = iLabels             + IF _BC._LABEL = _BC._DEF-LABEL   THEN 0 ELSE 1
+           iColTypes           = iColTypes           + IF _BC._VIEW-AS-TYPE = ? OR _BC._VIEW-AS-TYPE = "?" OR _BC._VIEW-AS-TYPE = "" OR _BC._VIEW-AS-TYPE = "FI":U OR _BC._VIEW-AS-TYPE = "FILL-IN":U THEN 0 ELSE 1
+           iColDelimiters      = iColDelimiters      + IF _BC._VIEW-AS-DELIMITER = "," OR _BC._VIEW-AS-DELIMITER = "" OR _BC._VIEW-AS-DELIMITER = ? OR _BC._VIEW-AS-DELIMITER = "?" THEN 0 ELSE 1
+           iColItems           = iColItems           + IF _BC._VIEW-AS-ITEMS = ? OR _BC._VIEW-AS-ITEMS = "" THEN 0 ELSE 1
+           iColItemPairs       = iColItemPairs       + IF _BC._VIEW-AS-ITEM-PAIRS = ? OR _BC._VIEW-AS-ITEM-PAIRS = "" THEN 0  ELSE 1
+           iColInnerLines      = iColInnerLines      + IF _BC._VIEW-AS-INNER-LINES = 0 OR _BC._VIEW-AS-INNER-LINES = ? OR (NOT _BC._VIEW-AS-TYPE BEGINS "D" AND _BC._VIEW-AS-INNER-LINES = 5) THEN 0 ELSE 1
+           iColSorts           = iColSorts           + IF _BC._VIEW-AS-SORT = NO THEN 0 ELSE 1
+           iColMaxChars        = iColMaxChars        + IF _BC._VIEW-AS-MAX-CHARS = ? OR _BC._VIEW-AS-MAX-CHARS = 0 THEN 0 ELSE 1
+           iColAutoCompletions = iColAutoCompletions + IF _BC._VIEW-AS-AUTO-COMPLETION = NO OR  _BC._VIEW-AS-AUTO-COMPLETION = ? THEN 0 ELSE 1
+           iColUniqueMatches   = iColUniqueMatches   + IF _BC._VIEW-AS-UNIQUE-MATCH = NO OR  _BC._VIEW-AS-UNIQUE-MATCH = ? THEN 0 ELSE 1
            .
+
   END.   /* Have looped through the fields and collected all of the info */
 
   /* Now TRIM and blank out all output parameters that are all defaults */
 
-  ASSIGN fldList        = LEFT-TRIM(fldList, ",":U)
-         cEnabledFields = LEFT-TRIM(cEnabledFields, ",":U)
-         cColBGCs       = IF iColBGCs    GT 0 THEN SUBSTRING(cColBGCs,2,-1,"CHARACTER")    ELSE "":U
-         cColFGCs       = IF iColFGCs    GT 0 THEN SUBSTRING(cColFGCs,2,-1,"CHARACTER")    ELSE "":U
-         cColFonts      = IF iColFonts   GT 0 THEN SUBSTRING(cColFonts,2,-1,"CHARACTER")   ELSE "":U
-         cColFormats    = IF iColFormats GT 0 THEN SUBSTRING(cColFormats,2,-1,"CHARACTER") ELSE "":U
-         cLblBGCs       = IF iLblBGCs    GT 0 THEN SUBSTRING(cLblBGCs,2,-1,"CHARACTER")    ELSE "":U
-         cLblFGCs       = IF iLblFGCs    GT 0 THEN SUBSTRING(cLblFGCs,2,-1,"CHARACTER")    ELSE "":U
-         cLblFonts      = IF iLblFonts   GT 0 THEN SUBSTRING(cLblFonts,2,-1,"CHARACTER")   ELSE "":U
-         cLabels        = IF iLabels     GT 0 THEN SUBSTRING(cLabels,2,-1,"CHARACTER")     ELSE "":U
-         cWidths        = SUBSTRING(cWidths,2,-1,"CHARACTER").
+  ASSIGN fldList             = LEFT-TRIM(fldList, ",":U)
+         cEnabledFields      = LEFT-TRIM(cEnabledFields, ",":U)
+         cColBGCs            = IF iColBGCs              GT 0 THEN SUBSTRING(cColBGCs,2,-1,           "CHARACTER") ELSE "":U
+         cColFGCs            = IF iColFGCs              GT 0 THEN SUBSTRING(cColFGCs,2,-1,           "CHARACTER") ELSE "":U
+         cColFonts           = IF iColFonts             GT 0 THEN SUBSTRING(cColFonts,2,-1,          "CHARACTER") ELSE "":U
+         cColFormats         = IF iColFormats           GT 0 THEN SUBSTRING(cColFormats,2,-1,        "CHARACTER") ELSE "":U
+         cLblBGCs            = IF iLblBGCs              GT 0 THEN SUBSTRING(cLblBGCs,2,-1,           "CHARACTER") ELSE "":U
+         cLblFGCs            = IF iLblFGCs              GT 0 THEN SUBSTRING(cLblFGCs,2,-1,           "CHARACTER") ELSE "":U
+         cLblFonts           = IF iLblFonts             GT 0 THEN SUBSTRING(cLblFonts,2,-1,          "CHARACTER") ELSE "":U
+         cLabels             = IF iLabels               GT 0 THEN SUBSTRING(cLabels,2,-1,            "CHARACTER") ELSE "":U
+         cColTypes           = IF iColTypes             GT 0 THEN SUBSTRING(cColTypes,2,-1,          "CHARACTER") ELSE "":U
+         cColDelimiters      = IF iColDelimiters        GT 0 THEN SUBSTRING(cColDelimiters,2,-1,     "CHARACTER") ELSE "":U
+         cColItems           = IF iColItems             GT 0 THEN SUBSTRING(cColItems,2,-1,          "CHARACTER") ELSE "":U
+         cColItemPairs       = IF iColItemPairs         GT 0 THEN SUBSTRING(cColItemPairs,2,-1,      "CHARACTER") ELSE "":U
+         cColInnerLines      = IF iColInnerLines        GT 0 THEN SUBSTRING(cColInnerLines,2,-1,     "CHARACTER") ELSE "":U
+         cColSorts           = IF iColSorts             GT 0 THEN SUBSTRING(cColSorts,2,-1,          "CHARACTER") ELSE "":U
+         cColMaxChars        = IF iColMaxChars          GT 0 THEN SUBSTRING(cColMaxChars,2,-1,       "CHARACTER") ELSE "":U
+         cColAutoCompletions = IF iColAutoCompletions   GT 0 THEN SUBSTRING(cColAutoCompletions,2,-1,"CHARACTER") ELSE "":U
+         cColUniqueMatches   = IF iColUniqueMatches     GT 0 THEN SUBSTRING(cColUniqueMatches,2,-1,  "CHARACTER") ELSE "":U
+         cWidths             = SUBSTRING(cWidths,2,-1,"CHARACTER").
          .
     
 END PROCEDURE.
@@ -3791,6 +3870,8 @@ PROCEDURE setDataObjectAttributes :
  DEFINE VARIABLE cDummy                   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cError                   AS CHARACTER  NO-UNDO.
 
+DEFINE VARIABLE cDataBasesInQuery         AS CHARACTER  NO-UNDO.
+
  DEFINE BUFFER b_U FOR _U.
  DEFINE BUFFER b_TT FOR _TT.
 
@@ -3942,15 +4023,23 @@ PROCEDURE setDataObjectAttributes :
      IF change-to-blank THEN cQBWhereClauses = "":U.
  END.   /* If cQBWhereClauses NE "" */
 
+ /*_Q._TblList is stored in the way: database1.table1,database2.table2 of database1.table1,
+   using that string we get the databases used in the query and store them in the cDataBasesInQuery variable*/
+ DO i = 1 TO NUM-ENTRIES(_Q._TblList,","):
+      cDataBasesInQuery = cDataBasesInQuery + "," + ENTRY(1,ENTRY(1,ENTRY(i,_Q._TblList,",")," "), ".").
+ END.
+
+ ASSIGN cDataBasesInQuery = TRIM(cDataBasesInQuery, ",").
+ 
  /* Need to strip DB name from base query if suppress_dbname is Yes and dbName is temp-db or temp-tables*/
  cBaseQuery = "FOR":U.
  DO i = 1 TO NUM-ENTRIES(_Q._4GLQury," ":U):
    cToken = ENTRY(i, _Q._4GLQury, " ":U).
    IF NUM-ENTRIES(cToken,".":U) = 2 AND
-     LOOKUP(ENTRY(1, cToken, ".":U), cQBFieldDBNames) > 0 THEN 
+     LOOKUP(ENTRY(1, cToken, ".":U), cDataBasesInQuery) > 0 THEN 
          cToken = db-tbl-name(cToken). 
    ELSE IF NUM-ENTRIES(cToken,".":U) = 3 AND
-     LOOKUP(ENTRY(1, cToken, ".":U), cQBFieldDBNames) > 0 THEN
+     LOOKUP(ENTRY(1, cToken, ".":U), cDataBasesInQuery) > 0 THEN
        cToken =  db-tbl-name(ENTRY(1, cToken, ".":U) + ".":U + ENTRY(2, cToken, ".":U))
                   + ".":U + ENTRY(3, cToken, ".":U).
                 
@@ -4591,17 +4680,27 @@ PROCEDURE setObjectMasterAttributes :
  DEFINE INPUT  PARAMETER pdObj       AS DECIMAL              NO-UNDO.
  DEFINE INPUT  PARAMETER pcLayout    AS CHARACTER            NO-UNDO.
 
- DEFINE VARIABLE cBrowseFields         AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cEnabledFields        AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColBGColors      AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColFGColors      AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColFonts         AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColFormats       AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColLabelBGColors AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColLabelFGColors AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColLabelFonts    AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColLabels        AS CHARACTER               NO-UNDO.
- DEFINE VARIABLE cBrwsColWidths        AS CHARACTER               NO-UNDO.
+ DEFINE VARIABLE cBrowseFields           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cEnabledFields          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColBGColors        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColFGColors        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColFonts           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColFormats         AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColLabelBGColors   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColLabelFGColors   AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColLabelFonts      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColLabels          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColWidths          AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColTypes           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColDelimiters      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColItems           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColItemPairs       AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColInnerLines      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColSorts           AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColMaxChars        AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColAutoCompletions AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cBrwsColUniqueMatches   AS CHARACTER  NO-UNDO.
+
  DEFINE VARIABLE hPropBuffer           AS HANDLE                  NO-UNDO.
  DEFINE VARIABLE hPropLib              AS HANDLE                  NO-UNDO.
  DEFINE VARIABLE cResultCode           AS CHARACTER               NO-UNDO.
@@ -4654,12 +4753,16 @@ PROCEDURE setObjectMasterAttributes :
     IF gcClassName = "DynBrow":U THEN /* if a browser */
     DO:
        RUN collectBrowseColumns( INPUT prRecid,
-                                 OUTPUT cBrowseFields,        OUTPUT cEnabledFields,
-                                 OUTPUT cBrwsColBGColors,     OUTPUT cBrwsColFGColors,
-                                 OUTPUT cBrwsColFonts,        OUTPUT cBrwsColFormats,
-                                 OUTPUT cBrwsColLabelBGColors,OUTPUT cBrwsColLabelFGColors,
-                                 OUTPUT cBrwsColLabelFonts,   OUTPUT cBrwsColLabels,
-                                 OUTPUT cBrwsColWidths).
+                                 OUTPUT cBrowseFields,           OUTPUT cEnabledFields,
+                                 OUTPUT cBrwsColBGColors,        OUTPUT cBrwsColFGColors,
+                                 OUTPUT cBrwsColFonts,           OUTPUT cBrwsColFormats,
+                                 OUTPUT cBrwsColLabelBGColors,   OUTPUT cBrwsColLabelFGColors,
+                                 OUTPUT cBrwsColLabelFonts,      OUTPUT cBrwsColLabels,
+                                 OUTPUT cBrwsColWidths,          OUTPUT cBrwsColTypes,
+                                 OUTPUT cBrwsColDelimiters,      OUTPUT cBrwsColItems,
+                                 OUTPUT cBrwsColItemPairs,       OUTPUT cBrwsColInnerLines,
+                                 OUTPUT cBrwsColSorts,           OUTPUT cBrwsColMaxChars,
+                                 OUTPUT cBrwsColAutoCompletions, OUTPUT cBrwsColUniqueMatches).
 
        IF glMigration AND cEnabledFields EQ "":U THEN
            ASSIGN cEnabledFields = cBrowseFields.
@@ -4811,7 +4914,25 @@ PROCEDURE setObjectMasterAttributes :
             setAttributeChar("MASTER":U, b_U._TOOLTIP,cLabel,cValue,pdObj).
           WHEN "WindowTitleField":U THEN 
               setAttributeChar("MASTER":U,_C._WINDOW-TITLE-FIELD,cLabel,cValue,pdObj).
-           
+          WHEN "BrowseColumnTypes":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColTypes,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnDelimiters":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColDelimiters,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnItems":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColItems,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnItemPairs":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColItemPairs,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnInnerLines":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColInnerLines,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnSorts":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColSorts,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnMaxChars":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColMaxChars,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnAutoCompletions":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColAutoCompletions,cLabel,cValue,pdObj).
+          WHEN "BrowseColumnUniqueMatches":U THEN 
+              setAttributeChar("MASTER":U,cBrwsColUniqueMatches,cLabel,cValue,pdObj).
+
        END CASE.
     END. /* For each ttClassAttribtue */
  END.
@@ -5645,7 +5766,7 @@ PROCEDURE writeObjectToRepository :
                          IF _P.Object_type_code > '' THEN _P.Object_type_code  ELSE  _P._TYPE)
         gcObjClassType = gcClassName.
 
- /* If migrating code, set global variables for superprocedure and Super options */
+/* If migrating code, set global variables for superprocedure and Super options */
  IF glMigration THEN
     setMigrationPreferences().
 
@@ -5654,7 +5775,7 @@ PROCEDURE writeObjectToRepository :
         gcObjClassType      = IF NOT glMigration AND _P.Object_type_code > "" 
                               THEN _P.Object_type_code ELSE gcObjClassType
         gcContainer         = _P.object_filename
-        cTemp              = REPLACE(_P._SAVE-AS-FILE,"~\":U,"/":U)
+        cTemp               = REPLACE(_P._SAVE-AS-FILE,"~\":U,"/":U)
         gcObjectDescription = IF _P.object_description = ""
                               THEN ( "Dynamic " +
                                    (IF _P._TYPE = 'SmartDataObject':U AND _p._db-aware = FALSE 
@@ -6122,6 +6243,39 @@ FUNCTION checkCustomChanges RETURNS CHARACTER
   END.
   
   RETURN cAttrDiffs.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-formatListItemPairs) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formatListItemPairs Procedure 
+FUNCTION formatListItemPairs RETURNS CHARACTER
+  (INPUT pcItems     AS CHARACTER,
+   INPUT pcDelimiter AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: Replaces the CHR(10) in the editor with the delimiter. Then that value
+           is written in the file.
+    Notes:  
+------------------------------------------------------------------------------*/
+DEFINE VARIABLE cListItemPairs AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cItem          AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE iItem          AS INTEGER     NO-UNDO.
+
+/*Each line (item) in the editor could finish with the delimiter or without it, so we
+  add the delimiter if it is not pressent*/
+REPEAT iItem = 1 TO NUM-ENTRIES(pcItems, CHR(10)):
+       ASSIGN cItem          = ENTRY(iItem, pcItems, CHR(10))
+              cListItemPairs = cListItemPairs + cItem +
+              IF SUBSTRING(cItem, LENGTH(cItem), 1) = pcDelimiter THEN "" ELSE pcDelimiter.
+END.
+
+ASSIGN cListItemPairs = TRIM(cListItemPairs, pcDelimiter).
+
+RETURN cListItemPairs.   /* Function return value. */
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

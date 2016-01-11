@@ -1,25 +1,10 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
+
 
 /* This doesn't compile on Windows, but we don't need it there so
    just ifdef the whole thing out.
@@ -107,16 +92,16 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 28 NO-UNDO INITIAL [
   /* 1*/ "This field is used in a View - cannot delete.",
   /* 2*/ "This field is used in an Index - cannot delete.",
   /* 3*/ "Are you sure that you want to delete the field named",
-  /* 4*/ "This is a PROGRESS/SQL table.  Use ALTER TABLE/DROP COLUMN.",
-  /* 5*/ "This is a PROGRESS/SQL table.  Use ALTER TABLE/ADD COLUMN.",
+  /* 4*/ "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/DROP COLUMN.",
+  /* 5*/ "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/ADD COLUMN.",
   /* 6*/ ?, /* see below */
-  /* 7*/ "You can only use Copy on native PROGRESS tables.",
+  /* 7*/ "You can only use Copy on native {&PRO_DISPLAY_NAME} tables.",
   /* 8*/ "Reserved for future expansion.",
   /* 9*/ "You have reached the last field in the table.",
   /*10*/ "You have reached the first field in the table.",
   /*11*/ "This operation is not supported on this table type.",
   /*12*/ "The dictionary is in read-only mode - alterations not allowed.",
-  /*13*/ "The field name you supplied is not a legal PROGRESS identifier.",
+  /*13*/ "The field name you supplied is not a legal {&PRO_DISPLAY_NAME} identifier.",
   /*14*/ "Currently Defined Fields",
   /*15*/ "Total Fields",
   /*16*/ "You cannot add fields here for this type of table definition.",
@@ -131,7 +116,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 28 NO-UNDO INITIAL [
   /*25*/ "Fields are now shown", /* goes with 26 and 27 */
   /*26*/ "alphabetically.",
   /*27*/ "by Order number.",
-  /*28*/ "This is a PROGRESS/SQL92 table cannot be modified."
+  /*28*/ "This is a {&PRO_DISPLAY_NAME}/SQL92 table cannot be modified."
 ].
 
 new_lang[6] = "Are you sure that you want to undo all changes since the "

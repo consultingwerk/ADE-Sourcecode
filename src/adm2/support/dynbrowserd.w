@@ -3,12 +3,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Attribute-Dlg
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Attribute-Dlg 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: dynbrowserd.w 
@@ -41,6 +41,21 @@
   DEFINE VARIABLE ghDataSource      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE ghSDO             AS HANDLE    NO-UNDO.
 
+  /*Used in rebuildViewAsProperties to store the view-as property
+    values for the old displayed fields.*/
+  DEFINE TEMP-TABLE ttViewAsProperties NO-UNDO
+    FIELD cField          AS CHARACTER INITIAL ?
+    FIELD cType           AS CHARACTER INITIAL ?
+    FIELD cDelimiter      AS CHARACTER INITIAL ?
+    FIELD cItems          AS CHARACTER INITIAL ?
+    FIELD cItemPairs      AS CHARACTER INITIAL ?
+    FIELD cInnerLines     AS CHARACTER INITIAL ?
+    FIELD cMaxChars       AS CHARACTER INITIAL ?
+    FIELD cSort           AS CHARACTER INITIAL ?
+    FIELD cAutoCompletion AS CHARACTER INITIAL ?
+    FIELD cUniqueMatch    AS CHARACTER INITIAL ?
+    INDEX xField AS PRIMARY UNIQUE cField.
+
 &SCOPED-DEFINE NoValue '<none>':U 
 /* Define the value of the "No Layout Options" supplied. */
 &Scoped-define no-layout [default]
@@ -61,10 +76,10 @@
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS l_Enable l_View l_calcWidth i_numdown ~
-l_ScrollRemote l_FetchOnReposToEnd 
+l_ScrollRemote l_FetchOnReposToEnd lUseSortIndicator 
 &Scoped-Define DISPLAYED-OBJECTS c_SDOList c_SearchField l_Enable l_View ~
 l_calcWidth c_Layout i_numdown i_maxWidth l_ScrollRemote ~
-l_FetchOnReposToEnd 
+l_FetchOnReposToEnd lUseSortIndicator 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -89,6 +104,13 @@ FUNCTION populateSearchField RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setViewAsButton Attribute-Dlg 
+FUNCTION setViewAsButton RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -96,12 +118,16 @@ FUNCTION populateSearchField RETURNS LOGICAL
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON Displayed-Btn 
-     LABEL "Edit &Displayed field list" 
+     LABEL "Edit &displayed field list..." 
      SIZE 25 BY 1.14.
 
 DEFINE BUTTON Enabled-Btn 
-     LABEL "Edit E&nabled field list" 
+     LABEL "Edit e&nabled field list..." 
      SIZE 25 BY 1.14.
+
+DEFINE BUTTON Viewas-Btn 
+     LABEL "View-as" 
+     SIZE 13 BY 1.14 TOOLTIP "Browse Column View-as properties".
 
 DEFINE VARIABLE c_Layout AS CHARACTER FORMAT "X(256)":U 
      LABEL "&Layout" 
@@ -122,7 +148,7 @@ DEFINE VARIABLE c_SearchField AS CHARACTER FORMAT "X(256)":U
      SIZE 21 BY 1 NO-UNDO.
 
 DEFINE VARIABLE i_maxWidth AS DECIMAL FORMAT "->>,>>9.99":U INITIAL 0 
-     LABEL "&Max Width" 
+     LABEL "&Max width" 
      VIEW-AS FILL-IN 
      SIZE 12 BY 1 NO-UNDO.
 
@@ -131,8 +157,13 @@ DEFINE VARIABLE i_numdown AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0
      VIEW-AS FILL-IN 
      SIZE 7.2 BY 1 NO-UNDO.
 
+DEFINE VARIABLE lUseSortIndicator AS LOGICAL INITIAL no 
+     LABEL "&Show sort indicator" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 31 BY .86 NO-UNDO.
+
 DEFINE VARIABLE l_calcWidth AS LOGICAL INITIAL no 
-     LABEL "&Calculate Width" 
+     LABEL "&Calculate width" 
      VIEW-AS TOGGLE-BOX
      SIZE 20.2 BY .86 NO-UNDO.
 
@@ -142,12 +173,12 @@ DEFINE VARIABLE l_Enable AS LOGICAL INITIAL no
      SIZE 20 BY .86 NO-UNDO.
 
 DEFINE VARIABLE l_FetchOnReposToEnd AS LOGICAL INITIAL no 
-     LABEL "&Fetch Data to Fill Browse on Reposition to End of Batch" 
+     LABEL "&Fetch data to fill browse on reposition to end of batch" 
      VIEW-AS TOGGLE-BOX
      SIZE 58.6 BY .86 NO-UNDO.
 
 DEFINE VARIABLE l_ScrollRemote AS LOGICAL INITIAL no 
-     LABEL "&Scroll Remote Results List" 
+     LABEL "&Scroll remote results List" 
      VIEW-AS TOGGLE-BOX
      SIZE 31 BY .86 NO-UNDO.
 
@@ -160,6 +191,7 @@ DEFINE VARIABLE l_View AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
+     Viewas-Btn AT ROW 4.33 COL 51 WIDGET-ID 2
      c_SDOList AT ROW 2.67 COL 33.2 COLON-ALIGNED
      Displayed-Btn AT ROW 4.33 COL 3
      Enabled-Btn AT ROW 5.76 COL 3
@@ -170,22 +202,23 @@ DEFINE FRAME Attribute-Dlg
      c_Layout AT ROW 10.43 COL 33.2 COLON-ALIGNED
      i_numdown AT ROW 11.62 COL 33.2 COLON-ALIGNED
      i_maxWidth AT ROW 12.81 COL 33.2 COLON-ALIGNED
-     l_ScrollRemote AT ROW 14.05 COL 2.8
-     l_FetchOnReposToEnd AT ROW 15.1 COL 2.8
-     "  Behavior During 'Initialize'" VIEW-AS TEXT
+     l_ScrollRemote AT ROW 14.1 COL 2.8
+     l_FetchOnReposToEnd AT ROW 15.19 COL 2.8
+     lUseSortIndicator AT ROW 16.29 COL 2.8 WIDGET-ID 4
+     "  Behavior" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 9.57 COL 2
           BGCOLOR 1 FGCOLOR 15 
      "  (Default is all fields)" VIEW-AS TEXT
-          SIZE 31 BY .62 AT ROW 4.57 COL 30
-     "  (Default is all Updatable fields)" VIEW-AS TEXT
+          SIZE 20 BY .62 AT ROW 4.57 COL 30
+     "  (Default is all updatable fields)" VIEW-AS TEXT
           SIZE 31 BY .62 AT ROW 6 COL 30
      "  SmartDataObject fields to display and enable" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 1.24 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     "  Allow Reposition using a Search Field" VIEW-AS TEXT
+     "  Allow reposition using a search field" VIEW-AS TEXT
           SIZE 62 BY .62 AT ROW 7.19 COL 2
           BGCOLOR 1 FGCOLOR 15 
-     SPACE(0.19) SKIP(8.15)
+     SPACE(0.19) SKIP(9.37)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Dynamic SmartDataBrowser Properties":L.
@@ -223,6 +256,8 @@ ASSIGN
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN i_maxWidth IN FRAME Attribute-Dlg
    NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON Viewas-Btn IN FRAME Attribute-Dlg
+   NO-ENABLE                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -255,13 +290,14 @@ DO:
   ASSIGN l_Enable l_View c_SearchField l_ScrollRemote l_FetchOnReposToEnd
          c_Layout = c_Layout:SCREEN-VALUE WHEN c_Layout:SENSITIVE
          i_NumDown l_CalcWidth i_MaxWidth.
-         
+
   DYNAMIC-FUNC("setDisableOnInit":U IN p_hSMO, INPUT NOT l_Enable) NO-ERROR.
   DYNAMIC-FUNC("setHideOnInit":U IN p_hSMO, INPUT NOT l_View) NO-ERROR.
   DYNAMIC-FUNC("setDisplayedFields":U IN p_hSMO, INPUT gcDisplayedFields) NO-ERROR.
   DYNAMIC-FUNC("setScrollRemote":U IN p_hSMO, INPUT l_ScrollRemote) NO-ERROR.
   DYNAMIC-FUNC("setEnabledFields":U IN p_hSMO, INPUT gcEnabledFields) NO-ERROR.
   DYNAMIC-FUNC("setFetchOnReposToEnd":U IN p_hSMO,l_FetchOnReposToEnd) NO-ERROR.
+  DYNAMIC-FUNC("setUseSortIndicator":U IN p_hSMO,lUseSortIndicator) NO-ERROR.
 
   cObjectName = DYNAMIC-FUNCTION('getObjectName' IN ghSDO) NO-ERROR.
   
@@ -285,7 +321,8 @@ DO:
   DYNAMIC-FUNC("setNumDown":U IN p_hSMO, INPUT i_NumDown) NO-ERROR.
   DYNAMIC-FUNC("setCalcWidth":U IN p_hSMO, INPUT l_CalcWidth) NO-ERROR.
   DYNAMIC-FUNC("setMaxWidth":U IN p_hSMO, INPUT i_MaxWidth) NO-ERROR.
-  
+
+
   /* repaint */
   IF colddisp <> gcDisplayedFields THEN
   DO:
@@ -328,13 +365,14 @@ END.
 
 &Scoped-define SELF-NAME Displayed-Btn
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Displayed-Btn Attribute-Dlg
-ON CHOOSE OF Displayed-Btn IN FRAME Attribute-Dlg /* Edit Displayed field list */
+ON CHOOSE OF Displayed-Btn IN FRAME Attribute-Dlg /* Edit displayed field list... */
 DO:
   DEFINE VARIABLE iEntry       AS INTEGER   NO-UNDO.
   DEFINE VARIABLE cField       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cDataColumns AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSortTables  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cExclude     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cOldFields AS CHARACTER   NO-UNDO.
 
   IF VALID-HANDLE(ghSDO) THEN    
   DO:
@@ -349,6 +387,8 @@ DO:
                  + cField.
     END.   /* END DO iEntry */
 
+    ASSIGN cOldFields = gcDisplayedFields.
+
     RUN adecomm/_mfldsel.p
      (INPUT "":U,     /* Use an SDO, not db tables */
       INPUT ghSDO,     /* handle of the SDO */
@@ -357,8 +397,18 @@ DO:
       INPUT ",":U,    /* list delimiter */
       INPUT cExclude,     /* exclude field list */
       INPUT-OUTPUT gcDisplayedFields).
-  
+
+    /*Set the sensitive status of the view-as button. If not fields are selected, this
+      button cannot be selected*/
+    setViewAsButton().
+    
     RUN removeLargeObjects(INPUT-OUTPUT gcDisplayedFields).
+
+    /*If this is not the first time that fields are selected (cOldFields ne "") and
+      if the displayed field list was modified (cOldFields NE gcDisplayedFields)
+      we have to rebuild the view-as property lists.*/
+    IF cOldFields NE "" AND cOldFields NE gcDisplayedFields THEN
+        RUN rebuildViewAsProperties (INPUT cOldFields).
 
     /* If any fields were removed from the display list, then we need to make
        sure they are no longer in the enable list. */
@@ -386,7 +436,7 @@ END.
 
 &Scoped-define SELF-NAME Enabled-Btn
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Enabled-Btn Attribute-Dlg
-ON CHOOSE OF Enabled-Btn IN FRAME Attribute-Dlg /* Edit Enabled field list */
+ON CHOOSE OF Enabled-Btn IN FRAME Attribute-Dlg /* Edit enabled field list... */
 DO:
     DEFINE VARIABLE cUpdatable AS CHARACTER NO-UNDO.
     DEFINE VARIABLE cExclude   AS CHARACTER NO-UNDO.
@@ -432,9 +482,21 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME lUseSortIndicator
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUseSortIndicator Attribute-Dlg
+ON VALUE-CHANGED OF lUseSortIndicator IN FRAME Attribute-Dlg /* Show sort indicator */
+DO:
+  ASSIGN lUseSortIndicator.
+  
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME l_calcWidth
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_calcWidth Attribute-Dlg
-ON VALUE-CHANGED OF l_calcWidth IN FRAME Attribute-Dlg /* Calculate Width */
+ON VALUE-CHANGED OF l_calcWidth IN FRAME Attribute-Dlg /* Calculate width */
 DO:
   ASSIGN l_CalcWidth.
   i_MaxWidth:SENSITIVE = l_CalcWidth. 
@@ -446,7 +508,7 @@ END.
 
 &Scoped-define SELF-NAME l_FetchOnReposToEnd
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_FetchOnReposToEnd Attribute-Dlg
-ON VALUE-CHANGED OF l_FetchOnReposToEnd IN FRAME Attribute-Dlg /* Fetch Data to Fill Browse on Reposition to End of Batch */
+ON VALUE-CHANGED OF l_FetchOnReposToEnd IN FRAME Attribute-Dlg /* Fetch data to fill browse on reposition to end of batch */
 DO:
   ASSIGN l_ScrollRemote.
   
@@ -458,10 +520,85 @@ END.
 
 &Scoped-define SELF-NAME l_ScrollRemote
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_ScrollRemote Attribute-Dlg
-ON VALUE-CHANGED OF l_ScrollRemote IN FRAME Attribute-Dlg /* Scroll Remote Results List */
+ON VALUE-CHANGED OF l_ScrollRemote IN FRAME Attribute-Dlg /* Scroll remote results List */
 DO:
   ASSIGN l_ScrollRemote.
   
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME Viewas-Btn
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Viewas-Btn Attribute-Dlg
+ON CHOOSE OF Viewas-Btn IN FRAME Attribute-Dlg /* View-as */
+DO:
+DEFINE VARIABLE cDataTypes             AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cFieldFormats          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnTypes           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnDelimiters      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnItems           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnItemPairs       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnInnerLines      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnMaxChars        AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnSorts           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnAutoCompletions AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnUniqueMatches   AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE cCancel AS LOGICAL     NO-UNDO.
+
+DEFINE VARIABLE iField  AS INTEGER     NO-UNDO.
+DEFINE VARIABLE iFields AS INTEGER     NO-UNDO.
+DEFINE VARIABLE cField  AS CHARACTER   NO-UNDO.
+
+ASSIGN cColumnTypes           = DYNAMIC-FUNCTION('getBrowseColumnTypes':U           IN p_hsmo)
+       cColumnDelimiters      = DYNAMIC-FUNCTION('getBrowseColumnDelimiters':U      IN p_hsmo)
+       cColumnItems           = DYNAMIC-FUNCTION('getBrowseColumnItems':U           IN p_hsmo)
+       cColumnItemPairs       = DYNAMIC-FUNCTION('getBrowseColumnItemPairs':U       IN p_hsmo)
+       cColumnInnerLines      = DYNAMIC-FUNCTION('getBrowseColumnInnerLines':U      IN p_hsmo)
+       cColumnMaxChars        = DYNAMIC-FUNCTION('getBrowseColumnMaxChars':U        IN p_hsmo)
+       cColumnSorts           = DYNAMIC-FUNCTION('getBrowseColumnSorts':U           IN p_hsmo)
+       cColumnAutoCompletions = DYNAMIC-FUNCTION('getBrowseColumnAutoCompletions':U IN p_hsmo)
+       cColumnUniqueMatches   = DYNAMIC-FUNCTION('getBrowseColumnUniqueMatches':U   IN p_hsmo)
+       iFields                = NUM-ENTRIES(gcDisplayedFields).
+
+/*Builds the field format and data-type values*/
+DO iField = 1 TO iFields:
+    ASSIGN cField        = ENTRY(iField, gcDisplayedFields)
+           cFieldFormats = cFieldFormats + DYNAMIC-FUNCTION('columnFormat':U   IN ghDataSource, INPUT cField) + ",":U
+           cDataTypes    = cDataTypes    + DYNAMIC-FUNCTION('columnDataType':U IN ghDataSource, INPUT cField) + ",":U.
+END.
+
+ASSIGN cFieldFormats = TRIM(cFieldFormats, ",":U)
+       cDataTypes    = TRIM(cDataTypes,    ",":U).
+
+RUN adecomm/_viewasd.w (INPUT gcDisplayedFields,
+                        INPUT cDataTypes,
+                        INPUT cFieldFormats,
+                        INPUT "SmartDataBrowser":U,
+                        INPUT-OUTPUT cColumnTypes,
+                        INPUT-OUTPUT cColumnDelimiters,
+                        INPUT-OUTPUT cColumnItems,
+                        INPUT-OUTPUT cColumnItemPairs,
+                        INPUT-OUTPUT cColumnInnerLines,
+                        INPUT-OUTPUT cColumnMaxChars,
+                        INPUT-OUTPUT cColumnSorts,
+                        INPUT-OUTPUT cColumnAutoCompletions,
+                        INPUT-OUTPUT cColumnUniqueMatches,
+                        OUTPUT cCancel).
+
+IF cCancel THEN RETURN NO-APPLY.
+
+DYNAMIC-FUNCTION('setBrowseColumnTypes':U           IN p_hsmo, INPUT cColumnTypes).
+DYNAMIC-FUNCTION('setBrowseColumnDelimiters':U      IN p_hsmo, INPUT cColumnDelimiters).
+DYNAMIC-FUNCTION('setBrowseColumnItems':U           IN p_hsmo, INPUT REPLACE(cColumnItems, CHR(10), "")).
+DYNAMIC-FUNCTION('setBrowseColumnItemPairs':U       IN p_hsmo, INPUT REPLACE(cColumnItemPairs, CHR(10), "")).
+DYNAMIC-FUNCTION('setBrowseColumnInnerLines':U      IN p_hsmo, INPUT cColumnInnerLines).
+DYNAMIC-FUNCTION('setBrowseColumnMaxChars':U        IN p_hsmo, INPUT cColumnMaxChars).
+DYNAMIC-FUNCTION('setBrowseColumnSorts':U           IN p_hsmo, INPUT cColumnSorts).
+DYNAMIC-FUNCTION('setBrowseColumnAutoCompletions':U IN p_hsmo, INPUT cColumnAutoCompletions).
+DYNAMIC-FUNCTION('setBrowseColumnUniqueMatches':U   IN p_hsmo, INPUT cColumnUniqueMatches).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -569,10 +706,10 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY c_SDOList c_SearchField l_Enable l_View l_calcWidth c_Layout i_numdown 
-          i_maxWidth l_ScrollRemote l_FetchOnReposToEnd 
+          i_maxWidth l_ScrollRemote l_FetchOnReposToEnd lUseSortIndicator 
       WITH FRAME Attribute-Dlg.
   ENABLE l_Enable l_View l_calcWidth i_numdown l_ScrollRemote 
-         l_FetchOnReposToEnd 
+         l_FetchOnReposToEnd lUseSortIndicator 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -614,6 +751,7 @@ PROCEDURE get-SmO-attributes :
     l_ScrollRemote = DYNAMIC-FUNC("getScrollRemote":U IN p_hSMO).
     l_FetchOnReposToEnd = DYNAMIC-FUNC("getFetchOnReposToEnd":U IN p_hSMO).
     cSourceName = DYNAMIC-FUNC("getDataSourceNames":U IN p_hSMO).
+    lUseSortIndicator = DYNAMIC-FUNC("getUseSortIndicator":U IN p_hSMO).
     
     /* MaxWidth needs be be enabled if CalcWidth is true */
     IF l_CalcWidth THEN 
@@ -714,9 +852,173 @@ PROCEDURE get-SmO-attributes :
     
     /* Build list of combo box values unless the Data Object is an SBO. */
     populateSearchField().   
-    
+
+    /*Set the sensitive status of the view-as button. If not fields are selected, this
+      button cannot be selected*/
+    setViewAsButton().
+
   END. /* DO WITH FRAME... */
   
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE rebuildViewAsProperties Attribute-Dlg 
+PROCEDURE rebuildViewAsProperties :
+/*------------------------------------------------------------------------------
+  Purpose: Rebuilds the view-as properties when the displayedField list is
+                   modified.     
+  Parameters:  <none>
+  
+  Notes: The displayedFields list can be modified in several ways: add, delete or
+         modify fields, or all of those togheter.
+         When the displayedFields list is modified, this procedure stores the
+         view-as property values in the ttViewAsProperties for each field in the
+         old list, and then rebuilds the view-as properties using the values
+         stored in the temp-table.
+------------------------------------------------------------------------------*/
+DEFINE INPUT  PARAMETER pcOldFields AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE iNumFields  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iProperty   AS INTEGER    NO-UNDO.
+
+DEFINE VARIABLE cPropertiesToLoad     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cPropertyValue        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cPropertyName         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cFieldValue           AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cColumnTypes           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cColumnDelimiters      AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnItems           AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnItemPairs       AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnInnerLines      AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnMaxChars        AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnSorts           AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnAutoCompletions AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cColumnUniqueMatches   AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE cCurrentField         AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCurrentType          AS CHARACTER  NO-UNDO.
+
+EMPTY TEMP-TABLE ttViewAsProperties.
+
+ASSIGN cColumnTypes           = DYNAMIC-FUNCTION('getBrowseColumnTypes':U           IN p_hsmo)
+       cColumnDelimiters      = DYNAMIC-FUNCTION('getBrowseColumnDelimiters':U      IN p_hsmo)
+       cColumnItems           = DYNAMIC-FUNCTION('getBrowseColumnItems':U           IN p_hsmo)
+       cColumnItemPairs       = DYNAMIC-FUNCTION('getBrowseColumnItemPairs':U       IN p_hsmo)
+       cColumnInnerLines      = DYNAMIC-FUNCTION('getBrowseColumnInnerLines':U      IN p_hsmo)
+       cColumnMaxChars        = DYNAMIC-FUNCTION('getBrowseColumnMaxChars':U        IN p_hsmo)
+       cColumnSorts           = DYNAMIC-FUNCTION('getBrowseColumnSorts':U           IN p_hsmo)
+       cColumnAutoCompletions = DYNAMIC-FUNCTION('getBrowseColumnAutoCompletions':U IN p_hsmo)
+       cColumnUniqueMatches   = DYNAMIC-FUNCTION('getBrowseColumnUniqueMatches':U   IN p_hsmo).
+
+/*Gets the browse column properties for the old fields list*/
+DO iNumFields = 1 TO NUM-ENTRIES(pcOldFields):
+
+    ASSIGN cCurrentField = ENTRY(iNumFields, pcOldFields).
+
+    /*All columns are fill-ins (defaults), so do nothing and return*/
+    IF cColumnTypes = "" OR cColumnTypes = ? THEN RETURN.
+
+    ASSIGN cCurrentType = ENTRY(iNumFields, cColumnTypes, CHR(5)).
+
+    /*If the browse column is a fill-in, all values are ? (null), so there is not
+      need to load those values*/
+    IF cCurrentType = "" OR cCurrentType = "FI":U OR cCurrentType = ? OR cCurrentType = "?" THEN NEXT.
+
+    CREATE ttViewAsProperties.
+    ASSIGN ttViewAsProperties.cField = cCurrentField
+           ttViewAsProperties.cType  = cCurrentType.
+
+    /*If the browse column is a toggle-box, the others fields does not matter*/
+    IF cCurrentType = "TB":U THEN NEXT. 
+
+    ASSIGN ttViewAsProperties.cItems          = (IF cColumnItems           NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnItems, CHR(5)) 
+                                                 ELSE ?)
+           ttViewAsProperties.cItemPairs      = (IF cColumnItemPairs       NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnItemPairs,CHR(5))
+                                                 ELSE ?)
+           ttViewAsProperties.cDelimiter      = (IF cColumnDelimiters      NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnDelimiters, CHR(5)) 
+                                                 ELSE ?)
+           ttViewAsProperties.cInnerLines     = (IF cColumnInnerLines      NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnInnerLines,     CHR(5))
+                                                 ELSE ?)
+           ttViewAsProperties.cMaxChars       = (IF cColumnMaxChars        NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnMaxChars,       CHR(5)) 
+                                                 ELSE ?)
+           ttViewAsProperties.cSort           = (IF cColumnSorts           NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnSorts, CHR(5)) 
+                                                 ELSE ?)
+           ttViewAsProperties.cAutoCompletion = (IF cColumnAutoCompletions NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnAutoCompletions, CHR(5))
+                                                 ELSE ?)
+           ttViewAsProperties.cUniqueMatch    = (IF cColumnUniqueMatches   NE "" 
+                                                 THEN ENTRY(iNumFields, cColumnUniqueMatches,CHR(5)) 
+                                                 ELSE ?)
+           .
+END. /* DO iNumFields = 1 TO NUM-ENTRIES(pcOldFields):*/
+
+/*Builds the list of properties to be restored*/
+IF cColumnTypes          NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnTypes":U + ",".
+IF cColumnDelimiters     NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnDelimiters":U + ",".
+IF cColumnItems          NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnItems":U + ",".
+IF cColumnItemPairs      NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnItemPairs":U + ",".
+IF cColumnInnerLines     NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnInnerLines":U + ",".
+IF cColumnMaxChars       NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnMaxChars":U + ",".
+IF cColumnSorts           NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnSorts":U + ",".
+IF cColumnAutoCompletions NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnAutoCompletions":U + ",".
+IF cColumnUniqueMatches    NE "" THEN
+   ASSIGN cPropertiesToLoad = cPropertiesToLoad + "BrowseColumnUniqueMatches":U + ",".
+
+  ASSIGN cPropertiesToLoad = TRIM(cPropertiesToLoad, ",").
+
+  /*Now builds the view-as property lists with the new displayed fields*/
+  DO iProperty = 1 TO NUM-ENTRIES(cPropertiesToLoad):
+
+    ASSIGN cPropertyName  = ENTRY(iProperty, cPropertiesToLoad)
+           cPropertyValue = "".
+
+    DO iNumFields = 1 TO NUM-ENTRIES(gcDisplayedFields):
+
+        ASSIGN cCurrentField = ENTRY(iNumFields, gcDisplayedFields).
+
+        FIND FIRST ttViewAsProperties NO-LOCK WHERE ttViewAsProperties.cField = cCurrentField NO-ERROR.
+
+        IF NOT AVAILABLE(ttViewAsProperties) THEN
+            ASSIGN cPropertyValue = cPropertyValue + "?" + CHR(5).
+        ELSE DO:
+            IF cPropertyName = "BrowseColumnTypes":U THEN 
+              ASSIGN cPropertyValue = cPropertyValue 
+                                    + ttViewAsProperties.cType + CHR(5).
+          
+          CASE cPropertyName:
+            WHEN "BrowseColumnDelimiters":U      THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cDelimiter      = ? THEN "?" ELSE ttViewAsProperties.cDelimiter)      + CHR(5).
+            WHEN "BrowseColumnItems":U           THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cItems          = ? THEN "?" ELSE ttViewAsProperties.cItems)          + CHR(5).
+            WHEN "BrowseColumnItemPairs":U       THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cItemPairs      = ? THEN "?" ELSE ttViewAsProperties.cItemPairs)      + CHR(5).
+            WHEN "BrowseColumnInnerLines":U      THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cInnerLines     = ? THEN "?" ELSE ttViewAsProperties.cInnerLines)     + CHR(5).
+            WHEN "BrowseColumnMaxChars":U        THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cMaxChars       = ? THEN "?" ELSE ttViewAsProperties.cMaxChars)       + CHR(5).
+            WHEN "BrowseColumnSorts":U           THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cSort           = ? THEN "?" ELSE ttViewAsProperties.cSort)           + CHR(5).
+            WHEN "BrowseColumnAutoCompletions":U THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cAutoCompletion = ? THEN "?" ELSE ttViewAsProperties.cAutoCompletion) + CHR(5).
+            WHEN "BrowseColumnUniqueMatches":U   THEN ASSIGN cPropertyValue = cPropertyValue + (IF ttViewAsProperties.cUniqueMatch    = ? THEN "?" ELSE ttViewAsProperties.cUniqueMatch)    + CHR(5).
+          END CASE.
+        END.
+    END. /* DO iField = 1 TO NUM-ENTRIES(gcDisplayedFields):*/
+
+    ASSIGN cPropertyValue = TRIM(cPropertyValue, CHR(5)).
+
+    DYNAMIC-FUNCTION('set':U + cPropertyName IN p_hsmo, INPUT cPropertyValue).
+  END. /* DO iProperty = 1 TO NUM-ENTRIES(cPropertiesToLoad):*/
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -834,6 +1136,25 @@ FUNCTION populateSearchField RETURNS LOGICAL
     END.         /* END DO IF DataSOurce = SDO */
     ELSE c_SearchField:SENSITIVE = NO.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setViewAsButton Attribute-Dlg 
+FUNCTION setViewAsButton RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+IF gcDisplayedFields = "":U OR gcDisplayedFields = ? OR NOT VALID-HANDLE(ghSDO) THEN
+   ASSIGN Viewas-Btn:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
+ELSE 
+   ASSIGN Viewas-Btn:SENSITIVE = TRUE.
+
+  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 

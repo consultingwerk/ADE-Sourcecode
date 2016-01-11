@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -38,6 +22,9 @@ History:
        12/28/98 Mario B.  Add s_In_Schema_Area enabling one time notification.
        05/19/99 Mario B.  Adjust Width Field browser integration.     
        04/23/02 Donna M.  Added new table recid variable
+       03/14/06 fernando  Handle case with too many tables selected - bug 20050930-006.
+       06/12/06 fernando  support for int64
+       09/21/06 fernando  menu report - gray it if no db connected
 ----------------------------------------------------------------------------*/
 {adecomm/adestds.i}  
 
@@ -55,7 +42,6 @@ Define {1} var s_DbCache_Cnt    as integer    	     NO-UNDO init 0.
 Define {1} var s_DbCache_Pname  as char    extent 50 NO-UNDO.
 Define {1} var s_DbCache_Holder as char    extent 50 NO-UNDO.
 Define {1} var s_DbCache_Type   as char    extent 50 NO-UNDO.
-
 
 /* These are the current database, table, domain, sequence, field and index
    based upon the user's selection in the browse window.
@@ -120,7 +106,7 @@ Define {1} var s_DictState as integer NO-UNDO.
    This is a list of widget handles for all menu items and icon widgets
    that need graying. 
 */
-&global-define  NUM_GRAY_ITEMS   34
+&global-define  NUM_GRAY_ITEMS   35
 Define {1} var Gray_Items  as widget-handle extent {&NUM_GRAY_ITEMS}  NO-UNDO.
 
 
@@ -198,9 +184,12 @@ Define {1} var drec_db     as recid    NO-UNDO.
       	       	     can be modified to what other data types.
 */
 Define {1} var user_env        as char  extent 35 NO-UNDO.
+
+/* for bug fix 20050930-006 */
+DEFINE {1} VARIABLE user_longchar         AS LONGCHAR NO-UNDO.
+
 &ENDIF
 Define {1} var s_Gate_Typ_Proc as char            NO-UNDO. 
-
 
 /* These indicate whether each list box in the browse window (for tables,
    domains, etc.) already contain the correct info.  'yes' means that the
@@ -297,3 +286,8 @@ Define {1} var s_Res as logical NO-UNDO.
 */
 Define {1} var s_In_Schema_Area as logical init no NO-UNDO.
 
+/* set when a pre-101b db, so we don't allow 10.1B stuff */
+DEFINE {1} VARIABLE is-pre-101b-db   AS LOGICAL               NO-UNDO.
+
+/* to indicate if large sequence support is on or not */
+DEFINE {1} VAR s_Large_Seq AS LOGICAL NO-UNDO INIT ?.

@@ -1,25 +1,10 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
+
 
 /*----------------------------------------------------------------------------
 
@@ -46,6 +31,7 @@ Date Created: 03/05/92
     Modified: 01/19/98 DLM Added variable s_tbl_area for either the 
                            _ianum or N/A for dataserver tables 
               03/26/98 DLM Changed display of area number to area name
+              06/15/06 fernando Changed Dump-name to allow 32 characters
 
 ----------------------------------------------------------------------------*/
 
@@ -60,18 +46,20 @@ form
  
   s_Optional           no-label at 2                        SKIP({&VM_WIDG})
       
-  b_File._Dump-Name 	label "Dump &File"    colon {&col1}   
+  b_File._Dump-Name 	label "Dump &File"    colon {&col1} 
+                        view-as fill-in size 42 by 1  format "X(32)"
                         {&STDPH_FILL}                        SPACE(5)      
 
+   s_Tbl_Type           label "Table Type"   colon {&col1}
+                        {&STDPH_FILL}
+                        view-as fill-in size 20 by 1         SPACE(2)
+                        
    b_File._Hidden       label "H&idden"
       	       	     	view-as TOGGLE-BOX                   SPACE(3)
       	       	     	
    b_File._Frozen    	label "Fr&ozen"          
                         view-as TOGGLE-BOX                   SKIP({&VM_WID})
 
-    s_Tbl_Type           label "Table Type"   colon {&col1}
-                        {&STDPH_FILL}
-                        view-as fill-in size 20 by 1         SKIP({&VM_WID})
 
    b_File._File-label   label "&Label"        colon {&col1} 
                         {&STDPH_FILL}

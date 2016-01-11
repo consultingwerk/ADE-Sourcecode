@@ -587,17 +587,6 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-repositionRowObject) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD repositionRowObject Procedure 
-FUNCTION repositionRowObject RETURNS LOGICAL
-     ( pcRowIdent AS CHARACTER ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-resetRow) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD resetRow Procedure 
@@ -637,6 +626,17 @@ FUNCTION retrieveBatch RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD submitRow Procedure 
 FUNCTION submitRow RETURNS LOGICAL
   ( pcRowIdent AS CHARACTER, pcValueList AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcRowident AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1471,54 +1471,53 @@ DEFINE VARIABLE lTranslateColumnLabel   AS LOGICAL    NO-UNDO.
 
     /* find the table/field/index info */
     DO iTable = 1 TO NUM-ENTRIES(cTableList):
-        cTableIndex = ''.    /* Reset in case WHEN clause below fails */
+      cTableIndex = ''.    /* Reset in case WHEN clause below fails */
         /* Break out the columns and indexes for each table */
-        ASSIGN cColumnsForThisTable=ENTRY(iTable,cColumnsByTable,{&adm-tabledelimiter})
-               cTableIndex = ENTRY(iTable,cIndexInformation,CHR(2)) WHEN NUM-ENTRIES(cIndexInformation,CHR(2)) GE iTable.
-        IF lTranslateColumnLabel THEN
+      ASSIGN cColumnsForThisTable=ENTRY(iTable,cColumnsByTable,{&adm-tabledelimiter})
+             cTableIndex = ENTRY(iTable,cIndexInformation,CHR(2)) WHEN NUM-ENTRIES(cIndexInformation,CHR(2)) GE iTable.
+      IF lTranslateColumnLabel THEN
+      DO:
+        hEntityBuffer = DYNAMIC-FUNCTION("getCacheEntityObject":U IN gshRepositoryManager, ENTRY(iTable, cTableList)).
+        IF VALID-HANDLE(hEntityBuffer) AND hEntityBuffer:AVAILABLE THEN
+          ASSIGN hColumn = hEntityBuffer:BUFFER-FIELD("EntityBufferHandle":U)
+            hTranslatedBuffer = IF VALID-HANDLE(hColumn) THEN WIDGET-HANDLE(hColumn:BUFFER-VALUE) ELSE ?.
+          ELSE
+            hTranslatedBuffer = ?.
+      END.
+      /* Loop through each column and get its TT record and assign fields based on table list */
+      DO iColumn = 1 TO NUM-ENTRIES(cColumnsForThisTable):
+        FIND FIRST ttSchema WHERE ttSchema.column_name = 
+                      'RowObject.':U + ENTRY(iColumn, cColumnsForThisTable) NO-ERROR.
+        IF AVAILABLE ttSchema THEN
         DO:
-            hEntityBuffer = DYNAMIC-FUNCTION("getCacheEntityObject":U IN gshRepositoryManager, ENTRY(iTable, cTableList)).
-            IF VALID-HANDLE(hEntityBuffer) AND hEntityBuffer:AVAILABLE THEN
-                ASSIGN hColumn = hEntityBuffer:BUFFER-FIELD("EntityBufferHandle":U)
-                       hTranslatedBuffer = IF VALID-HANDLE(hColumn) THEN WIDGET-HANDLE(hColumn:BUFFER-VALUE) ELSE ?.
-            ELSE
-                hTranslatedBuffer = ?.
+          cFieldName = {fnarg columnDBColumn ttSchema.column_name}.
+          cFieldName = ENTRY(NUM-ENTRIES(cFieldName,'.'),cFieldName,'.').
+          ASSIGN iColumnSequence = iColumnSequence + 1
+                 ttSchema.DATABASE_name    = ENTRY(iTable,cDBNames)
+                 ttSchema.TABLE_name       = ENTRY(iTable,cTableList)
+                 ttSchema.TABLE_label      = ENTRY(iTable,cTableList)  /* Not worth the trip to the server for this */
+                 ttSchema.FIELD_name       = cFieldName
+                 ttSchema.table_sequence   = iTable.
+          /* Translate ttSchema.column_label */
+          IF lTranslateColumnLabel AND VALID-HANDLE(hTranslatedBuffer) THEN
+          DO:
+            /* The Entity stores array fields (wrongly) without bracket! */
+            IF INDEX(cFieldname,"[":U) > 0 THEN
+              ASSIGN
+               cFieldName = REPLACE(cFieldName,'[':U,'':U)
+               cFieldName = REPLACE(cFieldName,']':U,'':U).
+            hColumn = hTranslatedBuffer:BUFFER-FIELD(cFieldName) NO-ERROR.                     
+            IF VALID-HANDLE(hColumn) THEN
+              ttSchema.column_label = hColumn:COLUMN-LABEL. /* Assign column_label from entity cache */
+          END.
+         /* Remarked out as it is set above */
+         /*  ttSchema.calculated_field = NO. /* Previously assigned all fields as calculated, now overwrite fields with tables to NOT calcualted */ */
         END.
-        /* Loop through each column and get its TT record and assign fields based on table list */
-        DO iColumn = 1 TO NUM-ENTRIES(cColumnsForThisTable):
-               FIND FIRST ttSchema WHERE ttSchema.column_name = 
-                             'RowObject.':U + ENTRY(iColumn, cColumnsForThisTable) NO-ERROR.
-               IF AVAILABLE ttSchema THEN
-               DO:
-                   cFieldName = {fnarg columnDBColumn ttSchema.column_name}.
-                   cFieldName = ENTRY(NUM-ENTRIES(cFieldName,'.'),cFieldName,'.').
-                   ASSIGN iColumnSequence = iColumnSequence + 1
-                          ttSchema.DATABASE_name    = ENTRY(iTable,cDBNames)
-                          ttSchema.TABLE_name       = ENTRY(iTable,cTableList)
-                          ttSchema.TABLE_label      = ENTRY(iTable,cTableList)  /* Not worth the trip to the server for this */
-                          ttSchema.FIELD_name       = cFieldName
-                          ttSchema.table_sequence   = iTable.
-                   /* Translate ttSchema.column_label */
-                   IF lTranslateColumnLabel AND VALID-HANDLE(hTranslatedBuffer) THEN
-                   DO:
-                     /* The Entity stores array fields (wrongly) without bracket! */
-                     IF INDEX(cFieldname,"[":U) > 0 THEN
-                       ASSIGN
-                         cFieldName = REPLACE(cFieldName,'[':U,'':U)
-                         cFieldName = REPLACE(cFieldName,']':U,'':U).
-                     
-                     hColumn = hTranslatedBuffer:BUFFER-FIELD(cFieldName) NO-ERROR.                     
-                     IF VALID-HANDLE(hColumn) THEN
-                       ttSchema.column_label = hColumn:COLUMN-LABEL. /* Assign column_label from entity cache */
-                   END.
-                   /* Remarked out as it is set above */
-    /*                ttSchema.calculated_field = NO. /* Previously assigned all fields as calculated, now overwrite fields with tables to NOT calcualted */ */
-               END.
-        END. 
+      END. 
 
-        /* Now go through the indexes by table, find the TT record and assign index related info  */
-        IF cTableIndex NE '' THEN
-        DO iCol = 1 TO NUM-ENTRIES(cTableIndex,CHR(1)):
+      /* Now go through the indexes by table, find the TT record and assign index related info  */
+      IF cTableIndex NE '' THEN
+      DO iCol = 1 TO NUM-ENTRIES(cTableIndex,CHR(1)):
             ASSIGN 
               cThisIndex = ENTRY(iCol,cTableIndex,CHR(1))
               iIdxFldSeq = 0
@@ -1534,7 +1533,7 @@ DEFINE VARIABLE lTranslateColumnLabel   AS LOGICAL    NO-UNDO.
                                                    + STRING(iIndexSequence) + '.' + STRING(iIdxFldSeq).
             END.
             iIndexSequence = iIndexSequence + 1.
-        END.
+      END.
 
     END.
     
@@ -2790,12 +2789,28 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hParentSource   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lParentAvail    AS LOGICAL    NO-UNDO.
   
-  /* If the object has a Partition named, then connect to it. */
-  /* Skip all this if we're in design mode. */
-  {get UIBMode cUIBMode}.
-  IF cUIBMode = "":U THEN
+  &SCOPED-DEFINE xp-assign
+  {get UIBMode cUIBMode}
+  {get AsDivision cAsDivision}
+  {get ContainerSource hContainer}
+  {get DataSource hDataSource}
+  {get OpenOnInit lOpenOnInit}
+  .   
+  &UNDEFINE xp-assign
+  
+   /* If this object's Container is itself a query, set a prop
+      to indicate that; this tells us if we're in an SBO. */
+  IF VALID-HANDLE(hContainer) THEN
   DO:
+    {get QueryObject lQueryContainer hContainer} NO-ERROR.
+    IF lQueryContainer = YES THEN
+      {set QueryContainer YES}.   /* by default it's NO */
+  END.  
 
+  /* If the object has a Partition named, then connect to it. */
+  /* Skip all this if we're in design mode or AsDivision already is 'server'. */
+  IF cAsDivision <> 'SERVER':U AND cUIBMode = "":U THEN
+  DO:
     /* ensure that initialization only happens once */
     {get ObjectInitialized lInitialized}.
     IF lInitialized THEN
@@ -2807,30 +2822,12 @@ PROCEDURE initializeObject :
        leaks caused by SDOs left running */
     IF NOT ({fn getLogicalObjectName} > "") THEN
       {set DestroyStateless TRUE}.
-
-    /* If this object's Container is itself a query, set a prop
-       to indicate that; this tells us if we're in an SBO. */
-    {get ContainerSource hContainer}.
-    IF VALID-HANDLE (hContainer) THEN
-      {get QueryObject lQueryContainer hContainer} NO-ERROR.
     
     IF lQueryContainer = YES THEN
     DO:
       {get ASDivision cASDivision hContainer}.
-      
-      &SCOPED-DEFINE xp-assign
-      {set QueryContainer YES}   /* by default it's NO */
-      {set ASDivision cASDivision}
-      .
-      &UNDEFINE xp-assign
+      {set ASDivision cASDivision}.
     END.
-
-    &SCOPED-DEFINE xp-assign
-     {get DataSource hDataSource}
-     {get OpenOnInit lOpenOnInit}
-     .  
-    &UNDEFINE xp-assign
-    
     IF VALID-HANDLE(hDataSource) THEN
     DO:
       {get QueryObject lQuerySource hDataSource}.
@@ -2870,7 +2867,8 @@ PROCEDURE initializeObject :
       RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
       IF hAppService  = ? THEN
          RETURN ERROR 'ADM-ERROR':U.
-     
+      /* connectserver sets the AsDivision */
+      {get AsDivision cAsDivision}.
       IF VALID-HANDLE(hContainer) THEN
         {fnarg registerAppService cAppservice hContainer}.
     END.  /* IF AppService NE "":U */
@@ -2924,9 +2922,8 @@ PROCEDURE initializeObject :
     IF hSource NE ? THEN
       {set AutoCommit no}.
 
-  END.       /* END IF not UIBMode   */
+  END.  /* AsDivision <> 'server' and not UIBMode   */
 
-  {get AsDivision cAsDivision}.   
   IF VALID-HANDLE(hContainer) AND cAsDivision = 'CLIENT':U THEN
       /* Check AppServer properties to see if the object has no current or future 
          server bindings and is using a stateless operating mode. */  
@@ -2960,18 +2957,18 @@ PROCEDURE initializeObject :
         {set ObjectHidden YES}.
         PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).  
       END.
-    END.
-  
-    /* Use cache if inside pending datacontainer request on client 
+      /* Use cache if inside pending datacontainer request on client 
       (openquery does this otherwise) */ 
-    IF lWait THEN 
-      lFoundInCache = {fn initializeFromCache}. 
+      IF lWait THEN 
+        lFoundInCache = {fn initializeFromCache}.   
+    END. /* asdivision <> 'server' */
   
     IF NOT lFoundInCache THEN
     DO:
       /* Retrieve stored filter information */      
       IF cAsDivision <> 'SERVER':U AND VALID-HANDLE (hContainer) THEN
         RUN retrieveFilter IN TARGET-PROCEDURE.
+      
       /* retrieve entitydetails on the first call on server (cEntityFields = ?) */ 
       IF VALID-HANDLE(gshGenManager) AND cAsDivision <> 'CLIENT':U THEN 
       DO:
@@ -3007,7 +3004,6 @@ PROCEDURE initializeObject :
       IF NOT lOpenOnInit THEN
         RUN updateQueryPosition IN TARGET-PROCEDURE.
     END.
-
   END. /* NOT uibmode begins 'design' */
 
   /* If no query container and no fetch pending in datacontainer 
@@ -3784,7 +3780,6 @@ PROCEDURE refreshRow :
      browser, which fetches the record when the query is repositioned.  */  
   IF NOT hRowObject:AVAILABLE THEN
     hDataQuery:GET-NEXT().          
-
 
   /* Tell everyone we have a new copy of the same row. */
   PUBLISH 'dataAvailable' FROM TARGET-PROCEDURE (IF lDeleted THEN 'DIFFERENT' ELSE 'SAME':U).
@@ -4933,6 +4928,8 @@ PROCEDURE submitCommit :
   DEFINE VARIABLE hSBO            AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lAutoCommitSBO  AS LOGICAL    NO-UNDO.
 
+  pcRowIdent = ENTRY(1,pcRowIdent).
+
   IF DYNAMIC-FUNCTION("anyMessage":U IN TARGET-PROCEDURE) THEN
   DO:
     /* Add the update cancelled message */
@@ -4957,7 +4954,7 @@ PROCEDURE submitCommit :
       {set RowObjectState 'RowUpdated':U}.
     END.  /* END ELSE DO IF Not AutoCommit */
     
-    rRowObject = TO-ROWID(ENTRY(1,pcRowIdent)).
+    rRowObject = TO-ROWID(pcRowIdent).
     
     {get RowObject hRowObject}.
     
@@ -5004,6 +5001,8 @@ PROCEDURE submitCommit :
       END.
     END. /* Return = '' (Successful commit or not autocommit) */
     ELSE DO: 
+      /* roll back changes (not create) */
+      {fnarg undoRow pcRowident}.
 
       IF NOT hRowObject:AVAILABLE OR rRowObject <> hRowObject:ROWID THEN
         /* A failed record is not in the query so we cannot reposition */
@@ -6212,10 +6211,10 @@ Note date: 2002/04/11
  RUN doUndoUpdate IN TARGET-PROCEDURE.
  {set DataModified FALSE}.
 
- /* Tell the data-targets that we're back in business, if we're NOT in a SBO */
+ /* If cancel new tell the data-targets that we're back in business, if we're NOT in a SBO  */
  IF NOT {fn getQueryContainer} AND lNew THEN 
  DO:
-   PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('DIFFERENT':U).
+   PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE('DIFFERENT':U).
    {set NewBatchInfo '':U}.
  END.
    
@@ -7560,7 +7559,7 @@ Parameters: pcQueryData
   DEFINE VARIABLE cRowIdent        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hDataQuery       AS HANDLE     NO-UNDO.
-
+ 
   IF pcQueryString = "":U THEN
     RETURN FALSE.
 
@@ -8113,7 +8112,7 @@ Parameters:
   DEFINE VARIABLE hDataReadHandler AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lQueryOpen       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lBrowsed         AS LOGICAL    NO-UNDO.
-
+ 
   {get AsDivision cAsDivision}.
   {get QueryOpen lQueryOpen}.
 
@@ -9317,7 +9316,7 @@ FUNCTION openQuery RETURNS LOGICAL
      RUN unbindServer IN TARGET-PROCEDURE (?).
      RETURN TRUE.
    END.   /* END DO client */
-   ELSE   /* This is not the client */                 
+   ELSE   /* This is not the client */
      RETURN SUPER().
  END. /* else do (not sbo client ) */
 
@@ -9362,8 +9361,8 @@ FUNCTION prepareColumnsFromRepos RETURNS LOGICAL
    /* Static objects will NOT to be copied from repository if the  
       SchemaLocation is 'DLP' or 'BUF' (which then really means use the 
       include as-is)  */ 
-    IF NOT (cSchemaLocation = 'DLP':U) AND NOT (cSchemaLocation = 'BUF':U) THEN
 
+    IF NOT (cSchemaLocation = 'DLP':U) AND NOT (cSchemaLocation = 'BUF':U) THEN
       lOk = DYNAMIC-FUNCTION('prepareRowObjectColumns':U IN gshRepositoryManager,
                                      hRowObjectTable,
                                      cPhysicalTables, 
@@ -9698,62 +9697,6 @@ FUNCTION removeQuerySelection RETURNS LOGICAL
 
   RETURN SUPER(pcColumns,pcOperators). 
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-repositionRowObject) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION repositionRowObject Procedure 
-FUNCTION repositionRowObject RETURNS LOGICAL
-     ( pcRowIdent AS CHARACTER ):
- /*------------------------------------------------------------------------------
-  Purpose:     Procedure to reposition the current rowobject record
-               to the correct one. Used during updates to get around issues
-               where the user has navigated to a different record in the
-               SDO prior to pressing save.
-  Parameters:  input rowident
-  Notes:       We need to use entry 1 of the rowident which is the rowid of
-               the rowobject temp-table record.
-               This is NOT using reposition because we do not want the browser
-               to reposition.
-            -  This function is called from datavis objects as pointed out as the 
-               purpose for this, but a datasource cannot be navigated to a 
-               different record than its updatesource while the updatesource is 
-               active. A hidden deactivated datatarget will synchronize to the 
-               datasource when it becomes unhidden.         , 
-               The function should thus ideally be removed, but the call may 
-               give protection if the underlying temp-table is navigated without 
-               using adm2 methods (or with this method....). 
-             - The method should not be used standalone as it may cause the 
-               very same problem that it is fixing as it does not signal any
-               rowchange and assumes that it is called in a context where the 
-               record that is being positioned to will be properly handled.
-               (not to mention the record that is being positioned from..)  
-             History:   
-               It was added as part of the data class in Dynamics at a time 
-               (9.1B - 9.1C) when SDOs sometimes did loose available record and 
-               Dynamics supported link deactivation/activation that allowed 
-               several viewers to share the source. (not supported now)
-             Future:
-               Multiple views of the same datasource may be implemented, but 
-               hopefully without forcing the targets to reposition the source 
-               before an update or cancel. (but rather as part of ) 
-------------------------------------------------------------------------------*/
- DEFINE VARIABLE hRowObject AS HANDLE NO-UNDO.
- DEFINE VARIABLE rRowid     AS ROWID  NO-UNDO.
- 
- rRowid = TO-ROWID(ENTRY(1,pcRowident)).
-
- IF rRowid <> ? THEN
- DO:
-   {get RowObject hRowObject}.
-    hRowObject:FIND-BY-ROWID(rRowid) NO-ERROR.
- END.
- RETURN VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -10124,6 +10067,63 @@ FUNCTION submitRow RETURNS LOGICAL
   RUN submitCommit In TARGET-PROCEDURE (pcRowIdent, lReopen).
   
   RETURN RETURN-VALUE NE "ADM-ERROR":U.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcRowident AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Undo the specified rowobject record   
+           To a state of unchanged. 
+Parameter: pcRowident 
+               - Rowobject rowid 
+               - ?  will undo current.    
+    Notes: undo of deleted rows is not handled here.
+           undo of created row is handled by deleteRow
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObjUpd    AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd2   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lDataModified AS LOGICAL   NO-UNDO.
+
+  /* Don't assume rowid as param, call matching function */ 
+  IF pcRowIdent <> ? THEN 
+    {fnarg repositionRowobject pcRowident}. 
+
+  RUN doUndoRow IN TARGET-PROCEDURE.
+
+  {get RowObjUpd hRowObjUpd}.
+  IF VALID-HANDLE(hRowObjUpd) THEN
+  DO:
+    /* If the undone was the only uncommitted change then 
+     set RowObjectState to 'NoUpdates' */
+    CREATE BUFFER hRowObjUpd2 FOR TABLE hRowObjUpd.
+    hRowObjUpd2:FIND-FIRST() NO-ERROR.
+    IF NOT hROwObjUpd2:AVAIL THEN 
+      {set RowObjectState 'NoUpdates':U}.
+
+    DELETE OBJECT hRowObjUpd2.
+  END. /* valid rowobjupd */
+    
+  /* if modified don't publish. 
+     The modifier (updatetarget) is responsible of redisplay when the state is 
+     turned off */
+  {get DataModified lDataModified}.
+  IF NOT lDataModified THEN
+  DO:
+    PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ('SAME':U).
+    {set NewBatchInfo '':U}.
+  END.
+
+  /* always true.. state is undone */
+  RETURN TRUE. 
 
 END FUNCTION.
 

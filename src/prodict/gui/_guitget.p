@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -78,6 +78,7 @@ History
     gfs         94/07/18    display correct titles on Select/Deselect.
     hutegger    94/03/31    modified select-button-trigger so it does NOT
                             deselct already selected tables
+    fernando    03/13/06    Using temp-table to store table names - bug 20050930-006.
                             
 ----------------------------------------------------------------------------*/
 
@@ -118,7 +119,9 @@ Define var msg	  as char extent 1 NO-UNDO init
   /* 1 */ "You do not have permission to select tables."
 ].
 
-
+DEFINE VAR message_displayed AS LOGICAL NO-UNDO INIT NO.
+DEFINE VAR cLongSize         AS INTEGER NO-UNDO.
+DEFINE VAR numCount          AS INTEGER NO-UNDO.
 
 /*================================Forms====================================*/
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -238,6 +241,7 @@ do:
    /* Following insures that if user selected "*" during execution of the *
     * btn_select trigger, then changed their minds and deselected some of *
     * tables, they will not get ALL tables anyway.                        */
+   
    DO ix = 1 TO tlist:NUM-ITEMS:
       count = count + INT(tlist:IS-SELECTED(ix)).
    END.  
@@ -246,17 +250,21 @@ do:
       chosen = tlist:screen-value in frame tbl_get
       p_gotname = true.
 
-   if tfill = "ALL" or (count = cache_file# AND (p_some OR p_all)) then
+   if tfill = "ALL" or (count = cache_file# AND (p_some OR p_all)) OR
+      (l_cache_tt AND chosen = "*ALL*") then
       assign
       	 user_env[1] = "ALL"  
-      	 user_filename = "ALL".
+      	 user_filename = "ALL"
+         user_longchar = "".
    else do:
       user_env[1] = chosen.
-      if NUM-ENTRIES(chosen) > 1 then
-      	 user_filename = "SOME".
+
+      if NUM-ENTRIES(chosen) > 1 THEN
+      	 assign user_filename = "SOME".
       else
-      	 user_filename = chosen.
+      	 assign user_filename = chosen.
    end.
+   
 end.
 
 
@@ -264,6 +272,24 @@ end.
 on default-action of tlist in frame tbl_get 
    apply "choose" to btn_OK in frame tbl_get.
 
+/*------ MOUSE-SELECT-CLICK of SELECT LIST----*/
+ON VALUE-CHANGED OF tlist IN FRAME tbl_get 
+DO:
+
+   DEFINE VARIABLE choice AS CHAR NO-UNDO.
+
+   /* make sure that ALL is not selected when other tables are selected.
+      This is only the case when we have too many tables in the list (l_cache_tt
+      will be set).
+   */
+   IF l_cache_tt AND p_some THEN DO:
+      IF SUBSTRING(tlist:screen-value,1,6) = "*ALL*," THEN DO:
+         ASSIGN tlist:screen-value = ""
+                tlist:screen-value = "*ALL*".
+      END.
+
+   END.
+END.
 
 /*----- CHOOSE of SELECT SOME BUTTON-----*/
 on choose of btn_select in frame tbl_get
@@ -286,14 +312,33 @@ do:
       /* Find the list of files that matches the pattern and are
          not selected yet; -> set choice accordingly.
       */
-      do ix = 1 to cache_file#:
+
+      IF l_cache_tt AND (TRIM(pattern) = "*" OR TRIM(pattern) = "ALL") THEN
+         ASSIGN choice = "*ALL*".
+      else do:
+
+         /* if they selected ALL and now are trying to select something else, 
+             get rid of all 
+         */
+
+         IF l_cache_tt AND choice = "*ALL*" THEN
+            ASSIGN choice = "".
+
+         do ix = 1 to cache_file#:
           if   CAN-DO(pattern, cache_file[ix]) 
        	   AND NOT LOOKUP(cache_file[ix], choice) > 0
-             then do: assign choice = choice 
+             then do: 
+                      assign choice = choice 
                                 + (if choice = "" then "" else ",") 
-                                + cache_file[ix].
+                                + cache_file[ix] no-error.
+                      IF ERROR-STATUS:ERROR THEN DO:
+                         MESSAGE  "Too many tables selected. Not all tables were selected due to error:"
+                                  SKIP ERROR-STATUS:GET-MESSAGE(1)
+                                  VIEW-AS ALERT-BOX ERROR.
+                         LEAVE.
+                      END.
               end.
-      	      	     
+      	 end.     	     
       end.
 
       tlist:screen-value in frame tbl_get = "".
@@ -313,18 +358,16 @@ do:
    pprompt = "Enter name of table to deselect.".
    display pprompt with frame tbl_patt.
 
-   chosen = tlist:screen-value in frame tbl_get.
    do ON ENDKEY UNDO, LEAVE:
       update pattern btn_OK btn_Cancel {&HLP_BTN_NAME} with frame tbl_patt.
 
-      /* Go through the items already chosen.  Create a new list
-      	 without the ones that match the pattern. 
-      */
-      do ix = 1 to NUM-ENTRIES(chosen):
-      	 item = ENTRY(ix, chosen).
-      	 if NOT CAN-DO(pattern, item) then
-      	    choice = choice + (if choice = "" then "" else ",") + item.
-      end.
+         chosen = tlist:screen-value in frame tbl_get.
+
+         do ix = 1 to NUM-ENTRIES(chosen):
+      	     item = ENTRY(ix, chosen).
+      	     if NOT CAN-DO(pattern, item) then
+      	        choice = choice + (if choice = "" then "" else ",") + item.
+         end.
 
       /* Must clear choose and then reset to the ones we still want on. */
       tlist:screen-value in frame tbl_get = "". 
@@ -345,9 +388,21 @@ DO:
    ASSIGN tlist:LIST-ITEMS IN frame tbl_get = "".  /* Clear first */
 
    run "prodict/_dctcach.p" (thidden).
-   do ix = 1 to cache_file#:
+
+   /* 20050930-006 - check if we are caching the table names in the temp-table */
+   IF l_cache_tt THEN DO:
+
+       IF p_some THEN
+         stat =  tlist:ADD-LAST("*ALL*") in frame tbl_get.
+
+       FOR EACH tt_cache_file NO-LOCK:
+          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
+       end.
+   END.
+   ELSE do ix = 1 to cache_file#:
       stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
    end.
+
    ASSIGN tlist:SCREEN-VALUE = selsave. /* put 'em back */
    IF tlist:SCREEN-VALUE = "" or tlist:SCREEN-VALUE = ? THEN DO:
       tlist:SCREEN-VALUE in frame tbl_get = tlist:ENTRY(1) IN frame tbl_get.
@@ -377,7 +432,8 @@ do:
       drec_file     = ?
       user_path     = ""
       user_filename = ""
-      user_env[1]   = "".
+      user_env[1]   = ""
+      user_longchar = "".
    return.
 end.
 
@@ -394,7 +450,23 @@ if cache_dirty then do:
 end.
 else do: /* determine if cache contains hidden tables */
    assign thidden = false.
-   do ix = 1 to cache_file# while NOT thidden:
+
+   /* 20050930-006 - check if we cached the table names in the temp-table */
+   IF l_cache_tt THEN DO:
+
+      FOR EACH tt_cache_file NO-LOCK:
+         find first DICTDB._File 
+           where DICTDB._File._Db-recid  = drec_db 
+           and   DICTDB._File._File-name = tt_cache_file.cName
+           and  (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
+           no-lock no-error.
+         assign thidden = (available DICTDB._File and DICTDB._File._Hidden = TRUE).
+
+         IF thidden THEN 
+            LEAVE. /* that's it */
+      END.
+   END.
+   ELSE do ix = 1 to cache_file# while NOT thidden:
      find first DICTDB._File 
        where DICTDB._File._Db-recid  = drec_db 
        and   DICTDB._File._File-name = cache_file[ix]
@@ -409,7 +481,6 @@ ASSIGN
   p_all         = user_env[1] MATCHES "*a*"
   p_allw        = user_env[1] MATCHES "***"
   p_some        = user_env[1] MATCHES "*s*".
-
 
 /* Initialize the prompt and configure the form based on the input */
 if p_all then
@@ -435,6 +506,10 @@ else
       btn_deselect:visible in frame tbl_get = no
       frame tbl_get:title = "Select Table".
 
+/* clear it out */
+assign user_longchar = "".
+
+
 /* Run time layout for button areas. */
 {adecomm/okrun.i  
    &FRAME  = "FRAME tbl_patt" 
@@ -457,13 +532,20 @@ do:
    IF p_all THEN DO:
      IF CACHE_file# > 0 THEN
       ASSIGN stat = tlist:ADD-LAST("ALL") IN FRAME tbl_get.
-     do ix = 1 to cache_file#:
-       stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
-     end.
+   END.
+
+   /* 20050930-006 - check if we are caching the table names in the temp-table */
+   IF l_cache_tt THEN DO:
+       IF p_some THEN
+         stat =  tlist:ADD-LAST("*ALL*") in frame tbl_get.
+
+       FOR EACH tt_cache_file NO-LOCK:
+          stat = tlist:ADD-LAST(tt_cache_file.cName) in frame tbl_get.
+       end.
    END.
    ELSE do ix = 1 to cache_file#:
-      stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
-   end.
+        stat = tlist:ADD-LAST(cache_file[ix]) in frame tbl_get.
+   END.
 
    /* Initialize the combo box and initialize the choose based on the 
       last table name chosen. This is only for choose 1 lists. */

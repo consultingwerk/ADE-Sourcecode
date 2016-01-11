@@ -27,12 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: aftrnmngrp.i
 
@@ -219,7 +216,7 @@ PROCEDURE afbldtrncp :
         IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
           RETURN ERROR (IF RETURN-VALUE = "" OR RETURN-VALUE = ? AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
                         ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-      &ELSE
+      &ELSE 
         {af/app/aftrnbldtrncp.i}
     &ENDIF
 END PROCEDURE.
@@ -249,7 +246,7 @@ PROCEDURE afgetmtrnp :
       IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
         RETURN ERROR (IF RETURN-VALUE = "" OR RETURN-VALUE = ? AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
                       ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-    &ELSE
+    &ELSE 
       {af/app/aftrngetmtrnp.i}
     &ENDIF
 END PROCEDURE.
@@ -307,7 +304,7 @@ PROCEDURE afgettranp :
           FIND FIRST gsm_translation NO-LOCK
                WHERE gsm_translation.language_obj = pdLanguageObj
                  AND gsm_translation.OBJECT_filename = "":U
-                 AND gsm_translation.WIDGET_type = pcWidgetType
+                 AND gsm_translation.WIDGET_type = '':u
                  AND gsm_translation.WIDGET_name = pcWidgetName
                  AND gsm_translation.WIDGET_entry = pcWidgetEntry
                NO-ERROR.
@@ -348,7 +345,7 @@ PROCEDURE afupdmtrnp :
       IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
         RETURN ERROR (IF RETURN-VALUE = "" OR RETURN-VALUE = ? AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
                       ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-    &ELSE
+    &ELSE 
       {af/app/aftrnupdmtrnp.i}
     &ENDIF
 END PROCEDURE.
@@ -669,7 +666,7 @@ PROCEDURE getTranslation :
       FIND FIRST ttTranslation
            WHERE ttTranslation.language_obj = pdLanguageObj
              AND ttTranslation.OBJECT_filename = "":U
-             AND ttTranslation.WIDGET_type = pcWidgetType
+             AND ttTranslation.WIDGET_type = '':U    /* object filename and type blank for global */
              AND ttTranslation.WIDGET_name = pcWidgetName
              AND ttTranslation.WIDGET_entry = pcWidgetEntry
            NO-ERROR.
@@ -1307,7 +1304,7 @@ ACCESS_LEVEL=PUBLIC
             FIND FIRST gsm_translation WHERE
                        gsm_translation.language_obj    = pdLanguageObj and
                        gsm_translation.object_filename = "":U          and
-                       gsm_translation.widget_type     = "":U          AND
+                       gsm_translation.widget_type     = "":U          and
                        gsm_translation.widget_name     = pcWidgetName  and
                        gsm_translation.widget_entry    = iWidgetEntry
                        no-lock NO-ERROR.

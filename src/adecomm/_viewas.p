@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -55,15 +55,15 @@ Define OUTPUT       PARAMETER p_Modified as logical NO-UNDO init no.
 &global-define           DTYPE_RAW         8
 &global-define           DTYPE_RECID       7
 &global-define 	         DTYPE_DATETM      34
-&global-define 	         DTYPE_DATETMTZ    40 
-
+&global-define 	         DTYPE_DATETMTZ    40
+&global-define 	         DTYPE_INT64       41
 
 Define stream viewas.
 
 /* Each entry is a comma delimited list containing the set of view-as
    widgets that make sense for the data type.
 */
-Define var ViewAs_Relevant as char extent 8 NO-UNDO init
+DEFINE VARIABLE ViewAs_Relevant AS CHARACTER EXTENT 9 NO-UNDO INITIAL
    [/* character */  "COMBO-BOX,EDITOR,FILL-IN,RADIO-SET,SELECTION-LIST,TEXT",
     /* date             */  "COMBO-BOX,FILL-IN,RADIO-SET,TEXT",
     /* logical          */  "COMBO-BOX,FILL-IN,RADIO-SET,TEXT,TOGGLE-BOX",
@@ -71,7 +71,8 @@ Define var ViewAs_Relevant as char extent 8 NO-UNDO init
     /* decimal          */  "COMBO-BOX,FILL-IN,RADIO-SET,TEXT",
     /* recid            */  "COMBO-BOX,FILL-IN,RADIO-SET,TEXT",
     /* datetime         */  "FILL-IN",
-    /* datetime-tz      */  "FILL-IN"
+    /* datetime-tz      */  "FILL-IN",
+    /* int64            */  "COMBO-BOX,FILL-IN,RADIO-SET"
    ].
 
 /* Index into ViewAs_Relevant array - will be set based on the data type. */
@@ -367,6 +368,7 @@ ix_DTypes = (if p_DType = {&DTYPE_CHARACTER} then 1 else
              if p_DType = {&DTYPE_RECID}     then 6 else
              if p_DType = {&DTYPE_DATETM}    then 7 else
              if p_DType = {&DTYPE_DATETMTZ}  then 8 ELSE
+             if p_DType = {&DTYPE_INT64}     then 9 ELSE
                    0). /* the 0 case should never happen, 
                           unless it's a foreign data-type */
 

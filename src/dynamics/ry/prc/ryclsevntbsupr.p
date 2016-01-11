@@ -732,6 +732,8 @@ PROCEDURE updateRecord :
     DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
     DEFINE VARIABLE cProfileData        AS CHARACTER                    NO-UNDO.
     DEFINE variable lCreateCustomClass  as logical                      no-undo.
+    define variable hROBuf              as handle no-undo.
+    define variable lDup                as logical no-undo.
         
     {get ContainerSource hContainer}.
     
@@ -772,27 +774,31 @@ PROCEDURE updateRecord :
 	        return 'adm-error'.
         end.    /* blank event name */
         
-        /* Search using the rowobject buffer so as not 
+        /* Search the rowobject buffer using a named buffer so as not 
 	       to disturb the SDO's query (which findRowWhere() will do) since
-	       that will cause the browser to reposition.
-	     */
-	    hRowObjectBuffer:find-first(' where '
-	                                + hRowObjectBuffer:name + '.tEventName = ' + quoter(cEventName)) no-error.
-	    if hRowObjectBuffer:available then
-	    do:
+	       that will cause the browser to reposition.	*/
+        create buffer hROBuf for table hRowObjectBuffer buffer-name 'lbRO':u.
+        
+        hROBuf:find-first(' where ':u + hROBuf:name + '.tEventName = ':u + quoter(cEventName)) no-error.
+        lDup = hROBuf:available. 
+        delete object hROBuf no-error.
+        hROBuf = ?.
+        
+        if lDup then
+        do:
             if valid-handle(gshSessionManager) then
-	            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
-	                                                           "'An event called ' + cEventName + ' already exists for this class'"},
-	                                                   INPUT  "ERR", /* error type */
-	                                                   INPUT  "&OK", /* button list */
-	                                                   INPUT  "&OK", /* default button */ 
-	                                                   INPUT  "&OK", /* cancel button */
-	                                                   INPUT  "Duplicate event `" + cEventName + "`", /* window title */
-	                                                   INPUT  YES, /* display if empty */ 
-	                                                   INPUT  hContainer,
-	                                                   OUTPUT cButton       ).
-	        return 'adm-error'.
-	    end.    /* found a duplicate */
+                RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
+                                                              "'An event called ' + cEventName + ' already exists for this class'"},
+                                                       INPUT  "ERR", /* error type */
+                                                       INPUT  "&OK", /* button list */
+                                                       INPUT  "&OK", /* default button */ 
+                                                       INPUT  "&OK", /* cancel button */
+                                                       INPUT  "Duplicate event `" + cEventName + "`", /* window title */
+                                                       INPUT  YES, /* display if empty */ 
+                                                       INPUT  hContainer,
+                                                       OUTPUT cButton       ).
+            return 'adm-error'.
+        end.    /* found a duplicate */
     end.    /* add or copy */        
     
     /* Get the tags off the class.

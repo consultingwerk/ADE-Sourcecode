@@ -7,7 +7,7 @@
 /* admmsgs.i -- include file with translatable ADM messages (and others
    which need to be modifiable without changing ADM source procedures). */
 
-  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 96
+  DEFINE VARIABLE cADMMessages AS CHARACTER NO-UNDO EXTENT 100
     INIT [
      "You must select a single row for deletion.",                                        /*  1 */
      "Current values must be saved or cancelled before Add or Copy.",                     /*  2 */
@@ -177,8 +177,17 @@
                      + "Column '&2' is &3 data-type."
     cADMMessages[96] = "The newly added or changed record was successfully saved, but falls outside of the current filter criteria." + chr(10)
                      + "To be able to view this record, adjust the filter criteria."
-
-   .
+    /* getUndoChangeCaption returns these as substitute text for the tableio UndoAction */
+    cADMMessages[97] = "record" + chr(10) 
+                     + "screen changes" + chr(10)
+                     + "create" + chr(10)
+                     + "saved changes" + chr(10)
+                     + "add" + chr(10)
+                     + "copy"
+    cADMMessages[98] = "Fetch of '&1' definitions failed due to an unexpected error."
+    cADMMessages[99] = "Fetch of '&1' data failed due to an unexpected error."
+    cADMMessages[100] = "Save of '&1' data failed due to an unexpexted error." 
+    .         
     /* Assigns to cADMMessages are separated in multiple groups to avoid 
        exceeding the default number of input characters: -inp 4096
        when compiling.

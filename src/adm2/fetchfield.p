@@ -390,8 +390,6 @@ FOR EACH  ttDCombo WHERE ttDCombo.iBuildSequence < 99999
 
     cKeyValue = REPLACE(cKeyValue, ttDCombo.cListItemDelimiter, "":U).     
     cKeyValue = formattedValue(cKeyValue,cKeyDataType,ttDCombo.cKeyFormat).
-    cEmptyValue = formattedValue(cEmptyValue,cKeyDataType,ttDCombo.cKeyFormat).
-
     /* get values of all fields */
     DO iLoop = 1 TO NUM-ENTRIES(ttDCombo.cDescFieldNames):
       IF INDEX(ENTRY(iLoop,ttDCombo.cDescFieldNames),"[":U) = 0 THEN

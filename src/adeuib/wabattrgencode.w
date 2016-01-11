@@ -2,12 +2,12 @@
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: 
@@ -580,28 +580,11 @@ PROCEDURE gen_custprop :
   OUTPUT TO VALUE(file_name).
 
   PUT UNFORMATTED 
-    '/*********************************************************************'     SKIP
-    '* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *'     SKIP
-    '* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *'     SKIP
-    '* below.  All Rights Reserved.                                       *'     SKIP
-    '*                                                                    *'     SKIP
-    '* The Initial Developer of the Original Code is PSC.  The Original   *'     SKIP
-    '* Code is Progress IDE code released to open source December 1, 2000.*'     SKIP
-    '*                                                                    *'     SKIP
-    '* The contents of this file are subject to the Possenet Public       *'     SKIP
-    '* License Version 1.0 (the "License"); you may not use this file     *'     SKIP
-    '* except in compliance with the License.  A copy of the License is   *'     SKIP
-    '* available as of the date of this notice at                         *'     SKIP
-    '* http://www.possenet.org/license.html                               *'     SKIP
-    '*                                                                    *'     SKIP
-    '* Software distributed under the License is distributed on an "AS IS"*'     SKIP
-    '* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*'     SKIP
-    '* should refer to the License for the specific language governing    *'     SKIP
-    '* rights and limitations under the License.                          *'     SKIP
-    '*                                                                    *'     SKIP
-    '* Contributors:                                                      *'     SKIP
-    '*                                                                    *'     SKIP
-    '*********************************************************************/'     SKIP
+     '/************************************************************************'     SKIP
+     '* Copyright (C) 2000-2006 by Progress Software Corporation.  All rights *'     SKIP
+     '* reserved.  Prior versions of this work may contain portions           *'     SKIP
+     '* contributed by participants of Possenet.                              *'     SKIP
+     '************************************************************************/'     SKIP
     "/* ***************************************************************************" 
     SKIP (1)
     "   File: custprop.i" SKIP
@@ -916,28 +899,11 @@ PROCEDURE gen_tog-proc :
   OUTPUT TO VALUE(file_name).
   
   PUT UNFORMATTED
-    '/*********************************************************************'     SKIP
-    '* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *'     SKIP
-    '* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *'     SKIP
-    '* below.  All Rights Reserved.                                       *'     SKIP
-    '*                                                                    *'     SKIP
-    '* The Initial Developer of the Original Code is PSC.  The Original   *'     SKIP
-    '* Code is Progress IDE code released to open source December 1, 2000.*'     SKIP
-    '*                                                                    *'     SKIP
-    '* The contents of this file are subject to the Possenet Public       *'     SKIP
-    '* License Version 1.0 (the "License"); you may not use this file     *'     SKIP
-    '* except in compliance with the License.  A copy of the License is   *'     SKIP
-    '* available as of the date of this notice at                         *'     SKIP
-    '* http://www.possenet.org/license.html                               *'     SKIP
-    '*                                                                    *'     SKIP
-    '* Software distributed under the License is distributed on an "AS IS"*'     SKIP
-    '* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*'     SKIP
-    '* should refer to the License for the specific language governing    *'     SKIP
-    '* rights and limitations under the License.                          *'     SKIP
-    '*                                                                    *'     SKIP
-    '* Contributors:                                                      *'     SKIP
-    '*                                                                    *'     SKIP
-    '*********************************************************************/'     SKIP
+     '/************************************************************************'     SKIP
+     '* Copyright (C) 2000-2006 by Progress Software Corporation.  All rights *'     SKIP
+     '* reserved.  Prior versions of this work may contain portions           *'     SKIP
+     '* contributed by participants of Possenet.                              *'     SKIP
+     '************************************************************************/'     SKIP
      "/* -------------------------------------------------------------------"     SKIP (1)
      "FILE: tog-proc.i"                                                           SKIP (1)
      "Description:"                                                               SKIP

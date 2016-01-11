@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
   File: _qwhere.p
@@ -127,7 +127,7 @@ DO WITH FRAME dialog-1:
   ASSIGN
     tAskRun 
     cLastField = cSave.
-    
+  
   CASE (IF NOT tAskRun THEN 
     SUBSTRING(ENTRY(1,acWhereState[i]),1,1,"CHARACTER":u) ELSE "!":u):
     
@@ -143,7 +143,7 @@ DO WITH FRAME dialog-1:
           (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
         WHEN 3 THEN RUN adecomm/_y-logic.p
           (1,cFormat,?,OUTPUT cValue). 
-        WHEN 4 OR WHEN 5
+        WHEN 4 OR WHEN 5 OR WHEN 41
                THEN RUN adecomm/_y-num.p
           (1,cFormat,?,OUTPUT cValue,OUTPUT lInclusiveVar).
       END CASE.
@@ -166,7 +166,7 @@ DO WITH FRAME dialog-1:
           (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
         WHEN 40 THEN RUN "adecomm/_y-datetime-tz.p"    
           (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 4 OR WHEN 5
+        WHEN 4 OR WHEN 5 OR WHEN 41
                THEN RUN "adecomm/_y-num.p"  
           (2, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
       END CASE.
@@ -182,7 +182,7 @@ DO WITH FRAME dialog-1:
           (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
         WHEN 40 THEN RUN "adecomm/_y-datetime-tz.p"    
           (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
-        WHEN 4 OR WHEN 5
+        WHEN 4 OR WHEN 5 OR WHEN 41
                THEN RUN "adecomm/_y-num.p"  
           (3, cFormat, ?, OUTPUT cValue, OUTPUT lInclusiveVar).
       END CASE. 
@@ -214,7 +214,7 @@ DO WITH FRAME dialog-1:
         c4glCode = SUBSTRING(c4glCode,1,R-INDEX(c4glCode,CHR(10)),"CHARACTER":u).
 
       cValue = ' /*':u
-             + ENTRY(iDataType,"CHARACTER,DATE,LOGICAL,INTEGER,DECIMAL":u)
+             + ENTRY(iDataType,"CHARACTER,DATE,LOGICAL,INTEGER,DECIMAL,INT64":u)
              + ',':u
              + cLastField
              + ',':u
@@ -223,6 +223,7 @@ DO WITH FRAME dialog-1:
              + SUBSTRING(cGuess,2,LENGTH(cGuess,"CHARACTER":u) - 2,"CHARACTER":u)
              + '*/ TRUE':u.
       lWhState = TRUE.
+      
     END.
 
     CASE (IF NOT tAskRun OR LOOKUP(cOperator,"AND,OR":u) > 0

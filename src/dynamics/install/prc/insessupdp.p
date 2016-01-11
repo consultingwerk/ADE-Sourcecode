@@ -211,6 +211,7 @@ PROCEDURE applyUpdates :
   DEFINE VARIABLE cRetVal    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cADO       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lFail      AS LOGICAL    NO-UNDO.
+  define variable iDeltaVersion as integer no-undo.
 
   DEFINE BUFFER bttImportParam       FOR ttImportParam.
   DEFINE BUFFER bryt_dbupdate_status FOR ryt_dbupdate_status.
@@ -237,7 +238,7 @@ PROCEDURE applyUpdates :
         BY bryt_dbupdate_status.delta_version
         BY bryt_dbupdate_status.update_when
         BY bryt_dbupdate_status.run_sequence.
-
+        
    /* Get the first record in the query and number of rows */
   GET FIRST qUpdate NO-LOCK.
   iTotalRecs = NUM-RESULTS("qUpdate":U).
@@ -279,6 +280,16 @@ PROCEDURE applyUpdates :
     /* If there's no error, process this update */
     IF NOT lError THEN
     DO:
+        if bryt_dbupdate_status.delta_version ne iDeltaVersion then
+        do:
+            publish 'setStatus':u from this-procedure ('Updating DB Version sequence for ' + bryt_dbupdate_status.update_db_name).
+            run install/prc/inicfdbsqp.p (bryt_dbupdate_status.update_db_name,
+                                          bryt_dbupdate_status.delta_version) no-error.
+            if error-status:error or return-value ne '':u then
+                publish 'setStatus':u from this-procedure ('Unable to update DB to patch level ' 
+                                                            + string(bryt_dbupdate_status.delta_version, '999999':u)).
+        end.    /* first DBname */
+        
       CASE bryt_dbupdate_status.file_type:
         WHEN "p":U THEN      /* For procedure files, run them. */
         DO:
@@ -343,7 +354,9 @@ PROCEDURE applyUpdates :
 
     IF lFail THEN
       RETURN ERROR cMessage.
-
+    
+    iDeltaVersion = bryt_dbupdate_status.delta_version.
+    
     GET NEXT qUpdate NO-LOCK.
     PROCESS EVENTS.
   END.

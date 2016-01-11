@@ -339,7 +339,7 @@ FUNCTION getSort RETURNS LOGICAL
 &IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD parentJoinTables Procedure 
-FUNCTION parentJoinTables RETURNS CHARACTER 
+FUNCTION parentJoinTables RETURNS CHARACTER
   ( pcParentFilterQuery AS CHAR)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1306,7 +1306,7 @@ PROCEDURE initializeCombo :
       WHEN "date":U THEN ASSIGN cDisplayFormat = "99/99/9999":U.
       WHEN "datetime":U THEN ASSIGN cDisplayFormat = "99/99/9999 HH:MM:SS.SSS":U.
       WHEN "datetime-tz":U THEN ASSIGN cDisplayFormat = "99/99/9999 HH:MM:SS.SSS+HH:MM":U.
-      WHEN "integer":U THEN ASSIGN cDisplayFormat = ">>>>>>>9":U.
+      WHEN "integer":U OR WHEN "INT64":U THEN ASSIGN cDisplayFormat = ">>>>>>>9":U.
       OTHERWISE ASSIGN cDisplayFormat = "x(256)":U.
     END CASE.
     {set DisplayFormat  cDisplayFormat}.
@@ -2456,7 +2456,10 @@ FUNCTION fixKeyDataType RETURNS CHARACTER
             We need to cater for this situation since older version's data
             will still be incorrect and it is not possible to fix the data
             in the repository due to the complexity.
-    Notes:  
+    
+    Notes: This function is only used for backward compatibility, when a dyncombo
+           could be created without a data type. This cannot be done in 10.1B,
+           therefore we don't need to add support for INT64 here.
 ------------------------------------------------------------------------------*/
   
   IF pcKeyDataType = "CHARACTER":U THEN DO:
@@ -2732,6 +2735,8 @@ FUNCTION getDataValue RETURNS CHARACTER
       cDataValue = TRIM(STRING(DECIMAL(cDataValue),cKeyFormat)) NO-ERROR.
     WHEN "INTEGER":U THEN
       cDataValue = TRIM(STRING(INTEGER(cDataValue),cKeyFormat)) NO-ERROR.
+    WHEN "INT64":U THEN
+      cDataValue = TRIM(STRING(INT64(CDATAVALUE),cKeyFormat)) NO-ERROR.
   END CASE.
   /* Check for invalid values in an Integer or Decimal field */
   IF ERROR-STATUS:ERROR AND
@@ -2962,7 +2967,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-parentJoinTables) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION parentJoinTables Procedure 
-FUNCTION parentJoinTables RETURNS CHARACTER 
+FUNCTION parentJoinTables RETURNS CHARACTER
   ( pcParentFilterQuery AS CHAR) :
 /*------------------------------------------------------------------------------
   Purpose: Returns a comma separated list of the tables that corresponds to the 

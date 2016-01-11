@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -208,6 +208,9 @@ DEFINE VARIABLE hAudit       AS HANDLE    NO-UNDO.
                 END.
             END.
                 
+            /* delete the buffer object */
+            DELETE OBJECT hAudit NO-ERROR.
+
             /* save this for now */
             cTemp = LDBNAME("DICTDB").
 
@@ -228,8 +231,6 @@ DEFINE VARIABLE hAudit       AS HANDLE    NO-UNDO.
             ELSE
               cList = cList + CHR(1) + LC(name-string).
 
-            /* delete the buffer object */
-            DELETE OBJECT hAudit.
         END.
         
     END.

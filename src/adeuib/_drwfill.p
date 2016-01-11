@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _drwfill.p
@@ -125,7 +125,8 @@ IF _F._FORMAT eq ? THEN DO:
       WHEN "DATETIME-TZ":U THEN ASSIGN _F._FORMAT = "99/99/9999 HH:MM:SS.SSS+HH:SS".
       WHEN "DECIMAL":U     THEN ASSIGN _F._FORMAT = "->>,>>9.99"
                                        _F._INITIAL-DATA = "0.00".
-      WHEN "INTEGER":U     THEN ASSIGN _F._FORMAT = "->,>>>,>>9"
+      WHEN "INTEGER":U OR WHEN "INT64":U
+                           THEN ASSIGN _F._FORMAT = "->,>>>,>>9"
                                        _F._INITIAL-DATA = "0".
       WHEN "LOGICAL":U     THEN ASSIGN _F._FORMAT = "yes/no".
       WHEN "RECID":U       THEN ASSIGN _F._FORMAT = ">>>>>>>".

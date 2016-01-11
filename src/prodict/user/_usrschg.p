@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -87,7 +87,7 @@ DEFINE VARIABLE olddbtyp AS CHARACTER          NO-UNDO.
 
 /* LANGUAGE DEP  END.ENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
-  /* 1*/ "You have to select a non-PROGRESS database to use this option.",
+  /* 1*/ "You have to select a non-{&PRO_DISPLAY_NAME} database to use this option.",
   /* 2*/ "None of the above information may be changed for this database.",
   /* 3*/ "(Cannot change Logical Name while database is Connected.)",
   /* 4*/ "Supported ODBC Data Sources:  ",

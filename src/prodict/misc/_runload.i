@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,6 +33,7 @@ History:
                        first record read to the _db record.
   K McIntosh 05/26/05  Added ELSE when not first _db-detail record 20050525-038.
   fernando   11/09/05  Added code for _db-option 20051109-033 
+  fernando   06/16/06  Assign _db-recid in _db-option when loading db options - 20060612-001
 */
    
 /* Will be "y" or "n" to indicate whether to disable triggers or not */
@@ -151,7 +152,8 @@ DO WHILE TRUE TRANSACTION:
                 ASSIGN _Db-option._Db-option-type = INTEGER(cDbDetail[1])
                        _Db-option._Db-option-code = cDbDetail[2]
                        _Db-option._Db-option-description = cDbDetail[3]
-                       _Db-option._Db-option-value = cDbDetail[4] NO-ERROR.
+                       _Db-option._Db-option-value = cDbDetail[4] 
+                       _Db-option._db-recid = drec_db NO-ERROR.
             END.
             ELSE DO:
                 /* record is already in the db - just update the option value */

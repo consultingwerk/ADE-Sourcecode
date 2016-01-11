@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -121,7 +121,21 @@ DEFINE VARIABLE errorNum     AS INTEGER NO-UNDO.
 DEFINE VARIABLE errorMsg     AS CHAR    NO-UNDO.
 DEFINE VARIABLE event-id     AS INTEGER NO-UNDO.
 DEFINE VARIABLE hbufferEvent AS HANDLE  NO-UNDO.
-    
+DEFINE VARIABLE hBufferDF    AS HANDLE  NO-UNDO.
+DEFINE VARIABLE largeKeys    AS LOGICAL NO-UNDO.
+
+/* check if large keys is enabled so that we antecipate if the description is too big */
+CREATE BUFFER hBufferDF FOR TABLE pcDbName + "._Database-feature" NO-ERROR.
+IF VALID-HANDLE(hBufferDF) THEN DO:
+
+    hBufferDF:FIND-FIRST('WHERE _DBFeature_Name = "Large Keys"', NO-LOCK) NO-ERROR.
+    IF hBufferDF:AVAILABLE THEN DO:
+        IF hBufferDF::_DBFeature_Enabled = "1" THEN
+            largeKeys = YES.
+    END.
+    DELETE OBJECT hBufferDF NO-ERROR.
+END.
+
 ASSIGN cEventTable = pcDbName + "._aud-event":U.
 
 CREATE BUFFER hBufferEvent FOR TABLE cEventTable. 
@@ -143,15 +157,14 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                     + " audit event table (event id " + STRING(ttAuditEvent._Event-id) + ")".
                 LEAVE.
             END.
-
-            /* validate the record before writing it to the database */
-
-            /* if this was a new row, need to get the values out of the after table */
-            IF BUFFER ttAuditEventBefore:ROW-STATE = ROW-CREATED THEN DO:
             
-                BUFFER ttAuditEvent:FIND-BY-ROWID(BUFFER ttAuditEventBefore:AFTER-ROWID) NO-ERROR.
+            /* validate the record before writing it to the database */
+            /* if this was a new row, need to get the values out of the after table */
+            BUFFER ttAuditEvent:FIND-BY-ROWID(BUFFER ttAuditEventBefore:AFTER-ROWID) NO-ERROR.
 
-                IF AVAILABLE ttAuditEvent THEN DO:
+            IF AVAILABLE (ttAuditEvent) AND (BUFFER ttAuditEventBefore:ROW-STATE = ROW-CREATED OR
+               BUFFER ttAuditEventBefore:ROW-STATE = ROW-MODIFIED) THEN DO:
+
                     IF ttAuditEvent._Event-id < 32000 THEN DO:
                         ASSIGN DATASET dsAuditEvent:ERROR = YES
                                BUFFER ttAuditEventBefore:ERROR = YES
@@ -175,7 +188,16 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                                           + STRING(ttAuditEvent._Event-id) + " )".
                         LEAVE. /* leave the loop */
                     END.
-                END. /* if available ttAuditEvent */
+
+                    IF (NOT largeKeys AND LENGTH(ttAuditEvent._Event-description) > 188) 
+                        OR (largekeys AND LENGTH(ttAuditEvent._Event-description) > 1970) THEN DO:
+                        ASSIGN DATASET dsAuditEvent:ERROR = YES
+                               BUFFER ttAuditEventBefore:ERROR = YES
+                               BUFFER ttAuditEventBefore:ERROR-STRING = "Description exceeded the maximum length of " 
+                                          + (IF largeKeys THEN "1970" ELSE "188") + " characters (event id " 
+                                          + STRING(ttAuditEvent._Event-id) + " )".
+                        LEAVE. /* leave the loop */
+                    END.
             END.
 
             /* record was validate */

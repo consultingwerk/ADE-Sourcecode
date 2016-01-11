@@ -3,8 +3,8 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /************************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
 ************************************************************************/
 /*--------------------------------------------------------------------------
     File        : adeuib/_abfuncs.w
@@ -716,9 +716,9 @@ Modified:
   DEFINE VAR tmp-strng     AS CHAR                    NO-UNDO.
   DEFINE VAR tmp-value     AS CHAR                    NO-UNDO.
   DEFINE VAR datatypes     AS CHAR                    NO-UNDO
-   INIT "character,longchar,date,datetime,datetime-tz,decimal,logical,integer,recid".
+   INIT "character,longchar,date,datetime,datetime-tz,decimal,logical,integer,INT64,recid".
   DEFINE VAR formats       AS CHAR                    NO-UNDO
-   INIT "X(256)||99/99/99|99/99/99 HH:MM:SS|99/99/99 HH:MM+HH:MM|->>,>>9.99|yes/no|->,>>>,>>9|>>>>>>9":U.
+   INIT "X(256)||99/99/99|99/99/99 HH:MM:SS|99/99/99 HH:MM+HH:MM|->>,>>9.99|yes/no|->,>>>,>>9|->,>>>,>>9|>>>>>>9":U.
      
   /* The FORMATS variable store the format to use for each DATA-TYPE.  Store   */
   /* the existing format in the ENTRY of the existing data-type.  Then set the */
@@ -754,6 +754,10 @@ Modified:
       ASSIGN _F._INITIAL-DATA = STRING(INTEGER(TRIM(_F._INITIAL-DATA))) NO-ERROR.
       IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
     END.
+    WHEN "INT64" THEN DO:
+      ASSIGN _F._INITIAL-DATA = STRING(INT64(TRIM(_F._INITIAL-DATA))) NO-ERROR.
+      IF ERROR-STATUS:ERROR THEN _F._INITIAL-DATA = "0".
+    END.
     WHEN "RECID" THEN
       ASSIGN _F._INITIAL-DATA = "?".
     OTHERWISE                             
@@ -774,6 +778,12 @@ Modified:
                                   IF i = 2 THEN "No"  ELSE "") + CHR(10).
             WHEN "INTEGER" THEN DO:
               ASSIGN tmp-value = STRING(INTEGER(raw-value),_F._FORMAT) NO-ERROR.
+              IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
+                tmp-value = tmp-value + CHR(10).
+              ELSE tmp-value = "" + CHR(10).
+            END.
+            WHEN "INT64" THEN DO:
+              ASSIGN tmp-value = STRING(INT64(RAW-VALUE),_F._FORMAT) NO-ERROR.
               IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
                 tmp-value = tmp-value + CHR(10).
               ELSE tmp-value = "" + CHR(10).
@@ -814,6 +824,11 @@ Modified:
               IF ERROR-STATUS:ERROR AND (tmp-value = ? OR tmp-value = "") THEN
                 tmp-value = lbl-value + ",":U + STRING(0,_F._FORMAT).
             END.
+            WHEN "INT64":U THEN DO:
+              ASSIGN tmp-value = lbl-value + ",":U + STRING(INT64(RAW-VALUE),_F._FORMAT) NO-ERROR.
+              IF ERROR-STATUS:ERROR AND (tmp-value = ? OR tmp-value = "") THEN
+                tmp-value = lbl-value + ",":U + STRING(0,_F._FORMAT).
+            END.
             WHEN "DECIMAL":U THEN DO:
               ASSIGN tmp-value = lbl-value + ",":U + STRING(DECIMAL(raw-value),_F._FORMAT) NO-ERROR. 
               IF ERROR-STATUS:ERROR AND (tmp-value = ? OR tmp-value = "") THEN
@@ -847,6 +862,12 @@ Modified:
                               IF i = 2 THEN "No,"  ELSE "?,") + CHR(10).
         WHEN "INTEGER" THEN DO:
           ASSIGN tmp-value = STRING(INTEGER(raw-value)) NO-ERROR.
+          IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
+            tmp-value = tmp-value + "," + CHR(10).
+          ELSE tmp-value = "?," + CHR(10).
+        END.
+        WHEN "INT64" THEN DO:
+          ASSIGN tmp-value = STRING(INT64(RAW-VALUE)) NO-ERROR.
           IF NOT ERROR-STATUS:ERROR AND tmp-value NE ? THEN
             tmp-value = tmp-value + "," + CHR(10).
           ELSE tmp-value = "?," + CHR(10).
@@ -926,8 +947,8 @@ FUNCTION compile-userfields RETURNS CHARACTER
   OUTPUT STREAM TempStream TO VALUE(cTempFile) {&NO-MAP}.
   
   PUT STREAM TempStream UNFORMATTED
-     "DEFINE OUTPUT PARAMETER pFieldDataTypes AS CHAR   NO-UNDO." skip
-     "DEFINE VARIABLE hdl                     AS HANDLE NO-UNDO." skip
+     "DEFINE OUTPUT PARAMETER pFieldDataTypes AS CHAR   NO-UNDO.":U SKIP
+     "DEFINE VARIABLE hdl                     AS HANDLE NO-UNDO.":U SKIP
      IF AVAIL _UF THEN _UF._DEFINITIONS ELSE "":U SKIP
      "IF FALSE THEN DISPLAY":U SKIP.
   
@@ -947,23 +968,23 @@ FUNCTION compile-userfields RETURNS CHARACTER
   END.
   
   PUT STREAM TempStream UNFORMATTED
-    "WITH FRAME x.":U skip.
+    "WITH FRAME x.":U SKIP.
   
   PUT STREAM TempStream UNFORMATTED
-    "ASSIGN HdL = Frame x:FIRST-CHILD" skip
-    "       Hdl = Hdl:FIRST-CHILD." skip 
-    "DO WHILE VALID-HANDLE(Hdl):" skip
-    "  pFieldDataTypes = pFieldDataTypes + HDL:DATA-TYPE + ~",~"." skip 
-    "  Hdl = Hdl:NEXT-SIBLING." skip
-    "END." skip
-    "pFieldDataTypes = RIGHT-TRIM(pFieldDataTypes,~",~")." skip. 
+    "ASSIGN HdL = Frame x:FIRST-CHILD":U SKIP
+    "       Hdl = Hdl:FIRST-CHILD.":U SKIP
+    "DO WHILE VALID-HANDLE(Hdl):":U SKIP
+    "  pFieldDataTypes = pFieldDataTypes + HDL:DATA-TYPE + ~",~"." SKIP
+    "  Hdl = Hdl:NEXT-SIBLING.":U skip
+    "END.":U SKIP
+    "pFieldDataTypes = RIGHT-TRIM(pFieldDataTypes,~",~").":U SKIP.
   OUTPUT STREAM TempStream CLOSE.
-  
+
   COMPILE VALUE(cTempFile) NO-ERROR.  
-  
+
   IF COMPILER:ERROR THEN 
     cMsg = ERROR-STATUS:GET-MESSAGE(1).  
-  
+
   ELSE
   DO: 
     RUN VALUE(cTempFile) (OUTPUT cFldDataTypes).  
@@ -976,12 +997,12 @@ FUNCTION compile-userfields RETURNS CHARACTER
         SUBSTRING(cNewDataType,1,1) = CAPS(SUBSTRING(cNewDataType,1,1)).
       IF _F._DATA-TYPE <> cNewDataType THEN
       DO:
-       
+
         IF _U._TYPE = "TOGGLE-BOX" 
         AND cNewDataType <> "LOGICAL":U THEN 
           cMsg = "Data type for " + LC(_U._TYPE) + " ":U + _U._NAME 
                + " must be logical.". 
-           
+
         ELSE 
         IF CAN-DO("SELECTION-LIST,EDITOR",_U._TYPE) 
         AND cNewDataType <> "CHARACTER":U THEN 
@@ -989,12 +1010,12 @@ FUNCTION compile-userfields RETURNS CHARACTER
                + " must be character.".   
         ELSE     
           change-data-type(_U._HANDLE,cNewDataType).
-        
+
       END.
     END.  
   END.
   OS-DELETE VALUE(cTempFile).   
-    
+
   RETURN cMsg. 
 
 END FUNCTION.
@@ -1937,7 +1958,13 @@ FUNCTION validate-format RETURNS LOGICAL
     Notes: The PROGRESS default message will be shown.                  
 ------------------------------------------------------------------------------*/
   DEF VAR test AS CHAR.
-  
+
+  /*If the numeric format does not have at least a nine at the end of its format, the STRING function will
+    return "" causing the validation to fail. So we replace the last > with a nine at the end for the
+    format string.*/
+  IF CAN-DO("INTEGER,INT64,DECIMAL":U, pDataType) AND SUBSTRING(pFormat, LENGTH(pFormat), 1) = ">"
+    THEN ASSIGN SUBSTRING(pFormat, LENGTH(pFormat), 1) = "9".
+
   DO ON ERROR UNDO,LEAVE:
     CASE pDataType:
       WHEN "logical":U THEN
@@ -1958,6 +1985,8 @@ FUNCTION validate-format RETURNS LOGICAL
       WHEN "decimal":U THEN 
         test = STRING(0.0,pFormat).
       WHEN "integer":U THEN 
+        test = STRING(0,pFormat).
+      WHEN "int64":U THEN 
         test = STRING(0,pFormat).     
       WHEN "date":U THEN 
         test = STRING(1/1/99,pFormat).
@@ -2010,9 +2039,9 @@ FUNCTION validate-list-item-pairs RETURNS LOGICAL
   OUTPUT STREAM tempStream TO VALUE(cTempFile) {&NO-MAP}.
 
   PUT STREAM tempStream UNFORMATTED
-    "DEFINE VARIABLE aComboBox AS " + _F._DATA-TYPE SKIP.
+    "DEFINE VARIABLE aComboBox AS ":U + _F._DATA-TYPE SKIP.
   PUT STREAM tempStream UNFORMATTED
-    "     VIEW-AS COMBO-BOX LIST-ITEM-PAIRS " SKIP "     ".
+    "     VIEW-AS COMBO-BOX LIST-ITEM-PAIRS ":U SKIP "     ".
   IF _F._DATA-TYPE = "DATE":U AND _F._LIST-ITEM-PAIRS = ? THEN
     PUT STREAM tempStream UNFORMATTED '" "':U.
   ELSE 
@@ -2032,7 +2061,7 @@ FUNCTION validate-list-item-pairs RETURNS LOGICAL
   IF COMPILER:ERROR THEN DO:
     MESSAGE "Invalid List Item Pairs definition or datatype for" SKIP
   
-            "COMBO-BOX" _U._NAME VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            "COMBO-BOX":U _U._NAME VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     lError = TRUE.  
     /*
     ASSIGN new_btns      = FALSE
@@ -2083,9 +2112,9 @@ FUNCTION validate-list-items RETURNS LOGICAL
   OUTPUT STREAM tempStream TO VALUE(cTempFile) {&NO-MAP}.
 
   PUT STREAM tempStream UNFORMATTED
-    "DEFINE VARIABLE aComboBox AS " + _F._DATA-TYPE SKIP.
+    "DEFINE VARIABLE aComboBox AS ":U + _F._DATA-TYPE SKIP.
   PUT STREAM tempStream UNFORMATTED
-    "     VIEW-AS COMBO-BOX LIST-ITEMS" SKIP "     ".
+    "     VIEW-AS COMBO-BOX LIST-ITEMS":U SKIP "     ".
   IF _F._DATA-TYPE = "DATE":U AND _F._LIST-ITEMS = ? THEN
     PUT STREAM tempStream UNFORMATTED '" "':U.
   ELSE PUT STREAM tempStream UNFORMATTED
@@ -2096,7 +2125,7 @@ FUNCTION validate-list-items RETURNS LOGICAL
   IF COMPILER:ERROR THEN DO:
     MESSAGE "Invalid List Items(s) definition or datatype for" SKIP
   
-            "COMBO-BOX" _U._NAME VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+            "COMBO-BOX":U _U._NAME VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     lError = TRUE.  
     /*
     ASSIGN new_btns      = FALSE
@@ -2159,9 +2188,9 @@ FUNCTION validate-radio-buttons RETURNS LOGICAL
     
     OUTPUT STREAM TempStream TO VALUE(cTempFile) {&NO-MAP}.
     PUT STREAM TempStream UNFORMATTED
-      "DEFINE VARIABLE aRadioSet AS " + _F._DATA-TYPE SKIP.
+      "DEFINE VARIABLE aRadioSet AS ":U + _F._DATA-TYPE SKIP.
     PUT STREAM TempStream UNFORMATTED
-      "     VIEW-AS RADIO-SET RADIO-BUTTONS" SKIP "     ".
+      "     VIEW-AS RADIO-SET RADIO-BUTTONS":U SKIP "     ".
     PUT STREAM TempStream UNFORMATTED _F._LIST-ITEMS.
     PUT STREAM TempStream UNFORMATTED "." SKIP.
     OUTPUT STREAM TempStream CLOSE.
@@ -2354,7 +2383,7 @@ FUNCTION x-2-c RETURNS CHARACTER
   
   DEFINE VARIABLE cChar1  AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cChar2  AS CHARACTER NO-UNDO.
-  DEFINE VARIABLE cString AS CHARACTER NO-UNDO INITIAL "ABCDEF".
+  DEFINE VARIABLE cString AS CHARACTER NO-UNDO INITIAL "ABCDEF":U.
   DEFINE VARIABLE iDigit  AS INTEGER   NO-UNDO.  
 
   ASSIGN

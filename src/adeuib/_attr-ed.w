@@ -4,12 +4,12 @@
 */
 &Scoped-define WINDOW-NAME properties_window
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS properties_window 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: _attr-ed.w
@@ -79,9 +79,9 @@ DEFINE VARIABLE s            AS INTEGER NO-UNDO.
 DEFINE VARIABLE r_current    AS RECID   NO-UNDO.
 DEFINE VARIABLE valid-types  AS CHAR    NO-UNDO.
 DEFINE VARIABLE valid-dtypes AS CHAR    NO-UNDO 
-  INITIAL "Character,Date,Decimal,Integer,Logical":U.
+  INITIAL "Character,Date,Decimal,Integer,INT64,Logical":U.
 DEFINE VARIABLE valid-dtypes-fillin AS CHAR    NO-UNDO 
-  INITIAL "Character,Date,DateTime,DateTime-Tz,Decimal,Integer,Logical":U.
+  INITIAL "Character,Date,DateTime,DateTime-Tz,Decimal,Integer,INT64,Logical":U.
 DEFINE VARIABLE valid-dtypes-editor AS CHAR    NO-UNDO 
   INITIAL "Character,LongChar":U.
 DEFINE VARIABLE valid-list   AS CHAR    NO-UNDO.
@@ -1064,7 +1064,7 @@ PROCEDURE apply-geometry :
         END CASE. /* pAttr */
         
         /* Reset labels, if necessary. */
-        IF CAN-DO ("COMBO-BOX,FILL-IN,,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER", _U._TYPE)
+        IF CAN-DO ("COMBO-BOX,FILL-IN,,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U, _U._TYPE)
            AND pAttr ne "WIDTH" AND _U._l-recid NE ? THEN
           RUN adeuib/_showlbl.p (_U._HANDLE).
             
@@ -1859,6 +1859,7 @@ PROCEDURE metamorph :
           WHEN "DECIMAL":U THEN _F._FORMAT = "->,>>>,>>9.99".
           WHEN "LOGICAL":U THEN _F._FORMAT = "yes/no".
           WHEN "INTEGER":U THEN _F._FORMAT = "-9999999".
+          WHEN "INT64":U   THEN _F._FORMAT = "-9999999".
           OTHERWISE _F._FORMAT = "X(256)".
         END CASE.
       END.
@@ -1980,7 +1981,7 @@ PROCEDURE popup-action :
     IF NOT AVAILABLE tt THEN RETURN.
   
     CASE tt.type:
-      WHEN "FONT" THEN DO:
+      WHEN "FONT":U THEN DO:
         ASSIGN fi-integer.
         RUN adecomm/_chsfont.p (INPUT "Choose Font", 
                                 INPUT ?, 
@@ -1988,7 +1989,7 @@ PROCEDURE popup-action :
                                 OUTPUT pOK).
         DISPLAY fi-integer WITH FRAME {&FRAME-NAME}.
       END.
-      WHEN "PROPERTIES" THEN DO:
+      WHEN "PROPERTIES":U THEN DO:
         RUN adeuib/_proprty.p (INPUT first_U._HANDLE).
         ASSIGN pOK = TRUE.
       END.
@@ -2218,14 +2219,14 @@ PROCEDURE show-attributes :
     FOR EACH tt:      
       /* Every object except Menus have geometry.  
          Other Group Attributes are not supported by SmartObjects or Menus. */
-      IF tt.type eq "GROUP" THEN DO:
+      IF tt.type eq "GROUP":U THEN DO:
         IF tt.attr-name eq "Geometry":U THEN DO:
           /* WEB: Don't bother showing geometry for HTML objects. */
           ASSIGN tt.in-use = (MenuSelect eq NO) AND (NOT web_object).        
         END.
         ELSE tt.in-use = (SmartSelect eq NO) AND (MenuSelect eq NO).
       END.
-      
+
       ELSE IF tt.attr-name BEGINS "Custom Lists.":U THEN DO: 
         /* Check special cases LIST-1...LIST-n, which everything uses.*/
         i = INTEGER (ENTRY(2,tt.attr-name, "-")).
@@ -2235,7 +2236,7 @@ PROCEDURE show-attributes :
         THEN tt.attr-value = STRING(first_U._User-List[i]).
         ELSE tt.attr-value = "".                               
       END.
-      
+
       ELSE IF tt.attr-name eq "TYPE":U THEN DO:
         /* We only support TYPE if a single selected item (and never on those
            that aren't field-level widgets [i.e. no _F extenstion]).*/
@@ -2254,6 +2255,8 @@ PROCEDURE show-attributes :
                              THEN ",Editor,Selection-List,Text":U ELSE "":U) +
                             (IF _F._DATA-TYPE eq "INTEGER":U
                              THEN ",Slider":U ELSE "":U) +
+                            (IF _F._DATA-TYPE eq "INT64":U
+                             THEN ",radio-set":U ELSE "":U) +
                             (IF _F._DATA-TYPE eq "LOGICAL":U
                              THEN ",Toggle-Box" ELSE "":U).
           ASSIGN
@@ -2272,10 +2275,10 @@ PROCEDURE show-attributes :
       END. /* IF..."NAME"... */
       ELSE IF tt.attr-name = "Format":u THEN
       DO:
-        
+
         FIND _prop WHERE _prop._name eq tt.attr-name.
         tt.in-use = CAN-DO(_prop._WIDGETS, first_U._TYPE).
-        
+
         IF tt.in-use THEN
         DO:         
           FIND _F WHERE RECID(_F) eq first_U._x-recid NO-ERROR.

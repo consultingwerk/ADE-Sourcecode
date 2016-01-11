@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*****************************************************************************
 
@@ -34,6 +18,9 @@ Author: Warren Bare
 
 Date Created: 03/24/92 
  Last change:  WLB  20 Jul 93   10:15 am
+
+ 		fernando  07/28/2006 Support for XREF-XML
+
 *****************************************************************************/
 &GLOBAL-DEFINE WIN95-BTN YES
 /* ADE Internationalization Standards Include. */
@@ -309,67 +296,134 @@ PROCEDURE CompEncrypt.
 END PROCEDURE.
 
 PROCEDURE CompNoEncrypt.
-    CASE s_v6frame :
-        WHEN "No" OR WHEN "Box" THEN
-            COMPILE VALUE(v_curfile)
-                SAVE = s_saver INTO VALUE(s_saveinto)
-                LISTING VALUE(s_listing)
-                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
-                XREF VALUE(s_xref) APPEND 
-                LANGUAGES (VALUE(s_languages))
-                DEBUG-LIST VALUE(s_debuglist)
-                V6FRAME   = (s_v6frame <> "NO")
-                MIN-SIZE  = s_minsize
-                STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
-                GENERATE-MD5 = s_gen_md5
-                &ENDIF
-                .
-        WHEN "Reverse Video" THEN
-            COMPILE VALUE(v_curfile)
-                SAVE = s_saver INTO VALUE(s_saveinto)
-                LISTING VALUE(s_listing)
-                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
-                XREF VALUE(s_xref) APPEND 
-                LANGUAGES (VALUE(s_languages))
-                DEBUG-LIST VALUE(s_debuglist)
-                V6FRAME USE-REVVIDEO
-                MIN-SIZE  = s_minsize
-                STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
-                GENERATE-MD5 = s_gen_md5
-                &ENDIF
-                .
-        WHEN "Underline" THEN
-            COMPILE VALUE(v_curfile)
-                SAVE = s_saver INTO VALUE(s_saveinto)
-                LISTING VALUE(s_listing)
-                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
-                XREF VALUE(s_xref) APPEND 
-                LANGUAGES (VALUE(s_languages))
-                DEBUG-LIST VALUE(s_debuglist)
-                V6FRAME USE-UNDERLINE
-                MIN-SIZE  = s_minsize
-                STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
-                GENERATE-MD5 = s_gen_md5
-                &ENDIF
-                .
-        OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
-            COMPILE VALUE(v_curfile)
-                SAVE = s_saver INTO VALUE(s_saveinto)
-                LISTING VALUE(s_listing)
-                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
-                XREF VALUE(s_xref) APPEND
-                LANGUAGES (VALUE(s_languages))
-                DEBUG-LIST VALUE(s_debuglist)
-                V6FRAME   = (s_v6frame <> "NO")
-                MIN-SIZE  = s_minsize
-                STREAM-IO = s_stream_io
-                &IF {&CompileOn91C} &THEN
-                GENERATE-MD5 = s_gen_md5
-                &ENDIF
-                .
-    END CASE.
+
+    IF s_xrefxml = yes THEN DO:
+        CASE s_v6frame :
+            WHEN "No" OR WHEN "Box" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF-XML VALUE(s_xref)
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME   = (s_v6frame <> "NO")
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            WHEN "Reverse Video" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF-XML VALUE(s_xref)
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME USE-REVVIDEO
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            WHEN "Underline" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF-XML VALUE(s_xref)
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME USE-UNDERLINE
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF-XML VALUE(s_xref)
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME   = (s_v6frame <> "NO")
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+        END CASE.
+    END.
+    ELSE DO:
+        CASE s_v6frame :
+            WHEN "No" OR WHEN "Box" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF VALUE(s_xref) APPEND 
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME   = (s_v6frame <> "NO")
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            WHEN "Reverse Video" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF VALUE(s_xref) APPEND 
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME USE-REVVIDEO
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            WHEN "Underline" THEN
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF VALUE(s_xref) APPEND 
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME USE-UNDERLINE
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+            OTHERWISE /* Invalid value, use same compile as "No"/"Box". */
+                COMPILE VALUE(v_curfile)
+	                SAVE = s_saver INTO VALUE(s_saveinto)
+	                LISTING VALUE(s_listing)
+	                   APPEND PAGE-SIZE s_lplen PAGE-WIDTH s_lpwid
+	                XREF VALUE(s_xref) APPEND
+	                LANGUAGES (VALUE(s_languages))
+	                DEBUG-LIST VALUE(s_debuglist)
+	                V6FRAME   = (s_v6frame <> "NO")
+	                MIN-SIZE  = s_minsize
+	                STREAM-IO = s_stream_io
+	                &IF {&CompileOn91C} &THEN
+	                GENERATE-MD5 = s_gen_md5
+	                &ENDIF
+	                .
+        END CASE.
+    END.
 END PROCEDURE.
 

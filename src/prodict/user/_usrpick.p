@@ -1,25 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *                         *
+**********************************************************************/
 
 /* _usrpick.p - flexible 'pick' program */
 /*
@@ -57,6 +40,9 @@ DEFINE VARIABLE p_spot   AS INTEGER                          NO-UNDO.
 DEFINE VARIABLE p_typed  AS CHARACTER           INITIAL ""   NO-UNDO.
 
 DEFINE VARIABLE highnum  AS INTEGER NO-UNDO. /* highest number used */
+DEFINE VARIABLE read_tt  AS LOGICAL NO-UNDO.
+DEFINE VARIABLE c_currName AS CHARACTER NO-UNDO.
+DEFINE VARIABLE i_currFlag AS INTEGER NO-UNDO.
 
 /*
 FORM
@@ -86,14 +72,29 @@ FORM
 
 IF pik_count <= 0 THEN RETURN.
 
+/* check if we have to read the temp-table */
+ASSIGN read_tt = (CAN-FIND (FIRST ttpik)).
+
 ASSIGN
   pik_number = pik_number AND pik_multi
   pik_skip   = pik_skip   AND pik_number.
 
 IF pik_skip AND pik_list[1] <> "*SKIP UP" THEN DO:
-  DO p_recid = pik_count TO 1 BY -1:
+  IF read_tt THEN DO:
+      FOR EACH ttpik BY ttpik.i_number DESC:
+          ttpik.i_number = ttpik.i_number + 2.
+      END.
+      CREATE ttpik.
+      ASSIGN ttpik.i_number = 1
+             ttpik.c_name = "*SKIP UP*".
+      CREATE ttpik.
+      ASSIGN ttpik.i_number = 2
+             ttpik.c_name = "*SKIP DOWN*".
+  END.
+  ELSE DO p_recid = pik_count TO 1 BY -1:
     pik_list[p_recid + 2] = pik_list[p_recid].
   END.
+
   ASSIGN
     pik_list[1] = "*SKIP UP*"
     pik_list[2] = "*SKIP DOWN*"
@@ -126,9 +127,17 @@ ASSIGN
                IF pik_wide THEN 12 ELSE SCREEN-LINES - 3 - pik_row).
 
 IF pik_init <> "" THEN DO:
-  DO p_spot = 1 TO pik_count:
+  IF read_tt THEN DO:
+     FIND FIRST ttpik WHERE ttpik.c_name = pik_init NO-ERROR.
+     IF AVAILABLE ttpik THEN 
+        p_spot = ttpik.i_number.
+     ELSE
+        p_spot = pik_count + 1.
+  END.
+  ELSE DO p_spot = 1 TO pik_count:
     IF pik_init = pik_list[p_spot] THEN LEAVE.
   END.
+
   IF p_spot <= pik_count THEN ASSIGN
     p_init  = MINIMUM(pik_down,p_spot)
     p_recid = p_spot.
@@ -175,13 +184,23 @@ DO WHILE TRUE:
           CLEAR FRAME pick1 NO-PAUSE.
       END.
       ELSE DO:
-        p_mark = (IF pik_number THEN STRING(p_flag[pik_return],">>>")
-                 ELSE STRING(p_flag[pik_return] > 0,"*/ ")).
+       IF read_tt THEN DO:
+           FIND FIRST ttpik WHERE ttpik.i_number = pik_return NO-LOCK.
+           
+           ASSIGN p_mark = (IF pik_number THEN STRING(ttpik.i_flag,">>>")
+                            ELSE STRING(ttpik.i_flag > 0,"*/ "))
+                  c_CurrName = ttpik.c_name.
+       END.
+       ELSE
+        ASSIGN p_mark = (IF pik_number THEN STRING(p_flag[pik_return],">>>")
+                         ELSE STRING(p_flag[pik_return] > 0,"*/ "))
+               c_CurrName = pik_list[pik_return].
+
         IF highnum < INT(p_mark) THEN highnum = INT(p_mark).
-        IF pik_wide THEN DISPLAY
-          p_mark pik_list[pik_return] @ pik_list[p_recid] WITH FRAME pick2.
-        ELSE DISPLAY
-          p_mark pik_list[pik_return] @ pik_list[p_recid] WITH FRAME pick1.
+        IF pik_wide THEN
+           DISPLAY p_mark c_CurrName @ pik_list[p_recid] WITH FRAME pick2.
+        ELSE
+           DISPLAY p_mark c_CurrName @ pik_list[p_recid] WITH FRAME pick1.
       END.
       IF pik_return < p_spot + pik_down - 1 THEN
         IF pik_wide THEN
@@ -200,23 +219,37 @@ DO WHILE TRUE:
       p_redraw   = FALSE.
   END.
 
-  p_mark = (IF pik_number THEN STRING(p_flag[p_recid],">>>")
-           ELSE STRING(p_flag[p_recid] > 0,"*/ ")).
-  IF highnum < INT(p_mark) THEN highnum = INT(p_mark).
-  IF pik_wide THEN
-    DISPLAY p_mark pik_list[p_recid] WITH FRAME pick2.
+  IF read_tt THEN DO:
+      FIND FIRST ttpik WHERE ttpik.i_number = p_recid NO-LOCK.
+
+      ASSIGN p_mark = (IF pik_number THEN STRING(ttpik.i_flag,">>>")
+                       ELSE STRING(ttpik.i_flag > 0,"*/ "))
+             c_CurrName = ttpik.c_name.
+  END.
   ELSE
-    DISPLAY p_mark pik_list[p_recid] WITH FRAME pick1.
+      ASSIGN p_mark = (IF pik_number THEN STRING(p_flag[p_recid],">>>")
+                       ELSE STRING(p_flag[p_recid] > 0,"*/ "))
+             c_CurrName = pik_list[p_recid].
+
+  IF highnum < INT(p_mark) THEN highnum = INT(p_mark).
 
   IF pik_wide THEN
-    COLOR DISPLAY VALUE(pick-bg) pik_list[p_recid] WITH FRAME pick2.
+     DISPLAY p_mark c_CurrName @ pik_list[p_recid] WITH FRAME pick2.
   ELSE
-    COLOR DISPLAY VALUE(pick-bg) pik_list[p_recid] WITH FRAME pick1.
-  READKEY.
+     DISPLAY p_mark c_CurrName @ pik_list[p_recid] WITH FRAME pick1.
+
   IF pik_wide THEN
-    COLOR DISPLAY VALUE(pick-fg) pik_list[p_recid] WITH FRAME pick2.
+     COLOR DISPLAY VALUE(pick-bg) pik_list[p_recid] WITH FRAME pick2.
   ELSE
-    COLOR DISPLAY VALUE(pick-fg) pik_list[p_recid] WITH FRAME pick1.
+     COLOR DISPLAY VALUE(pick-bg) pik_list[p_recid] WITH FRAME pick1.
+
+  READKEY.
+
+  IF pik_wide THEN
+     COLOR DISPLAY VALUE(pick-fg) pik_list[p_recid] WITH FRAME pick2.
+  ELSE
+     COLOR DISPLAY VALUE(pick-fg) pik_list[p_recid] WITH FRAME pick1.
+
   PAUSE 0.
 
   IF (KEYFUNCTION(LASTKEY) = CHR(LASTKEY) AND LASTKEY > 32)
@@ -224,19 +257,48 @@ DO WHILE TRUE:
     p_typed = (IF KEYFUNCTION(LASTKEY) = "BACKSPACE"
               THEN SUBSTRING(p_typed,1,LENGTH(p_typed) - 1)
               ELSE p_typed + CHR(LASTKEY)).
-    IF p_typed = "" OR pik_list[p_recid] BEGINS p_typed THEN NEXT.
-    DO p_line = p_recid TO pik_count:
-      IF pik_list[p_line] BEGINS p_typed THEN LEAVE.
+    IF p_typed = "" OR c_CurrName BEGINS p_typed THEN NEXT.
+
+    IF read_tt THEN DO:
+        FIND FIRST ttpik WHERE ttpik.i_number >= p_recid AND 
+            ttpik.c_name BEGINS p_typed NO-LOCK NO-ERROR.
+        IF AVAILABLE ttpik THEN
+            p_line = ttpik.i_number.
+        ELSE
+            p_line = pik_count + 1.
     END.
+    ELSE DO:
+        DO p_line = p_recid TO pik_count:
+          IF pik_list[p_line] BEGINS p_typed THEN LEAVE.
+        END.
+    END.
+
     IF p_line > pik_count THEN DO:
-      DO p_line = 1 TO p_recid:
+      IF read_tt THEN DO:
+         FIND FIRST ttpik WHERE ttpik.i_number < p_recid AND 
+             ttpik.c_name BEGINS p_typed NO-LOCK NO-ERROR.
+         IF AVAILABLE ttpik THEN
+             p_line = ttpik.i_number.
+         ELSE
+             p_line = p_recid + 1.
+      END.
+      ELSE DO p_line = 1 TO p_recid:
         IF pik_list[p_line] BEGINS p_typed THEN LEAVE.
       END.
+
       IF p_line > p_recid THEN p_line = pik_count + 1.
     END.
+
     IF p_line > pik_count THEN DO:
       p_typed = CHR(LASTKEY).
-      DO p_line = 1 TO pik_count:
+      IF read_tt THEN DO:
+         FIND FIRST ttpik WHERE ttpik.c_name BEGINS p_typed NO-LOCK NO-ERROR.
+         IF AVAILABLE ttpik THEN
+             p_line = ttpik.i_number.
+         ELSE
+             p_line = pik_count + 1.
+      END.
+      ELSE DO p_line = 1 TO pik_count:
         IF pik_list[p_line] BEGINS p_typed THEN LEAVE.
       END.
     END.
@@ -252,16 +314,30 @@ DO WHILE TRUE:
     NEXT.
   END.
 
+  IF read_tt THEN DO:
+      FIND FIRST ttpik WHERE ttpik.i_number = p_recid.
+      ASSIGN c_currName = ttpik.c_name
+             i_currFlag = ttpik.i_flag.
+  END.
+  ELSE
+      ASSIGN c_currName = pik_list[p_recid]
+             i_currFlag = p_flag[p_recid].
+
   p_typed = "".
   IF CAN-DO("RETURN,PICK",KEYFUNCTION(LASTKEY)) AND pik_multi THEN DO:
-    IF pik_skip AND pik_list[p_recid] = "*SKIP UP*" THEN DO: /* skip up by 1 */
+    IF pik_skip AND c_currName = "*SKIP UP*" THEN DO: /* skip up by 1 */
       p_flag# = p_flag# + 1.
       DISPLAY p_flag# + 1 @ nextnum WITH FRAME fskip.
     END.
-    ELSE IF pik_skip AND pik_list[p_recid] = "*SKIP DOWN*" THEN DO:
+    ELSE IF pik_skip AND c_currName = "*SKIP DOWN*" THEN DO:
       /* skip down by 1, but stop one above the highest number used */
       highnum = 0.
-      DO p_line = 1 TO pik_count: /* look for highest used */
+      IF read_tt THEN DO:
+          FOR EACH ttpik NO-LOCK:
+              IF highnum < ttpik.i_flag THEN highnum = ttpik.i_flag.
+          END.
+      END.
+      ELSE DO p_line = 1 TO pik_count: /* look for highest used */
         IF highnum < p_flag[p_line] THEN highnum = p_flag[p_line].
       END.    
       IF p_flag#  > highnum THEN DO:  
@@ -270,12 +346,21 @@ DO WHILE TRUE:
       END.
     END.
     ELSE /* flagging an item */
-    IF NOT pik_number OR p_flag[p_recid] = 0 THEN DO:
+    IF NOT pik_number OR i_currFlag = 0 THEN DO:
       ASSIGN
-        p_flag#         = p_flag# + (IF p_flag[p_recid] = 0 THEN 1 ELSE 0)
-        p_flag[p_recid] = (IF p_flag[p_recid] = 0 THEN p_flag# ELSE 0).
-      p_mark = (IF pik_number THEN STRING(p_flag[p_recid],">>>")
-               ELSE STRING(p_flag[p_recid] > 0,"*/ ")).
+        p_flag#         = p_flag# + (IF i_currFlag = 0 THEN 1 ELSE 0)
+        i_currFlag = (IF i_currFlag = 0 THEN p_flag# ELSE 0).
+        p_mark = (IF pik_number THEN STRING(i_currFlag,">>>")
+                  ELSE STRING(i_currFlag > 0,"*/ ")).
+
+      /* update the value */
+      IF read_tt THEN DO:
+         FIND FIRST ttpik WHERE ttpik.i_number = p_recid.
+         ASSIGN ttpik.i_flag = i_currFlag.
+      END.
+      ELSE
+         p_flag[p_recid] = i_currFlag.
+
       IF pik_skip THEN DISPLAY p_flag# + 1 @ nextnum WITH FRAME fskip.
       IF pik_wide THEN
         DISPLAY p_mark WITH FRAME pick2.
@@ -283,12 +368,24 @@ DO WHILE TRUE:
         DISPLAY p_mark WITH FRAME pick1.
     END.
     ELSE DO: /* if turning off and pik_number, then must renumber others */
-      DO p_line = 1 TO pik_count:
+      IF read_tt THEN DO:
+          FOR EACH ttpik WHERE ttpik.i_flag > i_currFlag:
+              ttpik.i_flag = ttpik.i_flag - 1.
+          END.
+      END.
+      ELSE DO p_line = 1 TO pik_count:
         IF p_flag[p_line] > p_flag[p_recid] THEN
           p_flag[p_line] = p_flag[p_line] - 1.
       END.
-      ASSIGN
-        p_flag[p_recid] = 0
+
+      IF read_tt THEN DO:
+          FIND FIRST ttpik WHERE ttpik.i_number = p_recid.
+          ASSIGN ttpik.i_flag = 0.
+      END.
+      ELSE
+        ASSIGN p_flag[p_recid] = 0.
+
+       ASSIGN
         p_flag#         = p_flag# - 1
         p_spot = (IF pik_wide THEN FRAME-LINE(pick2) ELSE FRAME-LINE(pick1)).
       IF pik_skip THEN DISPLAY p_flag# + 1 @ nextnum WITH FRAME fskip.
@@ -298,9 +395,18 @@ DO WHILE TRUE:
         UP p_spot - 1 WITH FRAME pick1.
       DO p_line = 1 TO pik_down:
         ASSIGN
-          p_init = p_recid - p_spot + p_line
-          p_mark = (IF pik_number THEN STRING(p_flag[p_init],">>>")
+          p_init = p_recid - p_spot + p_line.
+
+        IF read_tt THEN DO:
+            FIND FIRST ttpik WHERE ttpik.i_number = p_init.
+            ASSIGN 
+                p_mark = (IF pik_number THEN STRING(ttpik.i_flag,">>>")
+                         ELSE STRING(ttpik.i_flag > 0,"*/ ")).
+        END.
+        ELSE
+              p_mark = (IF pik_number THEN STRING(p_flag[p_init],">>>")
                    ELSE STRING(p_flag[p_init] > 0,"*/ ")).
+
         IF pik_wide THEN DISPLAY
           p_mark WHEN p_mark <> INPUT FRAME pick2 p_mark WITH FRAME pick2.
         ELSE DISPLAY
@@ -317,8 +423,8 @@ DO WHILE TRUE:
         UP FRAME-LINE(pick1) - p_spot WITH FRAME pick1.
     END.
     PAUSE 0.
-    IF pik_skip AND (pik_list[p_recid] = "*SKIP UP*" OR 
-                     pik_list[p_recid] = "*SKIP DOWN*") THEN .
+    IF pik_skip AND (c_currName = "*SKIP UP*" OR 
+                     c_currName = "*SKIP DOWN*") THEN .
     ELSE
     IF p_recid < pik_count THEN DO:
       p_recid = p_recid + 1.
@@ -393,7 +499,7 @@ DO WHILE TRUE:
   END.
   ELSE
   IF KEYFUNCTION(LASTKEY) = "GO"
-    AND pik_skip AND pik_list[p_recid] = "*SKIP*" THEN DO:
+    AND pik_skip AND c_currName = "*SKIP*" THEN DO:
     ASSIGN
       p_flag   = 0
       p_flag#  = 0
@@ -409,14 +515,36 @@ DO WHILE TRUE:
     ASSIGN
       pik_return = (IF pik_multi THEN 0 ELSE 1)
       pik_chosen = (IF pik_multi THEN -1 ELSE p_recid).
-    DO p_recid = 1 TO pik_count:
-      IF p_flag[p_recid] > 0 THEN ASSIGN
-        pik_return = pik_return + 1
-        pik_chosen[IF pik_number THEN p_flag[p_recid] ELSE pik_return]
-          = p_recid.
+
+    IF read_tt THEN DO:
+      ASSIGN pik_first = ?.
+
+       FOR EACH ttpik:
+           IF ttpik.i_number = p_recid THEN
+               pik_first = ttpik.c_name.
+
+           IF ttpik.i_flag > 0 THEN DO:
+               /* for the temp-table, we will just count how many
+                  where chosen.
+               */
+               ASSIGN pik_return = pik_return + 1.
+               IF ttpik.i_flag = 1 THEN
+                   pik_first = ttpik.c_name.
+           END.
+       END.
     END.
-    pik_first = (IF pik_return > 0 AND pik_chosen[1] > 0
+    ELSE DO:
+        DO p_recid = 1 TO pik_count:
+          IF p_flag[p_recid] > 0 THEN ASSIGN
+            pik_return = pik_return + 1
+            pik_chosen[IF pik_number THEN p_flag[p_recid] ELSE pik_return]
+              = p_recid.
+        END.
+
+        pik_first = (IF pik_return > 0 AND pik_chosen[1] > 0
                  THEN pik_list[pik_chosen[1]] ELSE ?).
+    END.
+
     IF pik_skip THEN pik_return = p_flag#.
     LEAVE _pick.
   END.

@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -40,6 +24,7 @@ History
                         unavailable tables.  Also fixed dump-name logic to
                         use _file-name when blank and generally made the
                         procedure more readable 20050930-008. 
+    fernando   03/16/06 Handle case with too many tables selected - bug 20050930-006.    
 
 
 Multi-DB-Support:
@@ -119,21 +104,21 @@ ELSE DO:  /* load SOME files of SOME dbs */
   END.
 END.     /* dump SOME files of SOME dbs */
 
-/****** 2. step: prepare user_env[1] for this _db-record **********/
+/****** 2. step: prepare user_longchar for this _db-record **********/
   
 FOR EACH DICTDB._Db NO-LOCK:
 
   ASSIGN l_db-name   = (IF DICTDB._DB._DB-Type = "PROGRESS" THEN 
                           LDBNAME("DICTDB") ELSE _DB._DB-name)
-         user_env[1] = ""
+         user_longchar = ""
          l_for-type  = (IF CAN-DO("PROGRESS",DICTDB._DB._DB-Type) THEN 
                           ? ELSE "TABLE,VIEW").
 /* to generate the list of tables of this _db-record to be loaded and
- * assign it to user_env[1] we
+ * assign it to user_longchar we
  * a) try to use all tables WITHOUT db-specifyer
  */
   FOR EACH ttb_dump WHERE ttb_dump.db = "" 
-                    WHILE user_env[1] <> ",all":
+                    WHILE user_longchar <> ",all":
     IF ttb_dump.tbl <> "all" THEN DO:
       IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
         FIND FIRST DICTDB._File OF DICTDB._Db 
@@ -150,18 +135,18 @@ FOR EACH DICTDB._Db NO-LOCK:
           ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                   DICTDB._File._dump-name 
                                 ELSE LC(DICTDB._File._file-name))
-                 user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+                 user_longchar = user_longchar + "," + ttb_dump.tbl.
       END.
       ELSE
         MESSAGE "Table " + ttb_dump.tbl + " does not exist in this database!".
     END.
     ELSE 
-      ASSIGN user_env[1] = ",all".
+      ASSIGN user_longchar = ",all".
   END.
 
 /* b) try to use all tables WITH db-specifyer */
   FOR EACH ttb_dump WHERE ttb_dump.db = l_db-name
-                    WHILE user_env[1] <> ",all":
+                    WHILE user_longchar <> ",all":
     IF ttb_dump.tbl <> "all" THEN DO:
       IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
         FIND FIRST DICTDB._File OF DICTDB._Db 
@@ -177,19 +162,19 @@ FOR EACH DICTDB._Db NO-LOCK:
           ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                   DICTDB._File._dump-name 
                                 ELSE LC(DICTDB._File._file-name))
-                 user_env[1] = user_env[1] + "," + ttb_dump.tbl.
+                 user_longchar = user_longchar + "," + ttb_dump.tbl.
       END.
       ELSE
         MESSAGE "Table " + ttb_dump.tbl + " does not exist in this database!".
     END.
     ELSE 
-      ASSIGN user_env[1] = ",all".
+      ASSIGN user_longchar = ",all".
   END.
     
 /* c) if either "all" or "all of this db" then we take every file
  *    of the current _Db
  */
-  IF user_env[1] = ",all" THEN DO:  /* all files of this _Db */
+  IF user_longchar = ",all" THEN DO:  /* all files of this _Db */
     FOR EACH DICTDB._File WHERE DICTDB._File._File-number > 0 AND   
                                 DICTDB._File._Db-recid    = RECID(_Db) AND   
                                 NOT DICTDB._File._Hidden
@@ -203,28 +188,29 @@ FOR EACH DICTDB._Db NO-LOCK:
         ASSIGN l_dump-name = (IF DICTDB._File._dump-name <> ? THEN
                                 DICTDB._File._dump-name 
                               ELSE LC(DICTDB._File._file-name))
-               user_env[1] = user_env[1] + "," + DICTDB._File._File-name.
+               user_longchar = user_longchar + "," + DICTDB._File._File-name.
     END.
-    ASSIGN user_env[1] = SUBSTRING(user_env[1],6,-1,"character").
+    ASSIGN user_longchar = SUBSTRING(user_longchar,6,-1,"character").
   END.     /* all files of this _Db */
   ELSE 
-    ASSIGN user_env[1] = SUBSTRING(user_env[1],2,-1,"character").
+    ASSIGN user_longchar = SUBSTRING(user_longchar,2,-1,"character").
    
   /* is there something to load into this _db? */
-  IF user_env[1] = "" THEN NEXT.
-  
+  IF user_longchar = "" THEN NEXT.
+
+    
 
 /****** 3. step: prepare user_env[2] and user_env[5] **************/
   
   /* if one file => .d-name otherwise path */
-  IF NUM-ENTRIES(user_env[1]) > 1 OR 
+  IF NUM-ENTRIES(user_longchar) > 1 OR 
      dot-d-dir MATCHES "*" + ".d" OR
      dot-d-dir MATCHES "*" + ".ad" THEN 
     ASSIGN user_env[2] = dot-d-dir.  /* just path or .d-file-name */
   ELSE 
     ASSIGN user_env[2] = dot-d-dir + 
                          SUBSTRING((IF l_Dump-name = ? THEN 
-                                      user_env[1] ELSE l_Dump-name), 
+                                      STRING(user_longchar) ELSE l_Dump-name), 
                                    1,8,"character") + 
                          (IF l_Dump-name BEGINS "_aud" THEN 
                             ".ad" ELSE ".d"). 
@@ -232,7 +218,7 @@ FOR EACH DICTDB._Db NO-LOCK:
 
   /* Indicate "y"es to disable triggers for dump of all files */
   ASSIGN user_env[5] = "y".
-  DO i = 2 TO NUM-ENTRIES(user_env[1]):
+  DO i = 2 TO NUM-ENTRIES(user_longchar):
     ASSIGN user_env[5] = user_env[5] + ",y".
   END.
 
@@ -243,8 +229,15 @@ FOR EACH DICTDB._Db NO-LOCK:
          user_dbtype = (IF _Db._Db-name = ? THEN 
                           DBTYPE("DICTDB") ELSE _Db._Db-Type).
 
-
 /****** 4. step: the actual loading-process ***********************/
+
+  /* see if we can put user_longchar into user_env[1] */
+  ASSIGN user_env[1] = user_longchar NO-ERROR.
+  IF NOT ERROR-STATUS:ERROR THEN
+     /* ok to use user_env[1] */
+     ASSIGN user_longchar = "". 
+  ELSE
+     ASSIGN user_env[1] = "".
 
   RUN "prodict/dump/_loddata.p".
 

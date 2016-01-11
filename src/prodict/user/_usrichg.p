@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -38,6 +38,7 @@ History:
     07/29/03   D. McMann    Adjusted screen for new data types with long names 
     03/26/05   K. McIntosh  Added warning when attempting to add an active
                             index on-line
+    06/08/06  fernando      Support for large key entries
 
 ----------------------------------------------------------------------------*/
 
@@ -77,6 +78,8 @@ DEFINE VARIABLE areaname       AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE arealist       AS CHARACTER INITIAL ?     NO-UNDO.
 DEFINE VARIABLE indexarea      AS CHARACTER               NO-UNDO.
 DEFINE VARIABLE lOk            AS LOGICAL                 NO-UNDO.
+DEFINE VARIABLE large_idx      AS LOGICAL                 NO-UNDO INIT ?.
+DEFINE VARIABLE ctemp          AS CHARACTER               NO-UNDO.
 
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
@@ -129,7 +132,7 @@ FORM
 |  MakeInactive  Browse  SwitchTable  GoField  Undo  Exit
 */
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 38 NO-UNDO INITIAL [
   /* 1*/ "This index is already the Primary Index of this table.",
   /* 2*/ "Are you sure that you want to make this the PRIMARY INDEX?",
   /* 3*/ "You cannot delete the Primary Index of a table.",
@@ -153,8 +156,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   /*21*/ "Are you sure that you want to make the index", /*see #22*/
   /*22*/ "inactive?", /*see #21*/
   /*23*/ "You haven't yet made changes that need to be undone!",
-  /*24*/ "For PROGRESS/SQL, you must use the CREATE INDEX statement.",
-  /*25*/ "For PROGRESS/SQL, you must use the DROP INDEX statement.",
+  /*24*/ "For {&PRO_DISPLAY_NAME}/SQL, you must use the CREATE INDEX statement.",
+  /*25*/ "For {&PRO_DISPLAY_NAME}/SQL, you must use the DROP INDEX statement.",
   /*26*/ "A Word Index can not be Primary.",
   /*27*/ "This table is frozen - You may not add or modify its indexes.",
   /*28*/ "A Word Index can not be Unique.",
@@ -166,7 +169,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 37 NO-UNDO INITIAL [
   /*34*/ "Are you sure you want to make this the index for ROWID support?",
   /*35*/ "This DataServer does not support/need ROWID-Indexes to be specified.",
   /*36*/ "This index can not be used for ROWID support.",
-  /*37*/ "PROGRESS/SQL92 Table, cannot modify."
+  /*37*/ "{&PRO_DISPLAY_NAME}/SQL92 Table, cannot modify.",
+  /*38*/ "Large key entries support not enabled"
 ].
 
 ASSIGN
@@ -177,7 +181,7 @@ ASSIGN
                + "indexes that have a character field as their last index "
                + "component.!!Do you want this to be an abbreviated index?"
 
-  new_lang[17] = "IF PROGRESS finds duplicate values while creating this new "
+  new_lang[17] = "IF {&PRO_DISPLAY_NAME} finds duplicate values while creating this new "
                + "unique index, it will UNDO the entire transaction, causing "
                + "you to lose any schema changes just made.  Creating an "
                + "inactive index and then building it with ~"proutil -C "
@@ -373,6 +377,28 @@ ASSIGN
   qbf_idx_uniq = INDEX(ENTRY(3,c),"u") > 0  /* change uniqueness allowed?  */
   qbf_idx_word = INDEX(ENTRY(3,c),"w") > 0. /* supports word indexing      */
 
+IF _File._For-type = ? THEN DO:
+
+    /* check if this db supports large index keys 
+       just care about large_idx really.
+    */
+    /* dbs running with pre-10.01B servers will have no knowledge of large key entries
+       support, so don't need to display message (in which case large_idx = ?)
+    */
+    /*
+       Pass the DICTDB name since that for non-OE schemas, we will know if
+       it is turned on of it's on for the schema holder.
+    */
+    RUN prodict/user/_usrinf3.p 
+          (INPUT  LDBNAME("DICTDB"),
+           INPUT  "PROGRESS",
+           OUTPUT cTemp, 
+           OUTPUT cTemp,
+           OUTPUT answer,
+           OUTPUT large_idx).
+
+END.
+
 /*IF NOT qbf_idx_uniq THEN ASSIGN qbf[9] = "".*/
 
 IF qbf_idx_word THEN
@@ -428,6 +454,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         FIND FIRST _Index OF _File NO-ERROR.
         j = i - 2.
       END.
+      
       DO i = 1 TO FRAME-DOWN(idx_lst):
         IF INPUT FRAME idx_lst _Index._Index-name
           = (IF AVAILABLE _Index THEN _Index._Index-name ELSE "") THEN.
@@ -460,6 +487,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         END.
         ELSE
           CLEAR FRAME idx_lst NO-PAUSE.
+
         COLOR DISPLAY VALUE(IF RECID(_Index) = rpos AND RECID(_Index) <> ?
           THEN "MESSAGES" ELSE "NORMAL") _Index._Index-name WITH FRAME idx_lst.
         DOWN WITH FRAME idx_lst.
@@ -517,6 +545,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         recid_idx
         areaname
         WITH FRAME idx_top.
+      
       PAUSE 0.
       DISPLAY _Index._Index-name WITH FRAME idx_lst.
     END.
@@ -552,6 +581,13 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     END.
     qbf_disp = RECID(_Index).
 
+    IF large_idx = NO THEN DO:
+        /* display message about large key entries support */
+        HIDE MESSAGE NO-PAUSE.
+        MESSAGE new_lang[38].
+    END.
+       
+
     ON CURSOR-LEFT BACK-TAB.
     ON CURSOR-RIGHT     TAB.
     _choose:
@@ -577,6 +613,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       qbf# = (IF rpos = qbf_home THEN 4 ELSE 3).
 
     HIDE MESSAGE NO-PAUSE.
+    IF large_idx = NO THEN
+       MESSAGE new_lang[38].
 
     IF ENTRY(qbf#,qbf#list) BEGINS "-" THEN DO:   
       MESSAGE new_lang[- INTEGER(ENTRY(qbf#,qbf#list))] view-as alert-box.
@@ -910,7 +948,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         MESSAGE new_lang[28].  /* word index can't be unique */
       ELSE IF NOT qbf_idx_uniq THEN
         IF user_dbtype = "PROGRESS" THEN
-          MESSAGE "PROGRESS does not support uniqueness changes." view-as alert-box.
+          MESSAGE "{&PRO_DISPLAY_NAME} does not support uniqueness changes." view-as alert-box.
         ELSE MESSAGE new_lang[30] view-as alert-box.  /* DataServer doesn't support uniquness-changes. */
       ELSE DO:
         ASSIGN

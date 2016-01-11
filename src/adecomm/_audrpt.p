@@ -35,6 +35,7 @@ Author: Kenneth S. McIntosh
 Date Created: June 7, 2005
 History:
 
+     kmcintos  Jan  03, 3006  Fixed printing bug 20051116-043.
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 
@@ -158,8 +159,9 @@ ON GO OF FRAME printOptions DO:
     rsDevice = "F" + (IF lXmlFile THEN "x" ELSE "t") +
                CHR(1) + fiFileName.
   END. /* If rsDevice BEGINS F */
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   ELSE IF rsDevice = "P" THEN
-    rsDevice = "P" + CHR(1) + cbPrinter.
+    rsDevice = "P" + CHR(1) + cbPrinter. &ENDIF
   ELSE IF rsDevice = "T" THEN
     rsDevice = "T" + CHR(1) + "".
   

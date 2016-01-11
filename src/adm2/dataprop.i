@@ -26,14 +26,13 @@
   {src/adm2/custom/datadefscustom.i}
   
  &IF "{&xcInstanceProperties}":U NE "":U &THEN       
-    &GLOB xcInstanceProperties {&xcInstanceProperties}, 
+    &GLOB xcInstanceProperties {&xcInstanceProperties},
  &ENDIF                                           
 
-&GLOB xcInstanceProperties ~
-AppService,ASUsePrompt,ASInfo,ForeignFields,RowsToBatch,CheckCurrentChanged,~
-RebuildOnRepos,ServerOperatingMode,DestroyStateless,DisconnectAppServer,~
-ObjectName,UpdateFromSource,ToggleDataTargets,OpenOnInit,PromptOnDelete,~
-PromptColumns,CacheDuration,ShareData
+&GLOB xcInstanceProperties {&xcInstanceProperties}~
+AppService,ASInfo,ASUsePrompt,CacheDuration,CheckCurrentChanged,~
+DestroyStateless,DisconnectAppServer,ServerOperatingMode,ShareData,~
+UpdateFromSource
 
 /* This is the procedure to execute to set InstanceProperties at design time. */
 &IF DEFINED (ADM-PROPERTY-DLG) = 0 &THEN
@@ -104,11 +103,7 @@ PromptColumns,CacheDuration,ShareData
     properties can be retrieved directly from the property temp-table. */
  
  &GLOB xpRowObjUpd
-        
- 
- 
  &GLOB xpCheckCurrentChanged
-
  &GLOB xpStatelessSavedProperties
  &GLOB xpDestroyStateless
  &GLOB xpDisconnectAppserver
@@ -123,8 +118,6 @@ PromptColumns,CacheDuration,ShareData
  &GLOB xpDataReadColumns                    
  &GLOB xpDataReadFormat                    
  &GLOB xpManualAddQueryWhere        
- &GLOB xpManualAssignQuerySelection 
- &GLOB xpManualSetQuerySort         
  &GLOB xpIsRowObjectExternal
  &GLOB xpIsRowObjUpdExternal
  &GLOB xpDynamicData
@@ -183,9 +176,6 @@ DO:
 
   /* pcwhere + chr(3) + pcbuffer or empty or "?" + chr(3) + pcandor */
   ghADMProps:ADD-NEW-FIELD('ManualAddQueryWhere':U, 'CHARACTER':U).   
-  /* pccolumns + chr(3) + pcvalues + chr(3) + pcoperators */
-  ghADMProps:ADD-NEW-FIELD('ManualAssignQuerySelection':U, 'CHARACTER':U).
-  ghADMProps:ADD-NEW-FIELD('ManualSetQuerySort':U, 'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('DynamicData':U, 'LOGICAL':U, 0, ?, no).
   ghADMProps:ADD-NEW-FIELD('LastCommitErrorType':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('LastCommitErrorKeys':U, 'CHAR':U, 0, ?, ?).

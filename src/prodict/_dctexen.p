@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -46,7 +46,7 @@ history:
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
 DEFINE VARIABLE new_lang AS CHARACTER EXTENT 3 NO-UNDO INITIAL [
-  /*1,2*/ "Operations on", "are not supported in this copy of PROGRESS.",
+  /*1,2*/ "Operations on", "are not supported in this copy of {&PRO_DISPLAY_NAME}.",
   /*  3*/ "The dictionary is in read-only mode - alterations not allowed."
 ].
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/

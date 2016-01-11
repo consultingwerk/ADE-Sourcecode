@@ -188,7 +188,7 @@ FUNCTION getContainedDataObjects RETURNS CHARACTER
 &IF DEFINED(EXCLUDE-getContextForServer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getContextForServer Procedure 
-FUNCTION getContextForServer RETURNS CHARACTER 
+FUNCTION getContextForServer RETURNS CHARACTER
   (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -509,6 +509,17 @@ FUNCTION getRowObjectState RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowsToBatch Procedure 
 FUNCTION getRowsToBatch RETURNS INTEGER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+    () FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1349,7 +1360,7 @@ END FUNCTION.
 &IF DEFINED(EXCLUDE-getContextForServer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getContextForServer Procedure 
-FUNCTION getContextForServer RETURNS CHARACTER 
+FUNCTION getContextForServer RETURNS CHARACTER
   (  ) :
 /*------------------------------------------------------------------------------
   Purpose: Returns a paired chr(4) delimited list of context properties and 
@@ -2335,6 +2346,80 @@ FUNCTION getRowsToBatch RETURNS INTEGER
       RETURN iRowsToBatch.
   END.          /* END DO IF Browser found in list. */
   ELSE RETURN 0.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+    ():
+/*------------------------------------------------------------------------------
+  Purpose:     SBO version of getNewRow.
+     Params:   <none>
+   Returns:    TRUE if matching SDO is a NewRow
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRequester    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lUpdated      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMapping      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSourceNames  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSource       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTargets      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hMaster       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hSource       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iObject       AS INTEGER    NO-UNDO.
+
+  /* If the hRequester is a super procedure (e.g. browser.p) 
+     then we must ask it for its TARGET-PROCEDURE to identify the
+     actual object making the request. Otherwise just use the SOURCE */
+  {get TargetProcedure hRequester SOURCE-PROCEDURE} NO-ERROR.
+  
+  IF NOT VALID-HANDLE (hRequester) THEN
+     hRequester = SOURCE-PROCEDURE.
+  
+  {get DataSourceNames cSourceNames hRequester} NO-ERROR. /* design time */
+  
+  IF cSourceNames = '':U OR cSourceNames = ? THEN
+  DO:
+    {get DataTarget cTargets} NO-ERROR.  /* Avoid errors at design time */
+    /* If the requester is a linked DataTarget we addDataTarget. */
+    IF CAN-DO(cTargets,STRING(hRequester)) THEN
+    DO:
+      RUN addDataTarget IN TARGET-PROCEDURE (hRequester).
+      /* addDataTarget will set DataSourceNames in the requester, so let's get 
+         it for the logic further down */
+      {get DataSourceNames cSourceNames hRequester}.
+    END. /* can-do(cTargets, ) */
+    ELSE DO: /* NOT linked... return the master's DataHandle  */  
+      {get MasterDataObject hMaster} NO-ERROR.
+      IF VALID-HANDLE(hMaster) THEN
+      DO:
+        {get RowUpdated lUpdated hMaster}.
+        RETURN lUpdated.
+      END.
+    END.
+   
+  END. /* no cSourceName */
+  
+  /* The requester may potentially have more than one source.
+    (An SDO that are getting foreign fields from different SDOs for example)*/
+  DO iObject = 1 TO NUM-ENTRIES(cSourceNames):
+    ASSIGN
+      cSource  = ENTRY(iObject,cSourceNames) 
+      hSource  = {fnarg DataObjectHandle cSource}.
+    
+    {get RowUpdated lUpdated hSource} NO-ERROR.
+    IF lUpdated THEN 
+      RETURN TRUE.
+  END.
+
+  /* if we get here the requester has no new sources */
+  RETURN FALSE. 
 
 END FUNCTION.
 

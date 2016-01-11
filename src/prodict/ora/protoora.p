@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Modified D. McMann 12/19/97 Changed labels added toggle boxes
@@ -69,9 +53,9 @@ ASSIGN redo = FALSE
 
 FORM
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
-    LABEL "Original PROGRESS Database" colon 38 SKIP({&VM_WID}) 
+    LABEL "Original {&PRO_DISPLAY_NAME} Database" colon 38 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for PROGRESS" colon 38 SKIP({&VM_WID})
+    LABEL "Connect parameters for {&PRO_DISPLAY_NAME}" colon 38 SKIP({&VM_WID})
   osh_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Name of Schema holder Database" colon 38 SKIP({&VM_WID})
   ora_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
@@ -99,7 +83,8 @@ FORM
      LABEL "Tables" colon 8
   ora_ispace FORMAT "x(30)" view-as fill-in size 30 by 1
      LABEL "Indexes" colon 47 SKIP({&VM_WIDG})      
-  SPACE(9) pcompatible view-as toggle-box LABEL "Create Progress Recid Field "  SPACE(7)
+  SPACE(9) pcompatible view-as toggle-box LABEL "Create RECID Field "  
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(16) &ELSE SPACE(15) &ENDIF
     crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" SKIP({&VM_WID})  
   SPACE(9) loadsql view-as toggle-box     label "Load SQL  "  
   &IF "{&WINDOW-SYSTEM}" = "TTY"
@@ -107,7 +92,12 @@ FORM
   movedata view-as toggle-box label "Move Data" 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(26) &ELSE SPACE(23) &ENDIF 
   SKIP({&VM_WID})
-  SPACE(9) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID}) 
+  SPACE(9) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns " 
+  SKIP({&VM_WID})
+  /*SPACE(9) unicodeTypes view-as toggle-box label "Unicode Types "
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(21) &ELSE SPACE(19) &ENDIF 
+  nvchar_utf view-as toggle-box LABEL "Allow NVARCHAR2(4000)"
+  SKIP({&VM_WID}) */
   cFormat VIEW-AS TEXT NO-LABEL AT 10
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "4GL Format", 2
@@ -120,7 +110,7 @@ FORM
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX &ENDIF
-  TITLE "PROGRESS DB to ORACLE Conversion".
+  TITLE "{&PRO_DISPLAY_NAME} DB to ORACLE Conversion".
 
 FORM
   wait FORMAT "x" LABEL
@@ -150,7 +140,7 @@ ON WINDOW-CLOSE of FRAME x
    APPLY "END-ERROR" to FRAME x.
 
 
-/*----- HELP in Progress DB to Oracle Database -----*/
+/*----- HELP in OpenEdge DB to Oracle Database -----*/
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
 on HELP of frame x or CHOOSE of btn_Help in frame x
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
@@ -178,6 +168,36 @@ ON VALUE-CHANGED of loadsql IN FRAME x DO:
      movedata:sensitive in frame x = NO.
   END.   
 END.  
+
+/*
+ON VALUE-CHANGED OF ora_version IN FRAME x DO:
+
+    /* when ora_version is 10 and up, we support Unicode data types */
+    IF INTEGER(ora_version:SCREEN-VALUE IN FRAME X) >= 10 THEN DO:
+        ASSIGN unicodeTypes:SENSITIVE = YES.
+        /* keep tab order right */
+        unicodeTypes:move-after-tab-item(shadowcol:HANDLE) in frame X.
+    END.
+    ELSE
+        ASSIGN unicodeTypes:SENSITIVE = NO
+               unicodeTypes:SCREEN-VALUE = "no".
+
+   ora_version = INTEGER(ora_version:SCREEN-VALUE).
+END.
+    
+ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
+    /* when unicode types is used, user can choose whether to use nvarchar(4000) */
+    IF SELF:CHECKED THEN DO:
+        nvchar_utf:SENSITIVE = YES.
+        /* keep tab order right */
+        nvchar_utf:move-after-tab-item(unicodeTypes:HANDLE) in frame X.
+    END.
+    ELSE DO:
+        ASSIGN nvchar_utf:SENSITIVE = NO
+               nvchar_utf:SCREEN-VALUE = "NO".
+    END.
+END.
+*/
 
 IF LDBNAME ("DICTDB") <> ? THEN
   ASSIGN pro_dbname = LDBNAME ("DICTDB").
@@ -288,6 +308,22 @@ ELSE
     ASSIGN lExpand = TRUE
            lFormat = FALSE.
 
+/* Unicode Types only support for ORACLE 10 and up */
+/*
+IF OS-GETENV("UNICODETYPES")  <> ? AND ora_version >= 10 THEN DO:
+
+  tmp_str      = OS-GETENV("UNICODETYPES").
+
+  IF tmp_str BEGINS "Y" THEN DO:
+      ASSIGN unicodeTypes = TRUE.
+
+      tmp_str = OS-GETENV("NVARCHAR2_4K").
+      IF tmp_str BEGINS "Y" THEN
+          nvchar_utf = YES.
+  END.
+END.
+*/
+
 IF PROGRESS EQ "COMPILE-ENCRYPT" THEN
   ASSIGN mvdta = FALSE.
 ELSE
@@ -304,6 +340,12 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 
   run_time = TIME.
 
+  /*IF ora_version >= 10 THEN
+     unicodeTypes:SENSITIVE = YES.
+  ELSE
+     ASSIGN unicodeTypes:SENSITIVE = NO
+            unicodeTypes:SCREEN-VALUE = "no".
+            */
   /*
    * if this is not batch mode, allow override of environment variables.
    */
@@ -329,6 +371,8 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       loadsql
       movedata WHEN mvdta 
       shadowcol
+     /* unicodeTypes WHEN ora_version >= 10
+      nvchar_utf WHEN unicodeTypes */
       iFmtOption
       lExpand WHEN iFmtOption = 2
       btn_OK btn_Cancel 
@@ -341,6 +385,16 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       lFormat = ?.
     ELSE
       lFormat = (NOT lExpand).
+
+   /* IF ora_version >= 10 AND unicodeTypes:SCREEN-VALUE = "yes" THEN DO:
+        ASSIGN unicodeTypes = YES.
+        IF nvchar_utf:SCREEN-VALUE = "yes" THEN
+            ASSIGN nvchar_utf = YES.
+        ELSE
+            ASSIGN nvchar_utf = NO. 
+    END.
+    ELSE
+        ASSIGN unicodeTypes = NO. */
 
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
@@ -355,13 +409,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             MESSAGE ERROR-STATUS:GET-MESSAGE(i).
         END.
         IF batch_mode THEN
-          PUT STREAM logfile UNFORMATTED "Unable to connect to Progress database"
+          PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
             skip.
         ELSE DO:
           &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-            MESSAGE "Unable to connect to Progress database".
+            MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
           &ELSE
-            MESSAGE "Unable to connect to Progress database" 
+            MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
              VIEW-AS ALERT-BOX ERROR.
           &ENDIF
         END.            
@@ -429,7 +483,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
     logfile_open = true. 
  
     IF pro_dbname = "" OR pro_dbname = ? THEN DO:
-      PUT STREAM logfile UNFORMATTED "Progress Database name is required." SKIP.
+      PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
       ASSIGN err-rtn = TRUE.
     END.
     ELSE
@@ -455,7 +509,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
       IF (ora_conparms = "" OR ora_conparms = ?) AND
          (ora_sid = "" OR ora_sid = ? ) AND
          ((INDEX(ora_username, "@") = 0) OR (INDEX(ora_password, "@") = 0)) THEN DO:
-         PUT STREAM logfile UNFORMATTED "Oracle connect parameters are required or ORACLE_SID must be set29." SKIP.   
+         PUT STREAM logfile UNFORMATTED "Oracle connect parameters are required or ORACLE_SID must be set." SKIP.   
          ASSIGN err-rtn = TRUE.
       END.
     END.  

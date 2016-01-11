@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -89,8 +89,7 @@ History:
     mcmann      09/30/02  Added logic for synonmyns of procedures in packages
     mcmann      05/13/03  Removed CLOB and CFILE from Oracle information
     mcmann      11/05/03  Removed check on index name = table name 20031105-020
-   
-
+    fernando    06/12/06  Support for large sequences
 */
 
 /*
@@ -167,6 +166,7 @@ define variable pnam            as character no-undo.
 define variable progvar         as character no-undo.
 DEFINE VARIABLE s               AS CHARACTER NO-UNDO.
 DEFINE VARIABLE tdbtype         AS CHARACTER NO-UNDO.
+/*DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.*/
 
 /*define variable shadow_col    as character no-undo.*/
 define variable spclvar         as character no-undo.
@@ -309,6 +309,10 @@ RUN adecomm/_setcurs.p ("WAIT").
     leave.
     end.     /* should actually never happen */
 
+/*    find first DICTDB._Db
+      where DICTDB._Db._Db-name = LDBNAME("DICTDBG")
+      and   DICTDB._Db._Db-type = "ORACLE".
+    ASSIGN oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). */
  &ENDIF
   
 assign
@@ -429,7 +433,7 @@ for each gate-work
     .
 
   if SESSION:BATCH-MODE and logfile_open
-   then put unformatted
+   then put STREAM logfile unformatted
      gate-work.gate-type at 10
      gate-work.gate-name at 25 skip.
 
@@ -481,7 +485,7 @@ for each gate-work
 
         assign
           s_ttb_seq.ds_incr  =   ds_sequences.increment$
-          s_ttb_seq.ds_max   = ( if ds_sequences.maxvalue > 2147483647
+          s_ttb_seq.ds_max   = ( if ds_sequences.maxvalue > (IF is-pre-101b-db THEN 2147483647 ELSE 9223372036854775807)
                                     then ?
                                     else ds_sequences.maxvalue
                                )
@@ -667,6 +671,17 @@ for each gate-work
   
   &IF "{&db-type}" = "oracle"
    &THEN
+   
+      /* NCHAR and NVARCHAR2 (Unicode Types) are only supported as such
+         with Oracle 10g and up, otherwise, they will be treated as character
+      */
+      /*IF (l_dt = "NVARCHAR2" OR l_dt = "NCHAR") AND oraversion < 10 THEN DO:
+          IF l_dt = "NVARCHAR2" THEN
+              l_dt = "VARCHAR2".
+          ELSE
+              l_dt = "CHAR".
+      END. */
+
       find first ds_comments
         where ds_comments.{&objid} = onum
         and   ds_comments.{&colid} = ds_columns.{&colid}

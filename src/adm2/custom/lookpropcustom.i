@@ -1,21 +1,21 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookpropcustom.i
     Purpose     : Defines basic properties.
-    Syntax      : {adm2/custom/lookpropcustom.i}
+    Syntax      : {src/adm2/custom/lookpropcustom.i}
 
     Description :
 
     Modified    : 09/07/2004
-    Notes       : Referenced in {adm2/lookupprop.i}    
+    Notes       : Referenced in {src/adm2/lookupprop.i}    
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -73,7 +73,7 @@
      And skip including the prototypes if we are *any* super procedure. */
 
 &IF "{&ADMSuper}":U EQ "":U &THEN
-  {adm2/custom/lookprtocustom.i}
+  {src/adm2/custom/lookprtocustom.i}
 &ENDIF
 
   /* Put your xp{&Property} preprocessor definitions here.

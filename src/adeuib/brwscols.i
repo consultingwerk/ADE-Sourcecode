@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: brwscols.i
@@ -89,5 +89,15 @@ DEFINE {1} SHARED TEMP-TABLE _BC
                            LABEL "Default Help String Attribute"
    FIELD _DEF-LABEL-ATTR   AS CHARACTER FORMAT "x(5)"
                            LABEL "Default Label String Attribute"
+   /*Fields for the view-as support introduced in 10.1B*/
+   FIELD _VIEW-AS-TYPE AS CHARACTER FORMAT "X(15)"     /*View-as type: ?=Fill-in; FI=Fill-in; DD=Drop-down-; DDL=drop-down-list; TB=Toggle-box*/
+   FIELD _VIEW-AS-DELIMITER AS CHARACTER FORMAT "X(1)" /*View-as delimiter (Combo-box only)*/
+   FIELD _VIEW-AS-ITEM-PAIRS AS CHARACTER              /*View-as list-item-pairs (Combo-box only)*/
+   FIELD _VIEW-AS-ITEMS AS CHARACTER                   /*View-as list-items (Combo-box only)*/
+   FIELD _VIEW-AS-INNER-LINES AS INTEGER               /*View-as inner-lines (Combo-box only)*/
+   FIELD _VIEW-AS-SORT AS LOGICAL                      /*View-as sort (Combo-box only)*/
+   FIELD _VIEW-AS-MAX-CHARS AS INTEGER                 /*View-as Max-chars (Combo-box only)*/
+   FIELD _VIEW-AS-AUTO-COMPLETION AS LOGICAL           /*View-as auto-completion (Combo-box only)*/
+   FIELD _VIEW-AS-UNIQUE-MATCH AS LOGICAL              /*View-as unique-match (Combo-box only)*/
   INDEX _x-recid-seq  IS PRIMARY UNIQUE _x-recid _SEQUENCE
   INDEX _x-recid-col  _x-recid _COL-HANDLE.

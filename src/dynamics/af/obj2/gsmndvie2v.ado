@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="yes" YearOffset="1950"/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="16.709" key_field_value="131770.9875" record_version_obj="131771.9875" secondary_key_value="gsmndvie2v#CHR(1)#0" version_date="08/19/2005" version_number_seq="16.709" version_time="52820" version_user="admin"><smartobject_obj>131770.9875</smartobject_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="RYCSO" DatasetObj="1004928896.09" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="93" SCMManaged="yes" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="ryc_smartobject" deletion_flag="no" entity_mnemonic="RYCSO" import_version_number_seq="10.74251" key_field_value="131770.9875" record_version_obj="131771.9875" secondary_key_value="gsmndvie2v#CHR(1)#0" version_date="07/24/2006" version_number_seq="10.74251" version_time="39337" version_user="admin"><smartobject_obj>131770.9875</smartobject_obj>
 <object_filename>gsmndvie2v</object_filename>
 <customization_result_obj>0</customization_result_obj>
 <object_type_obj>1003498162</object_type_obj>
@@ -396,7 +396,7 @@
 <object_instance_obj>131809.9875</object_instance_obj>
 <constant_value>no</constant_value>
 <attribute_label>LIST-ITEM-PAIRS</attribute_label>
-<character_value>Character,CHARACTER,Decimal,DECIMAL,Integer,INTEGER,Date,DATE,Logical,LOGICAL,Rowid,ROWID,Recid,RECID,Raw,RAW</character_value>
+<character_value>Character,CHARACTER,Decimal,DECIMAL,Integer,INTEGER,Int64,INT64,Date,DATE,Logical,LOGICAL,Rowid,ROWID,Recid,RECID,Raw,RAW</character_value>
 <integer_value>0</integer_value>
 <date_value>?</date_value>
 <decimal_value>0</decimal_value>

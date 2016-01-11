@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*--------------------------------------------------------------------
 
@@ -51,6 +35,7 @@ History:
     mcmann    07/10/02  Changed how integer's format are calculated
     mcmann    01/08/03  Added check for initial value of TODAY for Dates
     mcmann    04/09/03  Changed parameters for error message 2 to just table name
+    fernando  06/12/06  Support for int64
 
 --------------------------------------------------------------------*/
 
@@ -152,6 +137,10 @@ else if CAN-DO(l_dcml-types,s_ttb_fld.ds_type)      /**** DECIMALS ****/
                    + FILL("9",i).
          else if l_dcml <= 0
           then assign    /* 15,-2 =>  ->>>>>>>>>>>999 [->(11)9(3)] */ 
+           ntyp    = ( if user_dbtype = "ORACLE" AND l_prec <= 18
+                        then "int64"
+                        else "decimal"
+                     )
            i       = MINIMUM(29,1 - l_dcml)
            l_dcml  = 0
            l_frmt  = "-"

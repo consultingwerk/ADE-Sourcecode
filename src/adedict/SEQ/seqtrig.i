@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -37,15 +21,16 @@ Argument:
 Author: Laura Stern
 
 Date Created: 02/21/92 
+    Modified: 05/25/06 fernando   Support for large sequences
 
 ----------------------------------------------------------------------------*/
-
 
 /*----- LEAVE of INCREMENT -----*/
 on leave of b_Sequence._Seq-Incr in frame newseq,
       	    b_Sequence._Seq-Incr in frame seqprops
 do:
-   Define var incr as integer NO-UNDO.
+   Define var incr as int64 NO-UNDO.
+   Define var incr_i as INT NO-UNDO.
 
    incr = input {&frame} b_Sequence._Seq-Incr.
    if incr = 0 then
@@ -68,12 +53,59 @@ do:
       if s_Seq_Limit:label in {&frame} <> "Upper Limit" then 
       	 s_Seq_Limit:label in {&Frame} = "&Upper Limit".
    end.
+
+   /* s_Large_Seq can be ? for pre-10.1B dbs */
+   IF s_Large_Seq NE YES THEN DO:
+       /* try to cast it to an int, and display the message generated
+          by the client
+       */
+       ASSIGN incr_i = incr NO-ERROR.
+
+       IF ERROR-STATUS:ERROR THEN DO:
+           MESSAGE ERROR-STATUS:GET-MESSAGE(1)
+               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+           RETURN NO-APPLY.
+       END.
+   END.
 end.
 
+ON LEAVE OF b_Sequence._Seq-Init in frame newseq,
+      	    b_Sequence._Seq-Init in frame seqprops
+DO:
+   Define var incr as INT NO-UNDO.
 
+   /* s_Large_Seq can be ? for pre-10.1B dbs */
+   IF s_Large_Seq NE YES THEN DO:
+   
+       /* try to cast it to an int, and display the message generated
+          by the client
+       */
+       incr = input {&frame} b_Sequence._Seq-Init NO-ERROR.
 
+       IF ERROR-STATUS:ERROR THEN DO:
+           MESSAGE ERROR-STATUS:GET-MESSAGE(1)
+               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+           RETURN NO-APPLY.
+       END.
+   END.
+END.
 
+ON LEAVE OF s_Seq_Limit in frame newseq,
+      	    s_Seq_Limit in frame seqprops
+DO:
+   Define var incr as INT NO-UNDO.
 
-
-
-
+   /* s_Large_Seq can be ? for pre-10.1B dbs */
+   IF s_Large_Seq NE YES THEN DO:
+       /* try to cast it to an int, and display the message generated
+          by the client
+       */
+       ASSIGN incr = input {&frame} s_Seq_Limit NO-ERROR.
+    
+       IF ERROR-STATUS:ERROR THEN DO:
+           MESSAGE ERROR-STATUS:GET-MESSAGE(1)
+               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+           RETURN NO-APPLY.
+       END.
+   END.
+END.

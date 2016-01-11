@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -10,6 +10,7 @@
 /*
 input:
   user_env[1] = comma-sep list of filenames to dump
+                or it may be in user_longchar, if list was too big.
   user_env[2] = directory (if >1 file in user_env[1]) or filename to dump into
   user_env[3] = "MAP <name>" or "NO-MAP" OR ""
   user_env[4] = comma separated list of "y" (yes) or "n" (no) which
@@ -29,6 +30,7 @@ History:
     K. McIntosh Oct 19, 2005  Insert a slash between the directory and filename
                               just in case there isn't one already 20050928-004.
     fernando    Nov 03, 2005  Added code to audit dump operation                          
+    fernando    Mar 14, 20006 Handle case with too many tables selected - bug 20050930-006. 
 */
 /*h-*/
 
@@ -54,10 +56,16 @@ DEFINE VARIABLE yy          AS INTEGER   NO-UNDO.
 DEFINE VARIABLE stopped     AS LOGICAL   NO-UNDO init true.
 DEFINE VARIABLE CodeOut     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE lobdir      AS CHARACTER NO-UNDO.
-DEFINE VARIABLE cTempList   AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cTemp       AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cSlash      AS CHARACTER   NO-UNDO.
 
 DEFINE VARIABLE phdbname    AS CHARACTER   NO-UNDO.
+
+DEFINE VARIABLE numCount  AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ix        AS INTEGER      NO-UNDO.
+DEFINE VARIABLE ilast     AS INTEGER      NO-UNDO.
+DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
+DEFINE VARIABLE has_aud   AS LOGICAL      NO-UNDO.
 
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
@@ -70,7 +78,9 @@ FORM
   SCREEN-LINES - 8 DOWN ROW 2 CENTERED &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN THREE-D &ENDIF.
 
-cTempList = user_env[1].
+IF user_longchar <> "" AND user_longchar <> ? THEN
+   ASSIGN has_lchar = TRUE.
+
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
   cSlash = "/".
 &ELSE 
@@ -80,13 +90,36 @@ cTempList = user_env[1].
 /* The only Audit table that can be dumped through this program is the
    _audit-event table, so we remove it from the templist and check for 
    instances of the _aud string in the table list. */
-IF user_env[9] = "e" THEN
-  cTempList = REPLACE(cTempList,"_aud-event","").
 
-IF cTempList NE "" AND 
-   cTempList NE ? AND
-   INDEX(cTempList,",_aud") NE 0 AND
-   NOT cTempList BEGINS "_aud" THEN DO:
+/* let's use a longchar in case the string is too big, and because
+   the code below can be generic 
+*/
+IF NOT has_lchar THEN
+   user_longchar = user_env[1].
+
+IF user_longchar NE "" AND 
+   user_longchar NE ? THEN DO:
+
+   ASSIGN ix = INDEX(user_longchar,",_aud").
+
+   IF user_env[9] = "e" THEN DO:
+        ASSIGN iLast = INDEX(user_longchar,"_aud-event").
+
+       /* check if there is another aud table other than _aud-event */
+        IF iLast NE 0 AND ix NE 0 AND ix = (iLast - 1) THEN
+           ix = INDEX(user_longchar,",_aud",ix + 1).
+   END.
+   
+   IF ix NE 0 AND
+       NOT user_longchar BEGINS "_aud" THEN
+       has_aud = TRUE.
+END.
+
+/* free longchar if we don't need it */
+IF NOT has_lchar THEN
+   user_longchar = ?.
+
+IF has_aud = TRUE THEN DO:
   MESSAGE "Dump Failed!" SKIP(1)
           "You cannot dump Audit Policies or Data through this utility!"
       VIEW-AS ALERT-BOX ERROR BUTTONS OK.
@@ -117,26 +150,29 @@ RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
 ASSIGN
   phDbName = PDBNAME("DICTDB") /* for logging audit event */
   cntr = 0
-  lots = INDEX(user_env[1],",") > 0
+  lots = (IF has_lchar THEN INDEX(user_longchar,",") > 0 ELSE INDEX(user_env[1],",") > 0)
   loop = TRUE. /* use this to mark initial entry into loop */
 
 PAUSE 5 BEFORE-HIDE.
+
+IF has_lchar THEN
+   numCount = NUM-ENTRIES(user_longchar).
+ELSE
+   numCount = NUM-ENTRIES(user_env[1]).
+
 DO ON STOP UNDO, LEAVE:
-  DO FOR DICTDB._File WHILE ENTRY(1,user_env[1]) <> "" ON ERROR UNDO,NEXT:
+  DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:
+
+    ASSIGN cTemp = IF has_lchar THEN ENTRY(ix,user_longchar) ELSE ENTRY(ix,user_env[1]).
+
     IF INTEGER(DBVERSION("DICTDB")) > 8 THEN 
        FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
-                  DICTDB._File._File-name = ENTRY(1,user_env[1]) AND
+                  DICTDB._File._File-name = cTemp AND
                  (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN").
     ELSE
       FIND DICTDB._File WHERE DICTDB._File._Db-recid = drec_db AND 
-                  DICTDB._File._File-name = ENTRY(1,user_env[1]).
+                  DICTDB._File._File-name = cTemp.
                   
-    user_env[1] = SUBSTRING(user_env[1]
-                           ,LENGTH(ENTRY(1,user_env[1]),"character") + 2
-                           ,-1
-                           ,"character"
-                           ).
-  
     IF loop THEN .
     ELSE IF FRAME-LINE(dumpdata) = FRAME-DOWN(dumpdata) THEN
       UP FRAME-LINE(dumpdata) - 1 WITH FRAME dumpdata.
@@ -181,7 +217,7 @@ DO ON STOP UNDO, LEAVE:
           DISPLAY "Error!" @ msg WITH FRAME dumpdata.
           COLOR DISPLAY NORMAL DICTDB._File._File-name fil msg WITH FRAME dumpdata.
           MESSAGE
-            "Cannot dump PROGRESS data when all indexes for a table inactive.".
+            "Cannot dump {&PRO_DISPLAY_NAME} data when all indexes for a table are inactive.".
           NEXT.
         END.
         useix = "USE-INDEX " + DICTDB._Index._Index-name + useix.
@@ -328,6 +364,8 @@ else do:  /* output WITH alert-box */
    &ENDIF
   
 end.     /* output WITH alert-box */
+
+ASSIGN user_longchar = "".
 
 HIDE FRAME dumpdata NO-PAUSE.
 SESSION:IMMEDIATE-DISPLAY = no.

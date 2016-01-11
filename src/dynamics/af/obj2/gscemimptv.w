@@ -848,20 +848,30 @@ PROCEDURE resizeObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER pdHeight   AS DECIMAL    NO-UNDO.
-  DEFINE INPUT  PARAMETER pdWidth  AS DECIMAL    NO-UNDO.
-
-  IF FRAME frMain:HEIGHT < pdHeight THEN DO:
+    DEFINE INPUT  PARAMETER pdHeight   AS DECIMAL    NO-UNDO.
+    DEFINE INPUT  PARAMETER pdWidth    AS DECIMAL    NO-UNDO.
+    
+    define variable lHidden     as logical no-undo.
+    
+    ASSIGN lHidden                                   = FRAME {&FRAME-NAME}:HIDDEN    
+           FRAME {&FRAME-NAME}:HIDDEN                = YES
+           FRAME {&FRAME-NAME}:SCROLLABLE            = YES
+           FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS  = SESSION:HEIGHT-CHARS
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS   = SESSION:WIDTH-CHARS
+           FRAME {&FRAME-NAME}:HEIGHT-CHARS          = pdHeight.
+           /* No horizontal resizing supported. */
+    
     FRAME frMain:HEIGHT = pdHeight.
     FRAME frDetails:ROW = FRAME frMain:HEIGHT - FRAME frDetails:HEIGHT + 1.
     BROWSE {&BROWSE-NAME}:HEIGHT = FRAME frDetails:ROW - 2.62 - .24.
-  END.
-  IF FRAME frMain:HEIGHT > pdHeight THEN DO:
-    FRAME frDetails:ROW = pdHeight - FRAME frDetails:HEIGHT + 1.
-    BROWSE {&BROWSE-NAME}:HEIGHT = FRAME frDetails:ROW - 2.62 - .24.
-    FRAME frMain:HEIGHT = pdHeight.
-  END.
 
+    ASSIGN FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS
+           FRAME {&FRAME-NAME}:SCROLLABLE           = NO
+           FRAME {&FRAME-NAME}:HIDDEN               = lHidden.
+    
+    error-status:error = no.
+    return.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

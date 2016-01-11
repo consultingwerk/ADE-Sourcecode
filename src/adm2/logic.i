@@ -198,7 +198,7 @@ PROCEDURE clearLogicRows :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
+ 
    IF AVAILABLE b_{&DATA-LOGIC-TABLE} THEN
        DELETE b_{&DATA-LOGIC-TABLE} NO-ERROR.
         
@@ -206,6 +206,25 @@ PROCEDURE clearLogicRows :
        DELETE OLD_{&DATA-LOGIC-TABLE} NO-ERROR.
 
    EMPTY TEMP-TABLE rowObjUpd NO-ERROR.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getLogicBeforeBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getLogicBeforeBuffer Method-Library 
+PROCEDURE getLogicBeforeBuffer :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+   DEFINE OUTPUT PARAMETER ohBeforeBuffer       AS HANDLE   NO-UNDO.
+   ohBeforeBuffer = BUFFER old_{&DATA-LOGIC-TABLE}:HANDLE.
 
 END PROCEDURE.
 
@@ -252,6 +271,29 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-runTableEvent) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE runTableEvent Method-Library 
+PROCEDURE runTableEvent :
+/*------------------------------------------------------------------------------
+  Purpose:  Receives RowObjUpd table by reference to allow static DLP table 
+            hook to operate on it.    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE INPUT PARAMETER TABLE FOR b_{&DATA-LOGIC-TABLE}.
+  DEFINE INPUT PARAMETER pcHook AS CHARACTER  NO-UNDO.
+ 
+  RUN VALUE(pcHook) IN TARGET-PROCEDURE.  
+
+  RETURN RETURN-VALUE.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setLogicBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setLogicBuffer Method-Library 
@@ -266,13 +308,13 @@ PROCEDURE setLogicBuffer :
    DEFINE INPUT PARAMETER phBeforeImageBuffer      AS HANDLE NO-UNDO. 
 
    DEFINE VARIABLE hBuffer    AS HANDLE       NO-UNDO.
-        
+   
    IF VALID-HANDLE(phAfterImageBuffer) THEN
    DO:
        hBuffer = BUFFER b_{&DATA-LOGIC-TABLE}:HANDLE.
        hBuffer:BUFFER-COPY(phAfterImageBuffer).
    END.
-
+ 
    IF VALID-HANDLE(phBeforeImageBuffer) THEN
    DO:
        hBuffer = BUFFER OLD_{&DATA-LOGIC-TABLE}:HANDLE.
@@ -295,7 +337,6 @@ PROCEDURE setLogicRows :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
    DEFINE INPUT PARAMETER TABLE FOR b_{&DATA-LOGIC-TABLE}.
 
 END PROCEDURE.

@@ -247,9 +247,6 @@ END. /* buffer-loop */
 
 /* Prepare the query */
 
-/* remove decimals with commas for Europe */
-pcQuery = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT pcQuery).
-
 /* Now strip DB name from query */
 RUN removeDBPrefix (INPUT-OUTPUT pcQuery, INPUT cDBList).
 

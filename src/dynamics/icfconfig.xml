@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <sessions><session SessionType="ASICFDev"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -94,7 +94,7 @@
 </session>
 <session SessionType="ASICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -183,7 +183,8 @@
 </session>
 <session SessionType="Default"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<cached_translations_only>Yes</cached_translations_only>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -277,7 +278,8 @@
 </session>
 <session SessionType="ICFDev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<cached_translations_only>Yes</cached_translations_only>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -379,7 +381,8 @@
 </session>
 <session SessionType="ICFDevAS"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<cached_translations_only>Yes</cached_translations_only>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -481,7 +484,8 @@
 </session>
 <session SessionType="ICFRuntime"><properties><auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>no</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<cached_translations_only>Yes</cached_translations_only>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -567,7 +571,7 @@
 <auto_dump_entity_cache>YES</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
 <display_login_screen>Yes</display_login_screen>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -665,100 +669,9 @@
 </manager>
 </managers>
 </session>
-<session SessionType="rtb_091dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
-<bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
-<ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
-<ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
-<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
-<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
-<IDEPalette>PaletteDynamics</IDEPalette>
-<IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
-<login_procedure>af/cod2/aftemlognw.w</login_procedure>
-<physical_session_list>GUI</physical_session_list>
-<print_preview_preference/>
-<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
-<root_directory>.</root_directory>
-<run_local>YES</run_local>
-<session_date_format>mdy</session_date_format>
-<session_year_offset>1950</session_year_offset>
-<UseThinRendering>NO</UseThinRendering>
-<valid_os_list>WIN32</valid_os_list>
-</properties>
-<services><service><cServiceType>AppServer</cServiceType>
-<cServiceName>Astra</cServiceName>
-<cPhysicalService>asb_091dyndep</cPhysicalService>
-<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_091dyndep</cConnectParams>
-<lDefaultService>yes</lDefaultService>
-<lConnectAtStartup>yes</lConnectAtStartup>
-<lCanRunLocal>yes</lCanRunLocal>
-</service>
-</services>
-<managers><manager><cManagerName>ConnectionManager</cManagerName>
-<cFileName>af/app/afconmgrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>WebServiceConnectionManager</cManagerName>
-<cFileName>af/app/afwebconmgrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>AppServerConnectionManager</cManagerName>
-<cFileName>af/app/afasconmgrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>DatabaseConnectionManager</cManagerName>
-<cFileName>af/app/afdbconmgrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>JMSConnectionManager</cManagerName>
-<cFileName>af/app/afjmsconmgrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>SessionManager</cManagerName>
-<cFileName>af/app/afsessrvrp.p</cFileName>
-<cHandleName>SM</cHandleName>
-</manager>
-<manager><cManagerName>GeneralManager</cManagerName>
-<cFileName>af/app/afgensrvrp.p</cFileName>
-<cHandleName>GM</cHandleName>
-</manager>
-<manager><cManagerName>SecurityManager</cManagerName>
-<cFileName>af/app/afsecsrvrp.p</cFileName>
-<cHandleName>SEM</cHandleName>
-</manager>
-<manager><cManagerName>RepositoryManager</cManagerName>
-<cFileName>ry/app/ryrepsrvrp.p</cFileName>
-<cHandleName>RM</cHandleName>
-</manager>
-<manager><cManagerName>ProfileManager</cManagerName>
-<cFileName>af/app/afprosrvrp.p</cFileName>
-<cHandleName>PM</cHandleName>
-</manager>
-<manager><cManagerName>LocalizationManager</cManagerName>
-<cFileName>af/app/aftrnsrvrp.p</cFileName>
-<cHandleName>TM</cHandleName>
-</manager>
-<manager><cManagerName>CustomizationManager</cManagerName>
-<cFileName>ry/app/rycussrvrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>RIManager</cManagerName>
-<cFileName>ry/app/ryrisrvrp.p</cFileName>
-<cHandleName>RI</cHandleName>
-</manager>
-<manager><cManagerName>RepositoryDesignManager</cManagerName>
-<cFileName>ry/app/rydessrvrp.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-<manager><cManagerName>SDFCacheManager</cManagerName>
-<cFileName>ry/prc/rysdfcmngr.p</cFileName>
-<cHandleName>NON</cHandleName>
-</manager>
-</managers>
-</session>
 <session SessionType="rtb_092dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -847,9 +760,9 @@
 </manager>
 </managers>
 </session>
-<session SessionType="rtb_092dyndev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
+<session SessionType="rtb_093dyndep"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -869,8 +782,8 @@
 </properties>
 <services><service><cServiceType>AppServer</cServiceType>
 <cServiceName>Astra</cServiceName>
-<cPhysicalService>asb_092dyndev</cPhysicalService>
-<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_092dyndev</cConnectParams>
+<cPhysicalService>asb_093dyndep</cPhysicalService>
+<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_093dyndep</cConnectParams>
 <lDefaultService>yes</lDefaultService>
 <lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>
@@ -938,9 +851,9 @@
 </manager>
 </managers>
 </session>
-<session SessionType="rtb_092dyntst"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
+<session SessionType="rtb_093dyndev"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
 <bound_icfdb>yes</bound_icfdb>
-<DynamicsVersion>10.1A</DynamicsVersion>
+<DynamicsVersion>10.1B</DynamicsVersion>
 <ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
 <ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
 <ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
@@ -960,8 +873,99 @@
 </properties>
 <services><service><cServiceType>AppServer</cServiceType>
 <cServiceName>Astra</cServiceName>
-<cPhysicalService>asb_092dyntst</cPhysicalService>
-<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_092dyntst</cConnectParams>
+<cPhysicalService>asb_093dyndev</cPhysicalService>
+<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_093dyndev</cConnectParams>
+<lDefaultService>yes</lDefaultService>
+<lConnectAtStartup>yes</lConnectAtStartup>
+<lCanRunLocal>yes</lCanRunLocal>
+</service>
+</services>
+<managers><manager><cManagerName>ConnectionManager</cManagerName>
+<cFileName>af/app/afconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>WebServiceConnectionManager</cManagerName>
+<cFileName>af/app/afwebconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>AppServerConnectionManager</cManagerName>
+<cFileName>af/app/afasconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>DatabaseConnectionManager</cManagerName>
+<cFileName>af/app/afdbconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>JMSConnectionManager</cManagerName>
+<cFileName>af/app/afjmsconmgrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>SessionManager</cManagerName>
+<cFileName>af/app/afsessrvrp.p</cFileName>
+<cHandleName>SM</cHandleName>
+</manager>
+<manager><cManagerName>GeneralManager</cManagerName>
+<cFileName>af/app/afgensrvrp.p</cFileName>
+<cHandleName>GM</cHandleName>
+</manager>
+<manager><cManagerName>SecurityManager</cManagerName>
+<cFileName>af/app/afsecsrvrp.p</cFileName>
+<cHandleName>SEM</cHandleName>
+</manager>
+<manager><cManagerName>RepositoryManager</cManagerName>
+<cFileName>ry/app/ryrepsrvrp.p</cFileName>
+<cHandleName>RM</cHandleName>
+</manager>
+<manager><cManagerName>ProfileManager</cManagerName>
+<cFileName>af/app/afprosrvrp.p</cFileName>
+<cHandleName>PM</cHandleName>
+</manager>
+<manager><cManagerName>LocalizationManager</cManagerName>
+<cFileName>af/app/aftrnsrvrp.p</cFileName>
+<cHandleName>TM</cHandleName>
+</manager>
+<manager><cManagerName>CustomizationManager</cManagerName>
+<cFileName>ry/app/rycussrvrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>RIManager</cManagerName>
+<cFileName>ry/app/ryrisrvrp.p</cFileName>
+<cHandleName>RI</cHandleName>
+</manager>
+<manager><cManagerName>RepositoryDesignManager</cManagerName>
+<cFileName>ry/app/rydessrvrp.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+<manager><cManagerName>SDFCacheManager</cManagerName>
+<cFileName>ry/prc/rysdfcmngr.p</cFileName>
+<cHandleName>NON</cHandleName>
+</manager>
+</managers>
+</session>
+<session SessionType="rtb_093dyntst"><properties><auto_dump_entity_cache>NO</auto_dump_entity_cache>
+<bound_icfdb>yes</bound_icfdb>
+<DynamicsVersion>10.1B</DynamicsVersion>
+<ICFCM_AppServer>AppServerConnectionManager</ICFCM_AppServer>
+<ICFCM_Database>DatabaseConnectionManager</ICFCM_Database>
+<ICFCM_JMS>JMSConnectionManager</ICFCM_JMS>
+<ICFCM_WebService>WebServiceConnectionManager</ICFCM_WebService>
+<IDEPalette>PaletteDynamics</IDEPalette>
+<IDETemplate>templateContainer,templateSmartObject,templateProcedure,templateWebObject</IDETemplate>
+<login_procedure>af/cod2/aftemlognw.w</login_procedure>
+<physical_session_list>GUI</physical_session_list>
+<print_preview_preference/>
+<print_preview_stylesheet>af/rep/xmlreport.xsl</print_preview_stylesheet>
+<root_directory>.</root_directory>
+<run_local>YES</run_local>
+<session_date_format>mdy</session_date_format>
+<session_year_offset>1950</session_year_offset>
+<UseThinRendering>NO</UseThinRendering>
+<valid_os_list>WIN32</valid_os_list>
+</properties>
+<services><service><cServiceType>AppServer</cServiceType>
+<cServiceName>Astra</cServiceName>
+<cPhysicalService>asb_093dyntst</cPhysicalService>
+<cConnectParams>R#CHR(3)#-H localhost -S NS1 -AppService asb_093dyntst</cConnectParams>
 <lDefaultService>yes</lDefaultService>
 <lConnectAtStartup>yes</lConnectAtStartup>
 <lCanRunLocal>yes</lCanRunLocal>

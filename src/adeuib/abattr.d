@@ -131,9 +131,9 @@
 51 "CUSTOM-SUPER-PROC" no 2 "C" "CUSTOM-SUPER-PROC!_C._CUSTOM-SUPER-PROC" no yes yes no no no no no no no no no no no no no no no no "custom super procedure" 135 "" "" yes "_C._CUSTOM-SUPER-PROC = cValue."
 52 "DATA-TYPE" no 3 "C" "" no no no no no yes yes yes no yes no no no no no no no no no "" 30 ? "" yes "
   DO: 
-    IF CAN-DO(""Character,LongChar,Date,DateTime,DateTime-Tz,Decimal,Logical,Integer"":U, cValue) 
+    IF CAN-DO(""Character,LongChar,Date,DateTime,DateTime-Tz,Decimal,Logical,Integer,INT64"":U, cValue) 
     THEN _F._DATA-TYPE = cValue.
-    ELSE err_text = ""DATA-TYPE must be Character, LongChar, Date, Decimal, Logical, or Integer."".
+    ELSE err_text = ""DATA-TYPE must be Character, LongChar, Date, Decimal, Logical, Integer or INT64."".
   END."
 53 "DB-FIELD" no 5 "L" "" no no no no no yes yes yes no yes no yes yes no yes no no no no "" 180 ? "" no ""
 54 "DEBLANK" no 1 "L" "Deblank!_F._DEBLANK" no no no no no no no yes no no no no no no no no no no no "" 305 ? "  _F._DEBLANK = SELF:CHECKED." yes "_F._DEBLANK = lValue."
@@ -365,7 +365,7 @@
   IF _U._SHARED AND
      NOT CAN-DO(""BROWSE,FRAME"",_U._TYPE) THEN DO:
     IF ((CAN-DO(""CHARACTER,LONGCHAR"",_F._DATA-TYPE) AND _F._INITIAL-DATA NE """") OR
-       (CAN-DO(""INTEGER,DECIMAL"",_F._DATA-TYPE)
+       (CAN-DO(""INTEGER,DECIMAL,INT64"",_F._DATA-TYPE)
              AND DECIMAL(_F._INITIAL-DATA) NE 0) OR
        (_F._DATA-TYPE = ""LOGICAL""
              AND NOT CAN-DO(""NO,FALSE"",_F._INITIAL-DATA)) OR 
@@ -382,14 +382,13 @@
   END." no "_U._SHARED = lValue."
 153 "SHOW-IN-TASKBAR" no 1 "L" "Show-in-Taskbar!_C._SHOW-IN-TASKBAR" yes no no no no no no no no no no no no no no no no no no "" 580 ? "  _C._SHOW-IN-TASKBAR = SELF:CHECKED.
 " yes "_C._SHOW-IN-TASKBAR = lValue."
-154 "SHOW-POPUP" no 1 "L" "Show-popup!_U._SHOW-POPUP" no yes no no no no no yes no no no no no no no no no no no "Display calendar or calc?" 600 "" "  _U._SHOW-POPUP = IF AVAILABLE _F AND CAN-DO(""DATE,DECIMAL,INTEGER"":u, _F._DATA-TYPE) AND isDynView 
+154 "SHOW-POPUP" no 1 "L" "Show-popup!_U._SHOW-POPUP" no yes no no no no no yes no no no no no no no no no no no "Display calendar or calc?" 600 "" "  _U._SHOW-POPUP = IF AVAILABLE _F AND CAN-DO(""DATE,DECIMAL,INTEGER,INT64"":u, _F._DATA-TYPE) AND isDynView 
       THEN SELF:CHECKED
       ELSE FALSE." yes " 
-       _U._SHOW-POPUP =  IF ( AVAILABLE _F and  can-do(""DATE,DECIMAL,INTEGER"":u, _F._DATA-TYPE) and lparentIsDynview )
+       _U._SHOW-POPUP =  IF ( AVAILABLE _F and  can-do(""DATE,DECIMAL,INTEGER,INT64"":u, _F._DATA-TYPE) and lparentIsDynview )
                               OR isDynview
                          THEN lvalue
-                         ELSE false.
-"
+                         ELSE false."
 155 "SIDE-LABELS" no 1 "L" "Side-Labels!_C._SIDE-LABELS" no yes no no no no no no no no no no no no no no no no no "" 605 ? "  _C._SIDE-LABELS = SELF:CHECKED." yes "_C._SIDE-LABELS = lValue."
 156 "SIZE-TO-FIT" no 1 "L" "Size to fit!_C._size-to-fit" no yes no no no no no no no no no no no no no no no no yes "" 610 ? "  _C._size-to-fit = SELF:CHECKED." yes "_C._size-to-fit = lValue."
 157 "SMALL-ICON" no 6 "C" "" yes no no no no no no no no no no no no no no no no no no "" 90 ? "" no ""
@@ -472,10 +471,10 @@ PSC
 filename=abAttribute
 records=0000000000186
 ldbname=ab
-timestamp=2005/07/27-16:02:45
+timestamp=2006/07/07-14:00:06
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
 cpstream=ISO8859-1
 .
-0000043778
+0000043806

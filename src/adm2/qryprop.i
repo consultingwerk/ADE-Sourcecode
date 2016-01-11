@@ -102,7 +102,9 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpFetchAutoComment
  &GLOB xpFetchHasAudit
  &GLOB xpFetchHasComment
+ &GLOB xpFirstResultRow            
  &GLOB xpLastDBRowIdent
+ &GLOB xpLastResultRow            
  &GLOB xpNewBatchInfo
  &GLOB xpPhysicalTables
  &GLOB xpPositionForClient 
@@ -114,7 +116,8 @@ DEF VAR xiRocketIndexLimit AS INTEGER INIT 188 NO-UNDO.
  &GLOB xpUpdatableColumnsByTable 
  &GLOB xpUpdateFromSource
                     
- {src/adm2/dataviewprop.i}
+ {src/adm2/dataqueryprop.i}
+ 
  /* the data class derives this from UpdatableColumnsByTable */  
  &UNDEFINE xpUpdatableColumns  
  
@@ -135,9 +138,11 @@ DO:
   ghADMProps:ADD-NEW-FIELD('FetchHasAudit':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchHasComment':U, 'LOGICAL':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('FetchAutoComment':U, 'LOGICAL':U, 0, ?, ?).
+  ghADMProps:ADD-NEW-FIELD('FirstResultRow':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('KeyFields':U, 'CHARACTER':U, 0, ?, '{&KEY-FIELDS}':U). 
   ghADMProps:ADD-NEW-FIELD('KeyTableId':U, 'CHARACTER':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('LastDBRowIdent':U, 'CHAR':U, 0, ?, '':U).
+  ghADMProps:ADD-NEW-FIELD('LastResultRow':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('NewBatchInfo':U, 'CHAR':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('PhysicalTables':U, 'CHAR':U, 0, ?, '':U).
   ghADMProps:ADD-NEW-FIELD('PositionForClient':U, 'CHARACTER':U, 0, ?, ?).

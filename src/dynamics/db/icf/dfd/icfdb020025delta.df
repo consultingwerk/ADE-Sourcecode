@@ -1,9 +1,0 @@
-UPDATE SEQUENCE "seq_ICFDB_DBVersion"
-  INITIAL 20025
-  MAX-VAL 20025
-
-.
-PSC
-cpstream=utf-8
-.
-0000008340

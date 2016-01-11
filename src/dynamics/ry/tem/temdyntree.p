@@ -69,7 +69,7 @@ FUNCTION getTreeViewOCX RETURNS HANDLE
 
 /* ***********************  Control Definitions  ********************** */
 ##Loop:ListContainerObjects##
-define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.
+define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.    /* ##[InstanceName]## */
 ##Loop:End##
     
 /* Define the widget handle for the window                              */
@@ -319,7 +319,7 @@ PROCEDURE adm-create-objects :
             
             cInitPages = '##getInitPages([CurrentPageReference])##'.
             /* Init other pages this page may need */
-            if cInitPages gt '' then                
+            if cInitPages gt '':u then
                 run initPages in target-procedure(cInitPages).
             
             ##Loop:AddLinks##

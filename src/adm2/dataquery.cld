@@ -1,0 +1,19 @@
+/* Class Definition for dataquery - adm2/dataquery.cld - 06/27/2006 
+   Class Type: User-Defined	
+   Class Name: dataquery
+   Class DeriveFrom: C:/DLC/src/adm2/appserver.cld
+   Class SourcePath: src/adm2
+   Class RcodePath: adm2
+   Class TemplatePath: src/adm2/template   
+   Class Method: dataquery.i
+   Class Property: dataqueryprop.i
+   Class Super: dataquery.p
+   Class Prototype: dataqueryprto.i
+   Class Template: 
+   Custom Method: dataquerycustom.i
+   Custom Property: dataquerypropcustom.i
+   Custom Super: dataquerycustom.p
+   Custom Prototype: dataqueryprtocustom.i
+   Custom Exclude: dataqueryexclcustom.i
+   Custom Instance: dataquerydefscustom.i
+ */

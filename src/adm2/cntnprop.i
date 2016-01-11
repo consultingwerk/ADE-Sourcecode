@@ -150,6 +150,8 @@
  &GLOBAL-DEFINE xpRequiredPages
  &GLOBAL-DEFINE xpRemoveMenuOnHide 
  &GLOBAL-DEFINE xpProcessList
+ /* page security tokens, in page order. pipe-delimited */
+ &global-define xpPageTokens 
 
   /* Now include the next-level-up property include file. This builds up
      the property temp-table definition, which we will then add our 
@@ -232,7 +234,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('RemoveMenuOnHide':U, 'LOGICAL':U, 0, ?, TRUE).
   ghADMProps:ADD-NEW-FIELD('ProcessList':U, 'CHARACTER':U).
   ghADMProps:ADD-NEW-FIELD('PageLayoutInfo':U, 'CHARACTER':U).
-
+  ghADMProps:ADD-NEW-FIELD('PageTokens':U, 'CHARACTER':U).
 &ENDIF
 
 

@@ -125,6 +125,8 @@ PanelType,AddFunction
 
 {src/adm2/toolprop.i}
 
+&UNDEFINE xpTableioType   /* mapped to paneltype */
+
 &IF DEFINED(ADM-EXCLUDE-STATIC) = 0 &THEN
 IF NOT {&ADM-PROPS-DEFINED} THEN
 DO:

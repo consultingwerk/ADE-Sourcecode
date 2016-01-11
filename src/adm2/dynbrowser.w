@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
 "Dynamic ADM SmartDataBrowser Object.
 This object can then be drawn onto any 'smart' container such as a SmartWindow, SmartDialog or SmartFrame and configured to work with any SmartDataObject."
@@ -6,28 +6,12 @@ This object can then be drawn onto any 'smart' container such as a SmartWindow, 
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTableWin 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: adm2\src\dynbrowser.w
@@ -62,7 +46,10 @@ CREATE WIDGET-POOL.
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}DisplayedFields,EnabledFields
+  &GLOB xcInstanceProperties {&xcInstanceProperties}DisplayedFields,EnabledFields,~
+BrowseColumnTypes,BrowseColumnItems,BrowseColumnItemPairs,BrowseColumnInnerLines,~
+BrowseColumnSorts,BrowseColumnMaxChars,BrowseColumnAutoCompletions,~
+BrowseColumnUniqueMatches,BrowseColumnDelimiters
 
 &SCOPED-DEFINE ADM-PROPERTY-DLG adm2/support/dynbrowserd.w
 /* tell smart.i that we can use the default destroyObject */ 
@@ -81,7 +68,7 @@ CREATE WIDGET-POOL.
 
 &Scoped-define ADM-SUPPORTED-LINKS TableIO-Target,Data-Target,Update-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME F-Main
 &Scoped-define BROWSE-NAME br_table
 
@@ -173,7 +160,7 @@ END.
 /* SETTINGS FOR WINDOW bTableWin
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME F-Main
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 /* BROWSE-TAB br_table 1 F-Main */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE

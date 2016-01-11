@@ -3,28 +3,11 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 /*------------------------------------------------------------------------
 
   File: _prplist.w
@@ -80,7 +63,7 @@ FUNCTION validate-radio-buttons RETURNS LOGICAL
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
@@ -150,7 +133,7 @@ DEFINE FRAME Dialog-Frame
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dialog-Frame
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
@@ -405,6 +388,7 @@ PROCEDURE switchList :
             WHEN "DATE":U      THEN tmpString = tmpString + STRING(TODAY,_F._FORMAT).
             WHEN "DECIMAL":U   THEN tmpString = tmpString + STRING(ix,_F._FORMAT).
             WHEN "INTEGER":U   THEN tmpString = tmpString + STRING(ix,_F._FORMAT).
+            WHEN "INT64":U     THEN tmpString = tmpString + STRING(ix,_F._FORMAT).
             WHEN "LOGICAL":U   THEN tmpString = tmpString + STRING(no,_F._FORMAT).
           END.
           ASSIGN tmpString = tmpString + (IF ix <> NUM-ENTRIES(fiListItems:SCREEN-VALUE,CHR(10)) THEN ",":U ELSE "").

@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -33,6 +17,7 @@ Author: Laura Stern
 
 Date Created: 02/20/92 
     Modified: 07/14/98 D. McMann Added _Owner to _file finds.
+              05/25/06 fernando  Support for 64-bit sequences
 
 ----------------------------------------------------------------------------*/
 
@@ -45,10 +30,10 @@ Date Created: 02/20/92
 {adedict/SEQ/seqvar.i shared}
 {adedict/capab.i}
 
-
 DEFINE VAR added     AS LOGICAL NO-UNDO INIT no.
 Define var capab     AS CHAR    NO-UNDO.
-
+DEFINE VAR l       AS LOGICAL   NO-UNDO.
+DEFINE VAR cTemp   AS CHARACTER NO-UNDO.
 
 /*-------------------------------Triggers------------------------------------*/
 
@@ -90,7 +75,6 @@ on window-close of frame newseq
 on HELP of frame newseq OR choose of s_btn_Help in frame newseq
    RUN "adecomm/_adehelp.p" ("dict", "CONTEXT", {&Create_Sequence_Dlg_Box}, ?).
 
-
 /*----------------------------Mainline code----------------------------------*/
 
 find _File WHERE _File._File-name = "_Sequence"
@@ -116,6 +100,10 @@ end.
 /* what type of sequence */
 s_Seq_Type = s_DbCache_Type[s_DbCache_ix].
 
+IF s_Large_Seq = NO THEN
+   ASSIGN s_Large_Seq_info = "** 64-bit sequences support not enabled".
+ELSE /* if yes or ? */
+   ASSIGN s_Large_Seq_info = "".
 
 /* Run time layout for button area.  Since this is a shared frame we have 
    to avoid doing this code more than once.
@@ -134,7 +122,7 @@ end.
 
 /* Erases value from the last time.  */
 s_Status = "".
-display s_Status with frame newseq.
+display s_Status s_Large_Seq_info with frame newseq.
 s_btn_Done:label in frame newseq = "Cancel".
 
 /* Note: the order of enables will govern the TAB order. */
@@ -145,6 +133,19 @@ enable b_Sequence._Seq-Name  b_Sequence._Seq-Init  b_Sequence._Seq-Incr
        s_btn_Done
        s_btn_Help
        with frame newseq.
+
+/* adjust the format if 64-bit sequence support is not turned on */
+IF s_Large_Seq NE YES THEN DO:
+    /* don't resize the fill-in */
+    IF s_Seq_Limit:AUTO-RESIZE IN FRAME newseq THEN
+       ASSIGN s_Seq_Limit:AUTO-RESIZE IN FRAME newseq = NO
+              b_Sequence._Seq-Ini:AUTO-RESIZE IN FRAME newseq = NO
+              b_Sequence._Seq-Incr:AUTO-RESIZE IN FRAME newseq = NO.
+
+    ASSIGN s_Seq_Limit:FORMAT IN FRAME newseq = "->,>>>,>>>,>>9"
+           b_Sequence._Seq-Init:FORMAT IN FRAME newseq = "->,>>>,>>>,>>9" 
+           b_Sequence._Seq-Incr:FORMAT IN FRAME newseq = "->,>>>,>>>,>>9".
+END.
 
 /* Each add will be a subtransaction */
 s_OK_Hit = no.

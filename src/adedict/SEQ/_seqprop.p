@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -32,6 +16,7 @@ Author: Laura Stern
 
 Date Created: 02/21/92 
     Modified: 07/14/98 D. McMann Added _Owner to _file finds.
+              05/25/06 fernando  Support for 64-bit sequences    
 ----------------------------------------------------------------------------*/
 
 
@@ -42,6 +27,8 @@ Date Created: 02/21/92
 {adedict/capab.i}
 
 Define var capab  AS CHAR NO-UNDO.
+DEFINE VAR l       AS LOGICAL   NO-UNDO.
+DEFINE VAR cTemp   AS CHARACTER NO-UNDO.
 
 /*----------------------------Mainline code----------------------------------*/
 
@@ -69,6 +56,15 @@ do:
    return.
 end.
 
+/* check if this db supports 64-bit sequences. Just care about s_Large_Seq really.
+*/
+/* dbs running with pre-10.01B servers will have no knowledge of large key entries
+   support, so don't need to display message (in which case s_Large_Seq = ?)
+*/
+IF s_Large_Seq = NO THEN
+   ASSIGN s_Large_Seq_info = "** 64-bit sequences support not enabled".
+ELSE /* if YES or ? */
+   ASSIGN s_Large_Seq_info = "".
 
 /* Don't want Cancel if moving to next seq - only when window opens */
 if s_win_Seq = ? then
@@ -114,8 +110,33 @@ else
       s_Seq_Limit = b_Sequence._Seq-Min
       s_Seq_Limit:label in frame seqprops = "&Lower Limit".
 
+/* adjust the format if 64-bit sequences support is not turned on, or not
+   available (s_large_seq will be ? in that case)
+*/
+IF s_Large_Seq NE YES THEN DO:
+    /* don't resize the fill-in */
+    IF s_Seq_Limit:AUTO-RESIZE IN FRAME seqprops THEN
+       ASSIGN s_Seq_Limit:AUTO-RESIZE IN FRAME seqprops = NO
+              b_Sequence._Seq-Ini:AUTO-RESIZE IN FRAME seqprops = NO
+              b_Sequence._Seq-Incr:AUTO-RESIZE IN FRAME seqprops = NO.
+
+    ASSIGN s_Seq_Limit:FORMAT IN FRAME seqprops = "->,>>>,>>>,>>9"
+           b_Sequence._Seq-Ini:FORMAT IN FRAME seqprops = "->,>>>,>>>,>>9" 
+           b_Sequence._Seq-Incr:FORMAT IN FRAME seqprops = "->,>>>,>>>,>>9".
+END.
+
+/* find current value for Progress db only*/
+IF INDEX(capab,{&CAPAB_FOR_NAME}) = 0 THEN DO:
+   /* if the sequence was just created and not saved yet, the above statement will fail */
+   s_Seq_Current_Value = TRIM(STRING(DYNAMIC-CURRENT-VALUE(s_CurrSeq, s_CurrDb),"->,>>>,>>>,>>>,>>>,>>>,>>9")) NO-ERROR.
+   IF ERROR-STATUS:ERROR THEN
+       s_Seq_Current_Value = "".
+END.
+ELSE 
+    s_Seq_Current_Value = "n/a".
+
 /* Set status line */
-display "" @ s_Status with frame seqprops. /* clears from last time */
+display "" @ s_Status s_Large_Seq_info with frame seqprops. /* clears from last time */
 
 s_Seq_ReadOnly = (s_ReadOnly OR s_DB_ReadOnly).
 if NOT s_Seq_ReadOnly then
@@ -128,6 +149,7 @@ if NOT s_Seq_ReadOnly then
 
 display b_Sequence._Seq-Name  b_Sequence._Seq-Init    b_Sequence._Seq-Incr
         s_Seq_Limit 	      b_Sequence._Cycle-Ok
+        s_Seq_Current_Value
         (IF INDEX(capab,{&CAPAB_OWNER})    = 0 
           then "n/a" else b_Sequence._Seq-misc[2]) @ b_Sequence._Seq-misc[2]
         (IF INDEX(capab,{&CAPAB_FOR_NAME}) = 0 
@@ -135,6 +157,7 @@ display b_Sequence._Seq-Name  b_Sequence._Seq-Init    b_Sequence._Seq-Incr
 	IF INDEX(s_Seq_Type,"ORACLE") = 0 then "n/a" ELSE IF 
              b_Sequence._Seq-misc[8] = ? THEN "<Local-Db>" ELSE
              b_Sequence._Seq-misc[8] @ b_Sequence._Seq-misc[8]
+        
         with frame seqprops.
 
 /* Note: the order of enables will govern the TAB order. */

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 /* Procedure Description
 "This is the Astra 2 Dynamic Browser. No new instances of this should be created. Use the Astra 2 Wizard Menu Controller to create instances using Repository Data."
 */
@@ -31,12 +31,12 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS bTableWin 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydynbrowb.w
 
@@ -144,7 +144,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
   &IF "{&xcInstanceProperties}":U NE "":U &THEN
     &GLOB xcInstanceProperties {&xcInstanceProperties},
   &ENDIF
-  &GLOB xcInstanceProperties {&xcInstanceProperties}DisplayedFields,EnabledFields
+  &GLOB xcInstanceProperties {&xcInstanceProperties}DisplayedFields,EnabledFields,~
+BrowseColumnTypes,BrowseColumnItems,BrowseColumnItemPairs,BrowseColumnInnerLines,~
+BrowseColumnSorts,BrowseColumnMaxChars,BrowseColumnAutoCompletions,~
+BrowseColumnUniqueMatches,BrowseColumnDelimiters
 
 &SCOPED-DEFINE ADM-PROPERTY-DLG adm2/support/dynbrowserd.w
 /* tell smart.i that we can use the default destroyObject */ 
@@ -163,7 +166,7 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 &Scoped-define ADM-SUPPORTED-LINKS TableIO-Target,Data-Target,Update-Source
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME F-Main
 &Scoped-define BROWSE-NAME br_table
 
@@ -265,7 +268,7 @@ END.
 /* SETTINGS FOR WINDOW bTableWin
   NOT-VISIBLE,,RUN-PERSISTENT                                           */
 /* SETTINGS FOR FRAME F-Main
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 /* BROWSE-TAB br_table 1 F-Main */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE

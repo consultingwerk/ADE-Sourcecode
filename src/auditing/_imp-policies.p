@@ -1382,6 +1382,10 @@ DEFINE VARIABLE iValue AS INTEGER NO-UNDO.
       IF currentOwner = ""  OR currentOwner = ? THEN
          RETURN ERROR "SQL Owner missing" + {&LINENUM}.
 
+      /* make sure we don't allow audit data tables */
+      IF currentTableName = "_aud-audit-data":U OR  currentTableName = "_aud-audit-data-value":U THEN
+          RETURN ERROR "Cannot audit table " + currentTableName + {&LINENUM}. 
+
       iProcessingState = {&GETTING-TABLE}. 
   END.
   ELSE IF qName = "audit-field" THEN  /* new field settings */

@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: query.p
@@ -515,12 +499,6 @@ ON LEAVE OF eDisplayCode DO:
 
       i                        = ttWhere.iSeq.
 
-      /*
-      message 'leaving bye'
-      ttWhere.iOffset       eDisplayCode:CURSOR-OFFSET skip
-      ttWhere.cExpression   eDisplayCode:SCREEN-VALUE .
-      */
-
       CREATE ttWhere.
 
       ASSIGN
@@ -629,15 +607,6 @@ ON VALUE-CHANGED OF tJoinable DO:
     lOK = whRight[{&table}]:REPLACE ({&CurTable}, cTemp).
     lOK = slComboBox:REPLACE ({&CurTable}, cTemp).
 
-    /*
-    message
-    lOK skip
-    whRight[{&table}]:List-items skip
-    {&CurTable} skip
-    cTemp skip
-    tJoinable:screen-value
-    view-as alert-box error buttons Ok.
-    */
   END.
 END.
 /* -----------------------------------------------------------
@@ -955,9 +924,6 @@ DO WITH FRAME dialog-1:
       i          = LOOKUP (cTemp, {&CurRight}:LIST-ITEMS, {&Sep1})
       .
 
-    /*    message '2'  {&CurRight}:List-items skip
-    cTemp skip
-    view-as alert-box error button Ok. */
     /* Remove this name from the "picked list" */
     RUN adecomm/_delitem.p ({&CurRight}:HANDLE, cTableName, OUTPUT cnt).
 
@@ -1171,12 +1137,7 @@ DO WITH FRAME dialog-1:
     lOk = {&CurRight}:ADD-LAST (v_CurrentName).
 
   RUN adecomm/_delitem.p ({&CurLeft}:HANDLE, v_TblName, OUTPUT cnt).
-  /*
-  message 'addtable' skip
-  {&CurRight}:PRIVATE-DATA skip
-  whRight[{&table}]:PRIVATE-DATA skip
-  view-as alert-box error buttons OK.
-  */
+
   DO j = {&Sort} TO {&Field}:
     IF ((NUM-ENTRIES ({&CurRight}:LIST-ITEMS, {&Sep1}) > 1) AND
       NUM-ENTRIES (whRight [j]:LIST-ITEMS, ".") = 1) THEN
@@ -1209,14 +1170,7 @@ DO WITH FRAME dialog-1:
       ttWhere.cExpression = ""   /*** THIS MIGHT HAVE TO BE INITTED LATER ****/
       ttWHere.lOperator   = TRUE
       .
-    /*
-    message
-    'ttWhere.iState     [' ttWhere.iState      ']' skip
-    'ttWhere.cTable     [' ttWhere.cTable      ']' skip
-    'ttWhere.iSeq       [' ttWhere.iSeq        ']' skip
-    'ttWhere.cExpression[' ttWhere.cExpression ']' skip
-    view-as alert-box error buttons Ok.
-    */
+
   END.
 
   RUN BuildQuery.ip (OUTPUT eDisplayCode).
@@ -1345,11 +1299,6 @@ DO WITH FRAME dialog-1:
 
   IF (cDataBase = "") THEN
     cDataBase = LDBNAME (1).
-
-  /*message 'DB_field' skip
-  cList cDataBase cTableName cFieldName
-  view-as alert-box error buttons Ok.
-  */
 
   IF (cType = "LABEL") THEN
     RUN adecomm/_s-schem.p (cDatabase,cTableName,cFieldName,"FIELD:LABEL", 
@@ -1638,14 +1587,7 @@ DEFINE INPUT-OUTPUT PARAMETER cList      AS CHARACTER NO-UNDO.
 /*  DEFINE VARIABLE cSeperator  AS CHARACTER   NO-UNDO INIT {&Sep1}. */
 DEFINE VARIABLE i     AS INTEGER     NO-UNDO.
 DEFINE VARIABLE j     AS INTEGER     NO-UNDO.
-/*
-message
-'MOVELIST:' skip
-'CVALUE: [' cValue    ']' skip
-'CLIST:  [' cList   ']'skip
-'CSEP:   [' cSeperator  ']'
-View-as alert-box error buttons Ok.
-*/
+
 DO WITH FRAME dialog-1:
   IF (cValue <> ?) THEN DO:
     i = LOOKUP (ENTRY (1, cValue, cSeperator), cList, cSeperator).
@@ -2282,6 +2224,10 @@ DO WITH FRAME dialog-1:
   /* if data type is datetime or datetime-tz, then set it to date */
   IF CAN-DO("34,40",cDataType) THEN
       cDataType = "2".
+
+  /* if data type is INT64, then set it to INTEGER */
+  IF cDataType = "41" THEN
+      cDataType = "4".
 
   /* If field name is unknown, load up everything. */
   /* If selection-text non-null and guess_field = ?, load up everything. */

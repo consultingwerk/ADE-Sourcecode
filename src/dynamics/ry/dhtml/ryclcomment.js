@@ -51,9 +51,9 @@ function assign_entity_values() {
   if (apph.action('gsmcmfullow.owning_entity_mnemonic.get') == '')
     apph.action('gsmcmfullow.owning_entity_mnemonic.set|'+cOwningEntityMnemonic);
 
-  apph.action('gsmcmfullow.owning_reference.set|' + cOwningReference);
-  apph.action('gsmcmfullow.owning_obj.set|0');
-}
+    apph.action('gsmcmfullow.owning_reference.set|' + cOwningReference);
+    apph.action('gsmcmfullow.owning_obj.set|0');
+  }
 
 function gsmcmfullow_saveok() {
   // set the parents comments to true

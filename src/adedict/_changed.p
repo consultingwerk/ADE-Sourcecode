@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,6 +39,7 @@ Last modified on:
 08/26/94 by gfs       Added Recid index support.
 05/19/99 by Mario B.  Adjust Width Field browser integration.
 09/19/02 by D. McMann Changed SQL Width to Max Width
+06/08/06    fernando  Added support for int64
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -254,6 +255,13 @@ case (p_Obj):
       	 input frame fldprops b_Field._Field-Name <> name                OR
       	 input frame fldprops b_Field._Order      <> b_Field._Order      OR
       	 input frame fldprops b_Field._Desc       <> b_Field._Desc.
+
+      /* for a Progress db, check if the user changed an integer field to
+         int64 
+      */
+      IF {adedict/ispro.i} AND b_Field._Data-type <> s_Fld_Protype AND
+          b_field._dtype = {&DTYPE_INTEGER} AND s_Fld_Protype = "int64" THEN
+          changed = YES.
 
       IF NOT changed THEN DO:
 

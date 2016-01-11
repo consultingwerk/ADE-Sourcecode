@@ -516,7 +516,8 @@ PROCEDURE hideObject :
     DEFINE variable hLinkNameLookup        as handle                 no-undo.
     
     {get LinkNameLookup hLinkNameLookup}.
-    hLinkNameLookup:hidden = yes.
+    if valid-handle(hLinkNameLookup) then
+        hLinkNameLookup:hidden = yes.
     
     run super.
     return.
@@ -728,6 +729,8 @@ PROCEDURE updateRecord :
     DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
     DEFINE VARIABLE cProfileData        AS CHARACTER                    NO-UNDO.
     DEFINE variable lCreateCustomClass  as logical                      no-undo.    
+    define variable hROBuf              as handle no-undo.
+    define variable lDup                as logical no-undo.
     
     {get ContainerSource hContainer}.
     
@@ -752,16 +755,20 @@ PROCEDURE updateRecord :
      */
     if {fn getNewRecord} ne 'no' then
     do:
-        /* Search using the rowobject buffer so as not 
+        /* Search the rowobject buffer using a named buffer so as not 
 	       to disturb the SDO's query (which findRowWhere() will do) since
-	       that will cause the browser to reposition.
-	     */
-	    hRowObjectBuffer:find-first(' where '
-	                                + hRowObjectBuffer:name + '.LinkName = ' + quoter(cLinkName)) no-error.
-	    if hRowObjectBuffer:available then
-	    do:
+	       that will cause the browser to reposition.	*/
+        create buffer hROBuf for table hRowObjectBuffer buffer-name 'lbRO':u.
+        
+        hROBuf:find-first(' where ':u + hROBuf:name + '.LinkName = ':u + quoter(cLinkName)) no-error.
+        lDup = hROBuf:available. 
+        delete object hROBuf no-error.
+        hROBuf = ?.
+        
+        if lDup then
+        do:
             if valid-handle(gshSessionManager) then
-	            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
+                RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
 	                                                           "'An link called ' + cLinkName + ' already exists for this class'"},
 	                                                   INPUT  "ERR", /* error type */
 	                                                   INPUT  "&OK", /* button list */
@@ -771,8 +778,8 @@ PROCEDURE updateRecord :
 	                                                   INPUT  YES, /* display if empty */ 
 	                                                   INPUT  hContainer,
 	                                                   OUTPUT cButton       ).
-	        return 'adm-error'.
-	    end.    /* found a duplicate */
+            return 'adm-error'.
+        end.    /* found a duplicate */
     end.    /* add or copy */        
     
     /* Get the tags off the class.

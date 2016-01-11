@@ -1,13 +1,13 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM1
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM1
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS V-table-Win 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File:
@@ -61,13 +61,13 @@ DEFINE VARIABLE old_cue AS LOGICAL                                    NO-UNDO.
 
 &Scoped-define ADM-SUPPORTED-LINKS Record-Source,Record-Target,TableIO-Target
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME F-Main
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS Def_Window QualifyDBFields MinimizeOnRun ~
-SuppressViewAs MRUEntries MRUFileList DblClickSectionEd MultipleSectionEd ~
-DfltFunctDataType TtyColors Advisor_messages Cue_Cards RECT-18 RECT-19 
+&Scoped-Define ENABLED-OBJECTS RECT-18 RECT-19 Def_Window QualifyDBFields ~
+MinimizeOnRun SuppressViewAs MRUEntries MRUFileList DblClickSectionEd ~
+MultipleSectionEd DfltFunctDataType TtyColors Advisor_messages Cue_Cards 
 &Scoped-Define DISPLAYED-OBJECTS Def_Window QualifyDBFields MinimizeOnRun ~
 SuppressViewAs MRUEntries MRUFileList DblClickSectionEd MultipleSectionEd ~
 DfltFunctDataType Advisor_messages Cue_Cards 
@@ -91,7 +91,7 @@ DEFINE BUTTON TtyColors
 DEFINE VARIABLE DfltFunctDataType AS CHARACTER FORMAT "X(256)":U INITIAL "Logical" 
      LABEL "Default &Function Data-Type" 
      VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEMS "CHARACTER","COM-HANDLE","DATE","DATETIME","DATETIME-TZ","DECIMAL","HANDLE","INTEGER","LOGICAL","LONGCHAR","MEMPTR","RAW","RECID","ROWID","WIDGET-HANDLE" 
+     LIST-ITEMS "CHARACTER","COM-HANDLE","DATE","DATETIME","DATETIME-TZ","DECIMAL","HANDLE","INTEGER","INT64","LOGICAL","LONGCHAR","MEMPTR","RAW","RECID","ROWID","WIDGET-HANDLE" 
      DROP-DOWN-LIST
      SIZE 24 BY 1 NO-UNDO.
 
@@ -116,11 +116,11 @@ DEFINE VARIABLE Cue_Cards AS LOGICAL
      SIZE 24 BY 2.62 NO-UNDO.
 
 DEFINE RECTANGLE RECT-18
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 30 BY 4.52.
 
 DEFINE RECTANGLE RECT-19
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 30 BY 4.52.
 
 DEFINE VARIABLE DblClickSectionEd AS LOGICAL INITIAL no 
@@ -174,18 +174,18 @@ DEFINE FRAME F-Main
      TtyColors AT ROW 10.29 COL 18
      Advisor_messages AT ROW 13.86 COL 7 NO-LABEL
      Cue_Cards AT ROW 13.86 COL 38 NO-LABEL
-     RECT-18 AT ROW 12.19 COL 3
-     RECT-19 AT ROW 12.19 COL 34
-     "Display These Advisors:" VIEW-AS TEXT
-          SIZE 26 BY .62 AT ROW 12.91 COL 5
-     "  Cue Cards" VIEW-AS TEXT
-          SIZE 13 BY .71 AT ROW 11.95 COL 36
-     "  Advisor" VIEW-AS TEXT
-          SIZE 9 BY .71 AT ROW 11.95 COL 4
-     "Display These Cue Cards:" VIEW-AS TEXT
-          SIZE 26 BY .62 AT ROW 12.91 COL 36
      "entries" VIEW-AS TEXT
           SIZE 8 BY .62 AT ROW 5.52 COL 44.4
+     "Display These Cue Cards:" VIEW-AS TEXT
+          SIZE 26 BY .62 AT ROW 12.91 COL 36
+     "  Advisor" VIEW-AS TEXT
+          SIZE 9 BY .71 AT ROW 11.95 COL 4
+     "  Cue Cards" VIEW-AS TEXT
+          SIZE 13 BY .71 AT ROW 11.95 COL 36
+     "Display These Advisors:" VIEW-AS TEXT
+          SIZE 26 BY .62 AT ROW 12.91 COL 5
+     RECT-18 AT ROW 12.19 COL 3
+     RECT-19 AT ROW 12.19 COL 34
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -240,7 +240,7 @@ END.
 /* SETTINGS FOR WINDOW V-table-Win
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME F-Main
-   NOT-VISIBLE Size-to-Fit                                              */
+   NOT-VISIBLE FRAME-NAME Size-to-Fit                                   */
 ASSIGN 
        FRAME F-Main:SCROLLABLE       = FALSE
        FRAME F-Main:HIDDEN           = TRUE.

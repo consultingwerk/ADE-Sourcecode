@@ -50,7 +50,7 @@ CREATE WIDGET-POOL.
 &scoped-define ADM-CONTAINER Frame
 
 ##Loop:ListContainerObjects##
-define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.
+define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.    /* ##[InstanceName]## */
 ##Loop:End##
 
 
@@ -204,7 +204,7 @@ procedure adm-create-objects :
             
             ##Loop:CreateViewerObjects##
             /* Create the instance in a separate call to avoide a-code segment limits */
-            run adm-create-##[InstanceName]##
+            run adm-create-##getInstanceHandleName([InstanceName])##
                     ( input        lShowPopup,
                       input        lHideOnInit,
                       input        lKeepChildPositions,
@@ -351,7 +351,7 @@ end procedure.    /* adm-create-objects */
 
 ##Loop:createViewerWidgets##
         
-procedure adm-create-##[InstanceName]## :
+procedure adm-create-##getInstanceHandleName([InstanceName])## :
     /* Creates instance ##[InstanceName]## */
     define input        parameter plShowPopup            as logical      no-undo.
     define input        parameter plHideOnInit           as logical      no-undo.
@@ -540,14 +540,13 @@ procedure adm-create-##[InstanceName]## :
         /* Add F4 trigger to widget */
         on F4 of ##getInstanceHandleName([InstanceName])## persistent run runLookup in gshSessionManager (##getInstanceHandleName([InstanceName])##).
     end.    /* viewer show popup */
-    
-    /* Always populate this list, even if no popups have been created.
-       This is to prevent duplicates when widgetWalk runs
-     */
-    pcFieldPopupMapping = pcFieldPopupMapping + ','
-                        + string(##getInstanceHandleName([InstanceName])##) + ','
-                        + (if hPopup eq ? then '?' else string(hPopup)).
     ##If:End##    /* show popup*/
+        
+    /* Always populate this list, even if no popups have been created.
+       This is to prevent duplicates when widgetWalk runs. */
+    pcFieldPopupMapping = pcFieldPopupMapping + ',':u
+                        + string(##getInstanceHandleName([InstanceName])##) + ',':u
+                        + (if hPopup eq ? then '?':u else string(hPopup)).
     
     ##If:[InstanceTextAndNotDisplay]##         
     /* Text widgets are usually meant to display one piece of data, and are not generally used for displaying data from an SDO.

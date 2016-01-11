@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _gendefs.p
@@ -910,7 +910,7 @@ FOR EACH _U WHERE _U._WINDOW-HANDLE = _h_win AND
           IF x_U._TYPE = "RADIO-SET" AND _F._INITIAL-DATA = ? THEN
             LEAVE INITIAL-VALUE-BLK.
           tmp_string = _F._INITIAL-DATA.
-          IF CAN-DO("INTEGER,DECIMAL":U, _F._DATA-TYPE) THEN DO:
+          IF CAN-DO("INTEGER,INT64,DECIMAL":U, _F._DATA-TYPE) THEN DO:
             ASSIGN tmp_string = REPLACE(tmp_string, _numeric_separator, "":U)
                    tmp_string = REPLACE(tmp_string, _numeric_decimal, ".":U).
           END.
@@ -1815,8 +1815,10 @@ END.
 
 PROCEDURE put-func-prototypes-in.
 
-  DEFINE VAR vCode        AS CHARACTER  NO-UNDO.
-  DEFINE VAR Ref-Type     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE vCode        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE Ref-Type     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iIn          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iEndFunction AS INTEGER    NO-UNDO.
 
   /* Preprocessor directives. */
   &SCOPED-DEFINE AMPER-IF     "&IF"
@@ -1843,7 +1845,6 @@ PROCEDURE put-func-prototypes-in.
                       _TRG._tSECTION = "_FUNCTION" AND
                       _TRG._STATUS EQ u_status BY _TRG._tEVENT:
 
-
     RUN Put_Special_Preprocessor_Start.
 
     /* Determine default code on the fly, otherwise use the user input code. */
@@ -1855,7 +1856,7 @@ PROCEDURE put-func-prototypes-in.
     /* Determine if we need to output function prototype as forward or external.
          FORWARD:   FUNCTION func-name RETURNS data-type
                       (parameter-definition) FORWARD.
-         
+
          EXTERNAL:  FUNCTION func-name RETURNS data-type
                       (parameter-definition) [MAP [TO] map-name] IN proc-handle.
        _TRG._tCODE does not store the FORWARD keyword, only the implementation
@@ -1863,11 +1864,17 @@ PROCEDURE put-func-prototypes-in.
        keyword and the lack of an END FUNCTION. Using IN alone is not enough, since
        the code block could make references to RUN..IN <proc-handle>,etc. - jep 1/31/97
     */
-    IF (INDEX(vCode, " IN ") > 0) AND (INDEX(vCode, "END FUNCTION") = 0) THEN
+
+    /*The INDEX functions were removed from the IF statement to avoid error 42
+      when the function code block is too big.*/
+    ASSIGN iIn          = INDEX(vCode, " IN ")
+           iEndFunction = INDEX(vCode, "END FUNCTION").
+
+    IF iIn > 0 AND iEndFunction = 0 THEN
       ASSIGN Ref-Type = "EXTERNAL".
     ELSE
       ASSIGN Ref-Type = "FORWARD".
-      
+
     /* Heading = _FUNCTION-FORWARD or _FUNCTION-EXTERNAL event window [DEFAULT] */
     IF p_status NE "PREVIEW" THEN
       PUT STREAM P_4GL UNFORMATTED
@@ -1885,7 +1892,7 @@ PROCEDURE put-func-prototypes-in.
       RUN add-func-private (INPUT-OUTPUT vCode).
     ELSE IF NOT _TRG._PRIVATE-BLOCK AND INDEX(ENTRY(1, vCode, CHR(10))," PRIVATE":U) > 0 THEN 
       RUN remove-func-private(INPUT-OUTPUT vCode).
-      
+
     IF Ref-Type = "FORWARD" THEN
     DO:
       /* During a Section Editor Check Syntax, only the function prototypes are generated.
@@ -1894,7 +1901,7 @@ PROCEDURE put-func-prototypes-in.
          code for a check syntax. If so, we generate an external reference for the function
          using IN THIS-PROCEDURE. To do that, we truncate the function block after the
          first colon (:) and add the IN THIS-PROCEDURE code to complete the prototype.
-         
+
          Otherwise, we actually insert the FORWARD keyword in place of the colon.
          
          - jep _FUNC 1/31/97
@@ -1907,16 +1914,16 @@ PROCEDURE put-func-prototypes-in.
         ASSIGN vCode = TRIM(_TRG._tCODE).
     END.
     PUT STREAM P_4GL UNFORMATTED vCode.
-    
+
     IF p_status NE "PREVIEW"
     THEN PUT STREAM P_4GL UNFORMATTED SKIP (1) "/* _UIB-CODE-BLOCK-END */" SKIP
          "&ANALYZE-RESUME".
 
     RUN Put_Special_Preprocessor_End (INPUT 1 /* skip lines */).
-    
+
   END. /* FOR EACH... _FUNCTION... */
   END. /* IF AVAILABLE */
-  
+
 END PROCEDURE.
 
 PROCEDURE put_NO-TAB-STOP:
@@ -1937,14 +1944,14 @@ PROCEDURE gen-tt-def :
 
   RUN adeuib/_getttdefs.p (RECID(_P ), YES, OUTPUT def-line). 
   /* If buffer then prepend the db-required preprocessor  */
- 
+
   IF CAN-FIND(FIRST _TT WHERE _TT._p-recid = RECID(_P )
                         AND   _TT._TABLE-TYPE = "B")  THEN
   DO:
     RUN gen-db-required(OUTPUT cdbaware).
     def-line = cdbaware + def-line.
   END.
-    
+
 END PROCEDURE.
 
 PROCEDURE gen-uf-def :

@@ -2,6 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
+/* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
 af/cod/aftemwizpw.w
@@ -27,13 +28,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*************************************************************/  
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: ryrepmngrp.i
 
@@ -254,6 +251,21 @@ FUNCTION classHasAttribute RETURNS LOGICAL
 FUNCTION classIsA RETURNS LOGICAL
     ( INPUT pcClassName             AS CHARACTER,
       INPUT pcInheritsFromClass     AS CHARACTER    )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createEntityCacheFile) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createEntityCacheFile Procedure 
+FUNCTION createEntityCacheFile RETURNS character
+    ( input pcEntityList            as character,
+      input pcLanguageList          as character,
+      input pcOutputDir             as character,
+      input plDeleteExisting        as logical,
+      input-output pcStatus         as character     ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1341,7 +1353,6 @@ ACCESS_LEVEL=PRIVATE
     
     DEFINE BUFFER rycso                      FOR ryc_smartobject.
     DEFINE BUFFER gsc_object_type            FOR gsc_object_type.
-    define buffer bClass                     for ttClass.
 
     IF pcLanguageCode = ? OR pcLanguageCode = "":U THEN
        RETURN ERROR {aferrortxt.i 'AF' '1' '' '' '"Language Code"'}.
@@ -5091,22 +5102,8 @@ PROCEDURE saveEntitiesToClientCache :
   DEFINE INPUT  PARAMETER pcLanguageList AS CHARACTER  NO-UNDO.
   DEFINE OUTPUT PARAMETER pcStatus       AS CHARACTER  NO-UNDO.
 
-  DEFINE VARIABLE hQuery                    AS WIDGET-HANDLE NO-UNDO.
-  DEFINE VARIABLE hbuff                     AS HANDLE NO-UNDO.
-  DEFINE VARIABLE cEntityName               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hHandle                   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE i                         AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iLng                      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cWhere                    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lFileWritable             AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cFullFileName             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDateFormat               AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cNumericSeparator         AS CHARACTER  NO-UNDO.
-  define variable cDecimalPoint             as character  no-undo.
   DEFINE VARIABLE cError                    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLanguageCode             AS CHARACTER  NO-UNDO.
 
-  EMPTY TEMP-TABLE ttEntityDump.
   ASSIGN ERROR-STATUS:ERROR = NO
          pcEntities         = TRIM(pcEntities, ",":U).
 
@@ -5126,16 +5123,6 @@ PROCEDURE saveEntitiesToClientCache :
     RETURN ERROR "Error finding valid dump directory: " + gcClientCacheDir.
   END.
   
-  /* The Entities are always using default session formats, so we set the 
-     formats accordingly before we reference the INITIAL attribute and dump them.
-     The INITIAL attribute actually returns the assigned format ignoring the 
-     session formats, and gives run-time errors just when referenced for dates */
-    ASSIGN cDateFormat            = SESSION:DATE-FORMAT
-           cNumericSeparator      = session:numeric-separator
-           cDecimalPoint          = session:numeric-decimal-point
-           SESSION:DATE-FORMAT    = "mdy":U
-           SESSION:NUMERIC-FORMAT = "American":U.
-    
   IF pcLanguageList = ? OR pcLanguageList = "":U THEN
   DO:
       pcLanguageList = DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager, "CurrentLanguageCode":U, YES).
@@ -5147,150 +5134,16 @@ PROCEDURE saveEntitiesToClientCache :
   IF (pcEntities > '':U) THEN
       RUN destroyClassCache IN TARGET-PROCEDURE.
   
-  DO iLng = 1 TO NUM-ENTRIES(pcLanguageList):
-      ASSIGN cLanguageCode = ENTRY(iLng, pcLanguageList)
-             cWhere        = '':U.
+  cError = dynamic-function('createEntityCacheFile':u in target-procedure,
+                             input pcEntities,
+                             input pcLanguageList,
+                             input gcClientCacheDir,
+                             input Yes, /* plDeleteExisting */
+                             input-output pcStatus ).
+  if cError ne '':u then
+      return error cError.
   
-      /* Now we delete any entity cache that's on the disk - This is necessary to 
-         pick the latest changes from the database */
-      IF (pcEntities > '':U) THEN
-      DO:
-        DO i = 1 to NUM-ENTRIES(pcEntities, ",":U):
-          ASSIGN cEntityName = ENTRY(i, pcEntities, ",":U)
-                 cFullFileName = gcClientCacheDir + 
-                 (IF gcClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
-                 cEntityName + "_":U + cLanguageCode + ".d":U.
-          
-          /* If the file exists, delete the file on disk */
-          OS-DELETE VALUE(cFullFileName).
-        END.
-      END. 
-      
-      /* Get the handle to the in memory temp-table which has pointers to the 
-         cached entity tables */
-      RUN createEntityCache IN TARGET-PROCEDURE ( INPUT pcEntities, cLanguageCode ) NO-ERROR.
-      IF ERROR-STATUS:ERROR OR RETURN-VALUE > "":U THEN
-      DO:
-        ASSIGN cError = (IF NUM-ENTRIES(RETURN-VALUE, CHR(4)) >= 1 THEN ENTRY(1, RETURN-VALUE, CHR(4)) ELSE "":U)
-               cError = (IF NUM-ENTRIES(cError, "^":U) >= 4 THEN ENTRY(4, cError, "^":U) ELSE "":U)
-               cError = "Error while retrieving entity information: " + cError.
-        RETURN ERROR cError.
-      END.
-      ASSIGN hbuff = BUFFER ttEntity:HANDLE.
-    
-      CREATE QUERY hQuery.
-      hQuery:SET-BUFFERS(hbuff).
-
-      cWhere = " WHERE ":U + hbuff:NAME + ".LanguageCode = ":U + QUOTER(cLanguageCode).
-      /* Add to the where clause if the list of entities is not blank */
-      /* If pcEntities is blank all the entities in memory are saved. */
-      IF (pcEntities > '':U) THEN
-      DO:
-        ASSIGN pcStatus = pcStatus + CHR(10) + "Saving following Entities: " + pcEntities.
-        cWhere = cWhere + " AND ( ":U.
-        DO i = 1 TO NUM-ENTRIES(pcEntities, ",":U):
-          cWhere = cWhere + (IF i = 1 THEN "":U ELSE " OR ":U).
-          cWhere = cWhere + hbuff:NAME + ".EntityName = ":U + QUOTER(ENTRY(i, pcEntities, ",":U)).
-        END.
-        cWhere = cWhere + " ) ":U.
-      END.
-        
-        /* We need to re-empty this temp-table since it is
-           also used in the createEntityCache() call and may have
-           extra data in it. 
-             */
-        empty temp-table ttEntityDump.
-    
-      hQuery:QUERY-PREPARE("FOR EACH " + hbuff:NAME + cWhere).
-      hQuery:QUERY-OPEN.
-      hQuery:GET-FIRST().
-      DO WHILE hbuff:AVAILABLE:
-        ASSIGN cEntityName = hbuff:BUFFER-FIELD('EntityName'):BUFFER-VALUE
-               hHandle     = hbuff:BUFFER-FIELD('EntityBufferHandle'):BUFFER-VALUE.
-    
-        IF ((NOT VALID-HANDLE(hHandle)) OR (cEntityName = "":U) OR (cEntityName = ?)) THEN
-        DO:
-          hQuery:GET-NEXT().
-          NEXT.
-        END.
-    
-        /* For the entity temp-table get the fields and create ttEntityDump records */
-        DO i = 1 TO hHandle:NUM-FIELDS:
-          CREATE ttEntityDump.
-          ASSIGN ttEntityDump.tEntityName = cEntityName
-                 ttEntityDump.tFieldName = hHandle:BUFFER-FIELD(i):NAME
-                 ttEntityDump.tDataType  = hHandle:BUFFER-FIELD(i):DATA-TYPE
-                 ttEntityDump.tFormat    = hHandle:BUFFER-FIELD(i):FORMAT
-                 ttEntityDump.tLabel     = hHandle:BUFFER-FIELD(i):LABEL
-                 ttEntityDump.tColLabel  = hHandle:BUFFER-FIELD(i):COLUMN-LABEL
-                 ttEntityDump.tHelp      = hHandle:BUFFER-FIELD(i):HELP.
-    
-          /* If the data type is Today then dump TODAY. 
-             If the Data type is Logical then we need to right-trim as it sometimes 
-             adds a space and the later entity load dies */
-             
-          IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATE" AND 
-             hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "TODAY":U THEN
-            ASSIGN ttEntityDump.tInitial   = "TODAY".
-          ELSE IF (hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME" OR 
-                   hHandle:BUFFER-FIELD(i):DATA-TYPE = "DATETIME-TZ" ) AND 
-                   hHandle:BUFFER-FIELD(i):DEFAULT-STRING = "NOW":U THEN
-            ASSIGN ttEntityDump.tInitial   = "NOW".
-          ELSE IF hHandle:BUFFER-FIELD(i):DATA-TYPE = "LOGICAL" THEN
-            ASSIGN ttEntityDump.tInitial   = RIGHT-TRIM(hHandle:BUFFER-FIELD(i):INITIAL).
-          ELSE
-            ASSIGN ttEntityDump.tInitial   = hHandle:BUFFER-FIELD(i):INITIAL.
-        END.
-        hQuery:GET-NEXT().
-      END.    /* loop through buffers */
-      hQuery:QUERY-CLOSE().
-      DELETE OBJECT hQuery.
-      
-      /* Now dump the .d file */
-      FOR EACH ttEntityDump BREAK BY ttEntityDump.tEntityName:
-      
-        IF ttEntityDump.tEntityName = "":U THEN
-          NEXT.
-          
-        IF FIRST-OF(ttEntityDump.tEntityName) THEN
-        DO:
-          ASSIGN cFullFileName = gcClientCacheDir + 
-                     (IF gcClientCacheDir > "":U THEN "/" ELSE "") + "ent_":U + 
-                     tEntityName + "_":U + cLanguageCode + ".d":U
-                 lFileWritable = YES.
-          /* We need to make sure that the file is writable */
-          FILE-INFO:FILE-NAME = cFullFileName.
-          IF (FILE-INFO:FILE-NAME <> ? AND INDEX(FILE-INFO:FILE-TYPE,'W':U) = 0) THEN
-          DO:
-            ASSIGN lFileWritable = NO.
-            IF (pcEntities > '':U) THEN
-                pcStatus = pcStatus + CHR(10) + "Entity : " + 
-                              ttEntityDump.tEntityName + 
-                              " can not be dumped to disk as the file is not writable".
-                              
-            NEXT.
-          END.
-          IF (pcEntities > '':U) THEN
-              ASSIGN pcStatus = pcStatus + CHR(10) + "Dumping entity : " + 
-                         ttEntityDump.tEntityName + " to disk at: " +
-                         cFullFileName.
-          OUTPUT TO VALUE(cFullFileName).
-        END.
-    
-        IF lFileWritable THEN
-          EXPORT ttEntityDump.
-    
-        IF (LAST-OF(ttEntityDump.tEntityName) AND lFileWritable) THEN
-          OUTPUT CLOSE.
-      END.
-  
-  END. /* pcLanguageList loop */
-
-  /* Reset the session:*-FORMAT before returning */
-  ASSIGN SESSION:DATE-FORMAT = cDateFormat.
-  session:set-numeric-format(cNumericSeparator, cDecimalPoint).
-  
-  assign ERROR-STATUS:ERROR = FALSE.
+  ERROR-STATUS:ERROR = FALSE.
   RETURN.
 END PROCEDURE.    /* saveEntitiesToClientCache */
 
@@ -5509,7 +5362,7 @@ ACCESS_LEVEL=PUBLIC
      */
     if lGeneratedObject then
     do:
-            if not {fnarg instanceOf 'DataView' phSdo} and not {fnarg InstanceOf 'SBO' phSdo} then
+            if not {fnarg instanceOf 'DataQuery' phSdo} and not {fnarg InstanceOf 'SBO' phSdo} then
             do:
                 run destroyObject in phSdo no-error.
                 if valid-handle(phSdo) then
@@ -6095,6 +5948,202 @@ ACCESS_LEVEL=PUBLIC
     
     RETURN lClassIsA.
 END FUNCTION.   /* ClassIsA */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createEntityCacheFile) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createEntityCacheFile Procedure 
+FUNCTION createEntityCacheFile RETURNS character
+    ( input pcEntityList            as character,
+      input pcLanguageList          as character,
+      input pcOutputDir             as character,
+      input plDeleteExisting        as logical,
+      input-output pcStatus         as character     ):
+/*------------------------------------------------------------------------------
+  Purpose: Performs the actual dump of the entity records for the given languages.
+    Notes: Called from saveEntitiesToClientCache() in this proc, and exportEntityCache()
+           in the design manager.
+------------------------------------------------------------------------------*/
+    define variable cDateFormat                     as character            no-undo.
+    define variable cNumericSeparator               as character            no-undo.
+    define variable cNumericPoint                   as character            no-undo.
+    define variable iLoop                           as integer              no-undo.
+    define variable iLoop2                          as integer              no-undo.
+    define variable cOutputFilename                 as character            no-undo.
+    define variable hQuery                          as handle               no-undo.
+    define variable hEntityBuffer                   as handle               no-undo.
+    define variable cLanguageCode                   as character            no-undo.
+    define variable cEntity                         as character            no-undo.
+    define variable hBuffer                         as handle               no-undo.
+    define variable cWhere                          as character            no-undo.
+    define variable lWriteable                      as logical              no-undo.
+    
+    define buffer ttEntityDump for ttEntityDump.
+
+    /* The formats need to be converted to American and mdy before dump so that it is consistent */
+    cDateFormat = session:date-format.
+    cNumericSeparator = session:numeric-separator.
+    cNumericPoint = session:numeric-decimal-point.
+    session:date-format = "mdy":u.
+    session:numeric-format = "American":u.
+
+    /* Make sure the directory is writable */
+    file-information:file-name = pcOutputDir.
+    if file-information:file-type eq ? or
+       index(file-information:file-type, 'w':u) eq 0 then
+        return {aferrortxt.i 'AF' '15' '?' '?' "'write permissions are not granted for ' + pcOutputDir"}.
+        
+    pcOutputDir = pcOutputDir + '/':u.
+    if pcOutputDir eq '/':u then
+        pcOutputDir = '':u.
+    
+    if pcLanguageList eq ? or pcLanguageList eq '':u then
+        pcLanguageList = 'None':u.
+    
+    hEntityBuffer =  buffer ttEntity:handle.
+    create query hQuery.
+    hQuery:set-buffers(hEntityBuffer).
+    
+    do iLoop = 1 to num-entries(pcLanguageList):
+        cLanguageCode = entry(iLoop, pcLanguageList).
+        cWhere = 'For each ':u + hEntityBuffer:name + ' where ':U
+               + hEntityBuffer:name + '.LanguageCode = ':u + quoter(cLanguageCode).
+        
+        /* Construct the WHERE clause used to query the cached entities.
+                   
+           Also delete any entity cache that's on the disk - This is necessary to 
+           pick the latest changes from the database */
+        if pcEntityList ne '*':u then
+        do:
+            pcStatus = pcStatus + CHR(10) + "Saving following Entities: " + pcEntityList.
+            
+            cWhere = cWhere + ' and ( false ':u.
+            do iLoop2 = 1 to num-entries(pcEntityList):
+                cEntity = entry(iLoop2, pcEntityList).
+                cWhere = cWhere + ' or ':u 
+                       + hEntityBuffer:name + '.EntityName = ':u + quoter(cEntity).                       
+                
+                if plDeleteExisting then
+                do:
+                    cOutputFilename = pcOutputdir
+                                     + 'ent_':U + cEntity + '_':u + cLanguageCode + '.d':u.
+                    os-delete value(cOutputFilename).
+                end.    /* delete */
+            end.    /* delete entity records on disk */
+            cWhere = cWhere + ' ) ':u.
+        end.    /* listed entities */
+        
+        /* Get the handle to the in memory temp-table which has pointers to the 
+           cached entity tables */
+        run createEntityCache in target-procedure (pcEntityList, cLanguageCode) no-error.
+        if error-status:error or return-value ne '':u then
+            return return-value.
+        
+        /* We need to re-empty this temp-table since it is
+           also used in the createEntityCache() call and may have
+           extra data in it.    */
+        empty temp-table ttEntityDump.
+        
+        if hQuery:is-open then
+            hQuery:query-close().
+                
+        hQuery:query-prepare(cWhere).
+        hQuery:query-open().
+            
+        hQuery:get-first().
+        do while hEntityBuffer:available:
+            cEntity = hEntityBuffer::EntityName.
+            hBuffer = hEntityBuffer::EntityBufferHandle.
+                
+            if valid-handle(hBuffer) and cEntity gt '':u then
+            do:
+                do iLoop2 = 1 to hBuffer:num-fields:
+                    create ttEntityDump.
+                    assign ttEntityDump.tEntityName = cEntity
+                           ttEntityDump.tFieldName = hBuffer:buffer-field(iLoop2):name
+                           ttEntityDump.tDataType = hBuffer:buffer-field(iLoop2):data-type
+                           ttEntityDump.tFormat = hBuffer:buffer-field(iLoop2):format
+                           ttEntityDump.tLabel = hBuffer:buffer-field(iLoop2):label
+                           ttEntityDump.tColLabel = hBuffer:buffer-field(iLoop2):column-label
+                           ttEntityDump.tHelp = hBuffer:buffer-field(iLoop2):help.
+                    /* set up initial values.                       
+                       If the data type is Today then dump TODAY. 
+                       If the Data type is Logical then we need to right-trim as it sometimes 
+                       adds a space and the later entity load dies.  */
+                    if ttEntityDump.tDataType eq 'Date':u and
+                        hBuffer:buffer-field(iLoop2):default-string eq 'Today':u then
+                        ttEntityDump.tInitial = 'Today':u.
+                    else
+                    if can-do('Datetime,Datetime-TZ':u, ttEntityDump.tDataType) and
+                       hBuffer:buffer-field(iLoop2):default-string eq 'Now':u then
+                        ttEntityDump.tInitial = 'Now':u.
+                    else
+                    if ttEntityDump.tDataType eq 'Logical':u then
+                        ttEntityDump.tInitial = right-trim(hBuffer:buffer-field(iLoop2):initial).
+                    else
+                        ttEntityDump.tInitial = hBuffer:buffer-field(iLoop2):initial.
+                end.    /* loop through fields */
+            end.    /* valid entity */
+            
+            hQuery:get-next().
+        end.    /* entity available */
+        hQuery:query-close().
+            
+        /* Now do the actual dump */
+        for each ttEntityDump break by ttEntityDump.tEntityName:
+            if ttEntityDump.tEntityName eq '':u then
+                next.
+            
+            if first-of(ttEntityDump.tEntityName) then
+            do:
+                lWriteable = yes.
+                cOutputFilename = pcOutputDir
+                                + 'ent_':U + ttEntityDump.tEntityName + '_':u + cLanguageCode + '.d':u.
+                file-information:file-name = cOutputFilename.
+                if file-information:file-type ne ? or 
+                   index(file-information:file-type, 'w':u) eq 0 then
+                do:
+                    lWriteable = no.
+                    if pcEntityList ne '*':u then
+                        pcStatus = pcStatus + chr(10) + "Entity : " + 
+                                   ttEntityDump.tEntityName + 
+                                   " can not be dumped to disk as the file is not writable".
+                end.    /* not writable */
+                else
+                if pcEntityList ne '*':u then
+                    pcStatus = pcStatus + CHR(10) + "Dumping entity : " + 
+                               ttEntityDump.tEntityName + " to disk at: " +
+                               cOutputFilename.
+                
+                if lWriteable then
+                    output to value(cOutputFilename).
+            end.    /* first-of */
+            
+            if lWriteable then
+                export ttEntityDump.
+            
+            if last-of(ttEntityDump.tEntityName) then
+            do:
+                if lWriteable then
+                    output close.
+            end.    /* last-of */
+        end.    /* entity dump */
+    end.    /* language loop */
+  
+    delete object hQuery no-error.
+    hQuery = ?.
+    
+    /* Reset the date and numeric formats */
+    session:date-format = cDateFormat.
+    session:set-numeric-format(cNumericSeparator, cNumericPoint).
+    
+    error-status:error = no.
+    return '':u.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -8748,6 +8797,7 @@ ACCESS_LEVEL=PRIVATE
     DEFINE VARIABLE cSecuredTokens              AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE iAttributeEntry             AS INTEGER              NO-UNDO.
     DEFINE VARIABLE hBufferField                AS HANDLE               NO-UNDO.
+    define variable cPageTokens                 as character no-undo.
 
     DEFINE BUFFER cacheObject        FOR cacheObject.    /* for the container object */
     DEFINE BUFFER folderObject       FOR cacheObject.    /* for the folder object */
@@ -8780,7 +8830,8 @@ ACCESS_LEVEL=PRIVATE
     ASSIGN cPageLabels    = "":U
            cTabsEnabled   = "":U
            cPageLayouts   = "":U
-           cSecuredTokens = "":U.
+           cSecuredTokens = "":U
+           cPageTokens    = '':u.
     
     /* Renumber the pages. The existing page numbers are not necessarily
        contiguous, even though they are sequential. The page numbers need
@@ -8834,7 +8885,8 @@ ACCESS_LEVEL=PRIVATE
            and the folder objects' use.
          */
         ASSIGN cPageLabels  = cPageLabels  + "|":U + cachePage.PageLabel
-               cPageLayouts = cPageLayouts + "|":U + cachePage.LayoutCode.
+               cPageLayouts = cPageLayouts + "|":U + cachePage.LayoutCode
+               cPageTokens  = cPageTokens + '|':u + replace(cachePage.SecurityToken, '&':u, '':u).
         
         /* Apply security */
         IF cachePage.SecurityToken NE "":U AND cachePage.SecurityToken NE ? AND
@@ -8854,7 +8906,8 @@ ACCESS_LEVEL=PRIVATE
     ASSIGN cPageLabels    = LEFT-TRIM(cPageLabels,  "|":U)
            cTabsEnabled   = LEFT-TRIM(cTabsEnabled, "|":U)
            cPageLayouts   = LEFT-TRIM(cPageLayouts, "|":U)
-           cSecuredTokens = LEFT-TRIM(cSecuredTokens, ",":U).
+           cSecuredTokens = LEFT-TRIM(cSecuredTokens, ",":U)
+           cPageTokens    = left-trim(cPageTokens, '|':u).
     
     /* Update the SecuredTokens and SecuredFields attributes with the values of the secured fields */
     ASSIGN hBufferField = ?
@@ -8868,6 +8921,19 @@ ACCESS_LEVEL=PRIVATE
         ELSE
             ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-Delimiter}) = cSecuredTokens.
     END.    /* There is a SecuredTokens attribute */
+    
+    /* Update the pageTokens attribute */
+    hBufferField = ?.
+    hBufferField = ttClass.ClassBufferHandle:buffer-field('PageTokens':u) no-error.
+    if valid-handle(hBufferField) then
+    do:
+        ASSIGN iAttributeEntry = LOOKUP(STRING(hBufferField:POSITION - 1), cacheObject.AttrOrdinals).
+        IF iAttributeEntry EQ 0 THEN
+            ASSIGN cacheObject.AttrOrdinals = cacheObject.AttrOrdinals + ",":U + STRING(hBufferField:POSITION - 1)
+                   cacheObject.AttrValues   = cacheObject.AttrValues + {&Value-Delimiter} + cPageTokens.
+        ELSE
+            ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-Delimiter}) = cPageTokens.
+    end.    /* there is a PageTokens property */
     
     /* Set the PageLayoutInfo attribute. */
     ASSIGN hBufferField = ?

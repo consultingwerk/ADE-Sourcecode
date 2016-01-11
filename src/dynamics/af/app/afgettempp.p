@@ -445,10 +445,6 @@ END.
 
 /* Prepare a query using the string the user provided */
 
-
-/* remove decimals with commas for Europe */
-ttLookCtrl.cBaseQueryString = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT ttLookCtrl.cBaseQueryString).
-
 hQuery:QUERY-PREPARE(ttLookCtrl.cBaseQueryString).
 /* Open the query */
 hQuery:QUERY-OPEN() NO-ERROR.
@@ -722,12 +718,6 @@ FUNCTION newWhereClause RETURNS CHARACTER
  DEFINE VARIABLE cFoundWhere AS CHAR   NO-UNDO.
  DEFINE VARIABLE cNextWhere  AS CHAR   NO-UNDO.
  DEFINE VARIABLE hQuery      AS HANDLE NO-UNDO.
-
-  /* Astra2  - fix European decimal format issues with Astra object numbers in query string
-     FYI: fixQueryString is a function in smartcustom.p
-  */
-  IF VALID-HANDLE(gshSessionManager) THEN
-    pcWhere = DYNAMIC-FUNCTION("fixQueryString":U IN gshSessionManager, INPUT pcWhere). /* Astra2 */
 
  ASSIGN
    cString = pcWhere

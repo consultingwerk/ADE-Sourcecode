@@ -1,26 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _dtbldat.p
@@ -47,7 +30,7 @@ Modified on 5/31/95 by GFS Allow display of hidden tables (not meta-schema).
             01/18/00 DLM  Added NO-LOCK where missed.
                           Added display of File Valexp and Valmsg.
             01/31/03 DLM  Added support for Blobs              
-
+            06/15/06 fernando   Adding support for long dump names
 ----------------------------------------------------------------------------*/
 { prodict/fhidden.i }
 
@@ -71,7 +54,7 @@ DEFINE VARIABLE word_idx    AS LOGICAL                   NO-UNDO.
 DEFINE VARIABLE temp             AS CHAR                NO-UNDO.
 DEFINE VARIABLE odbtyp  AS CHARACTER  NO-UNDO. /* list of ODBC-types */
 
-DEFINE VAR lbls AS CHAR EXTENT 17 NO-UNDO INITIAL
+DEFINE VAR lbls AS CHAR EXTENT 18 NO-UNDO INITIAL
    [ /* 1 */ "        Owner: ",
      /* 2 */ "  Record Size: ",
      /* 3 */ "        Label: ",
@@ -88,7 +71,8 @@ DEFINE VAR lbls AS CHAR EXTENT 17 NO-UNDO INITIAL
      /*14 */ " Storage Area: ",
      /*15 */ "     Lob Size: ",
      /*16 */ "    Code Page: ",
-     /*17 */ "    Collation: "
+     /*17 */ "    Collation: ",
+     /*18*/  "    Dump Name: "
    ].
 
 &GLOBAL-DEFINE LBL_OWNER      1
@@ -108,6 +92,7 @@ DEFINE VAR lbls AS CHAR EXTENT 17 NO-UNDO INITIAL
 &GLOBAL-DEFINE LBL_LSIZE      15
 &GLOBAL-DEFINE LBL_CODEPG     16
 &GLOBAL-DEFINE LBL_COLL       17
+&GLOBAL-DEFINE LBL_DUMPNAME   18
 
 DEFINE VAR separators AS CHAR EXTENT 6 NO-UNDO INITIAL 
 [
@@ -136,12 +121,11 @@ FORM
    WITH FRAME rptline NO-ATTR-SPACE DOWN NO-BOX USE-TEXT STREAM-IO.
 
 FORM
-   bFile._File-name  FORMAT "x(29)"  COLUMN-LABEL "Table!Name"
-   bFile._Dump-name  FORMAT "x(8)"   COLUMN-LABEL "Dump!Name"
+   bFile._File-name  FORMAT "x(32)"  COLUMN-LABEL "Table!Name"
    flags             FORMAT "x(5)"   COLUMN-LABEL "Table!Flags" 
    fldcnt            FORMAT ">>>>9"  COLUMN-LABEL "Field!Count"
    bFile._numkey     FORMAT ">>>>9"  COLUMN-LABEL "Index!Count"
-   bFile._File-label FORMAT "x(19)"  COLUMN-LABEL "Table!Label"
+   bFile._File-label FORMAT "x(24)"  COLUMN-LABEL "Table!Label"
    WITH FRAME sumtable NO-ATTR-SPACE USE-TEXT STREAM-IO DOWN.
 
 FORM
@@ -465,7 +449,6 @@ FOR EACH bFile NO-LOCK
 
    DISPLAY STREAM rpt
       bFile._File-name
-      bFile._Dump-name
       flags
       bFile._numkey
       /* Progress Db's have an extra hidden field that holds the table # 
@@ -484,6 +467,7 @@ FOR EACH bFile NO-LOCK
       (bFile._For-Size <> ?) THEN */
       DOWN STREAM rpt 1 WITH FRAME rptline.
 
+   RUN Display_Value (bFile._Dump-name, lbls[{&LBL_DUMPNAME}], no).
    IF bFile._Desc <> ? /* AND p_Tbl <> "ALL"*/ THEN DO:
       temp = REPLACE(bFile._Desc, CHR(10), " "). /* remove carriage rtrns */
       RUN Display_Value (temp, lbls[{&LBL_DESC}], no).

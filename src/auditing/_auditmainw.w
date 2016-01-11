@@ -3,7 +3,7 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -1902,6 +1902,7 @@ DEFINE VARIABLE pcDbInfo  AS CHARACTER NO-UNDO.
 
        /* bring up the dialog to get the file name */
        RUN auditing/ui/_get-file.w (INPUT "save":U, /* mode */
+                                    INPUT "Export Policy":U, /* title */
                                     INPUT "*.xml":U,
                                     INPUT "*.xml":U,
                                     OUTPUT cFileName).
@@ -1962,6 +1963,7 @@ DEFINE VARIABLE pcDbInfo  AS CHARACTER NO-UNDO.
 
        /* bring up the dialog to get the file name */
        RUN auditing/ui/_get-file.w (INPUT "open":U, /* mode */
+                                    INPUT "Import Policy":U, /* title */
                                     INPUT "*.xml":U ,  INPUT "*.xml":U,
                                     OUTPUT cFileName).
                     
@@ -2182,6 +2184,7 @@ DEFINE VARIABLE cTempFile AS CHARACTER NO-UNDO.
 
            /* bring up the dialog to get the file name */
            RUN auditing/ui/_get-file.w (INPUT "save":U, /* mode */
+                                        INPUT "Report Conflicts":U, /* title */
                                         INPUT "All Files (*.*)":U,
                                         INPUT "*.*":U,
                                         OUTPUT cFileName).
@@ -2325,6 +2328,7 @@ DEFINE VARIABLE cTempFile AS CHARACTER NO-UNDO.
         DO:
             /* bring up the dialog to get the file name */
            RUN auditing/ui/_get-file.w (INPUT "save":U, /* mode */
+                                        INPUT "Effective Settings":U, /* title */
                                         INPUT "All Files (*.*)":U,
                                         INPUT "*.*":U,
                                         OUTPUT cFileName).

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,8 @@ run on another database to define those tables. */
  user_env[33] = to use _Width of field or calculate.
  
 History:
+    fernando    07/19/06    Unicode support - restrict UI
+    fernando    04/18/06    Unicode support for DataServers
     D. McMann   03/06/03    Removed shadow columns for Oracle.
     D. McMann   11/15/02    Split compatible objects into seperate selections
     D. McMann   09/18/02    Change SQL Width to Width
@@ -109,6 +111,10 @@ DEFINE VARIABLE usrlab    AS CHARACTER INITIAL "Which Users:"
 			             FORMAT "X(15)"  NO-UNDO.
 DEFINE VARIABLE iFmtOption AS INTEGER  INITIAL 2     NO-UNDO.
 DEFINE VARIABLE lFormat    AS LOGICAL  INITIAL TRUE  NO-UNDO.
+DEFINE VARIABLE unicodeTypes AS LOGICAL   INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE lUnicode     AS LOGICAL   INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE tmp_str      AS CHARACTER               NO-UNDO.
+DEFINE VARIABLE lUniExpand   AS LOGICAL   INITIAL FALSE NO-UNDO.
 
 {prodict/misc/filesbtn.i &NAME="btn_File_t"}
 {prodict/misc/filesbtn.i &NAME="btn_File_i" &NOACC=yes}
@@ -155,12 +161,12 @@ FORM
     
   "SQL-Flavor:" VIEW-AS TEXT AT 2
   ft VIEW-AS RADIO-SET horizontal
-             RADIO-BUTTONS "PROGRESS",      "pro",
+             RADIO-BUTTONS "{&PRO_DISPLAY_NAME}",      "pro",
                            "ORACLE",        "ora",
                            "MS SQL Server", "mss"
   SKIP({&VM_WIDG})
       
-  l_cmptbl AT 2 label  "Create Progress Recid Field "
+  l_cmptbl AT 2 label  "Create RECID Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index...?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
@@ -168,6 +174,11 @@ FORM
   SKIP({&VM_WID})
   crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
               HELP "Include initial value as field default."
+   unicodeTypes AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Unicode Types" 
+            HELP "Create character columns as Unicode data types?"
+    SKIP({&VM_WID})
+    lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
+           HELP "Double field length (for utf-8 compatibility)"
     SKIP({&VM_WID})
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
@@ -216,12 +227,12 @@ FORM
   
   "SQL-Flavor:" VIEW-AS TEXT AT 2 
   ft VIEW-AS RADIO-SET HORIZONTAL
-             RADIO-BUTTONS "PROGRESS",      "pro",
+             RADIO-BUTTONS "{&PRO_DISPLAY_NAME}",      "pro",
                            "ORACLE",        "ora",
                            "MS SQL Server", "mss"
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
     &ELSE SKIP({&VM_WID}) &ENDIF
-  l_cmptbl AT 2 label "Create Progress Recid Field "
+  l_cmptbl AT 2 label "Create RECID Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
@@ -229,8 +240,13 @@ FORM
   SKIP({&VM_WID})
     crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
+    unicodeTypes AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Unicode Types" 
+                  HELP "Create character columns as Unicode data types?"
+    SKIP({&VM_WID})
+    lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
+           HELP "Double field length (for utf-8 compatibility)"
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
-    &ELSE SKIP({&VM_WID}) &ENDIF
+    &ELSE SKIP({&VM_WID}) &ENDIF    
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                                "4GL Format", 2
@@ -271,12 +287,12 @@ FORM
 
   "SQL-Flavor:" VIEW-AS TEXT AT 2 
   ft NO-LABEL VIEW-AS RADIO-SET HORIZONTAL 
-                      RADIO-BUTTONS "PROGRESS",      "pro",
+                      RADIO-BUTTONS "{&PRO_DISPLAY_NAME}",      "pro",
                                     "ORACLE",        "ora",
                                    "MS SQL Server", "mss"
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
   &ELSE SKIP({&VM_WID}) &ENDIF
-  l_cmptbl AT 2 label "Create Progress Recid Field "
+  l_cmptbl AT 2 label "Create RECID Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
@@ -284,8 +300,13 @@ FORM
   SKIP({&VM_WID})
     crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
+    unicodeTypes AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Unicode Types" 
+                 HELP "Create character columns as Unicode data types?"
+    SKIP({&VM_WID})
+    lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
+           HELP "Double field length (for utf-8 compatibility)"
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
-    &ELSE SKIP({&VM_WID}) &ENDIF
+    &ELSE SKIP({&VM_WID}) &ENDIF   
     cFormat VIEW-AS TEXT NO-LABEL AT 2
     iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                                "4GL Format", 2
@@ -336,12 +357,12 @@ FORM
   
   "SQL-Flavor:" VIEW-AS TEXT AT 2 
   ft NO-LABEL VIEW-AS RADIO-SET HORIZONTAL 
-                      RADIO-BUTTONS "PROGRESS",      "pro",
+                      RADIO-BUTTONS "{&PRO_DISPLAY_NAME}",      "pro",
                                     "ORACLE",        "ora",
                                     "MS SQL Server", "mss"
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
   &ELSE SKIP({&VM_WID}) &ENDIF
-  l_cmptbl AT 2 label "Create Progress Recid Field "
+  l_cmptbl AT 2 label "Create RECID Field "
           VIEW-AS toggle-box
           HELP "Create PROGRESS_RECID Column/Index?"
   shadowcol AT 34 VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" 
@@ -349,6 +370,11 @@ FORM
   SKIP({&VM_WID})
   crtdef AT 2 LABEL "Include Defaults" VIEW-AS toggle-box
             HELP "Include initial value as field default."
+  unicodeTypes AT 34 VIEW-AS TOGGLE-BOX LABEL "Use Unicode Types" 
+               HELP "Create character columns as Unicode data types?"
+    SKIP({&VM_WID})
+    lUniExpand AT 2 VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
+           HELP "Double field length (for utf-8 compatibility)"
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN SKIP({&VM_WIDG})
   &ELSE SKIP({&VM_WID}) &ENDIF
   cFormat VIEW-AS TEXT NO-LABEL AT 2
@@ -531,6 +557,11 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
               shadowcol:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = FALSE
               crtdef:SCREEN-VALUE = "no".
+       IF lUnicode THEN
+          ASSIGN unicodeTypes:SENSITIVE IN FRAME createtable = NO
+                 unicodeTypes:SCREEN-VALUE = "no"
+                 lUniExpand:SENSITIVE = NO
+                 lUniExpand:SCREEN-VALUE = "no".
        iFmtOption:DISABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.  
@@ -538,6 +569,12 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
+       IF lUnicode THEN
+           ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createtable = NO
+              unicodeTypes:SCREEN-VALUE = "no"
+              lUniExpand:SENSITIVE = NO
+              lUniExpand:SCREEN-VALUE = "no".
        iFmtOption:ENABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.
@@ -545,6 +582,11 @@ ON VALUE-CHANGED OF ft IN FRAME createtable DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
+       IF lUnicode THEN
+           ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createtable = YES
+              lUniExpand:SENSITIVE = NO
+              lUniExpand:SCREEN-VALUE = "no".           .
        iFmtOption:ENABLE("Width") IN FRAME createtable.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createtable.
      END.
@@ -567,6 +609,30 @@ ON CHOOSE OF btn_File_t in frame createalltables DO:
         INPUT "Find Output File"  /*Title*/,
         INPUT ""                 /*Filter*/,
         INPUT no                /*Must exist*/).
+END.
+
+ON VALUE-CHANGED OF unicodeTypes IN FRAME createalltables DO:
+    DEF VAR dummyl AS LOGICAL NO-UNDO.
+
+    IF SELF:SCREEN-VALUE = "NO" THEN
+       ASSIGN lUniExpand:SENSITIVE IN FRAME createalltables = NO
+              lUniExpand:SCREEN-VALUE = "no".
+    ELSE
+    ASSIGN lUniExpand:SENSITIVE IN FRAME createalltables = YES
+           lUniExpand:SCREEN-VALUE = "no"
+           dummyl = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
+END.
+
+ON VALUE-CHANGED OF unicodeTypes IN FRAME createtable DO:
+    DEF VAR dummyl AS LOGICAL NO-UNDO.
+
+    IF SELF:SCREEN-VALUE = "NO" THEN
+       ASSIGN lUniExpand:SENSITIVE IN FRAME createtable = NO
+              lUniExpand:SCREEN-VALUE = "no".
+    ELSE
+    ASSIGN lUniExpand:SENSITIVE IN FRAME createtable = YES
+           lUniExpand:SCREEN-VALUE = "no"
+           dummyl = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
 END.
 
 ON LEAVE OF fot in frame createalltables
@@ -595,6 +661,13 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
               shadowcol:SCREEN-VALUE = "no"
               crtdef:SENSITIVE = FALSE
               crtdef:SCREEN-VALUE = "no".
+       IF lUnicode THEN
+           ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createalltables= NO
+              unicodeTypes:SCREEN-VALUE = "no"
+              lUniExpand:SENSITIVE = NO
+              lUniExpand:SCREEN-VALUE = "no".
+
        iFmtOption:DISABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
      END.
@@ -602,6 +675,13 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
        ASSIGN l_cmptbl:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE
               shadowcol:SENSITIVE = TRUE.
+       IF lUnicode THEN
+           ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createalltables = NO
+              unicodeTypes:SCREEN-VALUE = "no"
+              lUniExpand:SENSITIVE = NO
+              lUniExpand:SCREEN-VALUE = "no".
+
        iFmtOption:ENABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
      END.
@@ -609,6 +689,12 @@ ON VALUE-CHANGED OF ft IN FRAME createalltables DO:
        ASSIGN shadowcol:SENSITIVE = TRUE
               l_cmptbl:SENSITIVE = TRUE
               crtdef:SENSITIVE = TRUE.
+       IF lUnicode THEN
+           ASSIGN
+              unicodeTypes:SENSITIVE IN FRAME createalltables = YES
+              lUniExpand:SENSITIVE = NO
+              lUniExpand:SCREEN-VALUE = "no".
+
        iFmtOption:ENABLE("Width") IN FRAME createalltables.
        APPLY "VALUE-CHANGED" TO iFmtOption IN FRAME createalltables.
      END.
@@ -701,6 +787,13 @@ ELSE DO:
 END.
 PAUSE 0.
 
+IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
+  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
+
+  IF tmp_str BEGINS "Y" THEN
+      ASSIGN lUnicode = TRUE.
+END.
+
 /* here is the matrix of parameters per db-type */
 assign
   l_dbtyp = "pro,ora,mss"
@@ -731,8 +824,13 @@ assign
 
 IF alltables THEN 
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
+    IF NOT lUnicode THEN
+       ASSIGN unicodeTypes:VISIBLE IN FRAME createalltables = NO
+              lUniExpand:VISIBLE IN FRAME createalltables = NO.
+
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
     uidtag = new_lang[7].
+
     DISPLAY uidtag cFormat lFormat WITH FRAME createalltables.
     usrnm = "ALL".
   
@@ -744,6 +842,8 @@ IF alltables THEN
       l_cmptbl
       shadowcol
       crtdef
+      unicodeTypes WHEN lUnicode
+      lUniExpand WHEN lUnicode AND unicodeTypes
       iFmtOption
       lFormat WHEN iFmtOption = 2 
       btn_OK 
@@ -760,6 +860,8 @@ IF alltables THEN
       l_cmptbl
       shadowcol      
       crtdef
+      unicodeTypes WHEN lUnicode
+      lUniExpand WHEN lUnicode AND unicodeTypes
       iFmtOption
       lFormat WHEN iFmtOption = 2
       btn_OK 
@@ -801,16 +903,30 @@ IF alltables THEN
     user_env[31] = "-- **"           /*comment-character*/
     .
 
-  IF user_env[22] = "MSS" THEN
-      ASSIGN user_env[7]  = (IF crtdef THEN "y" ELSE "n")
-             user_env[10] = "8000"
+  IF user_env[22] = "MSS" AND lUnicode THEN
+     unicodeTypes = LOGICAL(unicodeTypes:SCREEN-VALUE IN FRAME createalltables).
+  ELSE
+     unicodeTypes = NO.
+
+  IF user_env[22] = "MSS" THEN DO:
+        ASSIGN user_env[7]  = (IF crtdef THEN "y" ELSE "n")
+             user_env[10] = (IF unicodeTypes THEN "4000" ELSE "8000")
              user_env[32] = "MSSQLSRV7"
-             user_env[21] = (IF shadowcol THEN "y" ELSE "n").
-  
+             user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[35] = "n".
+
+      IF unicodeTypes THEN
+         ASSIGN user_env[11] = "nvarchar"
+                user_env[18] = "nvarchar(max)"
+                lUniExpand = LOGICAL(lUniExpand:SCREEN-VALUE IN FRAME createalltables)
+                user_env[35] = (IF lUniexpand THEN "y" ELSE "n").
+                
+  END.
   ELSE IF user_env[22] = "ORACLE" THEN
       ASSIGN user_env[7]  = (IF crtdef THEN "y" ELSE "n")
              user_env[18] = "VARCHAR2"
-             user_env[21] = (IF shadowcol THEN "y" ELSE "n").
+             user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[11] = "varchar2".
   ELSE
       ASSIGN user_env[7]  = "y" 
              user_env[21] = "n".
@@ -827,6 +943,11 @@ END.
 
 ELSE /*Single table*/
  DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
+    
+    IF NOT lUnicode THEN
+       ASSIGN unicodeTypes:VISIBLE IN FRAME createtable = NO
+              lUniExpand:VISIBLE IN FRAME createtable = NO.
+
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN  
    DISPLAY cFormat lFormat WITH FRAME createtable.
    UPDATE
@@ -836,6 +957,8 @@ ELSE /*Single table*/
     l_cmptbl
     shadowcol
     crtdef
+    unicodeTypes WHEN lUnicode
+    lUniExpand WHEN lUnicode AND unicodeTypes
     iFmtOption
     lFormat WHEN iFmtOption = 2
     btn_OK 
@@ -851,6 +974,8 @@ ELSE /*Single table*/
     l_cmptbl
     shadowcol
     crtdef
+    unicodeTypes WHEN lUnicode
+    lUniExpand WHEN lUnicode AND unicodeTypes
     iFmtOption
     lFormat WHEN iFmtOption = 2
     btn_OK 
@@ -890,17 +1015,31 @@ ELSE /*Single table*/
     user_env[29] = entry(l_i,l_ue-29)
     user_env[31] = "-- **"           /*comment-character*/
     .
+
+  IF user_env[22] = "MSS" AND lUnicode THEN
+     unicodeTypes = LOGICAL(unicodeTypes:SCREEN-VALUE IN FRAME createtable).
+  ELSE
+      unicodeTypes = NO.
+
+  IF user_env[22] = "MSS" THEN DO:
   
-  IF user_env[22] = "MSS" THEN
       ASSIGN user_env[ 7] = (IF crtdef THEN "y" ELSE "n")
-             user_env[10] = "8000"
+             user_env[10] = (IF unicodeTypes THEN "4000" ELSE "8000")
              user_env[32] = "MSSQLSRV7"
-             user_env[21] = (IF shadowcol THEN "y" ELSE "n").
-  
+             user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[35] = "n".
+
+      IF unicodeTypes THEN
+         ASSIGN user_env[11] = "nvarchar"
+                user_env[18] = "nvarchar(max)"
+                lUniExpand = LOGICAL(lUniExpand:SCREEN-VALUE IN FRAME createtable)
+                user_env[35] = (IF lUniexpand THEN "y" ELSE "n").
+  END.
   ELSE IF user_env[22] = "ORACLE" THEN
       ASSIGN user_env[ 7] = (IF crtdef THEN "y" ELSE "n")
              user_env[18] = "VARCHAR2"
-             user_env[21] = (IF shadowcol THEN "y" ELSE "n").
+             user_env[21] = (IF shadowcol THEN "y" ELSE "n")
+             user_env[11] = "varchar2".
   ELSE
       ASSIGN user_env[ 7] = "y"
              user_env[21] = "n".

@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
   File:        adm2/exportdata.p
   Description:  
@@ -538,6 +538,14 @@ DEFINE VARIABLE cButton       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cPrintPreview AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cLargeColumns AS CHARACTER  NO-UNDO.
 
+DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cColumn       AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataType     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cINT64Columns AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cDataColumns  AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE lLOBMessageDisplayed AS LOGICAL NO-UNDO.
+
 /* Ensure there are no unsaved or uncommitted data */
 RUN confirmContinue IN phDataObject (INPUT-OUTPUT lCancel).
 
@@ -611,6 +619,28 @@ DO:
   END.
 END.
 
+/*Get the INT64 fields and prefix them with '!' to exclude them
+  from call to tableOut*/
+{get DataColumns cDataColumns phDataObject}.
+REPEAT iColumn = 1 TO NUM-ENTRIES(cDataColumns):
+    ASSIGN cColumn   = ENTRY(iColumn, cDataColumns)
+           cDataType = {fnarg columnDataType cColumn phDataObject}.
+
+    IF cDataType = "INT64":U AND CAN-DO(pcFieldList, cColumn)
+    THEN DO:
+           ASSIGN pcFieldList = REPLACE(pcFieldList, cColumn, "!" + cColumn).
+
+		   IF NOT lLOBMessageDisplayed THEN
+	       DO:
+       			MESSAGE SUBSTITUTE({fnarg MessageNumber 95},PROGRAM-NAME(1),
+                                                   cColumn,
+                                                   cDataType)
+              			VIEW-AS ALERT-BOX WARNING.
+	            lLOBMessageDisplayed = YES.
+    	   END.
+    END.
+END.
+
 /* Get BLOB and CLOB fields using LargeColumns and prefix them with '!' to exclude them
    from call to tableOut */
 {get LargeColumns cLargeColumns phDataObject}.
@@ -631,7 +661,6 @@ DO:
    ELSE
       ASSIGN pcFieldList = pcFieldList + ",!RowIdentIdx,!RowUserProp,!RowNum,!RowIdent,!RowMod":U.
 END.
-
 
 /* tableOut will return a record for each cell we need to populate */
 RUN tableOut IN phDataObject (INPUT pcFieldList, 
@@ -939,6 +968,8 @@ PROCEDURE exportToCrystal PRIVATE :
     ASSIGN
         ttDataSource.ttValue[ttTable.iCol] = IF cDataType = "INTEGER":U
                                         THEN STRING(INTEGER(ttTable.cCell))
+                                        ELSE IF cDataType = "INT64":U
+                                        THEN STRING(INT64(TTTABLE.cCell))
                                         ELSE IF cDataType = "DECIMAL":U
                                         THEN STRING(DECIMAL(REPLACE(ttTable.cCell,"%":U,"":U)))
                                         ELSE IF cDataType = "CHARACTER":U
@@ -1022,6 +1053,7 @@ DEFINE VARIABLE cFormatList          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cNumFormat           AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cNumFormatQuoted     AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE iInteger             AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iInt64               AS INT64      NO-UNDO.
 DEFINE VARIABLE dDecimal             AS DECIMAL    NO-UNDO.
 
 /*  Windows but now running on another OS */
@@ -1178,7 +1210,8 @@ FOR EACH ttTable
           ELSE IF NOT cNumericCellString BEGINS "-":U AND dDecimal < 0 THEN
             ASSIGN cNumericCellString = "-":U + STRING(ABSOLUTE(dDecimal)) NO-ERROR.
       END.
-      ELSE DO:
+      ELSE IF cDataType = "INTEGER":U THEN
+      DO:
           ASSIGN iInteger = INTEGER(cNumericCellString) NO-ERROR.
           IF ERROR-STATUS:ERROR THEN
                 ASSIGN cNumericCellString = ttTable.cCell.          
@@ -1191,8 +1224,8 @@ FOR EACH ttTable
 
     WHEN "CHARACTER":U THEN
       ASSIGN ttTable.cCell = REPLACE(ttTable.cCell,'"':U, "'":U)
-             ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
              ttTable.cCell = SUBSTRING(ttTable.cCell, 1, 319) WHEN LENGTH(ttTable.cCell) > 319 
+             ttTable.cCell = '"':U + ttTable.cCell + '"':U /* csv file wants quotes around characters */
              NO-ERROR.
 
     WHEN "DATETIME":U OR WHEN "DATETIME-TZ":U THEN
@@ -1301,9 +1334,9 @@ FOR EACH ttTable
     /* Re-assign Progress supported format codes with Excel format codes.
        Progress supports:  (), string, +, -, >, <, 9, Z, *, DR,CR,DB 
        Excel supports   # and 0 for digits, and uses a semi-colon to separate positive from negative formats */
-    IF (cDataType = "DECIMAL":U or cDataType = "INTEGER":U)  THEN
+    IF (cDataType = "DECIMAL":U OR cDataType = "INTEGER":U) THEN
     DO:
-       ASSIGN cNumFormat = TRIM(ENTRY(iNumberOfColumns, cFormatList,chr(1)))
+       ASSIGN cNumFormat = TRIM(ENTRY(iNumberOfColumns, cFormatList,CHR(1)))
               cNumFormat = REPLACE(cNumFormat,'>':u, '#':u)
               cNumFormat = REPLACE(cNumFormat,'Z':u, '#':u)
               cNumFormat = REPLACE(cNumFormat,'+':u, '':u)
@@ -1895,6 +1928,8 @@ PROCEDURE exportToXML :
     ASSIGN
         ttDataSource.ttValue[ttTable.iCol] = 
           IF cDataType = "INTEGER":U THEN STRING(INTEGER(ttTable.cCell))
+          ELSE 
+          IF cDataType = "INT64":U THEN STRING(INT64(ttTABLE.cCell))
           ELSE 
           IF cDataType = "DECIMAL":U THEN STRING(DECIMAL(REPLACE(ttTable.cCell,"%":U,"":U)))
           ELSE

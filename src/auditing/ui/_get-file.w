@@ -4,7 +4,7 @@
 &Scoped-define FRAME-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -41,6 +41,7 @@ CREATE WIDGET-POOL.
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT  PARAMETER pMode        AS CHARACTER NO-UNDO.
+DEFINE INPUT  PARAMETER pTitle       AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pcFilterName AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pcFilterSpec AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER pcFileName   AS CHARACTER NO-UNDO.
@@ -310,12 +311,12 @@ END.
 /* set the dialog title and the fill-in label depending on which mode
    we are running with
 */
+ASSIGN FRAME gDialog:TITLE = pTitle.
+
 IF pMode = "save":U THEN
-   ASSIGN FRAME gDialog:TITLE = "Export Policy":U
-          cFileName:LABEL = "Output File":U.
+   ASSIGN cFileName:LABEL = "Output File":U.
 ELSE
-   ASSIGN FRAME gDialog:TITLE = "Import Policy":U
-          cFileName:LABEL = "Import File":U.
+   ASSIGN cFileName:LABEL = "Import File":U.
 
 {src/adm2/dialogmn.i}
 

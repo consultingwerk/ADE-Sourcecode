@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 /* Procedure prodict/mss/_mss_sdb.p
@@ -31,6 +15,8 @@
    
    History:  Added check for Old version of MSS D. McMann 04/24/00
    
+             fernando   04/14/06  Unicode support
+             fernando   07/19/06  Unicode support - MSS 2005 and up
 */   
 
 &SCOPED-DEFINE DATASERVER YES
@@ -58,6 +44,12 @@ FOR EACH DICTDBG.GetInfo_buffer:
 
    IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 7 THEN
        RETURN "wrg-ver".
+
+   /* for Unicode support, we only support SQL Server 2005 and up */
+   IF user_env[32] = "MSSQLSRV9" THEN DO:
+       IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 8 THEN
+           RETURN "wrg-ver".
+   END.
 
    ASSIGN DICTDB._Db._Db-misc2[1] = DICTDBG.GetInfo_buffer.driver_name
           DICTDB._Db._Db-misc2[2] = DICTDBG.GetInfo_buffer.driver_version

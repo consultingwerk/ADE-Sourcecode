@@ -1197,7 +1197,9 @@ PROCEDURE updateRecord :
     DEFINE variable dClassObj           as decimal                      no-undo.
     DEFINE VARIABLE rRowid              AS ROWID                        NO-UNDO.
     DEFINE VARIABLE cProfileData        AS CHARACTER                    NO-UNDO.
-    DEFINE variable lCreateCustomClass  as logical                      no-undo.    
+    DEFINE variable lCreateCustomClass  as logical                      no-undo.
+    define variable hROBuf              as handle no-undo.
+    define variable lDup                as logical no-undo.
     
     {get ContainerSource hContainer}.
     
@@ -1206,43 +1208,44 @@ PROCEDURE updateRecord :
        create a new custom class. This is so that customers are prevented
        from losing customisations.
        This should apply to all actions (including deletes) since all actions
-       change the behaviour of a class.
-     */
+       change the behaviour of a class.	*/
     {get DataSource hDataSource}.
     {get DataSource hClassDataSource hDataSource}.
     {get RowObject hRowObjectBuffer hDataSource}.
     
     /* The label is used for a couple of things,
-       so get it first.
-     */
+       so get it first. */
     cAttributeLabel = {fnarg widgetValue 'tAttributeLabel'}.
     
     /* Make sure that a duplicate record is not being created.
-       Obviously only do this in Add or Copy mode.
-     */
+       Obviously only do this in Add or Copy mode. */
     if {fn getNewRecord} ne 'no' then
     do:
-        /* Search using the rowobject buffer so as not 
+        /* Search the rowobject buffer using a named buffer so as not 
 	       to disturb the SDO's query (which findRowWhere() will do) since
-	       that will cause the browser to reposition.
-	     */
-	    hRowObjectBuffer:find-first(' where '
-	                                + hRowObjectBuffer:name + '.tAttributeLabel = ' + quoter(cAttributeLabel)) no-error.
-	    if hRowObjectBuffer:available then
-	    do:
+	       that will cause the browser to reposition.	*/
+        create buffer hROBuf for table hRowObjectBuffer buffer-name 'lbRO':u.
+        
+        hROBuf:find-first(' where ':u + hROBuf:name + '.tAttributeLabel = ':u + quoter(cAttributeLabel)) no-error.
+        lDup = hROBuf:available.
+        delete object hROBuf no-error.
+        hROBuf = ?.
+	    
+        if lDup then
+        do:
             if valid-handle(gshSessionManager) then
-	            RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
-	                                                           "'An attribute called ' + cAttributeLabel + ' already exists for this class'"},
-	                                                   INPUT  "ERR", /* error type */
-	                                                   INPUT  "&OK", /* button list */
-	                                                   INPUT  "&OK", /* default button */ 
-	                                                   INPUT  "&OK", /* cancel button */
-	                                                   INPUT  "Duplicate attribute `" + cAttributeLabel + "`", /* window title */
-	                                                   INPUT  YES, /* display if empty */ 
-	                                                   INPUT  hContainer,
-	                                                   OUTPUT cButton       ).
-	        return 'adm-error'.
-	    end.    /* found a duplicate */
+                RUN showMessages IN gshSessionManager (INPUT  {aferrortxt.i 'AF' '40' '?' '?'
+                                                              "'An attribute called ' + cAttributeLabel + ' already exists for this class'"},
+                                                       INPUT  "ERR", /* error type */
+                                                       INPUT  "&OK", /* button list */
+                                                       INPUT  "&OK", /* default button */ 
+                                                       INPUT  "&OK", /* cancel button */
+                                                       INPUT  "Duplicate attribute `" + cAttributeLabel + "`", /* window title */
+                                                       INPUT  YES, /* display if empty */ 
+                                                       INPUT  hContainer,
+                                                       OUTPUT cButton       ).
+            return 'adm-error':u.
+        end.    /* found a duplicate */
     end.    /* add or copy */
         
     /* Get the tags off the class.

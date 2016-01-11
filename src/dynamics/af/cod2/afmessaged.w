@@ -3,12 +3,9 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME gDialog
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS gDialog 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2005,2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*------------------------------------------------------------------------
 
   File: afmessaged.w
@@ -645,109 +642,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE ASInfo gDialog 
-PROCEDURE ASInfo :
-/*------------------------------------------------------------------------------
-  Purpose:     Event procedure for the asnych call we made
-  Parameters:  
-  Notes:       If receives, assigns and displays the data received.
-------------------------------------------------------------------------------*/
-
-  DEFINE INPUT PARAMETER lRemote         AS LOGICAL INITIAL NO NO-UNDO.
-  DEFINE INPUT PARAMETER cConnid         AS CHARACTER  NO-UNDO. /* SESSION:SERVER-CONNECTION-ID */
-  DEFINE INPUT PARAMETER cOpmode         AS CHARACTER  NO-UNDO. /* SESSION:SERVER-OPERATING-MODE */
-  DEFINE INPUT PARAMETER lConnreq        AS LOGICAL    NO-UNDO. /* SESSION:SERVER-CONNECTION-BOUND-REQUEST */
-  DEFINE INPUT PARAMETER lConnbnd        AS LOGICAL    NO-UNDO. /* SESSION:SERVER-CONNECTION-BOUND */
-  DEFINE INPUT PARAMETER cConnctxt       AS CHARACTER  NO-UNDO. /* SESSION:SERVER-CONNECTION-CONTEXT */
-  DEFINE INPUT PARAMETER cASppath        AS CHARACTER  NO-UNDO. /* PROPATH */
-  DEFINE INPUT PARAMETER cConndbs        AS CHARACTER  NO-UNDO. /* List of Databases */
-  DEFINE INPUT PARAMETER pcCustomisationTypes       AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
-  DEFINE INPUT PARAMETER pcCustomisationReferences  AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
-  DEFINE INPUT PARAMETER pcCustomisationResultCodes AS CHARACTER    NO-UNDO.    /* from CustomizatinManager */
-  DEFINE INPUT PARAMETER TABLE-HANDLE phTTParam.                /* } Temp-tables describing */
-  DEFINE INPUT PARAMETER TABLE-HANDLE phTTManager.              /* } the configuration and connection */
-  DEFINE INPUT PARAMETER TABLE-HANDLE phTTServiceType.          /* } manager details. */
-  DEFINE INPUT PARAMETER TABLE-HANDLE phTTService.              /* } */
-  DEFINE INPUT PARAMETER TABLE-HANDLE phTTPersistentProcedure.  /* Temp Table List of Persistent Procedures */
-
-  DEFINE VARIABLE iLoop                     AS INTEGER              NO-UNDO.
-  DEFINE VARIABLE cCustomisationInformation AS CHARACTER            NO-UNDO.
-  DEFINE VARIABLE hQuery                    AS HANDLE               NO-UNDO.
-  DEFINE VARIABLE hBuffer                   AS HANDLE               NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:
-
-    edAppServer:SCREEN-VALUE = "":U.
-    edAppServer:INSERT-STRING("~n" + 
-      "Partition:                  " + notNull("Astra":U)        + "~n" +
-      "Connected:                  " + notNull(STRING(lRemote))  + "~n" +
-      "Connection Id:              " + notNull(cConnid)          + "~n" +
-      "Operating Mode:             " + notNull(cOpmode)          + "~n" +
-      "Connection Bound Req.:      " + notNull(STRING(lConnreq)) + "~n" +
-      "Connection Bound:           " + notNull(STRING(lConnbnd)) + "~n" +
-      "Connection Context:         " + notNull(cConnctxt)        + "~n"
-      ).
-
-    DO iLoop = 1 TO NUM-ENTRIES(cConndbs):
-        edAppServer:INSERT-STRING("~n" + "Database: " + ENTRY(iLoop,cConndbs)).
-    END.         
-
-    edAppServer:INSERT-STRING("~n~nPropath: ").
-    DO iLoop = 1 TO NUM-ENTRIES(cASppath):
-       edAppServer:INSERT-STRING(ENTRY(iLoop,cASppath) + "~n         ").
-    END.
-
-    edAppServer:INSERT-STRING("~nPersistent Procedures: ").
-    hBuffer = phTTPersistentProcedure:DEFAULT-BUFFER-HANDLE.
-    CREATE QUERY hQuery.
-    hQuery:SET-BUFFERS(hBuffer).
-    hQuery:QUERY-PREPARE("FOR EACH ttPProcedure BY iSeq").
-    hQuery:QUERY-OPEN.
-    hQuery:GET-FIRST.
-    DO WHILE hBuffer:AVAILABLE:
-        edAppServer:INSERT-STRING(hBuffer:BUFFER-FIELD("cProcedureName":U):BUFFER-VALUE + "~n                       ").
-        hQuery:GET-NEXT.
-    END.
-    hQuery:QUERY-CLOSE.
-    DELETE OBJECT hQuery.
-
-    /* Display the Config and Connection Manager information. */
-    DYNAMIC-FUNCTION("addHandle", INPUT phTTParam,       INPUT "*":U,                                  INPUT NO).
-    DYNAMIC-FUNCTION("addHandle", INPUT phTTManager,     INPUT "cManagerName,cFileName,cHandleName":U, INPUT NO).
-    DYNAMIC-FUNCTION("addHandle", INPUT phTTServiceType, INPUT "cServiceType,cSTProcName":U,           INPUT NO).
-    DYNAMIC-FUNCTION("addHandle", INPUT phTTService,     INPUT "*":U,                                  INPUT NO).
-
-    DYNAMIC-FUNCTION("DisplayConfigInfo", INPUT NO, INPUT edAppserver:HANDLE).
-
-    /** Display relevant customisation information.
-     *  ----------------------------------------------------------------------- **/
-    ASSIGN cCustomisationInformation = "":U.
-
-    edAppServer:INSERT-STRING("~n~n":U).
-    edAppServer:INSERT-STRING("Customisation Information" + "~n":U + FILL("=":U, 50) + "~n":U).
-
-    /* Customisation Types */
-    ASSIGN cCustomisationInformation =  "Session Customisation Types:" + "~n":U + pcCustomisationTypes + "~n~n":U.
-    edAppServer:INSERT-STRING(cCustomisationInformation).
-
-    /* The References these resolve to. */
-    ASSIGN cCustomisationInformation =  "Session Customisation Type References:" + "~n":U + pcCustomisationReferences + "~n~n":U.
-    edAppServer:INSERT-STRING(cCustomisationInformation).
-    
-    /* The result codes these resolve to. */
-    ASSIGN cCustomisationInformation =  "Session Customisation Result Codes:" + "~n":U + pcCustomisationResultCodes + "~n~n":U.
-    edAppServer:INSERT-STRING(cCustomisationInformation).
-    
-    ASSIGN edAppserver:CURSOR-OFFSET = 1.
-
-  END.
-
-  RETURN.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buttonAction gDialog 
 PROCEDURE buttonAction :
 /*------------------------------------------------------------------------------
@@ -842,42 +736,99 @@ PROCEDURE getAppserverInfo :
     DEFINE VARIABLE cASppath            AS CHARACTER                NO-UNDO. /* PROPATH */
     DEFINE VARIABLE cConndbs            AS CHARACTER                NO-UNDO. /* List of Databases */
     DEFINE VARIABLE iLoop               AS INTEGER                  NO-UNDO.
-    DEFINE VARIABLE cAppserverInfo      AS CHARACTER                NO-UNDO.
-    DEFINE VARIABLE hAsynch             AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE hHandle1            AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE hHandle2            AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE hHandle3            AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE hHandle4            AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE hHandle5            AS HANDLE                   NO-UNDO.
-    DEFINE VARIABLE cCustomisationInfo  AS CHARACTER                NO-UNDO     EXTENT 3.
-
+    DEFINE VARIABLE hTTParam                  AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hTTManager                AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hTTServiceType            AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hTTService                AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hTTPersistentProcedure    AS HANDLE NO-UNDO.
+    DEFINE variable cCustomisationTypes       AS CHARACTER NO-UNDO.    /* from CustomizatinManager */
+    DEFINE variable cCustomisationReferences  AS CHARACTER NO-UNDO.    /* from CustomizatinManager */
+    DEFINE variable cCustomisationResultCodes AS CHARACTER NO-UNDO.    /* from CustomizatinManager */
+    DEFINE VARIABLE hQuery                    AS HANDLE NO-UNDO.
+    DEFINE VARIABLE hBuffer                   AS HANDLE NO-UNDO.
+    
     IF VALID-HANDLE(gshAstraAppserver) AND CAN-QUERY(gshAstraAppserver, "connected":U) AND gshAstraAppserver:CONNECTED() THEN
-    DO:
-        /* Not cached, retrieve the info from the Appserver */
-        RUN af/app/afapppingp.p ON gshAstraAppserver
-            ASYNCHRONOUS SET hAsynch
-            EVENT-PROCEDURE "ASInfo":U
-            ( OUTPUT lRemote,
-              OUTPUT cConnid,
-              OUTPUT cOpmode,
-              OUTPUT lConnreq,
-              OUTPUT lConnbnd,
-              OUTPUT cConnctxt,
-              OUTPUT cASppath,
-              OUTPUT cConndbs,
-              OUTPUT cCustomisationInfo[1],
-              OUTPUT cCustomisationInfo[2],
-              OUTPUT cCustomisationInfo[3],
-              OUTPUT TABLE-HANDLE hHandle1,
-              OUTPUT TABLE-HANDLE hHandle2,
-              OUTPUT TABLE-HANDLE hHandle3,
-              OUTPUT TABLE-HANDLE hHandle4,
-              OUTPUT TABLE-HANDLE hHandle5   ) NO-ERROR.
-        WAIT-FOR PROCEDURE-COMPLETE OF hAsynch.
-    END.
+    DO with frame {&Frame-Name}:
+        /* Retrieve the info from the Appserver SYNCHRONOUSLY */
+        RUN af/app/afapppingp.p ON gshAstraAppserver ( OUTPUT lRemote,
+                                                       OUTPUT cConnid,
+                                                       OUTPUT cOpmode,
+                                                       OUTPUT lConnreq,
+                                                       OUTPUT lConnbnd,
+                                                       OUTPUT cConnctxt,
+                                                       OUTPUT cASppath,
+                                                       OUTPUT cConndbs,
+                                                       OUTPUT cCustomisationTypes,
+                                                       OUTPUT cCustomisationReferences,
+                                                       OUTPUT cCustomisationResultCodes,
+                                                       OUTPUT TABLE-HANDLE hTTParam,
+                                                       OUTPUT TABLE-HANDLE hTTManager,
+                                                       OUTPUT TABLE-HANDLE hTTServiceType,
+                                                       OUTPUT TABLE-HANDLE hTTService,
+                                                       OUTPUT TABLE-HANDLE hTTPersistentProcedure   ) NO-ERROR.
+        edAppServer:SCREEN-VALUE = "":U.
+        edAppServer:INSERT-STRING("~n" + 
+          "Partition:                  " + notNull("Astra":U)        + "~n" +
+          "Connected:                  " + notNull(STRING(lRemote))  + "~n" +
+          "Connection Id:              " + notNull(cConnid)          + "~n" +
+          "Operating Mode:             " + notNull(cOpmode)          + "~n" +
+          "Connection Bound Req.:      " + notNull(STRING(lConnreq)) + "~n" +
+          "Connection Bound:           " + notNull(STRING(lConnbnd)) + "~n" +
+          "Connection Context:         " + notNull(cConnctxt)        + "~n"
+          ).
+        
+        DO iLoop = 1 TO NUM-ENTRIES(cConndbs):
+            edAppServer:INSERT-STRING("~n" + "Database: " + ENTRY(iLoop,cConndbs)).
+        END.
+        
+        edAppServer:INSERT-STRING("~n~nPropath: ").
+        DO iLoop = 1 TO NUM-ENTRIES(cASppath):
+           edAppServer:INSERT-STRING(ENTRY(iLoop,cASppath) + "~n         ").
+        END.
+        
+        edAppServer:INSERT-STRING("~nPersistent Procedures: ").
+        hBuffer = hTTPersistentProcedure:DEFAULT-BUFFER-HANDLE.
+        CREATE QUERY hQuery.
+        hQuery:SET-BUFFERS(hBuffer).
+        hQuery:QUERY-PREPARE("FOR EACH ttPProcedure BY iSeq").
+        hQuery:QUERY-OPEN.
+        hQuery:GET-FIRST.
+        DO WHILE hBuffer:AVAILABLE:
+            edAppServer:INSERT-STRING(hBuffer::cProcedureName + "~n                       ":u).
+            hQuery:GET-NEXT.
+        END.
+        hQuery:QUERY-CLOSE.
+        DELETE OBJECT hQuery.
 
+        /* Display the Config and Connection Manager information. */
+        DYNAMIC-FUNCTION("addHandle", INPUT hTTParam,       INPUT "*":U,                                  INPUT NO).
+        DYNAMIC-FUNCTION("addHandle", INPUT hTTManager,     INPUT "cManagerName,cFileName,cHandleName":U, INPUT NO).
+        DYNAMIC-FUNCTION("addHandle", INPUT hTTServiceType, INPUT "cServiceType,cSTProcName":U,           INPUT NO).
+        DYNAMIC-FUNCTION("addHandle", INPUT hTTService,     INPUT "*":U,                                  INPUT NO).
+    
+        DYNAMIC-FUNCTION("DisplayConfigInfo", INPUT NO, INPUT edAppserver:HANDLE).
+
+        /** Display relevant customisation information.
+	     *  ----------------------------------------------------------------------- **/  
+        edAppServer:INSERT-STRING("~n~n":U).
+        edAppServer:INSERT-STRING("Customisation Information" + "~n":U + FILL("=":U, 50) + "~n":U).
+    
+        /* Customisation Types */
+        edAppServer:INSERT-STRING("Session Customisation Types:" + "~n":U + cCustomisationTypes + "~n~n":U).
+    
+        /* The References these resolve to. */
+        edAppServer:INSERT-STRING("Session Customisation Type References:" + "~n":U + cCustomisationReferences + "~n~n":U).
+                
+        /* The result codes these resolve to. */
+        edAppServer:INSERT-STRING("Session Customisation Result Codes:" + "~n":U + cCustomisationResultCodes + "~n~n":U).
+        
+        /* set cursor back to beginning for easy viewing :) */
+        edAppserver:CURSOR-OFFSET = 1.
+    END.    /*valid, remote appserver and with frame */
+    
+    error-status:error = no.
     RETURN.
-END PROCEDURE.
+END PROCEDURE.    /* getAppserverInfo */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1218,7 +1169,6 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE hPreviousButton AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iBGcolor        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hWidget         AS HANDLE     NO-UNDO.
-
 
   /* message dialog does not require security - so set object secured to true
      to avoid appserver hits to check for security on it

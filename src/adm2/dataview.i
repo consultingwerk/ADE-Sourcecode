@@ -71,13 +71,7 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
 
-/* Add appserver class if appserver aware 
-   (dataview should never use appserver, data which inherits this does) */      
-&IF DEFINED(APP-SERVER-VARS) = 0 &THEN  
-  {src/adm2/smart.i}
-&ELSE
-  {src/adm2/appserver.i}
-&ENDIF
+{src/adm2/dataquery.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -96,11 +90,6 @@
   IF NOT {&ADM-LOAD-FROM-REPOSITORY} THEN
     RUN start-super-proc("adm2/dataview.p":U).
   
-  /* Overrides default smart setting */
-  {set DataSourceEvents 'dataAvailable,confirmContinue,isUpdatePending,buildDataRequest':U}.
-
-  {set QueryObject YES}.  /* All DataObjects are query objects.*/
-
   {src/adm2/custom/dataviewcustom.i}
 
 &ENDIF

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,8 +14,8 @@
              D. McMann 10/23/02 Changed BLANK to PASSWORD-FIELD
              D. McMann 12/30/02 Removed DESC Index since they are now
                                 supported in MS SQL Server
-                  
-                                
+             fernando  04/14/06 Unicode support
+             fernando  07/19/06 Unicode support - restrict UI
 */            
 
 
@@ -41,6 +41,7 @@ DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
+DEFINE VARIABLE lUnicode      AS LOGICAL INITIAL FALSE    NO-UNDO.
 
 DEFINE STREAM   strm.
 
@@ -48,9 +49,9 @@ batch_mode = SESSION:BATCH-MODE.
 
 FORM
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
-    LABEL "Original PROGRESS Database" colon 36 SKIP({&VM_WID}) 
+    LABEL "Original {&PRO_DISPLAY_NAME} Database" colon 36 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for PROGRESS" colon 36 SKIP({&VM_WID})
+    LABEL "Connect parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
   osh_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Name of Schema holder Database" colon 36 SKIP({&VM_WID})
   mss_pdbname  FORMAT "x(32)" VIEW-AS FILL-IN SIZE 32 BY 1
@@ -72,9 +73,11 @@ FORM
     SKIP({&VM_WIDG}) 
   SPACE(2) pcompatible view-as toggle-box LABEL "Create RECID Field"   
   loadsql   view-as toggle-box label "Load SQL" AT 32
-  movedata  view-as toggle-box label "Move Data" AT 56 SKIP({&VM_WID})
+  movedata  view-as toggle-box label "Move Data" AT 53 SKIP({&VM_WID})
   SPACE(2) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns"
   dflt VIEW-AS TOGGLE-BOX LABEL "Include Defaults" AT 32 
+  unicodeTypes view-as toggle-box label "Use Unicode Types" AT 53 SKIP({&VM_WID})
+  space(2) lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)" SKIP({&VM_WID})
   cFormat VIEW-AS TEXT NO-LABEL AT 10
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "4GL Format", 2
@@ -87,7 +90,7 @@ FORM
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX &ENDIF
-  TITLE "PROGRESS DB to MS SQL Server Conversion".
+  TITLE "{&PRO_DISPLAY_NAME} DB to MS SQL Server Conversion".
 
 FORM
   wait FORMAT "x" LABEL
@@ -145,14 +148,34 @@ ON VALUE-CHANGED of mss_incasesen IN FRAME x DO:
 END. 
 
 ON LEAVE OF long-length IN FRAME X DO:
-  IF INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
+  IF unicodeTypes:SCREEN-VALUE = "no" AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
     MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
     RETURN NO-APPLY.
   END.
+  ELSE IF unicodeTypes:SCREEN-VALUE = "yes" AND INTEGER(long-length:SCREEN-VALUE) > 4000 THEN DO:  
+    MESSAGE "The maximun length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
+    RETURN NO-APPLY.
+  END.
+
+END.
+
+ON VALUE-CHANGED OF unicodeTypes IN FRAME x DO:
+ IF SELF:screen-value = "no" THEN
+     ASSIGN long-length:SCREEN-VALUE = "8000"
+            mss_codepage = session:cpinternal
+            mss_codepage:SCREEN-VALUE = session:cpinternal
+            lUniExpand:SCREEN-VALUE = "no"
+            lUniExpand:SENSITIVE = NO.
+ ELSE
+     ASSIGN long-length:SCREEN-VALUE = "4000"
+            mss_codepage = "utf-8"
+            mss_codepage:SCREEN-VALUE = "utf-8"
+            lUniExpand:SENSITIVE = YES
+            s_res = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
 END.
 
 &IF "{&WINDOW-SYSTEM}"<> "TTY" &THEN   
-/*----- HELP in Progress DB to MS SQL Server 7 Database -----*/
+/*----- HELP in PROGRESS DB to MS SQL Server 7 Database -----*/
 on CHOOSE of btn_Help in frame x
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
                              INPUT {&PROGRESS_DB_to_SQL_Dlg_Box},
@@ -263,6 +286,31 @@ ELSE
   ASSIGN lExpand = TRUE
          lFormat = FALSE.
 
+IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
+  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
+
+  IF tmp_str BEGINS "Y" THEN
+      ASSIGN lUnicode = TRUE.
+END.
+
+IF OS-GETENV("UNICODETYPES")  <> ? THEN DO:
+
+  tmp_str      = OS-GETENV("UNICODETYPES").
+
+  IF tmp_str BEGINS "Y" THEN DO:
+      ASSIGN unicodeTypes = TRUE.
+      /* for unicode support, maximum length is 4000 */
+      IF long-length > 4000 THEN
+          ASSIGN long-length = 4000.
+      /* if MSSCODEPAGE was not specified, default codepage to 'utf-8' */
+      IF OS-GETENV("MSSCODEPAGE") = ? THEN
+         ASSIGN mss_codepage = 'utf-8'.
+      tmp_str      = OS-GETENV("UNICODE_EXPAND").
+      IF tmp_str BEGINS "Y" THEN
+          lUniExpand = YES.
+  END.
+END.
+
 ASSIGN  descidx = TRUE.
 
 if   pro_dbname   = ldbname("DICTDB") and pro_conparms = "" THEN
@@ -279,11 +327,17 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
      RUN cleanup.
   
   IF wrg-ver THEN DO:
+   IF NOT unicodeTypes THEN
     MESSAGE "The DataServer for MS SQL Server was designed to work with Versions 7 " SKIP
             "and above.  You have tried to connect to a prior version of MS SQL Server. " SKIP
             "The DataServer for ODBC supports that version and must be used to perform " SKIP
             "this function. " SKIP(1)
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+   ELSE
+       MESSAGE "Unicode support for the DataServer for MS SQL Server was designed to work" SKIP
+               "with Versions 2005 and above. You have tried to connect to a prior version" SKIP
+               "of MS SQL Server. " SKIP
+           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN.
   END.
     
@@ -300,6 +354,12 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
 IF NOT batch_mode THEN 
   _updtvar: 
   DO WHILE TRUE:
+     IF NOT lUnicode THEN
+        ASSIGN unicodeTypes:VISIBLE IN FRAME X = NO
+               lUniExpand:VISIBLE = NO.
+     ELSE
+         lUniExpand:SENSITIVE = NO.
+
      DISPLAY cFormat lExpand WITH FRAME X.
      UPDATE pro_dbname
         pro_conparms
@@ -318,6 +378,8 @@ IF NOT batch_mode THEN
         movedata WHEN mvdta = TRUE
         shadowcol WHEN mss_incasesen = FALSE      
         dflt
+        unicodeTypes WHEN lUnicode
+        lUniExpand WHEN lUnicode AND unicodeTypes
         iFmtOption
         lExpand WHEN iFmtOption = 2
         btn_OK btn_Cancel 
@@ -337,6 +399,14 @@ IF NOT batch_mode THEN
     IF shadowcol:SCREEN-VALUE = "yes" THEN
       ASSIGN shadowcol = TRUE.
 
+    IF lUnicode THEN DO: 
+        IF unicodeTypes:SCREEN-VALUE ="yes" THEN
+           ASSIGN unicodeTypes = YES.
+
+        IF lUniExpand:SCREEN-VALUE ="yes" THEN
+           ASSIGN lUniExpand = YES.
+    END.
+
     IF LDBNAME ("DICTDB") <> pro_dbname THEN DO:
       ASSIGN old-dictdb = LDBNAME("DICTDB").
       IF NOT CONNECTED(pro_dbname) THEN
@@ -350,13 +420,13 @@ IF NOT batch_mode THEN
             MESSAGE ERROR-STATUS:GET-MESSAGE(i).
         END.
         IF batch_mode THEN
-           PUT STREAM logfile UNFORMATTED "Unable to connect to Progress database"
+           PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
            skip.
         ELSE DO:
           &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-              MESSAGE "Unable to connect to Progress database".
+              MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
           &ELSE
-             MESSAGE "Unable to connect to Progress database" 
+             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
              VIEW-AS ALERT-BOX ERROR.
           &ENDIF
         END.            
@@ -398,7 +468,7 @@ IF NOT batch_mode THEN
   OUTPUT STREAM logfile TO VALUE(output_file) NO-ECHO NO-MAP UNBUFFERED. 
   logfile_open = true. 
   IF pro_dbname = "" OR pro_dbname = ? THEN DO:
-    PUT STREAM logfile UNFORMATTED "Progress Database name is required." SKIP.
+    PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
     ASSIGN err-rtn = TRUE.
   END.
 

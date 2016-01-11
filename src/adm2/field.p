@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v9r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
     File        : field.p
     Purpose     : Super procedure for SmartDataField objects
@@ -663,7 +663,7 @@ PROCEDURE resizeObject :
   END.
 
   ASSIGN 
-    hFrame:SCROLLABLE     = TRUE 
+    hFrame:SCROLLABLE     = TRUE
     hFrame:WIDTH          = MAX(dMinWidth,pdWidth)
     hFrame:HEIGHT         = MAX(dMinHeight,pdHeight)
     hFrame:VIRTUAL-WIDTH  = hFrame:WIDTH
@@ -675,7 +675,7 @@ PROCEDURE resizeObject :
   DO:
     hWidget = hFieldGroup:FIRST-CHILD.        
     DO WHILE VALID-HANDLE(hWidget):
-      
+
       IF  hWidget:TYPE <> 'LITERAL':U 
       AND (hWidget:PRIVATE-DATA = ? 
            OR INDEX(hWidget:PRIVATE-DATA,'NO-RESIZE':U) = 0)  
@@ -691,9 +691,11 @@ PROCEDURE resizeObject :
       hWidget = hWidget:NEXT-SIBLING.
     END. /* do while valid hWidget */
   END.
-  
+
+  ASSIGN hFrame:SCROLLABLE = TRUE.
+
   RETURN.
-  
+
   &UNDEFINE NoStretchWidget
 END PROCEDURE.
 

@@ -22,14 +22,23 @@ History:
 
 DEFINE VARIABLE i       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
+define variable lApplAlertBox as logical no-undo.
+
+lApplAlertBox = SESSION:APPL-ALERT-BOXES.
+
+if user_env[6] eq "no-alert-boxes":u then
+    SESSION:APPL-ALERT-BOXES  = No.
+else
+    /* Set explicitly to Yes since this was the previous behaviour 
+       for the MESSAGE statements used in this procedure. */
+    SESSION:APPL-ALERT-BOXES  = Yes.
 
 FIND FIRST _Db WHERE RECID(_Db) = drec_db NO-LOCK.
 
 IF NOT CAN-FIND(FIRST DICTDB._Sequence OF _Db WHERE NOT
                 DICTDB._Sequence._Seq-name BEGINS "$") THEN DO:
    MESSAGE "There are no sequences to dump." SKIP
-      	   "The output file has not been modified."
-      	    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      	   "The output file has not been modified.".
    RETURN.
 END.
 
@@ -73,6 +82,9 @@ AUDIT-CONTROL:LOG-AUDIT-EVENT(10213,
                               "" /* detail */).
 
 run adecomm/_setcurs.p ("").
-MESSAGE "Dump of sequence values completed." 
-        VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+
+MESSAGE "Dump of sequence values completed." .
+
+session:appl-alert-boxes = lApplAlertBox.
+
 RETURN.

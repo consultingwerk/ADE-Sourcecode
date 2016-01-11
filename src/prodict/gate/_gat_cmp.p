@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -95,6 +79,8 @@ History:
                          up as orphan files.
     D. McMann   06/04/02 Added output to file logic
     D. McMann   08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
+    fernando    10/13/06 Use UPPER in the query when comparing owner and foreign name
+                         for MSS and ODBC
 --------------------------------------------------------------------*/
 
 &SCOPED-DEFINE xxDS_DEBUG                   DEBUG
@@ -115,7 +101,7 @@ define variable l_min-msg-txt    as character no-undo. /* title-txt    */
 define variable l_no-diff        as character no-undo initial
           "     No differences were detected.".
 define variable l_no-diff1       as character no-undo initial
-          "     All objects in PROGRESS image exist also on the &1 side.".
+          "     All objects in {&PRO_DISPLAY_NAME} image exist also on the &1 side.".
 define variable l_ret-msg-txt    as character no-undo. /* title-txt    */
 DEFINE VARIABLE l_ret-msg        AS CHARACTER NO-UNDO. /* retainables  */
 DEFINE VARIABLE l_ret2-msg       AS CHARACTER NO-UNDO.
@@ -139,21 +125,21 @@ define variable l_msg            as character no-undo extent 20 initial
     [
 /*        ....,....1....,....2....,....3....,....4....,....5....,....6 */
 /*  1 */ "",  /* intentional empty! no additional message needed */
-/*  2 */ "This Sequence doesn't exist in the PROGRESS image.",
-/*  3 */ "This Object doesn't exist in the PROGRESS image.",
-/*  4 */ "This Field doesn't exist in the PROGRESS image.",
-/*  5 */ "This Index doesn't exist in the PROGRESS image.",
+/*  2 */ "This Sequence doesn't exist in the {&PRO_DISPLAY_NAME} image.",
+/*  3 */ "This Object doesn't exist in the {&PRO_DISPLAY_NAME} image.",
+/*  4 */ "This Field doesn't exist in the {&PRO_DISPLAY_NAME} image.",
+/*  5 */ "This Index doesn't exist in the {&PRO_DISPLAY_NAME} image.",
 /*  6 */ "There is an index, that would fit better as ROWID index.",
 /*  7 */ "(Flags: ""a"": optimal  ""u"": user-selectable """" not usable)",
 /*  8 */ "The Primary Index doesn't exist anymore on the &1 side.",
-/*  9 */ "This Index-Field doesn't exist in the PROGRESS image.",
+/*  9 */ "This Index-Field doesn't exist in the {&PRO_DISPLAY_NAME} image.",
 /* 10 */ "The definition of this Sequence didn't get compared with the &1 DB.",
 /* 11 */ "The definition of this Table didn't get compared with the &1 DB.",
 /* 12 */ "This Field doesn't exist in the &1 DB anymore.",
 /* 13 */ "This Index doesn't exist in the &1 DB anymore.",
-/* 14 */ "This Index exists in the PROGRESS image, but not in the &1 DB.",
-/* 15 */ "There's no PROGRESS-Field for the TIME portion of the ORACLE DATE-field.",
-/* 16 */ "This index exists only on the PROGRESS side.",
+/* 14 */ "This Index exists in the {&PRO_DISPLAY_NAME} image, but not in the &1 DB.",
+/* 15 */ "There's no {&PRO_DISPLAY_NAME}-Field for the TIME portion of the ORACLE DATE-field.",
+/* 16 */ "This index exists only on the {&PRO_DISPLAY_NAME} side.",
 /* 17 */ "This field is missing as component of this index.",
 /* 18 */ " &1 .",
 /* 19 */ " &1 .",
@@ -295,7 +281,7 @@ assign
                      &direction = "ODBC"
                      &from-type = "odbtyp"
                   }
-  l_dict-msg    = "          *** Use Dictionary to delete Tables from PROGRESS image. ***" 
+  l_dict-msg    = "          *** Use Dictionary to delete Tables from {&PRO_DISPLAY_NAME} image. ***" 
                 + chr(10) + chr(10) + "Orphan-Tables:" + chr(10)
   l_msg[8]      = SUBSTITUTE(l_msg[8],edbtyp)
   l_msg[10]     = SUBSTITUTE(l_msg[10],edbtyp)
@@ -421,7 +407,7 @@ for each gate-work where gate-work.gate-slct = TRUE
             }
   else do:
       { prodict/gate/cmp_msg.i
-            &attrbt = "Name in PROGRESS:"
+            &attrbt = "Name in {&PRO_DISPLAY_NAME}:"
             &msgidx = "l_seq-msg[2]"
             &msgvar = "min"
             &ns     = "s_ttb_seq.pro_name"
@@ -488,8 +474,8 @@ for each gate-work where gate-work.gate-slct = TRUE:
   else if can-do(odbtyp,user_dbtype)
    then find first DICTDB._File
         where DICTDB._File._Db-Recid     = drec_db
-        and   DICTDB._File._For-name     = s_ttb_tbl.ds_name
-        and   DICTDB._File._For-owner    = s_ttb_tbl.ds_user
+        and   UPPER(DICTDB._File._For-name)  = UPPER(s_ttb_tbl.ds_name)
+        and   UPPER(DICTDB._File._For-owner) = UPPER(s_ttb_tbl.ds_user)
         and   DICTDB._File._Fil-misc2[1] = s_ttb_tbl.ds_spcl
         no-error.
    else find first DICTDB._File
@@ -514,6 +500,18 @@ for each gate-work where gate-work.gate-slct = TRUE:
      then find first DICTDB._Field of _File 
       where DICTDB._Field._For-Name = s_ttb_fld.ds_name
       no-error.
+
+    IF NOT AVAILABLE DICTDB._Field AND user_dbtype NE "ORACLE" THEN DO:
+        find first DICTDB._Field of _File 
+          where UPPER(DICTDB._Field._For-Name) = UPPER(s_ttb_fld.ds_name)
+          and   UPPER(DICTDB._Field._For-Type) = UPPER(s_ttb_fld.ds_type)
+          no-error.
+        if not available DICTDB._Field
+         then find first DICTDB._Field of _File 
+          where UPPER(DICTDB._Field._For-Name) = UPPER(s_ttb_fld.ds_name)
+          no-error.
+
+    END.
 
 
     /* Oracle splits up the foreign date-fields into two PROGRESS-fields
@@ -561,6 +559,12 @@ for each gate-work where gate-work.gate-slct = TRUE:
      else find first DICTDB._Index of DICTDB._File
       where DICTDB._Index._For-name = s_ttb_idx.ds_name
       no-error.
+
+     if not available DICTDB._Index AND user_dbtype NE "ORACLE" THEN DO:
+        find first DICTDB._Index of DICTDB._File
+              where UPPER(DICTDB._Index._For-name) = UPPER(s_ttb_idx.ds_name)
+              no-error.
+     END.
      
     { prodict/gate/cmp_idx.i }
 
@@ -575,18 +579,33 @@ for each gate-work where gate-work.gate-slct = TRUE:
         
       if s_ttb_fld.fld_recid = ?
        then do:
-        find first DICTDB._Field of DICTDB._File
-          where DICTDB._Field._For-name = s_ttb_fld.ds_name
-          and   DICTDB._Field._For-Type = s_ttb_fld.ds_type
-          no-error.
+        IF  user_dbtype = "ORACLE" THEN
+            find first DICTDB._Field of DICTDB._File
+              where DICTDB._Field._For-name = s_ttb_fld.ds_name
+              and   DICTDB._Field._For-Type = s_ttb_fld.ds_type
+              no-error.
+        ELSE
+            find first DICTDB._Field of DICTDB._File
+                  where UPPER(DICTDB._Field._For-name) = UPPER(s_ttb_fld.ds_name)
+                  and   UPPER(DICTDB._Field._For-Type) = UPPER(s_ttb_fld.ds_type)
+                  no-error.
+
         if not available DICTDB._Field
-         then find first DICTDB._Field of DICTDB._File
-          where DICTDB._Field._For-name = s_ttb_fld.ds_name
-          no-error.
+         THEN DO:
+            IF  user_dbtype = "ORACLE" THEN
+             find first DICTDB._Field of DICTDB._File
+                  where DICTDB._Field._For-name = s_ttb_fld.ds_name
+                  no-error.
+            ELSE
+                find first DICTDB._Field of DICTDB._File
+                     where UPPER(DICTDB._Field._For-name) = UPPER(s_ttb_fld.ds_name)
+                     no-error.
+        END.
         end.
        else find first DICTDB._Field /* of DICTDB._File */
           where RECID(DICTDB._Field) = s_ttb_fld.fld_recid
           no-error.
+
       if available DICTDB._Field
        then find first DICTDB._Index-field of DICTDB._Index
         where DICTDB._Index-field._Field-recid = RECID(DICTDB._Field)
@@ -649,6 +668,12 @@ for each gate-work where gate-work.gate-slct = TRUE:
     end.
     else find first s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
                and s_ttb_idx.ds_name = DICTDB._Index._For-name no-error.
+
+    IF user_dbtype NE "ORACLE" THEN DO:
+        find first s_ttb_idx where s_ttb_idx.ttb_tbl = RECID(s_ttb_tbl)
+               and UPPER(s_ttb_idx.ds_name) = UPPER(DICTDB._Index._For-name) no-error.
+    END.
+
     if not available s_ttb_idx AND DICTDB._File._For-type <> "VIEW"
      then assign  /* primary index doesn't exist anymore */
        l_sev-msg = l_sev-msg + "    INDEX "
@@ -958,7 +983,7 @@ if user_env[25] begins "AUTO"
 
     assign
       l_header1 = fill(" ",integer(5 - length(edbtyp,"character") / 2))
-                + "Results of comparison of the PROGRESS image with the " 
+                + "Results of comparison of the {&PRO_DISPLAY_NAME} image with the " 
                 + edbtyp + " DB's schema"
       l_header2 = ( if user_dbtype = "ORACLE"
                       then "" /*ORACLE-DB transparent -> no info avlbl*/

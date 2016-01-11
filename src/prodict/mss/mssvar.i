@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -8,7 +8,7 @@
     History:  D. McMann 03/03/99 Removed On-line from Informix
               D. McMann 02/01/00 Added sqlwidth variable
               D. McMann 06/18/01 Added case and collation variables
-    
+              fernando  04/14/06 Unicode support
 */    
 
 DEFINE {1} SHARED VARIABLE pro_dbname     AS CHARACTER NO-UNDO.
@@ -35,6 +35,8 @@ DEFINE {1} SHARED VARIABLE iFmtOption     AS INTEGER   NO-UNDO
                                                     INITIAL 2.
 DEFINE {1} SHARED VARIABLE lFormat        AS LOGICAL   NO-UNDO
                                                     INITIAL TRUE.
+DEFINE {1} SHARED VARIABLE unicodeTypes   AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE lUniExpand     AS LOGICAL   NO-UNDO INITIAL FALSE.
 DEFINE {1} SHARED STREAM dbg_stream.
 
 DEFINE {1} SHARED VARIABLE stages 		    AS LOGICAL EXTENT 7 NO-UNDO.

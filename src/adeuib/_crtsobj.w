@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : adeuib\_crtsobj.w
     Purpose     : To generate _BC records for a SmartDataBrowser 
@@ -202,7 +202,7 @@ PROCEDURE adjustWindowSize :
                hFrame:HEIGHT       = dHeight
                w_L._HEIGHT         = dHeight
                w_L._VIRTUAL-HEIGHT = MAX(w_L._VIRTUAL-HEIGHT, dHeight)
-               f_L._HEIGHT         = dWidth
+               f_L._HEIGHT         = dHeight
                f_L._VIRTUAL-HEIGHT = MAX(f_L._VIRTUAL-HEIGHT, dHeight).
 
     END.  /* IF the window needs to get bigger */

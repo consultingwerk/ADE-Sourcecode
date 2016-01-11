@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -79,6 +63,8 @@ History:
     mcmann      06/02/03 Removed CLOB and CFILE as valid data type
     mcmann      11/06/03 Swap assignment of Primary index 20031105-020
     slutz       08/10/05 Added s_ttb_fld.ds_msc26 20050531-001
+    fernando    04/19/06 Fixing output of message
+    fernando    05/26/06 Added support for int64
 --------------------------------------------------------------------*/
 
 
@@ -480,7 +466,7 @@ RUN adecomm/_setcurs.p ("WAIT").
 
 if can-do(odbtyp,user_dbtype)
  then assign
-    l_char-types = "LONGVARBINARY,LONGVARCHAR,CHAR,VARCHAR,BINARY,VARBINARY,TIME"
+    l_char-types = "LONGVARBINARY,LONGVARCHAR,CHAR,VARCHAR,BINARY,VARBINARY,TIME,NVARCHAR,NCHAR"
     l_chda-types = "TIMESTAMP"
     l_date-types = "DATE"
     l_dcml-types = ""
@@ -517,7 +503,6 @@ else if user_dbtype = "ORACLE"
 
 for each gate-work
   where gate-work.gate-slct = TRUE:
- 
   if not
    (    gate-work.gate-type = "SEQUENCE"
    or ( gate-work.gate-type = "SYNONYM"
@@ -593,25 +578,24 @@ for each gate-work
    else if SESSION:BATCH-MODE and logfile_open
      then put stream logfile unformatted skip.
   
-  assign
-    DICTDB._Sequence._Seq-Incr    = s_ttb_seq.ds_incr
-    DICTDB._Sequence._Seq-Init    = s_ttb_seq.ds_min
-    DICTDB._Sequence._Seq-Max     = s_ttb_seq.ds_max
-    DICTDB._Sequence._Seq-Min     = s_ttb_seq.ds_min
-    DICTDB._Sequence._Cycle-ok    = s_ttb_seq.ds_cycle
-    DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
-    DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
-    DICTDB._Sequence._Seq-misc[3] = ( if can-do(odbtyp,user_dbtype)
-                                       then s_ttb_seq.ds_spcl
-                                       else DICTDB._Sequence._Seq-misc[3]
-                                    )
-    DICTDB._Sequence._Seq-misc[8] = ( if user_dbtype = "ORACLE"
-                                       then s_ttb_seq.ds_spcl
-                                       else DICTDB._Sequence._Seq-misc[8]
-                                    ).
-  
-  end.
-  
+   assign
+     DICTDB._Sequence._Seq-Incr    = s_ttb_seq.ds_incr
+     DICTDB._Sequence._Seq-Init    = s_ttb_seq.ds_min
+     DICTDB._Sequence._Seq-Max     = s_ttb_seq.ds_max
+     DICTDB._Sequence._Seq-Min     = s_ttb_seq.ds_min
+     DICTDB._Sequence._Cycle-ok    = s_ttb_seq.ds_cycle
+     DICTDB._Sequence._Seq-Misc[1] = s_ttb_seq.ds_name
+     DICTDB._Sequence._Seq-Misc[2] = s_ttb_seq.ds_user
+     DICTDB._Sequence._Seq-misc[3] = ( if can-do(odbtyp,user_dbtype)
+                                        then s_ttb_seq.ds_spcl
+                                        else DICTDB._Sequence._Seq-misc[3]
+                                     )
+     DICTDB._Sequence._Seq-misc[8] = ( if user_dbtype = "ORACLE"
+                                        then s_ttb_seq.ds_spcl
+                                        else DICTDB._Sequence._Seq-misc[8]
+                                     ).
+END.
+
 /*------------------------------ Tables ----------------------------*/  
 
 for each gate-work
@@ -948,7 +932,8 @@ for each gate-work
                  ASSIGN DICTDB._Field._For-Maxsize = 18.
             IF DICTDB._Field._For-type = "Char" OR
                DICTDB._Field._For-type = "VarChar" OR
-               DICTDB._Field._For-type = "VarChar2" THEN
+               DICTDB._Field._For-type = "VarChar2" 
+                /* OR DICTDB._Field._For-type = "NVarChar2" */ THEN
                  ASSIGN DICTDB._Field._For-Maxsize = DICTDB._Field._Fld-Misc1[3].
           END.
           WHEN "INTEGER" OR WHEN "LOGICAL" THEN DO:
@@ -963,6 +948,10 @@ for each gate-work
             END.
             ELSE
                 ASSIGN DICTDB._Field._For-Maxsize = DICTDB._Field._Fld-misc1[1].
+          END.
+          WHEN "INT64" THEN DO:
+              IF DICTDB._Field._For-type = "NUMBER" THEN
+                 ASSIGN DICTDB._Field._For-Maxsize = 19.
           END.
           WHEN "RAW" THEN 
             IF DICTDB._Field._For-type = "RAW" THEN
@@ -1544,13 +1533,18 @@ if NOT batch_mode
 if s_1st-error = true
  then do:   /* there are warnings or messages */
        
+    if NOT batch_mode THEN DO:
+    
         &IF "{&WINDOW-SYSTEM}" = "TTY" 
          &THEN 
           message err-msg[16]. 
          &ELSE
           message err-msg[16] view-as alert-box warning buttons ok.
          &ENDIF         
-  
+    END.
+    ELSE IF logfile_open THEN
+        PUT STREAM logfile UNFORMATTED " " SKIP err-msg[16] SKIP(2).
+
   end.      /* there are warnings or messages */
 
 /* to make sure the next update starts a new ds_upd.e-file, reset flag 

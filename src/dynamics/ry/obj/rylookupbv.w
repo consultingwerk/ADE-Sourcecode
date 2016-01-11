@@ -19,12 +19,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: rylookupbv.w
 
@@ -875,6 +872,7 @@ CREATE BROWSE ghBrowse IN WIDGET-POOL cFieldName + STRING(hSDF)
               COLUMN-RESIZABLE = TRUE
               ALLOW-COLUMN-SEARCHING = TRUE
               QUERY            = ghQuery
+              name             = 'LookupDataBrowser':u
         TRIGGERS:            
           ON 'mouse-select-dblclick':U 
             PERSISTENT RUN toolbar IN THIS-PROCEDURE (INPUT "select":U).

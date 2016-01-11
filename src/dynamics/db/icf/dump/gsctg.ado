@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="1"><dataset_header DisableRI="yes" DatasetObj="2511.38" DateFormat="mdy" FullHeader="no" SCMManaged="no" YearOffset="1950" DatasetCode="GSCTG" NumericFormat="AMERICAN" NumericDecimal="." OriginatingSite="91" NumericSeparator=","/>
-<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_data_tag" version_date="02/03/2004" version_time="58211" version_user="admin" deletion_flag="no" entity_mnemonic="GSCTG" key_field_value="2515.38" record_version_obj="3000066511.09" version_number_seq="1.09" secondary_key_value="RY_OWN" import_version_number_seq="1.09"><data_tag_obj>2515.38</data_tag_obj>
+<dataset Transactions="1"><dataset_header DatasetCode="GSCTG" DatasetObj="2511.38" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="93" SCMManaged="no" YearOffset="1950"/>
+<dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_data_tag" deletion_flag="no" entity_mnemonic="GSCTG" import_version_number_seq="10.39" key_field_value="2515.38" record_version_obj="3000066511.09" secondary_key_value="RY_OWN" version_date="09/18/2006" version_number_seq="10.39" version_time="52743" version_user="admin"><data_tag_obj>2515.38</data_tag_obj>
 <data_tag_code>RY_OWN</data_tag_code>
 <data_tag_description>Owned by Dynamics Central Repository</data_tag_description>
 <contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>2630.38</tagged_data_obj>
@@ -571,6 +571,46 @@
 <contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>2743.38</tagged_data_obj>
 <owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
 <owning_reference>200000003061.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006105.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>68808.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006106.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>68832.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006107.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>68834.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006108.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>70401.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006109.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>70422.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006110.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>78415.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006103.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>54726.66</owning_reference>
+<data_tag_obj>2515.38</data_tag_obj>
+</contained_record>
+<contained_record DB="icfdb" Table="gsm_tagged_data"><tagged_data_obj>100000006104.39</tagged_data_obj>
+<owning_entity_mnemonic>GSCOT</owning_entity_mnemonic>
+<owning_reference>54840.66</owning_reference>
 <data_tag_obj>2515.38</data_tag_obj>
 </contained_record>
 </contained_record>

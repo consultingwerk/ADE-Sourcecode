@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /* _usrtchg.p 
 
@@ -36,6 +20,9 @@
              D. McMann 05/15/00 Removed warning if only Schema Area in DB.
              D. McMann 08/16/00 Added _db-recid to StorageObject find 20000815029
              D. McMann 10/17/03 Add NO-LOCK statement to _Db find in support of on-line schema add
+             fernando  06/15/06 Expanding Dump-name to 32 characters
+             fernando  09/27/06 Use a different delimiter for areaname - 20051228-008
+             
 */
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -188,6 +175,9 @@ ASSIGN
 /*   capabs[1] = INDEX(ENTRY(2,c),"a") > 0.  */
 /* END.                                      */
 
+/* 20051228-008 - use other delimiter in case area name has comma */
+areaname:DELIMITER IN FRAME frame-d = CHR(1).
+
 IF NOT adding THEN DO:
   IF DICTDB._File._For-type <> ? THEN
     ASSIGN arealist = "N/A"
@@ -207,8 +197,6 @@ IF NOT adding THEN DO:
     ASSIGN arealist = DICTDB._Area._Area-name
            areaname:LIST-ITEMS IN FRAME frame-d = arealist.
            
-          
-           
   END.  
   { prodict/dump/copy_fil.i &from=DICTDB._File &to=wfil &all=true}
   FOR EACH DICTDB._File-Trig OF DICTDB._File:
@@ -217,6 +205,7 @@ IF NOT adding THEN DO:
   END.
 END.
 ELSE DO:
+
   FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
                           AND DICTDB._Area._Area-type = 6
                           NO-LOCK. 
@@ -225,12 +214,13 @@ ELSE DO:
       ASSIGN arealist = DICTDB._Area._Area-name
              filearea = DICTDB._Area._Area-name.
     ELSE
-      ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name + ",".
+      /* 20051228-008 - use other delimiter in case area name has comma */
+      ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name + CHR(1).
 
   END.
   
   IF NUM-ENTRIES(arealist) = 1 THEN
-    ASSIGN arealist = arealist + ",".
+    ASSIGN arealist = arealist + CHR(1).
     
   FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
   IF arealist = ? THEN 
@@ -295,7 +285,7 @@ stdmsg =
   ELSE IF romode = 2
   THEN "The dictionary is in read-only mode, so alterations are not allowed."
   ELSE IF romode = 4 THEN
-    "PROGRESS/SQL92 table cannot be modify."
+    "{&PRO_DISPLAY_NAME}/SQL92 table cannot be modify."
   ELSE "You do not have permission to modify tables.").
 
 
@@ -336,9 +326,9 @@ File-types:
 
 ftyp = (IF wfil._File-number >= -29
        AND wfil._File-number <= -7 THEN "FAST TRACK Schema"
-       ELSE IF wfil._File-number < 0 THEN "PROGRESS Schema"
+       ELSE IF wfil._File-number < 0 THEN "{&PRO_DISPLAY_NAME} Schema"
        ELSE IF wfil._File-number > 32767  THEN "SQL92 View"
-       ELSE IF wfil._Db-lang > 0  THEN "PROGRESS/SQL"
+       ELSE IF wfil._Db-lang > 0  THEN "{&PRO_DISPLAY_NAME}/SQL"
        ELSE                             user_dbtype)
       + (IF wfil._For-Type = ? THEN "" ELSE " (" + wfil._For-Type + ")").
 i = INDEX(ftyp,") (").
@@ -355,11 +345,11 @@ IF adding THEN
 DISPLAY
   wfil._File-name
   areaname
-  wfil._Hidden
-  ftyp @ wfil._For-Type
-  wfil._Frozen
-  wfil._File-label
   wfil._Dump-name
+  ftyp @ wfil._For-Type
+  wfil._Hidden
+  wfil._File-label
+  wfil._Frozen
   (IF wfil._Db-lang > 0 THEN ENTRY(1,wfil._Owner) ELSE wfil._For-Owner)
     @ wfil._For-Owner
   (IF wfil._For-Size = ? THEN "n/a" ELSE STRING(wfil._For-Size))
@@ -388,10 +378,11 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   UPDATE
     wfil._File-name  WHEN newnam
     areaname WHEN romode = 0 AND adding
-    wfil._Hidden     WHEN romode = 0
-    wfil._For-Type   WHEN romode = 0 AND capabs[5]
-    wfil._File-label WHEN romode = 0
     wfil._Dump-name  WHEN romode = 0
+	     VALIDATE(INDEX(INPUT wfil._Dump-name, " ") = 0, "Invalid character in Dump Name")
+    wfil._For-Type   WHEN romode = 0 AND capabs[5]
+    wfil._Hidden     WHEN romode = 0
+    wfil._File-label WHEN romode = 0
     wfil._Fil-misc2[6] WHEN romode < 4   /* replication procedure name */
     wfil._For-Size   WHEN romode = 0 AND capabs[4]
     wfil._For-name   WHEN romode = 0 AND capabs[2]

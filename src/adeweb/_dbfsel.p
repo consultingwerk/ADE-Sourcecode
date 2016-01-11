@@ -1,28 +1,11 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -158,6 +141,8 @@ IF ERROR-STATUS:ERROR THEN RETURN ERROR.
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-FieldSelection) = 0 &THEN
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE FieldSelection Procedure 
 PROCEDURE FieldSelection :
 /*------------------------------------------------------------------------------
@@ -168,7 +153,7 @@ PROCEDURE FieldSelection :
   DEFINE VAR ans             AS LOGICAL       NO-UNDO.
   DEFINE VAR use_Prefix      AS INTEGER       NO-UNDO.
   DEFINE VAR def_var         AS CHAR          NO-UNDO  INITIAL
-             "CHARACTER,DATE,DECIMAL,LOGICAL,INTEGER,RECID".              
+             "CHARACTER,DATE,DECIMAL,LOGICAL,INTEGER,INT64,RECID":U.              
   DEFINE VAR pressed_ok      AS LOGICAL       NO-UNDO.
   DEFINE VAR fld_name        AS CHAR          NO-UNDO.
   DEFINE VAR fld_save        AS CHAR          NO-UNDO.
@@ -231,10 +216,10 @@ PROCEDURE FieldSelection :
     RETURN.
   END.
 
-  IF _U._TYPE = "EDITOR"              THEN def_var = "CHARACTER".
-  ELSE IF _U._TYPE = "SELECTION-LIST" THEN def_var = "CHARACTER".
-  ELSE IF _U._TYPE = "SLIDER"         THEN def_var = "INTEGER".
-  ELSE IF _U._TYPE = "TOGGLE-BOX"     THEN def_var = "LOGICAL".
+  IF _U._TYPE = "EDITOR":U              THEN def_var = "CHARACTER":U.
+  ELSE IF _U._TYPE = "SELECTION-LIST":U THEN def_var = "CHARACTER":U.
+  ELSE IF _U._TYPE = "SLIDER":U         THEN def_var = "INTEGER":U.
+  ELSE IF _U._TYPE = "TOGGLE-BOX":U     THEN def_var = "LOGICAL":U.
 
   ASSIGN 
     old-dt         = _F._DATA-TYPE
@@ -297,10 +282,10 @@ PROCEDURE FieldSelection :
     ELSE
     DO:
       
-      IF p_option = "_SELECT-AUTO" THEN
-        hDataObject = DYNAMIC-FUNC("getDataObjecthandle" IN gSourceHdl). 
+      IF p_option = "_SELECT-AUTO":U THEN
+        hDataObject = DYNAMIC-FUNC("getDataObjecthandle":U IN gSourceHdl). 
       ELSE
-        hDataObject = DYNAMIC-FUNC("get-sdo-hdl" IN _h_func_lib, 
+        hDataObject = DYNAMIC-FUNC("get-sdo-hdl":U IN _h_func_lib, 
                                     INPUT _P._DATA-OBJECT,
                                     gSourceHdl).
       IF NOT VALID-HANDLE(hDataObject) THEN
@@ -404,11 +389,11 @@ PROCEDURE FieldSelection :
                           fld_index = ?.
             IF UsesDataObject THEN 
             DO:
-              fld_format   = DYNAMIC-FUNC("columnFormat" IN hDataObject, fld_save ) NO-ERROR.
-              fld_help     = DYNAMIC-FUNC("columnHelp" IN hDataObject, fld_save ) NO-ERROR.
-              fld_type     = DYNAMIC-FUNC("columnDataType" IN hDataObject, fld_save ) NO-ERROR.
-              fld_initial  = DYNAMIC-FUNC("columnIntial" IN hDataObject, fld_save ) NO-ERROR.            
-              fld_ReadOnly = DYNAMIC-FUNC("columnReadOnly" IN hDataObject, fld_save ) NO-ERROR.                             
+              fld_format   = DYNAMIC-FUNC("columnFormat":U IN hDataObject, fld_save ) NO-ERROR.
+              fld_help     = DYNAMIC-FUNC("columnHelp":U IN hDataObject, fld_save ) NO-ERROR.
+              fld_type     = DYNAMIC-FUNC("columnDataType":U IN hDataObject, fld_save ) NO-ERROR.
+              fld_initial  = DYNAMIC-FUNC("columnIntial":U IN hDataObject, fld_save ) NO-ERROR.            
+              fld_ReadOnly = DYNAMIC-FUNC("columnReadOnly":U IN hDataObject, fld_save ) NO-ERROR.                             
             END.        
             ELSE  
               RUN adeuib/_fldinfo.p 
@@ -513,4 +498,6 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+&ENDIF
 

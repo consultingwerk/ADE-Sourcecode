@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -31,6 +31,7 @@ History:  DLM 01/28/98 Added call for stored procedures.
           KSM 03/04/05 Added conditions to prevent loading SYS* tables 20050214-028
           KSM 03/21/05 Added more conditions to prevent loading system tables 20041220-005
           DJM 11/11/05 Added schema holder version control linked to the client
+     fernando 09/28/06 For DB2, use P_BUFFER_ for pseudo-buffers instead of _BUFFER_ - 20060425-009
 
 */
 
@@ -79,6 +80,7 @@ DEFINE VARIABLE sh_parsbuf          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE sh_ver              AS INTEGER NO-UNDO.
 DEFINE VARIABLE sh_min_ver          AS INTEGER NO-UNDO.
 DEFINE VARIABLE sh_max_ver          AS INTEGER NO-UNDO.
+DEFINE VARIABLE is_db2              AS LOGICAL NO-UNDO.
 
 /*
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -485,8 +487,14 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
 /*------------------------------------------------------------------*/
 /*                        pull in schema-info                       */
 /*------------------------------------------------------------------*/
+  IF user_env[25] = "AUTOM" THEN 
+     ASSIGN user_env[25] = "AUTO"
+            fromproto = TRUE.
+  ELSE
+     ASSIGN fromproto = FALSE.
 
   ASSIGN
+    is_db2 = INDEX(UPPER(_Db._Db-misc2[8]), "DB2") > 0
     l_client-qual = ( CAN-DO(DICTDB._Db._Db-misc2[4], "24") /* no qualifier-sprt */
                 OR  ( CAN-DO(DICTDB._Db._Db-misc2[4], "23") /* no wildcard-sprt */
                 AND   ( INDEX(s_name + s_owner + s_qual + s_type,"*") <> 0
@@ -505,15 +513,21 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
   RUN fix_the_wild_cards(INPUT s_qual, OUTPUT l_qual_f, INPUT escp).
   RUN fix_the_wild_cards(INPUT s_owner, OUTPUT l_owner_f, INPUT escp).
   RUN fix_the_wild_cards(INPUT s_name, OUTPUT l_name_f, INPUT escp).
-
-  IF user_env[25] = "AUTOM" THEN 
-     ASSIGN user_env[25] = "AUTO"
-            fromproto = TRUE.
-  ELSE
-     ASSIGN fromproto = FALSE.
+.
+  IF l_client-qual THEN DO:
+      /* 
+         DB2/400 may take a long time to pull definitions when owner is left as ?.
+         So if it's DB2 db and no wildcard was specified for the owner, pass it 
+         instead to speed up the process of pulling the object name.
+      */
+      IF NOT is_db2 OR INDEX(s_owner,"*") > 0 OR INDEX(s_owner, "?") > 0 THEN
+         l_owner_f = ?. /* non db2 db or wildcard specified, pass ? */
+      
+      IF fromproto AND is_db2 AND user_library NE "" THEN
+          l_owner_f = user_library. /* library name from DB2/400 */
   
-  IF l_client-qual THEN
-      RUN STORED-PROC DICTDBG.SQLTables (?, ?, ?, "TABLE,VIEW").
+      RUN STORED-PROC DICTDBG.SQLTables (?, l_owner_f, ?, "TABLE,VIEW").
+  END.
   ELSE 
       RUN STORED-PROC DICTDBG.SQLTables 
                   (l_qual_f, l_owner_f, l_name_f, "TABLE,VIEW").
@@ -547,8 +561,16 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
             )
     AND NOT TRIM(DICTDBG.SQLTables_buffer.name)        MATCHES "_buffer_"
                                                              + s_name
+    /* 20060425-009
+       for DB2, we look for P_BUFFER, since the object name can't start with _ 
+    */
+    AND NOT (is_db2 AND 
+             TRIM(DICTDBG.SQLTables_buffer.name)      BEGINS "p_buffer_"
+             AND s_type                               MATCHES "buffer"
+            )
+    AND NOT (is_db2 AND TRIM(DICTDBG.SQLTables_buffer.name) MATCHES "p_buffer_"
+                                                            + s_name )
     THEN NEXT.
-
     ELSE IF TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSIBM" OR
             TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSCAT" OR
             TRIM(DICTDBG.SQLTables_buffer.owner) = "SYSSTAT" OR
@@ -597,9 +619,13 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
       sqltables-type = TRIM(DICTDBG.SQLTables_buffer.type)
       sqltables-name = TRIM(DICTDBG.SQLTables_buffer.name)
       object-type    = ( IF (    sqltables-type    =    "VIEW" 
-                          AND LC(sqltables-name) BEGINS "_buffer_"
+                          AND (LC(sqltables-name) BEGINS "_buffer_" 
+                               /* 20060425-009 - for DB2, look for P_BUFFER */
+                               OR (is_db2 AND LC(sqltables-name) BEGINS "p_buffer_"))
                             )
-                          THEN substring(sqltables-name,2,6,"character")
+                          THEN (IF LC(sqltables-name) BEGINS "_buffer_" 
+                                THEN substring(sqltables-name,2,6,"character")
+                                ELSE substring(sqltables-name,3,6,"character"))
                          ELSE IF NOT ( sqltables-type = "TABLE" 
                           AND sqltables-name BEGINS "_SEQT_" )
                           THEN ENTRY(LOOKUP(sqltables-type ,sobjects),pobjects)
@@ -641,7 +667,10 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
                             + object-type
 
       gate-work.gate-name = ( IF object-type = "BUFFER"
-                               THEN SUBSTRING(sqltables-name,9,-1,"character")
+                               THEN (IF LC(sqltables-name) BEGINS "_buffer_" 
+                                     THEN SUBSTRING(sqltables-name,9,-1,"character")
+                                     /* 20060425-009 - for DB2, look for P_BUFFER */
+                                     ELSE SUBSTRING(sqltables-name,10,-1,"character"))
                               ELSE IF object-type = "SEQUENCE"
                                THEN SUBSTRING(sqltables-name,7,-1,"character")
                                ELSE sqltables-name
@@ -660,8 +689,20 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
     END.   /* FOR EACH DICTDBG.SQLTables_buffer */
 
   CLOSE STORED-PROC DICTDBG.SQLTables.
-    IF l_client-qual
-   THEN RUN STORED-PROC DICTDBG.SQLProcedures (?, ?, ?).
+    IF l_client-qual THEN DO:
+        /* 
+           DB2/400 may take a long time to pull definitions when owner is left as ?.
+           So if it's DB2 db and no wildcard was specified for the owner, pass it 
+           instead to speed up the process of pulling the object name.
+        */
+        IF NOT is_db2 OR INDEX(s_owner,"*") > 0 OR INDEX(s_owner, "?") > 0 THEN
+           l_owner_f = ?. /* non db2 db or wildcard specified, pass ? */
+        
+        IF fromproto AND is_db2 AND user_library NE "" THEN
+            l_owner_f = user_library. /* library name from DB2/400 */
+         
+       RUN STORED-PROC DICTDBG.SQLProcedures (?, l_owner_f, ?).
+    END.
    ELSE RUN STORED-PROC DICTDBG.SQLProcedures (l_qual_f, l_owner_f, l_name_f).
 
   FOR EACH DICTDBG.SQLProcs_Buffer:
@@ -683,6 +724,10 @@ DO TRANSACTION on error undo, leave on stop undo, leave:
     AND NOT ( TRIM(DICTDBG.SQLProcs_Buffer.name)      BEGINS "_buffer_" )
     AND NOT TRIM(DICTDBG.SQLProcs_Buffer.name)        MATCHES "_buffer_"
                                                              + s_name
+    /* 20060425-009 - for DB2, look for P_BUFFER */
+    AND NOT (is_db2 AND TRIM(DICTDBG.SQLProcs_Buffer.name) BEGINS  "p_buffer_" )
+    AND NOT (is_db2 AND TRIM(DICTDBG.SQLProcs_Buffer.name) MATCHES "p_buffer_"
+                                                             + s_name)
     THEN NEXT.
     ELSE DO: 
         /* Check if there is a match with unknown value for

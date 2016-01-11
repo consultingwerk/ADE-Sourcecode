@@ -1,12 +1,12 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*--------------------------------------------------------------------------
     Library     : smart.i - NEW V9 version of top-level SmartObject include
 
@@ -153,10 +153,10 @@ ghContainer = {&ADM-CONTAINER-HANDLE}.
         
     /* (we steal the objectname to avoid adding variables to instances) */    
     &SCOPED-DEFINE xp-assign
-    {set ObjectType "'{&PROCEDURE-TYPE}'"}
-    {set ContainerType "'{&ADM-CONTAINER}'"}
-    {set PhysicalVersion "'{&OBJECT-VERSION}'"}
-    {set PhysicalObjectName "(IF '{&OBJECT-NAME}' <> '' THEN '{&OBJECT-NAME}' ELSE THIS-PROCEDURE:FILE-NAME)"}
+    {set ObjectType "'{&PROCEDURE-TYPE}':U"}
+    {set ContainerType "'{&ADM-CONTAINER}':U"}
+    {set PhysicalVersion "'{&OBJECT-VERSION}':U"}
+    {set PhysicalObjectName "(IF '{&OBJECT-NAME}':U <> '':U THEN '{&OBJECT-NAME}':U ELSE THIS-PROCEDURE:FILE-NAME)"}
     . 
     &UNDEFINE xp-assign
   &endif
@@ -270,8 +270,8 @@ PROCEDURE start-super-proc :
                super-procedures that need to be kept at the bottom of the list 
                (defined by data.i and sbo.i if they are extended by other classes)        
 ------------------------------------------------------------------------------*/
-
   DEFINE INPUT PARAMETER pcProcName AS CHARACTER  NO-UNDO.
+  
   DEFINE VARIABLE        hProc      AS HANDLE     NO-UNDO.
   
   hProc = SESSION:FIRST-PROCEDURE.
@@ -289,7 +289,7 @@ PROCEDURE start-super-proc :
   DEFINE VARIABLE cSupers  AS CHARACTE   NO-UNDO.
   DEFINE VARIABLE cRemoved AS CHARACTER  NO-UNDO.
   
-  cLast = DYNAMIC-FUNCTION('get' + '{&LAST-SUPER-PROCEDURE-PROP}':U) NO-ERROR.
+  cLast = DYNAMIC-FUNCTION('get':U + '{&LAST-SUPER-PROCEDURE-PROP}':U) NO-ERROR.
   IF cLast > '':U THEN
   DO:
     cSupers = THIS-PROCEDURE:SUPER-PROCEDURES. 
@@ -299,7 +299,7 @@ PROCEDURE start-super-proc :
       DO:
         THIS-PROCEDURE:REMOVE-SUPER-PROCEDURE(hLast).
         cRemoved = cRemoved 
-                   + (IF cRemoved = '':u THEN '':U ELSE ',':U)
+                   + (IF cRemoved = '':U THEN '':U ELSE ',':U)
                    +  STRING(hLast). 
       END.
     END.

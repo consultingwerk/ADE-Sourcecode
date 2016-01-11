@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,6 +21,7 @@
 
 /* Procedure Window Global Defines. */
 { adecomm/_pwglob.i }
+{ adeweb/web_file.i }
 
 DEFINE VARIABLE pw_Editor AS WIDGET-HANDLE NO-UNDO.
 DEFINE VARIABLE pw_Window AS WIDGET-HANDLE NO-UNDO.
@@ -35,6 +36,7 @@ DEFINE VARIABLE Read_OK      AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE Remote_File  AS CHARACTER NO-UNDO.     
 DEFINE VARIABLE Temp_File    AS CHARACTER NO-UNDO.     
 DEFINE VARIABLE Web_File     AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE RelPath      AS CHARACTER NO-UNDO.
 
 /* --- Begin SCM changes --- */
 DEFINE VAR scm_ok       AS LOGICAL        NO-UNDO.
@@ -84,10 +86,17 @@ DO ON STOP UNDO, LEAVE:
         pw_Window:PRIVATE-DATA = "_ab.p":U THEN
         Web_File = TRUE.
           
-      IF Web_File THEN
+      IF Web_File THEN DO:
+      
         RUN adeweb/_webfile.w ("uib":U, "Open":U, "Open":U, "":U,
                                INPUT-OUTPUT File_Name, OUTPUT Temp_File, 
                                OUTPUT Dlg_Answer) NO-ERROR.
+        /* 20060531-011
+           handle case where relative name was returned.
+        */
+        ASSIGN RelPath = ws-get-relative-path (File_Name)
+               File_Name =  ws-get-absolute-path (File_Name).
+      END.
       ELSE
         RUN adecomm/_getfile.p (pw_Window , "Procedure" , 
                                 "Open" , "Open" , "OPEN" , 
@@ -103,10 +112,14 @@ DO ON STOP UNDO, LEAVE:
        pw_Editor:NAME and pw_Window:TITLE are updated to reflect file
        name read.
     */
+    /* 20060531-011
+       handle case where relative name was returned - for web dev mode
+    */
     RUN adecomm/_pwrdfl.p ( INPUT  pw_Editor,
-                            INPUT  (File_Name + 
-                                   (IF Temp_File eq "" THEN "" 
-                                    ELSE CHR(3) + Temp_File)),
+                            INPUT ((IF Web_File THEN RelPath ELSE File_Name) + 
+                                   (IF NOT Web_File THEN ""
+                                    ELSE CHR(3) + Temp_File + CHR(3) + 
+                                        (IF RelPath NE File_Name THEN File_Name ELSE "") )),
                             OUTPUT Read_OK).
 
     IF Read_OK <> FALSE THEN

@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Attribute-Dlg
@@ -97,7 +97,7 @@ INDEX FieldName FieldName.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
@@ -163,6 +163,13 @@ FUNCTION initFieldWidth RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initSDO Attribute-Dlg 
 FUNCTION initSDO RETURNS LOGICAL
    ( pcNewSDO AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initTheme Attribute-Dlg 
+FUNCTION initTheme RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -261,27 +268,27 @@ DEFINE VARIABLE cOperatorViewAs AS CHARACTER
      SIZE 40 BY .81 NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44 BY 4.29.
 
 DEFINE RECTANGLE RECT-19
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44 BY 1.43.
 
 DEFINE RECTANGLE RECT-20
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44 BY 1.43.
 
 DEFINE RECTANGLE RECT-21
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 44 BY 5.38.
 
 DEFINE RECTANGLE RECT-5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 71 BY 6.19.
 
 DEFINE RECTANGLE RECT-6
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 71 BY 7.38.
 
 DEFINE VARIABLE cFields AS CHARACTER 
@@ -350,12 +357,6 @@ DEFINE FRAME Attribute-Dlg
      dDefaultWidth AT ROW 11.76 COL 101.8 COLON-ALIGNED
      dColumn AT ROW 12.95 COL 101.8 COLON-ALIGNED
      iDefaultEditorLines AT ROW 14.14 COL 101.8 COLON-ALIGNED
-     RECT-1 AT ROW 1.48 COL 76
-     RECT-19 AT ROW 8.19 COL 76
-     RECT-20 AT ROW 6.24 COL 76
-     RECT-21 AT ROW 10.14 COL 76
-     RECT-5 AT ROW 1.48 COL 3
-     RECT-6 AT ROW 8.14 COL 3
      " Style" VIEW-AS TEXT
           SIZE 6 BY .62 AT ROW 1.24 COL 78
      "String Operators" VIEW-AS TEXT
@@ -370,7 +371,13 @@ DEFINE FRAME Attribute-Dlg
           SIZE 17 BY .62 AT ROW 7.91 COL 78
      "Size && Position" VIEW-AS TEXT
           SIZE 15 BY .62 AT ROW 9.86 COL 78
-     SPACE(27.79) SKIP(6.08)
+     RECT-1 AT ROW 1.48 COL 76
+     RECT-19 AT ROW 8.19 COL 76
+     RECT-20 AT ROW 6.24 COL 76
+     RECT-21 AT ROW 10.14 COL 76
+     RECT-5 AT ROW 1.48 COL 3
+     RECT-6 AT ROW 8.14 COL 3
+     SPACE(46.79) SKIP(1.05)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartFilter Properties":L.
@@ -391,7 +398,7 @@ DEFINE FRAME Attribute-Dlg
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   Custom                                                               */
+   FRAME-NAME Custom                                                    */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -816,6 +823,7 @@ MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
 
+  initTheme().
   /* Get the values of the attributes in the SmartObject that can be 
      changed in this dialog-box. */
   RUN get-SmO-attributes.
@@ -1305,6 +1313,30 @@ FUNCTION initSDO RETURNS LOGICAL
   END. /* do with frame */
   
   RETURN TRUE.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initTheme Attribute-Dlg 
+FUNCTION initTheme RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hWidget AS HANDLE     NO-UNDO.
+  hWidget = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
+  IF SESSION:WINDOW-SYSTEM = 'MS-WINXP':U THEN
+  DO WHILE VALID-HANDLE(hWidget):
+    IF hWidget:TYPE = "RECTANGLE":U AND hWidget:EDGE-PIXELS = 2 THEN
+      ASSIGN 
+        hWidget:GROUP-BOX = TRUE
+        hWidget:EDGE-PIXELS = 1.
+    hWidget = hWidget:NEXT-SIBLING.
+  END.
+  RETURN FALSE.   /* Function return value. */
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

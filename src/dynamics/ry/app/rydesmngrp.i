@@ -11,13 +11,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*************************************************************/
-/* Copyright (c) 1984-2006 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/* Copyright © 1984-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   File: rydesmngrp.i
 
@@ -196,7 +192,10 @@ DEFINE STREAM stAnalyze.
 
 /** Contains definitions of the data types stored in the ryc_attribute table.
  *  ----------------------------------------------------------------------- **/
-{ af/app/afdatatypi.i }
+{af/app/afdatatypi.i}
+
+/* Log levels: Used as a parameter into logMessage() for deployment automation */
+{af/app/afloglevel.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -235,6 +234,14 @@ FUNCTION classHasAttribute RETURNS LOGICAL
     ( INPUT pcClassName             AS CHARACTER,
       INPUT pcAttributeOrEventName  AS CHARACTER,
       INPUT plAttributeIsEvent      AS LOGICAL          )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createClassCacheFile Include 
+FUNCTION createClassCacheFile RETURNS LOGICAL PRIVATE
+        ( input pcFilename         as character,
+      input phClassBuffer      as handle         ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1692,6 +1699,193 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE exportClassCache Include 
+PROCEDURE exportClassCache :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    define input parameter pcClassList            as character        no-undo.
+    define input parameter pcOutputDir            as character        no-undo.
+    
+    define variable cDateFormat                as character            no-undo.
+    define variable cNumericSeparator          as character            no-undo.
+    define variable cNumericPoint              as character            no-undo.    
+    define variable hClassBuffer               as handle               no-undo.
+    define variable cMessage                   as character            no-undo.
+    define variable hQuery                     as handle               no-undo.
+    define variable cOutputFilename            as character            no-undo.
+    define variable cWhere                     as character            no-undo.
+    define variable iLoop                      as integer              no-undo.
+    define variable lOk                        as logical              no-undo.
+    define variable hDeploymentHelper          as handle no-undo.
+    define variable iErrorNum                  as integer no-undo.
+    
+    /* Don't kill this off - it gets used by various processes in the deployment automation,
+       which is where this API can be called from. Using startProcedure() to start it means
+       that only one instance is started. */
+    run startProcedure in target-procedure ("ONCE|af/app/afdeplyhlp.p":U, output hDeploymentHelper).
+    if not valid-handle(hDeploymentHelper) then
+        return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to start Deployment Helper procedure (af/app/afdeplyhlp.p)'"}.
+    
+    /* Make sure the directory exists and is writable */
+    if pcOutputDir eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"output directory"'}.
+    
+    /* Blank defaults to working directory */    
+    if pcOutputDir eq '':u then
+        pcOutputDir = '.':u.
+    
+    iErrorNum = dynamic-function('prepareDirectory':u in hDeploymentHelper,
+                                  pcOutputdir,
+                                  No,     /* clear contents? */
+                                  Yes     /* create if missing */ ).
+    if iErrorNum gt 0 then
+        return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to write to directory ' + pcOutputdir"}.
+
+    /* Default to ALL classes */
+    if pcClassList eq ? or pcClassList eq '':u then
+        pcClassList = '*':u.
+
+    /* The formats need to be converted to American and mdy before dump so that it is consistent.
+       
+       DO NOT SIMPLY RETURN BEFORE RESETTING TO THE ORIGINAL VALUES. */
+    cDateFormat = session:date-format.
+    cNumericSeparator = session:numeric-separator.
+    cNumericPoint = session:numeric-decimal-point.
+    session:date-format = "mdy":u.
+    session:numeric-format = "American":u.
+    
+    /* Get the class information from the repository API - this will fetch from the database */
+    hClassBuffer = {fnarg getCacheClassBuffer pcClasslist gshRepositoryManager}.
+    if valid-handle(hClassBuffer) then
+    do:
+        cWhere = 'for each ':u + hClassBuffer:name.
+        if pcClassList ne '*':u then
+        do:
+            cWhere = cWhere + ' where false ':u.
+            do iLoop = 1 to num-entries(pcClassList):
+                cWhere = cWhere + ' or ':u
+                       + hClassBuffer:name + '.ClassName = ':u
+                       + quoter(entry(iLoop, pcClassList)).
+            end.    /* loop */
+        end.    /* don't get all */
+        
+        create query hQuery.
+        hquery:set-buffers(hClassBuffer).
+        hQuery:query-prepare(cWhere).
+        hQuery:query-open().
+        
+        hQuery:get-first().
+        do while hClassBuffer:available:
+            cOutputFilename = pcOutputDir + 'c_':u + hClassBuffer::ClassName + '.p':u.
+            
+            lOk = dynamic-function('createClassCacheFile':u in target-procedure,
+                                   cOutputFilename, hClassBuffer).
+                                   
+            if not lOk then
+            do:
+                cMessage = 'Unable to create output file for class ' + hClassBuffer::ClassName.
+                leave.
+            end.
+            
+            compile value(cOutputFilename) no-error.
+            if error-status:error or compiler:error then
+            do:
+                cMessage = 'Unable to compile file ' + cOutputFilename + ' for class ' + hClassBuffer::ClassName.
+                leave.
+            end.    /* compiler error */
+            
+            hQuery:get-next().
+        end.    /* available class buffer */
+        hQuery:query-close().
+        delete object hQuery no-error.
+        hquery = ?.
+    end.    /* valid class buffer */
+    else
+        /* Don't return immediately since we need to clean up first. */
+        cMessage = 'Unable to retrieve classes for class list ' + pcClassList.
+    
+    /* Reset the date and numeric formats */
+    session:date-format = cDateFormat.
+    session:set-numeric-format(cNumericSeparator, cNumericPoint).
+    
+    error-status:error = no.
+    if cMessage eq '':u then
+        return.
+    else
+        return error cMessage.
+END PROCEDURE.    /* exportClassCache */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE exportEntityCache Include 
+PROCEDURE exportEntityCache :
+/*------------------------------------------------------------------------------
+  Purpose:    Dumps out entities in .D format.
+  Parameters: (I) pcEntityList 
+              (I) pcLanguageList
+              (I) pcOutputDir
+  Notes:      
+------------------------------------------------------------------------------*/
+    define input parameter pcEntityList                as character        no-undo.
+    define input parameter pcLanguageList              as character        no-undo.
+    define input parameter pcOutputDir                 as character        no-undo.
+    
+    define variable cError                          as character no-undo.
+    define variable cMessage                        as character no-undo.
+    define variable hDeploymentHelper               as handle no-undo.
+    define variable iErrorNum                       as integer no-undo.
+    
+    /* Don't kill this off - it gets used by various processes in the deployment automation,
+       which is where this API can be called from. Using startProcedure() to start it means
+       that only one instance is started. */
+    run startProcedure in target-procedure ("ONCE|af/app/afdeplyhlp.p":U, output hDeploymentHelper).
+    if not valid-handle(hDeploymentHelper) then
+        return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to start Deployment Helper procedure (af/app/afdeplyhlp.p)'"}.
+    
+    /* Make sure the directory exists and is writable */
+    if pcOutputDir eq ? then
+        return error {aferrortxt.i 'AF' '1' '?' '?' '"output directory"'}.
+    
+    /* Blank defaults to working directory */    
+    if pcOutputDir eq '':u then
+        pcOutputDir = '.':u.
+    
+    iErrorNum = dynamic-function('prepareDirectory':u in hDeploymentHelper,
+                                  pcOutputdir,
+                                  No,     /* clear contents? */
+                                  Yes     /* create if missing */ ).
+    if iErrorNum gt 0 then
+        return error {aferrortxt.i 'AF' '40' '?' '?' "'Unable to write to directory ' + pcOutputdir"}.
+
+    /* Make sure we have a language list */
+    if pcLanguageList eq '':u or pcLanguageList eq ? then
+    do:
+        pcLanguageList = dynamic-function('getPropertyList':u in gshSessionManager,
+                                          'CurrentLanguageCode':u, yes).
+        if pcLanguageList eq '':u or pcLanguageList eq ? then
+            pcLanguageList = 'None':u.
+    end.    /* language list */
+    
+    cError = dynamic-function('createEntityCacheFile':u in gshRepositoryManager,
+                              input pcEntityList,
+                              input pcLanguageList,
+                              input pcOutputDir,
+                              input No, /* plDeleteExisting */
+                              input-output cMessage ).
+    if cError ne '':u then
+        return error cError.
+    
+    error-status:error = no.
+    return.        
+END PROCEDURE.    /* exportEntityCache */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE generateCalculatedField Include 
 PROCEDURE generateCalculatedField :
 /*------------------------------------------------------------------------------
@@ -1738,7 +1932,7 @@ PROCEDURE generateClassCache :
 /*------------------------------------------------------------------------------
   /* Public - Draft needs to be finalized */
   
-  Purpose:     This proc will ooutput the class cache to the disk
+  Purpose:     This proc will output the class cache to the disk
   Parameters:  Input - ClassList - a Comma seaparated list of Classes to output
                Output - psStatus - Status of the class cache.
   Notes:       
@@ -1750,11 +1944,6 @@ PROCEDURE generateClassCache :
   DEFINE VARIABLE hClassBuffer       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cFileName          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFullFileName      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAttributeName     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataType          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFormat            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iExtent            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cInitialValue      AS CHARACTER  NO-UNDO FORMAT "x(200)".
   DEFINE VARIABLE cWhere             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE i                  AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hQuery             AS WIDGET-HANDLE.
@@ -1768,15 +1957,6 @@ PROCEDURE generateClassCache :
   DEFINE VARIABLE lFileWritable      AS LOGICAL    NO-UNDO.
 
   DEFINE VARIABLE cClassName           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dClassObj            AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE cClassTableName      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cInheritsFrom        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSuperProcedures     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSuperProcedureModes AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEventTableName      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSetList             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cGetList             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRuntimeList         AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE cDateFormat          AS CHARACTER  NO-UNDO.
   DEFINE variable cNumericPoint        as character  no-undo.
@@ -1856,18 +2036,7 @@ PROCEDURE generateClassCache :
   
   DO WHILE httClass:AVAILABLE:
     /* Get the class bufffer handle, clas name and inheritance information */
-    ASSIGN hClassBuffer         = httClass:BUFFER-FIELD('ClassBufferHandle'):BUFFER-VALUE
-           cClassName           = httClass:BUFFER-FIELD('ClassName'):BUFFER-VALUE
-           cInheritsFrom        = httClass:BUFFER-FIELD('InheritsFromClasses'):BUFFER-VALUE
-           cClassTableName      = httClass:BUFFER-FIELD('ClassTableName'):BUFFER-VALUE
-           cSuperProcedures     = httClass:BUFFER-FIELD('SuperProcedures'):BUFFER-VALUE
-           cSuperProcedureModes = httClass:BUFFER-FIELD('SuperProcedureModes'):BUFFER-VALUE
-           cEventTableName      = httClass:BUFFER-FIELD('EventTableName'):BUFFER-VALUE
-           hEventBufferHandle   = httClass:BUFFER-FIELD('EventBufferHandle'):BUFFER-VALUE
-           cSetList             = httClass:BUFFER-FIELD('SetList'):BUFFER-VALUE
-           cGetList             = httClass:BUFFER-FIELD('GetList'):BUFFER-VALUE
-           cRuntimeList         = httClass:BUFFER-FIELD('RuntimeList'):BUFFER-VALUE
-           dClassObj            = httClass:BUFFER-FIELD('ClassObj'):BUFFER-VALUE.
+    cClassName           = httClass:BUFFER-FIELD('ClassName'):BUFFER-VALUE.
   
     /* Get the file name */
     ASSIGN cFileName = "class_" + cClassName + ".p"
@@ -1885,96 +2054,7 @@ PROCEDURE generateClassCache :
     pcStatus = pcStatus + CHR(10) + "Generating cache for the class: " + 
                    cClassName + " in file: " + cFullFileName .
     
-    /* Start the new class TT definition */
-    OUTPUT TO VALUE(cFullFileName).
-    PUT UNFORMATTED 
-      "DEFINE OUTPUT PARAMETER pcClassName           AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pdClassObj            AS DECIMAL   NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcClassTableName      AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER phClass               AS HANDLE    NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcInheritsFromClasses AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcSuperProcedures     AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcSuperProcedureModes AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcEventTableName      AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER phEvent               AS HANDLE    NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcSetList             AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcGetList             AS CHARACTER NO-UNDO." SKIP
-      "DEFINE OUTPUT PARAMETER pcRuntimeList         AS CHARACTER NO-UNDO." SKIP(2)
-      "ASSIGN pcClassName           = " QUOTER(cClassName) SKIP
-      "       pdClassObj            = " dClassObj SKIP
-      "       pcClassTableName      = " QUOTER(cClassTableName) SKIP
-      "       pcInheritsFromClasses = " QUOTER(cInheritsFrom) SKIP
-      "       pcSuperProcedures     = " QUOTER(cSuperProcedures) SKIP
-      "       pcSuperProcedureModes = " QUOTER(cSuperProcedureModes) SKIP
-      "       pcEventTableName      = " QUOTER(cEventTableName) SKIP
-      "       pcSetList             = " QUOTER(cSetList) SKIP
-      "       pcGetList             = " QUOTER(cGetList) SKIP
-      "       pcRuntimeList         = " QUOTER(cRuntimeList) "." SKIP(1)
-      "CREATE TEMP-TABLE phClass." SKIP.
-    
-    /* For each httClass, go thru' each column and dump to a file */
-    hClassBuffer:BUFFER-CREATE().
-    DO i = 1 TO hClassBuffer:NUM-FIELDS:
-      /* output the class */
-      ASSIGN 
-        cAttributeName = hClassBuffer:BUFFER-FIELD(i):NAME 
-             cDataType = hClassBuffer:BUFFER-FIELD(i):DATA-TYPE 
-             cFormat   = hClassBuffer:BUFFER-FIELD(i):FORMAT 
-             iExtent   = hClassBuffer:BUFFER-FIELD(i):EXTENT
-         cInitialValue = TRIM(hClassBuffer:BUFFER-FIELD(i):BUFFER-VALUE).
-  
-      /* Deal with Today or now case */
-      IF cDataType = "DATE" AND 
-         hClassBuffer:BUFFER-FIELD(i):DEFAULT-STRING = "TODAY" THEN
-        ASSIGN cInitialValue = "TODAY".
-      ELSE IF (cDataType= "DATETIME" OR cDataType = "DATETIME-TZ" ) AND 
-               hClassBuffer:BUFFER-FIELD(i):DEFAULT-STRING  = "NOW" THEN
-        ASSIGN cInitialValue   = "NOW".
-
-      PUT UNFORMATTED "phClass:ADD-NEW-FIELD(" QUOTER(cAttributeName) "," 
-                                               QUOTER(cDataType) "," 
-                                               iExtent "," 
-                                               QUOTER(cFormat) "," 
-                                               QUOTER(cInitialValue) ")." SKIP.
-    END.
-
-    /* complete the TT definition */
-    PUT UNFORMATTED "/* Add Indexes */" SKIP(1)
-                    "phClass:ADD-NEW-INDEX('idxRecordID', FALSE, TRUE)." SKIP
-                    "phClass:ADD-INDEX-FIELD('idxRecordID':U, 'InstanceId':U)." SKIP(1)
-                    "/* ADM key used for each running instance */" SKIP(1)
-                    "phClass:ADD-NEW-INDEX('idxTargetID', FALSE, FALSE)." SKIP
-                    "phClass:ADD-INDEX-FIELD('idxTargetID':U, 'Target':U)." SKIP
-                    "phClass:TEMP-TABLE-PREPARE('c_" cClassName "')." SKIP(1).
-                    
-    /* Now if the event table is not ?, then we need to create a event table */
-    IF VALID-HANDLE(hEventBufferHandle) AND cEventTableName > "":U THEN
-    DO:
-      PUT UNFORMATTED "CREATE TEMP-TABLE phEvent." SKIP
-      hEventBufferHandle:BUFFER-CREATE().
-      DO i = 1 TO hEventBufferHandle:NUM-FIELDS:
-        /* output the events */
-        ASSIGN 
-          cAttributeName = hEventBufferHandle:BUFFER-FIELD(i):NAME 
-               cDataType = hEventBufferHandle:BUFFER-FIELD(i):DATA-TYPE 
-               cFormat   = hEventBufferHandle:BUFFER-FIELD(i):FORMAT 
-               iExtent   = hEventBufferHandle:BUFFER-FIELD(i):EXTENT
-           cInitialValue = TRIM(hEventBufferHandle:BUFFER-FIELD(i):BUFFER-VALUE).
-  
-        PUT UNFORMATTED "phEvent:ADD-NEW-FIELD(" QUOTER(cAttributeName) "," 
-                                                 QUOTER(cDataType) "," 
-                                                 iExtent "," 
-                                                 QUOTER(cFormat) "," 
-                                                 QUOTER(cInitialValue) ")." SKIP.
-      END.
-      PUT UNFORMATTED "phEvent:TEMP-TABLE-PREPARE(pcEventTableName)." SKIP(1).
-    END.
-    ELSE
-      PUT UNFORMATTED "ASSIGN phEvent = ?." SKIP(1).
-    
-    PUT UNFORMATTED "RETURN." SKIP(1).
-    
-    OUTPUT CLOSE.
+    dynamic-function('createClassCacheFile':u in target-procedure, cFullFileName, httClass).
     
     /* Now let us try and compile the file */
     COMPILE VALUE(cFullFileName) SAVE NO-ERROR.
@@ -2930,7 +3010,7 @@ ACCESS_LEVEL=PUBLIC
     DEFINE INPUT  PARAMETER TABLE-HANDLE phAttributeValueTable.
     DEFINE OUTPUT PARAMETER pdSmartObjectObj            AS DECIMAL          NO-UNDO.
     DEFINE OUTPUT PARAMETER pdObjectInstanceObj         AS DECIMAL          NO-UNDO.
-    
+
     &IF DEFINED(Server-side) EQ 0 &THEN
     IF NOT VALID-HANDLE(phAttributeValueTable) THEN
         ASSIGN phAttributeValueTable  = phAttributeValueBuffer:TABLE-HANDLE
@@ -3288,11 +3368,12 @@ ACCESS_LEVEL=PUBLIC
     DEFINE INPUT  PARAMETER phAttributeValueBuffer  AS HANDLE               NO-UNDO.
     DEFINE INPUT  PARAMETER TABLE-HANDLE phAttributeValueTable.
     DEFINE OUTPUT PARAMETER pdSmartObjectObj        AS DECIMAL              NO-UNDO.
-    
+ 
     &IF DEFINED(Server-side) EQ 0 &THEN
     IF NOT VALID-HANDLE(phAttributeValueTable) THEN
         ASSIGN phAttributeValueTable  = phAttributeValueBuffer:TABLE-HANDLE
                phAttributeValueBuffer = ?.
+
     {dynlaunch.i
         &Plip  = 'RepositoryDesignManager'
         &IProc = 'insertObjectMaster'
@@ -3443,30 +3524,31 @@ ACCESS_LEVEL=PUBLIC
             RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' "'SDO Object'" pcSdoObjectName}.
     END.    /* SDO passed in */
     
-    /* Store the SuperProcedure attribute, if passed in.
-     */
-    IF pcSuperProcedureName                                      NE "":U  AND
-       DYNAMIC-FUNCTION("classHasAttribute":U IN gshRepositoryManager,
+    /* Store the SuperProcedure attribute*/
+    IF DYNAMIC-FUNCTION("classHasAttribute":U IN gshRepositoryManager,
                          INPUT gsc_object_type.object_type_code,
                          INPUT "SuperProcedure":U,
                          INPUT NO              /* plAttributeIsEvent */ ) THEN
     DO:
-        ASSIGN dSuperProcObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN gshRepositoryManager,
-                                                      INPUT pcSuperProcedureName, INPUT dCustomisationResultObj).
-        IF dSuperProcObjectObj EQ 0 THEN
-            RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' "'Custom Super Procedure Object'" pcSuperProcedureName}.
-        
-        /* Store the relatively pathed object name */
-        ASSIGN pcSuperProcedureName = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
-                                                       INPUT dSuperProcObjectObj).
-        
+        IF pcSuperProcedureName NE ""
+		THEN DO:
+	        ASSIGN dSuperProcObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN gshRepositoryManager,
+    	                                                  INPUT pcSuperProcedureName, INPUT dCustomisationResultObj).
+        	IF dSuperProcObjectObj EQ 0 THEN
+            	RETURN ERROR {aferrortxt.i 'AF' '5' '?' '?' "'Custom Super Procedure Object'" pcSuperProcedureName}.
+
+	        /* Store the relatively pathed object name */
+    	    ASSIGN pcSuperProcedureName = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+        	                                               INPUT dSuperProcObjectObj).
+        END.
+
         /* Create the attribute record for the rendering procedure. */
         IF NOT VALID-HANDLE(phAttributeValueBuffer) AND VALID-HANDLE(phAttributeValueTable) THEN
             ASSIGN phAttributeValueBuffer = phAttributeValueTable:DEFAULT-BUFFER-HANDLE.
         ELSE
         IF NOT VALID-HANDLE(phAttributeValueBuffer) THEN
             ASSIGN phAttributeValueBuffer = BUFFER ttStoreAttribute:HANDLE.
-        
+
         phAttributeValueBuffer:FIND-FIRST(" WHERE ":U
                                           + phAttributeValueBuffer:NAME + ".tAttributeParent = 'MASTER' AND ":U
                                           + phAttributeValueBuffer:NAME + ".tAttributeParentObj = 0 AND ":U
@@ -3478,7 +3560,7 @@ ACCESS_LEVEL=PUBLIC
                    phAttributeValueBuffer:BUFFER-FIELD("tAttributeParentObj":U):BUFFER-VALUE = 0
                    phAttributeValueBuffer:BUFFER-FIELD("tAttributeLabel":U):BUFFER-VALUE     = "SuperProcedure":U.
         END.    /* not in TT yet. */
-        
+
         ASSIGN phAttributeValueBuffer:BUFFER-FIELD("tCharacterValue":U):BUFFER-VALUE = pcSuperProcedureName.
 
         phAttributeValueBuffer:BUFFER-RELEASE().
@@ -3499,12 +3581,12 @@ ACCESS_LEVEL=PUBLIC
                    phAttributeValueBuffer:BUFFER-FIELD("tAttributeParentObj":U):BUFFER-VALUE = 0
                    phAttributeValueBuffer:BUFFER-FIELD("tAttributeLabel":U):BUFFER-VALUE     = "SuperProcedureMode":U.
         END.    /* not in TT yet. */
-        
+
         ASSIGN phAttributeValueBuffer:BUFFER-FIELD("tCharacterValue":U):BUFFER-VALUE = "STATEFUL":U.
-        
+
         phAttributeValueBuffer:BUFFER-RELEASE().
     END.      /* The SuperProcedure Attribute can be stored for the class. */
-    
+
     /* Find existing object record or create new one.        
        Always check whether the name passed in has an existing 
        smartobject.
@@ -6855,6 +6937,130 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createClassCacheFile Include 
+FUNCTION createClassCacheFile RETURNS LOGICAL PRIVATE
+        ( input pcFilename         as character,
+      input phClassBuffer      as handle         ):
+/*------------------------------------------------------------------------------
+  Purpose: Creates the actual class cache c_<Name>.p file 
+        Notes:
+------------------------------------------------------------------------------*/
+    define variable hBuffer           as handle                       no-undo.    
+    define variable cAttributeName    as character                    no-undo.
+    define variable cDataType         as character                    no-undo.
+    define variable cFormat           as character                    no-undo.
+    define variable iExtent           as integer                      no-undo.
+    define variable cInitialValue     as character                    no-undo    format 'x(200)':u.
+    define variable iLoop             as integer                      no-undo.
+    
+    if not valid-handle(phClassBuffer) or 
+       not phClassBuffer:type eq 'Buffer':U or
+       not phClassBuffer:available then
+        return false.
+    
+    /* Start the new class TT definition */
+    OUTPUT TO VALUE(pcFilename). 
+    PUT UNFORMATTED 
+      "DEFINE OUTPUT PARAMETER pcClassName           AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pdClassObj            AS DECIMAL   NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcClassTableName      AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER phClass               AS HANDLE    NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcInheritsFromClasses AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcSuperProcedures     AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcSuperProcedureModes AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcEventTableName      AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER phEvent               AS HANDLE    NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcSetList             AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcGetList             AS CHARACTER NO-UNDO." SKIP
+      "DEFINE OUTPUT PARAMETER pcRuntimeList         AS CHARACTER NO-UNDO." SKIP(2)
+      "ASSIGN pcClassName           = " quoter(phClassBuffer::ClassName) SKIP
+      "       pdClassObj            = " phClassBuffer::ClassObj SKIP
+      "       pcClassTableName      = " QUOTER(phClassBuffer::ClassTableName) SKIP
+      "       pcInheritsFromClasses = " QUOTER(phClassBuffer::InheritsFromClasses) SKIP
+      "       pcSuperProcedures     = " QUOTER(phClassBuffer::SuperProcedures) SKIP
+      "       pcSuperProcedureModes = " QUOTER(phClassBuffer::SuperProcedureModes) SKIP
+      "       pcEventTableName      = " QUOTER(phClassBuffer::EventTableName) SKIP
+      "       pcSetList             = " QUOTER(phClassBuffer::SetList) SKIP
+      "       pcGetList             = " QUOTER(phClassBuffer::GetList) SKIP
+      "       pcRuntimeList         = " QUOTER(phClassBuffer::RuntimeList) "." SKIP(1)
+      "CREATE TEMP-TABLE phClass." SKIP.
+   
+    /* For each httClass, go thru' each column and dump to a file */
+    hBuffer = phClassBuffer::ClassBufferHandle.
+    hBuffer:BUFFER-CREATE().
+    DO iLoop = 1 TO hBuffer:NUM-FIELDS:
+        /* output the class */
+        ASSIGN cAttributeName = hBuffer:BUFFER-FIELD(iLoop):NAME 
+               cDataType = hBuffer:BUFFER-FIELD(iLoop):DATA-TYPE 
+               cFormat = hBuffer:BUFFER-FIELD(iLoop):FORMAT 
+               iExtent = hBuffer:BUFFER-FIELD(iLoop):EXTENT
+               cInitialValue = TRIM(hBuffer:BUFFER-FIELD(iLoop):BUFFER-VALUE).
+        
+        /* Deal with Today or now case */
+        IF cDataType = "DATE" AND hBuffer:BUFFER-FIELD(iLoop):DEFAULT-STRING = "TODAY" THEN
+            cInitialValue = "TODAY".
+        ELSE
+        IF (cDataType= "DATETIME" OR cDataType = "DATETIME-TZ" ) AND 
+           hBuffer:BUFFER-FIELD(iLoop):DEFAULT-STRING  = "NOW" THEN
+            cInitialValue   = "NOW".
+        
+        PUT UNFORMATTED "phClass:ADD-NEW-FIELD(" QUOTER(cAttributeName) "," 
+                                                 QUOTER(cDataType) "," 
+                                                 iExtent "," 
+                                                 QUOTER(cFormat) "," 
+                                                 QUOTER(cInitialValue) ")." SKIP.
+    END.    /* loop through fields */
+    hBuffer:buffer-delete().
+    hBuffer:buffer-release().
+    
+    /* complete the TT definition */
+    PUT UNFORMATTED "/* Add Indexes */" SKIP(1)
+                    "phClass:ADD-NEW-INDEX('idxRecordID', FALSE, TRUE)." SKIP
+                    "phClass:ADD-INDEX-FIELD('idxRecordID':U, 'InstanceId':U)." SKIP(1)
+                    "/* ADM key used for each running instance */" SKIP(1)
+                    "phClass:ADD-NEW-INDEX('idxTargetID', FALSE, FALSE)." SKIP
+                    "phClass:ADD-INDEX-FIELD('idxTargetID':U, 'Target':U)." SKIP
+                    "phClass:TEMP-TABLE-PREPARE('c_" phClassBuffer::ClassName "')." SKIP(1).
+    
+    /* Now if the event table is not ?, then we need to create a event table */
+    hBuffer = phClassBuffer::EventBufferHandle.
+    IF VALID-HANDLE(hBuffer) AND phClassBuffer::EventTableName > "":U THEN
+    DO:
+        PUT UNFORMATTED "CREATE TEMP-TABLE phEvent." SKIP.
+        
+        hBuffer:BUFFER-CREATE().
+        DO iLoop = 1 TO hBuffer:NUM-FIELDS:
+            /* output the events */
+            ASSIGN cAttributeName = hBuffer:BUFFER-FIELD(iLoop):NAME 
+                   cDataType = hBuffer:BUFFER-FIELD(iLoop):DATA-TYPE 
+                   cFormat   = hBuffer:BUFFER-FIELD(iLoop):FORMAT 
+                   iExtent   = hBuffer:BUFFER-FIELD(iLoop):EXTENT
+                   cInitialValue = TRIM(hBuffer:BUFFER-FIELD(iLoop):BUFFER-VALUE).
+            
+            PUT UNFORMATTED "phEvent:ADD-NEW-FIELD(" QUOTER(cAttributeName) "," 
+                                                     QUOTER(cDataType) "," 
+                                                     iExtent "," 
+                                                     QUOTER(cFormat) "," 
+                                                     QUOTER(cInitialValue) ")." SKIP.
+        END.    /* buffer field loop */
+        hBuffer:buffer-delete().
+        hBuffer:buffer-release().
+        
+        PUT UNFORMATTED "phEvent:TEMP-TABLE-PREPARE(pcEventTableName)." SKIP(1).
+    END.    /* valid event table */
+    ELSE
+        PUT UNFORMATTED "ASSIGN phEvent = ?." SKIP(1).
+        
+    PUT UNFORMATTED "RETURN." SKIP(1).    
+    OUTPUT CLOSE.
+        
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* createClassCacheFile */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createRYObjectAB Include 
 FUNCTION createRYObjectAB RETURNS LOGICAL
   ( pcObjectName AS CHAR,
@@ -6973,7 +7179,7 @@ ACCESS_LEVEL=PUBLIC
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cValidObjectTypes AS CHARACTER   NO-UNDO.
 
-DEFINE VARIABLE cClassesToRetrieve AS CHARACTER   NO-UNDO INITIAL "SBO,DataView":U.
+DEFINE VARIABLE cClassesToRetrieve AS CHARACTER   NO-UNDO INITIAL "SBO,DataQuery":U.
 DEFINE VARIABLE cQueryClasses      AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cDataClasses       AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cQueryClass        AS CHARACTER   NO-UNDO.
@@ -6996,10 +7202,10 @@ DEFINE VARIABLE iNotValid          AS INTEGER     NO-UNDO.
     END.
 
     ASSIGN cValidObjectTypes = TRIM(cValidObjectTypes, ",").
-
+   
     /* Get rid of the ADM classes themselves. */
     DO iCounter = 1 TO NUM-ENTRIES(cValidObjectTypes):
-        CASE ENTRY(iCounter, cValidObjectTypes):
+      CASE ENTRY(iCounter, cValidObjectTypes):
         WHEN "Query" THEN
         DO:
             /* query is below dataview and above data, 
@@ -7017,14 +7223,15 @@ DEFINE VARIABLE iNotValid          AS INTEGER     NO-UNDO.
                END.
             END.
         END.
+        WHEN "DataQuery":U OR
         WHEN "DataView":U OR
         WHEN "Data":U     OR
         WHEN "Toolbar":U  OR
         WHEN "Panel":U    OR
         WHEN "Viewer"     OR
         WHEN "Browser":U THEN 
-            ENTRY(iCounter, cValidObjectTypes) = "":U.
-        END CASE.   /* obejct type */
+          ENTRY(iCounter, cValidObjectTypes) = "":U.
+      END CASE.   /* obejct type */
 
     END. /*DO iCounter = 1 TO NUM-ENTRIES(cValidObjectTypes). Loop through valid object types */
 

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdradi.p
@@ -53,12 +53,13 @@ DEFINE VARIABLE tmp-label        AS CHAR                        NO-UNDO.
                    &p_basetype="RADIO-SET" }
 
 /* Changes to the Universal widget record */
-ASSIGN _F._DATA-TYPE  = IF {&ARS_data-type} = "1" THEN "Character" ELSE
-                        IF {&ARS_data-type} = "2" THEN "Date" ELSE
-                        IF {&ARS_data-type} = "3" THEN "Logical" ELSE
-                        IF {&ARS_data-type} = "4" THEN "Integer" ELSE
-                        IF {&ARS_data-type} = "5" THEN "Decimal" ELSE
-                        IF {&ARS_data-type} = "7" THEN "RECID" 
+ASSIGN _F._DATA-TYPE  = IF {&ARS_data-type} = "1"  THEN "Character" ELSE
+                        IF {&ARS_data-type} = "2"  THEN "Date"      ELSE
+                        IF {&ARS_data-type} = "3"  THEN "Logical"   ELSE
+                        IF {&ARS_data-type} = "4"  THEN "Integer"   ELSE
+                        IF {&ARS_data-type} = "41" THEN "INT64"     ELSE
+                        IF {&ARS_data-type} = "5"  THEN "Decimal"   ELSE
+                        IF {&ARS_data-type} = "7"  THEN "RECID" 
                         ELSE "Integer"
        _F._HORIZONTAL  = ({&ARS_orientation} eq "h")
        _F._EXPAND      = ({&ARS_expand} eq "Y")

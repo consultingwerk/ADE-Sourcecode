@@ -1,6 +1,7 @@
 1131.7692 "IDETemplate" "Comma delimited list of template objects to load for the appBuilder" no "templateContainer,templateSmartObject,templateProcedure,templateWeb" no
 1133.7692 "IDEPalette" "Comma delimited list of palette objects" no "" no
 4622.5498 "UseThinRendering" "Determines whether ThinRenderingProcedure is used to render objects" yes "NO" no
+6750.0575 "cached_translations_only" "Whether to cache translations on startup, whether to only use those" no "Yes" no
 7002.6893 "StartupCacheToolbars" "Toolbars to cache on client at session startup" no "" no
 7004.6893 "StartupCacheMenusForObjects" "Objects to cache menus for at session startup" no "" no
 9031.24 "_debug_tools_on" "Switches on special tools in the framework for diagnostics" yes "NO" no
@@ -24,7 +25,7 @@
 910776.24 "auto_dump_entity_cache" "Indicates whether the entity cache should automatically be created" no "" no
 910858.24 "expand_list" "List of properties that should be run through the property expander" yes "" no
 910860.24 "registry_keys" "List of properties that should be read as registry keys" no "reg_install_path,reg_work_path" no
-910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.1A" yes
+910862.24 "DynamicsVersion" "Dynamics Version No" yes "10.1B" yes
 910864.24 "reg_install_path" "Registry Install Path" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:DLC" no
 910866.24 "reg_work_path" "Working path in registry" no "HKEY_LOCAL_MACHINE:SOFTWARE\PSC\Progress Dynamics:#DynamicsVersion#:workingPath" no
 910871.24 "enable_save_into" "Used to automatically save compiled code to more than one target area" no "" no
@@ -82,12 +83,12 @@
 .
 PSC
 filename=gsc_session_property
-records=0000000000080
+records=0000000000081
 ldbname=ICFDB
-timestamp=2005/08/09-15:43:39
+timestamp=2006/09/18-14:59:06
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000007715
+0000007835

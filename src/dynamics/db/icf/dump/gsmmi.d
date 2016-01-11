@@ -41,6 +41,7 @@
 36141.53733 0 300000000200001.53733 0 0 "&4GL Generator" "4GL Generator" no "4GL Generator" "" no no yes no "ICF_000002045" "" "" "&4GL Generator" "" "" "" "" "" "" "LAUNCH" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 48549.9875 0 0 0 0 "Node Maintenance" "Node Maintenance" no "" "" no no yes no "NodeMaintenance" "" "" "Node Maintenance" "ry/img/treeview_up.bmp" "" "" "" "" "" "PUBLISH" "toolbar" "" "nodemaintenance" "" "" "" "" "" "" "Action" "Icon only" "" "" 426
 50791.9875 0 50377.9875 0 0 "&Preferences..." "Preferences" no "" "" no no yes no "OGPreferences" "" "" "Preferences" "" "" "" "" "" "" "LAUNCH" "" "run-source" "" "" "" "" "" "" "" "Action" "" "" "" 426
+78429.66 0 0 0 1000709351.09 "&Undo &1" "Undo record" no "Undo &1" "CTRL-Z" no no no no "UndoChange" "" "Undo" "&Undo &1" "ry/img/reset.gif" "ry/img/toolclip.bmp,96,0,16,16" "" "" "" "" "PUBLISH" "undoChange" "tableio-target" "" "" "" "CanUndoChanges and ObjectMode=Modify,View OR DataModified" "" "" "" "Action" "" "UndoChangeCaption" "" 426
 90241.9875 0 0 0 0 "Save &As" "Save As" no "Save As" "SHIFT-F6" no no no no "cbSaveAs" "" "SaveAs" "Save &As" "" "" "" "" "" "" "PUBLISH" "toolbar" "containertoolbar-target" "SaveAs" "" "" "" "" "" "" "Action" "Icon only" "" "" 426
 98758.48 0 98738.48 0 0 "Preferences" "Preferences" no "Preferences" "" no no yes no "ICF84_00000301" "" "" "Preferences" "" "" "" "" "" "" "LAUNCH" "" "" "" "" "" "" "" "" "" "Action" "" "" "" 426
 99019 0 0 0 1000709352.09 "&Links" "Dynamics menu" no "" "" no no yes no "ASMNU_00000350" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "Label" "" "" "" 426
@@ -63,7 +64,7 @@
 1000708108.09 0 0 0 1000709351.09 "&Save record" "Save record" no "Save record" "ALT-S" no no no no "Save" "" "Save" "&Save" "ry/img/saverec.gif" "ry/img/toolclip.bmp,80,0,16,16" "" "" "" "" "PUBLISH" "updateRecord" "" "" "" "" "NewRecord=add,copy or DataModified" "" "" "" "ACTION" "" "" "" 426
 1000708109.09 0 0 0 1000709351.09 "&Reset record" "Reset record" no "Reset record" "ALT-R" no no no no "Reset" "" "Reset" "&Reset" "ry/img/reset.gif" "ry/img/toolclip.bmp,96,0,16,16" "" "" "" "" "PUBLISH" "resetRecord" "" "" "" "" "DataModified" "" "" "" "ACTION" "" "" "" 426
 1000708110.09 0 0 0 1000709351.09 "Cance&l record" "Cancel record" no "Cancel record" "ALT-L" no no no no "Cancel" "" "Cancel" "Cance&l" "ry/img/cancel.gif" "ry/img/toolclip.bmp,112,0,16,16" "" "" "" "" "PUBLISH" "cancelRecord" "" "" "" "" "ObjectMode=Modify and SaveSource=no and DataModified or ObjectMode=Update or NewRecord=add,copy" "" "" "" "ACTION" "" "" "" 426
-1000708111.09 0 0 0 1000709349.09 "U&ndo" "Undo" no "Undo transaction" "ALT-N" no no no no "Undo" "" "Undo" "U&ndo" "ry/img/rollback.gif" "ry/img/toolclip.bmp,0,32,16,16" "" "" "" "" "PUBLISH" "undoTransaction" "" "" "" "" "RowObjectState=RowUpdated" "" "" "" "ACTION" "" "" "" 426
+1000708111.09 0 0 0 1000709349.09 "U&ndo all" "Undo" no "Undo transaction" "ALT-N" no no no no "Undo" "" "Undo" "U&ndo" "ry/img/rollback.gif" "ry/img/toolclip.bmp,0,32,16,16" "" "" "" "" "PUBLISH" "undoTransaction" "" "" "" "" "RowObjectState=RowUpdated" "" "" "" "ACTION" "" "" "" 426
 1000708112.09 0 0 0 1000709349.09 "Co&mmit" "Commit" no "Commit transaction" "ALT-M" no no no no "Commit" "" "Commit" "Co&mmit" "ry/img/commit.gif" "ry/img/toolclip.bmp,16,32,16,16" "" "" "" "" "PUBLISH" "commitTransaction" "" "" "" "" "RowObjectState=RowUpdated" "" "" "" "ACTION" "" "" "" 426
 1000708113.09 0 0 0 1000709350.09 "&First" "First" no "First" "ALT-CURSOR-UP" no no no no "First" "" "First" "&First" "ry/img/first.gif" "ry/img/toolclip.bmp,64,16,16,16" "" "" "" "" "PUBLISH" "fetchFirst" "" "" "" "" "QueryPosition=LastRecord,NotFirstOrlast and canNavigate()" "" "" "" "ACTION" "" "" "" 426
 1000708114.09 0 0 0 1000709350.09 "&Prev" "Prev" no "Previous" "ALT-CURSOR-LEFT" no no no no "Prev" "" "Prev" "&Prev" "ry/img/prev.gif" "ry/img/toolclip.bmp,80,16,16,16" "" "" "" "" "PUBLISH" "fetchPrev" "" "" "" "" "QueryPosition=LastRecord,NotFirstOrlast and canNavigate()" "" "" "" "ACTION" "" "" "" 426
@@ -240,12 +241,12 @@
 .
 PSC
 filename=gsm_menu_item
-records=0000000000239
+records=0000000000240
 ldbname=ICFDB
-timestamp=2005/06/30-15:33:26
+timestamp=2006/08/16-14:48:22
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000055088
+0000055436

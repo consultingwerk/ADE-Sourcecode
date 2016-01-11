@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* commeng.i */
 
@@ -263,3 +263,9 @@
 
 /* OpenEdge Auditing Report Options Dialog Box */
 &GLOBAL-DEFINE OpenEdge_Auditing_Report_Options_dialog_box  65
+
+/* New for 10.1B */
+
+/* View-as property dialog for browse columns view-as attribute */
+&GLOBAL-DEFINE Viewas_Attribute_Dialog_Box 71000
+

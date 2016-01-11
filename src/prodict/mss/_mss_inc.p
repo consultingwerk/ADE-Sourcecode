@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -10,6 +10,8 @@
    
    Created 12/03/02 Initial procedure for the MSS Incremental Df Utility
    
+   fernando   04/17/06 Unicode support
+   fernando   07/19/06 Unicode support - restrict UI   
 */   
 
 { prodict/user/uservar.i NEW }
@@ -28,6 +30,9 @@ DEFINE VARIABLE l_dbnr        AS INTEGER                NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER 
                               INITIAL "For field widths use:"
                               FORMAT "x(20)" NO-UNDO.
+DEFINE VARIABLE lUnicode      AS LOGICAL INITIAL FALSE  NO-UNDO.
+DEFINE VARIABLE tmp_str       AS CHARACTER              NO-UNDO.
+DEFINE VARIABLE s_res         AS LOGICAL                NO-UNDO.
 
 FORM
   " "   SKIP 
@@ -43,11 +48,14 @@ FORM
   mss_username    FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
     LABEL "MSS Object Owner Name" COLON 35 SKIP({&VM_WID})    
   long-length LABEL " Maximum Varchar Length"  COLON 35 SKIP({&VM_WIDG})
-  SPACE(3) pcompatible view-as toggle-box LABEL "Create Progress RECID Field"  
-  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
+  SPACE(3) pcompatible view-as toggle-box LABEL "Create RECID Field"  
+  SPACE(10) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
   SPACE (3) dflt VIEW-AS TOGGLE-BOX LABEL "Include Default" 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
-  create_df view-as toggle-box LABEL "Create schema holder delta df"
+  create_df view-as toggle-box LABEL "Create schema holder delta df" SKIP({&VM_WID})
+  SPACE(3) unicodeTypes view-as toggle-box LABEL "Use Unicode Types " 
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(10) &ELSE SPACE (9) &ENDIF
+  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand width (utf-8)"
   SKIP({&VM_WID}) SPACE(13) cFormat VIEW-AS TEXT NO-LABEL  
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "4GL Format", 2
@@ -156,6 +164,29 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
            lFormat:SENSITIVE = TRUE.
 END. 
 
+ON LEAVE OF long-length IN FRAME read-df DO:
+  IF (NOT lUnicode OR unicodeTypes:SCREEN-VALUE = "no") AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
+    MESSAGE "The maximun length for a varchar is 8000" VIEW-AS ALERT-BOX ERROR.
+    RETURN NO-APPLY.
+  END.
+  ELSE IF unicodeTypes:SCREEN-VALUE = "yes" AND INTEGER(long-length:SCREEN-VALUE) > 4000 THEN DO:  
+    MESSAGE "The maximun length for a nvarchar is 4000" VIEW-AS ALERT-BOX ERROR.
+    RETURN NO-APPLY.
+  END.
+
+END.
+
+ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
+ IF SELF:screen-value = "no" THEN
+     ASSIGN long-length:SCREEN-VALUE = "8000"
+            lUniExpand:SCREEN-VALUE = "no"
+            lUniExpand:SENSITIVE = NO.
+ ELSE
+     ASSIGN long-length:SCREEN-VALUE = "4000"
+            lUniExpand:SENSITIVE = YES
+            s_res = lUniExpand:MOVE-AFTER-TAB-ITEM(unicodeTypes:HANDLE).
+END.
+
 /*==========================Mainline code=============================*/        
 
 {adecomm/okrun.i  
@@ -165,6 +196,13 @@ END.
     {&CAN_BTN}
 }
  
+IF OS-GETENV("OE_UNICODE_OPT") <> ? THEN DO:
+  tmp_str      = OS-GETENV("OE_UNICODE_OPT").
+
+  IF tmp_str BEGINS "Y" THEN
+      ASSIGN lUnicode = TRUE.
+END.
+
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
    btn_Help:visible IN FRAME read-df = yes.
 &ENDIF
@@ -183,6 +221,10 @@ END.
 ASSIGN pcompatible = TRUE
        long-length = 8000.       
 
+IF NOT lUnicode THEN
+    ASSIGN unicodeTypes:VISIBLE IN FRAME read-df = NO
+           lUniExpand:VISIBLE IN FRAME read-df = NO.
+
 DISPLAY cFormat lFormat WITH FRAME read-df.
 
 UPDATE df-file 
@@ -196,6 +238,8 @@ UPDATE df-file
        shadowcol WHEN shadowcol = TRUE
        dflt
        create_df
+       unicodeTypes WHEN lUnicode
+       lUniExpand WHEN lUnicode AND unicodeTypes
        iFmtOption
        lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
@@ -204,6 +248,13 @@ UPDATE df-file
        &ENDIF
   WITH FRAME read-df.
        
+IF lUnicode THEN DO:
+    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
+       ASSIGN unicodeTypes = YES.
+    IF lUniExpand:SCREEN-VALUE ="yes" THEN
+       ASSIGN lUniExpand = YES.
+END.
+
 ASSIGN user_env[1]  = df-file
        user_env[3]  = ""
        user_env[4]  = "n"
@@ -213,14 +264,14 @@ ASSIGN user_env[1]  = df-file
        user_env[8]  = "y"
        user_env[9]  = "ALL"
        user_env[10] = string(long-length)
-       user_env[11] = "varchar" 
+       user_env[11] = (IF unicodeTypes THEN "NVARCHAR" ELSE "VARCHAR" ) 
        user_env[12] = "datetime"
        user_env[13] = "tinyint"
        user_env[14] = "integer"
        user_env[15] = "decimal(18,5)"
        user_env[16] = "decimal"
        user_env[17] = "integer"
-       user_env[18] = "text"
+       user_env[18] = (IF unicodeTypes THEN "NVARCHAR(MAX)" ELSE "TEXT")
        user_env[19] = "tinyint"
        user_env[20] = "##"  
        user_env[21] = (IF shadowcol THEN "y" ELSE "n")
@@ -234,6 +285,11 @@ ASSIGN user_env[1]  = df-file
        user_env[31] = "-- ** "
        user_env[32] = "MSSQLSRV7".
     
+IF lUniExpand THEN 
+   ASSIGN user_env[35] = "y".
+ELSE
+   ASSIGN user_env[35] = "n".
+
 IF iFmtOption = 1 THEN 
     ASSIGN sqlwidth = TRUE. /* Use _Width field for size */
 ELSE IF (lFormat = FALSE) THEN

@@ -1,10 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
-/****************************************************************************
+/************************************************************************
+* Copyright (C) 2000-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
+/* ***************************************************************************
 
    File: custprop.i
    Description:
@@ -31,7 +30,7 @@
 
    Author: Bill Wodd 
 
-   Date Generated: 07/14/05
+   Date Generated: 07/07/06
 
    Note: This procedure is generated via the Property Sheet Generator and 
          the abAttribute table of the ab database. 
@@ -62,9 +61,9 @@
   WHEN "CUSTOM-SUPER-PROC":U THEN   _C._CUSTOM-SUPER-PROC = cValue.
   WHEN "DATA-TYPE":U THEN           
   DO: 
-    IF CAN-DO("Character,LongChar,Date,DateTime,DateTime-Tz,Decimal,Logical,Integer":U, cValue) 
+    IF CAN-DO("Character,LongChar,Date,DateTime,DateTime-Tz,Decimal,Logical,Integer,INT64":U, cValue) 
     THEN _F._DATA-TYPE = cValue.
-    ELSE err_text = "DATA-TYPE must be Character, LongChar, Date, Decimal, Logical, or Integer.".
+    ELSE err_text = "DATA-TYPE must be Character, LongChar, Date, Decimal, Logical, Integer or INT64.".
   END.
   WHEN "DEBLANK":U THEN             _F._DEBLANK = lValue.
   WHEN "DEFAULT-BTN":U THEN         
@@ -200,11 +199,10 @@
   WHEN "SEPARATORS":U THEN          _L._SEPARATORS = lValue.
   WHEN "SHOW-IN-TASKBAR":U THEN     _C._SHOW-IN-TASKBAR = lValue.
   WHEN "SHOW-POPUP":U THEN           
-       _U._SHOW-POPUP =  IF ( AVAILABLE _F and  can-do("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) and lparentIsDynview )
+       _U._SHOW-POPUP =  IF ( AVAILABLE _F and  can-do("DATE,DECIMAL,INTEGER,INT64":u, _F._DATA-TYPE) and lparentIsDynview )
                               OR isDynview
                          THEN lvalue
                          ELSE false.
-
   WHEN "SIDE-LABELS":U THEN         _C._SIDE-LABELS = lValue.
   WHEN "SIZE-TO-FIT":U THEN         _C._size-to-fit = lValue.
   WHEN "SMALL-TITLE":U THEN         _C._SMALL-TITLE = lValue.

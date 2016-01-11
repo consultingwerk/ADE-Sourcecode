@@ -58,6 +58,8 @@ DEFINE VARIABLE gcTableOld AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE ghSourceOld AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gcViewTablesOld AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcQueryOld AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE glIsChild  AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE glDataIsFetched AS LOGICAL    NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -76,9 +78,9 @@ DEFINE VARIABLE gcQueryOld AS CHARACTER  NO-UNDO.
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS cBusinessEntity cDataSet cDataTable cSort ~
 fObjectname fRowsToBatch lToggleDataTargets togPromptOnDelete radFieldList ~
-rRect rRectPrompt 
+lResortOnSave rRect rRectPrompt rRect-2 RECT-4 
 &Scoped-Define DISPLAYED-OBJECTS cSort fObjectname fRowsToBatch ~
-radFieldList 
+radFieldList lResortOnSave 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -155,16 +157,16 @@ FUNCTION getViewTables RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initDataView Attribute-Dlg 
-FUNCTION initDataView RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initDataManagement Attribute-Dlg 
+FUNCTION initDataManagement RETURNS LOGICAL
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initObjects Attribute-Dlg 
-FUNCTION initObjects RETURNS LOGICAL
-  ( )  FORWARD.
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initDataView Attribute-Dlg 
+FUNCTION initDataView RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -176,9 +178,23 @@ FUNCTION initRectangle RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initRectangles Attribute-Dlg 
+FUNCTION initRectangles RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initRowsToBatch Attribute-Dlg 
 FUNCTION initRowsToBatch RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initSubmitParent Attribute-Dlg 
+FUNCTION initSubmitParent RETURNS LOGICAL
+  ( )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -190,6 +206,13 @@ FUNCTION initTableList RETURNS HANDLE
     pdHeight AS DEC,
     pdWidth AS DEC,
     phBefore AS HANDLE)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD layoutRowsToBatch Attribute-Dlg 
+FUNCTION layoutRowsToBatch RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -223,19 +246,19 @@ FUNCTION toggleSort RETURNS LOGICAL
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON btnDisplayed 
      LABEL "&Edit display field list..." 
-     SIZE 30 BY 1.14.
+     SIZE 29.4 BY 1.14.
 
 DEFINE BUTTON btnSort 
      LABEL "Edit &sort..." 
      CONTEXT-HELP-ID 0
      SIZE 11.6 BY 1.14.
 
-DEFINE VARIABLE cDataTable AS CHARACTER FORMAT "X(50)":U 
+DEFINE VARIABLE cDataTable AS CHARACTER FORMAT "X(32)":U 
      LABEL "&Data table" 
      CONTEXT-HELP-ID 0
      VIEW-AS COMBO-BOX 
      DROP-DOWN-LIST
-     SIZE 53.2 BY 1 NO-UNDO.
+     SIZE 53.8 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cBusinessEntity AS CHARACTER FORMAT "X(50)":U 
      LABEL "Business &entity" 
@@ -250,14 +273,22 @@ DEFINE VARIABLE cDataSet AS CHARACTER FORMAT "X(50)":U
      SIZE 44.8 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fObjectname AS CHARACTER FORMAT "X(256)":U 
-     LABEL "&Inst. name" 
+     LABEL "&Instance name" 
      VIEW-AS FILL-IN 
-     SIZE 53.2 BY 1 NO-UNDO.
+     SIZE 38 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fRowsToBatch AS INTEGER FORMAT ">,>>>,>>9":U INITIAL 0 
      LABEL "&rows" 
      VIEW-AS FILL-IN 
      SIZE 11 BY .95 NO-UNDO.
+
+DEFINE VARIABLE lSubmitParent AS LOGICAL 
+     CONTEXT-HELP-ID 0
+     VIEW-AS RADIO-SET VERTICAL
+     RADIO-BUTTONS 
+          "Always submit parent", yes,
+"Never submit parent", no
+     SIZE 42 BY 1.76 NO-UNDO.
 
 DEFINE VARIABLE radFieldList AS INTEGER 
      VIEW-AS RADIO-SET VERTICAL
@@ -275,9 +306,18 @@ DEFINE VARIABLE raSort AS CHARACTER
 "Descending", "DESCENDING"
      SIZE 31.2 BY .86 NO-UNDO.
 
+DEFINE RECTANGLE RECT-4
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 53.2 BY 2.48.
+
 DEFINE RECTANGLE rRect
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 64.8 BY 3.05
+     FGCOLOR 3 .
+
+DEFINE RECTANGLE rRect-2
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 53.2 BY 6.76
      FGCOLOR 3 .
 
 DEFINE RECTANGLE rRectPrompt
@@ -294,10 +334,26 @@ DEFINE VARIABLE lBatch AS LOGICAL INITIAL no
      VIEW-AS TOGGLE-BOX
      SIZE 30.8 BY .81 TOOLTIP "Check to read data in batches" NO-UNDO.
 
+DEFINE VARIABLE lDataIsNotFetched AS LOGICAL INITIAL no 
+     LABEL "&Retrieve and keep data for single parent only" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 48.4 BY .81 NO-UNDO.
+
 DEFINE VARIABLE lOpenOnInit AS LOGICAL INITIAL no 
      LABEL "Open &query on initialization" 
      VIEW-AS TOGGLE-BOX
      SIZE 36.4 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lOverrideSubmitParent AS LOGICAL INITIAL no 
+     LABEL "Override default submit of parent" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 35 BY .81 NO-UNDO.
+
+DEFINE VARIABLE lResortOnSave AS LOGICAL INITIAL no 
+     LABEL "Resort &client query on save of row" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 48.4 BY .81 NO-UNDO.
 
 DEFINE VARIABLE lToggleDataTargets AS LOGICAL INITIAL no 
      LABEL "Activate/deactivate Data&Targets on view/hide" 
@@ -320,29 +376,38 @@ DEFINE VARIABLE togPromptOnDelete AS LOGICAL INITIAL no
 DEFINE FRAME Attribute-Dlg
      cBusinessEntity AT ROW 2.05 COL 18.6 COLON-ALIGNED
      cDataSet AT ROW 3.19 COL 18.6 COLON-ALIGNED
-     cDataTable AT ROW 5.1 COL 12.6 COLON-ALIGNED
-     cSort AT ROW 9.67 COL 14.6 NO-LABEL WIDGET-ID 2
-     raSort AT ROW 11.86 COL 14.6 NO-LABEL WIDGET-ID 8
+     cDataTable AT ROW 5.43 COL 12 COLON-ALIGNED
+     cSort AT ROW 9.76 COL 14 NO-LABEL WIDGET-ID 2
+     raSort AT ROW 12.05 COL 14.6 NO-LABEL WIDGET-ID 8
      btnSort AT ROW 9.67 COL 56.2 WIDGET-ID 4
-     fObjectname AT ROW 13.1 COL 12.6 COLON-ALIGNED
-     fRowsToBatch AT ROW 14.52 COL 40.4 COLON-ALIGNED
-     lBatch AT ROW 14.62 COL 14.8
-     RebuildOnRepos AT ROW 15.62 COL 14.8
-     lOpenOnInit AT ROW 16.62 COL 14.8
-     lToggleDataTargets AT ROW 17.62 COL 14.8
-     togPromptOnDelete AT ROW 18.62 COL 14.8
-     radFieldList AT ROW 20.57 COL 17 NO-LABEL
-     btnDisplayed AT ROW 22.1 COL 35.4
+     fObjectname AT ROW 1.57 COL 83.8 COLON-ALIGNED
+     fRowsToBatch AT ROW 3.86 COL 99 COLON-ALIGNED
+     lBatch AT ROW 3.95 COL 72.6
+     RebuildOnRepos AT ROW 4.95 COL 72.6
+     lOpenOnInit AT ROW 5.95 COL 72.6
+     lDataIsNotFetched AT ROW 6.95 COL 72.6 WIDGET-ID 20
+     lToggleDataTargets AT ROW 7.95 COL 72.6
+     lOverrideSubmitParent AT ROW 10.38 COL 72.6 WIDGET-ID 46
+     lSubmitParent AT ROW 11.29 COL 75 NO-LABEL WIDGET-ID 36
+     togPromptOnDelete AT ROW 13.76 COL 73
+     radFieldList AT ROW 15.95 COL 73 NO-LABEL
+     btnDisplayed AT ROW 17.38 COL 92.6
+     lResortOnSave AT ROW 8.95 COL 72.6 WIDGET-ID 48
      "Dataset" VIEW-AS TEXT
           SIZE 8 BY .62 AT ROW 1.24 COL 5.4
      "Display fields for prompt" VIEW-AS TEXT
-          SIZE 23.2 BY .62 AT ROW 19.71 COL 17
+          SIZE 23.2 BY .62 AT ROW 15.1 COL 72.8
      "View:" VIEW-AS TEXT
-          SIZE 5.8 BY .62 AT ROW 6.38 COL 8.8 WIDGET-ID 14
+          SIZE 5.8 BY .62 AT ROW 6.62 COL 8.2 WIDGET-ID 14
      "Sort by:" VIEW-AS TEXT
-          SIZE 7 BY .62 AT ROW 9.76 COL 6.8 WIDGET-ID 16
+          SIZE 7 BY .62 AT ROW 9.76 COL 6.4 WIDGET-ID 16
+     "Data management" VIEW-AS TEXT
+          SIZE 19.2 BY .62 AT ROW 3 COL 72.6 WIDGET-ID 42
      rRect AT ROW 1.57 COL 3
-     rRectPrompt AT ROW 20.05 COL 14.6
+     rRectPrompt AT ROW 15.38 COL 71
+     rRect-2 AT ROW 3.29 COL 70.8 WIDGET-ID 18
+     RECT-4 AT ROW 10.76 COL 70.8 WIDGET-ID 28
+     SPACE(0.20) SKIP(5.57)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "DataView Properties":L.
@@ -380,7 +445,13 @@ ASSIGN
    NO-DISPLAY                                                           */
 /* SETTINGS FOR TOGGLE-BOX lBatch IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lDataIsNotFetched IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX lOpenOnInit IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR TOGGLE-BOX lOverrideSubmitParent IN FRAME Attribute-Dlg
+   NO-DISPLAY NO-ENABLE                                                 */
+/* SETTINGS FOR RADIO-SET lSubmitParent IN FRAME Attribute-Dlg
    NO-DISPLAY NO-ENABLE                                                 */
 /* SETTINGS FOR TOGGLE-BOX lToggleDataTargets IN FRAME Attribute-Dlg
    NO-DISPLAY                                                           */
@@ -422,7 +493,9 @@ DO:
   ASSIGN 
     cBusinessEntity
     cDataset
-    cDatatable.
+    cDatatable
+    lOverrideSubmitParent
+    lSubmitParent.
 
   hSource = {fn getDatasetSource p_hSMO}.
   IF cBusinessEntity = '' THEN
@@ -489,19 +562,25 @@ DO:
 
   END.
 
-  DYNAMIC-FUNCTION("setRowsToBatch":U IN p_hSMO,
-                    INT(fRowsToBatch:SCREEN-VALUE)).
-  DYNAMIC-FUNCTION("setRebuildOnRepos":U IN p_hSMO,
-                    RebuildOnRepos:CHECKED).
-  
-  DYNAMIC-FUNCTION("setOpenOnInit":U IN p_hSMO,
-                    lOpenOnInit:CHECKED).
   DYNAMIC-FUNCTION("setObjectname":U IN p_hSMO, fObjectName:SCREEN-VALUE).
+  DYNAMIC-FUNCTION("setRowsToBatch":U IN p_hSMO,INT(fRowsToBatch:SCREEN-VALUE)).
+  DYNAMIC-FUNCTION("setRebuildOnRepos":U IN p_hSMO,RebuildOnRepos:CHECKED).
+  
+  DYNAMIC-FUNCTION("setDataIsFetched":U IN p_hSMO,
+                    IF lDataIsNotFetched:CHECKED THEN FALSE 
+                    ELSE IF glDataIsFetched <> FALSE THEN glDataIsFetched
+                    ELSE ?).
+  DYNAMIC-FUNCTION("setOpenOnInit":U IN p_hSMO,lOpenOnInit:CHECKED).
+  
+  DYNAMIC-FUNCTION("setSubmitParent":U IN p_hSMO,
+                   IF lOverrideSubmitParent THEN lSubmitParent ELSE ?).
+  
   DYNAMIC-FUNCTION("setToggleDataTargets":U IN p_hSMO,lToggleDataTargets:CHECKED).
   
+  DYNAMIC-FUNCTION("setResortOnSave":U IN p_hSMO,lResortOnSave:CHECKED).
 
-  DYNAMIC-FUNCTION("setPromptOnDelete":U IN p_hSMO,
-                    togPromptOnDelete:CHECKED).
+  DYNAMIC-FUNCTION("setPromptOnDelete":U IN p_hSMO,togPromptOnDelete:CHECKED).
+
   gcPromptColumns = (IF radFieldList = 1 THEN
                        '(NONE)':U
                      ELSE IF radFieldList = 2 THEN
@@ -665,7 +744,14 @@ END.
 ON VALUE-CHANGED OF cDataTable IN FRAME Attribute-Dlg /* Data table */
 DO:
   assignDataTable(SELF:INPUT-VALUE,cDataTable).
+
   initDataView().
+   
+  IF glIschild THEN lBatch:CHECKED = FALSE .
+  ELSE lBatch:CHECKED = TRUE.   
+  initRowsToBatch().
+  lDataIsNotFetched = false.
+  initDataManagement().
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -705,7 +791,7 @@ END.
 
 &Scoped-define SELF-NAME fObjectname
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fObjectname Attribute-Dlg
-ON VALUE-CHANGED OF fObjectname IN FRAME Attribute-Dlg /* Inst. name */
+ON VALUE-CHANGED OF fObjectname IN FRAME Attribute-Dlg /* Instance name */
 DO:
   ASSIGN fObjectname.
 END.
@@ -734,7 +820,57 @@ DO:
   IF NOT SELF:CHECKED THEN 
     ASSIGN fRowsToBatch.   
   initRowsToBatch().
-  initObjects().
+  initDataManagement().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lDataIsNotFetched
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lDataIsNotFetched Attribute-Dlg
+ON VALUE-CHANGED OF lDataIsNotFetched IN FRAME Attribute-Dlg /* Retrieve and keep data for single parent only */
+DO:
+  /* turn off batching and set openoninit true if unchecking retrieve
+     (possibly a bit busy... could be replaced by disabling this 
+      field in initDataManagement instead) */
+  ASSIGN lDataIsNotFetched.
+  IF NOT lDataIsNotFetched THEN 
+  DO: 
+    IF NOT lOpenOnInit:CHECKED THEN
+      lOpenOnInit:CHECKED = TRUE.
+    IF lBatch:CHECKED THEN
+    DO:
+      lBatch:CHECKED = FALSE.
+      initRowsToBatch().
+      initDataManagement().
+    END.
+
+  END.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lOpenOnInit
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lOpenOnInit Attribute-Dlg
+ON VALUE-CHANGED OF lOpenOnInit IN FRAME Attribute-Dlg /* Open query on initialization */
+DO:
+  initDataManagement().
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME lOverrideSubmitParent
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lOverrideSubmitParent Attribute-Dlg
+ON VALUE-CHANGED OF lOverrideSubmitParent IN FRAME Attribute-Dlg /* Override default submit of parent */
+DO:
+  ASSIGN lOverrideSubmitParent.
+  initSubmitParent().
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -812,14 +948,15 @@ DEFINE VARIABLE lGo AS LOGICAL    NO-UNDO.
 MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
-  initRectangle(rRect:HANDLE).   
-  initRectangle(rRectPrompt:HANDLE).   
+  initRectangles( ).   
+  
   initTableList(cDataTable:ROW + 1.14,cDataTable:COL,3.0,cDataTable:WIDTH,cDataTable:HANDLE).
 
   /* Get the values of the attributes in the SmartObject that can be 
      changed in this dialog-box. */
   RUN get-SmO-attributes.
-  /* Enable the interface. */         
+  /* Enable the interface. */   
+  layoutRowsToBatch().
   RUN enable_UI.
   
   /* Set the cursor */
@@ -868,10 +1005,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY cSort fObjectname fRowsToBatch radFieldList 
+  DISPLAY cSort fObjectname fRowsToBatch radFieldList lResortOnSave 
       WITH FRAME Attribute-Dlg.
   ENABLE cBusinessEntity cDataSet cDataTable cSort fObjectname fRowsToBatch 
-         lToggleDataTargets togPromptOnDelete radFieldList rRect rRectPrompt 
+         lToggleDataTargets togPromptOnDelete radFieldList lResortOnSave rRect 
+         rRectPrompt rRect-2 RECT-4 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -893,7 +1031,7 @@ PROCEDURE get-SmO-attributes :
   DEF VAR PartitionChosen     AS CHARACTER                 NO-UNDO.
   DEF VAR cOpMode             AS CHARACTER                 NO-UNDO.
   DEFINE VARIABLE cSortList   AS CHARACTER                 NO-UNDO.
-
+  
   DO WITH FRAME Attribute-Dlg:
     
     ASSIGN
@@ -907,11 +1045,11 @@ PROCEDURE get-SmO-attributes :
       gcTableOld  = cDataTable
       ghSourceOld = {fn getDatasetSource p_hSMO}
       cSortList   = sortList(gcQueryOld).
-
     DISPLAY 
       cBusinessEntity
       cDataset
-      cDatatable.
+      cDatatable
+      lSubmitParent.
     
     IF cSortList > '' THEN
      cSort:LIST-ITEMS = cSortList.
@@ -924,9 +1062,7 @@ PROCEDURE get-SmO-attributes :
       ghSourceOld = {fn getDatasetSource p_hSMO}.
     END.
 
-    initDataView().
-    showSortOption(cSort:HANDLE).
-
+   
     /********* Rows To Batch *********/
     fRowsToBatch:SCREEN-VALUE    = DYNAMIC-FUNCTION("getRowsToBatch":U IN p_hSMO).
     ASSIGN fRowsToBatch           = INTEGER(fRowsToBatch:SCREEN-VALUE)
@@ -939,19 +1075,36 @@ PROCEDURE get-SmO-attributes :
     /* OpenOnInit *******************/
     lOpenOnInit:SCREEN-VALUE = DYNAMIC-FUNCTION("getOpenOnInit":U IN p_hSMO).
     ASSIGN lOpenOnInit:SENSITIVE = NOT (cObjType BEGINS "SmartBusinessObject":U).
- 
+    
+    /* SubmitParent */
+    ASSIGN
+      lSubmitParent = {fn getSubmitParent p_hSMO}
+      lOverrideSubmitParent:CHECKED = (lSubmitParent <> ?)
+      lSubmitParent:SCREEN-VALUE = string(lSubmitParent <> FALSE) 
+    . 
+    /* Dataisfetched */
+    ASSIGN 
+      glDataIsFetched = {fn getDataIsFetched p_hSMO}
+      lDataIsNotFetched = (glDataIsFetched = FALSE).
+
      /* ToggleDataTargets */
     ASSIGN lToggleDataTargets:CHECKED = DYNAMIC-FUNCTION("getToggleDataTargets":U IN p_hSMO).
    
+        /* ResortOnSave *******************/
+    ASSIGN lResortOnSave = DYNAMIC-FUNCTION("getResortOnSave":U IN p_hSMO).
+
     /* ObjectNeme */
     ASSIGN fObjectName = DYNAMIC-FUNCTION('getObjectName':U IN p_hSMO).
    
-    /* ShareData Cacheduration (screen updated in initObjects) */ 
+    /* ShareData Cacheduration (screen updated in initDataManagement) */ 
     ASSIGN
-     glhasForeignFields = {fn getForeignFields p_hSMO} <> ''.
-      
+      glhasForeignFields = {fn getForeignFields p_hSMO} <> ''.
+    
+    initDataView().
+    showSortOption(cSort:HANDLE).
+
     initRowsToBatch().
-    initObjects(). 
+    initDataManagement(). 
 
     ASSIGN 
       lBatch = lBatch:CHECKED.
@@ -1173,6 +1326,40 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initDataManagement Attribute-Dlg 
+FUNCTION initDataManagement RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: set check boxes sensitivity according to the object type   
+    Notes:  
+------------------------------------------------------------------------------*/
+ 
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN  
+      lBatch:SENSITIVE              = TRUE 
+      RebuildOnRepos:SENSITIVE      = lBatch:CHECKED
+      RebuildOnRepos:CHECKED        = RebuildOnRepos AND lBatch:CHECKED
+      lDataIsNotFetched:SENSITIVE   =  glIschild   
+                                     /*  AND (lOpenOnInit:CHECKED
+                                            AND NOT lBatch:CHECKED) */
+
+      lDataIsNotFetched:CHECKED     = glIschild 
+                                      AND IF NOT lDataIsNotFetched 
+                                      THEN 
+                                        (NOT lOpenOnInit:CHECKED
+                                         OR 
+                                         lBatch:CHECKED)
+                                      ELSE lDataIsNotFetched
+      .
+
+  END.
+  RETURN TRUE.
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initDataView Attribute-Dlg 
 FUNCTION initDataView RETURNS LOGICAL
   ( /* parameter-definitions */ ) :
@@ -1191,8 +1378,7 @@ FUNCTION initDataView RETURNS LOGICAL
   DEFINE VARIABLE cRelatedTables       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cTable               AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lEntityOk            AS LOGICAL    NO-UNDO.
-
-
+  
   {get DataTable cCurrentTable p_hSMO}.
   {get BusinessEntity cCurrentEntity p_hSMO}.
   
@@ -1272,6 +1458,7 @@ FUNCTION initDataView RETURNS LOGICAL
   {fn deleteItems ghTableList}.
   IF VALID-HANDLE(hDatasetSource) AND cDataTable > '' THEN
   DO:
+    glIsChild       = {fnarg isChild cDataTable hDatasetSource}.
     cRelatedTables = {fnarg viewTables cDataTable hDatasetSource}.
     cViewTables    = {fn getViewTables p_hSMO}.
     cSortTables    = {fn getQueryTables p_hSMO}.
@@ -1285,41 +1472,12 @@ FUNCTION initDataView RETURNS LOGICAL
     {fn viewItems ghTableList}.
   END.
 
+  ASSIGN 
+    lOverrideSubmitParent:SENSITIVE = glIsChild.
+  
+  initSubmitParent().
   RETURN VALID-HANDLE(hDatasetSource) . 
 
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initObjects Attribute-Dlg 
-FUNCTION initObjects RETURNS LOGICAL
-  ( ) :
-/*------------------------------------------------------------------------------
-  Purpose: set check boxes sensitivity according to the object type   
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hRowsLabel AS HANDLE     NO-UNDO.
-  DO WITH FRAME {&FRAME-NAME}:
-    VIEW. /* The algorithm for adjusting the label requires realized widgets. */
-    ASSIGN
-      /* Move the label AFTER the field */  
-      hRowsLabel                    = fRowsToBatch:SIDE-LABEL-HANDLE
-      hRowsLabel:COL                = fRowsToBatch:COL + fRowsToBatch:WIDTH + 0.5
-      /* and remove the colon */
-      hRowsLabel:WIDTH              = FONT-TABLE:GET-TEXT-WIDTH-CHARS
-                                                  (SUBSTR(hRowsLabel:SCREEN-VALUE,
-                                                          1,
-                                                          LENGTH(hRowsLabel:SCREEN-VALUE) - 1)) 
-      lBatch:WIDTH =  fRowsToBatch:COL - lBatch:COL                                    
-      lBatch:SENSITIVE              = TRUE 
-      RebuildOnRepos:SENSITIVE      = lBatch:CHECKED
-      RebuildOnRepos:CHECKED        = RebuildOnRepos AND lBatch:CHECKED
-      .
-
-  END.
-  RETURN TRUE.
-  
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1339,6 +1497,28 @@ FUNCTION initRectangle RETURNS LOGICAL
       phRect:GROUP-BOX = TRUE.
 
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initRectangles Attribute-Dlg 
+FUNCTION initRectangles RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hWidget AS HANDLE     NO-UNDO.
+  hWidget = FRAME {&frame-name}:FIRST-CHILD:FIRST-CHILD.
+  DO WHILE VALID-HANDLE(hWidget):
+    IF hWidget:TYPE = 'RECTANGLE' THEN
+      initRectangle(hWidget).
+    hWidget = hWidget:NEXT-SIBLING.
+  END.
+
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1382,6 +1562,25 @@ END.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initSubmitParent Attribute-Dlg 
+FUNCTION initSubmitParent RETURNS LOGICAL
+  ( ) :
+/*------------------------------------------------------------------------------
+  Purpose: set submit from override    
+    Notes:  
+------------------------------------------------------------------------------*/
+  DO WITH FRAME {&FRAME-NAME}:
+   lSubmitParent:SENSITIVE = lOverrideSubmitParent:SENSITIVE 
+                             AND lOverrideSubmitParent:CHECKED.  
+
+  END.
+  RETURN TRUE.
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initTableList Attribute-Dlg 
 FUNCTION initTableList RETURNS HANDLE
   ( pdRow AS DEC,
@@ -1415,6 +1614,33 @@ FUNCTION initTableList RETURNS HANDLE
   
   RETURN ghTableList.   
 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION layoutRowsToBatch Attribute-Dlg 
+FUNCTION layoutRowsToBatch RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowsLabel AS HANDLE     NO-UNDO.
+  DO WITH FRAME {&FRAME-NAME}:
+     VIEW. /* The algorithm for adjusting the label requires realized widgets. */
+    ASSIGN
+      /* Move the label AFTER the field */  
+      hRowsLabel                    = fRowsToBatch:SIDE-LABEL-HANDLE
+      hRowsLabel:COL                = fRowsToBatch:COL + fRowsToBatch:WIDTH + 0.5
+      /* and remove the colon */
+      hRowsLabel:WIDTH              = FONT-TABLE:GET-TEXT-WIDTH-CHARS
+                                                  (SUBSTR(hRowsLabel:SCREEN-VALUE,
+                                                          1,
+                                                          LENGTH(hRowsLabel:SCREEN-VALUE) - 1)) 
+      lBatch:WIDTH =  fRowsToBatch:COL - lBatch:COL  
+      .
+  END.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

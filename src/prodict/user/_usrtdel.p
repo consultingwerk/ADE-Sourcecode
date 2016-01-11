@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,6 +16,7 @@ History
                           to FIND _File.
     D. McMann 08/24/98    Added check for user_env = "ALL". 98-08-21-014
     D. McMann 06/10/02    Added check for new SESSION attribute schema change.
+    fernando  03/13/06    Storing table names in temp-table - bug 20050930-006.
 **************************************************************/
 
 { prodict/dictvar.i }
@@ -27,6 +28,7 @@ DEFINE VARIABLE answer  AS LOGICAL                 NO-UNDO.
 DEFINE VARIABLE i       AS INTEGER                 NO-UNDO.
 DEFINE VARIABLE msg-txt AS CHARACTER INITIAL     ? NO-UNDO.
 DEFINE VARIABLE skipped AS LOGICAL   INITIAL FALSE NO-UNDO.
+DEFINE VARIABLE iNum    AS INTEGER   NO-UNDO INIT 0.
 
 /* This program has a rather odd flow of control.  It is actually
 executed four times.  The first time is to set up the execution string
@@ -65,8 +67,13 @@ IF user_env[9] = "pre" THEN _pre: DO:
   ASSIGN
     cache_dirty   = FALSE
     cache_file#   = 1
+    l_cache_tt    = FALSE /* 20050930-006 */
     cache_file    = ""
     cache_file[1] = "ALL".
+
+  /* 20050930-006 - get rid of the caching information */
+  EMPTY TEMP-TABLE tt_cache_file NO-ERROR.
+
   FOR EACH _File WHERE _Db-recid = drec_db 
                    AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                    AND NOT _Hidden
@@ -84,9 +91,44 @@ IF user_env[9] = "pre" THEN _pre: DO:
       skipped = TRUE.
       NEXT.
     END.
-    ASSIGN
-      cache_file# = cache_file# + 1
-      cache_file[cache_file#] = _File._File-name.
+
+    ASSIGN cache_file# = cache_file# + 1.
+
+    /* 20050930-006 */
+    IF NOT l_cache_tt THEN DO:
+
+       ASSIGN cache_file[cache_file#] = _File._File-name NO-ERROR.
+
+       IF ERROR-STATUS:ERROR THEN DO:
+           /* if an error occurred, it could be because there are too many
+              tables, or we hit the limit on the character variable size
+              (cache_file), so we will use a temp-table to hold the table
+              names 
+           */
+
+           /* copy them to the temp-table */
+           REPEAT iNum = 1 TO (cache_file# - 1):
+               CREATE tt_cache_file.
+               ASSIGN tt_cache_file.nPos = iNum
+                       tt_cache_file.cName = cache_file[iNum].
+           END.
+
+           /* now create an entry for the current table name */
+           CREATE tt_cache_file.
+           ASSIGN tt_cache_file.nPos = cache_file#
+                  tt_cache_file.cName = _File._File-name.
+
+           /* clear out cache_file */
+           ASSIGN cache_file = ""
+                  l_cache_tt = YES.
+       END.
+    END.
+    ELSE DO:
+        CREATE tt_cache_file.
+        ASSIGN tt_cache_file.nPos = cache_file#
+               tt_cache_file.cName = _File._File-name.
+    END.
+
   END.
   IF cache_file# = 1 THEN cache_file# = 0.
   IF skipped THEN DO:

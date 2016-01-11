@@ -2101,7 +2101,7 @@ DEFINE BUFFER b2ttSchema FOR ttSchema.
     IF plValid AND pbttSchema.search_from <> "" OR pbttSchema.search_to <> "" THEN DO:
 
         CASE pbttSchema.column_datatype:
-            WHEN "decimal" OR WHEN "integer":u THEN DO:
+            WHEN "decimal":U OR WHEN "integer":U OR WHEN "INT64":U THEN DO:
                 ASSIGN 
                     dDecimal = DECIMAL(pbttSchema.search_from)
                     dDecimal = DECIMAL(pbttSchema.search_to) NO-ERROR.

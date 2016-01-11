@@ -98,9 +98,8 @@ FUNCTION deleteRecordStatic RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _INCLUDED-LIB Method-Library 
 /* ************************* Included-Libraries *********************** */
- 
-/* Include dataview  */ 
-{src/adm2/dataview.i}
+
+{src/adm2/dataquery.i}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

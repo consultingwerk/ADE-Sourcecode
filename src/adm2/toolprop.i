@@ -48,7 +48,7 @@
 &GLOB xcInstanceProperties {&xcInstanceProperties}~
 EdgePixels,DeactivateTargetOnHide,DisabledActions,FlatButtons,Menu,ShowBorder,~
 Toolbar,ActionGroups,TableIOType,SupportedLinks,ToolbarBands,~
-ToolbarAutoSize,ToolbarDrawDirection,LogicalObjectName,AutoResize,~
+ToolbarAutoSize,ToolbarDrawDirection,LogicalObjectName,~
 DisabledActions,HiddenActions,HiddenToolbarBands,HiddenMenuBands,~
 MenuMergeOrder,RemoveMenuOnHide,CreateSubMenuOnConflict,NavigationTargetName
 

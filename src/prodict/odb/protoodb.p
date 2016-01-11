@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -34,6 +34,7 @@
           K. McIntosh 04/13/04  Added Library field for DB2/400 ODBC support
           K. McIntosh 02/28/05  Added ability to override default x(8) character field
                                 handling when deciding field width
+          fernando    08/14/06  Removed Informix from list of valid foreign db types
 */            
 
 
@@ -57,7 +58,7 @@ DEFINE VARIABLE redoblk       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE wrg-ver       AS LOGICAL INITIAL FALSE    NO-UNDO.
 DEFINE VARIABLE mvdta         AS LOGICAL                  NO-UNDO.
 DEFINE VARIABLE odbctypes     AS CHARACTER 
-  INITIAL "Sybase,DB2/400,DB2(Other),Informix,Other(MS Access),Other(Generic),DB2,Other(MSAcce~ ss)" NO-UNDO.
+  INITIAL "Sybase,DB2/400,DB2(Other),Other(MS Access),Other(Generic),DB2,Other(MSAcce~ ss)" NO-UNDO.
 DEFINE VARIABLE cFormat       AS CHARACTER INITIAL "For field widths use:"
                                            FORMAT "x(21)" NO-UNDO.
 DEFINE VARIABLE lExpand       AS LOGICAL                  NO-UNDO.
@@ -69,9 +70,9 @@ batch_mode = SESSION:BATCH-MODE.
 FORM
   " "   SKIP({&VM_WID}) 
   pro_dbname   FORMAT "x({&PATH_WIDG})"  view-as fill-in size 32 by 1 
-    LABEL "Original PROGRESS Database" colon 36 SKIP({&VM_WID}) 
+    LABEL "Original {&PRO_DISPLAY_NAME} Database" colon 36 SKIP({&VM_WID}) 
   pro_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect parameters for PROGRESS" colon 36 SKIP({&VM_WID})
+    LABEL "Connect parameters for {&PRO_DISPLAY_NAME}" colon 36 SKIP({&VM_WID})
   osh_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
     LABEL "Name of Schema holder Database" colon 36 SKIP({&VM_WID})
   odb_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
@@ -101,12 +102,12 @@ FORM
 
 
   SPACE(2) pcompatible view-as toggle-box 
-                       LABEL "Progress 4GL Compatible Objects" 
-  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
+                       LABEL "Create 4GL Compatible Objects" 
+  shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" COLON 38 SKIP({&VM_WID})
  SPACE(2) loadsql view-as toggle-box label "Load SQL" 
- &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
- &ELSE SPACE(23) &ENDIF
-  movedata view-as toggle-box label "Move Data" SKIP({&VM_WID})
+ /*&IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(24)
+ &ELSE SPACE(23) &ENDIF */
+  movedata view-as toggle-box label "Move Data" COLON 38 SKIP({&VM_WID})
   SPACE(2) cFormat VIEW-AS TEXT NO-LABEL 
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "4GL Format", 2
@@ -119,7 +120,7 @@ FORM
     DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
     &IF "{&WINDOW-SYSTEM}" <> "TTY"
   &THEN VIEW-AS DIALOG-BOX &ENDIF
-  TITLE "PROGRESS DB to ODBC Conversion".
+  TITLE "{&PRO_DISPLAY_NAME} DB to ODBC Conversion".
 
 FORM
   wait FORMAT "x" LABEL
@@ -151,12 +152,11 @@ END PROCEDURE.
    IF codb_type BEGINS "SQL" THEN codb_type = "Sql Server 6".
    IF LOOKUP(input codb_type, odbctypes) = 0 THEN DO:
      MESSAGE "THE DBMS types that are supported are: " SKIP  
-       "  Sybase, DB2, Informix, Other(MS Access), Other(Generic)" SKIP (1)
+       "  Sybase, DB2, Other(MS Access), Other(Generic)" SKIP (1)
         VIEW-AS ALERT-BOX ERROR.
      RETURN NO-APPLY.
    END.
    IF input codb_type BEGINS "DB2" OR
-      input codb_type BEGINS "Informix" OR
       input codb_type BEGINS "MS Acc" OR
       input codb_type BEGINS "MSAcc" OR
       input codb_type BEGINS "Oth"  THEN 
@@ -211,7 +211,6 @@ END PROCEDURE.
  ON VALUE-CHANGED of odb_type IN FRAME x OR
     LEAVE of odb_type IN FRAME x DO :
    IF odb_type:screen-value BEGINS "DB2" OR
-      odb_type:screen-value BEGINS "Informix" OR
       odb_type:screen-value BEGINS "MS Acc" OR
       odb_type:screen-value BEGINS "Oth" THEN
      ASSIGN pcompatible:screen-value in frame x = "no"
@@ -491,13 +490,13 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
             MESSAGE ERROR-STATUS:GET-MESSAGE(i).
         END.
         IF batch_mode THEN
-           PUT STREAM logfile UNFORMATTED "Unable to connect to Progress database"
+           PUT STREAM logfile UNFORMATTED "Unable to connect to {&PRO_DISPLAY_NAME} database"
            skip.
         ELSE DO:
           &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
-              MESSAGE "Unable to connect to Progress database".
+              MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database".
           &ELSE
-             MESSAGE "Unable to connect to Progress database" 
+             MESSAGE "Unable to connect to {&PRO_DISPLAY_NAME} database" 
              VIEW-AS ALERT-BOX ERROR.
           &ENDIF
         END.            
@@ -536,7 +535,7 @@ DO ON ERROR UNDO main-blk, RETRY main-blk:
   OUTPUT STREAM logfile TO VALUE(output_file) NO-ECHO NO-MAP UNBUFFERED. 
   logfile_open = true. 
   IF pro_dbname = "" OR pro_dbname = ? THEN DO:
-    PUT STREAM logfile UNFORMATTED "Progress Database name is required." SKIP.
+    PUT STREAM logfile UNFORMATTED "{&PRO_DISPLAY_NAME} Database name is required." SKIP.
     ASSIGN err-rtn = TRUE.
   END.
   IF odb_type = "" OR odb_type = ? THEN DO:

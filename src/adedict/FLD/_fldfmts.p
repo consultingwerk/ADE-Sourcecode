@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@ Date Created: 10/20/92
 
 Modified:
     hutegger    03/97   changed a view phrases to shorten and correct
+    fernando    06/06/06 added format example for int64
 
 ----------------------------------------------------------------------------*/
 
@@ -83,6 +84,14 @@ Define var int_desc as char extent {&NUM_INT_FMTS} NO-UNDO init
      "8 digit # with thousand separators",
      "6 digit #, leading zeroes replaced with blanks",
      "Signed 3 digit #, with at least 2 digits displayed"
+   ].
+
+&global-define NUM_INT64_FMTS  1
+Define var int64_fmts as char extent {&NUM_INT64_FMTS} NO-UNDO init
+   [ "->,>>>,>>>,>>9"].
+
+Define var int64_desc as char extent {&NUM_INT4_FMTS} NO-UNDO init
+   [ "Signed (if neg.), 10 digit #, leading 0's suppressed"
    ].
 
 &global-define NUM_DEC_FMTS  6
@@ -259,11 +268,19 @@ case p_Type:
    	 rule = "X N A ! 9 (n) <any fill characters you want>."
    	 frame fmt_examples:title = "Format Examples for Character Data Type".
    end.
-   when {&DTYPE_INTEGER} then 
+   when {&DTYPE_INTEGER} OR WHEN {&DTYPE_INT64} THEN 
    do:
       do ix = 1 to {&NUM_INT_FMTS}:
-   	 s_Res = hlist:add-last(STRING(int_fmts[ix],"x(17)") + int_desc[ix]).
+   	     s_Res = hlist:add-last(STRING(int_fmts[ix],"x(17)") + int_desc[ix]).
       end.
+
+      /* add the specific int64 formats */
+      IF p_Type = {&DTYPE_INT64} THEN DO:
+          do ix = 1 to {&NUM_INT64_FMTS}:
+              s_Res = hlist:add-last(STRING(int64_fmts[ix],"x(17)") + int64_desc[ix]).
+          END.
+      END.
+
       assign
       	 rule = "<leading string> ( ) + - , > < 9 Z * . DB CR DR " +
       	        "<trailing string>"

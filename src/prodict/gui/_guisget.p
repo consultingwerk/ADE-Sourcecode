@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -49,6 +33,7 @@ History:
                             1. commit transaction; 
                             2. call this routine again
     D. McMann   02/21/03    Replaced GATEWAYS with DATASERVERS
+    fernando    02/17/06    Handle V9 db's - don't let user select them - 20050510-008
 ----------------------------------------------------------------------------*/
 /* This whole file should be used only on GUI, but in case it gets compiled
 for TTY mode, let's just turn it into a big empty file */
@@ -86,7 +71,7 @@ DEFINE VARIABLE version AS CHARACTER NO-UNDO.
 
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 22 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 23 NO-UNDO INITIAL [
   /*  1*/ "Are you sure that you want to disconnect database",
   /*  2*/ "Nothing was disconnected.",
   /*  3*/ "Cannot disconnect a database if it is not connected.",
@@ -103,11 +88,15 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 22 NO-UNDO INITIAL [
   /* 19*/ "This copy of PROGRESS does not support database type",
   /* 20*/ "There are no databases connected for you to disconnect.",
   /* 21*/ "You have to leave Fast Track before disconnecting a database",
-  /* 22*/ "Would you like to connect it?"
+  /* 22*/ "Would you like to connect it?",
+  /* 23*/ "is the only selectable database connected - it is already selected."
 ].
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
 &GLOBAL-DEFINE LSTHEAD_AT 2.3
+
+FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER) FORWARD.
+
 
 FORM
 /*---TTY layout 05/11/93 -------------------------------------------------
@@ -152,13 +141,11 @@ do:
    do:
       item = dlist:screen-value IN FRAME schema_stuff.
       choice = dlist:LOOKUP(item) IN FRAME schema_stuff.
-      if  index(cache_db_t[choice],"/V5") <> 0
-       or index(cache_db_t[choice],"/V6") <> 0
-       or index(cache_db_t[choice],"/V7") <> 0
-       or index(cache_db_t[choice],"/V8") <> 0
-    /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[choice])*/
+      if isOlderDBVersion(choice)
       then do:
-      	 message new_lang[15] PROVERSION new_lang[16] version new_lang[17] /* cannot use V5/V6/V7/V8 db */
+      	 message new_lang[15] PROVERSION new_lang[16] 
+      	   /*version*/ ("V" + DBVERSION(cache_db_s[choice]))
+          new_lang[17] /* cannot use V5/V6/V7/V8 db */
       	    view-as alert-box error buttons ok.
       	 return NO-APPLY.
       end.
@@ -204,12 +191,7 @@ END.
 
 DO i = 1 TO cache_db#:
   IF cache_db_l[i] = user_dbname AND old_db = ? THEN old_db = i.
-  IF  index(cache_db_t[i],"/V5") <> 0
-   or index(cache_db_t[i],"/V6") <> 0
-   or index(cache_db_t[i],"/V7") <> 0
-   or index(cache_db_t[i],"/V8") <> 0
-   /*CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[i])*/
-   THEN oldbs = oldbs + 1.
+  IF  isOlderDBVersion(i)  THEN oldbs = oldbs + 1.
    version = "V" + DBVERSION(cache_db#).
 END.
 
@@ -243,15 +225,40 @@ IF old_db <> ? AND user_env[1] = "new" THEN
   choice = old_db.
 ELSE
 */
+
 IF cache_db# = 1 AND NOT look THEN DO:
   choice = 1.
+  
   IF user_env[1] = "get" THEN 
     MESSAGE cache_db_l[1] new_lang[13] /* only 1 db to choose */
       VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+      
   IF cache_db_l[1] <> olname AND
     (user_env[1] = "new"
     OR (user_env[1] = "sys" AND user_dbname <> cache_db_l[1])) THEN
     MESSAGE new_lang[14] '"' + cache_db_l[1] + '"'. /* auto-switch to db... */
+END.
+ELSE IF ((cache_db# - oldbs) = 1) AND NOT look THEN DO:
+
+  /* check if we only have one db that can be selected, for instance, if you have
+     a db from an older version and a db from the current release, then you can only
+     select the current version db. We do that only if the user is trying to select
+     a different database, or it's a db that just got connected.
+  */
+  IF (user_env[1] = "get" AND user_dbname <> "") OR user_env[1] = "new" THEN DO:
+     /* there is only 1 db that can be selected - find out which one */      
+     choice = 1.
+
+     DO WHILE isOlderDBVersion(choice) AND choice <= cache_db#:
+           choice = choice + 1.
+     END.
+    
+     /* message is only needed if the user is trying to select a db */
+     IF user_env[1] = "get" THEN
+         MESSAGE cache_db_l[choice] new_lang[23] /* only 1 selectable db */
+                VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+  END.
+  
 END.
 
 IF choice = ? THEN
@@ -274,6 +281,7 @@ DO:
    
    /* Fill the select list of dbs with values from the cache. */
    DO ix = 1 TO cache_db#:
+   
       item = (STRING(SUBSTR(cache_db_l[ix],1,13,"character"), "x(14)") + 
 	      STRING(IF cache_db_p[ix] = ? 
       	       	     	THEN "" 
@@ -341,7 +349,8 @@ IF is_dis THEN _discon: DO: /*-----------------------------*/ /* disconnect */
     DO i = 1 TO cache_db#:
       IF  ( cache_db_l[i] <> dbpick
         OR  cache_db_t[i] <> "PROGRESS" )
-        AND cache_db_s[i] <> dbpick       
+        AND cache_db_s[i] <> dbpick AND
+        NOT isOlderDBVersion(i)       
         THEN j = j + 1.
     END.
 
@@ -351,6 +360,7 @@ IF is_dis THEN _discon: DO: /*-----------------------------*/ /* disconnect */
 END. /*---------------------------------------------------------------------*/
 ELSE
 DO: /*---------------------------------------------------------*/ /* select */
+
   ASSIGN
     user_dbname   = dbpick
     user_dbtype   = cache_db_t[choice]
@@ -380,5 +390,19 @@ END. /*---------------------------------------------------------------------*/
 
 HIDE FRAME schema_stuff NO-PAUSE.
 
+
+FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
+
+  IF index(cache_db_t[pos],"/V5") <> 0
+   or index(cache_db_t[pos],"/V6") <> 0
+   or index(cache_db_t[pos],"/V7") <> 0
+   or index(cache_db_t[pos],"/V8") <> 0
+   or index(cache_db_t[pos],"/V9") <> 0 THEN  
+   /*(CAN-DO("PROGRESS/V5,PROGRESS/V6,PROGRESS/V7,PROGRESS/V8",cache_db_t[pos])*/
+     RETURN YES.
+   ELSE 
+     RETURN NO.
+   
+END FUNCTION.
 
 &ENDIF /*"{&WINDOW-SYSTEM}" <> "TTY"*/

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*------------------------------------------------------------------------
 
   File: adeuib/_coledit.p
@@ -260,6 +260,8 @@ DEFINE BUTTON b_fnt      IMAGE-UP FILE "adeicon/font1-u"  FROM X 5 Y 4
                          TOOLTIP "Font"               SIZE-PIXELS 34 BY 34.
 DEFINE BUTTON b_attr     IMAGE-UP FILE "adeicon/trans-u"  FROM X 5 Y 4
                          TOOLTIP "Translation Attributes" SIZE-PIXELS 34 BY 34.
+DEFINE BUTTON b_view-as  IMAGE-UP FILE "adeicon/viewas.gif"
+                         TOOLTIP "View-as"            SIZE-PIXELS 30 BY 30.
 DEFINE BUTTON b_frm-hlp  LABEL "For&mat Help..."      SIZE 15 BY 1.125.
 DEFINE BUTTON b_lbl-clr  IMAGE-UP FILE "adeicon/color1-u" FROM X 4 Y 4
                          TOOLTIP "Label Color"        SIZE-PIXELS 34 BY 34.
@@ -289,7 +291,7 @@ DEFINE VAR col-attrs-lbl     AS CHARACTER INITIAL "Column Attributes":U
                       VIEW-AS TEXT SIZE 16.9 BY .76 FORMAT "X(20)"     NO-UNDO.
 DEFINE VAR data_type         AS CHARACTER INITIAL "Character":U FORMAT "x(20)"
                       VIEW-AS COMBO-BOX INNER-LINES 6
-                      LIST-ITEMS "Character","Date","DateTime","DateTime-Tz","Decimal","Integer","Logical"
+                      LIST-ITEMS "Character","Date","DateTime","DateTime-Tz","Decimal","Integer","INT64","Logical"
                       SIZE 37 BY 1 NO-UNDO.
 DEFINE VAR width-lbl         AS CHARACTER INITIAL "Width":U 
                       VIEW-AS TEXT SIZE 7 BY .76                       NO-UNDO.
@@ -380,9 +382,10 @@ DEFINE FRAME bc-editor
      b_enable AT ROW 13.95 COL 42.5
      b_disable AT ROW 15.15 COL 42.5
      col-attrs-lbl AT ROW 1.2 COL 69 NO-LABEL
-     b_clr AT ROW 2.15 COL 76 NO-LABEL
-     b_fnt AT ROW 2.15 COL 90 NO-LABEL
-     b_attr AT ROW 2.15 COL 104 NO-LABEL
+     b_clr AT ROW 2.15 COL 73 NO-LABEL
+     b_fnt AT ROW 2.15 COL 84 NO-LABEL
+     b_attr AT ROW 2.15 COL 95 NO-LABEL
+     b_view-as AT ROW 2.15 COL 106 NO-LABEL
      column-rect AT ROW 4.4 COL 69
      label-lbl AT ROW 3.95 COL 70 NO-LABEL
      _BC._DISP-NAME AT ROW 4.72 COL 70 VIEW-AS FILL-IN NATIVE
@@ -474,6 +477,7 @@ ON VALUE-CHANGED OF data_type IN FRAME bc-editor DO:
     WHEN "Logical"       THEN bcFormat = "Yes/No":U.
     WHEN "Character":U   THEN bcFormat = "X(8)":U.
     WHEN "Integer":U     THEN bcFormat = "->,>>>,>>9":U.
+    WHEN "INT64":U       THEN bcFormat = "->,>>>,>>>,>>9":U.
     WHEN "Decimal":U     THEN bcFormat = "->>,>>9.99":U.
     WHEN "Date":U        THEN bcFormat = "99/99/99":U.
     WHEN "DateTime":U    THEN bcFormat = "99/99/9999 HH:MM:SS.SSS":U.
@@ -715,7 +719,8 @@ ON LEAVE OF _BC._DISP-NAME IN FRAME bc-editor DO:
   END. /* AVAILABLE x_BC */
 END. /* LEAVE of _DISP-NAME */
 
-ON VALUE-CHANGED OF bcformat IN FRAME bc-editor DO:
+ON VALUE-CHANGED OF bcformat IN FRAME bc-editor
+DO:
   DEFINE VARIABLE tmp-string AS CHARACTER                  NO-UNDO.
 
   RUN setWidth.ip (INPUT "Yes").
@@ -771,6 +776,7 @@ ON LEAVE OF bcformat IN FRAME bc-editor DO:
                          ELSE IF x_BC._DATA-TYPE = "datetime-tz" THEN 40
                          ELSE IF x_BC._DATA-TYPE BEGINS "date"   THEN 2
                          ELSE IF x_BC._DATA-TYPE BEGINS "log"    THEN 3
+                         ELSE IF x_BC._DATA-TYPE EQ "INT64"      THEN 41
                          ELSE 4.
             RUN adecomm/_chkfmt.p (dataType,"","",scrVal,
                              OUTPUT counter, OUTPUT lError).
@@ -1197,6 +1203,74 @@ ON CHOOSE OF b_attr DO:
    RUN adeuib/_attredt.w (INPUT _U._HANDLE, INPUT RECID(_BC)).
 END. /* Choose of b_attr */
 
+ON CHOOSE OF b_view-as DO:
+DEFINE VARIABLE cColumnType           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnDelimiter      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnItems          AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnItemPairs      AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnInnerLines     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnMaxChars       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnSort           AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnAutoCompletion AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cColumnUniqueMatch    AS CHARACTER NO-UNDO.
+
+DEFINE VARIABLE cCancel AS LOGICAL     NO-UNDO.
+
+DEFINE VARIABLE isSourceDataView AS LOGICAL     NO-UNDO.
+
+ASSIGN isSourceDataView = VALID-HANDLE(p_hSmartData) AND DYNAMIC-FUNCTION('getObjectType':U IN p_hSmartData) = "SmartDataObject":U AND
+                                                         NOT DYNAMIC-FUNCTION('getDBAware':U IN p_hSmartData)
+       cColumnDelimiter      = IF _BC._VIEW-AS-DELIMITER = "," THEN "?" ELSE _BC._VIEW-AS-DELIMITER
+       cColumnItems          = IF _BC._VIEW-AS-ITEMS = ? THEN "" ELSE _BC._VIEW-AS-ITEMS
+       cColumnItemPairs      = IF _BC._VIEW-AS-ITEM-PAIRS = ? THEN "" ELSE _BC._VIEW-AS-ITEM-PAIRS
+       cColumnInnerLines     = STRING(IF _BC._VIEW-AS-INNER-LINES = 0 THEN 5 ELSE _BC._VIEW-AS-INNER-LINES)
+       cColumnMaxChars       = STRING(_BC._VIEW-AS-MAX-CHARS)
+       cColumnSort           = IF _BC._VIEW-AS-SORT THEN "Y":U ELSE "?"
+       cColumnAutoCompletion = IF _BC._VIEW-AS-AUTO-COMPLETION THEN "Y":U ELSE "?"
+       cColumnUniqueMatch    = IF _BC._VIEW-AS-UNIQUE-MATCH THEN "Y":U ELSE "?".
+
+CASE _BC._VIEW-AS-TYPE:
+    WHEN "Toggle-box":U     THEN ASSIGN cColumnType = "TB":U.
+    WHEN "DROP-DOWN":U      THEN ASSIGN cColumnType = "DD":U.
+    WHEN "DROP-DOWN-LIST":U THEN ASSIGN cColumnType = "DDL":U.
+    OTHERWISE ASSIGN cColumnType = "Fill-in":U.
+END CASE.
+
+RUN adecomm/_viewasd.w (INPUT IF isSourceDataView THEN _BC._DISP-NAME ELSE _BC._NAME,
+                        INPUT _BC._DATA-TYPE,
+                        INPUT IF _BC._FORMAT = ? OR _BC._FORMAT = "" THEN _BC._DEF-FORMAT ELSE _BC._FORMAT,
+                        INPUT IF _P.static_object THEN "STATIC":U ELSE "SmartDataBrowser":U,
+                        INPUT-OUTPUT cColumnType,
+                        INPUT-OUTPUT cColumnDelimiter,
+                        INPUT-OUTPUT cColumnItems,
+                        INPUT-OUTPUT cColumnItemPairs,
+                        INPUT-OUTPUT cColumnInnerLines,
+                        INPUT-OUTPUT cColumnMaxChars,
+                        INPUT-OUTPUT cColumnSort,
+                        INPUT-OUTPUT cColumnAutoCompletion,
+                        INPUT-OUTPUT cColumnUniqueMatch,
+                        OUTPUT cCancel).
+
+IF cCancel = TRUE THEN
+    RETURN NO-APPLY.
+
+CASE cColumnType:
+    WHEN "DD":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN":U.
+    WHEN "DDL":U THEN ASSIGN _BC._VIEW-AS-TYPE = "DROP-DOWN-LIST":U.
+    WHEN "TB":U  THEN ASSIGN _BC._VIEW-AS-TYPE = "TOGGLE-BOX":U.
+    OTHERWISE ASSIGN _BC._VIEW-AS-TYPE = "FILL-IN".
+END CASE.
+
+ASSIGN _BC._VIEW-AS-DELIMITER       = IF cColumnDelimiter = ? OR cColumnDelimiter = "" THEN "," ELSE cColumnDelimiter
+       _BC._VIEW-AS-ITEMS           = IF cColumnItems = "" THEN ? ELSE cColumnItems
+       _BC._VIEW-AS-ITEM-PAIRS      = IF cColumnItemPairs = "" THEN ? ELSE cColumnItemPairs
+       _BC._VIEW-AS-INNER-LINES     = INT(cColumnInnerLines)
+       _BC._VIEW-AS-MAX-CHARS       = INT(cColumnMaxChars)
+       _BC._VIEW-AS-SORT            = IF cColumnSort = "Y":U THEN TRUE ELSE FALSE
+       _BC._VIEW-AS-AUTO-COMPLETION = IF cColumnAutoCompletion = "Y":U THEN TRUE ELSE FALSE
+       _BC._VIEW-AS-UNIQUE-MATCH    = IF cColumnUniqueMatch = "Y":U THEN TRUE ELSE FALSE.
+END. /* Choose of b_view-as */
+
 ON CHOOSE OF b_lbl-fnt DO:
   FIND _U WHERE RECID(_U) = _query-u-rec.
   FIND _L WHERE RECID(_L) = _U._lo-recid.
@@ -1246,12 +1320,12 @@ ON CHOOSE OF b_frm-hlp DO:
   END.
 END.
 
- 
+
 ON VALUE-CHANGED OF brw-flds DO:
   DEFINE BUFFER x_BC FOR _BC.
 
   FIND x_BC WHERE RECID(x_BC) = cur-record NO-ERROR.
-  
+
   IF AVAILABLE x_BC THEN DO: 
     cur-record = RECID(_BC). 
     IF isQuery THEN  /* Building a SmartData Object or WebReport */
@@ -1357,7 +1431,7 @@ ON CHOOSE OF b_remove DO:
   cur-record = IF AVAILABLE _BC THEN RECID(_BC) ELSE ?.
   {&OPEN-QUERY-brw-flds}
   
-  ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW, "CONDITIONAL").
+  ASSIGN dummy = brw-flds:SET-REPOSITIONED-ROW(brw-flds:FOCUSED-ROW, "CONDITIONAL":U).
 
   IF cur-record NE ? THEN REPOSITION brw-flds TO RECID cur-record.
   IF AVAILABLE _BC THEN DO:
@@ -1402,14 +1476,17 @@ ASSIGN b_lbl-clr:HEIGHT-P     = icon-hp
        b_clr:WIDTH-P          = icon-wp
        b_fnt:HEIGHT-P         = icon-hp
        b_fnt:WIDTH-P          = icon-wp
-       b_attr:HEIGHT-P         = icon-hp
-       b_attr:WIDTH-P          = icon-wp
+       b_attr:HEIGHT-P        = icon-hp
+       b_attr:WIDTH-P         = icon-wp
+       b_view-as:HEIGHT-P     = icon-hp
+       b_view-as:WIDTH-P      = icon-wp
        enable-rect:HEIGHT-P   = 2.
        
   IF SESSION:PIXELS-PER-COLUMN = 5 AND SESSION:PIXELS-PER-ROW = 21 THEN
     ASSIGN b_clr:X         = b_clr:X - 1
            b_fnt:X         = b_fnt:X - 4
            b_attr:X        = b_attr:X - 4
+           b_view-as:X     = b_view-as:X - 4
            b_lbl-clr:X     = b_clr:X
            b_lbl-fnt:X     = b_fnt:X.
        
@@ -1512,6 +1589,12 @@ THEN FRAME bc-editor:PARENT = CURRENT-WINDOW.
 /* Add Trigger to equate WINDOW-CLOSE to END-ERROR                      */
 ON WINDOW-CLOSE OF FRAME bc-editor APPLY "END-ERROR":U TO SELF.
 
+ON END-ERROR OF FRAME bc-editor OR
+   ENDKEY    OF FRAME bc-editor
+DO:
+    IF VALID-HANDLE(p_hSmartData) THEN
+        shutdown-sdo(THIS-PROCEDURE).
+END.
 
 /* Now enable the interface and wait for the exit condition.            */
 /* (NOTE: handle ERROR and END-KEY so cleanup code will always fire.    */
@@ -1767,6 +1850,7 @@ PROCEDURE enable_UI :
            b_clr:HIDDEN       IN FRAME bc-editor = TRUE
            b_fnt:HIDDEN       IN FRAME bc-editor = TRUE
            b_attr:HIDDEN      IN FRAME bc-editor = TRUE
+           b_view-as:HIDDEN   IN FRAME bc-editor = TRUE
            b_lbl-clr:HIDDEN   IN FRAME bc-editor = TRUE
            b_lbl-fnt:HIDDEN   IN FRAME bc-editor = TRUE
            b_frm-hlp:HIDDEN   IN FRAME bc-editor = TRUE
@@ -1866,6 +1950,7 @@ PROCEDURE enable_UI :
            b_clr:HIDDEN               IN FRAME bc-editor = FALSE
            b_fnt:HIDDEN               IN FRAME bc-editor = FALSE
            b_attr:HIDDEN              IN FRAME bc-editor = FALSE
+           b_view-as:HIDDEN           IN FRAME bc-editor = FALSE
            b_lbl-clr:HIDDEN           IN FRAME bc-editor = FALSE
            b_lbl-fnt:HIDDEN           IN FRAME bc-editor = FALSE
            b_frm-hlp:HIDDEN           IN FRAME bc-editor = FALSE
@@ -1952,7 +2037,7 @@ PROCEDURE enable_UI :
             WITH FRAME bc-editor.
       ENABLE Flds-in-brws-lbl brw-flds b_mv-up _BC._LABEL b_mv-dn tog_enabled 
              b_remove b_lbl-clr b_lbl-fnt b_add b_enable b_disable b_clr b_fnt 
-             b_attr b_calc-fld WHEN first-rec NE ? _BC._WIDTH _BC._HELP 
+             b_attr b_view-as b_calc-fld WHEN first-rec NE ? _BC._WIDTH _BC._HELP 
              btn_ok btn_cancel btn_help
            WITH FRAME bc-editor.
       IF NOT srcSmartData THEN
@@ -2645,6 +2730,11 @@ PROCEDURE display_bc.ip.
               bcformat 
               _BC._WIDTH 
               _BC._HELP.
+
+      IF CAN-DO("DECIMAL,CHARACTER,INTEGER,INT64,DATE,LOGICAL":U, _BC._DATA-TYPE) THEN
+         ASSIGN b_view-as:SENSITIVE = TRUE.
+      ELSE  ASSIGN b_view-as:SENSITIVE = FALSE.
+
     END.  /* If building a browse of some kind */
   END. /* DO WITH FRAME bc-editor */
 END.  /* Procedure display_bc.ip. */

@@ -221,39 +221,6 @@ FUNCTION getFirstResultRow RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getForeignFields Procedure 
-FUNCTION getForeignFields RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyFields Procedure 
-FUNCTION getKeyFields RETURNS CHARACTER
-  (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getKeyTableId Procedure 
-FUNCTION getKeyTableId RETURNS CHARACTER
-    ( )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getLabel) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getLabel Procedure 
@@ -1220,89 +1187,6 @@ FUNCTION getFirstResultRow RETURNS CHARACTER
   DEFINE VARIABLE cFirstResultRow AS CHARACTER NO-UNDO.
   {get FirstResultRow cFirstResultRow}.
   RETURN cFirstResultRow.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getForeignFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getForeignFields Procedure 
-FUNCTION getForeignFields RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:     Returns the property which holds the mapping of field's in 
-               another DataSource to fields in this SMartDataObject's RowObject 
-               temp-table, to open a dependent query.
-  
-  Parameters:  <none>
-  
-  Notes:       The property format is a comma-separated list, consisting of the
-               first local db fieldname, followed by the matching source 
-               temp-table field name, followed by more pairs if there is more 
-               than one field to match.
-             - Overrides dataview as it always is stored as prop 
-------------------------------------------------------------------------------*/
-DEFINE VARIABLE cFields AS CHARACTER  NO-UNDO.
-
-  &SCOPED-DEFINE xpForeignFields
-  {get ForeignFields cFields}.
-  &UNDEFINE xpForeignFields
-  
-  RETURN cFields.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getKeyFields) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyFields Procedure 
-FUNCTION getKeyFields RETURNS CHARACTER
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns the comma-separated KeyFields property.
-   Params:  none                                    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyFields     AS CHAR  NO-UNDO.
-  
-  /* define the xp temporarily so we can go directly to the property buffer */
-  &SCOPED-DEFINE xpKeyFields 
-  {get KeyFields cKeyFields}.
-  &UNDEFINE xpKeyFields 
-   
-  RETURN cKeyFields.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getKeyTableId) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getKeyTableId Procedure 
-FUNCTION getKeyTableId RETURNS CHARACTER
-    ( ) :
-/*------------------------------------------------------------------------------
-  Purpose: Get the KeyTable identifier (Dynamics FiveLetterAcronym) property
-    Notes: This is a unique Table identifier across databases for all tables 
-           used by the framework  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cKeyTableID AS CHARACTER  NO-UNDO.
-  
-  &SCOPED-DEFINE xpKeyTableId
-  {get KeyTableId cKeyTableId}.
-  &UNDEFINE xpKeyTableId
-
-  RETURN cKeyTableID.
 
 END FUNCTION.
 

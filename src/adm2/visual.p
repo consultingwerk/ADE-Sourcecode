@@ -213,6 +213,17 @@ FUNCTION enableWidget RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fieldSecurityRule) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fieldSecurityRule Procedure 
+FUNCTION fieldSecurityRule RETURNS CHARACTER 
+  ( phWidget AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-formattedWidgetValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD formattedWidgetValue Procedure 
@@ -1233,103 +1244,15 @@ PROCEDURE createObjects :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
-  
   DEFINE VARIABLE lUseRepository              AS LOGICAL              NO-UNDO.
     
-  /* Added NO-ERROR to super call because certain objects do not have a super
-     for createObjects after this point in the stack (it might be called earlier).
-     Toolbars are an example of this.*/
-  RUN SUPER NO-ERROR.
+  {get UseRepository lUseRepository}.
 
-  &SCOPED-DEFINE xp-assign
-  {get AllFieldNames cAllFieldNames}
-  {get EnabledObjFlds cEnabledObjFlds}
-  {get ContainerHandle hFrame}
-  {get ObjectType cObjectType}
-  {get UseRepository lUseRepository}
-  .
-  &UNDEFINE xp-assign 
-  
   IF lUseRepository THEN
     {fn createUiEvents} NO-ERROR.
 
-  /* If AllfieldNames is not set then loop through the widget to build the 
-     property lists. Viewers will build these properties and several other
-     properties in their own widget loop in a createObjects override. */
-  IF cAllFieldNames = '' THEN
-  DO:
-    ASSIGN
-      hField           = hFrame:FIRST-CHILD:FIRST-CHILD
-      /* The order of the lists of handles must match the order of the 
-         DisplayedField and EnabledField properties, so initialise with the 
-         current number of entries */
-      cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
-      .
-    /* widgetloop */
-    DO WHILE VALID-HANDLE(hField): 
-      /* Editor use read-only as disabled */ 
-      IF hField:TYPE = 'EDITOR':U THEN
-        ASSIGN
-          hField:SENSITIVE = TRUE
-          hField:READ-ONLY = TRUE. 
+  RUN updateFieldProperties IN TARGET-PROCEDURE.
   
-      ASSIGN
-        cFieldName = hField:NAME 
-        iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
-  
-      IF iLocal > 0 THEN
-      DO:
-          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
-            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
-          ELSE
-            ASSIGN
-              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                         iLocal,cEnabledObjFlds,',')
-              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
-                                         iLocal,cEnabledObjHdls,',').
-      END.
-      hTarget = hField. 
-      
-      /* Anonymous widgets are not allowed (labels) */
-      IF cFieldName > '' THEN
-        ASSIGN
-          /* V10 will have qualified names here shortname is for v9 */
-          cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
-          cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
-  
-      hField = hField:NEXT-SIBLING.
-    END. /* do while */   
-    
-    ASSIGN
-      cAllFieldNames   = TRIM(cAllFieldNames,",")
-      cAllFieldHandles = TRIM(cAllFieldHandles,",").
-  
-  /* Store the properties */
-    &SCOPED-DEFINE xp-assign
-    {set EnabledObjFlds cEnabledObjFlds}
-    {set EnabledObjHdls cEnabledObjHdls}
-    {set AllFieldHandles cAllFieldHandles}
-    {set AllFieldNames cAllFieldNames}
-    .
-    &UNDEFINE xp-assign
-  END. /* if allfieldnames = '' AND not viewer */
-
   RETURN.
 END PROCEDURE.  /* createObjects */
 
@@ -1524,7 +1447,9 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE iFrame             AS INTEGER   NO-UNDO.
   DEFINE VARIABLE lIsContainer       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lCreated           AS LOGICAL    NO-UNDO.
-    define variable cObjectType            as character                no-undo.
+  DEFINE VARIABLE iPage              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCurrentPage       AS INTEGER    NO-UNDO.
+  define variable cObjectType            as character                no-undo.
     
   /* createObjects for visual mainly class builds property lists 
      most extended classes will already have created objects at this stage
@@ -1608,10 +1533,23 @@ PROCEDURE initializeObject :
   END.       /* END DO IF LayoutVariable */
   
   /* See comments above. */
-  if not can-do('SmartWindow,SmartFrame,SmartDialog', cObjectType) then      
+  if not can-do('SmartWindow,SmartFrame,SmartDialog':U, cObjectType) then      
   DO:
-    {get HideOnInit lHideOnInit}.
-    IF NOT lHideOnInit THEN 
+    &SCOPED-DEFINE xp-assign
+    {get ContainerSource hContainerSource}
+    {get HideOnInit lHideOnInit}
+    {get ObjectPage iPage}
+    .
+    &UNDEFINE xp-assign
+    
+    IF iPage > 0 AND VALID-HANDLE(hContainerSource) THEN
+      {get CurrentPage iCurrentPage hContainersource}. 
+    ELSE /* should not really have page and no container,
+            but just in case make it visible */
+      iCurrentPage = iPage.
+
+    IF NOT lHideOnInit 
+    AND (iPage = 0 OR iPage = iCurrentPage) THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
@@ -1624,6 +1562,7 @@ PROCEDURE initializeObject :
     IF NOT VALID-HANDLE(hContainerSource) THEN 
       ASSIGN hContainerSource = TARGET-PROCEDURE.
     
+    /* If window then this is container class, so get the main frame */
     IF hContainer:TYPE = 'WINDOW':U THEN
       {get WindowFrameHandle hFrame}.
     ELSE 
@@ -2048,6 +1987,122 @@ END PROCEDURE.  /* processEventProcedure */
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-updateFieldProperties) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateFieldProperties Procedure 
+PROCEDURE updateFieldProperties :
+/*------------------------------------------------------------------------------
+  Purpose: update field list properties     
+  Parameters:  none 
+  Notes: No processing takes place if AllFieldNames already is set. 
+       - AllFieldHandles and AllFieldNames are both updated.  
+       - EnabledObjFlds is set before this is called, but entries may be 
+         removed if they are a non supported widget type.
+       - EnabledObjHdls is set from EnabledObjFlds.               
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hFrame             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hField             AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTargets           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iTarget            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hTarget            AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cFrame             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cObjectType        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjFlds    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cEnabledObjHdls    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldNames     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAllFieldHandles   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cFieldName         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iLookup            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lLocal             AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iLocal             AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hChildFrame        AS HANDLE     NO-UNDO.
+  
+  &SCOPED-DEFINE xp-assign
+  {get AllFieldNames cAllFieldNames}
+  {get EnabledObjFlds cEnabledObjFlds}
+  {get ObjectType cObjectType}
+  {get ContainerHandle hFrame}
+  .
+  &UNDEFINE xp-assign 
+    
+  
+  /* If AllfieldNames is not already set then loop through the widget to build 
+     the property lists. Viewers will build these properties and several other
+     properties in their own widget loop in a createObjects override. */
+  IF cAllFieldNames = '':U AND VALID-HANDLE(hFrame) THEN
+  DO:
+    /* If window then this is container class, so get the main frame */
+    IF hFrame:TYPE = "WINDOW":U THEN
+      {get WindowFrameHandle hFrame}.  
+
+    IF VALID-HANDLE(hFrame) THEN
+      ASSIGN
+        hField           = hFrame:FIRST-CHILD:FIRST-CHILD
+        /* The order of the lists of handles must match the order of the 
+           DisplayedField and EnabledField properties, so initialise with the 
+           current number of entries */
+        cEnabledObjHdls  = FILL(",":U, NUM-ENTRIES(cEnabledObjFlds) - 1)
+        .
+ 
+    /* widgetloop */
+    DO WHILE VALID-HANDLE(hField): 
+      IF hField:TYPE <> 'FRAME':U THEN
+      DO:
+        /* Editor use read-only as disabled */ 
+        IF hField:TYPE = 'EDITOR':U THEN
+          ASSIGN
+            hField:SENSITIVE = TRUE
+            hField:READ-ONLY = TRUE. 
+    
+        ASSIGN
+          cFieldName = hField:NAME 
+          iLocal     = LOOKUP(cFieldName, cEnabledObjFlds).
+    
+        IF iLocal > 0 THEN
+        DO:
+          IF LOOKUP(hField:TYPE,"FILL-IN,RADIO-SET,EDITOR,COMBO-BOX,SELECTION-LIST,SLIDER,TOGGLE-BOX,BROWSE,BUTTON":U) > 0 THEN 
+            ENTRY(iLocal, cEnabledObjHdls) = STRING(hField).
+          ELSE
+            ASSIGN
+              cEnabledObjFlds =  DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                          iLocal,cEnabledObjFlds,',')
+              cEnabledObjHdls = DYNAMIC-FUNCTION('deleteEntry' IN TARGET-PROCEDURE,
+                                          iLocal,cEnabledObjHdls,',').
+        END.
+        hTarget = hField. 
+        
+        /* Anonymous widgets are not allowed (labels) */
+        IF cFieldName > '' THEN
+          ASSIGN
+            /* V10 will have qualified names here shortname is for v9 */
+            cAllFieldNames   = cAllFieldnames + ',' + cFieldName 
+            cAllFieldHandles = cAllFieldHandles + ',' + STRING(hTarget). 
+      END. /* not a frame */
+      hField = hField:NEXT-SIBLING.
+    END. /* do while */   
+    
+    ASSIGN
+      cAllFieldNames   = TRIM(cAllFieldNames,",")
+      cAllFieldHandles = TRIM(cAllFieldHandles,",").
+  
+  /* Store the properties */
+    &SCOPED-DEFINE xp-assign
+    {set EnabledObjFlds cEnabledObjFlds}
+    {set EnabledObjHdls cEnabledObjHdls}
+    {set AllFieldHandles cAllFieldHandles}
+    {set AllFieldNames cAllFieldNames}
+    .
+    &UNDEFINE xp-assign
+  END. /* if allfieldnames = '' AND not viewer */
+
+  RETURN.
+END PROCEDURE.  /* createObjects */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 /* ************************  Function Implementations ***************** */
 
 &IF DEFINED(EXCLUDE-assignFocusedWidget) = 0 &THEN
@@ -2069,8 +2124,10 @@ DEFINE VARIABLE lInvalid   AS LOGICAL    NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
-    IF CAN-QUERY(hField, 'FILE-NAME':U) THEN lInvalid = YES.
-    ELSE APPLY 'ENTRY':U TO hField.
+    IF CAN-QUERY(hField, 'FILE-NAME':U) THEN 
+      lInvalid = YES.
+    ELSE 
+      APPLY 'ENTRY':U TO hField.
   END.  /* if valid hField */
   ELSE lInvalid = YES.
 
@@ -2104,8 +2161,12 @@ DEFINE VARIABLE lInvalid         AS LOGICAL    NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
+    /* not allowed if secured  */       
+    IF {fnarg fieldSecurityRule hField hTarget} > '':U THEN
+      lInvalid = TRUE.
+
     /* This is a SmartDataField. Use its setDataValue method. */
-    IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+    ELSE IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
     DO:
       /* Workaround for Issue 9121 - setting the DataValue for a lookup who's 
          displayed field is not the same as its key field does not refresh
@@ -2823,10 +2884,14 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
     IF NUM-ENTRIES(cField, '.':U) = 1 AND cQualifier NE '':U THEN
       cField = cQualifier + cField.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
+        
     IF VALID-HANDLE(hField) THEN
     DO:
+      /* not allowed if secured */ 
+      IF {fnarg fieldSecurityRule hField hTarget} > '':U THEN
+        lInvalid = TRUE.
       /* This is a SmartDataField. Use its enableField function. */
-      IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+      ELSE IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
       DO:  
         RUN enableField IN hField NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
@@ -2900,6 +2965,45 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-fieldSecurityRule) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fieldSecurityRule Procedure 
+FUNCTION fieldSecurityRule RETURNS CHARACTER 
+  ( phWidget AS HANDLE ) :
+/*------------------------------------------------------------------------------
+  Purpose: Check a field name against the FieldSecurity of the object 
+Parameter: phWidget - handle (in order to be used after locateWidget in
+                              the client api)
+    Notes: Considered as Private  - but overidden in browser 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cAllFieldHandles AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSecuredFields   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iPos             AS INTEGER    NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get FieldSecurity cSecuredFields}
+  {get AllFieldHandles cAllFieldHandles}
+  .
+  &UNDEFINE xp-assign
+  
+  iPos = LOOKUP(STRING(phWidget),cAllFieldHandles).
+
+  /* Bad reference */
+  IF iPos = 0 THEN
+    RETURN ?.
+
+  IF iPos <= NUM-ENTRIES(cSecuredFields) THEN
+    RETURN ENTRY(iPos,cSecuredFields).
+  
+  RETURN "":U.  
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-formattedWidgetValue) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION formattedWidgetValue Procedure 
@@ -2918,10 +3022,14 @@ DEFINE VARIABLE hTarget    AS HANDLE     NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
+    /* not allowed if secured as hidden */       
+    IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+      cValue = ?.
+  
     /* This is a SmartDataField. Return its DataValue property.
        Note that this is the underlying "key" value that is meaningful
        to the code, not the "DisplayValue" shown to the user. */
-    IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+    ELSE IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
       {get DataValue cValue hField}.
     ELSE IF CAN-QUERY(hField, 'SCREEN-VALUE':U) THEN  /* Viewer fields */
         cValue = hField:SCREEN-VALUE.
@@ -3958,7 +4066,10 @@ DEFINE VARIABLE lInvalid   AS LOGICAL            NO-UNDO.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
     IF VALID-HANDLE(hField) THEN
     DO:
-      IF pcHighlightType BEGINS 'INFO':U THEN
+      /* not allowed if secured as hidden */       
+      IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+        lInvalid = TRUE.
+      ELSE IF pcHighlightType BEGINS 'INFO':U THEN
       DO:
         &SCOPED-DEFINE xp-assign
         {get ColorInfoBG iBGColor hTarget}
@@ -4142,17 +4253,23 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
     IF VALID-HANDLE(hField) THEN
     DO:
-      {get DataSource hDataSource hTarget}.
-      IF VALID-HANDLE(hDataSource) THEN
+      /* not allowed if secured as hidden */       
+      IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+        lInvalid = TRUE.
+      ELSE
       DO:
-        IF NUM-ENTRIES(cField, '.':U) > 1 THEN
-          cOnlyField = ENTRY(NUM-ENTRIES(cField, '.':U), cField, '.':U).
-        ELSE cOnlyField = cField.
-        cValue = {fnarg columnValue cOnlyField hDataSource}.
-        lInvalid = NOT DYNAMIC-FUNCTION('assignWidgetValue':U IN TARGET-PROCEDURE,
-                                         INPUT cField, INPUT cValue).
-      END.  /* if valid data source */
-      ELSE lInvalid = YES.
+        {get DataSource hDataSource hTarget}.
+        IF VALID-HANDLE(hDataSource) THEN
+        DO:
+          IF NUM-ENTRIES(cField, '.':U) > 1 THEN
+            cOnlyField = ENTRY(NUM-ENTRIES(cField, '.':U), cField, '.':U).
+          ELSE cOnlyField = cField.
+          cValue = {fnarg columnValue cOnlyField hDataSource}.
+          lInvalid = NOT DYNAMIC-FUNCTION('assignWidgetValue':U IN TARGET-PROCEDURE,
+                                           INPUT cField, INPUT cValue).
+        END.  /* if valid data source */
+        ELSE lInvalid = YES.
+      END. /* else (if not secured hidden) */
     END.  /* if valid hField */
     ELSE lInvalid = YES.
   END.  /* END DO iField */
@@ -4238,14 +4355,17 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
     IF VALID-HANDLE(hField) THEN
     DO:
-      IF CAN-QUERY(hField, 'RADIO-BUTTONS':U) THEN
+      IF {fnarg fieldSecurityRule hField hTarget} > '':U THEN
+        lInvalid = TRUE.
+      ELSE IF CAN-QUERY(hField, 'RADIO-BUTTONS':U) THEN
       DO:
         cLabel = ENTRY((piButtonNum * 2) - 1, hField:RADIO-BUTTONS, hField:DELIMITER) NO-ERROR.
         IF ERROR-STATUS:ERROR THEN lInvalid = YES.
         ELSE DO:
           IF plEnable THEN hField:ENABLE(cLabel) NO-ERROR.
           ELSE hField:DISABLE(cLabel) NO-ERROR.
-          IF ERROR-STATUS:ERROR THEN lInvalid = YES.
+          IF ERROR-STATUS:ERROR THEN 
+            lInvalid = YES.
         END.  /* else no error */
       END.  /* if can query radio buttons */
       ELSE lInvalid = YES.
@@ -4846,9 +4966,13 @@ DEFINE VARIABLE lInvalid              AS LOGICAL    NO-UNDO.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
     IF VALID-HANDLE(hField) THEN
     DO:
-      IF CAN-QUERY(hField, 'SCREEN-VALUE':U) AND 
-         CAN-QUERY(hField, 'DATA-TYPE':U) AND 
-         hField:DATA-TYPE = 'LOGICAL':U THEN
+      /* not allowed if secured as hidden */       
+      IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+        lInvalid = TRUE.
+
+      ELSE IF CAN-QUERY(hField, 'SCREEN-VALUE':U) 
+      AND CAN-QUERY(hField, 'DATA-TYPE':U) 
+      AND hField:DATA-TYPE = 'LOGICAL':U THEN
       DO:
 
         ASSIGN 
@@ -4915,8 +5039,12 @@ DEFINE VARIABLE lInvalid   AS LOGICAL    NO-UNDO.
     RUN locateWidget IN TARGET-PROCEDURE (INPUT cField, OUTPUT hField, OUTPUT hTarget).
     IF VALID-HANDLE(hField) THEN
     DO:
+       /* not allowed if secured as hidden */       
+      IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+        lInvalid = TRUE.
+
       /* This is a SmartDataField. */
-      IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+      ELSE IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
         RUN viewObject IN hField.
       ELSE IF CAN-SET(hField, 'HIDDEN':U) THEN  /* Viewer fields */
       DO:
@@ -5007,6 +5135,10 @@ Parameter: pcColumn - column name (comma-separated list)
     
     /* If the widget is not valid then return unknown. */
     IF NOT VALID-HANDLE(hField) THEN RETURN ?.    
+    
+    /* not allowed if secured as hidden */       
+    IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+      RETURN ?.
     
     /* This is a SmartDataField, check its DataValue */
     IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
@@ -5154,8 +5286,11 @@ DEFINE VARIABLE lValue                AS LOGICAL    NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
-    IF CAN-QUERY(hField, 'DATA-TYPE':U) AND 
-       hField:DATA-TYPE = 'LOGICAL':U THEN
+    /* not allowed if secured as hidden */       
+    IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+      lValue = ?.
+    ELSE IF CAN-QUERY(hField, 'DATA-TYPE':U) 
+    AND hField:DATA-TYPE = 'LOGICAL':U THEN
     DO:
       IF CAN-QUERY(hField, 'INPUT-VALUE':U) THEN
       DO:
@@ -5208,11 +5343,15 @@ DEFINE VARIABLE hTarget    AS HANDLE     NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
-    IF hField:DATA-TYPE = 'LONGCHAR' THEN
+    /* not allowed if secured as hidden */       
+    IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
+      cValue = ?.
+
+    ELSE IF hField:DATA-TYPE = 'LONGCHAR':U THEN
       cValue = hField:INPUT-VALUE.
 
     ELSE 
-      cValue = DYNAMIC-FUNCTION('widgetValue' IN TARGET-PROCEDURE,pcName).
+      cValue = DYNAMIC-FUNCTION('widgetValue':U IN TARGET-PROCEDURE,pcName).
                                  
   END.  /* if hField valid */
   ELSE cValue = ?.
@@ -5278,19 +5417,23 @@ DEFINE VARIABLE hTarget    AS HANDLE     NO-UNDO.
   RUN locateWidget IN TARGET-PROCEDURE (INPUT pcName, OUTPUT hField, OUTPUT hTarget).
   IF VALID-HANDLE(hField) THEN
   DO:
-    /* This is a SmartDataField. SmartDataFields do not have a standard
-       function for returning an unformatted value so nothing is returned. */
-    IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+    /* not allowed if secured as hidden */       
+    IF {fnarg fieldSecurityRule hField hTarget} = 'Hidden':U THEN
       cValue = ?.
+    ELSE IF CAN-QUERY(hField, 'FILE-NAME':U) THEN
+      cValue = {fn getDataValue hField}.
     ELSE IF CAN-QUERY(hField, 'INPUT-VALUE':U) THEN  /* Viewer fields */
     DO:
       cValue = hField:INPUT-VALUE NO-ERROR.
       /* INPUT-VALUE will return a 4GL error if the value is blank and the format does not
          allow blank.  If there is an error, check if the widget is blank and if so return blank */
       IF ERROR-STATUS:ERROR THEN
-        IF DYNAMIC-FUNCTION('widgetIsBlank':U IN hTarget,
-                            INPUT ENTRY(NUM-ENTRIES(pcName, '.':U), pcName, '.':U)) THEN cValue = '':U.
-        ELSE cValue = ?.
+      DO:
+        IF DYNAMIC-FUNCTION('widgetIsBlank':U IN hTarget,pcName) THEN 
+          cValue = '':U.
+        ELSE 
+          cValue = ?.
+      END.
     END.  /* if can query input-value - viewer */
     /* If cannot query INPUT-VALUE then this is a browser and we are in the middle of a 
        ROW-DISPLAY trigger so we must use the buffer instead */

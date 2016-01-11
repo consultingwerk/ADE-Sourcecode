@@ -1,9 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+*Copyright (C) 2005 by Progress Software Corporation.                     *
+*All rights reserved.  Prior versions of this work may contain portions   *
+*contributed by participants of Possenet.                                 *
+**************************************************************************/
 /*
 Procedure:    adecomm/_about.p
 Author:       R. Ryan

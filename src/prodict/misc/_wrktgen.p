@@ -21,7 +21,7 @@ run on another database to define those tables.
   user_env[7] = support DEFAULT <init value>
   user_env[8] = xlat "-" -> "_", "%" -> "_", Append "_" to reserved words
   user_env[9] = userid
-  user_env[10] = Maximun size of Varchar for MS SQL Server 7
+  user_env[10] = Maximun size of Varchar for MS SQL Server 7 
   user_env[11..18] = a string of how to convert PROGRESS datatypes to SQL:
          [11] = character -> char, character, vchar, varchar, long char
          [12] = date      -> date, datetime
@@ -58,7 +58,8 @@ run on another database to define those tables.
                       "n" = Use VARCHAR(30) for "x(8)" fields
                       "?" = Use field format
   user_env[34] = name of tablespace for tables for Oracle only. Or DB2 db type.
-  user_env[35] = name of tablespace for indexes for Oracle only.
+  user_env[35] = name of tablespace for indexes for Oracle only. For MSS, whether to expand
+                 the field width (for Unicode).
 */
 /*
 HISTORY:
@@ -165,6 +166,7 @@ prevent future-bugs resulting out of default behaviour <hutegger>
   kmcintos 02/15/05   Added "DB2" to case statement.  Fixed bug # 20050214-020.
   kmcintos 02/28/05   Added cases for user_env[33] (Field width/x8override)
   fernando 01/04/06   Handle decimals for DB2/400 20051214-009
+  fernando 06/26/06   Added support for int64
 
 If working with an Oracle Database and the user wants to have a DEFAULT value of blank for VARCHAR2 fields, an environment variable BLANKDEFAULT can be set to "YES" and the code will put the DEFAULT ' ' syntax on the definition. D. McMann 11/27/02    
     
@@ -177,7 +179,7 @@ DEFINE VARIABLE a                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE c                   AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE e                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE f                   AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE i                   AS INTEGER    NO-UNDO.
+DEFINE VARIABLE i                   AS INT64      NO-UNDO.
 DEFINE VARIABLE j                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE k                   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE ri                  AS INTEGER    NO-UNDO.
@@ -221,8 +223,8 @@ DEFINE VARIABLE tmp_str             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE tmpfile             AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE l_seq-num           AS INTEGER    NO-UNDO.
-DEFINE VARIABLE start               AS INTEGER    NO-UNDO.
-DEFINE VARIABLE limit               AS INTEGER    NO-UNDO.
+DEFINE VARIABLE start               AS INT64      NO-UNDO.
+DEFINE VARIABLE limit               AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE logfile_name        AS CHARACTER  NO-UNDO. 
 DEFINE VARIABLE codefile_name       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE warnings_issued     AS LOGICAL    NO-UNDO INITIAL FALSE.
@@ -239,8 +241,10 @@ DEFINE VARIABLE slash               AS INTEGER    NO-UNDO.
 DEFINE VARIABLE unsprtdt            AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE dot                 AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cTmpFmt             AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE large_seq           AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lUniExpand          AS LOGICAL    NO-UNDO INITIAL FALSE.
 
-DEFINE NEW SHARED VARIABLE crnt-vals AS INTEGER EXTENT 2000 init 0 NO-UNDO.
+DEFINE NEW SHARED VARIABLE crnt-vals AS INT64 EXTENT 2000 init 0 NO-UNDO.
 
 DEFINE TEMP-TABLE verify-name NO-UNDO
   FIELD new-name LIKE _Field._Field-name
@@ -347,6 +351,8 @@ IF user_env[22] = "ODBC" OR user_env[22] = "MSS" THEN DO:
   /* 20051214-009 DB2 type is in user_env[34] */
   IF user_env[22] = "ODBC" THEN
      assign db2type = user_env[34].
+  ELSE
+     ASSIGN lUniExpand = (user_env[35] = "y").
 END.
 ELSE
   ASSIGN dbtyp = user_env[22]
@@ -355,9 +361,16 @@ ELSE
 CASE dbtyp:
   WHEN "ORACLE" THEN DO:
     prowid_col = "progress_recid".
-    IF user_env[18] = "VARCHAR2" THEN
-       ASSIGN longwid = 4000
-             user_env[18] = "long".
+
+    IF user_env[18] = "VARCHAR2" /*OR user_env[18] = "NVARCHAR2"*/ THEN DO:
+        /* the max size for nvarchar2 columns is stored in user_env[10] */
+        /*IF user_env[18] = "NVARCHAR2" THEN
+           ASSIGN longwid = integer(user_env[10]).
+        ELSE  */
+           ASSIGN longwid = 4000.
+
+       ASSIGN user_env[18] = "long".
+    END.
     ELSE
        ASSIGN longwid = 2000
               user_env[18] = "long".
@@ -520,13 +533,17 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
         IF z = 0 THEN                    
            ASSIGN z = lngth.    
       END.
+      
+      IF lUniExpand THEN
+          z = z * 2.
+
       IF z > longwid THEN 
         ASSIGN col_long_count = col_long_count + 1.
     END.
     ELSE IF DICTDB._Field._Dtype = 8 THEN
          ASSIGN col_long_count = col_long_count + 1.
     
-    IF dbtyp <> "PROGRESS" THEN DO: 
+    IF dbtyp <> "PROGRESS" AND DICTDB._Field._Dtype NE 41 /*int64*/ THEN DO: 
       IF dbtyp <>  "ORACLE" AND DICTDB._Field._Dtype > 17 THEN
         ASSIGN unsprtdt = TRUE.
       ELSE IF dbtyp = "ORACLE" AND DICTDB._Field._Dtype > 18 THEN     
@@ -856,6 +873,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           IF j = 8 AND sqlwidth = FALSE THEN j = minwdth.
         END.
 
+        IF lUniExpand THEN
+            j = j * 2.
+
         IF j > longwid THEN
              i = 8. /* long char */
         ELSE
@@ -973,7 +993,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       /* Oracle and the RAW data type must be recognized so that proper one 
         is put into the script.  They are also supporting BLOBS.
       */
-      IF dbtyp = "ORACLE" AND (DICTDB._Field._Dtype = 8 OR DICTDB._Field._Dtype > 17 )  THEN DO: 
+      IF dbtyp = "ORACLE" AND (DICTDB._Field._Dtype = 8 OR DICTDB._Field._Dtype > 17 ) 
+          AND DICTDB._Field._Dtype NE 41 /*int64 */ THEN DO: 
         IF DICTDB._Field._Dtype = 8 THEN
           PUT STREAM code UNFORMATTED
            comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) 
@@ -1000,10 +1021,23 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           ELSE IF DICTDB._Field._Dtype = 40 THEN
             PUT STREAM CODE UNFORMATTED
             comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) " datetime-tz".
+          ELSE IF DICTDB._Field._Dtype = 41 THEN
+            PUT STREAM CODE UNFORMATTED
+            comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) " int64".
       END.
-      ELSE IF DICTDB._Field._Dtype > 17 AND dbtyp <> "PROGRESS" THEN 
-        PUT STREAM CODE UNFORMATTED
-            comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.       
+      ELSE IF DICTDB._Field._Dtype > 17 AND dbtyp <> "PROGRESS" THEN DO:
+        IF DICTDB._Field._Dtype EQ 41 /*int64 */ THEN DO:
+            PUT STREAM code UNFORMATTED
+             comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) 
+                /* extent unrolling */
+             " "  (IF dbtyp = "ORACLE" THEN "number" ELSE "bigint")
+                /*char,date,log,int,deci,deci0,recid,lchar,tinyint*/
+             c. /* (n,m) */
+        END.
+        ELSE
+           PUT STREAM CODE UNFORMATTED
+               comment_chars "  " n2 " UNSUPPORTED-" DICTDB._Field._Data-type.       
+      END.
       ELSE     
         PUT STREAM code UNFORMATTED
          comment_chars "  " n2 (IF e = 0 THEN "" ELSE unik + STRING(e)) 
@@ -1114,7 +1148,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       ELSE IF (dbtyp = "SYBASE" OR dbtyp = "MS SQL Server" OR 
               dbtyp = "MSSQLSRV7") AND NOT unsprtdt THEN 
         PUT STREAM code UNFORMATTED
-          (if DICTDB._Field._Mandatory or user_env[i + 10] = "bit" 
+          (if DICTDB._Field._Mandatory OR (i NE 41 /*int64 */ AND user_env[i + 10] = "bit") 
            then " not null" else " null").
     END.     
   END. /* FOR EACH DICTDB._Field OF DICTDB._File BREAK BY DICTDB._Field._Order */
@@ -1152,16 +1186,14 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   IF compatible THEN DO: 
     IF dbtyp = "DB2" OR dbtyp = "Informix" THEN  
       PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " " user_env[14] " default null".      
+    ELSE IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN
+        PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " bigint null". 
     ELSE
       PUT STREAM code UNFORMATTED "," SKIP comment_chars "  " prowid_col " " user_env[14] " null". 
       
-    IF dbtyp = "SYBASE" then do:
+    IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" OR dbtyp = "SYBASE" THEN DO:  
       PUT STREAM code UNFORMATTED "," SKIP.
-      PUT STREAM code UNFORMATTED comment_chars "  " prowid_col "_IDENT_ numeric(10,0) identity".
-    END.
-    ELSE IF dbtyp = "MS SQL Server" OR dbtyp = "MSSQLSRV7" THEN DO:  
-      PUT STREAM code UNFORMATTED "," SKIP.
-      PUT STREAM code UNFORMATTED comment_chars "  " prowid_col "_IDENT_ integer identity".
+      PUT STREAM code UNFORMATTED comment_chars "  " prowid_col "_IDENT_ bigint identity".
     END.
   END.  
   
@@ -1191,7 +1223,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       comment_chars "    begin" SKIP
       comment_chars "        update " n1 " set " prowid_col " = @@identity " SKIP
       comment_chars "               where " prowid_col " is NULL" skip
-      comment_chars "        select convert (int, @@identity)" SKIP
+      comment_chars "        select convert (bigint, @@identity)" SKIP
       comment_chars "    end" SKIP.    
       
     /* end the insert trigger's code */
@@ -1212,7 +1244,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       comment_chars "        update t set " prowid_col " = i.IDENTITYCOL " SKIP
       comment_chars "         from " n1 " t  JOIN inserted i ON " skip
       comment_chars "         t.PROGRESS_RECID_IDENT_ = i.PROGRESS_RECID_IDENT_" SKIP
-      comment_chars "        select convert (int, @@identity)" SKIP
+      comment_chars "        select convert (bigint, @@identity)" SKIP
       comment_chars "    end" SKIP.    
 
     IF skptrm THEN
@@ -1571,7 +1603,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
       END. /* for each DICTDB._index-field  */ 
       IF skptrm THEN
          PUT STREAM code UNFORMATTED SKIP comment_chars.
-      IF user_env[35] <> ? AND user_env[35] <> "" THEN
+      IF dbtyp = "ORACLE" AND user_env[35] <> ? AND user_env[35] <> "" THEN
          PUT STREAM code UNFORMATTED SKIP comment_chars "TABLESPACE " user_env[35].         
       PUT STREAM code UNFORMATTED comment_chars user_env[5] SKIP.
     END.  /* Index Block */ 
@@ -1587,11 +1619,19 @@ END. /* for each DICTDB._File */
 
 IF doseq THEN DO:
 
+  /* find out if source db supports large sequences */
+  FIND FIRST  DICTDB._Db WHERE RECID(_Db) = drec_db.
+  IF DICTDB._DB._Db-res1[1] = 1 THEN
+     large_seq = YES.
+
+  /* clear it out */
+  ASSIGN comment_chars = "".
+
   if PROGRESS = "full" then do:  /* get real current sequence values */
     RUN "adecomm/_tmpfile.p" (INPUT "", INPUT ".adm", OUTPUT tmpfile).
     OUTPUT STREAM tmpstream TO VALUE(tmpfile) NO-MAP NO-ECHO.
     PUT STREAM tmpstream UNFORMATTED
-      'DEFINE  SHARED VARIABLE crnt-vals AS INTEGER EXTENT 2000 NO-UNDO.' SKIP.
+      'DEFINE  SHARED VARIABLE crnt-vals AS INT64 EXTENT 2000 NO-UNDO.' SKIP.
 
     assign l_seq-num = 0.
 
@@ -1636,16 +1676,6 @@ IF doseq THEN DO:
     IF n1 = ? THEN
        assign n1 = DICTDB._Sequence._Seq-name.
        
-    assign
-      i = ( IF DICTDB._Sequence._Seq-Min <> ?
-              THEN DICTDB._Sequence._Seq-Min
-              ELSE 0
-          )
-      j = ( IF DICTDB._Sequence._Seq-Max <> ?
-              THEN DICTDB._Sequence._Seq-Max
-              ELSE 2147483647
-          ).
-
     /*
      * check that the maximum size of an identifer is not exceeded for 
      * the sequence name.
@@ -1734,10 +1764,10 @@ IF doseq THEN DO:
 
      PUT STREAM code UNFORMATTED 
            "create table _SEQT_" n1 " ( " skip 
-           "    initial_value    int null," skip
-           "    increment_value  int null," skip
-           "    upper_limit      int null," skip
-           "    current_value    int null," skip
+           "    initial_value    bigint null," skip
+           "    increment_value  bigint null," skip
+           "    upper_limit      bigint null," skip
+           "    current_value    bigint null," skip
            "    cycle            bit not null) " skip 
            "  " skip.
 
@@ -1747,13 +1777,13 @@ IF doseq THEN DO:
        */
        IF DICTDB._Sequence._Seq-Incr > 0 THEN
          limit = ( IF DICTDB._Sequence._Seq-Max <> ?
-                   THEN DICTDB._Sequence._Seq-Max
-                   ELSE 2147483647
+                   THEN STRING(DICTDB._Sequence._Seq-Max)
+                   ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
                  ).
        ELSE
          limit = ( IF DICTDB._Sequence._Seq-Min <> ?
-                   THEN DICTDB._Sequence._Seq-Min
-                   ELSE 0
+                   THEN STRING(DICTDB._Sequence._Seq-Min)
+                   ELSE "0"
                  ).
 
        IF DICTDB._Sequence._Seq-Num >= 0
@@ -1761,7 +1791,7 @@ IF doseq THEN DO:
            "insert into _SEQT_" n1 skip
            "       (initial_value, increment_value, upper_limit, current_value, cycle)" skip 
            "       values(" STRING(_Seq-Init) ", "
-           STRING(_Seq-Incr) ", " STRING(limit) ", " 
+           STRING(_Seq-Incr) ", " limit ", " 
            STRING(crnt-vals[_Seq-Num + 1])  ", " 
            (if DICTDB._Sequence._Cycle-Ok then "1" else "0") ") " skip 
            " " skip.  
@@ -1769,7 +1799,7 @@ IF doseq THEN DO:
            "insert into _SEQT_" n1 skip
            "       (initial_value, increment_value, upper_limit, current_value, cycle)" skip 
            "       values(" STRING(_Seq-Init) ", "
-           STRING(_Seq-Incr) ", " STRING(limit) ", " 
+           STRING(_Seq-Incr) ", " limit ", " 
            STRING(crnt-vals[l_seq-num])  ", " 
            (if DICTDB._Sequence._Cycle-Ok then "1" else "0") ") " skip 
            " " skip.  
@@ -1783,7 +1813,7 @@ IF doseq THEN DO:
         * Create the procedure to keep sequence numbers 
         */
        put stream code unformatted 
-           "create procedure _SEQP_" n1 " (@op int, @val int output) as " skip
+           "create procedure _SEQP_" n1 " (@op int, @val bigint output) as " skip
            "begin" skip 
            "    /* " skip 
            "     * Current-Value function " skip 
@@ -1799,9 +1829,9 @@ IF doseq THEN DO:
            "     */" skip 
            "    else if @op = 1" skip 
            "    begin" skip 
-           "        declare @cur_val  int" skip 
-           "        declare @last_val int" skip 
-           "        declare @inc_val  int" skip 
+           "        declare @cur_val  bigint" skip 
+           "        declare @last_val bigint" skip 
+           "        declare @inc_val  bigint" skip 
            " " skip 
            "        begin transaction" skip 
            " " skip 
@@ -1816,7 +1846,7 @@ IF doseq THEN DO:
            "         * if the next value will pass the upper limit, then either" skip
            "         * wrap or return a range violation" skip 
            "         */ " skip 
-           "        if  @inc_val > 0 and @cur_val + @inc_val > @last_val  or @inc_val < 0 and @cur_val + @inc_val < @last_val " skip  
+           "        if  @inc_val > 0 and @cur_val > @last_val - @inc_val  or @inc_val < 0 and @cur_val < @last_val - @inc_val " skip  
            "        begin" skip 
            "            if (select cycle from _SEQT_" n1 ") = 0 /* non-cycling sequence */" skip 
            "            begin " skip 
@@ -1877,6 +1907,16 @@ IF doseq THEN DO:
                    ELSE (crnt-vals [l_seq-num] + _Seq-Incr)
                   ).
 
+       assign
+          i = ( IF DICTDB._Sequence._Seq-Min <> ?
+                  THEN DICTDB._Sequence._Seq-Min
+                  ELSE 0
+              )
+          limit = ( IF DICTDB._Sequence._Seq-Max <> ?
+                  THEN STRING(DICTDB._Sequence._Seq-Max)
+                  ELSE (IF large_seq THEN "9223372036854775807" ELSE "2147483647")
+              ).
+
       /* If the initial value is some how greater than the current value
          Oracle will issue an error stating that the start with value can
          not be less than the initial value */
@@ -1890,7 +1930,7 @@ IF doseq THEN DO:
          "CREATE SEQUENCE " n1 "  START WITH " 
           STRING (start)
          " INCREMENT BY " + STRING (_Seq-Incr) 
-         " MAXVALUE " STRING (j) " MINVALUE " STRING (i)
+         " MAXVALUE " limit " MINVALUE " STRING (i)
          (IF DICTDB._Sequence._Cycle-OK THEN " CYCLE" ELSE " NOCYCLE").
 
       IF skptrm THEN

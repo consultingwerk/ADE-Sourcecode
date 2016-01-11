@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -52,7 +36,7 @@ History:
     94/08/03    hutegger    extracted to include-file and inserted 
                             preselection-criteria - support
     94/06/03    hutegger    added user_env[25] as "AUTO"-switch
-
+    04/19/06    fernando    Oracle 10g - skip BIN$* tables
 */
 
 &SCOPED-DEFINE DATASERVER YES
@@ -222,6 +206,13 @@ FOR EACH DICTDBG.oracle_users
     IF available _File
       AND _file._file-name begins "oracle_" THEN NEXT.
       
+    /* in Oracle 10g, there is a feature called flashback table which 
+       saves deleted tables, by renaming them to BIN$<some-string>.
+       We can skip these too.
+    */
+    IF DICTDBG.oracle_objects.NAME BEGINS "BIN$" THEN
+       NEXT.
+
     DISPLAY DICTDBG.oracle_objects.name @ hint WITH FRAME gate_wait.
   /* exclude existing progress defs? */
   /*IF user_env[6] MATCHES "*x*" AND AVAILABLE _File THEN NEXT.*/

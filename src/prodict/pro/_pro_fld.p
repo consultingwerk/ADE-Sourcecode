@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -36,6 +36,9 @@ form.
                         Max-Size 20050223-001 
      KSM       03/07/05 Added validation to Max-Size field for LOBs
                         20050223-002
+    fernando   05/24/06 int64 support - initial value                        
+    fernando   06/08/06 int64 support - type change
+    fernando   08/10/06 Handle too many tables in db - 20060717-022
 */     
 
 DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
@@ -64,6 +67,9 @@ DEFINE VARIABLE lob-size  AS CHARACTER FORMAT "x(10)" INITIAL "100M" NO-UNDO.
 DEFINE VARIABLE size-type AS CHARACTER FORMAT "x"      NO-UNDO.
 DEFINE VARIABLE wdth      AS DECIMAL                   NO-UNDO.
 DEFINE VARIABLE hldcp     AS CHARACTER                 NO-UNDO.
+DEFINE VARIABLE allow_type_change AS LOGICAL           NO-UNDO INIT NO.
+DEFINE VARIABLE s_Dtype    AS CHARACTER                 NO-UNDO.
+DEFINE VARIABLE s_Initial  AS CHARACTER                 NO-UNDO.
 
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -72,7 +78,7 @@ DEFINE VARIABLE hldcp     AS CHARACTER                 NO-UNDO.
 { prodict/pro/fldfuncs.i }
 
 /* LANGUAGE DEPENDENCIES START */ /*----------------------------------------*/
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 9 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 12 NO-UNDO INITIAL [
   /* 1*/ "This field is used in a View or Index - cannot delete.",
   /* 2*/ "This field is used in a View - cannot rename.",
   /* 3*/ "This name is already used by a different field in this file",
@@ -81,15 +87,20 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 9 NO-UNDO INITIAL [
   /* 6*/ ?, /*see below*/                   /* frame name 'frm_top'      */
   /* 7*/ "You must enter a field name here",
   /* 8*/ "create new field",
-  /* 9*/ "Attempt to add with same name as existing field - switching to MODIFY"
+  /* 9*/ "Attempt to add with same name as existing field - switching to MODIFY",
+  /*10*/ "You can only change an integer field to int64",
+  /*11*/ "Invalid data type for a pre-10.1B database",
+  /*12*/ "Initial Value has value too large for field type"
 ].
 new_lang[6] = "copy, or press [" + KBLABEL("END-ERROR") + "].".
 
 FORM
   dfields._Field-name LABEL "  Field-Name" FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
-      "This name conflicts with a PROGRESS reserved keyword.") SPACE
+      "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
   dfields._Data-type  LABEL "   Data-Type" FORMAT "x(11)"  SKIP
+  s_Dtype             LABEL "   Data-Type" FORMAT "x(11)"  
+                      AT ROW-OF dfields._Data-type COL-OF dfields._Data-type SKIP
   dfields._Format     LABEL "      Format" FORMAT "x(32)" 
   dfields._Extent     LABEL "     Extent" FORMAT ">>>>"  SKIP
 
@@ -100,6 +111,8 @@ FORM
   dfields._Order      LABEL "       Order" FORMAT ">>>>9"  SKIP
 
   dfields._Initial    LABEL "     Initial" FORMAT "x(30)" SPACE(3)
+  s_Initial           LABEL "     Initial" FORMAT "x(30)" 
+                      AT ROW-OF dfields._Initial COL-OF dfields._Initial SPACE(3)
   dfields._Mandatory  LABEL "   Mandatory" FORMAT "yes/no" "(Not Null)" SKIP
 
   inview              LABEL "Component of-> View" inindex LABEL "Index" 
@@ -121,7 +134,7 @@ FORM
 FORM
     dfields._Field-name LABEL "Field Name" COLON 12 FORMAT "x(32)"
       VALIDATE(KEYWORD(dfields._Field-name) = ?,
-        "This name conflicts with a PROGRESS reserved keyword.") SPACE
+        "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SPACE
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
              LABEL "Area" COLON 12 SKIP
     lob-size LABEL "Max Size" COLON 12 SKIP
@@ -136,7 +149,7 @@ FORM
 FORM
     dfields._Field-name LABEL "Field Name" COLON 11 FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
-      "This name conflicts with a PROGRESS reserved keyword.") SKIP
+      "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
              LABEL "Area" COLON 11 SKIP
     lob-size LABEL "Max Size" COLON 11 SKIP
@@ -169,7 +182,7 @@ FORM
 FORM
     dfields._Field-name LABEL "Field name" COLON 15 FORMAT "x(32)"
     VALIDATE(KEYWORD(dfields._Field-name) = ?,
-      "This name conflicts with a PROGRESS reserved keyword.") SKIP
+      "This name conflicts with a {&PRO_DISPLAY_NAME} reserved keyword.") SKIP
     areaname VIEW-AS SELECTION-LIST INNER-CHARS 32 INNER-LINES 1 
              LABEL "Area" COLON 15 SKIP
     lob-size LABEL "Max Size" COLON 15 SKIP
@@ -453,6 +466,27 @@ ON LEAVE OF dfields._Order IN FRAME mod-blob DO:
   END.
 END.
 
+ON LEAVE OF dfields._Initial IN FRAME pro_fld,
+            s_Initial IN FRAME pro_fld
+DO:
+    IF dfields._Data-type = "INT64" OR 
+	( allow_type_change AND INPUT FRAME pro_fld s_Dtype = "INT64") THEN DO:
+       IF DECIMAL(SELF:SCREEN-VALUE) > 9223372036854775807 OR 
+          DECIMAL(SELF:SCREEN-VALUE) < -9223372036854775808 THEN DO:
+           MESSAGE new_lang[12].
+           RETURN NO-APPLY.
+       END.
+    END.
+    ELSE IF dfields._Data-type = "INTEGER" THEN DO:
+       IF DECIMAL(SELF:SCREEN-VALUE) > 2147483647 OR 
+          DECIMAL(SELF:SCREEN-VALUE) < -2147483648 THEN DO:
+           MESSAGE new_lang[12].
+           RETURN NO-APPLY.
+       END.
+    END.
+
+END.
+
 ON LEAVE OF lob-size IN FRAME pro-clob,
             lob-size IN FRAME mod-clob
 DO:
@@ -581,6 +615,19 @@ ON LEAVE OF cpname IN FRAME pro-clob DO:
   RETURN.
 END.
 
+ON LEAVE OF dfields._Data-type IN FRAME pro_fld DO:
+    DEFINE VAR cValue AS CHAR.
+    IF NOT NEW dfields THEN DO:
+        cValue = INPUT FRAME pro_fld _Data-type.
+
+        IF cValue NE "int" AND cValue NE "integer"
+            AND cValue NE "int64" THEN DO:
+            MESSAGE new_lang[10].
+            RETURN NO-APPLY.
+        END.
+    END.
+END.
+
 IF NOT AVAILABLE dfields THEN DO:
   CLEAR FRAME pro_fld NO-PAUSE.
   DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
@@ -632,7 +679,15 @@ ELSE DO: /*-----------------------------------------------------------------*/
     pik_count  = 1
     pik_list[1] = "<<" + new_lang[8] + ">>". /* <<create new field>> */
 
-  IF inother THEN
+  IF inother THEN DO:
+    EMPTY TEMP-TABLE ttpik NO-ERROR.
+
+    IF l_cache_tt THEN DO:
+        CREATE ttpik.
+        ASSIGN ttpik.i_number = 1
+               ttpik.c_name = pik_list[1].
+    END.
+
     FOR EACH _Field
       WHERE _Field._Field-name = INPUT FRAME pro_fld dfields._Field-name:
         FOR EACH _File OF _Field
@@ -640,15 +695,31 @@ ELSE DO: /*-----------------------------------------------------------------*/
             AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
           BY _File._File-name:
           ASSIGN
-            pik_count = pik_count + 1
-            pik_list[pik_count] = _File._File-name.
+            pik_count = pik_count + 1.
+            /* 20060717-022
+               if we have too many tables, need to use temp-table, in case there are
+               too many fields with the same name.
+            */
+            IF l_cache_tt THEN DO:
+                CREATE ttpik.
+                ASSIGN ttpik.i_number = pik_count
+                       ttpik.c_name = _File._File-name.
+                RELEASE ttpik.
+            END.
+            ELSE
+                pik_list[pik_count] = _File._File-name.
         END.
     END.
+
+  END.
 
   /* since we can't tell if a field is in another (non-progress)
   schema, we have to wait until we attempt the join above to eliminate
   those candidates.  hence, the following test: */
-  IF pik_count <= 1 THEN inother = FALSE.
+  IF pik_count <= 1 THEN DO:
+      EMPTY TEMP-TABLE ttpik NO-ERROR.
+      inother = FALSE.
+  END.
 
   IF inother THEN _in-other: DO:
     PAUSE 0.
@@ -684,6 +755,8 @@ ELSE DO: /*-----------------------------------------------------------------*/
     /* Can't seem to do @ on a view-as editor widget so: */
     ASSIGN dfields._Valexp:screen-value in frame pro_fld = _Field._Valexp
            dfields._Desc:SCREEN-VALUE IN FRAME pro_fld = _Field._Desc.
+
+    EMPTY TEMP-TABLE ttpik NO-ERROR.
   END.
 
   CREATE dfields.
@@ -704,13 +777,27 @@ IF NEW dfields THEN DO:
       dfields._Data-type
         VALIDATE(dfields._Data-type <> ?,"")
       WITH FRAME pro_fld.
-    IF dfields._Data-type = ? THEN UNDO,RETRY.
+    IF dfields._Data-type = ? OR 
+        /* don't allow int64 if this is a pre-101b db */
+        (is-pre-101b-db AND dfields._Data-type = "int64") THEN DO:
+        IF dfields._Data-type = "int64" THEN
+           MESSAGE new_lang[11].
+        UNDO,RETRY.
+    END.
   END.
   IF KEYFUNCTION(LASTKEY) = "END-ERROR" THEN DO:
     IF NEW dfields THEN DELETE dfields.
     HIDE FRAME pro_fld NO-PAUSE.
     RETURN.
   END.
+  allow_type_change = NO.
+END.
+ELSE DO:
+    
+    /* if this is a pre-101b db, don't allow type change */
+    IF dfields._Data-type = "integer" AND NOT is-pre-101b-db THEN
+       ASSIGN allow_type_change = YES
+              s_Dtype = dfields._Data-type.
 END.
 
 IF NOT copied THEN DISPLAY
@@ -916,12 +1003,26 @@ ELSE DO:
       END.
     END.
 
+    /* in case the user changes the type to int64, we would fail if the Initial value
+       was set to a value that can't fit into an integer, because we don't update the
+       field's type in the SET statement below. So we need to store the Initial value
+       in a variable and assign it to the real _Initial later on, after the type gets
+       changed.
+    */
+    ASSIGN s_Initial = dfields._Initial.
+
+    IF allow_type_change THEN
+        DISPLAY s_Dtype WITH FRAME pro_fld.
+
+    DISPLAY s_initial WITH FRAME pro_fld.
+
     SET
     dfields._Field-name WHEN NOT INPUT dfields._Field-name BEGINS "_"  
+    s_Dtype WHEN allow_type_change /* dfields._Data-type */
     dfields._Format
     dfields._Label
     dfields._Col-label
-    dfields._Initial
+    s_initial /*dfields._Initial*/
     dfields._Extent    WHEN NEW dfields
     dfields._Decimals  WHEN INPUT dfields._Data-type = "decimal"
     dfields._Order
@@ -938,6 +1039,28 @@ ELSE DO:
       MESSAGE new_lang[2]. /* sorry, used in view */
       UNDO,RETRY.
     END.
+
+    /* check for int -> int64 change */
+    IF NOT NEW dfields AND allow_type_change THEN DO:
+        IF dfields._Data-type NE INPUT FRAME pro_fld s_Dtype  THEN DO:
+            IF INPUT FRAME pro_fld s_Dtype = "int64" THEN DO:
+                RUN prodict/pro/_pro_int64.p.
+                
+                IF RETURN-VALUE NE "mod" THEN
+                    UNDO, RETRY.
+
+                /* make the change now - can't do it on the SET statement or
+                   we would get error 171 even if the type was not changed
+                 */
+                ASSIGN dfields._Data-type = "int64".
+            END.
+        END.
+    END.
+
+    /* in case the data type was changed to int64, need to assign Initial after the type
+       gets changed 
+    */
+    ASSIGN dFields._Initial = s_Initial.
 
     ASSIGN
       dfields._Valexp = (IF TRIM(dfields._Valexp) = "" 

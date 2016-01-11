@@ -1716,7 +1716,7 @@ PUT STREAM TempDBStream UNFORMATTED "~{" pcFile "~}" SKIP(2).
 DO i = 1 TO NUM-ENTRIES(pcTables):
    cTableName = ENTRY(i,pcTables).
    PUT STREAM TempDBStream UNFORMATTED 
-  "hTempDBBufferAB = TEMP-TABLE " cTableName ":HANDLE:DEFAULT-BUFFER-HANDLE." SKIP
+  "hTempDBBufferAB = TEMP-TABLE " cTableName ":HANDLE:DEFAULT-BUFFER-HANDLE no-error." SKIP
   "IF VALID-HANDLE(hTempDBBufferAB) THEN " SKIP
  "    ASSIGN pcTempDBBufHandlesAB = pcTempDBBufHandlesAB + (IF pcTempDBBufHandlesAB = '' THEN '' ELSE ',')" SKIP
  "                                                     + STRING(hTempDBBufferAB)." SKIP
@@ -2082,7 +2082,7 @@ DO ON ERROR UNDO, LEAVE:
    IF pcDumpFile = "" THEN
    DO:
       cMessage = "The source file does not contain any valid Temp-Table definitions." + CHR(10) +
-                         "No schema update performed.".
+                 "No schema update performed.".
       RUN logFile (INPUT "dumpFile",
                    INPUT cMessage).
       cRetValue = "ERROR-":U + cMessage.

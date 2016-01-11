@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,7 +21,8 @@ Author: Laura Stern
 Date Created: 03/03/92
 
 History:
-    tomn    01/10/96    Added codepage to DB Properties form (s_Db_Cp)
+    tomn     01/10/96    Added codepage to DB Properties form (s_Db_Cp)
+    fernando 06/06/06    Added large sequence and keys to DB Properties form
     
 ----------------------------------------------------------------------------*/
 
@@ -33,8 +34,8 @@ Define {1} var s_Db_Type   as char NO-UNDO.
 Define {1} var s_Db_Cp     as char NO-UNDO.
 Define {1} var s_Db_Description  as char NO-UNDO.
 Define {1} var s_Db_Add_Details as char NO-UNDO.
-
-
+DEFINE {1} VAR s_Db_Large_Sequence AS CHAR NO-UNDO.
+DEFINE {1} VAR s_Db_Large_Keys AS CHAR NO-UNDO.
 
 /* This is the form for the database properties window. */
 {adedict/DB/dbprop.f} 

@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*------------------------------------------------------------------
    _guiauto.p - Editor for auto-connect progress databases.
@@ -92,7 +76,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 12 NO-UNDO INITIAL [
 
 FORM
    SKIP({&TFM_WID})
-   "PROGRESS"        AT 2 VIEW-AS TEXT 
+   "{&PRO_DISPLAY_NAME}"        AT 2 VIEW-AS TEXT 
    dblist            AT {&COL1}        	                 SKIP({&VM_WIDG})        
    dbaddr      AT 17 FORMAT "x({&PATH_WIDG})" 
 	       	     VIEW-AS EDITOR INNER-CHARS 51 INNER-LINES 3 MAX-CHARS 255 SCROLLBAR-VERTICAL 
@@ -102,7 +86,7 @@ FORM
                      INNER-LINES 3 INNER-CHARS {&EDCHRS} SCROLLBAR-VERTICAL
                      SKIP({&VM_WIDG})
    "NOTE:"           AT  2 VIEW-AS TEXT 
-   "For Non-PROGRESS databases, use the DataServer      " 
+   "For Non-{&PRO_DISPLAY_NAME} databases, use the DataServer      " 
                      AT 17 VIEW-AS TEXT                  SKIP({&VM_WID})
     "utility: Edit Connection Information.      "
                      AT 17 VIEW-AS TEXT                  SKIP({&VM_WID})

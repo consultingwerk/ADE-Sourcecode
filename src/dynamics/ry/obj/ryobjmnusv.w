@@ -27,7 +27,12 @@ DEFINE TEMP-TABLE RowObject
        {"ry/obj/ryemptysdo.i"}.
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS vTableWin
+/**********************************************************************************/
+/* Copyright (C) 2005-2006 by Progress Software Corporation. All rights reserved. */
+/* Prior versions of this work may contain portions contributed by                */
+/* participants of Possenet.                                                      */             
+/**********************************************************************************/
 /*---------------------------------------------------------------------------------
   File: rygridobjv1.w
 
@@ -1632,7 +1637,7 @@ FUNCTION getContainerType RETURNS CHARACTER
   CREATE BUFFER httSmartObject FOR TABLE httSmartObject.
   CREATE BUFFER httObjectType  FOR TABLE httObjectType.
 
-  httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0.00 AND d_customization_result_obj = 0.00":U).
+  httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0 AND d_customization_result_obj = 0":U).
 
   httObjectType:FIND-FIRST("WHERE d_object_type_obj = DECIMAL(":U + QUOTER(httSmartObject:BUFFER-FIELD("d_object_type_obj":U):BUFFER-VALUE) + ")":U).
 

@@ -52,6 +52,9 @@ History:
     D. Moloney 11/11/05 Added schema holder version processing variables 20050531-001
     fernando   01/04/06 Message added for 20050531-001 should be a warning
 	                    and should not come up during migration - 20051230-006.
+    fernando   09/28/06 For DB2, use P_BUFFER_ for pseudo-buffers instead of 
+                        _BUFFER_ - 20060425-009
+    fernando   10/06/06 Check object name in case it has underscore - 20031205-003                        
 */
 
 /*
@@ -192,6 +195,7 @@ DEFINE VARIABLE sh_ver           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE sh_max_ver       AS INTEGER   NO-UNDO.
 DEFINE VARIABLE clnt_vers        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE odb_perform_mode AS CHARACTER NO-UNDO.
+DEFINE VARIABLE is_db2           AS LOGICAL   NO-UNDO.
 
 define TEMP-TABLE column-id
           FIELD col-name         as character case-sensitive
@@ -417,6 +421,7 @@ if bug22 then RUN error_handling(6, "", "").
 if bug34 then escp = "".
 
 /*---------------------------- MAIN-LOOP ---------------------------*/
+ASSIGN is_db2 = INDEX(UPPER(_Db._Db-misc2[8]), "DB2") > 0.
 
 /* just in case some garbage left over */
 for each s_ttb_tbl: delete s_ttb_tbl. end.
@@ -445,7 +450,9 @@ for each gate-work
   assign
     has_id_ix          = no
     namevar   = ( if      gate-work.gate-type = "BUFFER"
-                   then "_" + gate-work.gate-type /* coud be lower-case */
+                   /* 20060425-009 - for DB2, look for P_BUFFER */
+                   then (IF is_db2 THEN "P_" ELSE "_")
+                      + gate-work.gate-type /* coud be lower-case */
                       + "_" + gate-work.gate-name
                   else if gate-work.gate-type <> "SEQUENCE"
                    then            gate-work.gate-name
@@ -538,7 +545,15 @@ for each gate-work
   
     for each DICTDBG.SQLTables_buffer:
 
-     
+      /* 20031205-003
+         If the table name has underscore (_), we may get records for
+         different tables, since '_' may be a search pattern depending on
+         the driver settings/version. So we need to filter out anything
+         that is not the table we are looking for.
+      */
+      IF TRIM(DICTDBG.SQLTables_buffer.name) NE ? AND 
+         trim(namevar-1) NE TRIM(DICTDBG.SQLTables_buffer.name) THEN
+         NEXT.
 
       assign
         table_name = ( if TRIM(DICTDBG.SQLTables_buffer.name) = ?
@@ -704,6 +719,16 @@ for each gate-work
     assign field-position = 0.
 
     for each DICTDBG.SQLColumns_buffer:
+
+     /* 20031205-003
+        If the table name has underscore (_), we may get records for
+        different tables, since '_' may be a search pattern depending on
+        the driver settings/version. So we need to filter out anything
+        that is not from the table we want.
+     */
+     IF TRIM(namevar-1) NE TRIM(DICTDBG.SQLColumns_buffer.name) THEN
+        NEXT.
+
       find first column-id
            where column-id.col-name = TRIM(DICTDBG.SQLColumns_buffer.column-name) NO-ERROR.
       IF NOT AVAILABLE column-id THEN NEXT.     
@@ -800,6 +825,15 @@ for each gate-work
 		       (spclvar-1, uservar-1, namevar-1, ?).
 
 	  for each A_col where PROC-HANDLE = A_proc_handle:
+
+        /* 20031205-003
+           If the table name has underscore (_), we may get records for
+           different tables, since '_' may be a search pattern depending on
+           the driver settings/version. So we need to filter out anything
+           that is not from the table we want.
+        */
+        IF TRIM(namevar-1) NE TRIM(A_col.name) THEN
+           NEXT.
 
 	    if NOT A_col.column-name BEGINS array_name then NEXT.
 	    assign m2 = INTEGER (SUBSTR (A_col.column-name
@@ -1117,6 +1151,17 @@ for each gate-work
 
      for each DICTDBG.SQLProcs_buffer:
 
+        /* 20031205-003
+           If the proc name has underscore (_), we may get records for
+           different procedures since '_' may be a search pattern depending on
+           the driver settings/version. So we need to filter out anything
+           that is not the procedure we are looking for.
+        */
+        IF TRIM(DICTDBG.SQLProcs_buffer.name) NE ? AND 
+           /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+           trim(namevar-1) NE SUBSTRING(TRIM(DICTDBG.SQLProcs_buffer.name),1,LENGTH(trim(namevar-1))) THEN
+           NEXT.
+
         assign table_name = ( if TRIM(DICTDBG.SQLProcs_buffer.name) = ?
                               then "%"
                               else TRIM(DICTDBG.SQLProcs_buffer.name)
@@ -1202,6 +1247,17 @@ for each gate-work
      
      _col-loop:
      for each DICTDBG.SQLProcCols_buffer:
+
+        /* 20031205-003
+           If the proc name has underscore (_), we may get records for
+           different procedures since '_' may be a search pattern depending on
+           the driver settings/version. So we need to filter out anything
+           that is not the procedure we are looking for.
+        */
+        /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+        IF trim(namevar-1) NE SUBSTRING(TRIM(DICTDBG.SQLProcCols_buffer.name),1,LENGTH(trim(namevar-1))) THEN
+           NEXT.
+
         assign field-position = field-position + 1
                fld-remark     = DICTDBG.SQLProcCols_buffer.remarks
                fld-properties = "".
@@ -1264,6 +1320,16 @@ for each gate-work
 		       (spclvar-1, uservar-1, namevar-1, ?).
 
 	     for each P_col where PROC-HANDLE = P_proc_handle:
+
+            /* 20031205-003
+               If the proc name has underscore (_), we may get records for
+               different procedures since '_' may be a search pattern depending on
+               the driver settings/version. So we need to filter out anything
+               that is not the procedure we are looking for.
+            */
+            /* if it has ";0" or ";1" at the end, don't use it to compare proc name */
+            IF trim(namevar-1) NE SUBSTRING(TRIM(P_col.name),1,LENGTH(trim(namevar-1))) THEN
+               NEXT.
 
 	        if NOT P_col.column-name BEGINS array_name then NEXT.
 	        assign m2 = INTEGER (SUBSTR (P_col.column-name

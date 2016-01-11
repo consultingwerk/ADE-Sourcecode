@@ -291,8 +291,8 @@ DEFINE INPUT-OUTPUT  PARAMETER pcContext       AS CHARACTER  NO-UNDO EXTENT.
 DEFINE OUTPUT        PARAMETER pcPrevContext   AS CHARACTER  NO-UNDO EXTENT.
 DEFINE OUTPUT        PARAMETER pcNextContext   AS CHARACTER  NO-UNDO EXTENT.
 
-RUN adecomm/_dimextent.p(EXTENT(pcEntity),OUTPUT pcPrevContext).
-RUN adecomm/_dimextent.p(EXTENT(pcEntity),OUTPUT pcNextContext).
+EXTENT(pcPrevContext) = EXTENT(pcEntity).
+EXTENT(pcNextContext) = EXTENT(pcEntity).
 
 MESSAGE
   'The Service Adapter received a request for Business Entity "':U +

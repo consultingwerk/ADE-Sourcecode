@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _prpobj.p
@@ -188,9 +188,9 @@ DEFINE VARIABLE  tog-col-3        AS DECIMAL DECIMALS 2  INITIAL 50.5  NO-UNDO.
 DEFINE VARIABLE  upr-limit        AS DECIMAL DECIMALS 2                NO-UNDO.
 DEFINE VARIABLE  xpos             AS DECIMAL DECIMALS 2                NO-UNDO.
 DEFINE VARIABLE  valid-data-tp    AS CHAR                    NO-UNDO
-                 INITIAL "Character,Date,Decimal,Integer,Logical".
+                 INITIAL "Character,Date,Decimal,Integer,INT64,Logical".
 DEFINE VARIABLE  valid-data-tp-fill-in AS CHAR                    NO-UNDO
-                 INITIAL "Character,Date,DateTime,DateTime-Tz,Decimal,Integer,Logical".
+                 INITIAL "Character,Date,DateTime,DateTime-Tz,Decimal,Integer,INT64,Logical".
 DEFINE VARIABLE  valid-data-tp-editor  AS CHAR                    NO-UNDO
                  INITIAL "Character,LongChar".
 DEFINE VARIABLE  valid-list       AS CHAR                    NO-UNDO.
@@ -547,12 +547,12 @@ END.
 ON CHOOSE OF btn_adv DO:
   /* For logicals, we validate the format so we can get an 
    * appropriate initial-data for the advanced prop sheet. */
-  IF CAN-DO("FILL-IN,COMBO-BOX", _U._TYPE) AND _F._DATA-TYPE = "LOGICAL" THEN DO:
+  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
     IF NUM-ENTRIES(_F._FORMAT,"/":U) NE 2 THEN DO:
       MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
               "Use a format of the form 'yes/no' or 'true/false'."
               VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-      APPLY "ENTRY" TO h_format.
+      APPLY "ENTRY":U TO h_format.
       RETURN NO-APPLY.
     END.
     ELSE _F._INITIAL-DATA = ENTRY (sav-ldef, _F._FORMAT,"/":U).
@@ -561,12 +561,12 @@ ON CHOOSE OF btn_adv DO:
   RUN adeuib/_advprop.w (RECID(_U), lbl_wdth).
 
   /* Update logical fill-ins saved default-- it may have changed in advprop */
-  IF CAN-DO("FILL-IN,COMBO-BOX", _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
+  IF CAN-DO("FILL-IN,COMBO-BOX":U, _U._TYPE) AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
      sav-ldef = LOOKUP (TRIM(_F._INITIAL-DATA), _F._FORMAT,"/":U).
      IF sav-ldef = 0 THEN sav-ldef = 2.
   END.
 
-  IF _U._TYPE = "FRAME" AND (_C._PAGE-TOP OR _C._PAGE-BOTTOM) THEN
+  IF _U._TYPE = "FRAME":U AND (_C._PAGE-TOP OR _C._PAGE-BOTTOM) THEN
     h_DOWN:CHECKED = FALSE.
 
   IF h_align NE ? THEN h_align:SCREEN-VALUE = _U._ALIGN.
@@ -619,14 +619,14 @@ ON CHOOSE OF btn_color DO:
                             OUTPUT parent_fgcolor). */ 
     ASSIGN parent_bgcolor = parent_L._BGCOLOR
            parent_fgcolor = parent_L._FGCOLOR.
-  
+
   /* Note that since _L can be undone, it will be if the user clicks CANCEL. */
   /* If the window-system is in {&no_color} then comment that                */
   /*     "Button Color not supported under MS-WINDOWS."                      */
   RUN adecomm/_chscolr.p
        (INPUT "Choose Color",
-        INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" AND
-               CAN-DO("BUTTON,IMAGE",_U._TYPE)
+        INPUT (IF SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U AND
+               CAN-DO("BUTTON,IMAGE":U,_U._TYPE)
                THEN (TRIM(STRING(LC(_U._TYPE),"!x(20)")) +
                      " color not supported under " +
                      SESSION:WINDOW-SYSTEM + ".")
@@ -639,7 +639,7 @@ ON CHOOSE OF btn_color DO:
         INPUT-OUTPUT _L._FGCOLOR,
         INPUT-OUTPUT _L._SEPARATOR-FGCOLOR,
         OUTPUT l_ok).
-        
+
   IF _L._LO-NAME = "Master Layout" THEN DO:
     FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
                           sync_L._LO-NAME NE _L._LO-NAME:
@@ -647,7 +647,7 @@ ON CHOOSE OF btn_color DO:
       IF sync_L._FGCOLOR = sav_fgc THEN sync_L._FGCOLOR = _L._FGCOLOR.
     END.
   END.  /* If this was the master layout */
-  APPLY "ENTRY" TO btn_OK IN FRAME prop_sht.
+  APPLY "ENTRY":U TO btn_OK IN FRAME prop_sht.
 END.  /* ON CHOOSE OF btn_color */
 
 ON GO OF FRAME prop_sht DO:
@@ -687,7 +687,7 @@ ON GO OF FRAME prop_sht DO:
     END.  /* IF _F._DATA-TYPE = "LOGICAL" */
   END. /* If a FILL-IN */
   
-  ELSE IF _U._TYPE = "RADIO-SET" THEN DO:
+  ELSE IF _U._TYPE = "RADIO-SET":U THEN DO:
     DEF VARIABLE rval AS CHAR NO-UNDO.
     DEF VAR cListItems AS CHAR NO-UNDO.
 
@@ -712,7 +712,7 @@ ON GO OF FRAME prop_sht DO:
       
       IF new_btns THEN DO:
         ASSIGN h_self:HIDDEN      = TRUE.
-        IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN"
+        IF _L._WIN-TYPE OR SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U
         THEN DO: /* GUI , but MSW only. */
           /* Just redo the radio-buttons */
           RUN adeuib/_rbtns.p (_F._LIST-ITEMS, _F._DATA-TYPE, _F._DELIMITER, OUTPUT rval).
@@ -803,7 +803,7 @@ IF h_format NE ? THEN DO: /* Redisplay incase format, initial-data or data-type 
     
   ELSE IF _U._TYPE NE "COMBO-BOX":U THEN DO:
     
-    IF CAN-DO("DECIMAL,INTEGER":U,_F._DATA-TYPE) AND 
+    IF CAN-DO("DECIMAL,INTEGER,INT64":U,_F._DATA-TYPE) AND 
        h_format:SCREEN-VALUE NE "?" AND 
        h_format:SCREEN-VALUE NE "" AND notAmerican THEN
     DO:
@@ -879,12 +879,12 @@ IF sav-lbla NE _U._LABEL-ATTR THEN recreate-self = TRUE.
 
 /* Redraw frame or window if it scrollable has changed                             */
 IF sav-scr NE ? THEN DO:
-  IF _U._TYPE = "WINDOW"  AND sav-scr NE _C._SCROLL-BARS THEN recreate-self = TRUE.
-  IF _U._TYPE NE "WINDOW" AND sav-scr NE _C._SCROLLABLE  THEN recreate-self = TRUE.
+  IF _U._TYPE = "WINDOW":U  AND sav-scr NE _C._SCROLL-BARS THEN recreate-self = TRUE.
+  IF _U._TYPE NE "WINDOW":U AND sav-scr NE _C._SCROLLABLE  THEN recreate-self = TRUE.
 END.
 
 /* Redraw a fill-in or combo-box if NO-LABEL has changed                           */
-IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND sav-lbl NE _L._NO-LABELS THEN 
+IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND sav-lbl NE _L._NO-LABELS THEN 
   recreate-self = TRUE.
 
 /* Redraw a combo-box if lists have changed                                          */
@@ -899,7 +899,7 @@ END.  /* if combo-box */
 IF switchlist THEN recreate-self = TRUE.
 
 /* Redraw a fill-in if view-as -text has changed                                   */
-IF _U._TYPE = "FILL-IN" AND sav-vat NE _U._SUBTYPE THEN recreate-self = TRUE.
+IF _U._TYPE = "FILL-IN":U AND sav-vat NE _U._SUBTYPE THEN recreate-self = TRUE.
 
 /* Redraw slider or radio-set if orientation has changed                           */
 IF (sav-hor NE ? AND sav-hor NE _F._HORIZONTAL) OR
@@ -909,7 +909,7 @@ IF (sav-hor NE ? AND sav-hor NE _F._HORIZONTAL) OR
 IF _U._TYPE = "RADIO-SET":U AND new_btns THEN recreate-self = TRUE.
 
 /* Redraw a button or image if sav-iu has changed */
-IF CAN-DO("BUTTON,IMAGE",_U._TYPE) THEN DO:
+IF CAN-DO("BUTTON,IMAGE":U,_U._TYPE) THEN DO:
   IF _L._WIN-TYPE  AND sav-iu NE _F._IMAGE-FILE THEN recreate-self = TRUE.
   IF _U._TYPE = "BUTTON" THEN DO:
     IF _F._IMAGE-FILE = "" AND (_F._IMAGE-DOWN-FILE NE "" OR 
@@ -920,11 +920,11 @@ IF CAN-DO("BUTTON,IMAGE",_U._TYPE) THEN DO:
 END.
 
 /* Redraw field if initial-data has changed */
-IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER,TOGGLE-BOX",
+IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER,TOGGLE-BOX":U,
   _U._TYPE) AND sav-init NE _F._INITIAL-DATA THEN recreate-self = TRUE.
   
 /* Force Comb-box to have no value if no items are defined */
-IF _U._TYPE = "COMBO-BOX" AND TRIM(_F._LIST-ITEMS) = "" THEN recreate-self = TRUE.
+IF _U._TYPE = "COMBO-BOX":U AND TRIM(_F._LIST-ITEMS) = "" THEN recreate-self = TRUE.
 
 /* Redraw slider if max or min value has changed                                   */
 IF sav-max NE ? AND (sav-max  NE _F._MAX-VALUE OR 
@@ -962,9 +962,9 @@ IF recreate-self THEN DO:
   h_self = _U._HANDLE. /* New instance has a new handle */
 END.
 
-IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN DO:
+IF CAN-DO("FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
   /* Change label visualization of a frame if SIDE-LABELS has changed                */
-  IF _U._TYPE = "FRAME" AND sav-slab NE _C._SIDE-LABELS THEN DO:
+  IF _U._TYPE = "FRAME":U AND sav-slab NE _C._SIDE-LABELS THEN DO:
     ASSIGN fg_h    = h_self:FIRST-CHILD  /* This is the field group                  */
            tmp_hdl = fg_h:FIRST-CHILD.   /* First field level widget                 */
          
@@ -986,7 +986,7 @@ IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN DO:
                    /* Set alignment to "L"eft */
                    x_U._ALIGN = "L".
           END.  /* FOR EACH LAYOUT */
-          IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",tmp_hdl:TYPE) THEN
+          IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U,tmp_hdl:TYPE) THEN
             RUN adeuib/_showlbl.p (tmp_hdl).
         END. /* If not a label or the frame bar */
         tmp_hdl = tmp_hdl:NEXT-SIBLING.
@@ -1043,9 +1043,9 @@ PROCEDURE alignment_change:
      WHEN "R"  THEN xpos = _L._COL - 1 + _L._WIDTH.
      WHEN "C"  THEN xpos = _L._COL - 2.
      OTHERWISE
-       xpos = IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND parent_C._SIDE-LABELS THEN
+       xpos = IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND parent_C._SIDE-LABELS THEN
                    /* SIDE-LABELS */  (_L._COL - lbl_wdth)
-              ELSE IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
+              ELSE IF parent_U._TYPE = "FRAME":U AND NOT parent_C._SIDE-LABELS AND
                    NOT parent_L._NO-LABELS THEN
                    /* COLUMN LABELS */ (_L._COL - MAX(0, lbl_wdth - _L._WIDTH))
               ELSE _L._COL.
@@ -1054,7 +1054,7 @@ PROCEDURE alignment_change:
 END PROCEDURE.
 
 PROCEDURE row_change.
-  low-limit = IF CAN-DO ("WINDOW,DIALOG-BOX", _U._TYPE) THEN 1 - DECIMAL(h_hgt:SCREEN-VALUE)
+  low-limit = IF CAN-DO ("WINDOW,DIALOG-BOX":U, _U._TYPE) THEN 1 - DECIMAL(h_hgt:SCREEN-VALUE)
                                          ELSE 1.
   IF DECIMAL(SELF:SCREEN-VALUE) < low-limit THEN DO:
     MESSAGE "Row must be greater than or equal to" STRING(low-limit) + "."
@@ -1062,7 +1062,7 @@ PROCEDURE row_change.
     SELF:SCREEN-VALUE = STRING(low-limit).
     RETURN ERROR.
   END.
-  upr-limit = IF CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) THEN
+  upr-limit = IF CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE) THEN
                 SESSION:HEIGHT-CHARS
               ELSE IF _U._TYPE = "FRAME" THEN
                 1 + v-hgt - DECIMAL(h_hgt:SCREEN-VALUE)
@@ -1078,7 +1078,7 @@ PROCEDURE row_change.
   
   /* Windows and dialog boxes cannot have positions in the range (-1,1) not inclusive
    * since PPUs are 1-based.  Negative values are legitimate */
-  IF CAN-DO("WINDOW,DIALOG-BOX", _U._TYPE) AND 
+  IF CAN-DO("WINDOW,DIALOG-BOX":U, _U._TYPE) AND 
      DECIMAL(SELF:SCREEN-VALUE) > -1 AND 
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
@@ -1094,7 +1094,7 @@ PROCEDURE column_change.
   RUN compute_lbl_wdth.
   ASSIGN xpos = DECIMAL(SELF:SCREEN-VALUE).
  
-  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME",_U._TYPE) THEN DO:
+  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME":U,_U._TYPE) THEN DO:
     CASE _U._ALIGN:
       WHEN "R" THEN
          ASSIGN low-limit = DECIMAL(h_wdth:SCREEN-VALUE) + lbl_wdth
@@ -1112,7 +1112,7 @@ PROCEDURE column_change.
                                      DECIMAL(h_wdth:SCREEN-VALUE) - lbl_wdth + 1.
     END CASE.
   END.  /* If not a window or dialog or frame */
-  ELSE IF _U._TYPE EQ "FRAME" THEN
+  ELSE IF _U._TYPE EQ "FRAME":U THEN
     ASSIGN low-limit = 1
            upr-limit = 1 + v-wdth - DECIMAL(h_wdth:SCREEN-VALUE). 
   ELSE 
@@ -1134,7 +1134,7 @@ PROCEDURE column_change.
 
   /* Windows and dialog boxes cannot have positions in the range (-1,1) not inclusive
    * since PPUs are 1-based.  Negative values are legitimate */
-  IF CAN-DO("WINDOW,DIALOG-BOX", _U._TYPE) AND 
+  IF CAN-DO("WINDOW,DIALOG-BOX":U, _U._TYPE) AND 
      DECIMAL(SELF:SCREEN-VALUE) > -1 AND 
      DECIMAL(SELF:SCREEN-VALUE) < 1 THEN DO:
        MESSAGE "A" _U._TYPE "may not have an explicit position in the range -1 to 1."
@@ -1146,10 +1146,10 @@ PROCEDURE column_change.
   CASE _U._ALIGN:
     WHEN "R" THEN  _L._COL = xpos + 1 - DECIMAL(h_wdth:SCREEN-VALUE).
     WHEN "C" THEN  _L._COL = xpos + 2.
-    OTHERWISE      _L._COL = IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND
+    OTHERWISE      _L._COL = IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND
                                 parent_C._SIDE-LABELS THEN
                              /* SIDE-LABELS */  (xpos + lbl_wdth)
-                             ELSE IF parent_U._TYPE = "FRAME" AND
+                             ELSE IF parent_U._TYPE = "FRAME":U AND
                                      NOT parent_C._SIDE-LABELS AND
                                      NOT parent_L._NO-LABELS THEN
                              /* COLUMN LABELS */ (xpos + MAX(0, lbl_wdth - _L._WIDTH))
@@ -1160,12 +1160,12 @@ END PROCEDURE.
 PROCEDURE combo_subtype_change:
   CASE SELF:SCREEN-VALUE:
     WHEN "SI" THEN DO:
-      ASSIGN _U._SUBTYPE                 = "SIMPLE"                   
+      ASSIGN _U._SUBTYPE                 = "SIMPLE":U
              h_hgt:SENSITIVE             = TRUE
              h_AUTO-COMPLETION:SENSITIVE = TRUE
              h_max-chars:SENSITIVE       = TRUE
              h_data-type:SENSITIVE       = FALSE
-             h_data-type:SCREEN-VALUE    = "CHARACTER".
+             h_data-type:SCREEN-VALUE    = "CHARACTER":U.
       APPLY "VALUE-CHANGED":U TO h_data-type.
       ASSIGN h_format:SENSITIVE          = FALSE
              h_format:SCREEN-VALUE       = _F._FORMAT
@@ -1173,13 +1173,13 @@ PROCEDURE combo_subtype_change:
       APPLY "LEAVE":U TO h_format.
     END.  /* when simple */
     WHEN "DD" THEN DO:
-      ASSIGN _U._SUBTYPE                 = "DROP-DOWN"
+      ASSIGN _U._SUBTYPE                 = "DROP-DOWN":U
              h_hgt:SENSITIVE             = FALSE
              h_hgt:SCREEN-VALUE          = STRING(_L._ROW-MULT)
              h_AUTO-COMPLETION:SENSITIVE = TRUE
              h_max-chars:SENSITIVE       = TRUE
              h_data-type:SENSITIVE       = FALSE
-             h_data-type:SCREEN-VALUE    = "CHARACTER".
+             h_data-type:SCREEN-VALUE    = "CHARACTER":U.
       APPLY "VALUE-CHANGED":U TO h_data-type.
       ASSIGN h_format:SENSITIVE          = FALSE
              h_format:SCREEN-VALUE       = _F._FORMAT
@@ -1187,7 +1187,7 @@ PROCEDURE combo_subtype_change:
       APPLY "LEAVE":U TO h_format.
     END.  /* when drop-down */
     WHEN "DL" THEN DO: 
-      ASSIGN _U._SUBTYPE                 = "DROP-DOWN-LIST"
+      ASSIGN _U._SUBTYPE                 = "DROP-DOWN-LIST":U
              h_hgt:SENSITIVE             = FALSE
              h_hgt:SCREEN-VALUE          = STRING(_L._ROW-MULT)
              h_AUTO-COMPLETION:SENSITIVE = FALSE
@@ -1210,7 +1210,7 @@ END PROCEDURE.  /* combo_subtype_change */
 
 PROCEDURE complete_the_transaction:
   DO WITH FRAME prop_sht:
-    IF h_format NE ? AND CAN-DO("INTEGER,DECIMAL":U,_F._DATA-TYPE) THEN DO:
+    IF h_format NE ? AND CAN-DO("INTEGER,INT64,DECIMAL":U,_F._DATA-TYPE) THEN DO:
       /* Assuming that Progress was invoked in non-American numeric format, make sure that 
          the value is stored in the American format */
       IF _F._FORMAT-SOURCE = "E" THEN DO:
@@ -1228,7 +1228,7 @@ PROCEDURE complete_the_transaction:
     
     /* If a dialog-box and the dimensions have changed, need to adjust both the */
     /* window and the frame                                                     */
-    IF _U._TYPE = "DIALOG-BOX" AND
+    IF _U._TYPE = "DIALOG-BOX":U AND
       (h_self:WIDTH NE (_L._WIDTH * _L._COL-MULT) OR
        h_self:HEIGHT NE (_L._HEIGHT * _L._ROW-MULT)) THEN DO:
        
@@ -1292,19 +1292,19 @@ PROCEDURE complete_the_transaction:
     
     /* Adjust the Height & Row combination:  If new row is less than old      */
     /*   then set row first, otherwise set height first                       */
-    new-rc-value = IF _U._TYPE = "WINDOW" THEN
+    new-rc-value = IF _U._TYPE = "WINDOW":U THEN
                    _L._ROW ELSE
                    (_L._ROW - 1) * _L._ROW-MULT + 1.
     IF h_self:ROW > new-rc-value THEN DO:
-      IF _L._ROW NE ? AND _U._TYPE NE "DIALOG-BOX" THEN
+      IF _L._ROW NE ? AND _U._TYPE NE "DIALOG-BOX":U THEN
         h_self:ROW = new-rc-value.
       IF _U._TYPE NE "COMBO-BOX" THEN 
         h_self:HEIGHT = _L._HEIGHT * _L._ROW-MULT.
     END.
     ELSE DO: /* Height then row */
-      IF _U._TYPE NE "COMBO-BOX" THEN 
+      IF _U._TYPE NE "COMBO-BOX":U THEN 
         h_self:HEIGHT = _L._HEIGHT * _L._ROW-MULT.
-      IF _L._ROW NE ? AND _U._TYPE NE "DIALOG-BOX" THEN
+      IF _L._ROW NE ? AND _U._TYPE NE "DIALOG-BOX":U THEN
         h_self:ROW = new-rc-value.
     END.  
 
@@ -1313,7 +1313,7 @@ PROCEDURE complete_the_transaction:
     IF _U._TYPE NE "TEXT" AND _U._DBNAME EQ ? THEN 
       _U._NAME =  name:SCREEN-VALUE IN FRAME prop_sht.
     
-    IF _U._TYPE NE "COMBO-BOX" THEN
+    IF _U._TYPE NE "COMBO-BOX":U THEN
       h_self:HEIGHT = _L._HEIGHT * _L._ROW-MULT.
 
     IF h_REMOVE-FROM-LAYOUT NE ? THEN DO:
@@ -1322,24 +1322,24 @@ PROCEDURE complete_the_transaction:
 
     /*  Don't worry about FONT on TTY layouts. */
     IF h_btn_font NE ? AND _L._WIN-TYPE THEN DO:
-      IF h_self:FONT NE _L._FONT AND _U._TYPE NE "BROWSE"
+      IF h_self:FONT NE _L._FONT AND _U._TYPE NE "BROWSE":U
       THEN h_self:FONT = _L._FONT.
     END.
     
-    IF h_btn_ttl_clr NE ? AND NOT SESSION:WINDOW-SYSTEM BEGINS "MS-WIN" THEN
+    IF h_btn_ttl_clr NE ? AND NOT SESSION:WINDOW-SYSTEM BEGINS "MS-WIN":U THEN
       ASSIGN h_self:TITLE-BGCOLOR = _L._TITLE-BGCOLOR
              h_self:TITLE-FGCOLOR = _L._TITLE-FGCOLOR.
     
-    IF _U._TYPE = "RECTANGLE" THEN
+    IF _U._TYPE = "RECTANGLE":U THEN
       ASSIGN h_self:EDGE-PIXELS = _L._EDGE-PIXELS
              h_self:FILLED      = _L._FILLED
              h_self:GROUP-BOX   = _L._GROUP-BOX
              h_self:ROUNDED     = _L._ROUNDED.
       
-    IF _U._TYPE = "WINDOW" AND sav-iu NE _C._ICON THEN
+    IF _U._TYPE = "WINDOW":U AND sav-iu NE _C._ICON THEN
       stupid = h_self:LOAD-ICON(_C._ICON).
     
-    IF _U._TYPE = "WINDOW" AND sav-iu2 NE _C._SMALL-ICON THEN
+    IF _U._TYPE = "WINDOW":U AND sav-iu2 NE _C._SMALL-ICON THEN
       stupid = h_self:LOAD-SMALL-ICON(_C._SMALL-ICON).
     
     IF _U._TYPE = "IMAGE":U THEN DO:
@@ -1350,11 +1350,11 @@ PROCEDURE complete_the_transaction:
 
       
     IF h_label NE ? THEN DO:
-      IF CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) THEN DO:
+      IF CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE) THEN DO:
         DEFINE VARIABLE h_window AS WIDGET-HANDLE NO-UNDO.
         DEFINE VARIABLE OldTitle AS CHARACTER     NO-UNDO.
     
-        ASSIGN h_window = IF _U._TYPE = "DIALOG-BOX" THEN _U._PARENT ELSE h_self
+        ASSIGN h_window = IF _U._TYPE = "DIALOG-BOX":U THEN _U._PARENT ELSE h_self
                OldTitle = h_window:TITLE.
         RUN adeuib/_wintitl.p (h_window,
                                _U._LABEL,
@@ -1368,7 +1368,7 @@ PROCEDURE complete_the_transaction:
     
       END.
       
-      ELSE IF _U._TYPE = "FRAME" THEN DO:
+      ELSE IF _U._TYPE = "FRAME":U THEN DO:
         /* If any of the sav- stuff has been changed, we recreate the frame later    */
         IF sav-box = _L._NO-BOX AND sav-ttl = _C._TITLE AND sav-slab = _C._SIDE-LABELS AND
            sav-lbl = _L._NO-LABELS AND sav-3d = _L._3-D THEN DO:
@@ -1376,10 +1376,10 @@ PROCEDURE complete_the_transaction:
         END.
       END.
         
-      ELSE IF NOT _L._WIN-TYPE AND CAN-DO("BUTTON,TOGGLE-BOX",_U._TYPE) THEN
+      ELSE IF NOT _L._WIN-TYPE AND CAN-DO("BUTTON,TOGGLE-BOX":U,_U._TYPE) THEN
         RUN adeuib/_sim_lbl.p (h_self).
     
-      ELSE IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER",_U._TYPE) THEN DO:
+      ELSE IF CAN-DO("FILL-IN,COMBO-BOX,EDITOR,SELECTION-LIST,RADIO-SET,SLIDER":U,_U._TYPE) THEN DO:
         IF _L._REMOVE-FROM-LAYOUT = NO THEN RUN adeuib/_showlbl.p (h_self).
         ELSE DO:
           FIND label_U WHERE RECID(label_U) = _U._l-recid.
@@ -1388,11 +1388,11 @@ PROCEDURE complete_the_transaction:
         END.
       END.  
             
-      ELSE IF _U._TYPE NE "BROWSE" AND _U._TYPE NE "{&WT-CONTROL}" THEN
+      ELSE IF _U._TYPE NE "BROWSE":U AND _U._TYPE NE "{&WT-CONTROL}":U THEN
         h_self:LABEL = _U._LABEL.  /* BROWSEs always get recreated */
     END.
     
-    IF _L._LO-NAME = "Master Layout" THEN DO:  /* Update other layouts */
+    IF _L._LO-NAME = "Master Layout":U THEN DO:  /* Update other layouts */
       FOR EACH sync_L WHERE sync_L._u-recid = _L._u-recid AND
                             sync_L._LO-NAME NE _L._LO-NAME:
         IF NOT sync_L._CUSTOM-POSITION THEN
@@ -1422,10 +1422,10 @@ END.  /* Complete the transaction */
 
 PROCEDURE data-type_change.
   IF change-data-type(_U._HANDLE,SELF:SCREEN-VALUE) THEN DO:
-    IF _F._FORMAT-SOURCE eq "E" AND VALID-HANDLE(h_format) THEN DO:
+    IF _F._FORMAT-SOURCE eq "E":U AND VALID-HANDLE(h_format) THEN DO:
       IF notAmerican AND
-        LOOKUP(_F._DATA-TYPE,"INTEGER,DECIMAL":U) > 0 THEN DO:
-        RUN adecomm/_convert.p ("A-TO-N", _F._FORMAT, 
+        LOOKUP(_F._DATA-TYPE,"INTEGER,INT64,DECIMAL":U) > 0 THEN DO:
+        RUN adecomm/_convert.p ("A-TO-N":U, _F._FORMAT, 
                                 _numeric_separator, _numeric_decimal,
                                 OUTPUT conv_fmt).
         h_format:SCREEN-VALUE = conv_fmt.
@@ -1446,13 +1446,13 @@ PROCEDURE data-type_change.
     END. /* Else if a combo-box */
       
      /* Save entry number (1 or 2) of logical fill-in/combo-box initial value */
-    IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND _F._DATA-TYPE EQ "LOGICAL" THEN DO:
+    IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND _F._DATA-TYPE EQ "LOGICAL":U THEN DO:
       sav-ldef = LOOKUP (_F._INITIAL-DATA,_F._FORMAT,"/":U).
       IF sav-ldef = 0 THEN sav-ldef = 2. /* Just to be safe. */
     END.
 
     /* data-type affects the show-popup attribute because it is only for numeric and date fields*/
-    IF CAN-DO("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) AND isDynView THEN DO:
+    IF CAN-DO("DATE,DECIMAL,INTEGER,INT64":U, _F._DATA-TYPE) AND isDynView THEN DO:
       IF VALID-HANDLE(h_show-popup) THEN
         ASSIGN h_show-popup:SENSITIVE = TRUE.
     END.
@@ -1464,7 +1464,7 @@ PROCEDURE data-type_change.
       END.  /* If h_show-popup is valid */
     END. /* Else do */
 
-    IF _U._TYPE = "EDITOR" THEN
+    IF _U._TYPE = "EDITOR":U THEN
       RUN setEditorLarge.
   END.  /* If the data type was successfully changed in the underlying
            _U and _F records */
@@ -1535,7 +1535,7 @@ PROCEDURE db_field_selection.
   DEFINE VAR done          AS LOGICAL              NO-UNDO.
   DEFINE VAR use_Prefix    AS INTEGER              NO-UNDO.
   DEFINE VAR def_var       AS CHAR                 NO-UNDO  INITIAL
-             "CHARACTER,DATE,DECIMAL,LOGICAL,INTEGER,RECID".              
+             "CHARACTER,DATE,DECIMAL,LOGICAL,INTEGER,INT64,RECID":U.
   DEFINE VAR pressed_ok    AS LOGICAL              NO-UNDO.
   DEFINE VAR fld_name      AS CHAR                 NO-UNDO.
   DEFINE VAR fld_save      AS CHAR                 NO-UNDO.
@@ -1580,13 +1580,13 @@ PROCEDURE db_field_selection.
   DEFINE VAR iNum            AS INTEGER            NO-UNDO.
   DEFINE VAR cLocalField     AS CHARACTER          NO-UNDO.
   DEFINE VAR cObjectType     AS CHARACTER  NO-UNDO.
-       
+
   DEFINE BUFFER ip_U FOR _U.
   DEFINE BUFFER f_U  FOR _U.
 
-  ASSIGN def_var = IF _U._TYPE = "SELECTION-LIST" THEN "CHARACTER"
-                   ELSE IF _U._TYPE = "SLIDER"         THEN "INTEGER"
-                   ELSE IF _U._TYPE = "TOGGLE-BOX"     THEN "LOGICAL"
+  ASSIGN def_var = IF _U._TYPE = "SELECTION-LIST":U THEN "CHARACTER":U
+                   ELSE IF _U._TYPE = "SLIDER":U         THEN "INTEGER":U
+                   ELSE IF _U._TYPE = "TOGGLE-BOX":U     THEN "LOGICAL":U
                    ELSE def_var
          old-dt  = _F._DATA-TYPE
          old-nm  = _U._NAME
@@ -1611,7 +1611,7 @@ PROCEDURE db_field_selection.
           tt-info = LEFT-TRIM(tt-info,",":U).
         END.  /* IF can-find a _TT record */
         ELSE tt-info = ?.
-          
+
         ASSIGN fld_name = _U._NAME
                db_name  = _U._DBNAME
                tbl_name = _U._TABLE
@@ -1628,7 +1628,7 @@ PROCEDURE db_field_selection.
     END.  /* IF UsesDataObject = NO */
 
     ELSE DO:  /* UsesDataObject */
-        
+
       ASSIGN db_name = "Temp-Tables":U.
       /* Build the temp-table info to pass to the field picker. */
       tbl_name = "".
@@ -1700,7 +1700,7 @@ PROCEDURE db_field_selection.
       DO:
         IF VALID-HANDLE(hDataObject) THEN
         DO:
-          fld_type = DYNAMIC-FUNC("columnDataType" IN hDataObject, fld_name) NO-ERROR.
+          fld_type = DYNAMIC-FUNC("columnDataType":U IN hDataObject, fld_name) NO-ERROR.
           IF fld_type = "BLOB":U THEN
           DO:
             MESSAGE fld_name " is a BLOB field and cannot be mapped to a visual object."
@@ -1844,7 +1844,7 @@ PROCEDURE db_field_selection.
                                       THEN 'RowObject':U  ELSE  _U._TABLE.
         
         END. /* End if dynamics is running */
-        IF db_name = "Temp-Tables" THEN DO:
+        IF db_name = "Temp-Tables":U THEN DO:
           FIND FIRST _TT WHERE _TT._p-recid = RECID(_P) AND
                                _TT._NAME    = tbl_name NO-ERROR.
           IF NOT AVAILABLE _TT THEN
@@ -1976,7 +1976,7 @@ PROCEDURE db_field_selection.
     ASSIGN FRAME db-defaults:PARENT = ACTIVE-WINDOW.
     IF _U._DBNAME NE ? THEN
       RUN adecomm/_s-schem.p(_U._DBNAME, _U._TABLE,
-                             IF CAN-DO("LIKE,FIELD",_F._DISPOSITION) AND
+                             IF CAN-DO("LIKE,FIELD":U,_F._DISPOSITION) AND
                                _F._LIKE-FIELD NE "" THEN _F._LIKE-FIELD ELSE _U._NAME,
                              "FIELD:VIEW-AS":U,
                              OUTPUT viewas).
@@ -1993,9 +1993,9 @@ PROCEDURE db_field_selection.
                    ",FIELD,Local &Variable,Local,L&ike " +
                    (if _U._Table ne ? and _U._Table ne ? then _U._TABLE + "." else '':u) + 
                    (IF _F._DISPOSITION = "LIKE":U AND _F._LIKE-FIELD NE ""
-                    THEN _F._LIKE-FIELD ELSE _U._NAME) + ",Like"
-           db-var:SCREEN-VALUE = IF _F._DISPOSITION = "LIKE" OR must-be-like
-                                   THEN "LIKE" ELSE "FIELD".
+                    THEN _F._LIKE-FIELD ELSE _U._NAME) + ",Like":U
+           db-var:SCREEN-VALUE = IF _F._DISPOSITION = "LIKE":U OR must-be-like
+                                   THEN "LIKE":U ELSE "FIELD":U.
 
     ON CHOOSE OF btn_help IN FRAME db-defaults OR HELP OF FRAME db-defaults DO:
       RUN adecomm/_adehelp.p ( "AB", "CONTEXT", {&Dict_Defauts_Dlg_Box}, ? ).
@@ -2011,14 +2011,14 @@ PROCEDURE db_field_selection.
       IF VALID-HANDLE(h_label) THEN
             h_label:SENSITIVE = IF _U._LABEL-SOURCE = "D" THEN FALSE ELSE TRUE.
       IF VALID-HANDLE(h_format) THEN
-            h_format:SENSITIVE = IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX" AND
-                                    _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
+            h_format:SENSITIVE = IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX":U AND
+                                    _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE ELSE TRUE.
       IF VALID-HANDLE(h_btn_fmt) THEN
-            h_btn_fmt:SENSITIVE = IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX" AND
-                                     _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
+            h_btn_fmt:SENSITIVE = IF _F._FORMAT-SOURCE = "D" OR (_U._TYPE = "COMBO-BOX":U AND
+                                     _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE ELSE TRUE.
       IF VALID-HANDLE(h_data-type) THEN
-            h_data-type:SENSITIVE = IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX" AND
-                                       _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
+            h_data-type:SENSITIVE = IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX":U AND
+                                       _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE ELSE TRUE.
       IF db-var EQ "Local" THEN DO:
         ASSIGN  _U._DBNAME                       = ?
                 _U._TABLE                        = ?
@@ -2115,14 +2115,14 @@ PROCEDURE db_field_selection.
           PUT STREAM temp_stream UNFORMATTED
             "DEFINE TEMP-TABLE RowObject ~{":U + include-name + "~}.":U SKIP(1).
         END.
-        PUT STREAM temp_stream UNFORMATTED "DEFINE FRAME xx" SKIP "  " +
+        PUT STREAM temp_stream UNFORMATTED "DEFINE FRAME xx":U SKIP "  " +
                              (IF _U._DBNAME = "Temp-Tables" THEN "" ELSE _U._DBNAME + ".") +
                              _U._TABLE + "." + 
                              (IF _F._LIKE-FIELD NE "" THEN _F._LIKE-FIELD ELSE _U._NAME) +
                              (IF _F._LIKE-FIELD NE "" AND _U._TYPE NE "FILL-IN" THEN
                              " VIEW-AS " + _U._TYPE ELSE "")
                              SKIP
-                             "  WITH SIDE-LABELS." SKIP .
+                             "  WITH SIDE-LABELS.":U SKIP .
         OUTPUT STREAM temp_stream CLOSE.
         IF SEARCH(include-name) NE ? OR _P._data-object EQ "":U THEN DO:
           ANALYZE VALUE(dbf_temp_file) VALUE(a-out).
@@ -2132,14 +2132,14 @@ PROCEDURE db_field_selection.
             IF a-line[1] = "FR" AND a-line[2] = "xx" THEN DO:
               IMPORT STREAM temp_stream a-line.  /* Read over the frame */
               IMPORT STREAM temp_stream a-line.  /* Get the TYPE */
-              _U._TYPE = IF a-line[1] = "FF" THEN "FILL-IN" ELSE
-                         IF a-line[1] = "TB" THEN "TOGGLE-BOX" ELSE
-                         IF a-line[1] = "SE" THEN "SELECTION-LIST" ELSE
-                         IF a-line[1] = "CB" THEN "COMBO-BOX" ELSE
-                         IF a-line[1] = "RS" THEN "RADIO-SET" ELSE
-                         IF a-line[1] = "ED" THEN "EDITOR" ELSE
-                         IF a-line[1] = "SL" THEN "SLIDER" ELSE
-                         "FILL-IN".
+              _U._TYPE = IF a-line[1] = "FF" THEN "FILL-IN":U ELSE
+                         IF a-line[1] = "TB" THEN "TOGGLE-BOX":U ELSE
+                         IF a-line[1] = "SE" THEN "SELECTION-LIST":U ELSE
+                         IF a-line[1] = "CB" THEN "COMBO-BOX":U ELSE
+                         IF a-line[1] = "RS" THEN "RADIO-SET":U ELSE
+                         IF a-line[1] = "ED" THEN "EDITOR":U ELSE
+                         IF a-line[1] = "SL" THEN "SLIDER":U ELSE
+                         "FILL-IN":U.
               IF _U._ALIGN = "C":U AND CAN-DO("SELECTION-LIST,RADIO-SET,EDITOR,SLIDER":U,_U._TYPE)
                 THEN _U._ALIGN = "L":U.           
               IMPORT STREAM temp_stream a-line.  /* Get the size */
@@ -2148,7 +2148,7 @@ PROCEDURE db_field_selection.
                      _L._HEIGHT          = DECIMAL(a-line[6])
                      h_hgt:SCREEN-VALUE  = STRING (_L._HEIGHT)
                      done = TRUE.
-              IF _U._TYPE = "EDITOR" THEN
+              IF _U._TYPE = "EDITOR":U THEN
                 ASSIGN _F._WORD-WRAP   = a-line[30] NE "y"
                        _F._SCROLLBAR-H = a-line[23] EQ "y"
                        _U._SCROLLBAR-V = a-line[24] EQ "y"
@@ -2165,7 +2165,7 @@ PROCEDURE db_field_selection.
     END.  /* Choose of btn_ok */
    
     ON VALUE-CHANGED OF db-var IN FRAME db-defaults DO:
-      IF SELF:SCREEN-VALUE = "LOCAL" THEN
+      IF SELF:SCREEN-VALUE = "LOCAL":U THEN
         ASSIGN def_label:CHECKED IN FRAME db-defaults     = FALSE
                def_label:SENSITIVE IN FRAME db-defaults   = FALSE
                def_format:CHECKED IN FRAME db-defaults    = FALSE
@@ -2178,11 +2178,11 @@ PROCEDURE db_field_selection.
         ASSIGN def_label:CHECKED IN FRAME db-defaults     =
                       IF def_label:SENSITIVE THEN def_label:CHECKED ELSE TRUE
                def_label:SENSITIVE IN FRAME db-defaults   =
-                         CAN-DO("BUTTON,COMBO-BOX,FILL-IN,TOGGLE-BOX", _U._TYPE)
+                         CAN-DO("BUTTON,COMBO-BOX,FILL-IN,TOGGLE-BOX":U, _U._TYPE)
                def_format:CHECKED IN FRAME db-defaults    =
                       IF def_format:SENSITIVE THEN def_format:CHECKED ELSE TRUE
                def_format:SENSITIVE IN FRAME db-defaults  =
-                         CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE)
+                         CAN-DO("COMBO-BOX,FILL-IN":U,_U._TYPE)
                def_help:CHECKED IN FRAME db-defaults      =
                       IF def_help:SENSITIVE THEN def_help:CHECKED ELSE TRUE
                def_help:SENSITIVE IN FRAME db-defaults    = TRUE
@@ -2193,12 +2193,12 @@ PROCEDURE db_field_selection.
     DISPLAY def_label def_format def_help db-var WITH FRAME db-defaults.
     ASSIGN db-var:SENSITIVE IN FRAME db-defaults     = NOT must-be-like
            def_label:SENSITIVE IN FRAME db-defaults  =
-                     CAN-DO("BUTTON,COMBO-BOX,FILL-IN,TOGGLE-BOX", _U._TYPE)
+                     CAN-DO("BUTTON,COMBO-BOX,FILL-IN,TOGGLE-BOX":U, _U._TYPE)
            def_format:SENSITIVE IN FRAME db-defaults =
-                     CAN-DO("COMBO-BOX,FILL-IN",_U._TYPE)
+                     CAN-DO("COMBO-BOX,FILL-IN":U,_U._TYPE)
            def_help:SENSITIVE IN FRAME db-defaults   = TRUE
            def_view-as:SENSITIVE IN FRAME db-defaults = viewas NE ? AND
-                                 db-var:SCREEN-VALUE IN FRAME db-defaults NE "LOCAL".
+                                 db-var:SCREEN-VALUE IN FRAME db-defaults NE "LOCAL":U.
     IF _F._SOURCE-DATA-TYPE = "CLOB":U THEN 
     DO:
       cLikeButton = ENTRY(5, db-var:RADIO-BUTTONS).
@@ -2322,7 +2322,7 @@ PROCEDURE db_field_selection.
                              INPUT "ADD-FIELDS":U,
                              INPUT _U._DBNAME + "." + _U._TABLE + "." + _U._NAME).
   END.
-  h_NO-UNDO:SENSITIVE = _F._DISPOSITION NE "FIELD".  
+  h_NO-UNDO:SENSITIVE = _F._DISPOSITION NE "FIELD":U.  
 END PROCEDURE.
            
 
@@ -2390,7 +2390,7 @@ PROCEDURE font_edit.
   END.  
   sav_font = _L._FONT.
 
-  IF NOT CAN-DO("WINDOW,FRAME,DIALOG-BOX",_U._TYPE) THEN DO:
+  IF NOT CAN-DO("WINDOW,FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
     ASSIGN parent_font = parent_L._FONT.
   END.
   RUN adecomm/_chsfont.p  ("Choose Font",
@@ -2416,7 +2416,7 @@ PROCEDURE format_change.
   /* Validate format string */
   run adecomm/_tmpfile.p (INPUT "", INPUT ".AB", OUTPUT cTestFile).
   OUTPUT TO VALUE(cTestFile).
-  PUT UNFORMATTED "DEF VAR X AS " + _F._DATA-TYPE + " FORMAT '":U + SELF:SCREEN-VALUE + "'.":U SKIP.
+  PUT UNFORMATTED "DEF VAR X AS " + _F._DATA-TYPE + " FORMAT '" + SELF:SCREEN-VALUE + "'.":U SKIP.
   OUTPUT CLOSE.
   COMPILE VALUE(cTestFile) NO-ERROR.
   OS-DELETE VALUE(cTestFile).
@@ -2447,14 +2447,15 @@ PROCEDURE format_professor.
     WHEN "LOGICAL":U     THEN RUN adecomm/_y-build.p (3, INPUT-OUTPUT fmt).
     WHEN "DECIMAL":U     THEN RUN adecomm/_y-build.p (5, INPUT-OUTPUT fmt). 
     WHEN "RECID":U       THEN RUN adecomm/_y-build.p (7, INPUT-OUTPUT fmt).
+    WHEN "INT64":U       THEN RUN adecomm/_y-build.p (41, INPUT-OUTPUT fmt).
     OTHERWISE                 RUN adecomm/_y-build.p (4, INPUT-OUTPUT fmt).
   END CASE.
   
   /* Convert the output value, if necessary, back into American format */
   /* and display this as the format's screen-value; however, store the */
   /* American value separately.                                        */
-  IF notAmerican AND (_F._DATA-TYPE = "Integer" OR
-    _F._DATA-TYPE = "Decimal") THEN 
+  IF notAmerican AND (_F._DATA-TYPE = "Integer":U OR _F._DATA-TYPE = "INT64":U
+       OR _F._DATA-TYPE = "Decimal":U) THEN
        RUN adecomm/_convert.p ("N-TO-A",fmt, 
                                _numeric_separator, _numeric_decimal, 
                                OUTPUT conv_fmt).
@@ -2477,7 +2478,7 @@ PROCEDURE icon_change.
   image-formats = "Icons (*.ico)|*.ico|All Files|*.*":U.
   RUN adecomm/_fndfile.p (INPUT "Image",               /* pTitle             */
                           INPUT "IMAGE",               /* pMode              */
-                 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+                 &IF "{&WINDOW-SYSTEM}":U BEGINS "MS-WIN":U &THEN
                           INPUT image-formats,         /* pFilters           */
                  &ELSE
                           INPUT "*.xbm,*.xpm|*.*":U,   /* pFilters           */
@@ -2686,7 +2687,7 @@ PROCEDURE menu_bar_change.
   DEF VAR empty_menu as logical no-undo.
   DEF VAR lOk        AS LOGICAL NO-UNDO.
 
-  RUN adecomm/_setcurs.p ("WAIT").
+  RUN adecomm/_setcurs.p ("WAIT":U).
   
   /* Avoid conflict with SmartToolbar menu */
   RUN toolbar_check(OUTPUT lok).
@@ -2784,7 +2785,7 @@ PROCEDURE popup_menu_change:
   END.
  
   popup_recid = _U._popup-recid.
-  RUN adeuib/_edtmenu.p (RECID(_U), "POPUP-MENU", ?,
+  RUN adeuib/_edtmenu.p (RECID(_U), "POPUP-MENU":U, ?,
                          INPUT-OUTPUT popup_recid,
                          OUTPUT pressed_ok,
                          OUTPUT empty_menu).
@@ -2795,7 +2796,7 @@ END.
 
 PROCEDURE query_edit:
   IF AVAILABLE _F THEN DO:
-    IF CAN-DO("SELECTION-LIST,COMBO-BOX",_U._TYPE) THEN DO:
+    IF CAN-DO("SELECTION-LIST,COMBO-BOX":U,_U._TYPE) THEN DO:
       IF h_listType:SCREEN-VALUE = "P":U THEN /* LIST-ITEM-PAIRS */
         ASSIGN _F._LIST-ITEM-PAIRS = REPLACE(RIGHT-TRIM(SELF:SCREEN-VALUE),CHR(13),"")
                _F._LIST-ITEMS = ?.    
@@ -2891,6 +2892,7 @@ PROCEDURE switchList:
         CASE _F._DATA-TYPE: /* Figure out which value to display based on data type */
           WHEN "CHARACTER":U THEN tmpString = tmpString + ENTRY(i,h_query:SCREEN-VALUE,CHR(10)).
           WHEN "INTEGER":U   THEN tmpString = tmpString + STRING(i,_F._FORMAT).
+          WHEN "INT64":U     THEN tmpString = tmpString + STRING(i,_F._FORMAT).
           WHEN "LOGICAL":U   THEN tmpString = tmpString + STRING(no,_F._FORMAT).
           WHEN "DECIMAL":U   THEN tmpString = tmpString + STRING(i,_F._FORMAT).
           WHEN "DATE":U      THEN tmpString = tmpString + STRING(TODAY,_F._FORMAT).
@@ -3020,7 +3022,7 @@ PROCEDURE vir_width_change.
   new-width = DECIMAL (SELF:SCREEN-VALUE).
                          
   /* Windows and dialog-boxes can't be narrower than 12 (see height_change) */
-  IF CAN-DO ("WINDOW,DIALOG-BOX", _U._TYPE) AND new-width < 12 THEN 
+  IF CAN-DO ("WINDOW,DIALOG-BOX":U, _U._TYPE) AND new-width < 12 THEN 
     ASSIGN
        new-width = 12 
        err-msg    = "Minimum VIRTUAL-WIDTH of a " + _U._TYPE + " is 12.".
@@ -3076,14 +3078,14 @@ PROCEDURE height_change.
       err-msg    = "Height of a " + _U._TYPE + " must be greater than 0.".
  
   /* Window/dialog-boxes can't be physically smaller than 1 high.                    */
-  IF CAN-DO ("WINDOW,DIALOG-BOX", _U._TYPE) AND new-height < 1 THEN 
+  IF CAN-DO ("WINDOW,DIALOG-BOX":U, _U._TYPE) AND new-height < 1 THEN 
     ASSIGN
       new-height = 1      
       err-msg = "Height of a " + _U._TYPE + " must be 1 or greater.".
   
   /* non-scrollable frames and dialog-boxes must have height check against child widget requirements. */
-  IF (_U._TYPE = "FRAME" AND AVAILABLE _C AND NOT _C._SCROLLABLE) OR
-           _U._TYPE = "DIALOG-BOX" THEN DO:
+  IF (_U._TYPE = "FRAME":U AND AVAILABLE _C AND NOT _C._SCROLLABLE) OR
+           _U._TYPE = "DIALOG-BOX":U THEN DO:
       RUN height_check (INPUT        _U._HANDLE, 
                         INPUT        _L._ROW-MULT, 
                         INPUT-OUTPUT new-height,
@@ -3095,9 +3097,9 @@ PROCEDURE height_change.
     END.
 
   /* Check maxima */ 
-  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME",_U._TYPE) THEN 
+  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME":U,_U._TYPE) THEN 
     upr-limit = 1 + v-hgt - DECIMAL(h_row:SCREEN-VALUE).
-  ELSE IF _U._TYPE EQ "FRAME" AND NOT _U._size-to-parent THEN
+  ELSE IF _U._TYPE EQ "FRAME":U AND NOT _U._size-to-parent THEN
     upr-limit = 1 + v-hgt - (IF DECIMAL(h_row:SCREEN-VALUE) NE ?  /* v-hgt = PARENT'S virtual-width */
                              THEN DECIMAL(h_row:SCREEN-VALUE)
                              ELSE 1).
@@ -3111,12 +3113,12 @@ PROCEDURE height_change.
 
   /* Update the virtual if necessary */
   IF AVAILABLE _C AND h_v-hgt NE ? THEN
-    ASSIGN _L._VIRTUAL-HEIGHT   = IF _U._TYPE = "FRAME" AND NOT _C._SCROLLABLE THEN
+    ASSIGN _L._VIRTUAL-HEIGHT   = IF _U._TYPE = "FRAME":U AND NOT _C._SCROLLABLE THEN
                                     new-height ELSE MAX (new-height, _L._VIRTUAL-HEIGHT)
            h_v-hgt:SCREEN-VALUE = STRING (_L._VIRTUAL-HEIGHT).
            
   /* TTY minimums */
-  IF _U._TYPE = "SLIDER" AND NOT _L._WIN-TYPE AND new-height < 2 THEN
+  IF _U._TYPE = "SLIDER":U AND NOT _L._WIN-TYPE AND new-height < 2 THEN
     ASSIGN new-height = 2
            err-msg = "Character mode sliders are 2 characters high.":U.
                      
@@ -3178,7 +3180,7 @@ PROCEDURE width_change.
     END.
   
   /* Check against maxima */
-  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME",_U._TYPE) THEN DO:
+  IF NOT CAN-DO("WINDOW,DIALOG-BOX,FRAME":U,_U._TYPE) THEN DO:
     RUN compute_lbl_wdth.
     CASE _U._ALIGN:
       WHEN "R" THEN upr-limit = v-wdth - parent_U._HANDLE:BORDER-LEFT -      /* v-wdth is PARENT'S virtual-width */
@@ -3217,7 +3219,7 @@ PROCEDURE width_change.
     ASSIGN new-width = 9
            err-msg = "Character mode vertical sliders are 9 characters wide.":U.
   /* TTY toggles must be at least 3 wide, for the '[ ]' */
-  ELSE IF _U._TYPE = "TOGGLE-BOX" AND NOT _L._WIN-TYPE AND
+  ELSE IF _U._TYPE = "TOGGLE-BOX":U AND NOT _L._WIN-TYPE AND
      new-width < 3 THEN
      ASSIGN new-width = 3
             err-msg   = "Character mode toggle boxes must be 3 or more characters wide.":U.
@@ -3271,11 +3273,11 @@ PROCEDURE height_check.
   
   child_handle = obj-handle:FIRST-CHILD.
 
-  IF obj-handle:TYPE = "FRAME" THEN  /* Skip the field group 'widget' */
+  IF obj-handle:TYPE = "FRAME":U THEN  /* Skip the field group 'widget' */
     child_handle = child_handle:FIRST-CHILD.
   
   DO WHILE VALID-HANDLE(child_handle):
-    IF child_handle:TYPE NE "DIALOG-BOX" AND child_handle:TYPE NE "WINDOW" AND 
+    IF child_handle:TYPE NE "DIALOG-BOX":U AND child_handle:TYPE NE "WINDOW":U AND 
        child_handle:HEIGHT + child_handle:ROW - 1 > ROUND (hgt * row-mult, 2)
        /* This ROUND can be taken out when ALL uib decimals vars are DECIMALS 2'd */
     THEN DO:
@@ -3313,11 +3315,11 @@ PROCEDURE width_check.
     child_handle = child_handle:FIRST-CHILD.   /* Skip field group 'widget' */
 
   DO WHILE VALID-HANDLE(child_handle):
-    IF child_handle:TYPE NE "DIALOG-BOX" AND child_handle:TYPE NE "WINDOW" AND 
+    IF child_handle:TYPE NE "DIALOG-BOX":U AND child_handle:TYPE NE "WINDOW":U AND 
        child_handle:WIDTH + child_handle:COLUMN - 1 > ROUND (wdth * col-mult, 2)
     THEN DO:
       
-      IF child_handle:TYPE = "RECTANGLE" AND obj-handle:TYPE = "FRAME" AND
+      IF child_handle:TYPE = "RECTANGLE":U AND obj-handle:TYPE = "FRAME":U AND
          child_handle      = _C._FRAME-BAR THEN
         ASSIGN frame-rect              = child_handle
                frame-rect:WIDTH-PIXELS = 1.        
@@ -3384,16 +3386,16 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   WIDTH             = 45.45
                   FORMAT            = "X(80)"
                   SIDE-LABEL-HANDLE = h_label_lbl
-                  SCREEN-VALUE      = IF _U._TYPE = "{&WT-CONTROL}" THEN
+                  SCREEN-VALUE      = IF _U._TYPE = "{&WT-CONTROL}":U THEN
                                         _U._SUBTYPE + "   (In: ":U +
                                                       _F._IMAGE-FILE + ")":U
                                       ELSE _U._LABEL
                   BGCOLOR           = std_fillin_bgcolor
                   FGCOLOR           = std_fillin_fgcolor
-                  LABEL             = IF CAN-DO("WINDOW,FRAME,BROWSE,DIALOG-BOX",
+                  LABEL             = IF CAN-DO("WINDOW,FRAME,BROWSE,DIALOG-BOX":U,
                                         _U._TYPE)
                                         THEN "Title:":U
-                                      ELSE IF _U._TYPE = "{&WT-CONTROL}"
+                                      ELSE IF _U._TYPE = "{&WT-CONTROL}":U
                                         THEN "OCX:":U
                                       ELSE "Label:":U
              TRIGGERS:
@@ -3407,10 +3409,10 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                                         h_label:LABEL + " ")
              h_label_lbl:ROW     = h_label:ROW
              h_label_lbl:COLUMN  = h_label:COLUMN - h_label_lbl:WIDTH
-             h_label:SENSITIVE   = _U._TYPE NE "{&WT-CONTROL}".
+             h_label:SENSITIVE   = _U._TYPE NE "{&WT-CONTROL}":U.
       IF _U._TYPE = "{&WT-CONTROL}" THEN _U._LABEL-SOURCE = "D":U.
              
-      IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN DO:
+      IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN DO:
         RUN compute_lbl_wdth.
         CREATE TOGGLE-BOX h_nolbl
              ASSIGN FRAME        = FRAME prop_sht:HANDLE
@@ -3432,13 +3434,13 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       cur-row  = cur-row + 1.1.
     END.  /* Has a LABEL or TITLE */
 
-    WHEN "QUERY" OR WHEN "LIST-ITEMS" THEN DO:
-      IF _U._TYPE = "COMBO-BOX" OR _U._TYPE = "SELECTION-LIST" THEN DO:
+    WHEN "QUERY":U OR WHEN "LIST-ITEMS":U THEN DO:
+      IF _U._TYPE = "COMBO-BOX":U OR _U._TYPE = "SELECTION-LIST":U THEN DO:
         CREATE RADIO-SET h_listType
              ASSIGN FRAME         = FRAME prop_sht:HANDLE
                     ROW           = cur-row
                     HORIZONTAL    = TRUE
-                    RADIO-BUTTONS = "List-Items,I,List-Item-Pairs,P"
+                    RADIO-BUTTONS = "List-Items,I,List-Item-Pairs,P":U
                     COLUMN        = name:COLUMN IN FRAME prop_sht
                     SENSITIVE     = TRUE
              TRIGGERS:
@@ -3463,33 +3465,33 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SCROLLBAR-VERTICAL   = TRUE
                   SCROLLBAR-HORIZONTAL = TRUE
                   RETURN-INSERTED      = TRUE
-                  WIDTH                = IF _PROP._NAME = "QUERY" OR
-                                          _U._TYPE = "COMBO-BOX" THEN 45 ELSE
+                  WIDTH                = IF _PROP._NAME = "QUERY":U OR
+                                          _U._TYPE = "COMBO-BOX":U THEN 45 ELSE
                                           (name:WIDTH - .5)
                   FONT                 = editor_font
                   INNER-LINES          = IF SESSION:HEIGHT-PIXELS > 500 THEN 4
                                                                         ELSE 2
-                  SCREEN-VALUE         = IF _PROP._NAME = "QUERY" 
+                  SCREEN-VALUE         = IF _PROP._NAME = "QUERY":U
                                            THEN IF NOT lDbAware AND isDynBrow THEN "":U
                                                 ELSE _Q._4GLQURY 
-                                           ELSE IF _U._TYPE = "RADIO-SET" THEN
+                                           ELSE IF _U._TYPE = "RADIO-SET":U THEN
                                            _F._LIST-ITEMS ELSE ""
                   SIDE-LABEL-HANDLE    = h_qry_lbl
-                  LABEL                = IF _PROP._NAME = "QUERY" THEN "Query:"
-                                         ELSE IF _U._TYPE = "RADIO-SET"
+                  LABEL                = IF _PROP._NAME = "QUERY":U THEN "Query:"
+                                         ELSE IF _U._TYPE = "RADIO-SET":U
                                          THEN "Buttons:"
-                                         ELSE IF _PROP._NAME = "LIST-ITEMS" THEN ""
+                                         ELSE IF _PROP._NAME = "LIST-ITEMS":U THEN ""
                                          ELSE ""
            TRIGGERS:                            
              ON LEAVE PERSISTENT RUN query_edit.
            END TRIGGERS.
       
-      IF _PROP._NAME = "LIST-ITEMS" THEN
+      IF _PROP._NAME = "LIST-ITEMS":U THEN
         ASSIGN h_query:BGCOLOR = std_fillin_bgcolor
                h_query:FGCOLOR = std_fillin_fgcolor.
       ELSE ASSIGN h_query:BGCOLOR = {&READ-ONLY_BGC}.
       
-      IF _U._TYPE = "COMBO-BOX" OR _U._TYPE = "SELECTION-LIST" THEN DO:
+      IF _U._TYPE = "COMBO-BOX":U OR _U._TYPE = "SELECTION-LIST":U THEN DO:
         IF  h_listType:SCREEN-VALUE = "P" THEN 
           h_query:SCREEN-VALUE = _F._LIST-ITEM-PAIRS.
         ELSE 
@@ -3498,14 +3500,14 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                
       ASSIGN stupid            = h_query:MOVE-AFTER(last-tab)
              last-tab          = h_query
-             sav-qry           = IF _PROP._NAME = "QUERY" THEN _Q._4GLQURY
+             sav-qry           = IF _PROP._NAME = "QUERY":U THEN _Q._4GLQURY
                                  ELSE _F._LIST-ITEMS
              h_qry_lbl:HEIGHT  = 1
              h_qry_lbl:WIDTH   = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_query:LABEL + " ")
              h_qry_lbl:ROW     = h_query:ROW
              h_qry_lbl:COLUMN  = h_query:COLUMN - h_qry_lbl:WIDTH
              h_query:SENSITIVE = TRUE
-             h_query:READ-ONLY = (_PROP._NAME = "QUERY").
+             h_query:READ-ONLY = (_PROP._NAME = "QUERY":U).
 
       IF _PROP._NAME = "QUERY" THEN DO:
         CREATE BUTTON h_btn_mdfy
@@ -3557,7 +3559,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   ROW               = h_query:ROW + h_innr-lns_lbl:HEIGHT
                   COLUMN            = h_nolbl:COLUMN
                   WIDTH             = 11
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = ">>>,>>>,>>9"
                   BGCOLOR           = std_fillin_bgcolor
                   FGCOLOR           = std_fillin_fgcolor
@@ -3582,7 +3584,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
         ASSIGN FRAME         = FRAME prop_sht:HANDLE
                ROW           = cur-row
                HORIZONTAL    = TRUE
-               RADIO-BUTTONS = "Simple,SI,Drop-Down,DD,Drop-Down-List,DL"
+               RADIO-BUTTONS = "Simple,SI,Drop-Down,DD,Drop-Down-List,DL":U
                COLUMN        = name:COLUMN IN FRAME prop_sht
                SENSITIVE     = TRUE
           TRIGGERS:
@@ -3635,12 +3637,12 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              h_dt_lbl:COLUMN       = h_data-type:COLUMN - h_dt_lbl:WIDTH
              h_data-type:SENSITIVE = TRUE.
                  
-      IF CAN-DO("RADIO-SET,SELECTION-LIST",_U._TYPE) THEN cur-row = cur-row + 1.1.
+      IF CAN-DO("RADIO-SET,SELECTION-LIST":U,_U._TYPE) THEN cur-row = cur-row + 1.1.
     END.  /* Has a DATA-TYPE */
 
     WHEN "FORMAT" THEN DO:
-      IF notAmerican AND (_F._DATA-TYPE = "Integer" OR
-        _F._DATA-TYPE = "Decimal") THEN 
+      IF notAmerican AND (_F._DATA-TYPE = "Integer":U OR _F._DATA-TYPE = "INT64":U OR 
+        _F._DATA-TYPE = "Decimal":U) THEN 
         RUN adecomm/_convert.p ("A-TO-N",_F._FORMAT, 
                                 _numeric_separator, _numeric_decimal, 
                                 OUTPUT conv_fmt).
@@ -3660,7 +3662,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SIDE-LABEL-HANDLE = h_fmt_lbl
                   BGCOLOR           = std_fillin_bgcolor
                   FGCOLOR           = std_fillin_fgcolor
-                  SCREEN-VALUE      = IF _U._TYPE = "COMBO-BOX" AND _U._SUBTYPE NE "DROP-DOWN-LIST" THEN ""
+                  SCREEN-VALUE      = IF _U._TYPE = "COMBO-BOX":U AND _U._SUBTYPE NE "DROP-DOWN-LIST":U THEN ""
                                       ELSE conv_fmt
                   LABEL             = "Format:"
            TRIGGERS:
@@ -3701,7 +3703,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                     COLUMN            = 36
                     HEIGHT            = 1
                     WIDTH             = 9
-                    DATA-TYPE         = "INTEGER"
+                    DATA-TYPE         = "INTEGER":U
                     FORMAT            = ">>>,>>9"
                     SIDE-LABEL-HANDLE = h_ep_lbl
                     BGCOLOR           = std_fillin_bgcolor
@@ -3733,7 +3735,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = 57
                   HEIGHT            = 1
                   WIDTH             = 17
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = ">>>,>>>,>>>"
                   SIDE-LABEL-HANDLE = h_mac_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -3758,7 +3760,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              cur-row = cur-row + 1.1.
     END.  /* Has MAX-CHARS */
 
-    WHEN "MIN-VALUE" THEN DO:
+    WHEN "MIN-VALUE":U THEN DO:
       CREATE TEXT h_miv_lbl
          ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(10)". 
       CREATE FILL-IN h_min-value
@@ -3767,7 +3769,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = name:COLUMN IN FRAME prop_sht
                   HEIGHT            = 1
                   WIDTH             = 22
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = "->,>>>,>>>,>>9"
                   SIDE-LABEL-HANDLE = h_miv_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -3795,7 +3797,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = 48
                   HEIGHT            = 1
                   WIDTH             = 22
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = "->,>>>,>>>,>>9"
                   SIDE-LABEL-HANDLE = h_mav_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -3823,7 +3825,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = name:COLUMN IN FRAME prop_sht
                   INNER-LINES       = 4
                   WIDTH             = 19
-                  DATA-TYPE         = "CHARACTER"
+                  DATA-TYPE         = "CHARACTER":U
                   FORMAT            = "X(19)"
                   SIDE-LABEL-HANDLE = h_tic_lbl 
                   FGCOLOR           = std_fillin_fgcolor
@@ -3853,7 +3855,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = 45
                   HEIGHT            = 1
                   WIDTH             = 10
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = "->>,>>9"
                   SIDE-LABEL-HANDLE = h_freq_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -3876,7 +3878,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       
     END.  /* Has Min and Max values */
 
-    WHEN "LOCK-COLUMNS" THEN DO:
+    WHEN "LOCK-COLUMNS":U THEN DO:
       CREATE TEXT h_locked-cols_lbl
          ASSIGN FRAME  = FRAME prop_sht:HANDLE FORMAT = "X(16)"
                 COLUMN = name:COLUMN IN FRAME prop_sht. 
@@ -3890,7 +3892,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                                           h_locked-cols:LABEL + " ")
                   HEIGHT            = 1
                   WIDTH             = 9
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   BGCOLOR           = std_fillin_bgcolor
                   FGCOLOR           = std_fillin_fgcolor
                   FORMAT            = ">,>>>,>>9"
@@ -3915,7 +3917,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = h_btn_mdfy:COLUMN
                   HEIGHT            = 1
                   WIDTH             = h_btn_mdfy:WIDTH
-                  DATA-TYPE         = "INTEGER"
+                  DATA-TYPE         = "INTEGER":U
                   FORMAT            = ">>,>>>,>>9"
                   SIDE-LABEL-HANDLE = h_max-dg_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4008,7 +4010,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
  
     END. /* Has icon */
 
-    WHEN "CONTEXT-HELP" THEN DO:
+    WHEN "CONTEXT-HELP":U THEN DO:
       IF _L._WIN-TYPE THEN DO:
         ASSIGN cur-row = cur-row + .2.
       
@@ -4044,7 +4046,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       END.  /* if _L._WIN-TYPE - GUI */       
     END.  /* when context-help */
     
-    WHEN "CONTEXT-HELP-FILE" THEN DO:  
+    WHEN "CONTEXT-HELP-FILE":U THEN DO:  
       IF _L._WIN-TYPE THEN DO:
         CREATE TEXT h_context-hlp-fil_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)".
         CREATE FILL-IN h_context-help-file
@@ -4053,7 +4055,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                  COLUMN            = name:COLUMN
                  HEIGHT            = 1
                  WIDTH             = name:WIDTH - 13
-                 DATA-TYPE         = "CHARACTER"
+                 DATA-TYPE         = "CHARACTER":U
                  FORMAT            = "x(79)"
                  SIDE-LABEL-HANDLE = h_context-hlp-fil_lbl 
                  LABEL             = "Help File:"
@@ -4090,7 +4092,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       END.  /* if _L.WIN-TYPE - GUI */
     END.  /* when context-help-file */
     
-    WHEN "IMAGE-FILE" THEN DO:
+    WHEN "IMAGE-FILE":U THEN DO:
       IF _L._WIN-TYPE THEN DO:
       CREATE BUTTON h_btn_up
            ASSIGN FRAME            = FRAME prop_sht:HANDLE
@@ -4103,7 +4105,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                ON CHOOSE PERSISTENT RUN image_up_change.
              END TRIGGERS.
                  
-      IF _U._TYPE NE "IMAGE" THEN
+      IF _U._TYPE NE "IMAGE":U THEN
          CREATE TEXT txt_image
               ASSIGN FRAME            = FRAME prop_sht:HANDLE 
                      HEIGHT-PIXELS    = icon-hp
@@ -4117,7 +4119,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   WIDTH            = 6
                   ROW              = cur-row
                   COLUMN           = h_btn_up:COLUMN + h_btn_up:WIDTH + 1
-                  SCREEN-VALUE     = IF _U._TYPE = "IMAGE" THEN "Image" ELSE "Up".
+                  SCREEN-VALUE     = IF _U._TYPE = "IMAGE":U THEN "Image" ELSE "Up".
       CREATE TEXT h_fn_txt
            ASSIGN FRAME            = FRAME prop_sht:HANDLE
                   WIDTH            = IF _U._TYPE = "IMAGE":U THEN 50 ELSE 18
@@ -4127,7 +4129,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   SCREEN-VALUE     = IF _F._IMAGE-FILE = "" THEN "" ELSE
                                        ENTRY(NUM-ENTRIES(_F._IMAGE-FILE,dir-del),
                                                          _F._IMAGE-FILE,dir-del).
-      IF _U._TYPE NE "IMAGE" THEN DO:
+      IF _U._TYPE NE "IMAGE":U THEN DO:
         CREATE BUTTON h_btn_down
              ASSIGN FRAME            = FRAME prop_sht:HANDLE
                     ROW              = cur-row
@@ -4192,14 +4194,14 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              sav-dflt = _F._DEFAULT
              cur-row  = cur-row + h_btn_up:HEIGHT + h_fn_txt:HEIGHT + .2.
 
-      IF _U._TYPE NE "IMAGE" THEN      
+      IF _U._TYPE NE "IMAGE":U THEN      
         ASSIGN stupid   = h_btn_down:MOVE-AFTER(last-tab)
                stupid   = h_btn_insen:MOVE-AFTER(h_btn_down)
                last-tab = h_btn_insen.
     END. /* IF GUI */
     END. /* Has image file */
     
-    WHEN "TOOLTIP" THEN DO:
+    WHEN "TOOLTIP":U THEN DO:
       CREATE TEXT h_tooltip_lbl
          ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)". 
     
@@ -4233,7 +4235,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
     
     END. /* TOOLTIP */
 
-    WHEN "DELIMITER" THEN DO:
+    WHEN "DELIMITER":U THEN DO:
       CREATE TEXT h_delimiter_lbl
          ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)". 
     
@@ -4243,7 +4245,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = 45
                   HEIGHT            = 1
                   WIDTH             = 9
-                  DATA-TYPE         = "CHARACTER"
+                  DATA-TYPE         = "CHARACTER":U
                   FORMAT            = "X"
                   SIDE-LABEL-HANDLE = h_delimiter_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4269,7 +4271,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
     
     END. /* Delimiter */
     
-    WHEN "FOLDER-WIN-TO-LAUNCH" THEN DO:
+    WHEN "FOLDER-WIN-TO-LAUNCH":U THEN DO:
       IF isDynBrow THEN DO:
         CREATE TEXT h_folder-win-to-launch_lbl
            ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(24)". 
@@ -4282,7 +4284,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                     COLUMN            =  h_locked-cols:COLUMN + 2
                     HEIGHT            = 1
                     WIDTH             = 42
-                    DATA-TYPE         = "CHARACTER"
+                    DATA-TYPE         = "CHARACTER":U
                     FORMAT            = "X(100)"
                   
                     BGCOLOR           = std_fillin_bgcolor
@@ -4320,7 +4322,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                                             "Custom Super Proc:" + " ") + 3.4
                     HEIGHT            = 1
                     WIDTH             = 51
-                    DATA-TYPE         = "CHARACTER"
+                    DATA-TYPE         = "CHARACTER":U
                     FORMAT            = "X(100)"
                   
                     BGCOLOR           = std_fillin_bgcolor
@@ -4343,7 +4345,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       END. /* If it is a Dynamics Browse or Viewer */
     END. /* window title field */
 
-    WHEN "CUSTOM-SUPER-PROC" THEN DO:
+    WHEN "CUSTOM-SUPER-PROC":U THEN DO:
       IF (isDynBrow OR isDynView) AND _DynamicsIsRunning THEN 
       DO:
         CREATE TEXT h_CUSTOM-SUPER-PROC_lbl
@@ -4357,7 +4359,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                     COLUMN            =  h_window-title-field:COLUMN 
                     HEIGHT            = 1
                     WIDTH             = 41
-                    DATA-TYPE         = "CHARACTER"
+                    DATA-TYPE         = "CHARACTER":U
                     FORMAT            = "X(100)"
                     BGCOLOR           = std_fillin_bgcolor
                     FGCOLOR           = std_fillin_fgcolor
@@ -4438,7 +4440,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                  HEIGHT            = 1
                  WIDTH             = 18
                  FONT              = 0
-                 DATA-TYPE         = "INTEGER"
+                 DATA-TYPE         = "INTEGER":U
                  FORMAT            = ">>>>>>>>9"
                  SIDE-LABEL-HANDLE = h_context-hlp-id_lbl 
                  LABEL             = "Help ID:"
@@ -4573,7 +4575,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       .
     END.  /* Has menu bar */
 
-    WHEN "TITLE-COLOR" THEN DO:
+    WHEN "TITLE-COLOR":U THEN DO:
       CREATE BUTTON h_btn_ttl_clr
            ASSIGN FRAME            = FRAME prop_sht:HANDLE
                   ROW              = btn_color:ROW + 4 * btn_color:HEIGHT + 1
@@ -4590,7 +4592,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       .
     END.  /* Has title bar */
 
-    WHEN "COLUMN" THEN DO:
+    WHEN "COLUMN":U THEN DO:
       /* Adjust the column position according to alignment type                  */
 
       /* First force alignment to "L" if column-labels */
@@ -4604,7 +4606,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
         WHEN "C"  THEN xpos = _L._COL - 2.
         OTHERWISE
           /* NOTE: lbl_wdth was computed in h_label section */
-          xpos = IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND parent_C._SIDE-LABELS THEN
+          xpos = IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND parent_C._SIDE-LABELS THEN
                       /* SIDE-LABELS */  (_L._COL - lbl_wdth)
                  ELSE IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
                       NOT parent_L._NO-LABELS THEN
@@ -4646,7 +4648,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   HEIGHT            = 1
                   WIDTH             = h_col:WIDTH
                   DATA-TYPE         = "DECIMAL"
-                  FORMAT            = IF CAN-DO("WINDOW,DIALOG-BOX", _U._TYPE) THEN "->>9.99" 
+                  FORMAT            = IF CAN-DO("WINDOW,DIALOG-BOX":U, _U._TYPE) THEN "->>9.99" 
                                                                  ELSE ">>9.99"
                   SIDE-LABEL-HANDLE = h_row_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4666,7 +4668,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              h_row:SENSITIVE   = NOT _U._size-to-parent.
     END.  /* Has column and ROW */
 
-    WHEN "WIDGET-ID" THEN DO:
+    WHEN "WIDGET-ID":U THEN DO:
       IF _L._WIN-TYPE AND NOT(isDynBrow) AND NOT(isDynView) THEN DO:
         CREATE TEXT h_widget-id_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(15)".
         CREATE FILL-IN h_widget-id
@@ -4676,7 +4678,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                  HEIGHT            = 1
                  WIDTH             = 18
                  FONT              = 0
-                 DATA-TYPE         = "INTEGER"
+                 DATA-TYPE         = "INTEGER":U
                  FORMAT            = ">>>>9"
                  SIDE-LABEL-HANDLE = h_widget-id_lbl 
                  LABEL             = "Widget ID:"
@@ -4697,7 +4699,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
       END.  /* if _L._WIN-TYPE - GUI */
     END.  /* WIDGET-ID */
 
-    WHEN "WIDTH" THEN DO:
+    WHEN "WIDTH":U THEN DO:
       CREATE TEXT h_wdth_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE. 
       CREATE FILL-IN h_wdth
            ASSIGN FRAME             = FRAME prop_sht:HANDLE
@@ -4730,7 +4732,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = h_wdth:COLUMN
                   HEIGHT            = 1
                   WIDTH             = h_col:WIDTH
-                  DATA-TYPE         = "DECIMAL"
+                  DATA-TYPE         = "DECIMAL":U
                   FORMAT            = ">>9.99"
                   SIDE-LABEL-HANDLE = h_hgt_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4749,13 +4751,13 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              h_hgt_lbl:ROW     = h_hgt:ROW
              h_hgt_lbl:COLUMN  = h_hgt:COLUMN - h_hgt_lbl:WIDTH.
       
-      IF _U._TYPE = "COMBO-BOX" AND _U._SUBTYPE NE "SIMPLE" THEN
+      IF _U._TYPE = "COMBO-BOX":U AND _U._SUBTYPE NE "SIMPLE":U THEN
         h_hgt:SENSITIVE = FALSE.
       ELSE h_hgt:SENSITIVE = TRUE.
              
       /* Disable the height fill-in for TTY mode Combo-boxes, toggle-boxes, buttons, 
        * text, and fill-ins. */
-      IF NOT _L._WIN-TYPE AND CAN-DO ("COMBO-BOX,TOGGLE-BOX,BUTTON,TEXT,FILL-IN", _U._TYPE) THEN
+      IF NOT _L._WIN-TYPE AND CAN-DO ("COMBO-BOX,TOGGLE-BOX,BUTTON,TEXT,FILL-IN":U, _U._TYPE) THEN
           h_hgt:SENSITIVE = FALSE.
           
      END.  /* Has width and height */
@@ -4794,21 +4796,21 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
        IF NOT _L._WIN-TYPE THEN h_row-hgt:SENSITIVE = FALSE.         
      END.  /* Has row height */
     
-     WHEN "ALIGN" THEN DO:
+     WHEN "ALIGN":U THEN DO:
        DEFINE VAR radio-btns AS CHAR INITIAL "Left-Align,L,Right-Align,R".
-       IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN
+       IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN
          radio-btns = "Left-Align,L,Colon-Align,C,Right-Align,R".
        ELSE IF _U._ALIGN = "C":U THEN 
          _U._ALIGN = "L":U.
 
        CREATE RADIO-SET h_align
          ASSIGN FRAME         = FRAME prop_sht:HANDLE
-                ROW           = cur-row - (IF _U._TYPE = "BROWSE" THEN 1.1 ELSE 0)
+                ROW           = cur-row - (IF _U._TYPE = "BROWSE":U THEN 1.1 ELSE 0)
                 COLUMN        = 55
                 WIDTH         = 16
                 RADIO-BUTTONS = radio-btns
-                HEIGHT        = IF SESSION:WINDOW-SYSTEM = "OSF/MOTIF" AND
-                                  CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN 3.5 
+                HEIGHT        = IF SESSION:WINDOW-SYSTEM = "OSF/MOTIF":U AND
+                                  CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN 3.5 
                                   ELSE 2.25
                 SCREEN-VALUE  = _U._ALIGN
                 SENSITIVE     = TRUE
@@ -4820,7 +4822,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
               last-tab = h_align.
      END.  /* Has align */
 
-    WHEN "VIRTUAL-WIDTH" THEN DO:
+    WHEN "VIRTUAL-WIDTH":U THEN DO:
       CREATE TEXT h_v-wdth_lbl ASSIGN FRAME = FRAME prop_sht:HANDLE FORMAT = "X(14)". 
       CREATE FILL-IN h_v-wdth
            ASSIGN FRAME             = FRAME prop_sht:HANDLE
@@ -4828,7 +4830,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = 64
                   HEIGHT            = 1
                   WIDTH             = h_col:WIDTH
-                  DATA-TYPE         = "DECIMAL"
+                  DATA-TYPE         = "DECIMAL":U
                   FORMAT            = ">>9.99"
                   SIDE-LABEL-HANDLE = h_v-wdth_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4854,7 +4856,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
                   COLUMN            = h_v-wdth:COLUMN
                   HEIGHT            = 1
                   WIDTH             = h_col:WIDTH
-                  DATA-TYPE         = "DECIMAL"
+                  DATA-TYPE         = "DECIMAL":U
                   FORMAT            = ">>9.99"
                   SIDE-LABEL-HANDLE = h_v-hgt_lbl
                   BGCOLOR           = std_fillin_bgcolor
@@ -4870,7 +4872,7 @@ FOR EACH _PROP WHERE _PROP._CLASS NE 1 AND
              h_v-hgt_lbl:WIDTH   = FONT-TABLE:GET-TEXT-WIDTH-CHARS(h_v-hgt:LABEL + " ")
              h_v-hgt_lbl:ROW     = h_v-hgt:ROW
              h_v-hgt_lbl:COLUMN  = h_v-hgt:COLUMN - h_v-hgt_lbl:WIDTH
-             h_v-hgt:SENSITIVE   = (_U._TYPE = "WINDOW" OR _C._SCROLLABLE).
+             h_v-hgt:SENSITIVE   = (_U._TYPE = "WINDOW":U OR _C._SCROLLABLE).
      END. /* Has virtual width and height */
   END CASE.
 END. /* For each non-toggle attribute */
@@ -4883,7 +4885,7 @@ END. /* For each non-toggle attribute */
     IF CAN-DO("FRAME,DIALOG-BOX":U,_U._TYPE) THEN DO:
       CREATE BUTTON h_btn_tabs
            ASSIGN FRAME            = FRAME prop_sht:HANDLE
-                  ROW              = btn_color:ROW + (IF _U._TYPE EQ "DIALOG-BOX" THEN
+                  ROW              = btn_color:ROW + (IF _U._TYPE EQ "DIALOG-BOX":U THEN
                                                       4 * btn_color:HEIGHT + 1 ELSE
                                                       5 * btn_color:HEIGHT + 1.25)
                   COLUMN           = btn_color:COLUMN
@@ -4910,7 +4912,7 @@ PROCEDURE compute_lbl_wdth.
   DEF VAR lbl AS CHAR    NO-UNDO.
 
   lbl_wdth = 0.
-  IF h_label = ? OR NOT CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) THEN RETURN.
+  IF h_label = ? OR NOT CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) THEN RETURN.
   /* Get the currently specified label */
   IF _U._LABEL-SOURCE = "D" THEN DO:
     IF _U._TABLE EQ ? THEN lbl = _U._NAME.
@@ -4922,7 +4924,7 @@ PROCEDURE compute_lbl_wdth.
 
   /* Note, on MS-WINDOWS, & characters are removed (and && becomes &).
      This allows for mnemonics in the label. */
-  &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
+  &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN":U &THEN
   lbl = REPLACE (REPLACE( REPLACE (lbl,"&&",CHR(10)) ,"&",""), CHR(10),"&").
   &ENDIF
 
@@ -4953,15 +4955,15 @@ PROCEDURE count_toggles.
 
   ASSIGN tog-rows  = TRUNCATE((togcnt + 2) / 3,0)
          togcnt    = 0
-         tog-col-2 = IF CAN-DO("RECTANGLE,RADIO-SET,BUTTON,SLIDER",_U._TYPE) THEN 27
+         tog-col-2 = IF CAN-DO("RECTANGLE,RADIO-SET,BUTTON,SLIDER":U,_U._TYPE) THEN 27
                         ELSE IF CAN-DO("FILL-IN,IMAGE":U,_U._TYPE)           THEN 29
-                        ELSE IF CAN-DO("EDITOR,SELECTION-LIST",_U._TYPE)     THEN 26
+                        ELSE IF CAN-DO("EDITOR,SELECTION-LIST":U,_U._TYPE)     THEN 26
                         ELSE 28
          tog-col-3 = IF CAN-DO(
-      "RECTANGLE,RADIO-SET,BROWSE,BUTTON,SLIDER,FILL-IN,TOGGLE-BOX,COMBO-BOX",
+      "RECTANGLE,RADIO-SET,BROWSE,BUTTON,SLIDER,FILL-IN,TOGGLE-BOX,COMBO-BOX":U,
                                                                    _U._TYPE)THEN 48
-                        ELSE IF CAN-DO("EDITOR,SELECTION-LIST",_U._TYPE)    THEN 50
-                        ELSE IF CAN-DO("IMAGE",_U._TYPE)                    THEN 53
+                        ELSE IF CAN-DO("EDITOR,SELECTION-LIST":U,_U._TYPE)    THEN 50
+                        ELSE IF CAN-DO("IMAGE":U,_U._TYPE)                    THEN 53
                         ELSE 51.5.
   ASSIGN tog-col-2 = tog-col-2 + 1
          tog-col-3 = tog-col-3 + 2
@@ -5065,17 +5067,17 @@ PROCEDURE sensitize.
        usesDataobject = FALSE THEN RUN freeform_setup.
     IF h_inner-lines        NE ? THEN ASSIGN h_inner-lines:SENSITIVE        = TRUE.
     IF h_data-type          NE ? THEN ASSIGN h_data-type:SENSITIVE =
-                                            IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX" AND
-                                              _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE
+                                            IF _U._TABLE NE ? OR (_U._TYPE = "COMBO-BOX":U AND
+                                              _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE
                                                 ELSE TRUE.
     IF h_format             NE ? THEN ASSIGN h_format:SENSITIVE =
                                    IF _F._FORMAT-SOURCE = "D" OR
-                                      (_U._TYPE = "COMBO-BOX" AND
-                                     _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
+                                      (_U._TYPE = "COMBO-BOX":U AND
+                                     _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE ELSE TRUE.
     IF h_btn_fmt            NE ? THEN ASSIGN h_btn_fmt:SENSITIVE =
                                    IF _F._FORMAT-SOURCE = "D" OR
-                                      (_U._TYPE = "COMBO-BOX" AND
-                                     _U._SUBTYPE NE "DROP-DOWN-LIST") THEN FALSE ELSE TRUE.
+                                      (_U._TYPE = "COMBO-BOX":U AND
+                                     _U._SUBTYPE NE "DROP-DOWN-LIST":U) THEN FALSE ELSE TRUE.
     IF h_min-value          NE ? THEN ASSIGN h_min-value:SENSITIVE          = TRUE.
     IF h_max-value          NE ? THEN ASSIGN h_max-value:SENSITIVE          = TRUE.
     IF h_locked-cols        NE ? THEN ASSIGN h_locked-cols:SENSITIVE        = TRUE.
@@ -5164,7 +5166,7 @@ PROCEDURE sensitize.
     IF h_SCROLLBAR-V        NE ? THEN ASSIGN h_SCROLLBAR-V:SENSITIVE        = TRUE.
     IF h_SENSITIVE          NE ? THEN ASSIGN h_SENSITIVE:SENSITIVE          = TRUE.
     IF h_SHARED             NE ? THEN ASSIGN h_SHARED:SENSITIVE             = local_var.
-    IF h_show-popup         NE ? THEN ASSIGN h_show-popup:SENSITIVE         = IF (AVAILABLE _F AND CAN-DO("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) AND isDynView)
+    IF h_show-popup         NE ? THEN ASSIGN h_show-popup:SENSITIVE         = IF (AVAILABLE _F AND CAN-DO("DATE,DECIMAL,INTEGER,INT64":u, _F._DATA-TYPE) AND isDynView)
                                                                               THEN TRUE
                                                                                ELSE FALSE.
     IF h_SIDE-LABELS        NE ? THEN ASSIGN h_SIDE-LABELS:SENSITIVE        = TRUE.
@@ -5380,23 +5382,23 @@ PROCEDURE save_off:
  DO WITH FRAME prop_sht:
   /* Save current attribute settings that will cause the widget to be "recreated"   */
   /* if the attribute is changed.                                                   */
-  IF _U._TYPE = "WINDOW" THEN
+  IF _U._TYPE = "WINDOW":U THEN
     ASSIGN sav-msg  = _C._MESSAGE-AREA
            sav-stsa = _C._STATUS-AREA
            sav-scr  = _C._SCROLL-BARS.
       
-  IF CAN-DO("WINDOW,DIALOG-BOX",_U._TYPE) THEN
+  IF CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE) THEN
     ASSIGN sav-lo = _U._LAYOUT-NAME
            sav-3d = _L._3-D.
 
-  IF CAN-DO("EDITOR,SELECTION-LIST",_U._TYPE) THEN
+  IF CAN-DO("EDITOR,SELECTION-LIST":U,_U._TYPE) THEN
     ASSIGN sav-sh   = _F._SCROLLBAR-H
            sav-sv   = _U._SCROLLBAR-V
            sav-init = _F._INITIAL-DATA.
   
   IF _U._TYPE = "EDITOR" THEN sav-box = _L._NO-BOX.
          
-  IF CAN-DO("FRAME,DIALOG-BOX",_U._TYPE) THEN
+  IF CAN-DO("FRAME,DIALOG-BOX":U,_U._TYPE) THEN
     ASSIGN sav-box  = _L._NO-BOX
            sav-ttl  = _C._TITLE
            sav-slab = _C._SIDE-LABEL
@@ -5420,26 +5422,26 @@ PROCEDURE save_off:
            sav-hgt  = _L._HEIGHT.
 
   /* Save entry number (1 or 2) of logical fill-in/combo-box initial value */
-  IF CAN-DO("FILL-IN,COMBO-BOX",_U._TYPE) AND _F._DATA-TYPE EQ "LOGICAL" THEN DO:
+  IF CAN-DO("FILL-IN,COMBO-BOX":U,_U._TYPE) AND _F._DATA-TYPE EQ "LOGICAL":U THEN DO:
     sav-ldef = LOOKUP (_F._INITIAL-DATA,_F._FORMAT,"/":U).
     IF sav-ldef = 0 THEN sav-ldef = 2. /* Just to be safe. */
   END.
     
-  IF CAN-DO("FILL-IN",_U._TYPE) THEN
+  IF CAN-DO("FILL-IN":U,_U._TYPE) THEN
     ASSIGN sav-lbl  = _L._NO-LABELS
            sav-init = _F._INITIAL-DATA
            sav-vat  = _U._SUBTYPE.
   
-  IF CAN-DO("COMBO-BOX",_U._TYPE) THEN
+  IF CAN-DO("COMBO-BOX":U,_U._TYPE) THEN
     ASSIGN sav-lbl  = _L._NO-LABELS
            sav-init = _F._INITIAL-DATA.
          
-  IF CAN-DO("TOGGLE-BOX",_U._TYPE) THEN
+  IF CAN-DO("TOGGLE-BOX":U,_U._TYPE) THEN
     ASSIGN sav-init = _F._INITIAL-DATA. 
          
-  IF _U._TYPE = "TEXT" THEN name:LABEL = "Text".
+  IF _U._TYPE = "TEXT":U THEN name:LABEL = "Text".
   
-  IF NOT CAN-DO("COMBO-BOX,RADIO-SET",_U._TYPE) THEN
+  IF NOT CAN-DO("COMBO-BOX,RADIO-SET":U,_U._TYPE) THEN
     valid-data-tp = valid-data-tp + ",Recid".
   
   sav-lbla = _U._LABEL-ATTR.   /* Most widgets have a label or a title */
@@ -5449,7 +5451,7 @@ END PROCEDURE. /* save_off */
 
 PROCEDURE save_parent_info:
   /* If parent is a window, then update position in case it was moved. */
-  IF parent_U._TYPE EQ "WINDOW" AND _h_win:WINDOW-STATE EQ WINDOW-NORMAL THEN
+  IF parent_U._TYPE EQ "WINDOW":U AND _h_win:WINDOW-STATE EQ WINDOW-NORMAL THEN
     ASSIGN parent_L._ROW = _h_win:ROW 
            parent_L._COL = _h_win:COLUMN
            /* Also, store virtual dimensions for easy comparisons, later */
@@ -5463,7 +5465,7 @@ PROCEDURE save_parent_info:
                       THEN MAX(parent_L._HEIGHT, parent_L._VIRTUAL-HEIGHT)
                       ELSE parent_L._HEIGHT.
 
-  IF parent_U._TYPE = "FRAME" AND NOT parent_C._SIDE-LABELS AND
+  IF parent_U._TYPE = "FRAME":U AND NOT parent_C._SIDE-LABELS AND
      NOT parent_L._NO-LABELS THEN
     col-lbl-adj = (parent_C._FRAME-BAR:Y + 2) / SESSION:PIXELS-PER-ROW.
 
@@ -5526,13 +5528,13 @@ END PROCEDURE. /* setup-for-window */
 PROCEDURE setup_toggles:
   DO WITH FRAME prop_sht:
   /* Now get set to display toggles */
-  ASSIGN txt_attrs:ROW = IF _U._TYPE = "TEXT" THEN
+  ASSIGN txt_attrs:ROW = IF _U._TYPE = "TEXT":U THEN
                            (btn_color:ROW + btn_color:HEIGHT + 2.25) ELSE
                          IF h_align NE ? THEN (h_align:ROW + h_align:HEIGHT +
-                            (IF _U._TYPE = "BROWSE" THEN 1.5 ELSE .5))
+                            (IF _U._TYPE = "BROWSE":U THEN 1.5 ELSE .5))
                          ELSE cur-row + IF _U._TYPE NE "FRAME":U OR
                                         SESSION:HEIGHT > 18.5 THEN 2.6 ELSE 2.4
-         txt_attrs:HIDDEN = _U._TYPE = "TEXT"
+         txt_attrs:HIDDEN = _U._TYPE = "TEXT":U
          cur-row       = (IF _U._TYPE NE "TEXT":U THEN
                             txt_attrs:ROW + txt_attrs:HEIGHT + .1
                           ELSE MAX(h_btn_trans:ROW + h_btn_trans:HEIGHT + .5,
@@ -5549,7 +5551,7 @@ PROCEDURE process-sellist-and-combo:
      
     /* check the format string for logicals, and then set the initial value. */
     /* NOTE: This code is mirrored in the FILL-IN section below */
-    IF _U._TYPE = "COMBO-BOX" AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
+    IF _U._TYPE = "COMBO-BOX":U AND _F._DATA-TYPE = "LOGICAL":U THEN DO:
       IF NUM-ENTRIES (_F._FORMAT, "/") NE 2 THEN DO:
         MESSAGE "'" _F._FORMAT "' is an invalid logical format." SKIP
                 " Use a format of the form 'yes/no' or 'true/false'."
@@ -5575,7 +5577,7 @@ PROCEDURE process-sellist-and-combo:
        IF l_error_on_go THEN new_btns  = FALSE.
       END.
     END.  /* IF COMBO-BOX */
-    IF _U._TYPE NE "COMBO-BOX" OR _U._WIN-TYPE THEN DO:
+    IF _U._TYPE NE "COMBO-BOX":U OR _U._WIN-TYPE THEN DO:
       /* See which type of list to process */
       IF h_listType:SCREEN-VALUE = "P":U AND 
         NOT l_error_on_go                THEN 

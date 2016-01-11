@@ -496,6 +496,7 @@ PROCEDURE applyPatchList :
   DEFINE VARIABLE cMessage     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hICFDBMngr   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cSourcePath  AS CHARACTER  NO-UNDO.
+  define variable iPatchLevel  as integer no-undo.
 
   DEFINE BUFFER bttPatchList FOR ttPatchList.
 
@@ -525,9 +526,19 @@ PROCEDURE applyPatchList :
     END.
 
     IF FIRST-OF(bttPatchList.cPatchLevel) THEN
+    do:
       PUBLISH "DCU_SetStatus":U
         (SUBSTITUTE("Updating database &1 to level &2",bttPatchList.cPatchDB,bttPatchList.cPatchLevel)).
-    
+        
+        iPatchLevel = integer(bttPatchList.cPatchLevel) no-error.
+        
+        if iPatchLevel gt 0 then
+        do:
+            run install/prc/inicfdbsqp.p (bttPatchList.cPatchDB, iPatchLevel) /*no-error*/ .
+            if error-status:error or return-value ne '':u then
+                cMessage = 'Unable to update DB to patch level ' + bttPatchList.cPatchLevel.
+        end.    /* patchlevel not 0 */
+    end.    /* first of patch level */    
 
     PUBLISH "DCU_SetStatus":U
       (bttPatchList.cDescription).

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -29,7 +29,8 @@ History:
    D. McMann 05/10/00 Added ability for user to display hidden files
    D. McMann 07/11/02 redo cache if session:schema-change is set to new objects.
                       20020701-029
-   
+   fernando  03/13/06 Storing table names in temp-table - 20050930-006.
+  
 *************************************************************/
 
 
@@ -174,6 +175,15 @@ IF i > 0 THEN DO:
   RETURN.
 END.
 
+/* 20050930-006
+   If the cache information is in the temp-table, run the version that
+   reads the temp-table 
+*/
+IF l_cache_tt THEN DO:
+    RUN prodict/user/_usrtget-tt.p.
+    RETURN.
+END.
+
 IF user_filename <> "" THEN DO:
   { prodict/dictsrch.i
     &vector=cache_file
@@ -205,7 +215,7 @@ IF p_all AND p_allw AND cache_file[1] <> "ALL" AND cache_file# >= 1 THEN DO:
 END.
 ELSE IF NOT p_all AND p_allw AND cache_file[1] = "ALL" THEN
 DO:
-  /* This means "ALL" should not be offered BUG# 19991024-003
+  /* This means "ALL" should not be offered BUG# 19991025-003
    * This is certainly strange, but "ALL" may have been put into
    * cache_file[1] before we got here.  It was easier to do this
    * than to modify every program that calls this.

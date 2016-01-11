@@ -78,7 +78,7 @@ ASSIGN ttSeqType.iParamNo      = {&order}
            iHandleCnt                = iHandleCnt + 1.
 
     /* When we assign the TABLE-HANDLE back, we're going to search for the param name in the list, the next entry contains the extent it's been stored in */
-    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = hTableHandles[INTEGER(ENTRY(LOOKUP("{&param-name}", cTrackTableExtent, "|":U) + 1, cTrackTableExtent, "|":U))].
+    &GLOBAL-DEFINE assignTTtoParm ASSIGN {&param-name} = hTableHandles[INTEGER(ENTRY(LOOKUP("{&param-name}":U, cTrackTableExtent, "|":U) + 1, cTrackTableExtent, "|":U))].
     &GLOBAL-DEFINE tablesInCall YES
 &ELSE
     /* For input and input-output parameters, assign the input value.  Build the string to assign them back as well (used for &assignValuesBackFromTT) */

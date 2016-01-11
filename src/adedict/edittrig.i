@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@ Date Created: 02/04/92
           01/10/00 D. McMann 19990511008 Added forceval.i on GO trigger in
                              table properties.
           05/24/2005 Added GO trigger and changed choose trigger to s_btn_cancel in dbprops
+          06/08/2006 fernando Added trigger for s_btn_toint64 - support for int64
 	      
 ----------------------------------------------------------------------------*/
 
@@ -211,6 +212,13 @@ do:
       SELF:screen-value = name.
       dname = name.
    end.
+
+   /* make sure name doesn't have space characters */
+   IF INDEX(dname, " ") > 0 THEN DO:
+      MESSAGE "Invalid character in Dump Name" VIEW-AS ALERT-BOX ERROR.
+	  s_Valid = no.
+	  RETURN NO-APPLY.
+   END.
 
    /* Make sure the name is unique. */
    find first _File
@@ -754,6 +762,24 @@ DO:
       END.
 END.
 
+
+/*----- HIT OF TO INT64 BUTTON -----*/
+ON CHOOSE OF s_btn_toint64 IN FRAME fldprops
+DO:
+    /* check int -> int64 change for progress db */
+    /* just to be safe */
+    IF {adedict/ispro.i} AND b_field._dtype = {&DTYPE_INTEGER} THEN DO:
+    
+      RUN adedict/FLD/_fldint64.p.
+      IF NOT RETURN-VALUE = "mod" THEN
+         return NO-APPLY.
+
+       ASSIGN s_Fld_Protype = "int64"
+              s_Fld_TypeCode = {&DTYPE_INT64}
+              s_Fld_DType:screen-value in frame fldprops = s_Fld_Protype
+              s_btn_toint64:SENSITIVE IN FRAME fldprops = NO.
+    END.
+END.
 
 /*====================Triggers for Sequence Properties=======================*/
 

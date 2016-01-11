@@ -11,39 +11,39 @@
     File        : adeuib/_undsmar.p 
     Purpose     : realize (undelete) a SmartObject.  
     Syntax      : Run adeuib/_undsmar.p persistent set h.
-                  
+
                   Run realizeSMO in h (recid(_u), yes).
-                  
-                  
+
+
     Description : This is a recreation of _undsmar.p. 
-                       
+
                   The main-block logic is moved into realize-smo.
-                  
+
                   The purpose to make it persistent was to achieve the 
                   necessary flexibility to skip initializeObject in some 
                   cases. 
-                  
+
                   The performance in qssuckr -> cdsuckr -> _rdsmart is also
                   improved (when an object with several SmartObjects
                   is opened)
-                   
+
     Author(s)   : H. Danielsen 
     Created     : 9/9/99 
     Notes       : The procedure is NOT "normalized" because it has been
                   converted from a non-persistent procedure. All IPs have 
                   dependencies of temp-tables being found in realizeSMO 
                   and variables being updated in validateSmartObject. 
-                  
+
                   Most of the IPs are subsequently PRIVATE. 
-                   
+
    public  API:   procedure realizeSMO(recid(_U),initialize) 
                             Main logic, realizes a SmartObject in the Appbuilder
                             Second param specifies whether initializeObject 
                             shall be called in the SMO. 
-                              
+
                   procedure initializeSMO(recid(_U))            
                             run initializeObject in the SMO. 
-                             
+
                   function setCurrent(recid(_U)) 
                            find _U and all other temp-tables.                   
 ----------------------------------------------------------------------*/
@@ -68,10 +68,11 @@ DEFINE VARIABLE glEditAttr   AS LOGICAL NO-UNDO.
 DEFINE VARIABLE glMovable    AS LOGICAL NO-UNDO INITIAL yes.
 DEFINE VARIABLE glResizable  AS LOGICAL NO-UNDO INITIAL yes. 
 
-&SCOPED-DEFINE hideobject  _L._REMOVE-FROM-LAYOUT~
+&SCOPED-DEFINE hideobject  (_L._REMOVE-FROM-LAYOUT~
                             OR ((_P._page-current ne ?) AND ~
                                 (_S._page-number ne _P._page-current) AND~
-                                (_S._page-number ne 0))
+                                (_S._page-number ne 0))) AND ~
+                                NOT CAN-DO("SmartObject,SmartDataField,SmartLOBField":U, _U._SUBTYPE)
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -869,7 +870,7 @@ PROCEDURE realizeSMO :
      IF cValue ne "" THEN _U._SUBTYPE = cValue.
    END. /* > ADM1 */
    IF _U._SUBTYPE eq "":U  THEN _U._SUBTYPE = "SmartObject":U.  /* [default subtype = type] */
-           
+
    /* If this is not a handle, then it has no visualization. 
       (or that handle is not a container)... and we don't have to scale
       row and column. Our own visualizations are always movable and resizable. */       
@@ -889,9 +890,8 @@ PROCEDURE realizeSMO :
    ELSE ASSIGN glMovable = yes       /* If object is not visual, make our...  */
                glResizable = yes     /* ...internal visualization move/resize */
               . 
+END.
 
- END.
- 
  /* If the object is not VISUAL, then we we need to make a dummy 
     visualization. This will replace the object in _U._HANDLE. */
  IF NOT _S._visual THEN 
@@ -945,20 +945,20 @@ PROCEDURE realizeSMO :
             _U._HANDLE:VIRTUAL-WIDTH-P  = iOrigWidthP
             _U._HANDLE:VIRTUAL-HEIGHT-P = iOrigHeightP.
    END.
-    
+
    /* We might not be able to visualize the widget (if for example, it
       won't fit in the frame.)  Note that the object is hidden if it is not
       in this layout, or if it is not on the current page. */
    lHidden = {&hideobject}.
-
+       
    { adeuib/onframe.i
        &_whFrameHandle = "parent_U._HANDLE"
        &_whObjHandle   = "_U._HANDLE"
        &_lvHidden      = lHidden }
-   
+
    IF plInitialize THEN 
      RUN initializeSMO(?).
-    
+
  END. /* VIEW-OBJECT */
 
  /* Make sure the Universal Widget Record is "correct" by reading the actually

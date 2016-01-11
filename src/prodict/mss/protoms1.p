@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -26,7 +26,6 @@
        user_env[33] = Use _Field._Width for size of field.
        user_env[34] = Create descending indices
       
-       
        * = When the datatype is decimals and no decimals are present
       ** = Name of character field when max for regular char is exceeded
      *** = Logical fields which are key componets
@@ -35,7 +34,14 @@
    History: 08/18/00 Incresed size of identifier max length
             08/29/00 Changed to alert-box for tty end message DLM
             10/25/05 Fixed X8OVERRIDE functionality 20051018-006. 
+            04/14/06 Unicode support
+            07/19/06 Unicode support - support only MSS 2005
+            08/24/06 Add warning about non utf-8 codepage and unicode columns - 20060802-024
+            
 */    
+
+&SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the schema holder's codepage is not 'utf-8'"
+&SCOPED-DEFINE UNICODE-MSG-2 "It is recommended that you set the codepage to utf-8 in this case to avoid data loss!"
 
 { prodict/user/uservar.i }
 { prodict/mss/mssvar.i }
@@ -61,12 +67,12 @@ assign batch_mode    = SESSION:BATCH-MODE
 IF batch_mode THEN DO:
    PUT STREAM logfile UNFORMATTED
        " " skip
-       "Progress to MSS Log" skip(2)
-       "Original Progress Database:            " pro_dbname skip
-       "Other Progress db connect parameters : " pro_conparms  skip
+       "{&PRO_DISPLAY_NAME} to MSS Log" skip(2)
+       "Original {&PRO_DISPLAY_NAME} Database:            " pro_dbname skip
+       "Other {&PRO_DISPLAY_NAME} db connect parameters : " pro_conparms  skip
        "Logical Database Name:                 " mss_pdbname SKIP
        "ODBC Data Source Name:                 " mss_dbname SKIP
-       "Progress Schema Holder name:           " osh_dbname skip
+       "{&PRO_DISPLAY_NAME} Schema Holder name:           " osh_dbname skip
        "MSS Username:                         " mss_username skip
        "Compatible structure:                  " pcompatible skip
        "Field width calculation based on:      " (IF iFmtOption = 1 THEN
@@ -76,7 +82,12 @@ IF batch_mode THEN DO:
                                                   ELSE "_Field._Format field")
                                                   SKIP
        "Create objects in MSS:                " loadsql skip
-       "Moved data to MSS:                    " movedata skip(2).
+       "Moved data to MSS:                    " movedata SKIP.
+
+        IF OS-GETENV("UNICODETYPES") NE ? THEN
+            PUT STREAM logfile UNFORMATTED
+                  "Unicode Types:                        " unicodeTypes skip
+                  "Expand Width (utf-8):                 " lUniExpand skip(2).
 END.
 
 IF loadsql THEN DO:
@@ -142,15 +153,15 @@ IF loadsql THEN DO:
     IF batch_mode THEN 
        PUT STREAM logfile UNFORMATTED 
                "Logical Database Name " mss_pdbname 
-               " must not be the same as schema holder or PROGRESS Database Name"
+               " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name"
                 skip(2).
     ELSE DO:
       &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
            MESSAGE "Logical Database Name " mss_pdbname 
-             " must not be the same as schema holder or PROGRESS Database Name".
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name".
       &ELSE
            MESSAGE "Logical Database name " mss_pdbname 
-             " must not be the same as schema holder or PROGRESS Database Name"
+             " must not be the same as schema holder or {&PRO_DISPLAY_NAME} Database Name"
              VIEW-AS ALERT-BOX ERROR.
       &ENDIF
     END.             
@@ -170,14 +181,14 @@ ASSIGN user_dbname  = mss_dbname
        user_env[8]  = "y"
        user_env[9]  = "ALL"
        user_env[10] = string(long-length)
-       user_env[11] = "varchar" 
+       user_env[11] = (IF unicodeTypes THEN "nvarchar" ELSE "varchar" )
        user_env[12] = "datetime"
        user_env[13] = "tinyint"
        user_env[14] = "integer"
        user_env[15] = "decimal(18,5)"
        user_env[16] = "decimal"
        user_env[17] = "integer"
-       user_env[18] = "text"
+       user_env[18] = (IF unicodeTypes THEN "nvarchar(max)" ELSE "text")
        user_env[19] = "tinyint"
        user_env[20] = "##"  
        user_env[21] = (IF shadowcol THEN "y" ELSE "n")
@@ -191,7 +202,6 @@ ASSIGN user_dbname  = mss_dbname
        user_env[30] = "y"
        user_env[31] = "-- ** "
        user_env[32] = "MSSQLSRV7".
-
 
 IF pcompatible THEN 
    ASSIGN user_env[27] = "y".
@@ -210,6 +220,10 @@ IF descidx THEN
 ELSE
    ASSIGN user_env[34] = "n".
         
+IF lUniExpand THEN 
+   ASSIGN user_env[35] = "y".
+ELSE
+   ASSIGN user_env[35] = "n".
 
 IF movedata THEN
   ASSIGN stages[mss_dump_data] = TRUE
@@ -222,6 +236,16 @@ RUN "prodict/mss/_mss_md0.p".
 IF not stages[mss_create_sh] THEN LEAVE.
 */
 IF loadsql THEN DO:
+
+  /* check if unicode types and non utf-8 codepage and give warning */
+  IF unicodeTypes AND TRIM(mss_codepage) NE "utf-8" THEN DO:
+     IF batch_mode THEN
+        PUT STREAM logfile UNFORMATTED {&UNICODE-MSG-1} SKIP {&UNICODE-MSG-2} SKIP.
+     ELSE
+        MESSAGE {&UNICODE-MSG-1} SKIP {&UNICODE-MSG-2} VIEW-AS ALERT-BOX INFO BUTTONS OK.
+  END.
+
+
   IF create_h THEN DO:
     IF batch_mode THEN DO:
       PUT STREAM logfile UNFORMATTED
@@ -245,6 +269,11 @@ IF loadsql THEN DO:
    *      beautifies SI by comparing it and matching it up with 
    *            the original progress-db
    */
+
+  /* let's set the mss version based on unicodeTypes so _mss_md1 checks the correct version
+     for Unicode data types
+  */
+  ASSIGN user_env[32] = (IF unicodeTypes THEN "MSSQLSRV9" ELSE "MSSQLSRV7").
 
   RUN "prodict/mss/_mss_md1.p".
 

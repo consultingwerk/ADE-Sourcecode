@@ -1,8 +1,8 @@
 /***********************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
+*                                                                    *
 ***********************************************************************/
 /*----------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ DEFINE VARIABLE ParentHWND       AS INTEGER   NO-UNDO.
 DEFINE TEMP-TABLE Names 
   FIELD oldname AS CHARACTER
   FIELD newname AS CHARACTER.
-
+  
 /* Standard End-of-line character */
 &Scoped-define EOL &IF "{&WINDOW-SYSTEM}":U <> "OSF/Motif":U &THEN "~r":U + &ENDIF CHR(10)
 
@@ -386,20 +386,20 @@ REPEAT:
       CASE attrToken:
           WHEN "CREATE-CONTROL":U THEN DO:
              
-             FIND FIRST _NAME-REC WHERE
+    FIND FIRST _NAME-REC WHERE
                         _NAME-REC._wNAME = _inp_line[2] AND
-                        _NAME-REC._wTYPE = "{&WT-CONTROL}" NO-ERROR.
-             IF AVAILABLE _NAME-REC THEN DO:
-               fr-name = _NAME-REC._wFRAME.
-               FIND _NAME-REC WHERE _NAME-REC._wNAME   = fr-name
-                                AND (   _NAME-REC._wTYPE   = "FRAME":U
-                                     OR _NAME-REC._wTYPE   = "DIALOG-BOX":U)
-                             NO-ERROR.
-               IF AVAILABLE _NAME-REC THEN DO:
-                 FIND parent_U WHERE RECID(parent_U) = _NAME-REC._wRECID.
-                  par-rec = RECID(parent_U).
-               END.  /* We have the parent frame (or dialog) */
-             END.
+               _NAME-REC._wTYPE = "{&WT-CONTROL}" NO-ERROR.
+    IF AVAILABLE _NAME-REC THEN DO:
+      fr-name = _NAME-REC._wFRAME.
+      FIND _NAME-REC WHERE _NAME-REC._wNAME   = fr-name
+                       AND (   _NAME-REC._wTYPE   = "FRAME":U
+                            OR _NAME-REC._wTYPE   = "DIALOG-BOX":U)
+                       NO-ERROR.
+      IF AVAILABLE _NAME-REC THEN DO:
+         FIND parent_U WHERE RECID(parent_U) = _NAME-REC._wRECID.
+         par-rec = RECID(parent_U).
+      END.  /* We have the parent frame (or dialog) */
+    END.
             
              /* With multiple OCX's need to refind the _U record */
              FIND FIRST _U WHERE _U._NAME = _inp_line[2] AND

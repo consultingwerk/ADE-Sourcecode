@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -22,8 +22,12 @@
    
    History:
      kmcintos June 7, 2005  Added context help ids for auditing options.
+     fernando     09/12/06  Added context help id for Adjust Schema
      
 */
+
+/* Admin Help Contents screen */
+&Global-define Adjust_Schema_dialog_box 37
 
 /* Admin Help Contents screen */
 &Global-define Main_Contents 49153

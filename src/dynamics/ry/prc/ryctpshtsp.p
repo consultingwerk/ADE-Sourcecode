@@ -1,43 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
 /* permission in writing from PROGRESS Software Corporation. */
 /*************************************************************/
-/* Actions: af/cod/aftemwizcw.w ? ? ? ? */
-/* MIP Update Version Notes Wizard
-Check object version notes.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Update-Object-Version" Procedure _INLINE
-/* Actions: ? ? ? ? af/sup/afverxftrp.p */
-/* This has to go above the definitions sections, as that is what it modifies.
-   If its not, then the definitions section will have been saved before the
-   XFTR code kicks in and changes it */
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Procedure _INLINE
-/* Actions: ? af/cod/aftemwizcw.w ? ? ? */
-/* Program Definition Comment Block Wizard
-Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
-af/cod/aftemwizpw.w
-*/
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright (C) 2005 by Progress Software Corporation.  All rights 
-   reserved.  Prior versions of this work may contain portions 
-   contributed by participants of Possenet
-*/
 /*---------------------------------------------------------------------------------
   File: ryctpshtsp.p
 
@@ -2718,7 +2687,6 @@ PROCEDURE getAttributeList :
           WHEN {&LOGICAL-DATA-TYPE}   THEN cTempValue = STRING(ttAttributeValue.l_logical_value).
           WHEN {&CHARACTER-DATA-TYPE} THEN cTempValue = ttAttributeValue.c_character_value.
         END CASE.
-
         ASSIGN
             cTempValue      = (IF cTempValue = ? THEN "?":U ELSE cTempValue)
             pcAttributeList = pcAttributeList + cTempValue.
@@ -2766,7 +2734,6 @@ PROCEDURE getAttributeList :
            AND ttAttributeValue.d_primary_smartobject_obj   = ttObjectInstance.d_smartobject_obj
            AND ttAttributeValue.d_container_smartobject_obj = 0.00
            AND ttAttributeValue.d_object_instance_obj       = 0.00:
-
         /* Only read this attribute if no override is specified */
         IF CAN-FIND(FIRST bttAttributeValue
                     WHERE bttAttributeValue.d_smartobject_obj     = ttAttributeValue.d_smartobject_obj
@@ -2800,7 +2767,7 @@ PROCEDURE getAttributeList :
               cAttributeValues = cAttributeValues + cTempValue.
         END.
       END.
-
+ 
       /* Step through the attributes of the OBJECT instance */
       FOR EACH ttAttributeValue
          WHERE ttAttributeValue.d_object_instance_obj = ttObjectInstance.d_object_instance_obj:
@@ -2827,19 +2794,18 @@ PROCEDURE getAttributeList :
             WHEN {&LOGICAL-DATA-TYPE}   THEN cTempValue = STRING(ttAttributeValue.l_logical_value).
             WHEN {&CHARACTER-DATA-TYPE} THEN cTempValue = ttAttributeValue.c_character_value.
           END CASE.
-
           ASSIGN
               cTempValue       = (IF cTempValue = ? THEN "?":U ELSE cTempValue)
               cAttributeValues = cAttributeValues + cTempValue.
         END.
       END.
-
+ 
       /* If we are dealing with SmartToolbars, we do not want to override any detail about the toolbars' band and actions (picked up by Property Sheet) */
       IF LAST-OF(ttObjectType.c_object_type_code) THEN
         IF LOOKUP(ttObjectType.c_object_type_code, DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "Toolbar":U)) = 0 THEN
         DO:
           cParentClasses = DYNAMIC-FUNCTION("getClassParentsFromDB":U IN gshRepositoryManager, ttObjectType.c_object_type_code).
-    
+          
           DO iCounter = 1 TO NUM-ENTRIES(cParentClasses):
             /* Get the Values for the Class */
             FOR EACH ttClassValues
@@ -2860,7 +2826,6 @@ PROCEDURE getAttributeList :
   END.
 
   cAttributeValues = SUBSTRING(cAttributeValues, 2). /* Trim the leading CHR(3) */
-
   /* Merge cAttributeLabels and cAttributeValues */
   DO iCounter = 1 TO NUM-ENTRIES(cAttributeLabels):
     pcAttributeList = pcAttributeList + (IF pcAttributeList = "":U THEN "":U ELSE CHR(3))
@@ -4009,7 +3974,7 @@ PROCEDURE oldPropertySheets :
                                               OUTPUT cLinkedObjectInstanceName).
 
     ASSIGN
-        cDataClasses      = REPLACE(DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "Dataview,SBO":U), CHR(3), ",":U)
+        cDataClasses      = DYNAMIC-FUNCTION("getDataSourceClasses":U IN ghDesignManager)
         cLinkedObjectName = (IF LOOKUP(cLinkedObjectType, cDataClasses) <> 0 THEN cLinkedObjectName ELSE "":U).    
 
     RUN af/cod2/afpropwin.p (INPUT  TARGET-PROCEDURE,

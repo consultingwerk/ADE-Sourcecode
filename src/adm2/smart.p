@@ -38,7 +38,10 @@ DEFINE TEMP-TABLE ADMLink NO-UNDO
   FIELD LinkTarget AS HANDLE
   FIELD LinkType   AS CHARACTER.
 
-DEFINE VARIABLE glIcfIsRunning AS LOGICAL INITIAL ? NO-UNDO.
+/* Class property */
+DEFINE VARIABLE glIsCrystalInstalled AS LOGICAL INIT ? NO-UNDO.
+
+DEFINE VARIABLE glIcfIsRunning       AS LOGICAL INITIAL ? NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -145,17 +148,6 @@ FUNCTION deleteProperties RETURNS LOGICAL ( )  FORWARD.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fetchMessages Procedure 
 FUNCTION fetchMessages RETURNS CHARACTER
   (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fixQueryString Procedure 
-FUNCTION fixQueryString RETURNS CHARACTER
-  ( INPUT pcQueryString AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -376,6 +368,17 @@ FUNCTION getInstanceId RETURNS DECIMAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getInstanceProperties Procedure 
 FUNCTION getInstanceProperties RETURNS CHARACTER
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getIsCrystalInstalled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getIsCrystalInstalled Procedure 
+FUNCTION getIsCrystalInstalled RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1373,7 +1376,57 @@ FUNCTION signature RETURNS CHARACTER
 &ANALYZE-RESUME
 
 
-/* **********************  Internal Procedures  *********************** */
+/* **********************  Internal Procedures  *********************** */ 
+&IF DEFINED(EXCLUDE-addServerError) = 0 &THEN
+		
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE addServerError Procedure
+PROCEDURE addServerError:
+/*------------------------------------------------------------------------------
+    Purpose: Adds server ERROR to the message stack. 
+             This is only used for unexpected ERRORs returned from the 
+             Service Adapter, not normal save or query exceptions/errors.              
+    Parameters: pcEvent - 'DEFINE'
+                        - 'RETRIEVE' 
+                        - 'SUBMIT' 
+                pcMessage - error message (service adapterreturn-value)  
+                          - ? or blank use error-status
+                pcEntities - requested entities/objects                  
+    Notes:
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcEvent   AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcMessage AS CHARACTER  NO-UNDO.  
+  DEFINE INPUT  PARAMETER pcEntities AS CHARACTER  NO-UNDO. 
+  
+  DEFINE VARIABLE cHeader  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iMessage AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iError   AS INTEGER    NO-UNDO.
+  
+  IF pcMessage = ? OR pcMessage = "" THEN 
+  DO iError = 1 TO ERROR-STATUS:NUM-MESSAGES: 
+    pcMessage = pcMessage 
+              + (IF iError = 1 THEN "" ELSE "~n")
+              + ERROR-STATUS:GET-MESSAGE(iError).   
+  END.
+  
+  CASE pcEvent:
+    WHEN 'define' THEN iMessage = 98.
+    WHEN 'retrieve' THEN iMessage = 99.
+    WHEN 'submit' THEN iMessage = 100.    
+  END.  
+  
+  IF iMessage > 0 THEN 
+  DO:
+    cHeader = SUBSTITUTE({fnarg messageNumber iMessage},pcEntities).
+    RUN addMessage IN TARGET-PROCEDURE(cHeader,?,?).
+  END.    
+  RUN addMessage IN TARGET-PROCEDURE(pcMessage,?,?).  
+  RETURN.   
+END PROCEDURE.
+	
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-addLink) = 0 &THEN
 
@@ -1724,14 +1777,18 @@ PROCEDURE applyEntry :
   DEFINE VARIABLE hWidget2        AS HANDLE NO-UNDO.  /* Astra2 */
   DEFINE VARIABLE hWidget3        AS HANDLE NO-UNDO.  /* Astra2 */
 
-    IF pcField = ? THEN pcField = "":U.
-    
-    {get ContainerHandle hContainer}.
-    IF VALID-HANDLE(hContainer) THEN
-    DO:     
-       DO WHILE hContainer:TYPE = "WINDOW":U: 
-           hContainer = hContainer:FIRST-CHILD.    
-       END.
+  IF pcField = ? THEN pcField = "":U.
+  
+  {get ContainerHandle hContainer}.
+  IF VALID-HANDLE(hContainer) THEN
+  DO: 
+     /* find first frame */
+     IF hContainer:TYPE = "WINDOW":U THEN 
+       {get WindowFrameHandle hContainer}.    
+     
+     /* could be invalid if the container has no frame */
+     IF VALID-HANDLE(hContainer) THEN
+     DO:     
        ASSIGN hWidget = hContainer:CURRENT-ITERATION
               hWidget = hWidget:FIRST-TAB-ITEM.
           
@@ -1791,10 +1848,11 @@ PROCEDURE applyEntry :
               RETURN.
             END.
             ELSE ASSIGN hWidget = hWidget:NEXT-TAB-ITEM.            
-       END.          
-    END.  
+       END. 
+     END. /* valid hcontainer 'frame' */
+  END. /* valid hcontainer */ 
   
-    RETURN.
+  RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -3068,14 +3126,14 @@ PROCEDURE viewObject :
                type. If an object has an actual visualization, the version of
                viewObject in visual.p will view it.
 ------------------------------------------------------------------------------*/
-
   DEFINE VARIABLE cContainer       AS CHARACTER NO-UNDO.
   DEFINE VARIABLE hContainer       AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hFrame           AS HANDLE    NO-UNDO.
     
   &SCOPED-DEFINE xp-assign
   {get containerType cContainer}
-  {set ObjectHidden no}.
+  {set ObjectHidden NO}
+  {set hideOnInit NO}. /* turn off flag as it is checked by container's notifypage */
   &UNDEFINE xp-assign
   IF cContainer NE "":U THEN
     /* We don't need to physically view the SmartObjects in this Container -
@@ -3572,32 +3630,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fixQueryString Procedure 
-FUNCTION fixQueryString RETURNS CHARACTER
-  ( INPUT pcQueryString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: None 
-    Notes: This function was intended to deal with problems when the query had 
-           decimals and the session numeric format is not 'American'.
-       -   It never worked as intended and it never will. 
-           (It replaced the comma with period, so the compile logic was happy,
-            but the query engine then ignored the decimals)
-           The fact is that decimals in queries always must be quoted or use some 
-           other function like DECIMAL() to avoid conflict with compiler and 
-           query engine.  
-       -   It is kept so that customer code that refers to it does not fall 
-           over, but it will be removed in a future release.
-------------------------------------------------------------------------------*/
-  RETURN pcQueryString.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getChildDataKey) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getChildDataKey Procedure 
@@ -4040,6 +4072,56 @@ FUNCTION getInstanceProperties RETURNS CHARACTER
   {get InstanceProperties cProps} NO-ERROR.
   RETURN cProps.
 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getIsCrystalInstalled) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIsCrystalInstalled Procedure 
+FUNCTION getIsCrystalInstalled RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose: Check if Crystal is installed  
+    Notes: This is defined as a class property to ensure the check only 
+           is done once per session. 
+           datavis getPrintPreviewActive calls this.  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE hApplication          AS COM-HANDLE NO-UNDO.
+ DEFINE VARIABLE cRegReportDesign      AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE cKeyReportDesign      AS CHARACTER  NO-UNDO.
+
+ /* not checked yet */
+ IF glIsCrystalInstalled = ? THEN
+ DO:
+   /* Get the values for Crystal Reports from the Registry */
+   ASSIGN
+     cKeyReportDesign  = "CrystalRuntime.Application"
+     cRegReportDesign  = "CrystalRuntime.Application.7" /* Default Value */ 
+     .
+
+   /* cRegReportDesign */
+   LOAD cKeyReportDesign BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
+   IF NOT ERROR-STATUS:ERROR THEN 
+   DO:
+     USE cKeyReportDesign.
+     GET-KEY-VALUE SECTION "CurVer":U KEY DEFAULT VALUE cRegReportDesign.
+   END.
+   UNLOAD cKeyReportDesign NO-ERROR.
+
+   CREATE VALUE(cRegReportDesign) hApplication NO-ERROR.
+   ASSIGN glIsCrystalInstalled = NOT ERROR-STATUS:ERROR.
+   RELEASE OBJECT hApplication NO-ERROR.   
+   ASSIGN hApplication = ?.
+   ERROR-STATUS:ERROR = NO.   
+
+ END.
+  
+ RETURN glIsCrystalInstalled.
 
 END FUNCTION.
 
@@ -4899,13 +4981,26 @@ FUNCTION instancePropertyList RETURNS CHARACTER
        do a bind ..*/
     IF cProperty = 'AsHandle':U AND NOT {fn getAsBound} THEN
        cValue = '':U.  
-    ELSE
+    ELSE DO:
       cValue = STRING(dynamic-function('get':U + cProperty IN TARGET-PROCEDURE))
-      NO-ERROR.
+               NO-ERROR.
+      IF cValue = ? THEN 
+      DO:
+        /* This is an ad hoc user property. */
+        IF ERROR-STATUS:GET-MESSAGE(1) > '':U THEN
+        DO:
+          /* pre v10.1B used to set all unknown to blank, 
+             kept this after cleanup, could possibly do next
+             as unknown means non-existing user prop  */               
+          cValue = {fnarg getUserProperty cProperty}.
+          IF cValue = ? THEN
+            cValue = '':U.
+        END.
+        ELSE
+          cValue = "?":U.
+      END.
+    END.
 
-    IF cValue = ? THEN    /* This is an ad hoc user property. */
-      cValue = {fnarg getUserProperty cProperty}. 
-    IF cValue = ? THEN cValue = "":U.
     IF lTranslate THEN       /* Return the special form with :Us */
     DO:
       cPropValues = cPropValues + (IF cPropValues NE "'":U THEN CHR(3) ELSE '':U)
@@ -5080,17 +5175,9 @@ FUNCTION isObjQuoted RETURNS LOGICAL
    INPUT piPosition     AS INTEGER):
 /*------------------------------------------------------------------------------
   Purpose: Looks at the object number in the query string and determines whether
-           or not it is wrapped in quotes
-
-    Notes: This is needed when running the application in European format. If an
-           object number is in quotes and we are in European mode / format, the
-           object number must remain with a comma in the quotes, i.e. '12345678,02'
-           to convert properly to a decimal. If it is not quoted however, then
-           the comma must be replaced by a '.', i.e. ...obj = 12345678,02, FIRST ...
-           must be replaced with ...obj = 12345678.02, FIRST ... to ensure that
-           the query resolves properly. The replace will be done by 'fixQueryString',
-           which calls this function to establish whether or not to replace the object
-           number's decimal seperator based on whether it is quoted or not
+           or not it is wrapped in quotes.
+    Notes: Was used by the DEPRECATED fixQueryString. 
+           Will also be DEPRECATED as it is meaningless standalone
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cAllowedCharacters  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cCharacter          AS CHARACTER  NO-UNDO.

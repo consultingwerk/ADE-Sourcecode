@@ -133,6 +133,7 @@ DEFINE INPUT  PARAMETER pcDateFormat               AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pcCurrentLoginValues       AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pcLoginProc                AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pcCustTypesPrioritised     AS CHARACTER  NO-UNDO.
+define input  parameter plCachedTranslationsOnly   as logical no-undo.
 
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phSecurityData.
 DEFINE OUTPUT PARAMETER TABLE-HANDLE phProfileData.
@@ -171,13 +172,14 @@ RUN checkUser IN gshSecurityManager (INPUT  pcLoginName,
                                      OUTPUT pcCurrentOrganisationShort,
                                      OUTPUT pcCurrentLanguageName,
                                      OUTPUT pcFailedReason).
-
+                                     
 IF pcFailedReason = "":U 
 THEN DO:
     /* Set the user properties on the Appserver, note that these properties will be set client side as well */
     RUN af/app/afgetlngcp.p (INPUT pdLanguageObj, OUTPUT cLanguageCode).
     ASSIGN ptCurrentProcessDate = IF ptCurrentProcessDate = ? THEN TODAY ELSE ptCurrentProcessDate
            cPropertyList        = "CurrentUserObj,CurrentUserLogin,CurrentUserName,CurrentUserEmail,CurrentOrganisationObj,CurrentOrganisationCode,CurrentOrganisationName,CurrentOrganisationShort,CurrentLanguageObj,CurrentLanguageName,CurrentProcessDate,CurrentLoginValues,DateFormat,LoginWindow,CurrentLanguageCode":U
+                                + ',CachedTranslationsOnly':u
            cValueList           = STRING(pdCurrentUserObj)   + CHR(3) 
                                 + pcLoginName                + CHR(3) 
                                 + pcCurrentUserName          + CHR(3) 
@@ -192,7 +194,8 @@ THEN DO:
                                 + pcCurrentLoginValues       + CHR(3) 
                                 + pcDateFormat               + CHR(3) 
                                 + pcLoginProc                + CHR(3)
-                                + cLanguageCode.
+                                + cLanguageCode + chr(3)
+                                + string(plCachedTranslationsOnly).
   
     DYNAMIC-FUNCTION("setPropertyList":U IN gshSessionManager,
                                        INPUT cPropertyList,
@@ -209,12 +212,12 @@ THEN DO:
 
     RUN getSecurityControl IN gshSecurityManager (OUTPUT TABLE ttSecurityControl).
     ASSIGN phSecurityData = TEMP-TABLE ttSecurityControl:HANDLE.
-
-    /* Get translation data */
-
-    RUN afbldtrncp IN gshTranslationManager
-                             (INPUT pdLanguageObj,
-                             OUTPUT TABLE ttTranslation).
+    
+    /* Get translation data */    
+    if plCachedTranslationsOnly then
+        RUN afbldtrncp IN gshTranslationManager
+                                 (INPUT pdLanguageObj,
+                                 OUTPUT TABLE ttTranslation).    
     ASSIGN phTranslationData = TEMP-TABLE ttTranslation:HANDLE.
 
     /* Extract result code stuff */

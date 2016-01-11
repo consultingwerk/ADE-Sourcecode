@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _drwcomb.p
@@ -121,7 +121,7 @@ END.
 /* If there are no LIST-ITEMS, then make some based on type. */
 IF _F._LIST-ITEMS eq ? THEN DO:
   CASE _F._DATA-TYPE:
-    WHEN "Integer":U OR
+    WHEN "Integer":U OR WHEN "INT64":U OR
     WHEN "Decimal":U   THEN _F._LIST-ITEMS = "0".
     WHEN "Character":U THEN _F._LIST-ITEMS = "Item 1".
     WHEN "Logical":U   THEN _F._LIST-ITEMS = "Yes" + CHR(10) + "No".
@@ -140,6 +140,8 @@ IF _F._FORMAT eq ? THEN DO:
       WHEN "DECIMAL":U THEN ASSIGN _F._FORMAT       = "->>,>>9.99"
                                    _F._INITIAL-DATA = "0.00".
       WHEN "INTEGER":U THEN ASSIGN _F._FORMAT       = "->,>>>,>>9"
+                                   _F._INITIAL-DATA = "0".
+      WHEN "INT64":U   THEN ASSIGN _F._FORMAT       = "->,>>>,>>9"
                                    _F._INITIAL-DATA = "0".
       WHEN "LOGICAL":U THEN ASSIGN _F._FORMAT       = "yes/no".
       WHEN "RECID":U   THEN ASSIGN _F._FORMAT       = ">>>>>>>".

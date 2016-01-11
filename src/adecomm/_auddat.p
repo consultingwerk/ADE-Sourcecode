@@ -41,8 +41,11 @@
       kmcintos Sept 19, 2005 Added processing for events 10500-10611 
                              20050919-021.
       fernando Oct  31, 2005 Support for auditing streamed mode
-      fernando Nov  03, 2005 Support for dump/load audit events
+      fernando Nov  03, 2005 Support for dump/load audit events                
+      kmcintos Jan  03, 2006 Fixed printing bug and reformatted for readability
+                             20051116-043.
       fernando Apr  10, 2006 Adjust reports - _event-detail may now be empty 20060404-014
+      fernando Sep  21, 2006 Fixing issue with client session report
 ------------------------------------------------------------------------*/
 DEFINE INPUT  PARAMETER piReport   AS INTEGER     NO-UNDO.
 DEFINE INPUT  PARAMETER pcFileName AS CHARACTER   NO-UNDO.
@@ -200,19 +203,22 @@ IF plReprint = FALSE THEN DO:
 
 END.
 ELSE DO:
-    /* check if we have to populate the AudDataValue table, in case we are reprinting with details,
-       and the last time we printed only summary information.
+    /* check if we have to populate the AudDataValue table, in case we are 
+       reprinting with details, and the last time we printed only summary 
+       information.
          
-       We do add the AudDataValue table to the dataset when printing summary only, so we do read any 
-       aud-data-value records related but we do NOT process the data in the _aud-audit-data._Event-detail
-       field (which is the default place for recording the audit data). Now, if we are printing details,
-       we have to read ALL the data values to report them, so we need to read the _Event-detail, to make
-       sure we display all the correct info.
+       We do add the AudDataValue table to the dataset when printing summary 
+       only, so we do read any aud-data-value records related but we do NOT 
+       process the data in the _aud-audit-data._Event-detail field (which is 
+       the default place for recording the audit data). Now, if we are printing
+       details, we have to read ALL the data values to report them, so we need
+       to read the _Event-detail, to make sure we display all the correct info.
        
-       This is an unusual case (printing summary to screen and then details to a file), but we allow it,
-       and therefore we have to deal with it. This is so that we try not to slow down the generation of
-       the report when we are only reporting summary information with the time we would spend processing
-       the _Event-detail field and creating AudDataValue records.
+       This is an unusual case (printing summary to screen and then details to 
+       a file), but we allow it, and therefore we have to deal with it. This is
+       so that we try not to slow down the generation of the report when we are
+       only reporting summary information with the time we would spend 
+       processing the _Event-detail field and creating AudDataValue records.
     */
     IF ((plDetail OR glWriteXml) /*XML is always detailed */ AND 
         VALID-HANDLE(ghDataSet) AND 
@@ -223,7 +229,9 @@ ELSE DO:
 
         /* fill with data from the _event-detail field */
         FOR EACH bAudData NO-LOCK:
-            RUN audDataValueFromEventDetail(INPUT BUFFER bAudData:HANDLE, DATASET-HANDLE ghDataSet BY-REFERENCE).
+            RUN audDataValueFromEventDetail 
+                ( INPUT BUFFER bAudData:HANDLE, 
+                  INPUT DATASET-HANDLE ghDataSet BY-REFERENCE ).
         END.
 
     END.
@@ -235,7 +243,7 @@ IF glWriteXml THEN DO:
       WITH FRAME statusFrame.
   ghDataSet:WRITE-XML("FILE",pcFileName,TRUE,"UTF-8",?,TRUE,TRUE).
 END.
-ELSE IF pcFileName NE "" THEN DO:
+ELSE DO:
   DISPLAY "Building report file..." @ audData._event-name
       WITH FRAME statusFrame.
   RUN printReport.
@@ -324,6 +332,7 @@ PROCEDURE printReport:
                                   audData._Audit-data-security-level-name
                                   audData._data-sealed
             WITH FRAME summaryFrame.
+      
       DISPLAY STREAM reportStream WITH FRAME skipFrame.
       
       IF CAN-FIND(FIRST audDataValue OF audData) THEN DO:
@@ -2110,7 +2119,9 @@ PROCEDURE audDataAfterRowFill:
   /* check if we need to process the _Event-detail field for streamed fields on db events */
   /* only do it if doing detailed report or XML (XML is always detailed) */
   IF plDetail OR glWriteXml THEN
-     RUN audDataValueFromEventDetail(INPUT hADBuff, DATASET-HANDLE phDataSet BY-REFERENCE ).
+     RUN audDataValueFromEventDetail
+         ( INPUT hADBuff, 
+           DATASET-HANDLE phDataSet BY-REFERENCE ).
 
 END PROCEDURE.
 
@@ -2118,10 +2129,13 @@ END PROCEDURE.
 PROCEDURE audDataValueFromEventDetail:
   /* Procedure:   audDataValueFromEventDetail
    * 
-   * Description: Read the value of the _Event-detail field for db events, and create audit data children
-   *              records in the bAudDataValue temp-table.
+   * Description: Read the value of the _Event-detail field for db events, and 
+                  create audit data children records in the bAudDataValue 
+   *              temp-table.
   */ 
-  DEFINE INPUT PARAMETER hADBuff AS HANDLE NO-UNDO. /* handle of bAudData buffer */
+
+  DEFINE INPUT PARAMETER hADBuff AS HANDLE NO-UNDO. /* handle of bAudData 
+                                                       buffer */
   DEFINE INPUT PARAMETER DATASET-HANDLE phDataSet.
 
   DEFINE VARIABLE hADVBuff   AS HANDLE    NO-UNDO.
@@ -2130,64 +2144,78 @@ PROCEDURE audDataValueFromEventDetail:
 
   /* This is (and should be) only called if plDetail is TRUE */
 
-  /* check if this _Event-detail contains info for a db event. We will check if the
-     data follows the format defined for db events of 4 entries separated by chr(6).
-     It may contain more than one entry separated by chr(7), but we just need to check
-     the first one to see if it's a db event.
+  /* check if this _Event-detail contains info for a db event. We will check 
+     if the data follows the format defined for db events of 4 entries 
+     separated by chr(6).
+     
+     It may contain more than one entry separated by chr(7), but we just need 
+     to check the first one to see if it's a db event.
   */
   IF NUM-ENTRIES(ENTRY(1,hADBuff::_Event-detail,CHR(7)),CHR(6)) = 4 THEN DO:
 
-      hADVBuff = phDataSet:GET-BUFFER-HANDLE("bAudDataValue").
+    hADVBuff = phDataSet:GET-BUFFER-HANDLE("bAudDataValue").
 
-      /* when recording method is non-streamed, the database records the 
-         string "?" instead of the unknown value in the old and/or new value fields, 
-         so set literal-question so that the report contains the same information regardless
-         of the recording method.
-      */
-      IF NOT hADVBuff:BUFFER-FIELD('_old-string-value'):LITERAL-QUESTION THEN
-         ASSIGN hADVBuff:BUFFER-FIELD('_old-string-value'):LITERAL-QUESTION  = TRUE
-                hADVBuff:BUFFER-FIELD('_new-string-value'):LITERAL-QUESTION  = TRUE.
+    /* when recording method is non-streamed, the database records the 
+       string "?" instead of the unknown value in the old and/or new value 
+       fields, so set literal-question so that the report contains the same 
+       information regardless of the recording method.
+    */
+    IF NOT hADVBuff:BUFFER-FIELD('_old-string-value'):LITERAL-QUESTION THEN
+      ASSIGN 
+        hADVBuff:BUFFER-FIELD('_old-string-value'):LITERAL-QUESTION  = TRUE
+        hADVBuff:BUFFER-FIELD('_new-string-value'):LITERAL-QUESTION  = TRUE.
 
-      /* loop through all field changes - separated by chr(7) */
-      REPEAT iLoop = 1 TO NUM-ENTRIES(hADBuff::_Event-detail,CHR(7)):
+    /* loop through all field changes - separated by chr(7) */
+    REPEAT iLoop = 1 TO NUM-ENTRIES(hADBuff::_Event-detail,CHR(7)):
       
-          cEntry = ENTRY(iLoop,hADBuff::_Event-detail,CHR(7)).
+      cEntry = ENTRY(iLoop,hADBuff::_Event-detail,CHR(7)).
 
-          /* If entry is empty, it must be that the last entry had chr(7) at the end as well.
-             If not, then something is very wrong 
-          */
-          IF cEntry = ? OR cEntry = "" THEN
-             LEAVE.
-
-          hADVBuff:BUFFER-CREATE().
-         
-          ASSIGN hADVBuff::_audit-data-guid = hADBuff::_audit-data-guid
-                 hADVBuff::_continuation-sequence = 0
-                 hADVBuff::_audit-data-security-level = hADBuff::_audit-data-security-level
-                 hADVBuff::_field-name = ENTRY(1,cEntry,CHR(6))
-                 hADVBuff::_data-type-code = ENTRY(2,cEntry,CHR(6))
-                 hADVBuff::_old-string-value = ENTRY(3,cEntry,CHR(6))
-                 hADVBuff::_new-string-value = ENTRY(4,cEntry,CHR(6)).
-
-         /* if the new and/or old values are for an array, remove the chr(8) character */
-         IF INDEX(hADVBuff::_old-string-value,CHR(8)) > 0 AND 
-            INDEX(hADVBuff::_old-string-value,"E[":U) > 0 THEN
-            ASSIGN hADVBuff::_old-string-value = REPLACE(hADVBuff::_old-string-value, CHR(8), " ":U).
-
-         IF INDEX(hADVBuff::_new-string-value,CHR(8)) > 0 AND 
-            INDEX(hADVBuff::_new-string-value,"E[":U) > 0 THEN
-            ASSIGN hADVBuff::_new-string-value = REPLACE(hADVBuff::_new-string-value, CHR(8), " ":U).
-
-         /* now call the procedure to populate data type and security level descriptions */
-         RUN audDataValueAfterRowFill (DATASET-HANDLE phDataSet BY-REFERENCE).
-
-      END.
-
-      /* clear _Event-detail since we have created records for each fields change - This is so that
-         we don't log it in case the user dumps it to XML file, since the data value records we created
-         and will be dumped.
+      /* If entry is empty, it must be that the last entry had chr(7) at the
+         end as well.
+           
+         If not, then something is very wrong 
       */
-      hADBuff::_Event-detail = "".
+      IF cEntry = ? OR cEntry = "" THEN
+        LEAVE.
+
+      hADVBuff:BUFFER-CREATE().
+         
+      ASSIGN hADVBuff::_audit-data-guid           = hADBuff::_audit-data-guid
+             hADVBuff::_continuation-sequence     = 0
+             hADVBuff::_audit-data-security-level = 
+                                       hADBuff::_audit-data-security-level
+             hADVBuff::_field-name = ENTRY(1,cEntry,CHR(6))
+             hADVBuff::_data-type-code = ENTRY(2,cEntry,CHR(6))
+             hADVBuff::_old-string-value = ENTRY(3,cEntry,CHR(6))
+             hADVBuff::_new-string-value = ENTRY(4,cEntry,CHR(6)).
+
+      /* if the new and/or old values are for an array, remove the chr(8) 
+         character */
+      IF INDEX(hADVBuff::_old-string-value,CHR(8)) > 0 AND 
+         INDEX(hADVBuff::_old-string-value,"E[":U) > 0 THEN
+        ASSIGN 
+          hADVBuff::_old-string-value = REPLACE(hADVBuff::_old-string-value, 
+                                                CHR(8), 
+                                                " ":U).
+
+      IF INDEX(hADVBuff::_new-string-value,CHR(8)) > 0 AND 
+         INDEX(hADVBuff::_new-string-value,"E[":U) > 0 THEN
+        ASSIGN 
+          hADVBuff::_new-string-value = REPLACE(hADVBuff::_new-string-value,
+                                                CHR(8), 
+                                                " ":U).
+
+      /* now call the procedure to populate data type and security level 
+         descriptions */
+      RUN audDataValueAfterRowFill ( DATASET-HANDLE phDataSet BY-REFERENCE ).
+
+    END.
+
+    /* clear _Event-detail since we have created records for each fields 
+       change - This is so that we don't log it in case the user dumps it to 
+       XML file, since the data value records we created and will be dumped.
+    */
+    hADBuff::_Event-detail = "".
   END.
 
 END PROCEDURE.
@@ -2242,6 +2270,8 @@ PROCEDURE audDataValueAfterRowFill:
       hADVBuff::_data-type-name = "Longchar".
     WHEN 40 THEN
       hADVBuff::_data-type-name = "Datetime-TZ".
+    WHEN 41 THEN
+        hADVBuff::_data-type-name = "Int64".
     OTHERWISE
       hADVBuff::_data-type-name = "Unknown".
   END CASE.
@@ -2256,11 +2286,15 @@ PROCEDURE audDataValueAfterRowFill:
   /* if the new and/or old values are for an array, remove the chr(8) character for reporting */
   IF INDEX(hADVBuff::_old-string-value,CHR(8)) > 0 AND 
      INDEX(hADVBuff::_old-string-value,"E[":U) > 0 THEN
-     ASSIGN hADVBuff::_old-string-value = REPLACE(hADVBuff::_old-string-value, CHR(8), " ":U).
+     ASSIGN hADVBuff::_old-string-value = REPLACE(hADVBuff::_old-string-value, 
+                                                  CHR(8), 
+                                                  " ":U).
 
   IF INDEX(hADVBuff::_new-string-value,CHR(8)) > 0 AND 
      INDEX(hADVBuff::_new-string-value,"E[":U) > 0 THEN
-     ASSIGN hADVBuff::_new-string-value = REPLACE(hADVBuff::_new-string-value, CHR(8), " ":U).
+    ASSIGN hADVBuff::_new-string-value = REPLACE(hADVBuff::_new-string-value, 
+                                                 CHR(8), 
+                                                 " ":U).
 
 END PROCEDURE.
 
@@ -2380,6 +2414,7 @@ PROCEDURE createSecondaryBuffers:
     END.
   END CASE.
 
+  IF piReport NE 9 THEN
   CREATE BUFFER ghADBuff FOR TABLE pcDbName + "._aud-audit-data"
                                              IN WIDGET-POOL "datasetPool".
 END PROCEDURE.

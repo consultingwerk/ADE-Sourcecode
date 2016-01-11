@@ -1,4 +1,4 @@
-&ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI
 &ANALYZE-RESUME
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Attribute-Dlg
@@ -67,14 +67,14 @@ DEFINE VARIABLE orig-layout AS CHARACTER NO-UNDO.
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Attribute-Dlg
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS l_Enable l_View l_ScrollRemote ~
-l_FetchOnReposToEnd 
+l_FetchOnReposToEnd lUseSortIndicator 
 &Scoped-Define DISPLAYED-OBJECTS l_Enable c_Layout l_View l_ScrollRemote ~
-l_FetchOnReposToEnd 
+l_FetchOnReposToEnd lUseSortIndicator 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -95,18 +95,24 @@ DEFINE VARIABLE c_Layout AS CHARACTER FORMAT "X(256)":U
      DROP-DOWN-LIST
      SIZE 28 BY 1 NO-UNDO.
 
+DEFINE VARIABLE lUseSortIndicator AS LOGICAL INITIAL no 
+     LABEL "Show sort indicator" 
+     CONTEXT-HELP-ID 0
+     VIEW-AS TOGGLE-BOX
+     SIZE 22.4 BY .81 NO-UNDO.
+
 DEFINE VARIABLE l_Enable AS LOGICAL INITIAL no 
      LABEL "&Enable" 
      VIEW-AS TOGGLE-BOX
      SIZE 20 BY 1.1 NO-UNDO.
 
 DEFINE VARIABLE l_FetchOnReposToEnd AS LOGICAL INITIAL no 
-     LABEL "&Fetch Data to Fill Browse on Reposition to End of Batch" 
+     LABEL "&Fetch data to fill browse on reposition to end of batch" 
      VIEW-AS TOGGLE-BOX
      SIZE 58 BY .86 NO-UNDO.
 
 DEFINE VARIABLE l_ScrollRemote AS LOGICAL INITIAL no 
-     LABEL "&Scroll Remote Results List" 
+     LABEL "&Scroll remote results list" 
      VIEW-AS TOGGLE-BOX
      SIZE 31 BY .81 NO-UNDO.
 
@@ -119,14 +125,13 @@ DEFINE VARIABLE l_View AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Attribute-Dlg
-     l_Enable AT ROW 2.29 COL 5
-     c_Layout AT ROW 2.29 COL 26
-     l_View AT ROW 3.33 COL 5
-     l_ScrollRemote AT ROW 4.33 COL 5
-     l_FetchOnReposToEnd AT ROW 5.38 COL 5
-     "  Behavior During 'Initialize'" VIEW-AS TEXT
-          SIZE 60 BY .62 AT ROW 1.48 COL 3
-     SPACE(0.59) SKIP(4.22)
+     l_Enable AT ROW 1.57 COL 5
+     c_Layout AT ROW 1.57 COL 22.4
+     l_View AT ROW 2.62 COL 5
+     l_ScrollRemote AT ROW 3.62 COL 5
+     l_FetchOnReposToEnd AT ROW 4.67 COL 5
+     lUseSortIndicator AT ROW 5.67 COL 5 WIDGET-ID 2
+     SPACE(35.60) SKIP(0.32)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartDataBrowser Properties":L.
@@ -147,7 +152,7 @@ DEFINE FRAME Attribute-Dlg
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Attribute-Dlg
-   L-To-R                                                               */
+   FRAME-NAME L-To-R                                                    */
 ASSIGN 
        FRAME Attribute-Dlg:SCROLLABLE       = FALSE
        FRAME Attribute-Dlg:HIDDEN           = TRUE.
@@ -187,6 +192,7 @@ DO:
   DYNAMIC-FUNC("setHideOnInit":U IN p_hSMO, INPUT NOT l_View) NO-ERROR.
   DYNAMIC-FUNC("setScrollRemote":U IN p_hSMO, INPUT l_ScrollRemote) NO-ERROR.
   DYNAMIC-FUNC("setFetchOnReposToEnd":U IN p_hSMO,l_FetchOnReposToEnd) NO-ERROR.
+  DYNAMIC-FUNC("setUseSortIndicator":U IN p_hSMO,lUseSortIndicator) NO-ERROR.
 
   /* Only set the layout if it has changed.  Remember that LAYOUT is an
      attribute whose changes must be explicitly applied. */
@@ -212,9 +218,20 @@ END.
 &ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME lUseSortIndicator
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUseSortIndicator Attribute-Dlg
+ON VALUE-CHANGED OF lUseSortIndicator IN FRAME Attribute-Dlg /* Show sort indicator */
+DO:
+  ASSIGN lUseSortIndicator.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 &Scoped-define SELF-NAME l_FetchOnReposToEnd
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL l_FetchOnReposToEnd Attribute-Dlg
-ON VALUE-CHANGED OF l_FetchOnReposToEnd IN FRAME Attribute-Dlg /* Fetch Data to Fill Browse on Reposition to End of Batch */
+ON VALUE-CHANGED OF l_FetchOnReposToEnd IN FRAME Attribute-Dlg /* Fetch data to fill browse on reposition to end of batch */
 DO:
   ASSIGN l_ScrollRemote.
   
@@ -297,8 +314,9 @@ PROCEDURE enable_UI :
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
   DISPLAY l_Enable c_Layout l_View l_ScrollRemote l_FetchOnReposToEnd 
+          lUseSortIndicator 
       WITH FRAME Attribute-Dlg.
-  ENABLE l_Enable l_View l_ScrollRemote l_FetchOnReposToEnd 
+  ENABLE l_Enable l_View l_ScrollRemote l_FetchOnReposToEnd lUseSortIndicator 
       WITH FRAME Attribute-Dlg.
   VIEW FRAME Attribute-Dlg.
   {&OPEN-BROWSERS-IN-QUERY-Attribute-Dlg}
@@ -323,7 +341,7 @@ PROCEDURE get-SmO-attributes :
     l_View   = NOT DYNAMIC-FUNC("getHideOnInit":U IN p_hSMO).
     l_ScrollRemote = DYNAMIC-FUNC("getScrollRemote":U IN p_hSMO).
     l_FetchOnReposToEnd = DYNAMIC-FUNC("getFetchOnReposToEnd":U IN p_hSMO).
-
+    lUseSortIndicator   = DYNAMIC-FUNC("getUseSortIndicator":U IN p_hSMO).
     /* Choose Layout. */
     /* V8: RUN get-attribute IN p_hSMO ("Layout-Options":U). */
     ASSIGN c_Layout = DYNAMIC-FUNC("getLayoutOptions":U IN p_hSMO) NO-ERROR.

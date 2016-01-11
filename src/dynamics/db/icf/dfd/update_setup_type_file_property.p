@@ -33,8 +33,8 @@ define buffer gsmsy        for gsm_session_type_property.
 define buffer gsmsy_parent for gsm_session_type_property.
 
 &scoped-define PROPERTY-NAME setup_type_file
-&scoped-define PROPERTY-VALUE db/icf/dfd/setup101A.xml
-&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup
+&scoped-define PROPERTY-VALUE db/icf/dfd/setup101B.xml
+&scoped-define SETUP-TYPES ProgressSetup,Migrate21Setup,Migrate100Setup,Migrate101ASetup
 
 publish 'DCU_WriteLog' ('Start update of {&PROPERTY-NAME} session property ...').
 
@@ -60,8 +60,7 @@ do:
 end.    /* found & locked prop */
 
 /* Update all the session property types that we know belong to
-   Dynamics: ProgressSetup, Migrate21Setup
- */
+   Dynamics. */
 if not lError then
 do iLoop = 1 to num-entries('{&SETUP-TYPES}'):
     find gsmse where
@@ -76,7 +75,7 @@ do iLoop = 1 to num-entries('{&SETUP-TYPES}'):
     else
     do:
         lFoundProp = no.
-                        
+        
         find gsmsy where
              gsmsy.session_type_obj = gsmse.session_type_obj and
              gsmsy.session_property_obj = gscsp.session_property_obj
@@ -91,8 +90,7 @@ do iLoop = 1 to num-entries('{&SETUP-TYPES}'):
         do:
             /* If there's no property against this session type, then
                see if this session type has a parent. If it does, then
-               check up the tree to see if we can find a property.               
-             */
+               check up the tree to see if we can find a property. 	*/
             dSessionTypeObj = gsmse.extends_session_type_obj.
             repeat while dSessionTypeObj gt 0 and not lFoundProp:
                 find gsmse where
@@ -119,8 +117,7 @@ do iLoop = 1 to num-entries('{&SETUP-TYPES}'):
             end.    /* climb tree */
             
             /* By climbing the tree, we may be affecting other session type when we change
-               the {&PROPERTY-NAME} property.
-             */
+               the {&PROPERTY-NAME} property. */
             if lFoundProp then
                 publish 'DCU_WriteLog' ('WARNING: The "'
                                        + entry(iLoop, '{&SETUP-TYPES}') + '" setup type inherits the value '

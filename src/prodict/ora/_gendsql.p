@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -59,6 +59,7 @@
      02/08/05 Added support for turning on/off x(8) override to x(30) - depending on
               value stored in sqlwidth 
      08/04/05 Reworked handling of sqlwidth so it doesn't interfere with handling of defaults 20050216-014
+     06/12/06 Support for int64
                      
 If the user wants to have a DEFAULT value of blank for VARCHAR2 fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -330,7 +331,7 @@ PROCEDURE write-tbl-sql:
       OUTPUT TO VALUE(efile) APPEND.
       PUT UNFORMATTED tablename " had too many long columns.  The" SKIP
                      "sql was commented out and no information was" SKIP
-                      "outputed to the Progress DF File." SKIP
+                      "outputed to the {&PRO_DISPLAY_NAME} DF File." SKIP
                       " " SKIP.
       OUTPUT CLOSE.  
     END.
@@ -348,7 +349,7 @@ PROCEDURE write-tbl-sql:
       OUTPUT TO VALUE(efile) APPEND.
       PUT UNFORMATTED tablename " had columns with unsupported data types." SKIP
                      "The sql was commented out and no information was" SKIP
-                      "outputed to the Progress DF File." SKIP
+                      "outputed to the {&PRO_DISPLAY_NAME} DF File." SKIP
                      " " SKIP.
       OUTPUT CLOSE.  
     END.
@@ -3072,7 +3073,7 @@ DO ON STOP UNDO, LEAVE:
                     ASSIGN new-obj.for-type = new-obj.for-type + "NOT NULL".
                 END.
               END.
-              ELSE IF fieldtype = "integer" THEN DO: 
+              ELSE IF fieldtype = "integer" OR fieldtype = "int64" THEN DO: 
                 IF AVAILABLE new-obj THEN
                   ASSIGN new-obj.for-type = " NUMBER"
                          dffortype = "NUMBER"
@@ -3670,6 +3671,11 @@ DO ON STOP UNDO, LEAVE:
                   df-info.df-fld = fieldname
                   df-line = ilin[1] + " " + ilin[2] + ' "' + ilin[3] + '" ' +
                             ilin[4] + ' "' + ilin[5] + '"'.
+
+          /* allow int->int64 type changes */
+          IF ilin[6] = "AS" AND ilin[7] = "int64" THEN DO:
+              df-line = df-line + " " + ilin[6] + " " + ilin[7].
+          END.
         END.
 
         CASE ilin[1]:
@@ -4510,7 +4516,7 @@ IF user_env[2] = "yes" THEN DO:
   
   MESSAGE "The following files have been created:" SKIP(1)
           "ORACLE SQL Script:  " sqlout  SKIP
-          "PROGRESS DF File:  " dfout SKIP(1)
+          "{&PRO_DISPLAY_NAME} DF File:  " dfout SKIP(1)
           "If the delta.df contained any drop statements," SKIP
           "data will be lost from the ORACLE Database." SKIP(1) 
           "Check for warnings in <table name>.e files " SKIP          

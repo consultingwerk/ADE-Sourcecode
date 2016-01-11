@@ -146,6 +146,13 @@ FUNCTION initSDO RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initTheme frmAttributes 
+FUNCTION initTheme RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initViewAs frmAttributes 
 FUNCTION initViewAs RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
@@ -981,6 +988,8 @@ MAIN-BLOCK:
 DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
    ON END-KEY UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK:
 
+  initTheme().
+
   ghSDO = DYNAMIC-FUNC("getDataSource":U IN p_hSMO).
   
   IF NOT VALID-HANDLE(ghSDO) THEN 
@@ -1401,6 +1410,30 @@ FUNCTION initSDO RETURNS LOGICAL
   END.  /* else (no data-source) */
 
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION initTheme frmAttributes 
+FUNCTION initTheme RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hWidget AS HANDLE     NO-UNDO.
+  hWidget = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
+  IF SESSION:WINDOW-SYSTEM = 'MS-WINXP':U THEN
+  DO WHILE VALID-HANDLE(hWidget):
+    IF hWidget:TYPE = "RECTANGLE":U AND hWidget:EDGE-PIXELS = 2 THEN
+      ASSIGN 
+        hWidget:GROUP-BOX = TRUE
+        hWidget:EDGE-PIXELS = 1.
+    hWidget = hWidget:NEXT-SIBLING.
+  END.
+  RETURN FALSE.   /* Function return value. */
 
 END FUNCTION.
 

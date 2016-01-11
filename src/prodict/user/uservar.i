@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -10,7 +10,9 @@
  * kmcintos     04/04/05    Added variables for Auditing Support    *
  * kmcintos     07/27/05    Removed unused longchar variable        *
  * kmcintos     08/18/05    Added logical for audit policy commit   *
- *                          20050629-018                            */
+ *                          20050629-018                            *
+ * fernando     03/14/06    Handle case with too many tables selected*
+ *                          20050930-006                            */
    
 /* uservar.i - dictionary user interface variable definitions */
 
@@ -44,6 +46,9 @@ DEFINE {1} SHARED VARIABLE user_overwrite AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE user_commit    AS LOGICAL   NO-UNDO.
 DEFINE {1} SHARED VARIABLE user_excepts   AS CHARACTER NO-UNDO.
 
+/* for bug fix 20050930-006 */
+DEFINE {1} SHARED VARIABLE user_longchar  AS LONGCHAR NO-UNDO.
+
 &GLOBAL-DEFINE ERROR_ROLLBACK 151
 
 
@@ -70,3 +75,10 @@ DEFINE {1} SHARED VARIABLE user_excepts   AS CHARACTER NO-UNDO.
    {prodict/admnhlp.i}
    &global-define ADM_HELP_FILE "adehelp/admin.hlp"  
 &ENDIF
+
+/* used to define the display name of the product. It used to be PROGRESS,
+and now we are changigng it to OpenEdge. Creating define so that the next time
+we change it, we don't have to go through changing all necessary source
+files again 
+*/
+&GLOBAL-DEFINE PRO_DISPLAY_NAME OpenEdge

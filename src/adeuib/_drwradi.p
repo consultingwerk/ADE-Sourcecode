@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _drwradi.p
@@ -129,6 +129,9 @@ IF _F._LIST-ITEMS eq ? THEN DO:
                      dflt-item + LEFT-TRIM(STRING(i,">>>9.9":U)) + "~", " +
                      LEFT-TRIM(REPLACE(STRING(i, ">>>9.9":U),",":U,".":U)).
       WHEN "Integer":U THEN   /* eg "Item 1" */
+         scrn-value = scrn-value +
+                      dflt-item + STRING(i) + "~", " + STRING(i).
+      WHEN "Int64":U THEN   /* eg "Item 1" */
          scrn-value = scrn-value +
                       dflt-item + STRING(i) + "~", " + STRING(i).
       WHEN "Logical":U THEN  /* Do TRUE, FALSE, and UNKNOWN */

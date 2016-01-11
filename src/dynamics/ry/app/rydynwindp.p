@@ -249,7 +249,7 @@ PROCEDURE createObjects :
     DEFINE VARIABLE hWindow                      AS HANDLE             NO-UNDO.
     DEFINE VARIABLE cErrorMessage                AS CHARACTER          NO-UNDO.
     DEFINE VARIABLE cButton                      AS CHARACTER          NO-UNDO.
-
+    
     /* If on page 0, set the window's minimum height/width etc.
        Also pack the window as per page 0. This should give us minimum
        size in cases where there are static objects on the container.
@@ -290,7 +290,7 @@ PROCEDURE createObjects :
         RUN destroyObject IN TARGET-PROCEDURE.
         RETURN.
     END.    /* forced exit */    
-
+    
 END PROCEDURE.    /* createObjects */
 
 /* _UIB-CODE-BLOCK-END */

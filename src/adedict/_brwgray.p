@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -88,6 +88,8 @@ DEFINE VARIABLE hBuffer   AS HANDLE                      NO-UNDO.
 &Global-define    MODE_FIELD       32
 &Global-define    MODE_INDEX       33
 &Global-define    DATA_RPT         34
+&Global-define    REPORTS_MENU     35
+
 
 Define var item   as integer  	    NO-UNDO. /* index into Gray_Items array */
 Define var h_item as widget-handle  NO-UNDO. /* menu item handle value */
@@ -131,6 +133,7 @@ do:
       Gray_Items[{&MODE_SEQUENCE}]  = MENU-ITEM mi_Mode_Seq:HANDLE
       Gray_Items[{&MODE_FIELD}]     = MENU-ITEM mi_Mode_Fld:HANDLE
       Gray_Items[{&MODE_INDEX}]     = MENU-ITEM mi_Mode_Idx:HANDLE
+      Gray_Items[{&REPORTS_MENU}]  = SUB-MENU s_mnu_Reports:HANDLE
       .
 
    /* Initialize these. */
@@ -158,6 +161,7 @@ if s_DictState >= {&STATE_NO_DB_SELECTED} then
 if s_DictState >= {&STATE_NO_OBJ_SELECTED} then
 do:
    assign
+      ungray[{&REPORTS_MENU}] = YES
       ungray[{&DETAILEDTBL}] = yes
       ungray[{&QUICKTBL}] = yes
       ungray[{&FLDRPT_ALLTBLS}] = yes
@@ -167,7 +171,7 @@ do:
       ungray[{&QUICKUSR}] = yes
       ungray[{&TRIG_RPT}] = yes
       ungray[{&RELRPT_ALLTBLS}] = yes
-     ungray[{&DATA_RPT}] = YES.
+      ungray[{&DATA_RPT}] = YES.
 
    if s_CurrObj = {&OBJ_DB} then
       assign

@@ -28,7 +28,10 @@
 
 /* This variable is needed at least temporarily in 9.1B so that a called
    fn can tell who the actual source was. */
-   DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
+   DEFINE VARIABLE ghTargetProcedure   AS HANDLE        NO-UNDO.
+
+   DEFINE VARIABLE glCaptionLoaded     AS LOGICAL       NO-UNDO.
+   DEFINE VARIABLE gcUndoChangeCaption AS CHAR EXTENT 6 NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -76,6 +79,17 @@ FUNCTION canNavigate RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAuditEnabled Procedure 
 FUNCTION getAuditEnabled RETURNS LOGICAL
   ( )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getCanUndoChanges) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCanUndoChanges Procedure 
+FUNCTION getCanUndoChanges RETURNS LOGICAL
+  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -357,6 +371,17 @@ FUNCTION getRowIdent RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSaveSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSaveSource Procedure 
@@ -417,6 +442,28 @@ FUNCTION getToolbarSource RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getToolbarSourceEvents Procedure 
 FUNCTION getToolbarSourceEvents RETURNS CHARACTER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUndoChangeCaption) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUndoChangeCaption Procedure 
+FUNCTION getUndoChangeCaption RETURNS CHARACTER
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUndoNew Procedure 
+FUNCTION getUndoNew RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -765,6 +812,17 @@ FUNCTION setToolbarSourceEvents RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-setUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUndoNew Procedure 
+FUNCTION setUndoNew RETURNS LOGICAL
+  ( plUndoNew AS LOGICAL )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-setUpdateTarget) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setUpdateTarget Procedure 
@@ -961,7 +1019,6 @@ PROCEDURE cancelRecord :
   DEFINE VARIABLE lSaveSource   AS LOGICAL   NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
-  {get GroupAssignSource hGroupSource}
   {get UpdateTarget cTarget}
   {get NewRecord cNew}.
   &UNDEFINE xp-assign
@@ -984,20 +1041,26 @@ PROCEDURE cancelRecord :
      present, so we will skip this step; it's done only in the Source. */
   IF VALID-HANDLE(hUpdateTarget) THEN
   DO:
-    ghTargetProcedure = TARGET-PROCEDURE.
-    cErrors = dynamic-function("cancelRow":U IN hUpdateTarget).
-    ghTargetProcedure = ?.
+    IF cNew <> 'NO':U THEN
+    DO:
+      ghTargetProcedure = TARGET-PROCEDURE.
+      cErrors = dynamic-function("cancelRow":U IN hUpdateTarget).
+      ghTargetProcedure = ?.
+    END.
   END.      /* END DO IF UpdateTarget */
   ELSE DO:
+    {get GroupAssignSource hGroupSource}.
     IF hGroupSource = ? THEN
        cErrors = "No UpdateTarget present for Cancel operation.":U.
   END.   /* END ELSE DO (No Update Target) */
   
-  /* DataAvailable avoids display when newRecord <> 'no', so we set it to 'no'
-     AFTER the call to the UpdateTarget that publishes DataAvailable 
-     and always display here instead  */
-  {set NewRecord 'No':U}.   /* Note: this is character 'no', not logical*/     
-
+  /* DataAvailable is only published on cancel of new, because the record 
+     then is changed, this object, however, avoids display when 
+     newRecord <> 'no', so we set it to 'no' AFTER the call to the 
+     UpdateTarget that publishes DataAvailable  */
+  IF cNew <> 'NO':U THEN
+    {set NewRecord 'No':U}.   /* Note: this is character 'no', not logical*/ 
+  
   RUN displayRecord IN TARGET-PROCEDURE.
 
   /* Post 9.1D the disabling of the object in Update mode is managed
@@ -1033,9 +1096,6 @@ PROCEDURE cancelRecord :
   IF cState = "NoRecordAvailable":U AND cNew NE "No":U THEN  /* Could be Add or Copy or No */
     RUN disableFields IN TARGET-PROCEDURE ("All":U).
    
-  /* NOTE: Disabling only create fields is not yet supported
-     RUN disableFields IN TARGET-PROCEDURE ("Create":U).
-   */
   RETURN.
 END PROCEDURE.
 
@@ -1832,7 +1892,7 @@ PROCEDURE displayRecord :
  DEFINE VARIABLE iCol           AS INTEGER    NO-UNDO.
  DEFINE VARIABLE iPos           AS INTEGER    NO-UNDO.
  DEFINE VARIABLE lNoQual        AS LOGICAL     NO-UNDO.
-
+ 
  {get DataSource hSource}.
  IF VALID-HANDLE(hSource) THEN
  DO:
@@ -2069,7 +2129,22 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cState         AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cTarget        AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cUIBMode       AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE lUndoNew       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMsg           AS CHARACTER  NO-UNDO.
+
+  /* store these messages once for the class 
+    (used by getUndoChangeCaption, which is called on refresh of toolbar)*/
+  IF NOT glCaptionLoaded THEN
+    ASSIGN
+      cMsg = {fnarg messageNumber 97}
+      gcUndoChangeCaption[1] = ENTRY(1,cMsg,CHR(10))
+      gcUndoChangeCaption[2] = ENTRY(2,cMsg,CHR(10))
+      gcUndoChangeCaption[3] = ENTRY(3,cMsg,CHR(10))
+      gcUndoChangeCaption[4] = ENTRY(4,cMsg,CHR(10))
+      gcUndoChangeCaption[5] = ENTRY(5,cMsg,CHR(10))
+      gcUndoChangeCaption[6] = ENTRY(6,cMsg,CHR(10))
+      glCaptionLoaded        = TRUE.
+   
   /* The datasource link is deactivated on add (LinkstateHandler) to avoid 
      messages before needed. */
   {get DataSource hDataSource}.
@@ -2111,13 +2186,17 @@ PROCEDURE initializeObject :
       {set Editable FALSE}.
     END.
     ELSE DO:
-      /* Check save/update mode in the toolbar */
-      cPanelType = {fn getTableioType hSource} NO-ERROR.
-      
+      ASSIGN
+        /* Check save/update mode in the toolbar */
+        cPanelType = {fn getTableioType hSource}
+        lUndoNew   = {fn getTableioUndoNew hSource}.
       /* Check save/update mode in the panel (different property) */
       IF cPanelType = ? THEN
         cPanelType = {fn getPanelType hSource} NO-ERROR.
-      
+      &SCOPED-DEFINE xp-assign
+      {set SaveSource "(IF cPanelType = 'Save':U THEN YES ELSE NO)"}.
+      {set UndoNew lUndoNew}.
+      &UNDEFINE xp-assign
       IF cPanelType = 'Save':U THEN 
         {set SaveSource yes}.
       ELSE 
@@ -3233,6 +3312,108 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-undoChange) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE undoChange Procedure 
+PROCEDURE undoChange :
+/*------------------------------------------------------------------------------
+  Purpose:  undo last change - Reset or Undo or New (optionally)   
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lDataModified AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lRowUpdated  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUndoNew      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNewRecord    AS CHARACTER  NO-UNDO.
+ 
+  {get DataModified lDataModified}.
+ 
+  IF lDataModified THEN
+    RUN resetRecord IN TARGET-PROCEDURE.
+  ELSE DO:
+    {get RowUpdated lRowUpdated}.
+    IF lRowUpdated THEN
+      RUN undoRecord IN TARGET-PROCEDURE.
+    ELSE DO:
+      {get UndoNew lUndoNew}.
+      IF lUndoNew THEN
+      DO:
+        {get NewRecord cNewRecord}.
+        IF cNewRecord <> 'NO':U THEN
+          RUN cancelRecord IN TARGET-PROCEDURE.
+      END.
+    END.
+  END.
+  RETURN. 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-undoRecord) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE undoRecord Procedure 
+PROCEDURE undoRecord :
+/*------------------------------------------------------------------------------
+  Purpose:     Undo record.
+               Redisplays the original field values.
+  Parameters:  <none>
+  Notes:       PUBLISHEs 'undoRecord' in case of GroupAssign.               
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cRowIdent     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOk           AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDummy        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lSaveSource   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cMode         AS CHARACTER  NO-UNDO.
+
+  {get UpdateTarget hUpdateTarget}.
+  IF VALID-HANDLE(hUpdateTarget) THEN
+  DO:
+    {get Rowident cRowIdent}.
+    {get NewRow lNew hUpdateTarget}.
+    IF lNew THEN 
+      lOk = {fnarg deleteRow cRowident hUpdateTarget}.
+    ELSE
+      lOk = {fnarg undoRow cRowident hUpdateTarget}.
+  
+    IF NOT lOk THEN
+    DO:
+      RUN showDataMessagesProcedure IN TARGET-PROCEDURE (OUTPUT cDummy) .
+      RETURN "ADM-ERROR":U.
+    END.
+    IF lNew THEN
+    DO:
+      /* We need to disable the object in Update mode is managed
+      by the object and not by a publish from the toolbar's updateState */   
+      &SCOPED-DEFINE xp-assign
+      {get SaveSource lSaveSource}
+      {get ObjectMode cMode}.
+      &UNDEFINE xp-assign
+  
+      IF lSaveSource = FALSE AND cMode = 'Update':U THEN
+      DO:
+        RUN updateMode IN TARGET-PROCEDURE ('updateEnd':U).
+        PUBLISH 'updateState':U FROM TARGET-PROCEDURE ('updateComplete':U).
+      END.
+    END.
+    ELSE
+      PUBLISH "resetTableio":U FROM TARGET-PROCEDURE.
+  END.
+
+  RETURN.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-updateMode) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE updateMode Procedure 
@@ -4068,6 +4249,46 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getCanUndoChanges) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCanUndoChanges Procedure 
+FUNCTION getCanUndoChanges RETURNS LOGICAL
+  ( /* parameter-definitions */ ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lModified     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUndoNew      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cNew          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
+
+  {get DataModified lModified}.
+  IF lModified THEN
+    RETURN TRUE. 
+
+  {get RowUpdated lModified}.
+  IF lModified THEN
+    RETURN TRUE. 
+ 
+  {get UndoNew lUndoNew}.
+ 
+  IF lUndoNew THEN
+  DO:
+    {get NewRecord cNew}.
+    IF cNew <> 'NO' THEN
+      RETURN TRUE. 
+  END.
+
+  RETURN FALSE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getCreateHandles) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getCreateHandles Procedure 
@@ -4442,14 +4663,19 @@ FUNCTION getGroupAssignHidden RETURNS LOGICAL
   DEFINE VARIABLE cInactiveLinks   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lContainerHidden AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lTableioHidden   AS LOGICAL    NO-UNDO.
+  define variable lObjectInit      as logical    no-undo.
+  define variable lHideOnInit      as logical    no-undo.
   
   &SCOPED-DEFINE xp-assign
   {get ObjectHidden lHidden}
   {get ContainerHidden lContainerHidden}
+  {get ObjectInitialized lObjectInit}
+  {get HideOnInit lHideOnInit}
   .
   &UNDEFINE xp-assign
   
-  IF NOT lHidden AND NOT lContainerHidden THEN
+  IF (NOT lHidden AND NOT lContainerHidden) or
+     (not lHideOnInit and not lObjectInit) THEN
     RETURN FALSE.
   
   /* Also return false if this object is about to become visible 
@@ -4822,43 +5048,16 @@ FUNCTION getPrintPreviewActive RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE lPreviewActive        AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE hApplication          AS COM-HANDLE NO-UNDO.
-
-  DEFINE VARIABLE cRegReportDesign      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cKeyReportDesign      AS CHARACTER  NO-UNDO.
-
+  
   &SCOPED-DEFINE xpPrintPreviewActive 
   {get PrintPreviewActive lPreviewActive}.
   &UNDEFINE xpPrintPreviewActive 
 
-  /* not checked yet */
+  /* not checked yet then check the class property */
   IF lPreviewActive = ? THEN 
   DO:
-    /* Get the values for Crystal Reports from the Registry */
-    ASSIGN
-      cKeyReportDesign  = "CrystalRuntime.Application"
-      cRegReportDesign  = "CrystalRuntime.Application.7" /* Default Value */ 
-      .
-
-    /* cRegReportDesign */
-    LOAD cKeyReportDesign BASE-KEY "HKEY_CLASSES_ROOT":U NO-ERROR.
-    IF NOT ERROR-STATUS:ERROR THEN 
-    DO:
-      USE cKeyReportDesign.
-      GET-KEY-VALUE SECTION "CurVer":U KEY DEFAULT VALUE cRegReportDesign.
-    END.
-    UNLOAD cKeyReportDesign NO-ERROR.
-
-    CREATE VALUE(cRegReportDesign) hApplication NO-ERROR.
-    ASSIGN lPreviewActive = NOT ERROR-STATUS:ERROR.
-    RELEASE OBJECT hApplication NO-ERROR.
-    ASSIGN hApplication = ?.
-    ERROR-STATUS:ERROR = NO.
-
-    &SCOPED-DEFINE xpPrintPreviewActive 
+    {get IsCrystalInstalled lPreviewActive}.
     {set PrintPreviewActive lPreviewActive}.
-    &UNDEFINE xpPrintPreviewActive 
-
   END.
 
   RETURN lPreviewActive.
@@ -5016,6 +5215,39 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns TRUE if the current record has been saved, but not comitted.
+   Params: <none>
+    Notes: The value is supposed to reflect the visual object's status, so 
+           it uses the UpdateTarget (NOT DataSource) in order to only return 
+           true if this object did the change and/or can undo/save the change.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lRowUpdated  AS LOGICAL    NO-UNDO.
+
+  {get UpdateTarget hUpdateTarget}.  
+  IF VALID-HANDLE(hUpdateTarget) THEN
+  DO:
+    ghTargetProcedure = TARGET-PROCEDURE.
+    {get RowUpdated lRowUpdated hUpdateTarget}.
+    ghTargetProcedure = ?.
+    RETURN lRowUpdated.  
+  END.
+  
+  RETURN FALSE. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getSaveSource) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSaveSource Procedure 
@@ -5137,6 +5369,81 @@ FUNCTION getToolbarSourceEvents RETURNS CHARACTER
   DEFINE VARIABLE cEvents AS CHARACTER NO-UNDO.
   {get ToolbarSourceEvents cEvents}.
   RETURN cEvents.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUndoChangeCaption) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUndoChangeCaption Procedure 
+FUNCTION getUndoChangeCaption RETURNS CHARACTER
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+ DEFINE VARIABLE lDataModified AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lRowUpdated   AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lUndoNew      AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE cNewRecord    AS CHARACTER  NO-UNDO.
+ DEFINE VARIABLE lNew          AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE hUpdateTarget AS HANDLE     NO-UNDO.
+
+ {get DataModified lDataModified}.
+ 
+ IF lDataModified THEN
+   RETURN gcUndoChangeCaption[2].
+ ELSE DO:
+   {get RowUpdated lRowUpdated}.
+   IF lRowUpdated THEN
+   DO:    
+     {get UpdateTarget hUpdateTarget}.
+     IF VALID-HANDLE(hUpdateTarget) THEN
+     DO:
+       {get NewRow lNew hUpdateTarget}.
+       IF lNew THEN
+         RETURN gcUndoChangeCaption[3]. 
+     END.
+     RETURN gcUndoChangeCaption[4].
+   END.
+
+   {get UndoNew lUndoNew}.
+   IF lUndoNew THEN
+   DO:
+     {get NewRecord cNewRecord}.
+     IF cNewRecord =  'Add':U THEN
+       RETURN gcUndoChangeCaption[5].
+     IF cNewRecord =  'Copy':U THEN
+       RETURN gcUndoChangeCaption[6].
+   END.
+ END.
+
+ RETURN gcUndoChangeCaption[1]. 
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getUndoNew Procedure 
+FUNCTION getUndoNew RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Returns true if UndoChange can undo add, false means that 
+            cancelRecord must be called directly.                    
+   Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lUndoNew AS LOGICAL    NO-UNDO.
+  {get UndoNew lUndoNew}.
+  RETURN lUndoNew.
 
 END FUNCTION.
 
@@ -6080,6 +6387,27 @@ FUNCTION setToolbarSourceEvents RETURNS LOGICAL
     Notes:             
 ------------------------------------------------------------------------------*/
   {set ToolbarSourceEvents pcEvents}.
+  RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setUndoNew Procedure 
+FUNCTION setUndoNew RETURNS LOGICAL
+  ( plUndoNew AS LOGICAL ) :
+/*------------------------------------------------------------------------------
+  Purpose:  Set to true if UndoChange should undo add mode and unsaved new 
+            records. Set to false if cancelRecord or deleteRecord must be 
+            called directly.                    
+   Notes:  
+------------------------------------------------------------------------------*/
+  {set UndoNew plUndoNew}.
   RETURN TRUE.
 
 END FUNCTION.

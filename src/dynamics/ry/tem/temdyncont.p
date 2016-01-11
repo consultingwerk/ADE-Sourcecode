@@ -54,7 +54,7 @@ define variable cProcedureType as character no-undo.
 DEFINE VAR wWin AS WIDGET-HANDLE NO-UNDO.
 
 ##Loop:ListContainerObjects##
-define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.
+define variable ##getInstanceHandleName([InstanceName])## as handle no-undo.    /* ##[InstanceName]## */
 ##Loop:End##
 
 /* ************************  Frame Definitions  *********************** */
@@ -376,34 +376,34 @@ end procedure.    /* translateToolbar-##[LanguageCode]## */
 procedure adm-secureWindow:
     define variable cRunAttribute as character no-undo.
     define variable cSecuredTokens as character no-undo.
-    define variable cFolderLabels as character no-undo.
-    define variable cLabel as character no-undo.
     define variable cDisabledPages as character no-undo.
     define variable cTabsEnabled as character no-undo.
     define variable iLoop as integer no-undo.
-    ##If:[WindowHasFolder]##
+    define variable cPageTokens as character no-undo.
+    define variable cToken as character no-undo.
+    ##If:[WindowHasFolder]##    
+    &scoped-define xp-assign 
+    {get PageTokens cPageTokens}
     {get RunAttribute cRunAttribute}.
-    {get FolderLabels cFolderLabels ##getInstanceHandleName([FolderInstanceName])##}.
-    
+    &undefine xp-assign
     run tokenSecurityCheck in gshSecurityManager ( input  '##[ObjectName]##',
                                                    input  cRunAttribute,
                                                    output cSecuredTokens ) no-error.
     cSecuredTokens = replace(cSecuredTokens, '&', '').
-    cFolderLabels = replace(cFolderLabels, '&', '').
-    assign cTabsEnabled = fill('|yes', num-entries(cFolderLabels, '|'))
+    cPageTokens = replace(cPageTokens, '&', '').
+    assign cTabsEnabled = fill('|yes', num-entries(cPageTokens, '|'))
            cTabsEnabled = left-trim(cTabsEnabled, '|').
     
     if cSecuredTokens ne '' then
-    do iLoop = 1 to num-entries(cFolderLabels, '|'):
-        cLabel = entry(iLoop, cFolderLabels, '|').
+    do iLoop = 1 to num-entries(cPageTokens, '|'):
+        cToken = entry(iLoop, cPageTokens, '|').
         
-        if can-do(cSecuredTokens, cLabel) then
+        if can-do(cSecuredTokens, cToken) then
             assign entry(iLoop, cTabsEnabled, '|') = 'no'
                    cDisabledPages = cDisabledPages
                                   + (IF cDisabledPages <> '' THEN ',' ELSE '')
                                   +  STRING(iLoop).
-    end.    /* loop through labels */
-    
+    end.    /* loop through labels */    
     {set TabEnabled cTabsEnabled ##getInstanceHandleName([FolderInstanceName])##}.
     {set SecuredTokens cSecuredTokens}.
     

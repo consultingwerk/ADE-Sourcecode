@@ -198,10 +198,7 @@ FOR EACH _P,
                       WHEN "SMARTCONTAINER"   THEN iconFile = iconFile + "smcntnr".
                       WHEN "SMARTQUERY"       THEN iconFile = iconFile + "smrtqry".
                       WHEN "SMARTDATAFIELD"   THEN iconFile = iconFile + "fill_in".
-                      /*The following line was added for the fix of 20051130-049, but then
-                        commented for the core bug# 20060406-028. It has to be uncommented
-                        after 20060406-028 is fixed.*/
-                      /*WHEN "DataView"         THEN iconFile = iconFile + "dataview".*/
+                      WHEN "DataView"         THEN iconFile = iconFile + "dataview".
                       /* so use the general SmartObject cursor. */
                       OTHERWISE                  iconFile = iconFile + "smartobj".
                 END CASE. /* next_draw smartObject */

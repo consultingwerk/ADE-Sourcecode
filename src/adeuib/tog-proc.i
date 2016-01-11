@@ -1,9 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2000-2006 by Progress Software Corporation.  All rights *
+* reserved.  Prior versions of this work may contain portions           *
+* contributed by participants of Possenet.                              *
+************************************************************************/
 /* -------------------------------------------------------------------
 
 FILE: tog-proc.i
@@ -14,7 +13,7 @@ Description:
 
 Author: Tammy St.Pierre Hall 
 
-Date Generated: 07/05/05
+Date Generated: 07/07/06
 
 Note: This procedure is generated via the Property Sheet Generator and 
       the abAttribute table of the ab database. 
@@ -450,7 +449,7 @@ PROCEDURE SHARED_proc:
   IF _U._SHARED AND
      NOT CAN-DO("BROWSE,FRAME",_U._TYPE) THEN DO:
     IF ((CAN-DO("CHARACTER,LONGCHAR",_F._DATA-TYPE) AND _F._INITIAL-DATA NE "") OR
-       (CAN-DO("INTEGER,DECIMAL",_F._DATA-TYPE)
+       (CAN-DO("INTEGER,DECIMAL,INT64",_F._DATA-TYPE)
              AND DECIMAL(_F._INITIAL-DATA) NE 0) OR
        (_F._DATA-TYPE = "LOGICAL"
              AND NOT CAN-DO("NO,FALSE",_F._INITIAL-DATA)) OR 
@@ -473,7 +472,7 @@ PROCEDURE SHOW-IN-TASKBAR_proc:
 END.
 
 PROCEDURE SHOW-POPUP_proc:
-  _U._SHOW-POPUP = IF AVAILABLE _F AND CAN-DO("DATE,DECIMAL,INTEGER":u, _F._DATA-TYPE) AND isDynView 
+  _U._SHOW-POPUP = IF AVAILABLE _F AND CAN-DO("DATE,DECIMAL,INTEGER,INT64":u, _F._DATA-TYPE) AND isDynView 
       THEN SELF:CHECKED
       ELSE FALSE.
 END.

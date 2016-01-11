@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /* called from _usrsget.p, used with _dctsget.p */
 /* ----------------------------------------------------------------------
@@ -43,6 +27,7 @@ history:
         07/09/98 D. McMann  Added AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                             to _File Finds
         D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS
+        fernando  06/12/06 Support for int64
 ---------------------------------------------------------------------- */
 /*h-*/
 
@@ -56,6 +41,7 @@ DEFINE SHARED VARIABLE fast_track AS LOGICAL. /* FT active? */
 DEFINE VARIABLE istrans  AS LOGICAL INITIAL TRUE. /*UNDO (not no-undo!) */
 DEFINE VARIABLE i        AS INTEGER NO-UNDO.
 DEFINE VARIABLE l_hidden AS LOGICAL NO-UNDO.
+DEFINE VARIABLE hBuffer  AS HANDLE  NO-UNDO.
 
 /* ------------------------------------------------------------------- */
 
@@ -63,7 +49,6 @@ DO ON ERROR UNDO:
   istrans = FALSE.
   UNDO,LEAVE.
   end.
-
 
 /* --- Check to see if dictionary is called from within Fast Track --- */
 
@@ -99,6 +84,25 @@ if NOT CAN-DO(DATASERVERS, DICTDB._Db._Db-type)
  then MESSAGE
     "This module does not support connections to this Data Server type."
     view-as alert-box.
+
+
+/* check if this is a 10.1B db at least, so that we complain about int64 and
+   int64 values. If the 'Large Keys' feature is not known by this db, then this
+   is a pre-101.B db 
+*/
+ASSIGN  is-pre-101b-db = YES.
+
+IF INTEGER(DBVERSION("DICTDB")) >= 10 THEN DO:
+    /* use a dyn buffer since v9 db's don't have the feature tbl */
+    CREATE BUFFER hBuffer FOR TABLE "DICTDB._Code-feature" NO-ERROR.
+    IF VALID-HANDLE(hBuffer) THEN DO:
+       hBuffer:FIND-FIRST('where _Codefeature_Name = "Large Keys"',NO-LOCK) NO-ERROR.
+       IF hBuffer:AVAILABLE THEN
+           is-pre-101b-db = NO.
+       DELETE OBJECT hBuffer.
+    END.
+
+END.
 
 
 /* -------------------- recreate file-list cache --------------------- */

@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
 
@@ -67,10 +51,10 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 10 NO-UNDO INITIAL [
   /* 2*/ "",   /* goes with 1 */
 
   /* 3*/ "You need Database Security Administrator privileges in the master",
-  /* 4*/ "PROGRESS DB which contains the schema of this database to continue.",
+  /* 4*/ "{&PRO_DISPLAY_NAME} DB which contains the schema of this database to continue.",
 
   /* 5*/ "You may not use this function with a blank userid.  This applies to",
-  /* 6*/ "both the PROGRESS DB and the specific foreign DB, if appropriate.",
+  /* 6*/ "both the {&PRO_DISPLAY_NAME} DB and the specific foreign DB, if appropriate.",
 
   /* 7*/ "The dictionary is in read-only mode - alterations not allowed.",
   /* 8*/ "You can only alter security on SQL tables with GRANT and REVOKE.",

@@ -134,8 +134,6 @@ DO:
   RUN start-super-proc("adm2/dataextapi.p":U).
  /* dataextapi.p is also a simple "extension" of data.p separated because the 
     ecode segment became too big. dataextapi.p contains the open client api */
-  
-  {set QueryObject YES}.  /* All DataObjects are query objects.*/
 
   &IF DEFINED(DATA-FIELD-DEFS) = 0 &THEN
     {set DynamicData YES}.

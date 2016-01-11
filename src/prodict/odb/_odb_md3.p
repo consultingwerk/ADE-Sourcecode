@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /* _odb_md3.p - returns list of ODBC objects in pik_count,pik_list */
 
@@ -49,6 +33,7 @@ DEFINE VARIABLE i             AS INTEGER   NO-UNDO.
 DEFINE VARIABLE object-type   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE object-name   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE object-prog   as CHARACTER NO-UNDO.
+DEFINE VARIABLE is_db2        AS LOGICAL   NO-UNDO.
 
 /*
 {prodict/gate/gatework.i
@@ -59,6 +44,8 @@ DEFINE VARIABLE object-prog   as CHARACTER NO-UNDO.
 
 RUN STORED-PROC DICTDBG.CloseAllProcs.
 FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db NO-LOCK.
+
+ASSIGN is_db2 = INDEX(UPPER(_Db._Db-misc2[8]), "DB2") > 0.
 
 RUN STORED-PROC DICTDBG.SQLTables(?,?,?,?).
 
@@ -78,6 +65,13 @@ FOR EACH DICTDBG.SQLTables_buffer:
             object-type = "BUFFER"
             object-name = SUBSTR(DICTDBG.SQLTables_buffer.name,9,-1,"character").
     end. 
+    ELSE IF is_db2 AND TRIM(DICTDBG.SQLTables_buffer.name) BEGINS "P_BUFFER_" and 
+            DICTDBG.SQLTables_buffer.type = "VIEW" THEN DO:
+        /* 20060425-009 - for DB2, look for P_BUFFER */
+        assign 
+            object-type = "BUFFER"
+            object-name = SUBSTR(DICTDBG.SQLTables_buffer.name,10,-1,"character").
+    END.
     else do:
         assign 
             object-type = DICTDBG.SQLTables_buffer.type

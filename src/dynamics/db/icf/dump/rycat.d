@@ -77,15 +77,52 @@ The actions that are selected will be saved as ActionGroups." "" yes no "" no ""
 "BOX-SELECTABLE" 1005078412.09 3 "Frame attribute to allow objects to be selected by drawing a box around them" "" no no "" no "" "" no no 14813.409
 "BoxRectangle" 438.7063 10 "The handle to the rectangle, if any, which draws a  ""box"" around the buttons in the Panel -- used by resizeObject." "" yes no "" no "" "" no yes 666.7063
 "BoxRectangle2" 438.7063 10 "The handle to the rectangle, if any, which draws a  ""box"" around the buttons in the Panel -- used for the lower rectangle by a toolbar that has SizeToFit set to true." "" yes no "" no "" "" no yes 668.7063
-"BrowseColumnBGColors" 436.7063 1 "CHR(3) list of browse column BGCOLORS" "" no no "" no "" "" no no 14645.409
-"BrowseColumnFGColors" 436.7063 1 "CHR(3) list of browse column FGColors" "" no no "" no "" "" no no 14643.409
-"BrowseColumnFonts" 436.7063 1 "CHR(3) list of fonts for browser columns" "" no no "" no "" "" no no 14656.409
-"BrowseColumnFormats" 436.7063 1 "CHR(3) list of dynamic browse column formats" "" no no "" no "" "" yes no 14801.409
-"BrowseColumnLabelBGColors" 436.7063 1 "CHR(3) list of BGCOLORs from browse column labels" "" no no "" no "" "" no no 14652.409
-"BrowseColumnLabelFGColors" 436.7063 1 "CHR(3) list of FGCOLORs for browse column labels" "" no no "" no "" "" no no 14650.409
-"BrowseColumnLabelFonts" 436.7063 1 "CHR(3) list of fonts for browse column labels" "" no no "" no "" "" no no 14654.409
-"BrowseColumnLabels" 436.7063 1 "CHR(3) Delimited list of browser labels" "" no no "" no "" "" no no 14633.409
-"BrowseColumnWidths" 436.7063 1 "CHR(3) list of browse column widths (integer values only)" "" no no "" no "" "" no no 14648.409
+"BrowseColumnAutoCompletions" 436.7063 1 "CHR(5) delimited list specifying if the auto-completion attribute for the combo-box. The following are the possible values:
+
+? (Null): The column is not a combo-box; or if the column is a combo-box, the auto-completion attribute value is set to the default.
+
+y (yes): The column is a combo-box and its auto-completion attribute is set to TRUE.
+
+n (no):  The column is a combo-box and its auto-completion attribute is set to FALSE." "" no no "" no "" "" no yes 3301.74251
+"BrowseColumnBGColors" 436.7063 1 "CHR(5) list of browse column BGCOLORS" "" no no "" no "" "" no yes 14645.409
+"BrowseColumnDelimiters" 436.7063 1 "CHR(5) delimited list containing the delimiters for the combo-box list-items" "" no no "" no "" "" no yes 3265.74251
+"BrowseColumnFGColors" 436.7063 1 "CHR(5) list of browse column FGColors" "" no no "" no "" "" no yes 14643.409
+"BrowseColumnFonts" 436.7063 1 "CHR(5) list of fonts for browser columns" "" no no "" no "" "" no yes 14656.409
+"BrowseColumnFormats" 436.7063 1 "CHR(5) list of dynamic browse column formats" "" no no "" no "" "" yes yes 14801.409
+"BrowseColumnInnerLines" 436.7063 1 "CHR(5) delimited list specifying the inner lines for a combo-box. The following are the possible values:
+
+? (Null)=The column is not a combo-box; or if the column is a               combo-box, the inner-lines value is set to the default of five.
+n: any integer number." "" no no "" no "" "" no yes 3292.74251
+"BrowseColumnItemPairs" 436.7063 1 "CHR(5) delimited list with the LIST-ITEM-PAIRS for a combo-box" "" no no "" no "" "" no yes 3271.74251
+"BrowseColumnItems" 436.7063 1 "CHR(5) delimited list with the LIST-ITEMS for a combo-box" "" no no "" no "" "" no yes 3268.74251
+"BrowseColumnLabelBGColors" 436.7063 1 "CHR(5) list of BGCOLORs from browse column labels" "" no no "" no "" "" no yes 14652.409
+"BrowseColumnLabelFGColors" 436.7063 1 "CHR(5) list of FGCOLORs for browse column labels" "" no no "" no "" "" no yes 14650.409
+"BrowseColumnLabelFonts" 436.7063 1 "CHR(5) list of fonts for browse column labels" "" no no "" no "" "" no yes 14654.409
+"BrowseColumnLabels" 436.7063 1 "CHR(5) Delimited list of browser labels" "" no no "" no "" "" no yes 14633.409
+"BrowseColumnMaxChars" 436.7063 1 "CHR(5) delimited list specifying the maximum number of characters that the combo-box widget can hold.
+
+? (Null): The column is not a combo-box; or if the column is a combo-box, the max-chars value is set to the default.
+
+n: any integer number." "" no no "" no "" "" no yes 3298.74251
+"BrowseColumnSorts" 436.7063 1 "CHR(5) delimited list specifying if the combo-box items are sorted. The following are the possible values:
+
+? (Null): The column is not a combo-box; or if the column is a combo-box, the sort attribute value is set to the default.
+
+y (yes): The column is a combo-box and its items are sorted.
+n (no):  The column is a combo-box and its items are not sorted." "" no no "" no "" "" no yes 3295.74251
+"BrowseColumnTypes" 436.7063 1 "CHR(5) delimited list containing the column type. Possible values are:
+
+?=default value set to FILL-IN
+FI=FILL-IN
+DD=DROP-DOWN combo-box
+DDL=DROP-DOWN-LIST combo-box
+TB=TOGGLE-BOX" "" no no "" no "" "" no yes 3262.74251
+"BrowseColumnUniqueMatches" 436.7063 1 "CHR(5) delimited list specifying if the unique-match attribute for the combo-box. The following are the possible values:
+
+? (Null): The column is not a combo-box; or if the column is a combo-box, the unique-match attribute value is set to the default.
+y (yes): The column is a combo-box and its unique-match attribute is set to TRUE.
+n (no):  The column is a combo-box and its unique-match attribute is set to FALSE." "" no no "" no "" "" no yes 3304.74251
+"BrowseColumnWidths" 436.7063 1 "CHR(5) list of browse column widths (integer values only)" "" no no "" no "" "" no yes 14648.409
 "BrowseContainer" 434.7063 10 "" "" yes no "" no "" "" no yes 594.7063
 "BrowseFieldDataTypes" 1005095447.101 1 "Dynamic Lookup Data types of fields to display in lookup browser, comma list." "" no no "" no "" "" no no 1005089877.28
 "BrowseFieldFormats" 1005095447.101 1 "Dynamic Lookup Formats of fields to display in lookup browser, comma list. (Default Formats)" "" no no "" no "" "" no no 1005089878.28
@@ -621,9 +658,6 @@ in batch mode." "" no no "" no "" "" no yes 884.7063
 "MANUAL-HIGHLIGHT" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099291.101
 "ManualAddQueryWhere" 152.7063 1 "Store manual calls to addQueryWhere so that filter can reapply this when filter is changed, thus ensuring the original query stays intact. 
 See 'setManualAddQueryWhere' for more info." "" no no "" no "" "" no yes 219.7063
-"ManualAssignQuerySelection" 152.7063 1 "Store manual calls to assignQuerySelection so that filter can reapply this when filter is changed, thus ensuring the original query stays intact." "" no no "" no "" "" no yes 221.7063
-"ManualSetQuerySort" 152.7063 1 "Store manual calls to setQuerySort so that filter can reapply this
-when filter is changed, thus ensuring the original query stays intact." "" no no "" no "" "" no yes 223.7063
 "MapNameProducer" 515.49 1 "" "" no no "" no "" "" no yes 870.7063
 "MapObjectProducer" 515.49 1 "" "" no no "" no "" "" no yes 866.7063
 "MappedFields" 1005095447.101 1 "A comma separated paired list of data source field names and widget names on a viewer to be used to map fields from a data source with widgets on a viewer when linked fields are used in a Dynamic Lookup." "" no no "" no "" "" no no 156259.9875
@@ -735,6 +769,7 @@ This property has a special format of ""handle|page#' for each entry, and should
 "PageSource" 347.7063 10 "The handle of the object's Page-Source (folder), if any." "" yes no "" no "" "" no yes 363.7063
 "PageTarget" 3000002003.09 10 "Link to container for paging" "" yes no "" no "" "" no no 3481.66
 "PageTargetEvents" 3000002003.09 1 "Subscribed events from pagetarget" "" no no "Class" no "" "" no no 3482.66
+"PageTokens" 347.7063 1 "Contains a pipe-delimited list of security tokens for the pages on a container. The order or the items corresponds to the order of the pages." "" no no "Master" no "" "" no no 5782.0575
 "PaletteControl" 700.7692 1 "Control information for OCX's" "" no no "" no "" "" yes no 728.7692
 "PaletteDBConnect" 700.7692 3 "If Yes, specifies the DB must be connected before using this item" "" no no "" no "" "" yes no 730.7692
 "PaletteDirectoryList" 700.7692 1 "Comma delimited list of directories displayed in choose dialog" "" no no "" no "" "" yes no 720.7692
@@ -857,6 +892,8 @@ able to run it." "" no no "" no "" "" no yes 121
 "RESIZABLE" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099270.101
 "ResizeHorizontal" 7.7063 3 "Indicates if an object is Horizontally Resizable." "" no no "" no "" "" no yes 102.28
 "ResizeVertical" 7.7063 3 "Indicates if an object is Vertically Resizable." "" no no "" no "" "" no yes 103.28
+"ResortOnSave" 152.7063 3 "Yes - Resort and reopen the client query on save of a row. This applies to both AutoCommit and non-AutoCommit sources, but may require an additional server request if the datasource is batching and is thus ignored if batching with AutoCommit set to false. 
+No - Do not resort on save of row." "" no no "" no "" "" no yes 90686.66
 "RETAIN-SHAPE" 1005078412.09 3 "When TRUE, IMAGES automatically maintain a constant aspect ratio." "" no no "" no "" "" no no 13473.409
 "RETURN-INSERTED" 1005078412.09 3 "" "" no no "" no "" "" no no 1005099302.101
 "ReuseDeletedKeys" 36427.48 3 "This flag is only relevant for entities that have record versioning enabled and the table has obj field is true - i.e. this is a table that has an object id field and some other unique key field(s). If this flag is set to YES, then if a record is created with a key value that has been previously deleted, then the new record will be created with the deleted records object id and key value, ensuring the link between a key value and an object id are never broken." "" yes no "" no "" "" no no 36470.48
@@ -984,6 +1021,8 @@ This allows static panels to use action/repository data." "" no no "" no "" "" n
 Currently supported
 - Label -  The Label in the first linked object on the Band. 
 - PageLabel  -  The FolderPage Label if on page > 0." "" no no "" no "LIST" "Label in first linked objectLabelPage label (if on page)PageLabel" no yes 47331.66
+"SubmitParent" 152.7063 3 "Yes - Include parent record(s) when submitting this object's changes to the service.
+No - Only submit this object's changes to the service." "GET" no no "" no "" "" no yes 84535.66
 "SubModules" 430.7063 1 "NOT IN USE" "" no no "" no "" "" no yes 1003498431
 "Subscriptions" 505.49 1 "Stores the Subscriptions this consumer uses when subscribing
 to topics (only for Pub/Sub domain)" "" no no "" no "" "" no yes 894.7063
@@ -1084,6 +1123,11 @@ Because this is a comma-separated list, it should normally be
 "TypeName" 515.49 1 "The name that identifes the document/destination for multi 
 document producers" "" no no "" no "" "" no yes 872.7063
 "UIBMode" 5.7063 1 "" "" yes no "" no "" "" no yes 35.7063
+"UndoDeleteOnSubmitError" 152.7063 1 "Decides whether to immediately undo deleted records after a failed submit. - ERROR - Only undo deletions that causes an error and keep deletions that was rejected just because the transaction failed. Allows immediate resubmit.  (Default) - ALL - Undo all deleted records. - NONE - Keep all deletions. Fix the problem and resave or use the UndoTransaction action to undo." "" no no "" no "" "" no yes 90720.66
+"UndoNew" 9.7063 3 "No - Use Cancel to exit Add and Copy mode. 
+Yes - Use UndoChange to exit Add and Copy mode.
+The option applies to objects where SaveSource is TRUE (TableioSource's TableioType = 'Save') and is set to TRUE in initializeObject if the TableioSource's TableioUndoNew is true (has the UndoChange action with he Cancel action hidden or missing)." "" no no "" no "" "" no yes 84525.66
+"UndoOnConflict" 152.7063 1 "Decides which client changes to undo when the save failed due to an optimistic locking conflict. - BEFORE - Overwrite before-image changes only. This mode keeps changes and allows resave. Requires Undo/Reset to show server changes.- NONE - Keeps all changes as well as the previous before-image record. A reread of data is required to save the record.       - CONFLICT - Loose only conflicting field changes.- ALL - Loose all changes on confliciting record." "" no no "" no "" "" no yes 90718.66
 "UNIQUE-MATCH" 1005078412.09 1 "" "" no no "" no "" "" no no 1005099333.101
 "UpdatableColumns" 154.7063 1 "A comma-separated list of updatable columns in all tables of the query. Note that the data class does not store this, but derrives it from  'UpdatableColumnsByTable'." "" no no "" no "" "" no yes 533.7063
 "UpdatableColumnsByTable" 154.7063 1 "A comma-separated list of updatable columns grouped by table and delimited by {&adm-datadelimiter} (defined in the globals include)." "" no no "" no "" "" no yes 531.7063
@@ -1109,6 +1153,7 @@ NOT used for OperatorStyle ""RANGE"" or ""EXPLICIT""." "" no no "" no "" "" no y
 "UseCache" 1005095447.101 3 "When set to TRUE an attempt would be made to read SmartDataField data from a local client cache before fetching the data from the server." "SET" no no "" no "" "" no yes 159199.9875
 "UseContains" 608.7063 3 "TRUE when CONTAINS is supposed to be used as operator  for character values.
 NOT used for OperatorStyle ""EXPLICIT""." "" no no "" no "" "" no yes 624.7063
+"UseSortIndicator" 436.7063 3 "Decides whether the browser should use a graphical arrow in the column label to show sort column and sort direction." "" no no "" no "" "" no yes 78426.66
 "ValidateOnLoad" 511.49 3 "Defines whether the document should be validated on load.
 See help for X-DOCUMENT:LOAD" "" no no "" no "" "" no yes 950.7063
 "VersionData" 36427.48 3 "If set to YES, this field indicates that the data in the table should be version-stamped.This will result in replication triggers on the table writing data to the gst_record_version table. This field corresponds to the entity level UDP setup in ERwin as VersionData. The version information is used to identify which records have changed for deployment purposes. This flag is used in conjunction with the enable_data_versioning on the dataset entity to determine exactly how the entity is versioned." "" yes no "" no "" "" no no 36478.48
@@ -1148,12 +1193,12 @@ stores the frame handle also for a SmartContainer.
 .
 PSC
 filename=ryc_attribute
-records=0000000000828
+records=0000000000842
 ldbname=ICFDB
-timestamp=2005/10/03-14:01:37
+timestamp=2006/10/12-14:55:11
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000139834
+0000144565

@@ -159,8 +159,12 @@ DEFINE VARIABLE cProjectName AS CHARACTER  NO-UNDO.
 
 /* If OEIDE is running, open file in the OEIDE Editor if the file exists in a project */
 IF OEIDEIsRunning THEN
-DO:    
-    FILE-INFO:FILE-NAME = pFileName.
+DO:
+    IF _DynamicsIsRunning          
+        AND cRelNameFull > "" THEN
+        FILE-INFO:FILE-NAME = cRelNameFull.
+    ELSE                        
+        FILE-INFO:FILE-NAME = pFileName.
     /* Ensure pFileName is a full path */
     IF FILE-INFO:FULL-PATHNAME <> ? THEN
         pFileName = FILE-INFO:FULL-PATHNAME.

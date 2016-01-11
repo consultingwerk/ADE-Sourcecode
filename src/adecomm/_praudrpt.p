@@ -48,6 +48,8 @@ History:
                            tmp files to remove on the way out 20050919-022.  
   kmcintos  Oct 26, 2005   Encapsulated generateReport to avoid file 
                            conflicts 20050920-013.
+  kmcintos  Dec 29, 2005   Fixed truncation issues 20051116-041.
+  kmcintos  Jan 03, 2006   Fixed printing issue 20051116-043.
 ----------------------------------------------------------------------------*/
 CREATE WIDGET-POOL "datasetPool".
 
@@ -116,7 +118,7 @@ DEFINE BUTTON btnFile    LABEL "&Files..."
   
 &ENDIF
 
-DEFINE QUERY qAudData FOR audData      SCROLLING.
+DEFINE QUERY qAudData FOR audData SCROLLING.
 
 DEFINE BROWSE bAudData QUERY qAudData
     DISPLAY audData._audit-date-time
@@ -124,10 +126,10 @@ DEFINE BROWSE bAudData QUERY qAudData
             audData._user-id FORMAT "x(18)"
             audData._transaction-id
     &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-      ENABLE audData._audit-date-time &ENDIF
+     LABEL "Txn Id" ENABLE audData._audit-date-time &ENDIF
     WITH WIDTH &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 76 6
                &ELSE 98 10 &ENDIF DOWN FONT 0 
-         EXPANDABLE SCROLLBAR-VERTICAL.
+         FIT-LAST-COLUMN SCROLLBAR-VERTICAL.
                
 /*=================================Forms================================*/
 
@@ -230,7 +232,7 @@ ASSIGN rsDevice    = ENTRY(1,pcDevice,CHR(1))
        gcReportTtl = txtReport[piReport] + ": " + 
                      (IF rsDetail THEN " (Detail)" ELSE " (Summary)").
        
-&IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   cbPrinter:LIST-ITEMS    = SESSION:GET-PRINTERS().
   cbPrinter               = (IF rsDevice = "P" THEN 
                                ENTRY(2,pcDevice,CHR(1))
@@ -301,7 +303,11 @@ ON CHOOSE OF btnPrint IN FRAME reportFrame OR
       END. /* Not Append */
     END. /* If device = f */
   
-    RUN generateReport ( INPUT fiFileName,
+    RUN generateReport ( INPUT &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+                                 (IF rsDevice NE "P" THEN 
+                                    fiFileName
+                                  ELSE cbPrinter)
+                               &ELSE fiFileName &ENDIF,
                          INPUT rsDevice,
                          INPUT rsDetail,
                          INPUT tbAppend,
@@ -594,7 +600,11 @@ IF piReport NE 12 AND
    NOT glXmlFile THEN DO:
 
   /* Do the work */
-  RUN generateReport ( INPUT fiFileName,
+  RUN generateReport ( INPUT &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+                               (IF rsDevice NE "P" THEN 
+                                  fiFileName
+                                ELSE cbPrinter)
+                             &ELSE fiFileName &ENDIF,
                        INPUT rsDevice,
                        INPUT rsDetail,
                        INPUT tbAppend,
@@ -611,7 +621,11 @@ IF piReport NE 12 AND
   END.
  
 END. /* Not xml output */
-ELSE RUN generateReport ( INPUT fiFileName,
+ELSE RUN generateReport ( INPUT &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+                                  (IF rsDevice NE "P" THEN 
+                                     fiFileName
+                                   ELSE cbPrinter)
+                                &ELSE fiFileName &ENDIF,
                           INPUT rsDevice,
                           INPUT rsDetail,
                           INPUT tbAppend,
@@ -718,8 +732,13 @@ PROCEDURE generateReport:
       OUTPUT STREAM reportStream THROUGH 
                     VALUE(SUBSTRING(pcDevice,2,-1,"CHARACTER":U)) 
                     PAGE-SIZE VALUE(piPgLength).
-    ELSE IF pcDevice BEGINS "P" THEN 
-      OUTPUT STREAM reportStream TO PRINTER.
+    ELSE IF pcDevice BEGINS "P" THEN DO:
+      IF pcFileName > '' THEN
+        OUTPUT STREAM reportStream TO PRINTER VALUE(pcFileName) 
+              PAGE-SIZE VALUE(piPgLength).
+      ELSE
+        OUTPUT STREAM reportStream TO PRINTER PAGE-SIZE VALUE(piPgLength).
+    END.
     ELSE IF plAppend THEN 
       OUTPUT STREAM reportStream TO VALUE(cOutFile) 
                     PAGE-SIZE VALUE(piPgLength) APPEND.
@@ -727,16 +746,11 @@ PROCEDURE generateReport:
       OUTPUT STREAM reportStream TO VALUE(cOutFile) 
                     PAGE-SIZE VALUE(piPgLength).
       
-    /* if we've already generated the report, we will just copy the file (below).
-       Therefore, don't write the header again to the stream.
-    */
-    IF NOT glReportGend THEN DO:
-       IF piPgLength > 0 THEN
-          VIEW STREAM reportStream FRAME page_head_paged.
-       ELSE 
-          VIEW STREAM reportStream FRAME page_head_not_paged.
-    END.
-
+    IF piPgLength > 0 THEN
+        VIEW STREAM reportStream FRAME page_head_paged.
+     ELSE 
+        VIEW STREAM reportStream FRAME page_head_not_paged.
+    
     DO ON STOP UNDO, LEAVE:
       gdtDateTime = NOW.
       
@@ -760,9 +774,8 @@ PROCEDURE generateReport:
           REPEAT:
             IMPORT STREAM inputStream UNFORMATTED cInput.
             PUT STREAM reportStream UNFORMATTED cInput SKIP.
-            /* make the output be the same as if you genereated the report straight to the
-               text file.
-            */
+            /* make the output be the same as if you generated the report 
+               straight to the text file. */
             IF cInput = "" THEN
                PUT STREAM reportStream UNFORMATTED SKIP(1).
           END.
@@ -771,7 +784,8 @@ PROCEDURE generateReport:
       END. /* If Report File was already generated */
       ELSE DO:
         RUN adecomm/_auddat.p ( INPUT piReport,
-                                INPUT cOutFile,
+                                INPUT (IF pcDevice EQ "P" THEN 
+                                         pcFileName ELSE cOutFile),
                                 INPUT pcFilter,
                                 INPUT pcDbName,
                                 INPUT rsDetail,
@@ -815,13 +829,20 @@ PROCEDURE browseReport:
   WITH FRAME fAudData.
 
   ENABLE &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
-           rsSortData &ENDIF
+           audData._formatted-event-context rsSortData &ENDIF
          bAudData
+         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+           audData._formatted-event-context &ENDIF
          btnOk
          btnPrint
          &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
            btnHelp &ENDIF
      WITH FRAME fAudData.
+
+  audData._formatted-event-context:READ-ONLY IN FRAME fAudData = TRUE.
+
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    audData._formatted-event-context:BGCOLOR = 8. &ENDIF
 
   DO ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
     WAIT-FOR CHOOSE OF btnOK IN FRAME fAudData OR

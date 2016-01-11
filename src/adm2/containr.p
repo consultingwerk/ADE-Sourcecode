@@ -26,6 +26,7 @@
 /* This variable is needed at least temporarily in 9.1B so that a called
    fn can tell who the actual source was.  */
 DEFINE VARIABLE ghTargetProcedure    AS HANDLE    NO-UNDO.
+
 DEFINE VARIABLE gcCurrentObjectName  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE giPrevPage           AS INTEGER   NO-UNDO.
 DEFINE VARIABLE ghDataContainer      AS HANDLE     NO-UNDO.
@@ -36,6 +37,9 @@ DEFINE VARIABLE ghDataContainer      AS HANDLE     NO-UNDO.
    objects constructed from Repository. As of current the TTs are just 
    populated from the private DefineInstance API and used to pass data
    to constructObjects and addLink  */
+
+/* Allow ADM2 / Dynamics windows to be embedded in OpenEdge Architect */
+{adecomm/oeideservice.i &OEIDE-EXCLUDE-PROTOTYPES="yes"}
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -648,6 +652,17 @@ FUNCTION getPageNTarget RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPageSource Procedure 
 FUNCTION getPageSource RETURNS HANDLE
   (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPageTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPageTokens Procedure 
+FUNCTION getPageTokens RETURNS CHARACTER
+        (  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1412,6 +1427,17 @@ FUNCTION setPageNTarget RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPageSource Procedure 
 FUNCTION setPageSource RETURNS LOGICAL
   ( phObject AS HANDLE )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPageTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setPageTokens Procedure 
+FUNCTION setPageTokens RETURNS LOGICAL
+        ( input pcPageTokens    as character  ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2301,12 +2327,10 @@ PROCEDURE changePage :
     ELSE 
     DO:
       /* If the container has been init'ed, then view its contents.
-         If not, 'view' will have no effect yet, so just mark the
-         contents to be viewed when the container *is* init'ed. */
+         If not, 'view' will have no effect yet  */
       IF lInitted THEN
         RUN notifyPage IN TARGET-PROCEDURE ("viewObject":U).
-      ELSE
-        RUN assignPageProperty IN TARGET-PROCEDURE ('HideOnInit':U, 'No':U). 
+   
     END.     /* END DO if page had been created */
   END.       /* END DO if PageNum NE 0 */
 
@@ -2849,7 +2873,7 @@ Parameters: <none>
   DEFINE VARIABLE iPage           AS INTEGER    NO-UNDO.
   DEFINE VARIABLE lObjectsCreated AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE iStartPage      AS INTEGER    NO-UNDO.
-
+ 
   {get CurrentPage iPage}.
   IF iPage = 0 THEN
     {get ObjectsCreated lObjectsCreated}.
@@ -2866,6 +2890,9 @@ Parameters: <none>
     /* if page 0 then this is the start up so ensure that we run the startpage */
     IF iPage = 0 THEN
     DO:
+      /*  Use NO-ERROR as a non visual (server side) container does not inherit
+          Visual */
+      RUN SUPER NO-ERROR.
       {get StartPage iStartPage}.
       IF iStartPage NE ? AND iStartPage NE 0 THEN
         RUN selectPage IN TARGET-PROCEDURE (iStartPage).
@@ -3866,7 +3893,8 @@ PROCEDURE fetchData :
    DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
    DEFINE VARIABLE cTargets     AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE hRequestor   AS HANDLE     NO-UNDO.
-
+   DEFINE VARIABLE cMessage     AS CHARACTER  NO-UNDO.
+    
    /* Run, don't publish, in order to call viewer override */
    RUN buildDataRequest IN TARGET-PROCEDURE
                                (INPUT TARGET-PROCEDURE, 
@@ -3886,9 +3914,9 @@ PROCEDURE fetchData :
   {get RequestHandle hRequestor}.
   RUN retrieveData IN {fn getDataContainerHandle}
                          (hRequestor,
+                          YES, /* refresh (log context both ends)*/
                           NO,
-                          NO,
-                          NO,
+                          NO, 
                           cRequests,
                           cDataTables,
                           cQueries,
@@ -3902,11 +3930,16 @@ PROCEDURE fetchData :
 
   IF ERROR-STATUS:ERROR THEN
   DO:
-    MESSAGE 'Data retrieval failed.' SKIP
-             IF RETURN-VALUE = '' THEN ''
-             ELSE 'Error message:' + CHR(10) + RETURN-VALUE
-      VIEW-AS ALERT-BOX ERROR.
-    /*   RUN addmessage IN TARGET-PROCEDURE(RETURN-VALUE,?,?). */
+    RUN addServerError IN TARGET-PROCEDURE('retrieve':u,RETURN-VALUE,cEntities).
+    ASSIGN 
+      cMessage = {fn fetchMessages}
+      cMessage = REPLACE(cMessage,chr(3),"~n~n")
+      /* we do not expect table and fields to be in a message handled here
+         in particular not if there is no updatetarget, but add 
+         spaces just in case */
+      cMessage = REPLACE(cMessage,chr(4)," ").  
+    MESSAGE cMessage  
+         VIEW-AS ALERT-BOX ERROR. 
     RETURN 'ADM-ERROR':U.
   END.
 
@@ -4195,10 +4228,14 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lUseRepository   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hWidget          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iPage            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE iCurrentPage     AS INTEGER    NO-UNDO.
 
   DEFINE VARIABLE hContainingWindow             AS HANDLE                 NO-UNDO.
   DEFINE VARIABLE lParentInitted                AS LOGICAL                NO-UNDO.
   define variable cObjectType                   as character              no-undo.
+  DEFINE VARIABLE hContainerHandle              AS HANDLE     NO-UNDO.
+
 
   &SCOPED-DEFINE xp-assign
   {get ContainerType cType}
@@ -4231,34 +4268,39 @@ PROCEDURE initializeObject :
     END.   /* This will run adm-create-objects*/
   END.   /* END DO IF cType */
 
-  IF cType <> 'VIRTUAL':U THEN
-     RUN initializeVisualContainer IN TARGET-PROCEDURE.
-
   IF cType NE "VIRTUAL":U THEN    /* Skip for non-visual contaioners. */
   DO:
-    {get HideOnInit lHideOnInit} NO-ERROR.
-    {get DisableOnInit lDisableOnInit} NO-ERROR.  
-  END.
-  
-  /* For containers, we need to propogate the HideOnInit and
-     DisableOnInit attributes to children before initializing them. */   
-  IF lHideOnInit OR lDisableOnInit THEN
-  DO:
-     /* Tell all the objects on the page to come up hidden,
-        so the page doesn't flash on the screen. */
-     IF lHideOnInit THEN  
-        dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
-          'CONTAINER-TARGET':U, 'HideOnInit':U, 'yes':U).
-     IF lDisableOnInit THEN
-        dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
-          'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
-     /* For containers, whether DISABLE is explicitly set or not, we
-        need to set it for the container itself if HideOnInit is true,
-        because otherwise the 'enable' below will force the container
-        to be viewed if it contains any simple objects. */
-     lDisableOnInit = yes.
-  END.    
-  
+     RUN initializeVisualContainer IN TARGET-PROCEDURE.
+    
+    &SCOPED-DEFINE xp-assign
+    {get HideOnInit lHideOnInit}
+    {get DisableOnInit lDisableOnInit}
+    {get ContainerHandle hContainerHandle}
+    .
+    &UNDEFINE xp-assign
+    /* ensure child frame realization in this window or this container's window */
+    CURRENT-WINDOW = hContainerHandle:WINDOW NO-ERROR. 
+     
+    /* For containers, we need to propogate the HideOnInit and
+       DisableOnInit attributes to children before initializing them. */   
+    IF lHideOnInit OR lDisableOnInit THEN
+    DO:
+       /* Tell all the objects on the page to come up hidden,
+          so the page doesn't flash on the screen. */
+       IF lHideOnInit THEN  
+          dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
+            'CONTAINER-TARGET':U, 'HideOnInit':U, 'yes':U).
+       IF lDisableOnInit THEN
+          dynamic-function ("assignLinkProperty":U IN TARGET-PROCEDURE,
+            'CONTAINER-TARGET':U, 'DisableOnInit':U, 'yes':U).
+       /* For containers, whether DISABLE is explicitly set or not, we
+          need to set it for the container itself if HideOnInit is true,
+          because otherwise the 'enable' below will force the container
+          to be viewed if it contains any simple objects. */
+       lDisableOnInit = yes.
+    END.    
+  END. /* cType <> 'VIRTUAL' */
+
   IF cType = "WINDOW":U THEN
   DO:
        /* set current MultiInstanceActivate property  */
@@ -4311,7 +4353,8 @@ PROCEDURE initializeObject :
   IF iStartPage = ? THEN
     {set StartPage 0}.
  
-  IF cType = 'VIRTUAL':U AND SESSION:BATCH-MODE THEN DO:
+  IF cType = 'VIRTUAL':U AND SESSION:BATCH-MODE THEN 
+  DO:
     {get WaitForObject hWaitForObject}.
     IF VALID-HANDLE(hWaitForObject) THEN
       RUN startWaitFor IN hWaitForObject NO-ERROR.
@@ -4395,13 +4438,23 @@ PROCEDURE initializeObject :
   DO:
     &SCOPED-DEFINE xp-assign
     {get DisableOnInit lDisableOnInit}
-    {get HideOnInit lHideOnInit}.
+    {get HideOnInit lHideOnInit}
+    {get ObjectPage iPage}.
     &UNDEFINE xp-assign
     
     IF NOT lDisableOnInit THEN
       RUN enableObject IN TARGET-PROCEDURE.
+
+    /* note: container source is not set for queryobjects, so this 
+             is not done for SBOs (which is correct) */ 
+    IF iPage > 0 AND VALID-HANDLE(hContainerSource) THEN
+      {get CurrentPage iCurrentPage hContainersource}. 
+    ELSE /* should not really have page and no container,
+            but just in case make it visible */
+      iCurrentPage = iPage.
     
-    IF NOT lHideOnInit THEN 
+    IF NOT lHideOnInit 
+    AND (iPage = 0 OR iPage = iCurrentPage) THEN 
       RUN viewObject IN TARGET-PROCEDURE.
     ELSE 
       PUBLISH "LinkState":U FROM TARGET-PROCEDURE ('inactive':U).
@@ -4430,7 +4483,6 @@ PROCEDURE initializeVisualContainer :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hContainer                AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cContainerName            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cRunAttribute             AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSecuredTokens            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDisabledPages            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectList               AS CHARACTER  NO-UNDO.
@@ -4442,6 +4494,25 @@ PROCEDURE initializeVisualContainer :
   DEFINE VARIABLE cLabel                    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lObjectSecured            AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lObjectTranslated         AS LOGICAL    NO-UNDO.
+  define variable cPageTokens               as character no-undo.
+  define variable cToken                    as character no-undo.
+
+  /* Code to enable Dynamics / ADM2 windows to run docked in the IDE */
+  IF OEIDEIsRunning AND VALID-HANDLE(hOEIDEService) THEN
+  DO:
+    DEFINE VARIABLE cViewId                 AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE cSecondId               AS CHARACTER   NO-UNDO.
+    DEFINE VARIABLE hWindow                 AS HANDLE      NO-UNDO.
+    ASSIGN
+      cViewId = "com.openedge.pdt.oestudio.views.OEAppBuilderView" /* use existing Appbuilder view */
+      cSecondId = "DesignView_"
+                + DYNAMIC-FUNCTION('getProjectName':U IN hOEIDEService) /* linked to specific project   */
+      .
+    {get ContainerHandle hWindow}.                /* need widget handle of actual window */
+    IF hWindow:TYPE = "window":U THEN             /* only do for windows (not frames) */
+      RUN displayWindow IN hOEIDEService(cViewId, cSecondId, hWindow).      
+  END.
+  /* End of IDE docking code */
 
   {get ObjectType cObjectType}.
   IF CAN-DO('SmartFrame,SmartWindow,SmartDialog':U,cObjectType) THEN 
@@ -4449,7 +4520,8 @@ PROCEDURE initializeVisualContainer :
     &SCOPED-DEFINE xp-assign
     {get ContainerHandle hContainer}
     {get ObjectSecured lObjectSecured}
-    {get ObjectTranslated lObjectTranslated}.
+    {get ObjectTranslated lObjectTranslated}
+    {get LogicalObjectName cContainerName}.
     &UNDEFINE xp-assign
     
     /* Set default values. */
@@ -4458,89 +4530,91 @@ PROCEDURE initializeVisualContainer :
 
     /* If both object security and translation have been performed, then there is nothing
      * to do here. Both of these values are usually set at the same time, but there may be
-     * cases where only one of these values is set. We need to cater for this.  */
+     * cases where only one of these values is set. We need to cater for this.  
+     PGEN has the ability to generate security and translations independently. */
     IF lObjectSecured AND lObjectTranslated THEN
         RETURN.
 
-    cContainerName = DYNAMIC-FUNCTION('getLogicalObjectName':U IN TARGET-PROCEDURE).  
-    cRunAttribute = DYNAMIC-FUNCTION('getRunAttribute':U IN TARGET-PROCEDURE).  
-       
-    /* If no logicalObjectname i.e inside static container then derrive the 
-       master name from the file-name. (remove path and extension)  */
-    IF cContainername = '' THEN
-      ASSIGN
-        cContainerName = TARGET-PROCEDURE:FILE-NAME
-        cContainerName = LC(TRIM(REPLACE(cContainerName,"~\":U,"/":U)))
-        cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1)
-        cContainerName = IF R-INDEX(cContainerName,'.':U) > 0 
-                         THEN SUBSTR(cContainerName,1,R-INDEX(cContainerName,'.':U) - 1)
-                         ELSE cContainerName
-        .
-
+    if not lObjectTranslated then
+    do:
+        /* If no logicalObjectname i.e inside static container then derive the 
+	       master name from the file-name. (remove path and extension)  */
+        IF cContainername = '' THEN
+          ASSIGN
+            cContainerName = TARGET-PROCEDURE:FILE-NAME
+            cContainerName = LC(TRIM(REPLACE(cContainerName,"~\":U,"/":U)))
+            cContainerName = SUBSTRING(cContainerName,R-INDEX(cContainerName,"/":U) + 1)
+            cContainerName = IF R-INDEX(cContainerName,'.':U) > 0 
+                             THEN SUBSTR(cContainerName,1,R-INDEX(cContainerName,'.':U) - 1)
+                             ELSE cContainerName.
         /* 1st empty current temp-table contents */
-    EMPTY TEMP-TABLE ttTranslate.
- 
-    /* Add entry for window title */
-    CREATE ttTranslate.
-    ASSIGN
-      ttTranslate.dLanguageObj = 0
-      ttTranslate.cObjectName = cContainerName
-      ttTranslate.lGlobal = NO
-      ttTranslate.lDelete = NO
-      ttTranslate.cWidgetType = "TITLE":U
-      ttTranslate.cWidgetName = "TITLE":U
-      ttTranslate.hWidgetHandle = hContainer
-      ttTranslate.iWidgetEntry = 0
-      ttTranslate.cOriginalLabel = hContainer:TITLE    
-      ttTranslate.cTranslatedLabel = "":U  
-      ttTranslate.cOriginalTooltip = "":U  
-      ttTranslate.cTranslatedTooltip = "":U
-      .  
-    RELEASE ttTranslate.
-
+        EMPTY TEMP-TABLE ttTranslate.
+     
+        /* Add entry for window title */
+        CREATE ttTranslate.
+        ASSIGN
+          ttTranslate.dLanguageObj = 0
+          ttTranslate.cObjectName = cContainerName
+          ttTranslate.lGlobal = NO
+          ttTranslate.lDelete = NO
+          ttTranslate.cWidgetType = "TITLE":U
+          ttTranslate.cWidgetName = "TITLE":U
+          ttTranslate.hWidgetHandle = hContainer
+          ttTranslate.iWidgetEntry = 0
+          ttTranslate.cOriginalLabel = hContainer:TITLE    
+          ttTranslate.cTranslatedLabel = "":U  
+          ttTranslate.cOriginalTooltip = "":U  
+          ttTranslate.cTranslatedTooltip = "":U.
+        RELEASE ttTranslate.
+    end.    /* object not translated */
+    
+    /* We use the folder labels in both cases: security and translation */
     /* look for tab folder and translate folder tabs */
     {get PageSource hObject}.
-
+    
     IF VALID-HANDLE(hObject) THEN
       {get FolderLabels cFolderLabels hObject}.
 
     /* check security for folder labels */
-    IF lObjectSecured NE YES AND VALID-HANDLE(gshSecurityManager) THEN
-      RUN tokenSecurityGet IN gshSecurityManager (INPUT TARGET-PROCEDURE,
-                                                  INPUT cContainerName,
-                                                  INPUT cRunAttribute,
-                                                  OUTPUT cSecuredTokens).
-
-    cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
+    if not lObjectSecured then
+    do:
+        &scoped-define xp-assign
+        {get SecuredTokens cSecuredTokens}
+        {get PageTokens cPageTokens}.
+        &undefine xp-assign
+        cSecuredTokens = REPLACE(cSecuredTokens, "&":U, "":U).
+    end.    /* object not secured */
 
     label-loop:
-    DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):
-    
-      ASSIGN cLabel = ENTRY(iLoop, cFolderLabels, "|":U).
-
-      IF  cSecuredTokens <> "":U
-      AND LOOKUP(REPLACE(cLabel, "&":U, "":U),cSecuredTokens) <> 0 THEN
+    DO iLoop = 1 TO NUM-ENTRIES(cFolderLabels, "|":U):    
+      ASSIGN cLabel = ENTRY(iLoop, cFolderLabels, "|":U)
+             cToken = entry(iLoop, cPageTokens, '|':u)
+             no-error.
+      
+      IF not lObjectSecured and cSecuredTokens gt '':u AND 
+         can-do(cSecuredTokens, cToken) THEN
         ASSIGN cDisabledPages = cDisabledPages
                               + (IF cDisabledPages <> "":U THEN ",":U ELSE "":U)
                               +  STRING(iLoop).
-
-      CREATE ttTranslate.
-      ASSIGN
-        ttTranslate.dLanguageObj = 0
-        ttTranslate.cObjectName = cContainerName
-        ttTranslate.lGlobal = NO
-        ttTranslate.lDelete = NO
-        ttTranslate.cWidgetType = "TAB":U
-        ttTranslate.cWidgetName = "TAB":U
-        ttTranslate.hWidgetHandle = hObject
-        ttTranslate.iWidgetEntry = iLoop
-        ttTranslate.cOriginalLabel = cLabel
-        ttTranslate.cTranslatedLabel = "":U
-        ttTranslate.cOriginalTooltip = "":U
-        ttTranslate.cTranslatedTooltip = "":U
-        .
-      RELEASE ttTranslate.
-    
+      if not lObjectTranslated then
+      do:
+          CREATE ttTranslate.
+          ASSIGN
+            ttTranslate.dLanguageObj = 0
+            ttTranslate.cObjectName = cContainerName
+            ttTranslate.lGlobal = NO
+            ttTranslate.lDelete = NO
+            ttTranslate.cWidgetType = "TAB":U
+            ttTranslate.cWidgetName = "TAB":U
+            ttTranslate.hWidgetHandle = hObject
+            ttTranslate.iWidgetEntry = iLoop
+            ttTranslate.cOriginalLabel = cLabel
+            ttTranslate.cTranslatedLabel = "":U
+            ttTranslate.cOriginalTooltip = "":U
+            ttTranslate.cTranslatedTooltip = "":U
+            .
+          RELEASE ttTranslate.
+      end.    /* not translated */
     END.  /* label-loop */
 
     /* Now got all translation widgets - get translations */
@@ -4615,28 +4689,25 @@ PROCEDURE initPages :
     &UNDEFINE xp-assign
     
     DO iCnt = 1 TO NUM-ENTRIES(pcPageList): 
-        iPage = INT(ENTRY(iCnt,pcPageList)).     
-        {set CurrentPage iPage}.
-        IF iPage NE 0 THEN 
-        DO:                     /* Shouldn't be called for page 0 */
-            cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
-            IF cPageObjects = "":U THEN
-            DO:
-                /* Page hasn't been created yet:
-                   Get all objects on page init'd*/
-                RUN createObjects IN TARGET-PROCEDURE.
-                
-                /* Tell the objects not to view themselves when they
-                   are init'ed; wait until that page is actually selected.*/
-                RUN assignPageProperty IN TARGET-PROCEDURE 
-                  ('HideOnInit':U, 'Yes':U).
-                /* If the current container object has been initialized already,
-                   then initialize the new objects. Otherwise wait to let it 
-                   happen when the container is init'ed. */
-                IF lInitted THEN
-                    RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
-            END.
+      iPage = INT(ENTRY(iCnt,pcPageList)).     
+      IF iPage NE 0 THEN 
+      DO:                     /* Shouldn't be called for page 0 */
+        cPageObjects = pageNTargets(TARGET-PROCEDURE, iPage).
+        IF cPageObjects = "":U THEN
+        DO:
+          /* Page hasn't been created yet:
+             Set currentpage to get all objects on page created */
+          {set CurrentPage iPage}.
+          RUN createObjects IN TARGET-PROCEDURE.
+          {set CurrentPage iCurrentPage}.
+          
+          IF lInitted THEN
+          /* If the current container object has been initialized already,
+             then initialize the new objects. Otherwise wait to let it 
+             happen when the container is init'ed. */
+            RUN notifyPage IN TARGET-PROCEDURE ("initializeObject":U).
         END.
+      END.
     END.
 
     {set CurrentPage iCurrentPage}.
@@ -4812,7 +4883,9 @@ PROCEDURE notifyPage :
   DEFINE VARIABLE hObject      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE lQuery       AS LOGICAL   NO-UNDO.
   DEFINE VARIABLE lInitted     AS LOGICAL    NO-UNDO.
-
+  DEFINE VARIABLE lHide        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
+  
   {get CurrentPage iVar}.
   cObjects = pageNTargets(TARGET-PROCEDURE, iVar).
   
@@ -4841,15 +4914,27 @@ PROCEDURE notifyPage :
       lInitted = FALSE.        
     IF VALID-HANDLE(hObject) THEN
     DO:
+      lOK = TRUE.
       /* if initialize then query objects were initialized in the loop above */
       IF pcProc = "initializeObject":U THEN
+      DO:
           &SCOPED-DEFINE xp-assign
           {get ObjectInitialized lInitted hObject}
-          {get QueryObject lQuery hObject}.
+          {get QueryObject lQuery hObject}
+          . 
           &UNDEFINE xp-assign
-      
-      IF NOT lQuery AND NOT lInitted THEN
-        RUN VALUE(pcProc) IN WIDGET-HANDLE(ENTRY(iVar, cObjects)) NO-ERROR.
+        IF lQuery OR lInitted THEN
+          lOk = FALSE.
+      END.
+      /* if viewobject keep hideoninit hidden */
+      ELSE IF pcProc = 'viewObject':U THEN 
+      DO:                                 
+        {get HideOnInit lHide hObject}.    
+        IF lHide THEN                      
+          lOk = FALSE.                     
+      END.                                 
+      IF lOk THEN
+        RUN VALUE(pcProc) IN WIDGET-HANDLE(ENTRY(iVar, cObjects)) NO-ERROR.      
     END.
   END.
 
@@ -7632,15 +7717,15 @@ FUNCTION getHasDbAwareObjects RETURNS LOGICAL
     Notes: The container's data objects are either all DbAware or all not 
            DbAware. 
            SDOs and SBOs are DbAware and are managed differently than 
-           DataViews who are not DbAware.                             
+           DataViews who are not DbAware.      
         -  The property name is somewhat misleading/inconsistent, since it is not 
            reflecting the DBAware property of the contained instances. 
            TT based SDOs may have their instance DBAware set to false, but is 
            still considered as DBAware in this context.                        
 ------------------------------------------------------------------------------*/
- DEFINE VARIABLE lDbObjects AS LOGICAL    NO-UNDO.
- {get HasDbAwareObjects lDbObjects}.
- RETURN lDbObjects.
+  DEFINE VARIABLE lDbObjects AS LOGICAL    NO-UNDO.
+  {get HasDbAwareObjects lDbObjects}.
+  RETURN lDbObjects.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -8012,6 +8097,27 @@ FUNCTION getPageSource RETURNS HANDLE
   RETURN hSource.
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getPageTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPageTokens Procedure 
+FUNCTION getPageTokens RETURNS CHARACTER
+    (  ):
+/*------------------------------------------------------------------------------
+  Purpose: 
+    Notes:
+------------------------------------------------------------------------------*/
+    define variable cPageTokens        as character no-undo.
+    {get PageTokens cPageTokens}.
+    
+    error-status:error = no.
+    return cPageTokens.
+END FUNCTION.    /* getPageTokens */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -9490,7 +9596,7 @@ FUNCTION setHasDbAwareObjects RETURNS LOGICAL
     Notes: The container's data objects are either all DbAware or all not 
            DbAware. 
            SDOs and SBOs are DbAware and are managed differently than 
-           DataViews who are not DbAware.                             
+           DataViews who are not DbAware.     
         -  The property name is somewhat misleading/inconsistent, since it is not 
            reflecting the DBAware property of the contained instances. 
            TT based SDOs may have their instance DBAware set to false, but is 
@@ -9866,6 +9972,26 @@ FUNCTION setPageSource RETURNS LOGICAL
   {set PageSource phObject}.
   RETURN TRUE.
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setPageTokens) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setPageTokens Procedure 
+FUNCTION setPageTokens RETURNS LOGICAL
+    ( input pcPageTokens    as character  ):
+/*------------------------------------------------------------------------------
+  Purpose:  
+        Notes:
+------------------------------------------------------------------------------*/
+    {set PageTokens pcPageTokens}.
+    
+    error-status:error = no.
+    return true.
+END FUNCTION.    /* setPageTokens */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

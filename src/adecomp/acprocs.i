@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -15,6 +15,7 @@
     
     Last Modified:
         tammys    02/15/1999 Removed code that forces logfile to have .log ext
+        fernando  07/28/2006 Support for XREF-XML
 */
 
 PROCEDURE UpdateList .
@@ -282,6 +283,8 @@ PROCEDURE GetSetUp.ip.
   s_saver       = v = ? OR v BEGINS "Y".
   GET-KEY-VALUE SECTION {&CompSect} KEY "SaveInto" VALUE s_saveinto.
   GET-KEY-VALUE SECTION {&CompSect} KEY "Xref" VALUE s_xref.
+  GET-KEY-VALUE SECTION {&CompSect} KEY "XrefXml" VALUE v.
+  s_xrefxml    = v NE ? AND v BEGINS "Y".
   GET-KEY-VALUE SECTION {&CompSect} KEY "XrefAppend" VALUE v.
   s_xappend     = v NE ? AND v BEGINS "Y".
   GET-KEY-VALUE SECTION {&CompSect} KEY "ListFile" VALUE s_listing.
@@ -357,6 +360,7 @@ PROCEDURE PutSetUp.ip.
     RUN PutKeyVal.ip ("SaveNewRs",STRING (s_saver)).
     RUN PutKeyVal.ip ("SaveInto",s_saveinto).
     RUN PutKeyVal.ip ("Xref",s_xref).
+    RUN PutKeyVal.ip ("XrefXml",STRING (s_xrefxml)).
     RUN PutKeyVal.ip ("XrefAppend",STRING (s_xappend)).
     RUN PutKeyVal.ip ("ListFile",s_listing).
     RUN PutKeyVal.ip ("ListAppend",STRING (s_lappend)).
@@ -418,9 +422,10 @@ PROCEDURE DlgOptions .
                  VIEW-AS FILL-IN SIZE 20 BY 1
                  &ENDIF
                  SKIP( {&VM_WID} ) 
-    s_stream_io  COLON 23 {&STDPH_FILL} SKIP( {&VM_WIDG}) 
+    s_stream_io  COLON 23 {&STDPH_FILL} SKIP( {&VM_WID}) 
     s_listing    COLON 23 {&STDPH_FILL} s_lappend   SKIP( {&VM_WID} )
     s_lpwid      AT 25    {&STDPH_FILL} s_lplen {&STDPH_FILL} SKIP( {&VM_WIDG})
+    s_xrefxml     COLON 23  SKIP( {&VM_WID} )
     s_xref       COLON 23 {&STDPH_FILL} s_xappend             SKIP( {&VM_WID} )
     s_debuglist  COLON 23 {&STDPH_FILL} SKIP( {&VM_WID} )
     s_encrkey    COLON 23 {&STDPH_FILL} SKIP( {&VM_WID} )
@@ -467,6 +472,67 @@ PROCEDURE DlgOptions .
     END.    
   END.
 
+  ON VALUE-CHANGED OF s_xrefxml IN FRAME Options
+  DO:
+        if s_xrefxml:SCREEN-VALUE = "YES" THEN
+           assign s_xref:label = s_xref:label + "/Dir"
+		          s_xappend:screen-value = "NO"
+		          s_xappend:sensitive = no.
+        ELSE
+            assign s_xappend:sensitive = yes
+		           s_xref:label = {&LABEL_XREF}.
+	  
+  END.
+
+  ON GO OF FRAME Options OR
+     CHOOSE OF b_OK IN FRAME Options DO:
+
+      DEFINE VARIABLE iloc AS INTEGER NO-UNDO.
+
+	IF s_xrefxml:INPUT-VALUE = YES THEN DO:
+      IF LENGTH(s_xref:SCREEN-VALUE) = 0 THEN DO:
+       
+	   MESSAGE "You must specify a file name or directory when you select the XML Format"
+&IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
+				VIEW-AS ALERT-BOX ERROR
+&ENDIF
+	   . /* END OF MESSAGE STATEMENT */
+
+		APPLY "ENTRY" TO s_xref.
+
+		RETURN NO-APPLY.
+      END.
+      ELSE DO:
+          /* check if the name specified is a directory and check if it exists */
+          /* try to find the last component of the name */
+          iloc = R-INDEX(s_xref:SCREEN-VALUE,"/").
+          IF iloc = 0 THEN
+              iloc = R-INDEX(s_xref:SCREEN-VALUE,"~\").
+
+           IF INDEX(SUBSTRING(s_xref:SCREEN-VALUE, iloc + 1), ".") = 0 THEN DO:
+               /* assuming that if the string doesn't have an extension, it is
+                  a directory name.
+               */
+               FILE-INFO:FILE-NAME = s_xref:SCREEN-VALUE.
+               IF FILE-INFO:FILE-TYPE EQ ? THEN DO:
+                   MESSAGE 'Directory "' + TRIM(s_xref:SCREEN-VALUE) + '" does not exist'
+&IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
+                            VIEW-AS ALERT-BOX ERROR
+&ENDIF
+                   . /* END OF MESSAGE STATEMENT */
+
+                    APPLY "ENTRY" TO s_xref.
+
+                    RETURN NO-APPLY.
+               END.
+               FILE-INFO:FILE-NAME = ?. /* release it */
+           END.
+      END.
+	END.
+
+  END.
+
+
   ON WINDOW-CLOSE OF FRAME Options
   DO:
     APPLY "END-ERROR" TO FRAME Options.
@@ -490,6 +556,7 @@ PROCEDURE DlgOptions .
       s_lpwid:SCREEN-VALUE      = string( {&def_lpwid} )
       s_lplen:SCREEN-VALUE      = string( {&def_lplen} )
       s_xref:SCREEN-VALUE       = {&def_xref}
+      s_xrefxml:SCREEN-VALUE    = string( {&def_xrefxml} )
       s_xappend:SCREEN-VALUE    = string( {&def_xappend} )
       s_debuglist:SCREEN-VALUE  = {&def_debuglist}
       s_encrkey:SCREEN-VALUE    = {&def_encrkey}
@@ -498,7 +565,11 @@ PROCEDURE DlgOptions .
       s_gen_md5:SCREEN-VALUE    = STRING( {&def_gen_md5} )
       &ENDIF  /* {&CompileOn91C} */
       .  
+    ASSIGN s_xappend:sensitive = yes
+           s_xref:label = {&LABEL_XREF}.
+
   END.
+
 
   DO ON stop undo, leave on endkey undo, leave on error undo, leave:
                      
@@ -518,6 +589,7 @@ PROCEDURE DlgOptions .
       s_lappend
       s_lpwid
       s_lplen
+      s_xrefxml
       s_xref
       s_xappend
       s_debuglist
@@ -610,7 +682,7 @@ PROCEDURE StartCompile.
     end.
   end.
 
-  if s_xref > "" AND not s_xappend then
+  if s_xref > "" AND not s_xappend AND NOT s_xrefxml then
   do on stop  undo, retry
      on error undo, retry:
     if not retry then output to VALUE(s_xref) {&NO-MAP}.

@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdcomb.p
@@ -76,12 +76,13 @@ END.
 ASSIGN _U._SUBTYPE             = IF {&ACB_sub-type} = "SI" THEN "SIMPLE" ELSE
                                  IF {&ACB_sub-type} = "DD" THEN "DROP-DOWN" ELSE
                                  "DROP-DOWN-LIST"
-       _F._DATA-TYPE           = IF {&ACB_data-type} = "1" THEN "Character" ELSE
-                                 IF {&ACB_data-type} = "2" THEN "Date" ELSE
-                                 IF {&ACB_data-type} = "3" THEN "Logical" ELSE
-                                 IF {&ACB_data-type} = "4" THEN "Integer" ELSE
-                                 IF {&ACB_data-type} = "5" THEN "Decimal" ELSE
-                                 IF {&ACB_data-type} = "7" THEN "RECID" ELSE
+       _F._DATA-TYPE           = IF {&ACB_data-type} = "1"  THEN "Character" ELSE
+                                 IF {&ACB_data-type} = "2"  THEN "Date"      ELSE
+                                 IF {&ACB_data-type} = "3"  THEN "Logical"   ELSE
+                                 IF {&ACB_data-type} = "4"  THEN "Integer"   ELSE
+                                 IF {&ACB_data-type} = "41" THEN "INT64"     ELSE
+                                 IF {&ACB_data-type} = "5"  THEN "Decimal"   ELSE
+                                 IF {&ACB_data-type} = "7"  THEN "RECID"     ELSE
                                  "WIDGET-HANDLE"
        _U._ALIGN               = IF f_side_labels       THEN "C" ELSE "L"
        _F._FORMAT              = {&ACB_format} 

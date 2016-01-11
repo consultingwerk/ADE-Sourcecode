@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* _usrquot.p - support for quoter w/o import into PROGRESS */
 
@@ -282,7 +266,7 @@ FORM
   msgQuot7 NO-LABELS AT 2 SKIP({&VM_WIDG})
 &ELSE
   "If there were no errors, your new formatted file may be" AT 2  SKIP 
-  "used for PROGRESS input."	AT 2  SKIP({&VM_WIDG})
+  "used for {&PRO_DISPLAY_NAME} input."	AT 2  SKIP({&VM_WIDG})
 &ENDIF
 
   "For example:"     	      	   AT 2  SKIP({&VM_WID})
@@ -306,7 +290,7 @@ FORM
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
 ASSIGN msgQuot7:SCREEN-VALUE =
   "If there were no errors, your new formatted file may be " +
-  "used for PROGRESS input.".
+  "used for {&PRO_DISPLAY_NAME} input.".
 msgQuot7:READ-ONLY = yes.
 &ENDIF
 
@@ -315,7 +299,7 @@ FORM
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
   msgQuot8 NO-LABELS AT 2 SKIP ({&VM_WIDG})
 &ELSE
-  "Your new include file may be used in several types of PROGRESS statements." 
+  "Your new include file may be used in several types of {&PRO_DISPLAY_NAME} statements." 
 		 AT 2 SKIP({&VM_WIDG})
 &ENDIF
   "UNIX only:"                                        TO 14 
@@ -342,7 +326,7 @@ FORM
 
 &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
 ASSIGN msgQuot8:SCREEN-VALUE =
-  "Your new include file may be used in several types of PROGRESS statements.".
+  "Your new include file may be used in several types of {&PRO_DISPLAY_NAME} statements.".
 msgQuot8:READ-ONLY = yes.
 &ENDIF
 

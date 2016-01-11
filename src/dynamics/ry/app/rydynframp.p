@@ -986,6 +986,7 @@ PROCEDURE initializeObject :
     DEFINE VARIABLE hContainerSource            AS HANDLE               NO-UNDO.
     DEFINE VARIABLE lObjectInitted              AS LOGICAL              NO-UNDO.
     DEFINE VARIABLE hContainerHandle            AS HANDLE               NO-UNDO.
+    define variable cDisabledTabs               as character no-undo.
     
     /* Retrieve container mode set already, i.e. from where window was launched from
        and before initializeObject was run. If a mode is retrieved here, we will not
@@ -1002,10 +1003,13 @@ PROCEDURE initializeObject :
     /* Make sure that all the objects are created first. */
     IF NOT {fn getObjectsCreated} THEN
         RUN createObjects IN TARGET-PROCEDURE.
-
+    
     /*CreateObjects may set 'forcedExit', so we have to check it here*/
     IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U THEN
        RETURN.
+
+    /* ensure child frame realization in this window or this container's window */
+    CURRENT-WINDOW = hContainerHandle:WINDOW NO-ERROR.  
 
     RUN SUPER.
 
@@ -1024,22 +1028,41 @@ PROCEDURE initializeObject :
     IF cContainerType NE "VIRTUAL":U THEN
       ASSIGN hFolder = WIDGET-HANDLE({fnarg linkHandles 'Page-Source'}).
     
-    /*  At least one tab needs to be enabled for this window to run. */
-    IF VALID-HANDLE(hFolder) AND {fn getTabsEnabled hFolder} EQ NO THEN
-    DO:
-        /* Hide all pages */
+    /*  At least one tab needs to be enabled for this window to run. */    
+    IF VALID-HANDLE(hFolder) then
+    do:
         {get TabEnabled cTabEnabled hFolder}.
-        DO iLoop = 1 TO NUM-ENTRIES(cTabEnabled,"|":U):
-            RUN hidePage IN TARGET-PROCEDURE (iLoop).
-        END.
-        /* The window controls its self-destruction. This will cause all * objects contained on
-           it to be destroyed, too. Don't overwrite any forced exit statements already there      */
-        IF VALID-HANDLE(hContainerHandle) THEN
-            IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
-                ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + {aferrortxt.i 'RY' '11'}.
-        RETURN.
-    END.    /* no tabs enabled */
+        if {fn getTabsEnabled hFolder} EQ NO THEN
+        DO:
+            /* Hide all pages */
+            DO iLoop = 1 TO NUM-ENTRIES(cTabEnabled,"|":U):
+                RUN hidePage IN TARGET-PROCEDURE (iLoop).
+            END.
+            
+            /* The window controls its self-destruction. This will cause all * objects contained on
+	           it to be destroyed, too. Don't overwrite any forced exit statements already there      */
+            IF VALID-HANDLE(hContainerHandle) THEN
+                IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
+                    ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + {aferrortxt.i 'RY' '11'}.
+            
+            error-status:error = no.
+            RETURN.
+        end.    /* no tabs enabled */
         
+        /* Determine the disabled pages */
+        DO iLoop = 1 TO NUM-ENTRIES(cTabEnabled,"|":U):
+            if not logical(entry(iLoop, cTabEnabled, '|':u)) then
+                cDisabledTabs = cDisabledTabs + ',':u + string(iLoop).
+        END.
+        cDisabledTabs = left-trim(cDisabledTabs, ',':u).
+        
+        /* Set the secured tabs in the container and folder object.
+	       this is convoluted, yes, but there's a variable in the folder
+	       object that is never set otherwise for dynamic containers and
+	       so cannot be relied upon. */
+        {fnarg disablePagesInFolder "'security,' + cDisabledTabs"}.
+    END.    /* no tabs enabled */
+            
     &SCOPED-DEFINE xp-assign
     {get CurrentPage iCurrentPageNumber}
     {get StartPage iStartPage}.
@@ -1541,17 +1564,13 @@ FUNCTION addAllLinks RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE hSourceObject               AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hTargetObject               AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE hTestHandle                 AS HANDLE               NO-UNDO.
     DEFINE VARIABLE dInstanceId                 AS DECIMAL              NO-UNDO.
     DEFINE VARIABLE iCurrentPage                AS INTEGER              NO-UNDO.
     DEFINE VARIABLE iLoop                       AS INTEGER              NO-UNDO.    
-    DEFINE VARIABLE iNumObject                  AS INTEGER              NO-UNDO.
     DEFINE VARIABLE cInstanceName               AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cInstanceNames              AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cInstanceHandles            AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cLinkName                   AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cTestHandles                AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE lLinkDefined                AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE cPageLinks                  AS CHARACTER            NO-UNDO.
     
     IF NOT VALID-HANDLE(ghCacheObject) THEN
         RUN returnCacheBuffers IN gshRepositoryManager ( OUTPUT ghCacheObject,
@@ -1584,61 +1603,56 @@ FUNCTION addAllLinks RETURNS LOGICAL
                pcPageList = TRIM(pcPageList, ",":U).
     
     DO iLoop = 1 TO NUM-ENTRIES(pcPageList):                
-        ASSIGN iCurrentPage = INTEGER(ENTRY(iLoop, pcPageList)).
-        
-        ghQuery1:QUERY-PREPARE(" FOR EACH " + ghCacheLink:NAME + " WHERE ":U
-                               + ghCacheLink:NAME + ".InstanceId = ":U + QUOTER(dInstanceId) + " AND ":U
-                               + " ( " + ghCacheLink:NAME + ".SourcePage = ":U + QUOTER(iCurrentPage) + " OR ":U
-                               +         ghCacheLink:NAME + ".TargetPage = ":U + QUOTER(iCurrentPage) + " ) ":U ).
-        ghQuery1:QUERY-OPEN().
-        
-        ghQuery1:GET-FIRST().
-        DO WHILE ghCacheLink:AVAILABLE:
-            ASSIGN hSourceObject = ?
-                   hTargetObject = ?.
-            
-            /* Source */
-            ASSIGN cInstanceName = ghCacheLink:BUFFER-FIELD("SourceInstanceName"):BUFFER-VALUE.
-            IF cInstanceName EQ "THIS-OBJECT":U THEN
-                ASSIGN hSourceObject = TARGET-PROCEDURE.
-            ELSE
-                ASSIGN hSourceObject = WIDGET-HANDLE(ENTRY(LOOKUP(cInstanceName,cInstanceNames), cInstanceHandles)) NO-ERROR.
-            
-            /* Target */
-            ASSIGN cInstanceName = ghCacheLink:BUFFER-FIELD("TargetInstanceName"):BUFFER-VALUE.
-            IF cInstanceName EQ "THIS-OBJECT":U THEN
-                ASSIGN hTargetObject = TARGET-PROCEDURE.
-            ELSE
-                ASSIGN hTargetObject = WIDGET-HANDLE(ENTRY(LOOKUP(cInstanceName,cInstanceNames),cInstanceHandles)) NO-ERROR.
-            
-            IF VALID-HANDLE(hSourceObject) AND VALID-HANDLE(hTargetObject) AND hSourceObject NE hTargetObject THEN
-            DO:
-                /* First check whether this link already exists. */
-                ASSIGN 
-                  cTestHandles = "":U
-                  lLinkDefined = FALSE
-                  cLinkName   = ghCacheLink:BUFFER-FIELD("LinkName":U):BUFFER-VALUE
-                  cTestHandles = {fnarg linkHandles "cLinkName + '-Source'" hTargetObject}.
-
-                CheckObjectLoop:
-                DO iNumObject = 1 TO NUM-ENTRIES(cTestHandles):
-                  hTestHandle = WIDGET-HANDLE(ENTRY(iNumObject,cTestHandles)).
-                  IF hTestHandle = hSourceObject THEN
-                  DO:
-                    lLinkDefined = TRUE.
-                    LEAVE CheckObjectLoop.
-                  END.
-                END.
-                
-                /* If not created yet, then add the link.
-                 */
-                IF NOT lLinkDefined THEN
-                    RUN addLink IN TARGET-PROCEDURE ( hSourceObject, cLinkName, hTargetObject ).
-            END.    /* we should try to create the link. */
-            
-            ghQuery1:GET-NEXT().
-        END.    /* available link */
-        ghQuery1:QUERY-CLOSE().
+      ASSIGN iCurrentPage = INTEGER(ENTRY(iLoop, pcPageList)).
+      
+      ghQuery1:QUERY-PREPARE(" FOR EACH " + ghCacheLink:NAME + " WHERE ":U
+                             + ghCacheLink:NAME + ".InstanceId = ":U + QUOTER(dInstanceId) + " AND ":U
+                             + " ( " + ghCacheLink:NAME + ".SourcePage = ":U + QUOTER(iCurrentPage) + " OR ":U
+                             +         ghCacheLink:NAME + ".TargetPage = ":U + QUOTER(iCurrentPage) + " ) ":U ).
+      ghQuery1:QUERY-OPEN().
+      
+      ghQuery1:GET-FIRST().
+      DO WHILE ghCacheLink:AVAILABLE:
+        ASSIGN hSourceObject = ?
+               hTargetObject = ?.
+        /* A link across pages will be encountered twice, so we add it 
+           to cPageLinks below and check it here to avoid adding it twice
+           (This protection is needed when more than one page is passed in
+            to this function. When the two pages are not created simultaneously 
+            the link will be created with the last page and there's no 
+            risk of conflict.. as long as this only is called once for each 
+            page) */
+        IF ghCacheLink::SourcePage = ghCacheLink::TargetPage
+        OR LOOKUP(STRING(ghCacheLink:ROWID),cPageLinks) = 0 THEN
+        DO:
+          /* Source */
+          cInstanceName = ghCacheLink::SourceInstanceName.
+          IF cInstanceName EQ "THIS-OBJECT":U THEN
+            hSourceObject = TARGET-PROCEDURE.
+          ELSE
+            hSourceObject = WIDGET-HANDLE(ENTRY(LOOKUP(cInstanceName,cInstanceNames), cInstanceHandles)) NO-ERROR.
+          
+          /* Target */
+          cInstanceName = ghCacheLink::TargetInstanceName.
+          IF cInstanceName EQ "THIS-OBJECT":U THEN
+            hTargetObject = TARGET-PROCEDURE.
+          ELSE
+            hTargetObject = WIDGET-HANDLE(ENTRY(LOOKUP(cInstanceName,cInstanceNames),cInstanceHandles)) NO-ERROR.
+          
+          IF VALID-HANDLE(hSourceObject) AND VALID-HANDLE(hTargetObject) 
+          AND hSourceObject NE hTargetObject THEN
+          DO:
+            RUN addLink IN TARGET-PROCEDURE ( hSourceObject, 
+                                              ghCacheLink::LinkName, 
+                                              hTargetObject ).
+            /* store rowid for cross page links to ensure that we don't try again */
+            IF ghCacheLink::SourcePage <> ghCacheLink::TargetPage THEN
+              cPageLinks = cPageLinks + ",":U + STRING(ghCacheLink:ROWID).  
+          END.    /* we should try to create the link. */
+        END. /* same page link or page link not already added */
+        ghQuery1:GET-NEXT().
+      END.    /* available link */
+      ghQuery1:QUERY-CLOSE().
     END.    /* Page loop */
     
     RETURN TRUE.
@@ -2257,16 +2271,16 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
     
     if cWindowName eq ? then
     do:
-        {get ClassName cClassName}.
-        
-        IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
-                            INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
-                &SCOPED-DEFINE xpWindowName
-                {get WindowName cWindowName}.
-                &UNDEFINE xpWindowName
+    {get ClassName cClassName}.      
+
+    IF DYNAMIC-FUNCTION("ClassHasAttribute":U IN gshRepositoryManager,
+                        INPUT cClassName, INPUT "WindowName":U, INPUT NO /* not an event */ ) THEN
+            &SCOPED-DEFINE xpWindowName
+            {get WindowName cWindowName}.
+            &UNDEFINE xpWindowName
     end.    /* object realised as a frame */
         
-    RETURN cWindowName.
+      RETURN cWindowName.
 END FUNCTION.   /* getWindowName */
 
 /* _UIB-CODE-BLOCK-END */

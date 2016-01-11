@@ -3,9 +3,9 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
 ***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataext.p
@@ -53,17 +53,6 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAsynchronousSDO Procedure 
 FUNCTION getAsynchronousSDO RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getAutoCommit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAutoCommit Procedure 
-FUNCTION getAutoCommit RETURNS LOGICAL
-  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -389,28 +378,6 @@ FUNCTION getManualAddQueryWhere RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getManualAssignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManualAssignQuerySelection Procedure 
-FUNCTION getManualAssignQuerySelection RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getManualSetQuerySort) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getManualSetQuerySort Procedure 
-FUNCTION getManualSetQuerySort RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getNewMode Procedure 
@@ -548,6 +515,17 @@ FUNCTION getRowObjUpd RETURNS HANDLE
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowObjUpdTable Procedure 
 FUNCTION getRowObjUpdTable RETURNS HANDLE
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -844,28 +822,6 @@ FUNCTION setLastDbRowIdent RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualAddQueryWhere Procedure 
 FUNCTION setManualAddQueryWhere RETURNS LOGICAL
-  ( cString AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setManualAssignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualAssignQuerySelection Procedure 
-FUNCTION setManualAssignQuerySelection RETURNS LOGICAL
-  ( cString AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setManualSetQuerySort) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setManualSetQuerySort Procedure 
-FUNCTION setManualSetQuerySort RETURNS LOGICAL
   ( cString AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1406,7 +1362,7 @@ PROCEDURE doReturnUpd :
     hMsgSource = TARGET-PROCEDURE.
 
   lCommitOk = NOT DYNAMIC-FUNCTION('anyMessage':U IN hMsgSource) AND (pcUndoIds = "":U).
-
+ 
   /* we need this whether or not CommitOK */
   {get DataDelimiter cDataDelimiter}.
 
@@ -2012,7 +1968,6 @@ PROCEDURE doUndoUpdate :
       PUBLISH 'dataAvailable':U FROM TARGET-PROCEDURE ("SAME":U). 
     END.
     ELSE DO:
-
       /* Check new mode to avoid deleting new uncommitted records in updatemode*/
       {get NewMode lNewMode}.
       IF lNewMode 
@@ -2067,30 +2022,6 @@ FUNCTION getAsynchronousSDO RETURNS LOGICAL
     {get AsynchronousSDO lAsynchronousSDO}.    
     RETURN lAsynchronousSDO.
   
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getAutoCommit) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getAutoCommit Procedure 
-FUNCTION getAutoCommit RETURNS LOGICAL
-  (  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Returns a flag indicating whether a Commit happens on every 
-            Record update.
-   Params:  <none>
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE lAuto AS LOGICAL NO-UNDO.
-
-  &SCOPED-DEFINE xpAutoCommit
-  {get AutoCommit lAuto}.
-  &UNDEFINE xpAutoCommit
-  RETURN lAuto.
-
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2429,7 +2360,8 @@ FUNCTION getDataSignature RETURNS CHARACTER
                               18 = BLOB
                               19 = CLOB        
                               34 = DATETIME
-                              40 = DATETIME-TZ                          
+                              40 = DATETIME-TZ
+                              41 = INT64                          
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE cSignature AS CHARACTER NO-UNDO INIT "":U.
@@ -2459,7 +2391,8 @@ FUNCTION getDataSignature RETURNS CHARACTER
       ELSE IF cDataType = 'BLOB':U        THEN '18':U 
       ELSE IF cDataType = 'CLOB':U        THEN '19':U 
       ELSE IF cDataType = 'DATETIME':U    THEN '34':U 
-      ELSE IF cDataType = 'DATETIME-TZ':U THEN '40':U 
+      ELSE IF cDataType = 'DATETIME-TZ':U THEN '40':U
+      ELSE IF cDataType = 'INT64':U       THEN '41':U
       ELSE '00':U).
   END.
   
@@ -3219,50 +3152,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getManualAssignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManualAssignQuerySelection Procedure 
-FUNCTION getManualAssignQuerySelection RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Retrieve manual calls to assignqueryselection so that filter can reapply this
-           when filter is changed, thus ensuring the original query stays intact. 
-    Notes: Value is pccolumns + chr(3) + pcvalues + chr(3) + pcoperators 
-           Note that multiple entries are supported, seperated by chr(4).
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
-    {get ManualAssignQuerySelection cString}.
-    RETURN cString.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getManualSetQuerySort) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getManualSetQuerySort Procedure 
-FUNCTION getManualSetQuerySort RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose: Retrieve manual calls to setquerysort so that filter can reapply this
-           when filter is changed, thus ensuring the original query stays intact. 
-    Notes: Value is pcsort 
-           Note that multiple entries are supported, seperated by chr(4).
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE cString AS CHARACTER NO-UNDO.
-    {get ManualSetQuerySort cString}.
-    RETURN cString.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getNewMode) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getNewMode Procedure 
@@ -3749,6 +3638,64 @@ FUNCTION getRowObjUpdTable RETURNS HANDLE
   &UNDEFINE xpRowObjUpdTable 
   
   RETURN hTable.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getRowUpdated) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getRowUpdated Procedure 
+FUNCTION getRowUpdated RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose:     Returns TRUE if the current RowObject record is modified 
+               - (has changes not submitted to the database)
+  Parameters:  <none>
+  
+  Notes:       This includes both new and modified records. 
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hRowObject  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObjUpd  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lMod        AS LOGICAL    NO-UNDO.
+
+  &SCOPED-DEFINE xp-assign
+  {get RowObject hRowObject}
+  {get RowObjUpd hRowObjUpd}.
+  &UNDEFINE xp-assign
+  
+  IF NOT VALID-HANDLE(hRowObject) OR NOT hRowObject:AVAILABLE THEN
+    RETURN ?.   
+
+  /* create a buffer for the upd table (avoid messing with the real one)
+     and see if it has a corresponding record */
+  IF VALID-HANDLE(hRowObjUpd) THEN
+  DO:
+    CREATE BUFFER hRowObjUpd FOR TABLE hRowObjUpd.
+  
+    /* find the corresponding rowObjUpd -- buffer that is */
+    DYNAMIC-FUNCTION('findRowObjUpd':U IN TARGET-PROCEDURE,
+                      hRowObject, 
+                      hRowObjUpd).
+  
+  END. /* valid rowObjUpd */
+
+  /* if a corresponding upd record is found then this record has been saved 
+     and RowModified is true, UNLESS it is still in new mode */
+  lMod = (VALID-HANDLE(hRowObjUpd) AND hRowObjUpd:AVAILABLE). 
+  IF lMod THEN 
+  DO:
+    IF {fn getNewMode} THEN 
+      lMod = FALSE.
+  END.
+
+  /* Delete the locally created buffer (no-error as it may not have been created) */
+  DELETE OBJECT hRowObjUpd NO-ERROR.
+
+  RETURN lMod.
 
 END FUNCTION.
 
@@ -4368,48 +4315,6 @@ FUNCTION setManualAddQueryWhere RETURNS LOGICAL
            Note that multiple entries are supported, seperated by chr(4).
 ------------------------------------------------------------------------------*/
   {set ManualAddQueryWhere cString}.
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setManualAssignQuerySelection) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManualAssignQuerySelection Procedure 
-FUNCTION setManualAssignQuerySelection RETURNS LOGICAL
-  ( cString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Store manual calls to assignqueryselection so that filter can reapply this
-           when filter is changed, thus ensuring the original query stays intact. 
-    Notes: Value is pccolumns + chr(3) + pcvalues + chr(3) + pcoperators 
-           Note that multiple entries are supported, seperated by chr(4).
-------------------------------------------------------------------------------*/
-  {set ManualAssignQuerySelection cString}.
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-setManualSetQuerySort) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setManualSetQuerySort Procedure 
-FUNCTION setManualSetQuerySort RETURNS LOGICAL
-  ( cString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: Store manual calls to setquerysort so that filter can reapply this
-           when filter is changed, thus ensuring the original query stays intact. 
-    Notes: Value is pcsort 
-           Note that multiple entries are supported, seperated by chr(4).
-------------------------------------------------------------------------------*/
-  {set ManualSetQuerySort cString}.
   RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.

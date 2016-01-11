@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -51,8 +51,8 @@ FORM
      LABEL "ORACLE tablespace for Tables" colon 35 SKIP({&VM_WID})
   ora_ispace FORMAT "x(30)" view-as fill-in size 32  by 1
      LABEL "ORACLE tablespace for Indexes" colon 35 SKIP({&VM_WIDG})      
-  SPACE(3) pcompatible view-as toggle-box LABEL "Create Progress RECID Field"  
-  SPACE(3) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" 
+  SPACE(3) pcompatible view-as toggle-box LABEL "Create RECID Field"  
+  SPACE(12) crtdefault VIEW-AS TOGGLE-BOX LABEL "Include Default" 
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
   SPACE(3) create_df view-as toggle-box LABEL "Create schema holder delta df" COLON 2
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(1) &ELSE SPACE (2) &ENDIF
@@ -157,7 +157,22 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
     ASSIGN lFormat:CHECKED   = TRUE
            lFormat:SENSITIVE = TRUE.
 END. 
-
+/*
+ON VALUE-CHANGED OF unicodeTypes IN FRAME read-df DO:
+    /* when unicode types is set, user can choose whether to allow nvarchar(4000),
+       otherwise the max size is 2000 for nvarchar2
+    */
+    IF SELF:CHECKED THEN DO:
+        nvchar_utf:SENSITIVE = YES.
+        /* keep tab order right */
+        nvchar_utf:move-after-tab-item(unicodeTypes:HANDLE) in frame read-df.
+    END.
+    ELSE DO:
+        ASSIGN nvchar_utf:SENSITIVE = NO
+               nvchar_utf:SCREEN-VALUE = "NO".
+    END.
+END.
+*/
 /*==========================Mainline code=============================*/        
 
 {adecomm/okrun.i  
@@ -201,6 +216,8 @@ UPDATE df-file
        crtdefault        
        create_df
        shadowcol
+    /*   unicodeTypes WHEN ora_version >= 10
+       nvchar_utf WHEN unicodeTypes */
        iFmtOption
        lFormat WHEN iFmtOption = 2
        btn_OK btn_Cancel
@@ -209,6 +226,16 @@ UPDATE df-file
        &ENDIF
   WITH FRAME read-df.
        
+/*
+IF unicodeTypes:SCREEN-VALUE ="yes" THEN
+   ASSIGN unicodeTypes = YES.
+
+IF nvchar_utf:SCREEN-VALUE ="yes" THEN
+   ASSIGN nvchar_utf = YES.
+ELSE
+   ASSIGN nvchar_utf = NO.
+*/
+
 ASSIGN user_env[1]  = df-file
        user_env[3]  = ""
        user_env[4]  = "n"
@@ -217,7 +244,8 @@ ASSIGN user_env[1]  = df-file
        user_env[7]  = "y"
        user_env[8]  = "y"
        user_env[9]  = "ALL"
-       user_env[11] = "char" 
+       /*user_env[10] = (IF nvchar_utf THEN "4000" ELSE "2000")*/
+       user_env[11] = /*(IF unicodeTypes THEN "nvarchar2" ELSE */ "varchar2" /*) */
        user_env[12] = "date"
        user_env[13] = "number"
        user_env[14] = "number"

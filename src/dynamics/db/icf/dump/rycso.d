@@ -108,6 +108,15 @@
 1761.48 "rydynbrwcp.p" 0 493 1004874702.09 1003516362 "Dynamics Browse Class Object Procedure" "ry/app" "" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 1761.48 yes
 1765.48 "rydyncntcp.p" 0 493 1004874702.09 1003516362 "Dynamics Container Class Object Proc" "ry/app" "" yes no no no "SRV" no no no no yes "ANY" "" "" 0 0 1765.48 yes
 1803.7692 "templateWebObject" 0 501.7692 13899.81 0 "Template for WebObjects" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 1803.7692 yes
+2017.0575 "afbuildpkp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2017.0575 yes
+2019.0575 "afdeplystp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2019.0575 yes
+2021.0575 "afdumpincp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2021.0575 yes
+2023.0575 "afdeplgenp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2023.0575 yes
+2025.0575 "afdmpdefsp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2025.0575 yes
+2027.0575 "afdmpdatap" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2027.0575 yes
+2029.0575 "afdeplyhlp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2029.0575 yes
+2031.0575 "afbuildrcp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2031.0575 yes
+2033.0575 "afbuildplp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2033.0575 yes
 2037.7692 "PaletteSmartObject" 0 503.7692 13899.81 1003516362 "Palette SmartObject" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2037.7692 yes
 2049.7692 "PaletteSmartB2B" 0 503.7692 13899.81 1003516362 "Palette SmartB2B Object" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2049.7692 yes
 2066.7692 "PaletteSmartSender" 0 503.7692 13899.81 1003516362 "Palette SmartSender" "ry/tem" "" no no yes no "" no no no no no "" "" "" 0 0 2066.7692 yes
@@ -124,6 +133,9 @@
 2431.38 "gsc_data_tag.data_tag_description" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_description" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2431.38 yes
 2451.38 "gsm_tagged_data.owning_reference" 0 1005091923.09 3000005456.09 0 "DataField for owning_reference" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2451.38 yes
 2476.38 "gsm_tagged_data.data_tag_obj" 0 1005091923.09 3000005456.09 0 "DataField for data_tag_obj" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2476.38 yes
+2483.0575 "afdeplgdfp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 2483.0575 yes
+2485.0575 "afdeplymtp" 0 493 1004874676.09 0 "" "af/app" "p" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 2485.0575 yes
+2487.0575 "inicfdbsqp" 0 493 1000000123.39 0 "" "install/prc" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 2487.0575 yes
 2498.38 "gsc_data_tag" 0 36339.48 3000005456.09 0 "Entity object for table gsc_data_tag" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2498.38 yes
 2505.38 "gsm_tagged_data" 0 36339.48 3000005456.09 0 "Entity object for table gsm_tagged_data" "ry/dfo" "" yes no no no "" no no no no no "ANY" "" "" 0 0 2505.38 yes
 2602.7692 "_ryobjectab" 0 493 3000040739.09 1003516362 "Supports calling code to create _RyObject ""open"" record for AB." "adeuib" "p" yes no no no "" yes no no no yes "ANY" "" "" 0 0 2602.7692 yes
@@ -655,6 +667,8 @@
 70426.66 "datacontainer.p" 0 493 3000031144.09 0 "datacontainer" "adm2" "" yes no no no "CLN,SRV" no no no no no "ANY" "" "" 0 0 70426.66 yes
 71375.66 "toggleframe.w" 0 492 3000040731.09 0 "Scrollable frame w/toggle box input" "adm2/support" "" yes no no yes "CLN" no no no no no "ANY" "" "" 0 0 71375.66 yes
 78404.66 "serviceadapter.p" 0 493 3000031144.09 0 "Service adapter for data requests" "adm2" "" yes no no no "WEB,CLN,SRV" no no no no yes "ANY" "" "" 0 0 78404.66 yes
+78417.66 "dataquerycustom.p" 0 493 3000040729.09 1007500101.09 "dataquery custom super procedure" "adm2/custom" "" yes no no no "SRV,CLN" no no yes no no "ANY" "" "" 0 0 78417.66 yes
+78419.66 "dataquery.p" 0 493 3000031144.09 0 "DataView super procedure" "adm2" "" yes no no no "WEB,CLN,SRV" no no no no no "ANY" "" "" 0 0 78419.66 yes
 86075.84725 "aftrntrmip" 0 493 1004874676.09 0 "Proxy for TrnMgr translateMenuItem" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 86075.84725 yes
 86077.84725 "aftrntrmep" 0 493 1004874676.09 0 "AS Proxy for TranMgr translateMenu" "af/app" "p" yes no no no "SRV" no no no no no "ANY" "" "" 0 0 86077.84725 yes
 90297.9875 "rysdfchsev" 0 1003498165 1004874707.09 1003516362 "Choose Existing Dynamic SDF Object" "ry/obj" "w" yes no no no "CLN" yes no yes no yes "ANY" "" "" 90325.9875 0 90297.9875 yes
@@ -986,7 +1000,7 @@
 1003555102 "rytstmencw.w" 0 491 1004874710.09 0 "Test Menu Controller" "ry/uib" "" yes no no yes "CLN" yes yes yes no yes "ANY" "" "" 0 0 1003555102 yes
 1003571922 "rycatfullo.w" 0 1003183339 1004874707.09 0 "SDO for ryc_attribute" "ry/obj" "" yes no no no "CLN,SRV" yes no no no no "ANY" "" "" 0 0 1003571922 yes
 1003571985 "rycatfullb" 0 1003498159 1004874707.09 0 "Attribute Browser" "ry/obj" "" no no no no "" no yes yes no yes "ANY" "" "" 1003571922 0 1003571985 yes
-1003574037 "rycatobjcw" 0 1003498202 1004874710.09 1004899067 "Attribute Control" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1003574037 yes
+1003574037 "rycatobjcw" 0 1003498202 1004874710.09 1007500101.09 "Attribute Control" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1003574037 yes
 1003584635 "rydynprefw" 0 1003498200 1004874710.09 1003501078 "Preferences" "ry/uib" "" no no no no "" no yes yes no yes "ANY" "" "" 0 0 1003584635 yes
 1003587122 "rydynprf1v.w" 0 243160 1004874707.09 0 "Preferences Viewer 1" "ry/obj" "" yes no no no "CLN" no no no no yes "ANY" "" "" 0 0 1003587122 yes
 1003587132 "rydynprf2v.w" 0 243160 1004874707.09 0 "Preferences viewer 2" "ry/obj" "" yes no no no "CLN" no yes yes no yes "ANY" "" "" 0 0 1003587132 yes
@@ -2509,7 +2523,6 @@
 3000031566.09 "afdbtablep" 0 493 1004874687.09 1003516362 "afdbtablep.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031566.09 yes
 3000031568.09 "afdefprntp" 0 493 1004874687.09 1003516362 "afdefprntp.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031568.09 yes
 3000031570.09 "afdynabrws" 0 493 1004874687.09 1003516362 "afdynabrws.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031570.09 yes
-3000031572.09 "afdynplipp" 0 493 1004874687.09 1003516362 "afdynplipp.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031572.09 yes
 3000031574.09 "afencplipp" 0 493 1004874687.09 1003516362 "afencplipp.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031574.09 yes
 3000031576.09 "aferrloglp" 0 493 1004874687.09 1003516362 "aferrloglp.p" "af/sup" "p" yes no no no "" no no no no yes "ANY" "" "" 0 0 3000031576.09 yes
 3000031578.09 "afgetclabp" 0 493 1004874687.09 1003516362 "afgetclabp.p" "af/sup" "p" yes no no no "" yes no no no yes "ANY" "" "" 0 0 3000031578.09 yes
@@ -3438,12 +3451,12 @@
 .
 PSC
 filename=ryc_smartobject
-records=0000000003437
+records=0000000003450
 ldbname=ICFDB
-timestamp=2006/02/01-15:01:11
+timestamp=2006/10/12-14:55:16
 numformat=44,46
 dateformat=mdy-1950
 map=NO-MAP
-cpstream=UTF-8
+cpstream=utf-8
 .
-0000592948
+0000594693

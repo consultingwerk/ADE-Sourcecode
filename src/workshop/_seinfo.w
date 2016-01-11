@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER WDT_v2r1 WebSpeed-Object
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
-//*********************************************************************
+/*********************************************************************
 * Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
 * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
 * below.  All Rights Reserved.                                       *
@@ -23,7 +23,7 @@
 * Contributors:                                                      *
 *                                                                    *
 *********************************************************************/
-*------------------------------------------------------------------------
+/*------------------------------------------------------------------------
   File: _seinfo.w
   
   Description: Returns some information to the Section Editor.

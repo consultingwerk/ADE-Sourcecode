@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -36,6 +20,7 @@ Author: Laura Stern
 
 Date Created:  04/22/92 
      History:  03/26/98 D. McMann Added support for Areas
+               06/08/06 fernando  Support for large keys
 ----------------------------------------------------------------------------*/
 Define {1} frame newidx.    /* new index dialog box */
 Define {1} frame idxprops.  /* index properties */
@@ -72,8 +57,11 @@ Define {1} var s_IdxFld_AscDesc as char NO-UNDO
 /* Variables needed for index properties only. */
 Define {1} var s_txt_List_Labels as char NO-UNDO extent 2.
 Define {1} var ActRec as logical no-undo view-as toggle-box.
+DEFINE {1} VAR s_msg AS CHAR NO-UNDO.
+
 /* These are the forms for the index properties and new index windows. */
 {adedict/IDX/idxprop.f "{1}"}
 {adedict/IDX/newidx.f}
+
 
 

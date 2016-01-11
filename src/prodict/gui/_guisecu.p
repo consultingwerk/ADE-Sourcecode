@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,7 +13,9 @@
    Input: user_env[9] - ro (read only) or rw (read/write)
    
    History:  D. McMann changed length of text fields to x(500)
-   
+             
+             03/13/06 fernando Using temp-table instead of cache_file - bug 20050930-006.
+
 -------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -28,10 +30,10 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /* 2*/ "",  /* goes with 1 */
 
   /* 3*/ "You need Database Security Administrator privileges in the master",
-  /* 4*/ "PROGRESS DB which contains the schema of this database to continue.",
+  /* 4*/ "{&PRO_DISPLAY_NAME} DB which contains the schema of this database to continue.",
 
   /* 5*/ "You may not use this function with a blank userid.  This applies to",
-  /* 6*/ "both the PROGRESS DB and the specific foreign DB, if appropriate.",
+  /* 6*/ "both the {&PRO_DISPLAY_NAME} DB and the specific foreign DB, if appropriate.",
 
   /* 7*/ "The dictionary is in read-only mode - alterations not allowed.",
   /* 8*/ "You can only alter security on SQL tables with GRANT and REVOKE.",
@@ -468,7 +470,14 @@ DO:
    /* Re-fill the list with or without hidden tables. */
    tlist:LIST-ITEMS IN FRAME secu = "".  /* Clear first */
    run "prodict/_dctcach.p" (t_hidden).
-   do ix = 1 to cache_file#:
+
+   /* 20050930-006 - check if we are caching the table names in the temp-table */
+   IF l_cache_tt THEN DO:
+       FOR EACH tt_cache_file NO-LOCK:
+           stat = tlist:ADD-LAST(tt_cache_file.cName) in frame secu.
+       END.
+   END.
+   ELSE do ix = 1 to cache_file#:
       stat = tlist:ADD-LAST(cache_file[ix]) in frame secu.
    end.
 
@@ -554,9 +563,17 @@ if cache_dirty then do:
    run "prodict/_dctcach.p" (t_hidden).
 end.
 else do: /* determine if cache contains hidden tables */
-   do ix = 1 to cache_file# while NOT cache_file[ix] BEGINS "_":
-   end.
-   t_hidden = (cache_file[ix] BEGINS "_").
+
+   /* 20050930-006 - check if we are caching the table names in the temp-table */
+   IF l_cache_tt THEN DO:
+       FIND FIRST tt_cache_file WHERE tt_cache_file.cName BEGINS "_" NO-LOCK NO-ERROR.
+       t_hidden = (AVAILABLE tt_cache_file).
+   END.
+   ELSE DO:
+        do ix = 1 to cache_file# while NOT cache_file[ix] BEGINS "_":
+        end.
+        t_hidden = (cache_file[ix] BEGINS "_").
+   END.
 end.
 
 /* Initialize the table select list and it's initial values. If there isn't
@@ -572,6 +589,13 @@ END.
 ELSE DO:
    /* Set current table name */
    tlist = (if cache_file# > 0 then cache_file[1] else "").
+
+   /* 20050930-006 - check if cached info is in the temp-table */
+   IF cache_file# > 0 AND l_cache_tt THEN DO:
+       FIND FIRST tt_cache_file NO-LOCK.
+       tlist = tt_cache_file.cName.
+   END.
+
    user_filename = tlist.
    IF user_filename <> "" THEN DO:
       FIND _File WHERE _File._File-name = user_filename AND 
@@ -581,7 +605,14 @@ ELSE DO:
    END.
    ELSE drec_file = ?.
 END.
-DO ix = 1 TO cache_file#:
+
+/* 20050930-006 - check if cached info is in the temp-table */
+IF l_cache_tt THEN DO:
+    FOR EACH tt_cache_file NO-LOCK:
+       stat = tlist:ADD-LAST(tt_cache_file.cName) IN FRAME secu.
+    END.
+END.
+ELSE DO ix = 1 TO cache_file#:
    stat = tlist:ADD-LAST(cache_file[ix]) IN FRAME secu.
 END.
 

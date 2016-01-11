@@ -1,16 +1,16 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookupprop.i
     Purpose     : Defines basic properties.
-    Syntax      : {adm2/lookupprop.i}
+    Syntax      : {src/adm2/lookupprop.i}
 
     Description :
 
@@ -36,7 +36,7 @@ QueryBuilderTuneOptions,QueryBuilderWhereClauses,PopupOnAmbiguous,PopupOnUniqueA
 
   /* Custom instance definition file */
 
-  {adm2/custom/lookupdefscustom.i}
+  {src/adm2/custom/lookupdefscustom.i}
 
 &ENDIF
 

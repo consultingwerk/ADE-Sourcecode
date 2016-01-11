@@ -743,6 +743,7 @@ CASE cEvent:
         DO:
             ASSIGN cContext = STRING(RECID(_SEW_U))
                    cFileName = b_P._SAVE-AS-FILE.
+                   
             RUN adecomm/_adeevnt.p
                   ("UIB", cEvent, cContext, cFileName, OUTPUT lEventResult).
             IF b_P._TYPE BEGINS "Smart":U THEN
@@ -751,11 +752,67 @@ CASE cEvent:
                 cFileName = FILE-INFO:FULL-PATHNAME.        
                 IF cFileName > "" THEN
                     RUN refreshSmartObjects (cFileName).
-            END.        
+            END.
+            
+            RUN saveOCXFile(hWindow, cFileName).
         END.          
     END. /* SAVE event */
 END.
 
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE saveOCXFile h_sewin 
+PROCEDURE saveOCXFile :
+/*------------------------------------------------------------------------------
+  Purpose:     Saves the OCX file for the specified window.
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER phWindow   AS HANDLE       NO-UNDO.
+DEFINE INPUT PARAMETER pcFileName AS CHARACTER    NO-UNDO.
+
+IF phWindow = ? OR pcFileName = ? OR pcFileName = "" THEN RETURN.
+
+IF NOT CAN-FIND(FIRST x_U WHERE x_U._WINDOW-HANDLE EQ phWindow
+                            AND x_U._TYPE          EQ "OCX":U
+                            AND x_U._STATUS        EQ "NORMAL":U) THEN RETURN.
+
+DEFINE VARIABLE OCXBinary      AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE madeBinary     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE bStatus        AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cTmp           AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE saveBinaryName AS CHARACTER  NO-UNDO.
+                
+/* Figures out the name of the OCX binary. */
+cTmp = _save_file.
+_save_file = pcFileName.
+RUN adeshar/_contbnm.p (TRUE, phWindow, "SAVE":U, OUTPUT OCXBinary).
+_save_file = cTmp.
+
+/* Creates backup copy of binary file. */
+FILE-INFO:FILE-NAME = OCXBinary.
+IF FILE-INFO:FULL-PATHNAME > "" THEN DO:
+   RUN adecomm/_tmpfile.p ("cf", ".sbx", OUTPUT saveBinaryName).
+   OS-COPY VALUE(OCXBinary) VALUE(saveBinaryName).
+END.    
+
+/* Creates OCX binary file. */
+RUN adeshar/_contbin.p (phWindow, "NORMAL":U, "SAVE":U, OCXBinary, OUTPUT madeBinary, OUTPUT bStatus).
+
+/* Checks status. */
+IF bStatus <> 0 THEN
+    MESSAGE "The OCX binary file could not be created." skip
+            "The previous version of the binary file has been" skip
+            "saved as" saveBinaryName + ". The " skip
+            "binary file and the .w file may be out of synch." skip
+            "You should try to save using a new filename."
+        VIEW-AS ALERT-BOX ERROR TITLE "Binary File Not Created".
+ELSE
+    OS-DELETE VALUE(saveBinaryName).
+                    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

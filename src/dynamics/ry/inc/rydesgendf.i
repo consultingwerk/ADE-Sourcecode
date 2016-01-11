@@ -1,5 +1,5 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -400,7 +400,7 @@
                                ttStoreAttribute.tAttributeParentObj = 0
                                ttStoreAttribute.tAttributeLabel     = "ShowPopup":U
                                ttStoreAttribute.tConstantValue      = NO
-                               ttStoreAttribute.tLogicalValue       = LOOKUP(hFieldBuffer:BUFFER-FIELD("_Data-Type":U):BUFFER-VALUE, "DATE,INTEGER,DECIMAL":U) GT 0.
+                               ttStoreAttribute.tLogicalValue       = LOOKUP(hFieldBuffer:BUFFER-FIELD("_Data-Type":U):BUFFER-VALUE, "DATE,INTEGER,DECIMAL,INT64":U) GT 0.
 
                         /* The VIEW-AS phrase is in VIEW-AS type [details] */
                         CREATE ttStoreAttribute.

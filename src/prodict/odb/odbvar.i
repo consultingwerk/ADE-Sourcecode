@@ -11,6 +11,7 @@
               D. McMann   06/17/03 Removed unsupported data sources
               D. McMann   10/16/03 Created two OTHER catigories and removed MS Access
               K. McIntosh 04/13/04 Added support for ODBC type DB2/400
+              fernando    08/14/06 Removed Informix from list of valid foreign db types
 */    
 
 DEFINE {1} SHARED VARIABLE pro_dbname   AS CHARACTER NO-UNDO.
@@ -26,7 +27,7 @@ DEFINE {1} SHARED VARIABLE odb_library  AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE odb_conparms AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE odb_type     AS CHARACTER FORMAT "x(16)"
   INITIAL "Sybase" VIEW-AS COMBO-BOX  
-     LIST-ITEMS  "Sybase", "DB2/400", "DB2(Other)", "Informix", "Other(MS Access)",  "Other(Generic)"  
+     LIST-ITEMS  "Sybase", "DB2/400", "DB2(Other)", "Other(MS Access)",  "Other(Generic)"  
          SIZE-CHAR 32 By 1.
 
 DEFINE {1} SHARED VARIABLE movedata     AS LOGICAL NO-UNDO.

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,6 +16,7 @@
             10/12/01 DLM Added crtdefault for user to select to dump default values 
             06/25/02 DLM Added shadowcol to know if UPPER function should be used.    
             02/28/03 DLM Removed shadowcol as option
+            04/14/06 fernando Unicode support
 */                         
 
 DEFINE {1} SHARED VARIABLE pro_dbname   AS CHARACTER.
@@ -42,5 +43,7 @@ DEFINE {1} SHARED VARIABLE crtdefault   AS LOGICAL.
 DEFINE {1} SHARED VARIABLE iFmtOption   AS INTEGER INITIAL 2 NO-UNDO.
 DEFINE {1} SHARED VARIABLE lFormat      AS LOGICAL INITIAL TRUE NO-UNDO.
 DEFINE {1} SHARED VARIABLE shadowcol    AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE unicodeTypes AS LOGICAL   NO-UNDO.
+DEFINE {1} SHARED VARIABLE nvchar_utf   AS LOGICAL   NO-UNDO.
 
 DEFINE {1} SHARED STREAM dbg_stream.

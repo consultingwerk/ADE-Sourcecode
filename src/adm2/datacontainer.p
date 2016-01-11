@@ -36,12 +36,16 @@ DEFINE VARIABLE ghService AS HANDLE     NO-UNDO.
 /* exclude included function in order to override here, undefined in main-block */
 &SCOPED-DEFINE exclude-getobjecttype
 
+/* These are design time errors 
+  (also the last one) */
 &SCOPED-DEFINE duperror  ~
  "Duplicate '&1' request for '&2' '&3'. A '&4' request has already been issued by &5."
 
 &SCOPED-DEFINE dataseterror ~
  "Invalid dataset for request '&1' for '&2' '&3'."
 
+/* this message is avoided if service adpater returns ERROR "some error" 
+   when no valid-handle is returned  */
 &SCOPED-DEFINE entityerror ~
  "Could not retrieve dataset for entity '&1'."
 
@@ -56,16 +60,6 @@ DEFINE TEMP-TABLE ttDataset NO-UNDO
   FIELD DatasetProcedure AS HANDLE
   INDEX Requestor AS PRIMARY UNIQUE Requestor DatasetName BusinessEntity
   INDEX DatasetProcedure DatasetProcedure.
-
-DEFINE TEMP-TABLE ttError NO-UNDO
-  FIELD TableName      AS CHARACTER
-  FIELD ChgHandle      AS HANDLE  
-  FIELD ChgRowid       AS ROWID 
-  FIELD IsConflict     AS LOGICAL 
-  FIELD IsError        AS LOGICAL 
-  FIELD IsRejected     AS LOGICAL 
-  INDEX Change   AS PRIMARY UNIQUE ChgHandle ChgRowid
-  INDEX TableIDx TableName.
 
 /* Note: the current relationship to ttDataset is using 3 fields...,
          this is however not exposed in code, so not a big deal..
@@ -285,11 +279,18 @@ PROCEDURE datasetDestroyed :
              that datasets deleted separately is noticed.  
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER bttDataset FOR ttDataset.
-
+  DEFINE VARIABLE hDataset AS HANDLE     NO-UNDO.
+  
   FIND bttDataset WHERE bttDataset.DatasetProcedure = SOURCE-PROCEDURE NO-ERROR.
   IF AVAIL bttDataset THEN
+  DO:
+    {get DatasetHandle hDataset SOURCE-PROCEDURE}. 
+    /* optional service adapter hook */ 
+    RUN stopEntity IN {fn getServiceAdapter} (hDataset) NO-ERROR. 
+    ASSIGN NO-ERROR.   
     DELETE bttDataset.
-                                       
+  END.
+  RETURN.                                    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -333,8 +334,8 @@ PROCEDURE destroyRequestorDatasets :
   Notes:   subscribed to requestor's destroyObject     
 ------------------------------------------------------------------------------*/
   DEFINE BUFFER bttDataset FOR ttDataset.
-
-  FOR EACH bttDataset WHERE bttDataset.Requestor = SOURCE-PROCEDURE:    
+  
+  FOR EACH bttDataset WHERE bttDataset.Requestor = SOURCE-PROCEDURE:
     {fnarg destroyDataset bttDataset.DatasetProcedure}.
   END.
 END PROCEDURE.
@@ -369,13 +370,13 @@ PROCEDURE retrieveData :
   Purpose:    Retrieve data from the service  
   Parameters:   phRequestor      - The requesting object handle used as the key 
                                    to identify the scope of the dataset.
-                                   (the requestor may be the actual dataview)
+                                  (the requestor may be the actual dataview)
                 plRefresh        - Refresh, empties existing data 
                 plAppend         - Append to existing data. 
                                    Equivalent of RebuildOnRepos, except 
                                    for NEXT and PREV which always appends. 
                 plFill           - fill batch
-               --- one entry per table ------- 
+               --- one entry per table -------     
     
                 pcRequests       - chr(1) separated (may have query with comma)
                 pcDataTables     - Comma separated list of tables                                       
@@ -465,18 +466,18 @@ PROCEDURE retrieveData :
     RETURN. 
 
   /* Dim the input(-output) extent parameters */
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT hDataset).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cEntity).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cDataTables).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cQueries).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cNumRecords).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cPositions).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cJoins).
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cRequests). 
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT cContextLists). 
+  ASSIGN 
+    EXTENT(hDataset)      = iNumEntities
+    EXTENT(cEntity)       = iNumEntities
+    EXTENT(cDataTables)   = iNumEntities
+    EXTENT(cQueries)      = iNumEntities
+    EXTENT(cNumRecords)   = iNumEntities
+    EXTENT(cPositions)    = iNumEntities
+    EXTENT(cJoins)        = iNumEntities
+    EXTENT(cRequests)     = iNumEntities
+    EXTENT(cContextLists) = iNumEntities
+    EXTENT(hDSProcedure)  = iNumEntities.
   
-  RUN adecomm/_dimextent.p(iNumEntities, OUTPUT hDSProcedure). 
-
   IF pcDataTables = '' THEN
   DO:
     IF pcRequests = 'DEFS':U THEN
@@ -571,11 +572,11 @@ PROCEDURE retrieveData :
             cNavContext = 'FIRST':U. 
         END. /* if plappend */
         
-        IF plAppend AND NOT plRefresh THEN
+        IF NOT plRefresh THEN
           {fnarg storeBatch cTable hDSProcedure[iEntity]}.
         ELSE DO:
           /* rebuild search -- use copy in case of error */
-          IF NOT plAppend AND NOT plRefresh AND cRequest BEGINS 'WHERE':U THEN
+          IF cRequest BEGINS 'WHERE':U THEN
             lUseCopy = TRUE.             
           ELSE  
             {fnarg emptyBatch cTable hDSProcedure[iEntity]}.
@@ -585,7 +586,7 @@ PROCEDURE retrieveData :
       DO:
         /* Ensure that secondary tables in the first entity are emptied 
            when necessary. */
-        IF NOT plAppend OR plRefresh THEN
+        IF plRefresh THEN
         DO:
           /* A secondary non-child table must be emptied. 
             (if append it will be stored away by storebatch to be merged after the request) */    
@@ -741,49 +742,52 @@ PROCEDURE retrieveData :
           END.
           ELSE IF iEntity = 1 AND iTable = 1 THEN 
           DO:
-            IF plAppend AND NOT plRefresh THEN
+            IF NOT plRefresh THEN
               {fnarg mergeBatch cTable hDSProcedure[iEntity]}.
-          END.
+          END.       
           IF cRequest <> 'DEFS':U THEN
           DO:
-            /* 'ALL' = default dataset child retrieval, 
-                if scrollable asssume we have all otherwise we don't know  */  
-            IF cRequest = 'ALL':U THEN
+            /* refresh=no and append=no is a find independent of/ignoring batch and cannot change context */
+            IF plRefresh = YES OR plAppend = YES THEN 
             DO:
-              IF {fnarg isScrollable cTable hDSProcedure[iEntity]} THEN
+              /* 'ALL' = default dataset child retrieval, 
+	              if scrollable asssume we have all otherwise we don't know  */  
+              IF cRequest = 'ALL':U THEN
+              DO:
+                IF {fnarg isScrollable cTable hDSProcedure[iEntity]} THEN
+                  ASSIGN
+                    cPrev = '' 
+                    cNext = ''.
+                ELSE 
+                  ASSIGN
+                    cPrev = ?
+                    cNext = ?. 
+              END.
+              ELSE
                 ASSIGN
-                  cPrev = '' 
-                  cNext = ''.
-              ELSE 
-                ASSIGN
-                  cPrev = ?
-                  cNext = ?. 
-            END.
-            ELSE
-              ASSIGN
-                cPrev = IF NUM-ENTRIES(cStartPos[iEntity],cDlmTable) >= iTable 
-                        THEN ENTRY(iTable,cStartPos[iEntity],cDlmTable)
-                        ELSE '':U
-                cNext = IF NUM-ENTRIES(cEndPos[iEntity],cDlmTable) >= iTable 
-                        THEN ENTRY(iTable,cEndPos[iEntity],cDlmTable)
-                        ELSE '':U.
-  
-            iNumRecords = INT(ENTRY(iTable,cNumRecords[iEntity],cDlmTable)). 
-            
-            DYNAMIC-FUNCTION('assignTableInformation':U IN hDSProcedure[iEntity],
-                       cTable,
-                       cTableContext,
-                       /* append */
-                       iEntity = 1 AND iTable = 1 AND plAppend AND NOT plRefresh,
-                       cRequest <> 'PREV':U, /* forward */
-                       cPrev,
-                       cNext,
-                       iNumRecords).
+                  cPrev = IF NUM-ENTRIES(cStartPos[iEntity],cDlmTable) >= iTable 
+                          THEN ENTRY(iTable,cStartPos[iEntity],cDlmTable)
+                          ELSE '':U
+                  cNext = IF NUM-ENTRIES(cEndPos[iEntity],cDlmTable) >= iTable 
+                          THEN ENTRY(iTable,cEndPos[iEntity],cDlmTable)
+                          ELSE '':U.
+              iNumRecords = INT(ENTRY(iTable,cNumRecords[iEntity],cDlmTable)). 
+              
+              DYNAMIC-FUNCTION('assignTableInformation':U IN hDSProcedure[iEntity],
+                           cTable,
+                           cTableContext,
+                           /* append */
+                           iEntity = 1 AND iTable = 1 AND plAppend AND NOT plRefresh,
+                           cRequest <> 'PREV':U, /* forward */
+                           cPrev,
+                           cNext,
+                           iNumRecords).
+            END. 
           END.
           ELSE 
             DYNAMIC-FUNCTION('assignTableContext':U IN hDSProcedure[iEntity],
-                             cTable,cTableContext).
-  
+                              cTable,cTableContext).
+          
         END.  /* do iTable = 1 to */  
       END. /* not usecopy or not emptysearch */
       IF lUseCopy THEN 
@@ -874,156 +878,64 @@ END PROCEDURE.
 PROCEDURE submitDataset :
 /*------------------------------------------------------------------------------
   Purpose:    Submit changes for a dataset     
-  Parameters:  <none>
-  Notes:       
+  Parameters: phDatasetSource  - dataset procedure object
+              pcEntity         - Entity name
+              pcDataTable      - table 
+              plSubmitParent
+              plAutoCommit  
+              pcContext        - optional context
+   OUTPUT     plCompleted      - Yes - no errors (includes rejections and conflicts)
+                               - No  - some error,  
+                                      
+   Notes:  The only error checking in this component is on the dataset:error 
+           attribute. 
+           If the changedataset:error is true then plCompleted will be returned
+           as false and none of the data is merged and the ChangeDataset buffers
+           is added to dataset table properties for further processing by the 
+           Dataview.       
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER phDatasetSource  AS HANDLE     NO-UNDO.
   DEFINE INPUT  PARAMETER pcEntity         AS CHARACTER  NO-UNDO.
   DEFINE INPUT  PARAMETER pcDataTable      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER plSubmitParent   AS LOGICAL    NO-UNDO.
+  DEFINE INPUT  PARAMETER plAutoCommit     AS LOGICAL    NO-UNDO.  
   DEFINE INPUT  PARAMETER pcContext        AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER plCompleted        AS LOGICAL    NO-UNDO.
   
-  DEFINE OUTPUT PARAMETER plSuccess        AS LOGICAL    NO-UNDO.
-
-  DEFINE VARIABLE hQuery       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cBuffer      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hBuffer      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBefore      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hChgBuffer   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hChgBefore   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iBuffer      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cError       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hDataset     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE rRowid       AS ROWID      NO-UNDO EXTENT.
-  
-  DEFINE VARIABLE cChangePrefix   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cSubmitTables   AS CHARACTER  NO-UNDO.
-
   DEFINE VARIABLE cContext        AS CHARACTER EXTENT 1 NO-UNDO.
   DEFINE VARIABLE cEntity         AS CHARACTER EXTENT 1 NO-UNDO.
   DEFINE VARIABLE hChangedDataset AS HANDLE    EXTENT 1 NO-UNDO.
   
-  CREATE DATASET hChangedDataset[1].
+  ASSIGN
+    hChangedDataset[1] = DYNAMIC-FUNCTION("createChangeDataset":U IN phDatasetSource, 
+                         pcDataTable,
+                         plSubmitParent,
+                         NOT plAutoCommit, /* SubmitChildren*/
+                         {fn getChangePrefix})
+    cContext[1] = pcContext
+    cEntity[1] = pcEntity.
 
-  {get ChangePrefix cChangePrefix}.
-
-  {get DatasetHandle hDataset phDatasetSource}.
-  
-  /* dim the rowid */
-  hChangedDataset[1]:CREATE-LIKE(hDataSet, cChangePrefix).
-  cContext[1] = pcContext.
-  cSubmitTables = RIGHT-TRIM(pcDataTable 
-                             + ',':U
-                             + {fnarg childTables pcDataTable phDatasetSource},','). 
-
-  RUN adecomm/_dimextent.p(NUM-ENTRIES(cSubmitTables),OUTPUT rRowid).
-
-  DO iBuffer = 1 TO NUM-ENTRIES(cSubmitTables):
-    ASSIGN
-      cBuffer = ENTRY(iBuffer,cSubmitTables)
-      hBuffer = {fnarg dataTableHandle cBuffer phDatasetSource}.
-
-    IF VALID-HANDLE(hBuffer:BEFORE-BUFFER) THEN
-    DO:
-      rRowid[iBuffer] = hBuffer:ROWID.
-      hBuffer:TABLE-HANDLE:TRACKING-CHANGES = FALSE. 
-      hChangedDataset[1]:GET-BUFFER-HANDLE(cChangePrefix +  hBuffer:NAME):GET-CHANGES(hBuffer /*, TRUE*/).   
-    END.
-  END.
-  
-  cEntity[1] = pcEntity.
   RUN submitData IN {fn getServiceAdapter}
                             (cEntity,
                              INPUT-OUTPUT hChangedDataset,
                              INPUT-OUTPUT cContext) NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
   DO:
-    MESSAGE 'Data was not saved due to an unexpexted error:' SKIP(1)
-            IF RETURN-VALUE > '' 
-            THEN RETURN-VALUE 
-            ELSE ERROR-STATUS:GET-MESSAGE(1).
-    plSuccess = false.             
+    RETURN ERROR IF RETURN-VALUE > '' THEN RETURN-VALUE 
+                 ELSE ERROR-STATUS:GET-MESSAGE(1).
   END.
   ELSE 
-  DO:
+  DO:  
     IF cContext[1] > '' THEN
-      DYNAMIC-FUNCTION('assignTableContext':U IN phDatasetSource,
-                           pcDataTable,cContext[1]).
-
-    /* Check the ERROR status that might have been returned. */
-    IF hChangedDataset[1]:ERROR THEN
-    DO:
-      plSuccess = FALSE. 
-      CREATE QUERY hQuery.
-      DO iBuffer = 1 TO NUM-ENTRIES(cSubmitTables):
-        ASSIGN
-          cBuffer    = ENTRY(iBuffer,cSubmitTables)
-          hBuffer    = {fnarg dataTableHandle cBuffer phDatasetSource}
-          hBefore    = hBuffer:BEFORE-BUFFER
-          hChgBuffer = hChangedDataset[1]:GET-BUFFER-HANDLE(cChangePrefix +  hBuffer:NAME) 
-          hChgBefore = hChgBuffer:BEFORE-BUFFER
-          .
-        IF VALID-HANDLE(hChgBefore) THEN
-        DO:
-          hQuery:SET-BUFFERS(hChgBefore).
-          hQuery:QUERY-PREPARE('FOR EACH ':U + hChgBefore:NAME ).
-          hQuery:QUERY-OPEN().
-          hQuery:GET-FIRST.
-          DO WHILE hChgBefore:AVAIL:
-            CREATE ttError.
-            ASSIGN  
-              ttError.TableName  = hBuffer:NAME
-              ttError.ChgHandle  = hChgBefore
-              ttError.ChgRowid   = hChgBefore:ROWID
-              ttError.IsError    = hChgBefore:ERROR 
-              ttError.IsRejected = hChgBefore:REJECTED
-              ttError.IsConflict = hChgBefore:DATA-SOURCE-MODIFIED
-              .
-            IF hChgBefore:ERROR-STRING > '' THEN
-              RUN addMessage IN TARGET-PROCEDURE(hChgBefore:ERROR-STRING,
-                                                 ?,
-                                                 hBuffer:NAME).
-            hQuery:GET-NEXT.
-          END.  /* do while hChgbefore avail */
-        END. /* valid hChgbefore */
-      END. /* DO iBuffer = 1 to num */
-      /* Accept changes that was successful (submit.. is not necessarily commit)  */
-      FOR EACH ttError WHERE ttError.Iserror = FALSE
-                       AND   ttError.IsRejected = FALSE
-                       AND   ttError.IsConflict = FALSE:
-        hBefore = ttError.ChgHandle:TABLE-HANDLE:ORIGIN-HANDLE:DEFAULT-BUFFER-HANDLE.
-        ttError.ChgHandle:FIND-BY-ROWID(ttError.ChgRowid).
-        hBefore:FIND-BY-ROWID(ttError.ChgHandle:ORIGIN-ROWID).
-        DO TRANSACTION: 
-          hBefore:ACCEPT-CHANGES().
-        END.
-      END.
-      EMPTY TEMP-TABLE ttError. 
-      DELETE OBJECT hQuery.
-    END. /* IF hChangedDataset[1]:ERROR  */
-    ELSE 
-      plSuccess = TRUE.
-
-    DO iBuffer = 1 TO NUM-ENTRIES(cSubmitTables):
-      ASSIGN
-        cBuffer = ENTRY(iBuffer,cSubmitTables)
-        hBuffer = {fnarg dataTableHandle cBuffer phDatasetSource}.
-        
-      hBuffer:BUFFER-RELEASE().
-      /* Without the transaction block row-updated trigger would/could fire  
-         later  */
-      IF plSuccess AND VALID-HANDLE(hBuffer:BEFORE-BUFFER) THEN
-      DO TRANSACTION:
-        hChangedDataset[1]:GET-BUFFER-HANDLE(cChangePrefix +  hBuffer:NAME):MERGE-CHANGES(hBuffer).
-      END.
-      hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE. 
-      IF rRowid[iBuffer] <> ? THEN
-        hBuffer:FIND-BY-ROWID(rRowid[ibuffer]).
-    END.
+      DYNAMIC-FUNCTION('assignTableContext':U IN phDatasetSource,cContext[1]).
+    
+    /* If any error the error buffers are stored per table to be handled by
+       the dataviews later (and false is returned)  */
+    plCompleted = DYNAMIC-FUNCTION("mergeChangeDataset":U IN phDatasetSource,
+                                   hChangedDataset[1],
+                                   plSubmitParent OR pcDataTable = "" ).
   END. /* else (not unexpected error) */
-
-  DELETE OBJECT hChangedDataset[1].            
-
-END PROCEDURE.
+ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

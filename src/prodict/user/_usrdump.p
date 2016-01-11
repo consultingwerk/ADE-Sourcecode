@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -10,6 +10,7 @@
 /*
 IN:
   user_env[1] = "ALL" or comma-separated list of files
+
   user_env[9] = type of dump (e.g. .df or .d or bulk-load file)
                 "4"   = dump file definitions with AS/400 stuff
                 "5"   = dump file definitions in V5 format
@@ -65,6 +66,7 @@ history:
                             support
     kmcintos    06/07/05    Added context help ids for auditing options.
     kmcintos    07/27/05    Removed reference to unused longchar variable.
+    fernando    03/14/06    Handle case with too many tables selected - bug 20050930-006.
 */
 /*h-*/
 
@@ -101,6 +103,9 @@ DEFINE VARIABLE dis_trig AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE dmp-rpos AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE inclob   AS LOGICAL    NO-UNDO INITIAL TRUE.
 DEFINE VARIABLE s_res    AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
+DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
+DEFINE VARIABLE cItem      AS CHARACTER  NO-UNDO.
 
 {prodict/misc/filesbtn.i}
 
@@ -862,7 +867,7 @@ DO:
 
   if dir = "" then assign dir = "./".
   
-  DO i = 1 to NUM-ENTRIES(user_env[1])
+   DO i = 1 to NUM-ENTRIES(user_env[1])
     WHILE NOT exist:
     ASSIGN fil = dir + ENTRY(i,user_env[1]) + ".d".
     IF (SEARCH(fil) <> ?) THEN ASSIGN exist = true.
@@ -1055,11 +1060,13 @@ END.
 on WINDOW-CLOSE of frame write-output-file
    apply "END-ERROR" to frame write-output-file.
 on END-ERROR of frame write-output-file
-   user_env[1] = ?.
+   assign user_env[1] = ?
+          user_longchar = ?.
 on WINDOW-CLOSE of frame write-output-file-nocp
    apply "END-ERROR" to frame write-output-file-nocp.
 on END-ERROR of frame write-output-file-nocp
-   user_env[1] = ?.
+   ASSIGN user_env[1] = ?
+          user_longchar = ?.
 on WINDOW-CLOSE of frame write-boutput-file
    apply "END-ERROR" to frame write-boutput-file.
 on WINDOW-CLOSE of frame write-dump-file
@@ -1079,7 +1086,8 @@ on WINDOW-CLOSE of frame write-dump-dir-nobl
 on WINDOW-CLOSE of frame write-dump-dir-cdpg
    apply "END-ERROR" to frame write-dump-dir-cdpg.
 ON END-ERROR OF FRAME write-dump-dir-cdpg
-   user_env[1] = ?.
+   ASSIGN user_env[1] = ?
+          user_longchar = ?.
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[2] IN FRAME write-output-file
@@ -1473,6 +1481,11 @@ ELSE IF class = "f" THEN DO FOR _File:
 
   FIND _File "_File".
   IF NOT CAN-DO(_Can-read,USERID("DICTDB")) THEN msg-num = 3.
+
+  /* using base_lchar to make code below simplier */
+  IF is-one OR is-some THEN
+     base_lchar = user_env[1].
+
   ASSIGN
     user_env[2] = prefix + (IF is-all OR is-some THEN "" ELSE dump-as + ".d")
     io-file     = NOT is-all AND NOT is-some
@@ -1480,8 +1493,8 @@ ELSE IF class = "f" THEN DO FOR _File:
                 + (IF is-all THEN "All Tables"
                   ELSE IF is-some THEN "Some Tables"
                   ELSE "Table" + ' "' + user_env[1] + '"')
-    base        = (IF is-one OR is-some THEN user_env[1] ELSE "")
     user_env[1] = ""
+    user_longchar = ""
     comma       = ""
     i           = 1.
 
@@ -1498,18 +1511,25 @@ ELSE IF class = "f" THEN DO FOR _File:
       AND CAN-DO(_File._Can-dump,USERID(user_dbname))
       AND (nodump = "" OR NOT CAN-DO(nodump,_File._For-type))
     BY _File._File-name:
-    base = base + (IF base = "" THEN "" ELSE ",") + _File._File-name.
+
+       base_lchar = base_lchar + (IF base_lchar = "" THEN "" ELSE ",") + _File._File-name.
   END.
 
   /* Run through the file list and cull out the ones that the user
      is not allowed to dump for some reason.
   */
   user_env[4] = "".
-  DO i = 1 TO NUM-ENTRIES(base):
+
+  ASSIGN numCount = NUM-ENTRIES(base_lchar).
+
+  DO i = 1 TO numCount:
     err = ?.
     dis_trig = "y".
+
+    cItem = ENTRY(i,base_lchar).
+
     FIND _File
-      WHERE _File._Db-recid = drec_db AND _File._File-name = ENTRY(i,base)
+      WHERE _File._Db-recid = drec_db AND _File._File-name = cItem
         AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" ).
     IF NOT CAN-DO(_File._Can-read,USERID(user_dbname)) OR 
        NOT CAN-DO(_File._Can-dump,USERID(user_dbname)) THEN
@@ -1541,14 +1561,16 @@ ELSE IF class = "f" THEN DO FOR _File:
       END.
     END.
 
-    IF err = ? THEN
+    IF err = ? THEN DO:
+
       ASSIGN
-        user_env[1] = user_env[1] + comma + _File._File-name
         user_env[4] = user_env[4] + comma + dis_trig
+        user_longchar = user_longchar + comma + _File._File-name
         comma       = ",".
+    END.
     ELSE IF err <> "" THEN DO:
       answer = TRUE.
-      IF NUM-ENTRIES(base) = 1 THEN DO:
+      IF NUM-ENTRIES(base_lchar) = 1 THEN DO:
          MESSAGE err VIEW-AS ALERT-BOX ERROR BUTTONS OK.
          user_path = "".
          RETURN.
@@ -1562,10 +1584,14 @@ ELSE IF class = "f" THEN DO FOR _File:
          END.
       END.
     END.
-  END.  /* end of DO i = 2 TO NUM-ENTRIES(base) */
+  END.  /* end of DO i = 2 TO NUM-ENTRIES(base_lchar) */
 
   /* subsequent removal of files changed from many to one, so reset ui stuff */
-  IF (is-some OR is-all) AND NUM-ENTRIES(user_env[1]) = 1 THEN DO:
+  IF (is-some OR is-all) AND 
+     NUM-ENTRIES(user_longchar) = 1 THEN DO:
+    assign user_env[1] = user_longchar
+           user_longchar ="".
+
     FIND _File
       WHERE _File._Db-recid = drec_db
         AND _File._File-name = user_env[1]
@@ -1581,6 +1607,15 @@ ELSE IF class = "f" THEN DO FOR _File:
       io-title    = "Dump Data Contents for Table ~"" + user_env[1] + "~""
       base        = user_env[1].
   END. /* IF is-some OR is-all */
+  ELSE DO:
+      /* see if we can put user_longchar into user_env[1] */
+      ASSIGN user_env[1] = user_longchar NO-ERROR.
+      IF NOT ERROR-STATUS:ERROR THEN
+         ASSIGN user_longchar = "".
+      ELSE
+         ASSIGN user_env[1] = "".
+  END.
+
 END. /* IF class = "f" */
 
 /*-----------------------------------------------------*/ /* DUMP SEQ DEFS */
@@ -1757,15 +1792,15 @@ END. /* IF class = "b" */
 IF msg-num > 0 THEN DO:
   MESSAGE (
     IF      msg-num = 1 THEN
-      "Cannot dump User information from a non-PROGRESS database."
+      "Cannot dump User information from a non-{&PRO_DISPLAY_NAME} database."
     ELSE IF msg-num = 2 THEN
-      "Cannot dump View information from a non-PROGRESS database."
+      "Cannot dump View information from a non-{&PRO_DISPLAY_NAME} database."
     ELSE IF msg-num = 3 THEN
       "You do not have permission to use this option."
     ELSE IF msg-num = 4 THEN
-      "You can only dump definitions in V5 format for PROGRESS databases."
+      "You can only dump definitions in V5 format for {&PRO_DISPLAY_NAME} databases."
     ELSE /*IF msg-num = 5 THEN*/
-      "You can only create bulkload description files for PROGRESS databases.")
+      "You can only create bulkload description files for {&PRO_DISPLAY_NAME} databases.")
     VIEW-AS ALERT-BOX ERROR BUTTONS OK.
   user_path = "".
   RETURN.

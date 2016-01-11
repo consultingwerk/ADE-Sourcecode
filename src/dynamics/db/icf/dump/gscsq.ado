@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<dataset Transactions="6"><dataset_header DatasetCode="GSCSQ" DatasetObj="1007600105.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="92" SCMManaged="no" YearOffset="1950"/>
+<dataset Transactions="6"><dataset_header DatasetCode="GSCSQ" DatasetObj="1007600105.08" DateFormat="mdy" DisableRI="yes" FullHeader="no" NumericDecimal="." NumericFormat="AMERICAN" NumericSeparator="," OriginatingSite="93" SCMManaged="no" YearOffset="1950"/>
 <dataset_records><dataset_transaction TransactionNo="1" TransactionType="DATA"><contained_record DB="icfdb" Table="gsc_sequence"><sequence_obj>9451.24</sequence_obj>
 <company_organisation_obj>0</company_organisation_obj>
 <owning_entity_mnemonic>RYCRE</owning_entity_mnemonic>
@@ -27,7 +27,7 @@
 <sequence_format>VER&amp;S.&amp;9</sequence_format>
 <auto_generate>yes</auto_generate>
 <multi_transaction>no</multi_transaction>
-<next_value>12</next_value>
+<next_value>2</next_value>
 <number_of_sequences>0</number_of_sequences>
 <sequence_active>yes</sequence_active>
 </contained_record>

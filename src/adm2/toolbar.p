@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : toolbar.p
     Purpose     : Super procedure for toolbar class.
@@ -43,7 +43,8 @@
    fn can tell who the actual source was.  */
 DEFINE VARIABLE ghTargetProcedure AS HANDLE     NO-UNDO.
 
-DEFINE VARIABLE glInitialized AS LOG    NO-UNDO.
+/* class property */
+DEFINE VARIABLE glActionsLoaded AS LOG    NO-UNDO.
   
 /* Used in resizeObject to determine when initialization is complete */
 DEFINE VARIABLE glInitComplete    AS LOGICAL    NO-UNDO.
@@ -1299,6 +1300,17 @@ FUNCTION getActionGroups RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-getActionsLoaded) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getActionsLoaded Procedure 
+FUNCTION getActionsLoaded RETURNS LOGICAL
+  (  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAvailMenuActions) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAvailMenuActions Procedure 
@@ -1671,6 +1683,17 @@ FUNCTION getTableioTargetEvents RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTableIOType Procedure 
 FUNCTION getTableIOType RETURNS CHARACTER
   (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTableioUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getTableioUndoNew Procedure 
+FUNCTION getTableioUndoNew RETURNS LOGICAL
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2064,6 +2087,17 @@ FUNCTION sensitizeActions RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setActionGroups Procedure 
 FUNCTION setActionGroups RETURNS LOGICAL
   (pcActionGroups AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setActionsLoaded) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setActionsLoaded Procedure 
+FUNCTION setActionsLoaded RETURNS LOGICAL
+  ( plIsLoaded AS LOG )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2708,6 +2742,61 @@ IF VALID-HANDLE(gshSessionManager) THEN
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-bandActionList) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE bandActionList Procedure 
+PROCEDURE bandActionList PRIVATE :
+/*------------------------------------------------------------------------------
+   Purpose: Retrieve all actions for specified category and band recursively 
+            through all child bands   
+Parameters: pcCategory - category name 
+                       - blank is valid as it is used to find uncategorized 
+                         actions  
+                       - '*' All actions. 
+        I-O pcActionList - collect actions 
+                                  
+     Notes: PRIVATE - Used by categoryActions, which is used by the 
+            Instance Property dialog to select MenuBands
+------------------------------------------------------------------------------*/
+DEFINE INPUT        PARAMETER pcBand       AS CHARACTER  NO-UNDO.
+DEFINE INPUT        PARAMETER pcCategory   AS CHARACTER  NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER pcActionList AS CHARACTER  NO-UNDO.
+
+DEFINE VARIABLE cType     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE cCategory AS CHARACTER  NO-UNDO.
+
+DEFINE BUFFER bttBandAction FOR ttBandAction.
+DEFINE BUFFER bttBand       FOR ttBand.
+
+  FOR EACH bttBandAction WHERE bttBandAction.Band = pcBand 
+                         BY bttBandAction.Sequence:  
+    IF bttBandAction.ChildBand = '':U THEN
+    DO:
+      IF pcCategory <> '*':U THEN
+        cCategory = {fnarg actionCategory bttBandAction.Action}.
+      cType = {fnarg actionType bttBandAction.Action}.
+      
+      IF  (pcCategory = '*':U OR pcCategory = cCategory)
+      AND LOOKUP(cType,'Separator,Placeholder':U) = 0 
+      AND LOOKUP(bttBandAction.Action,pcActionList) = 0 THEN
+        pcActionList = pcActionList 
+                    + (IF pcActionList <> '':U THEN ',':U ELSE '':U) 
+                    +  bttBandAction.Action.
+    END.
+    ELSE RUN bandActionList IN TARGET-PROCEDURE
+                            (bttBandAction.ChildBand,
+                             pcCategory,
+                             INPUT-OUTPUT pcActionList).
+
+  END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-buildAllMenus) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildAllMenus Procedure 
@@ -3200,7 +3289,19 @@ PROCEDURE initAction :
                 "resetRecord":U {&dlmt}
                 "":U {&dlmt}
                 "TABLEIO":U {&dlmt}
-                "DataModified"
+                "DataModified":U
+                ).
+   
+   defineAction("UndoChange":U,xcColumns + "," + "SubstituteProperty",
+                "Undo &1" {&dlmt}   
+                "Undo &1" {&dlmt}
+                "reset.bmp":U  {&dlmt}
+                "PUBLISH":U  {&dlmt}
+                "undoChange":U {&dlmt}
+                "":U {&dlmt}
+                "TABLEIO":U {&dlmt}
+                "CanUndoChanges AND ObjectMode=View,Modify OR DataModified":U  {&dlmt}
+                "UndoChangeCaption":U
                 ).
    
    defineAction("CANCEL":U,xcColumns,
@@ -3302,7 +3403,10 @@ PROCEDURE initAction :
                 "navigation-target":U
                 ).
                                                                                        
-   &UNDEFINE dlmt             
+   &UNDEFINE dlmt 
+               
+   /* set class property */
+   {set ActionsLoaded TRUE}.
 
 END PROCEDURE.
 
@@ -3334,8 +3438,8 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cTableioType     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cHidden          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cPanelType       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTableioTarget   AS CHARACTER  NO-UNDO.
 
-  /* Tableiotype 'save' is managed by HiddenActions from 9.1D */ 
   &SCOPED-DEFINE xp-assign
   {get TableioType cTableioType}
   {get HiddenActions cHidden}
@@ -3343,17 +3447,9 @@ PROCEDURE initializeObject :
   {get Menu lMenu}
   {get UseRepository lUseRepository}
   {get PanelType cPanelType}
+  {get TableioTarget cTableioTarget}
   .
   &UNDEFINE xp-assign
-  
-
-  IF cPanelType = 'toolbar':U AND cTableioType = 'Save':U AND LOOKUP('update':U,cHidden) = 0 THEN
-  DO:
-    cHidden  = cHidden 
-             + (IF cHidden = '':U THEN '':U ELSE ',':U) 
-             + 'Update':U.
-    {set HiddenActions cHidden}.
-  END.
 
   /* Assign var to determine in resizeObject when initialization is complete */
   ASSIGN glInitComplete = NO.
@@ -3365,23 +3461,39 @@ PROCEDURE initializeObject :
     {get ObjectInitialized lInit}.
     IF lInit THEN RETURN "ADM-ERROR":U.
   END.
- 
-  IF NOT glInitialized AND NOT lUseRepository THEN
-  DO:
+
+  IF NOT {fn getActionsLoaded} AND NOT lUseRepository THEN
      /* This is considered class properties and will only be defined the
         first time an instance is initialized. */
     RUN initAction IN TARGET-PROCEDURE. 
-    glInitialized = TRUE.
-  END.
-  
+
+  /* Ensure tableio toolbar 'Update' action is hidden if TableioType is "Save" 
+     and ensure that only one of 'Reset' or 'UndoChange' is present */
+  IF (cTableioTarget  > '' OR cUIBMode = "DESIGN":U) AND cPanelType = 'toolbar':U THEN 
+  DO:
+    /* Tableiotype is managed by HiddenActions in toolbar from 9.1D */ 
+    IF cTableioType = 'Save':U AND LOOKUP('update':U,cHidden) = 0 
+    AND {fnarg canFindAction 'Update':U}  THEN
+      cHidden  = cHidden 
+               + (IF cHidden = '':U THEN '':U ELSE ',':U) 
+               + 'Update':U.
+
+    IF LOOKUP('Reset':U,cHidden) = 0 AND LOOKUP('UndoChange':U,cHidden) = 0 
+    AND {fnarg canFindAction 'UndoChange':U}  THEN
+      cHidden  = cHidden 
+               + (IF cHidden = '':U THEN '':U ELSE ',':U) 
+               + 'Reset':U.
+    {set HiddenActions cHidden}.
+  END. /* tableio toolbar */
+
   RUN SUPER. 
 
   {get ContainerHandle hFrame}.
-  
+
   ASSIGN
     hFrame:SCROLLABLE = FALSE
     hFrame:HIDDEN     = TRUE.
-  
+
   IF cPanelType = 'toolbar' THEN
   DO:
     IF cUIBMode BEGINS "DESIGN":U THEN
@@ -3451,9 +3563,8 @@ PROCEDURE initializeObject :
       {fn initializeToolBar}.
     END.
   END.
-
-  {get HideOnInit lHideOnInit}.
-   
+  
+  {get HideOnInit lHideOnInit}. 
   IF NOT lHideOnInit THEN 
   DO:
     RUN viewObject IN TARGET-PROCEDURE.
@@ -3475,7 +3586,8 @@ PROCEDURE initializeObject :
   IF cUIBmode = '':U THEN
     RUN resetAllTargetActions IN TARGET-PROCEDURE.
 
-  ASSIGN glInitComplete = YES.  
+  ASSIGN glInitComplete    = YES
+         hFrame:SCROLLABLE = YES.  
 
 END PROCEDURE.
 
@@ -4174,7 +4286,7 @@ PROCEDURE onChoose :
       WHEN "PUBLISH":U THEN
       DO:
         IF cParam = "":U THEN
-          PUBLISH cCall FROM TARGET-PROCEDURE.  
+          PUBLISH cCall FROM TARGET-PROCEDURE.          
         ELSE
           PUBLISH cCall FROM TARGET-PROCEDURE (cParam).  
       END.
@@ -4383,7 +4495,7 @@ PROCEDURE queryPosition :
   DEFINE VARIABLE hNavTarget     AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hIOTarget      AS HANDLE    NO-UNDO.
   DEFINE VARIABLE hSource        AS HANDLE    NO-UNDO.
-
+ 
   /* Is this an active Tableio state? */
   hIOTarget = {fnarg activeTarget 'TableIO':U}.    
   IF hIOTarget = SOURCE-PROCEDURE THEN
@@ -4630,6 +4742,7 @@ PROCEDURE resetTableio :
             - Can probably replace ALL other events except 
               -  linkChanged('inactive').
 ------------------------------------------------------------------------------*/
+
   RUN resetTargetActions IN TARGET-PROCEDURE ('Tableio':U).
 
   RETURN.
@@ -4945,8 +5058,8 @@ PROCEDURE resizeObject :
   DEFINE VARIABLE hFrame                AS HANDLE  NO-UNDO.
   DEFINE VARIABLE hWindow               AS HANDLE  NO-UNDO.
   DEFINE VARIABLE hContainerSource      AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE dMinWidth      AS DECIMAL NO-UNDO.
-  DEFINE VARIABLE dMinHeight     AS DECIMAL NO-UNDO.
+  DEFINE VARIABLE dMinWidth             AS DECIMAL NO-UNDO.
+  DEFINE VARIABLE dMinHeight            AS DECIMAL NO-UNDO.
   DEFINE VARIABLE hRectangle            AS HANDLE  NO-UNDO.
   DEFINE VARIABLE hRectangle2           AS HANDLE  NO-UNDO.  
   DEFINE VARIABLE lShowBorder           AS LOGICAL NO-UNDO.
@@ -4980,10 +5093,10 @@ PROCEDURE resizeObject :
   .
   &UNDEFINE xp-assign
 
-  hFrame:SCROLLABLE = FALSE.                                               
+  hFrame:SCROLLABLE = FALSE.
   lPreviouslyHidden = hFrame:HIDDEN.                                                           
   hFrame:HIDDEN = TRUE.
- 
+
   /* If autosize turned on - always resize according to the window or folder size */  
   IF lToolbarAutoSize THEN    
   DO: 
@@ -5041,16 +5154,16 @@ PROCEDURE resizeObject :
           hframe:COL        = dCol
           hFrame:WIDTH      = pdWidth 
         NO-ERROR.          
-    
+
   END.
   ELSE /* Ensure that the frame is sized to stored values on open 
           otherwise the max logic further down would use the frame's initial        
           size */          
-          
+
     ASSIGN 
       hFrame:HEIGHT      = pdHeight WHEN dMinHeight < pdHeight
       hFrame:WIDTH       = pdWidth WHEN dMinWidth < pdWidth. 
-  
+
   IF dMinHeight > 0 AND dMinHeight < (SESSION:HEIGHT - 1) AND
      dMinWidth > 0 AND dMinWidth < (SESSION:WIDTH - 1) AND
      (hWindow:WIDTH < dMinWidth OR hWindow:HEIGHT < dMinHeight) THEN
@@ -5059,7 +5172,7 @@ PROCEDURE resizeObject :
       ASSIGN
         hWindow:HEIGHT     = dMinHeight
         hWindow:MIN-HEIGHT = dMinHeight NO-ERROR.
-    
+
     IF hWindow:WIDTH < dMinWidth THEN
       ASSIGN
         hWindow:WIDTH     = dMinWidth
@@ -5067,7 +5180,7 @@ PROCEDURE resizeObject :
     RUN resizeWindow IN hContainerSource NO-ERROR.
     lWindowResize = TRUE. /* flag for design mode further down  */
   END.
-    
+
   /* Ensure frame height / width is not smaller than minimum allowed to fit buttons, plus reset to 1 column/row
      depending on horizontal / vertical alignment
      Also ensure that height/width is not changed on horizontal/vertical */
@@ -5091,12 +5204,13 @@ PROCEDURE resizeObject :
   /* bring ventilator back onto top */
   IF cUIBMode BEGINS "DESIGN":U THEN 
   DO:
+    
     /* If the window was resized the frame is not resized accordingly 
        in Design mode as there is no persistent ContainerSource */
     IF lWindowResize THEN
     DO:
       RUN adeuib/_uibinfo.p (?,'frame ?':U,'handle':U, OUTPUT cFrame).
-     
+
       hWindowFrame = WIDGET-HANDLE(cFrame).  
 
       hWindowFrame:WIDTH  = MAX(hWindow:WIDTH,hWindowFrame:WIDTH).
@@ -5108,16 +5222,17 @@ PROCEDURE resizeObject :
     hPopupFrame = hPopupframe:FIRST-CHILD.
     IF VALID-HANDLE(hPopupFrame) THEN 
       hPopupframe:MOVE-TO-TOP().
-    
+
    IF program-name(2) <> 'adeuib/_setsize.p':u AND glInitComplete THEN
     DO:
       APPLY "end-resize":U TO hFrame.
       APPLY "end-resize":U TO hWindow. 
     END.
-    
+
   END.
 
-  hFrame:HIDDEN = lPreviouslyHidden NO-ERROR.
+ASSIGN hFrame:HIDDEN     = lPreviouslyHidden 
+       hFrame:SCROLLABLE = TRUE NO-ERROR.
 
 END PROCEDURE.
 
@@ -5139,9 +5254,9 @@ PROCEDURE rowObjectState :
                of the Commit button to see if we're already enabled/disabled. 
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pcState AS CHARACTER NO-UNDO.
-  
+
   RUN resetCommit IN TARGET-PROCEDURE.
-  
+
   RETURN.
 END PROCEDURE.
 
@@ -5173,7 +5288,7 @@ Parameters:  pcLink - link name
 ------------------------------------------------------------------------------*/  
   DEFINE INPUT PARAMETER pcLink   AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER phTarget AS HANDLE     NO-UNDO.
-  
+
   DEFINE INPUT-OUTPUT PARAMETER piocEnable    AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER piocDisable   AS CHARACTER  NO-UNDO.
   DEFINE INPUT-OUTPUT PARAMETER piocVisible   AS CHARACTER  NO-UNDO.
@@ -5195,7 +5310,7 @@ Parameters:  pcLink - link name
   DEFINE VARIABLE iFunc    AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hFunc    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer  AS HANDLE     NO-UNDO.
-  
+
   DEFINE VARIABLE lEnablerule AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lHiderule   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lImagerule  AS LOGICAL    NO-UNDO.
@@ -5371,7 +5486,7 @@ PROCEDURE runInfo :
 
    cOnChoose = {fnarg actionOnChoose pcAction}.
    {get UseRepository lUseRepository}.
-   
+ 
    IF lUseRepository THEN
    DO:
      ASSIGN  
@@ -5872,7 +5987,10 @@ Parameters: <none>
       RUN rebuildMenu IN  TARGET-PROCEDURE.
   END.
 
-  {set ObjectHidden NO}.
+  &SCOPED-DEFINE xp-assign
+  {set ObjectHidden NO}
+  {set HideOnInit NO}.
+  &UNDEFINE xp-assign
 
 END PROCEDURE.
 
@@ -7490,12 +7608,12 @@ END FUNCTION.
 FUNCTION bandActions RETURNS CHARACTER
   ( pcParentBand AS CHAR ) :
 /*------------------------------------------------------------------------------
-  Purpose:  Returns the available menu band for this toolbar master 
+  Purpose:  Returns available actions for a specific band 
     Notes:  Used in the Instance Property dialog to select MenuBands
 ------------------------------------------------------------------------------*/
  DEFINE BUFFER bttBand       FOR ttBand.
  DEFINE BUFFER bttBandAction FOR ttBandAction.
- 
+
  DEFINE VARIABLE cLogicalObject AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cActionList    AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cType          AS CHARACTER  NO-UNDO.
@@ -8172,7 +8290,37 @@ FUNCTION canFindAction RETURNS LOGICAL
   Purpose: Check if an action exist. 
     Notes:  
 ------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cToolbar     AS CHARACTER  NO-UNDO.
+
   {&findaction}
+  
+  /* if not initilized then ensure load  
+    (this will be removed when/if initAction is moved to createObjects and
+     containers publish createObjects deep also for non adm ) */
+  IF NOT AVAIL ttAction THEN
+  DO:
+   /* This check is cheaper than the function calls and it also ensures that 
+      we're not helping/dealing with a potential case that somehow 
+      failed to load at init */
+    {get ObjectInitialized lInitialized}.
+    IF NOT lInitialized THEN 
+    DO:
+      IF {fn getUseRepository} THEN
+      DO:
+        {get LogicalObjectName cToolbar}.
+        /* Check if this toolbar is in the cache. If not we need to load it */
+        IF NOT CAN-FIND(FIRST ttToolbarBand
+                        WHERE ttToolbarBand.Toolbar = cToolbar) THEN
+          RUN loadToolbar IN TARGET-PROCEDURE.
+      END.
+      ELSE IF NOT {fn getActionsLoaded} THEN
+        RUN initAction IN TARGET-PROCEDURE.
+      
+      {&findaction}
+    END.  /* not initialized */
+  END. /* not avail */
+
   RETURN AVAIL ttAction.
 
 END FUNCTION.
@@ -8191,7 +8339,30 @@ FUNCTION canFindCategory RETURNS LOGICAL
   Purpose: Check if an action exist. 
     Notes:  
 ------------------------------------------------------------------------------*/
-  RETURN findCategory(pcCategory,TARGET-PROCEDURE).
+ DEFINE VARIABLE lOk          AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lInitialized AS LOGICAL    NO-UNDO.
+ 
+ lok = findCategory(pcCategory,TARGET-PROCEDURE).
+ 
+ /* if not initilized then ensure load  
+    (this will be removed when/if initAction is moved to createObjects and
+     containers publish createObjects deep also for non adm ) */
+ IF NOT lok THEN
+ DO:
+   /* This check is cheaper than the function calls and it also ensures that 
+      we're not helping/dealing with a potential case that someehow 
+      failed to load at init */
+   {get ObjectInitialized lInitialized}.
+   IF NOT lInitialized 
+   AND NOT {fn getActionsLoaded} 
+   AND NOT {fn getUseRepository} THEN 
+   DO:
+     RUN initAction IN TARGET-PROCEDURE.
+     lok = findCategory(pcCategory,TARGET-PROCEDURE).
+   END.
+ END.
+
+ RETURN lok.
 
 END FUNCTION.
 
@@ -8212,7 +8383,7 @@ Parameters: pcCategory - category name
                        - blank is valid as it is used to find uncategorized 
                          actions  
                        - '*' All actions.              
-     Notes: Used in the Instance Property dialog to select MenuBands
+     Notes: Used in the Instance Property dialog 
 ------------------------------------------------------------------------------*/
  DEFINE BUFFER bttBand        FOR ttBand.
  DEFINE BUFFER bttBandAction  FOR ttBandAction.
@@ -8225,36 +8396,27 @@ Parameters: pcCategory - category name
  IF pcCategory = xcNoCategory THEN
     pcCategory = '':U.
 
- {get LogicalObjectName cLogicalObject}.
+  {get LogicalObjectName cLogicalObject}.
  
- FOR 
- EACH bttToolbarband WHERE bttToolbarBand.toolbar = cLogicalObject,
- EACH bttBand WHERE bttBand.band = bttToolbarband.Band,
- EACH bttBandAction WHERE bttBandAction.Band = bttBand.band 
-     BY (IF bttBand.Bandtype = 'Toolbar' OR bttBand.Bandtype = 'Menu&Toolbar' 
-         THEN IF bttToolbarBand.alignment = 'Left' 
-              THEN 1
-              ELSE IF bttToolbarBand.alignment = 'Center' 
-              THEN 2
-              ELSE 3
-          ELSE 4)
-     BY bttBandAction.Sequence:  
-   IF bttBandAction.ChildBand = '':U THEN
-   DO:
-     IF cCategory <> '*':U THEN
-     DO:
-       cCategory = {fnarg actionCategory bttBandAction.Action}.
-     END.
-     cType = {fnarg actionType bttBandAction.Action}.
-     IF  (cCategory = '*':U OR cCategory = pcCategory)
-     AND NOT CAN-DO('Separator,Placeholder':U,cType) 
-     AND NOT CAN-DO(cActionList,bttBandAction.Action)  THEN
-       cActionList = cActionList 
-                   + (IF cActionList <> '':U THEN ',':U ELSE '':U) 
-                   +  bttBandAction.Action.
-   END.
- END.
- RETURN cActionList.
+  FOR 
+  EACH bttToolbarband WHERE bttToolbarBand.toolbar = cLogicalObject, 
+  EACH bttBand WHERE bttBand.band = bttToolbarband.Band
+       BY (IF bttBand.Bandtype = 'Toolbar' OR bttBand.Bandtype = 'Menu&Toolbar' 
+           THEN IF bttToolbarBand.alignment = 'Left'        
+                THEN 1
+                ELSE IF bttToolbarBand.alignment = 'Center' 
+                     THEN 2
+                     ELSE 3
+           ELSE 4):  
+    RUN bandActionList IN TARGET-PROCEDURE
+                            (bttBand.Band,
+                             pcCategory,
+                             INPUT-OUTPUT cActionList).
+                                                             
+  END.
+
+  RETURN cActionList.
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -10588,8 +10750,9 @@ FUNCTION findAction RETURNS LOGICAL
            static ttAction.   
     Notes:  
 ------------------------------------------------------------------------------*/
-  &SCOPED-DEFINE targetproc phTarget
+  &SCOPED-DEFINE targetproc phTarget /* undefined in findaction*/
   {&findaction}
+  
   RETURN AVAILABLE ttAction.
 END FUNCTION.
 
@@ -10648,6 +10811,26 @@ FUNCTION getActionGroups RETURNS CHARACTER
   DEFINE VARIABLE cActionGroups AS CHARACTER NO-UNDO.
   {get ActionGroups cActionGroups}.
   RETURN cActionGroups.
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getActionsLoaded) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getActionsLoaded Procedure 
+FUNCTION getActionsLoaded RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Check class flag that tells whether actions have been loaded 
+    Notes: Considered PRIVATE, but not defined as private since 
+           custom initAction may need to call the SET.    
+         - Non repository only
+------------------------------------------------------------------------------*/
+  RETURN glActionsLoaded. 
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -11432,6 +11615,34 @@ FUNCTION getTableIOType RETURNS CHARACTER
   DEFINE VARIABLE cType AS CHARACTER NO-UNDO.
   {get TableIOType cType}.
   RETURN cType.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-getTableioUndoNew) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTableioUndoNew Procedure 
+FUNCTION getTableioUndoNew RETURNS LOGICAL
+  (  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if undochange also should undo new records instead 
+           of cancel.              
+    Notes: True if the CANCEL action does not exists or is hidden
+           in the toolbar.   
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cHiddenActions AS CHARACTER  NO-UNDO.
+
+  IF {fnarg canFindAction 'CANCEL':U} THEN
+  DO:
+    {get HiddenActions cHiddenActions}.
+    RETURN LOOKUP('CANCEL',cHiddenActions) > 0.
+  END.
+
+  RETURN TRUE.
 
 END FUNCTION.
 
@@ -12426,7 +12637,6 @@ IF pcImage = ? OR pcImage = "" THEN
            NO-ERROR.
     IF iImageWidth  = 0 THEN iImageWidth  = 16.
     IF iImageHeight = 0 THEN iImageHeight = 16.
-
     lImageLoad = phObject:LOAD-IMAGE( gcImageDirectory + (IF gcImageDirectory > "" THEN "/":U ELSE "")
                                                        + cImage,
                                       iImageOffsetX, iImageOffsetY, iImageWidth,iImageHeight) NO-ERROR.         
@@ -13210,10 +13420,10 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
                           for each ttBandAction where
                                    ttBandAction.Band = ttBand.Band:                            
                               /* Keep any actions that appear on on the band actions, 
-	                             since they may be used by other bands. The action security
-	                             above will make sure that actions are cleaned up OK if
-	                             the actions are secured.
-	                           */
+                                     since they may be used by other bands. The action security
+                                     above will make sure that actions are cleaned up OK if
+                                     the actions are secured.
+                                   */
                               delete ttBandAction.
                           end.    /* each band action */
                           
@@ -13240,7 +13450,7 @@ FUNCTION retrieveBandsAndActions RETURNS LOGICAL
        We have no way of knowing whether the actions were translated
        for the container or the toolbar, so we attempt to translate 
        them all.
-	 */
+         */
     if can-find(first ttActionTranslation) then
     do:
         hBuffer = buffer ttActionTranslation:handle.
@@ -13505,6 +13715,26 @@ Parameters: INPUT pcActionGroups - Comma separated list of actionGroups
 ----------------------------------------------------------------------------*/
   {set ActionGroups pcActionGroups}.
   RETURN TRUE.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-setActionsLoaded) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setActionsLoaded Procedure 
+FUNCTION setActionsLoaded RETURNS LOGICAL
+  ( plIsLoaded AS LOG ) :
+/*------------------------------------------------------------------------------
+  Purpose: Set class flag that actions have been loaded 
+    Notes: Called from initActions
+           Considered PRIVATE, but not defined as private since 
+           custom initAction may need to call it if it does not call SUPER  
+------------------------------------------------------------------------------*/
+  glActionsLoaded = plIsLoaded. 
 
 END FUNCTION.
 

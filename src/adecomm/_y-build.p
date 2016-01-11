@@ -1,26 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
-
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _y-build.p
@@ -34,7 +17,7 @@ ADE Tools That use this:
 Input Parameters:
     iipType: dataType of variable 
               1-character 2-date 3-logical 4-integer 5-decimal 7-recid 
-              34-datetime 40-datetime-tz
+              34-datetime 40-datetime-tz 41-INT64
     
 Input-Output Parameters:
     ciopFormat: the resulting format
@@ -99,9 +82,15 @@ DEFINE BUTTON qbf-df    {&STDPH_OKBTN} LABEL "&Standard":c9.
 DEFINE VARIABLE counter    AS INTEGER NO-UNDO. 
 DEFINE VARIABLE lError     AS LOGICAL NO-UNDO. 
 
+DEFINE VARIABLE isInt64    AS LOGICAL NO-UNDO INITIAL FALSE.
+
 DEFINE VARIABLE notAmerican  AS LOGICAL  NO-UNDO.
 
 IF iipType = 7 THEN iipType = 4. /*  7 is recid */
+
+IF iipType = 41 THEN
+    ASSIGN isInt64 = TRUE
+           iipType = 4.  /*41 is INT64, it will behave like integers*/
 
 caption = "Format":U.
 
@@ -889,15 +878,26 @@ ON LEAVE OF qbf-nd IN FRAME qbf%numb
     END.
   END.
 
-  IF iipType = 4 AND qbf-nn > 10 THEN DO:
-    MESSAGE "Integer values cannot have more than 10 digits."
-        VIEW-AS ALERT-BOX ERROR.
-    RETURN NO-APPLY.
-  END.
+  IF iipType = 4 THEN DO:
+    IF isInt64 THEN
+    DO:
+        IF qbf-nn > 18 THEN DO:
+           MESSAGE "INT64 values cannot have more than 18 digits."
+                VIEW-AS ALERT-BOX ERROR.
+           RETURN NO-APPLY.
+       END.
+    END.
+    ELSE IF qbf-nn > 10 THEN
+    DO:
+        MESSAGE "Integer values cannot have more than 10 digits."
+            VIEW-AS ALERT-BOX ERROR.
+        RETURN NO-APPLY.
+    END.
+  END. /*IF iipType = 4 THEN DO*/
   ELSE IF iipType = 5 AND qbf-nn > 50 THEN DO:
     MESSAGE "Decimal values cannot have more than 50 digits."
         VIEW-AS ALERT-BOX ERROR.
-    RETURN NO-APPLY.    
+    RETURN NO-APPLY.
   END.
   
   if badChar = true then do:

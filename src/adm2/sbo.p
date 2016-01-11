@@ -701,6 +701,17 @@ FUNCTION submitRow RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcRowIdent AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 
 /* *********************** Procedure Settings ************************ */
 
@@ -4105,10 +4116,17 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE lObjectsCreated  AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lHasConnected    AS LOGICAL    NO-UNDO.
 
-  {get UIBMode cUIBMode}.
-
-  IF cUIBMode = "":U THEN
+  /* If the object has a Partition named, then connect to it. */
+  /* Skip all this if we're in design mode or AsDivision already is 'server'. */
+  &SCOPED-DEFINE xp-assign
+  {get UIBMode cUIBMode}
+  {get AsDivision cAsDivision}
+  .   
+  &UNDEFINE xp-assign
+  
+  IF cAsDivision <> 'SERVER':U AND cUIBMode = "":U THEN
   DO:
+
     /* Ensure that initialization only happens once */
     {get ObjectInitialized lInitialized}.
     IF lInitialized THEN
@@ -4123,7 +4141,9 @@ PROCEDURE initializeObject :
         RUN connectServer IN TARGET-PROCEDURE (OUTPUT hAppService). 
         IF hAppService = ? THEN
           RETURN ERROR 'ADM-ERROR':U.    
-      END.                  
+      END.
+      /* connectserver sets the AsDivision */
+      {get AsDivision cAsDivision}. 
     END.  /* IF AppService NE "":U */
     ELSE
     DO:
@@ -4149,13 +4169,9 @@ PROCEDURE initializeObject :
   {set ObjectHidden no}.
   
   PUBLISH 'registerObject':u FROM TARGET-PROCEDURE.
-    
-  &SCOPED-DEFINE xp-assign
-  {get AsDivision cAsDivision}
-  {get ContainerSource hContainerSource}
-  .
-  &UNDEFINE xp-assign
-  
+ 
+  {get ContainerSource hContainerSource}.
+
   lOpenOnInit = {fn canOpenOnInit}.
 
   /* we set openOninit false if fetchPending below since all the logic 
@@ -8449,6 +8465,7 @@ FUNCTION deleteRow RETURNS LOGICAL
   DEFINE VARIABLE hParent         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cRowObjectState AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lAnyUncommitted AS LOGICAL    NO-UNDO.
+
   {get ContainedDataObjects cObjectHandles}.
   
   /* Something is wrong, this is NOT allowed  */ 
@@ -8514,10 +8531,9 @@ FUNCTION deleteRow RETURNS LOGICAL
       lSuccess  = DYNAMIC-FUNCTION('deleteRow':U IN hDataObject,cRowIdent).
 
       IF NOT lSuccess THEN
-         RETURN FALSE.
+        RETURN FALSE.
     END.
   END. /* do ido to num-entries(objects) - 1 */
-  
   
   /* We disabled outgoing dataAvailable messages while deleting if autocommit
      so set it back.  */    
@@ -9695,6 +9711,76 @@ FUNCTION submitRow RETURNS LOGICAL
   
  
   RETURN lSuccess.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-undoRow) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION undoRow Procedure 
+FUNCTION undoRow RETURNS LOGICAL
+  ( pcRowIdent AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  SBO version of this function, which passes the rowident
+            on to the contained DataObject which manages that data.
+   Params:  pcRowIdent AS CHARACTER
+            Semi colon separated with one entry for each ContainedDataObject.
+            The visual object's getRowIdent returns this correct.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cObjectName      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iDO              AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cRowIdent        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataObject      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectHandles   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOneToOne        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cRowObjectState  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAnyOtherUpdated AS LOGICAL    NO-UNDO.
+
+  {get ContainedDataObjects cObjectHandles}.
+  
+  /* Loop through to check if this is a delete of many ? and resort the list 
+     so that we can delete children first */ 
+  DO iDO = 1 TO NUM-ENTRIES(cObjectHandles):
+    ASSIGN
+      hDataObject = WIDGET-HANDLE(ENTRY(iDO,cObjectHandles))
+      cRowIdent = ENTRY(iDO,pcRowIdent,";":U)
+      cRowIdent = IF cRowident = '?':U THEN ? ELSE cRowident. 
+    /* we also sort unavailable rowident '?', probably not necessary, but   */
+    IF cRowIdent <> '':U THEN
+    DO:
+      IF NOT lOneToOne AND VALID-HANDLE(hDataObject) THEN
+      DO:
+        lOneToOne = {fn hasOneToOneTarget hDataObject}
+                     OR
+                    {fn getUpdateFromSource hDataObject}.
+        IF lOneToOne THEN
+         {set BlockDataAvailable TRUE}.
+      END.
+      {fnarg undoRow cRowIdent hdataObject}.
+
+    END. /* RowIdent is set */ 
+    IF NOT lAnyOtherUpdated THEN 
+    DO:
+      {get RowObjectState cRowObjectState hDataObject}.
+      IF cRowObjectState = 'RowUpdated':U THEN
+        lAnyOtherUpdated = TRUE.
+    END.
+  END. /* do i to num-entries(objects) - 1 */
+  
+  IF NOT lAnyOtherUpdated THEN
+    {set RowObjectState 'NoUpdates':U}.
+
+  IF lOneToOne THEN
+  DO:
+    {set BlockDataAvailable FALSE}.
+    PUBLISH "dataAvailable":U FROM TARGET-PROCEDURE ("DIFFERENT":U).
+  END.
+
+  RETURN TRUE.  
 
 END FUNCTION.
 

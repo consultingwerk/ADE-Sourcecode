@@ -432,6 +432,13 @@ WIDTH          15.2
 FORMAT         ->>>>>>>9
 NAME           fiInteger
 
+*FILL-IN       &INT64
+DESCRIPTION    INT64 Fill-in
+DATA-TYPE      INT64
+WIDTH          15.2
+FORMAT         ->>>>>>>9
+NAME           fiInt64
+
 *FILL-IN       &Logical
 DESCRIPTION    Logical Fill-in
 DATA-TYPE      Logical
@@ -490,6 +497,11 @@ DESCRIPTION    Integer Combo-Box
 DATA-TYPE      Integer
 NAME           coInteger
 
+*COMBO-BOX     &INT64
+DESCRIPTION    INT64 Combo-Box
+DATA-TYPE      INT64
+NAME           coInt64
+
 *COMBO-BOX     &Logical
 DESCRIPTION    Logical Combo-Box
 DATA-TYPE      Logical
@@ -519,6 +531,11 @@ NAME           raDecimal
 DESCRIPTION    Integer Radio-Set
 DATA-TYPE      Integer
 NAME           raInteger
+
+*RADIO-SET     &INT64
+DESCRIPTION    INT64 Radio-Set
+DATA-TYPE      INT64
+NAME           raInt64
 
 *RADIO-SET     &Logical
 DESCRIPTION    Logical Radio-Set

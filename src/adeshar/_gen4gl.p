@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _gen4gl.p
@@ -939,7 +939,10 @@ IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
                                    _BC._DBNAME NE "_<CALC>":U) AND
                                    _BC._VISIBLE                AND
                                    NOT _BC._AUTO-RESIZE        AND
-                                   NOT _BC._COLUMN-READ-ONLY.
+                                   NOT _BC._COLUMN-READ-ONLY   AND
+                                   (_BC._VIEW-AS-TYPE EQ ?     OR
+                                   _BC._VIEW-AS-TYPE EQ ""     OR
+                                   _BC._VIEW-AS-TYPE EQ "FILL-IN":U).
                                                                        
             /* Always put out the field name.  Only put out the Label and Format
                if they exist */
@@ -968,7 +971,9 @@ IF NOT CreatingSuper OR _P._TYPE = "SmartDataObject":U THEN DO:
                   _BC._AUTO-RESIZE _BC._COLUMN-READ-ONLY
                   _BC._FORMAT-ATTR
                   _BC._HELP-ATTR
-                  _BC._LABEL-ATTR.
+                  _BC._LABEL-ATTR
+                  _BC._VIEW-AS-TYPE _BC._VIEW-AS-DELIMITER REPLACE(_BC._VIEW-AS-ITEMS, CHR(10), _BC._VIEW-AS-DELIMITER) REPLACE(_BC._VIEW-AS-ITEM-PAIRS, CHR(10), "" /*_BC._VIEW-AS-DELIMITER*/) _BC._VIEW-AS-INNER-LINES
+                  _BC._VIEW-AS-SORT _BC._VIEW-AS-MAX-CHARS _BC._VIEW-AS-AUTO-COMPLETION _BC._VIEW-AS-UNIQUE-MATCH.
             END. /* If NOT def-values */
             i = i + 1.
           END. /* _BC */
@@ -1654,9 +1659,11 @@ IF NOT lEmpty THEN
 
 PROCEDURE put-func-definitions-in.
 
-DEFINE VAR vCode        AS CHARACTER  NO-UNDO.
-DEFINE VAR Ref-Type     AS CHARACTER  NO-UNDO.
-DEFINE VAR null_section AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE vCode        AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE Ref-Type     AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE null_section AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE iIn          AS INTEGER    NO-UNDO.
+DEFINE VARIABLE iEndFunction AS INTEGER    NO-UNDO.
 
 /* Are there any user functions to output? */
 ASSIGN null_section = yes.
@@ -1690,7 +1697,13 @@ IF (AVAILABLE _TRG) /*AND (p_status <> "EXPORT")*/ THEN DO:
          EXTERNAL:  FUNCTION func-name RETURNS data-type
                       (parameter-definition) [MAP [TO] map-name] IN proc-handle.
     */
-    IF (INDEX(vCode, " IN ") > 0) AND (INDEX(vCode, "END FUNCTION") = 0) THEN
+
+    /*The INDEX functions were removed from the IF statement to avoid error 42
+      when the function code block is too big.*/
+    ASSIGN iIn          = INDEX(vCode, " IN ")
+           iEndFunction = INDEX(vCode, "END FUNCTION").
+
+    IF iIn > 0 AND iEndFunction = 0 THEN
       ASSIGN Ref-Type = "EXTERNAL".
     ELSE
       ASSIGN Ref-Type = "FORWARD".

@@ -1,31 +1,16 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /* userkchg - Sequence Editor */
 /* HISTORY:
    
    Modified on 07/08/94 by gfs      Fixed 94-06-28-033
                08/08/02 D. McMann  Eliminated any sequences whose name begins "$" - Peer Direct
+               05/25/06 fernando   Support for 64-bit sequences    
 */
 { prodict/dictvar.i }
 { prodict/user/uservar.i }
@@ -35,15 +20,15 @@
 | 12345678901234567890123456789012 ||                                          |
 | 12345678901234567890123456789012 || Name: x(32)___________________________   |
 | 12345678901234567890123456789012 ||                                          |
-| 12345678901234567890123456789012 ||  Initial Value: ->,>>>,>>>,>>9            |
-| 12345678901234567890123456789012 ||   Increment By: ->,>>>,>>>,>>9            |
-| 12345678901234567890123456789012 ||    Upper Limit: ->,>>>,>>>,>>9            |
+| 12345678901234567890123456789012 || Initial Value: ->,>>>,>>>,>>>,>>>,>>>,>>9|
+| 12345678901234567890123456789012 ||  Increment By: ->,>>>,>>>,>>>,>>>,>>>,>>9|
+| 12345678901234567890123456789012 ||   Upper Limit: ->,>>>,>>>,>>>,>>>,>>>,>>9|
+| 12345678901234567890123456789012 || Current Value: ->,>>>,>>>,>>>,>>>,>>>,>>9|
 | 12345678901234567890123456789012 ||                                          |
-| 12345678901234567890123456789012 || Cycle at Limit: no                        |
+| 12345678901234567890123456789012 || Cycle at Limit: no                       |
 | 12345678901234567890123456789012 ||                                          |
-| 12345678901234567890123456789012 ||DataServer Name: ->,>>>,>>>,>>9            |
-| 12345678901234567890123456789012 ||          Owner: ->,>>>,>>>,>>9            |
-| 12345678901234567890123456789012 ||                                          |
+| 12345678901234567890123456789012 ||DataServer Name: ->,>>>,>>>,>>9           |
+| 12345678901234567890123456789012 ||          Owner: ->,>>>,>>>,>>9           |
 +----------------------------------++-1234567890123456789012345678901234567890-+
 
    [Next] [Prev] [>NextPage] [<PrevPage] [First] [Last] [Add] [Modify]
@@ -53,7 +38,7 @@ Modified: 07/14/98 D. McMann Added _Owner to _File finds
           01/11/00 D. McMann Added display of b_seq._seq-name to NEXT & PREV
                              19990820-003
           07/01/02 D. McMann Added assignment of dict_dirty for on-line schema add.
-
+          05/25/06 fernando  Added support for 64-bit sequences
 */
 &IF "{&WINDOW-SYSTEM}" = "TTY"
 &THEN
@@ -67,7 +52,11 @@ DEFINE VARIABLE qbf#      AS INTEGER INITIAL 1     NO-UNDO.
 DEFINE VARIABLE qbf#list  AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE redraw    AS LOGICAL INITIAL TRUE  NO-UNDO.
 DEFINE VARIABLE adding    AS LOGICAL               NO-UNDO.
-DEFINE VARIABLE limit     AS INTEGER               NO-UNDO.
+DEFINE VARIABLE limit     AS INT64                 NO-UNDO.
+DEFINE VARIABLE large_seq AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE curr_value AS CHARACTER            NO-UNDO.
+DEFINE VARIABLE c_not_largeseq AS CHARACTER        NO-UNDO.
+DEFINE VARIABLE ctemp          AS CHARACTER            NO-UNDO.
 
 /* Recid of sequence whose properties are showing (disp) and recid of
    the selected sequence in the list (rec). */
@@ -101,16 +90,17 @@ FORM
   TITLE " Sequence Names ".
 
 FORM SKIP(1)
-  b_Seq._Seq-Name  AT 3     LABEL "Name"            SKIP(1)
-  b_Seq._Seq-Init  COLON 17 LABEL "Initial Value" 
-                            FORMAT "->,>>>,>>>,>>9" SKIP
-  b_Seq._Seq-Incr  COLON 17 LABEL "Increment By"  
-                            FORMAT "->,>>>,>>>,>>9" SKIP
-  limit            COLON 17 LABEL "Upper Limit"   
-                            FORMAT "->,>>>,>>>,>>9" SKIP(1)
-  b_Seq._Cycle-Ok  COLON 17 LABEL "Cycle at limit"  SKIP(1)
-  b_Seq._Seq-misc[1]   COLON 17 LABEL "DataServer Name" SKIP
-  b_Seq._Seq-misc[2]   COLON 17 LABEL "Owner"           SKIP(1)
+  b_Seq._Seq-Name  AT 2     LABEL "Name"            SKIP(1)
+  b_Seq._Seq-Init  COLON 15 LABEL "Initial Value" 
+                            FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" SKIP
+  b_Seq._Seq-Incr  COLON 15 LABEL "Increment By"  
+                            FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" SKIP
+  limit            COLON 15 LABEL "Upper Limit"   
+                            FORMAT "->,>>>,>>>,>>>,>>>,>>>,>>9" SKIP
+  curr_value      COLON 15 LABEL "Current Value" FORMAT "X(26)" SKIP(1)
+  b_Seq._Cycle-Ok  COLON 16 LABEL "Cycle at limit"  SKIP(1)
+  b_Seq._Seq-misc[1]   COLON 16 LABEL "DataServer Name" SKIP
+  b_Seq._Seq-misc[2]   COLON 16 LABEL "Owner"           SKIP
   WITH FRAME seq-detail ROW 2 COLUMN 37 SIDE-LABELS
   TITLE " Sequence Attributes ".
 
@@ -143,7 +133,7 @@ FORM
 
 DEFINE VARIABLE capab    AS CHARACTER NO-UNDO.
 
-DEFINE VARIABLE new_lang AS CHARACTER EXTENT 11 NO-UNDO INITIAL [
+DEFINE VARIABLE new_lang AS CHARACTER EXTENT 12 NO-UNDO INITIAL [
   /* 1*/ "The dictionary is in read-only mode - alterations not allowed.",
   /* 2*/ "You do not have permission to use this option.",
   /* 3*/ "Are you sure that you want to remove the definition for sequence ",
@@ -154,7 +144,8 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 11 NO-UNDO INITIAL [
   /* 8*/ "You haven't yet made changes that need to be undone!",
   /* 9*/ "This function is inappropriate when there are no sequences.",
   /*10*/ "A sequence with this name already exists in this database",
-  /*11*/ "This function is not supported for this database type"
+  /*11*/ "This function is not supported for this database type",
+  /*12*/ "has an invalid value"
 ].
 
 /*===============================Triggers===================================*/
@@ -185,20 +176,98 @@ do:
    END.
 
    HIDE MESSAGE NO-PAUSE.
+   /* message to let the user know that 64-bit sequence support is not on */
+   IF c_not_largeseq NE "" THEN
+      MESSAGE c_not_largeseq.
+
 end.
 
+/*----- LEAVE of INITIAL VALUE -----*/
+on leave of b_Seq._Seq-Init in frame seq-detail
+do:
+    Define var iValue as int64 NO-UNDO.
+    DEFINE VAR IntVal AS INTEGER NO-UNDO.
+
+    /* large_seq can be ? for pre-101b dbs */
+    IF large_seq NE YES THEN DO:
+        intVal = INT(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
+    ELSE DO:
+        iValue = int64(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
+
+   HIDE MESSAGE NO-PAUSE.
+   /* message to let the user know that 64-bit sequences support is not on */
+   IF c_not_largeseq NE "" THEN
+      MESSAGE c_not_largeseq.
+end.
+
+/*----- LEAVE of LIMIT -----*/
+on leave of limit in frame seq-detail
+do:
+    Define var iValue as int64 NO-UNDO.
+    DEFINE VAR IntVal AS INTEGER NO-UNDO.
+
+    /* large_seq can be ? for pre-101b dbs */
+    IF large_seq NE YES THEN DO:
+        intVal = INT(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
+    ELSE DO:
+        iValue = int64(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
+
+   HIDE MESSAGE NO-PAUSE.
+   /* message to let the user know that 64-bit sequences support is not on */
+   IF c_not_largeseq NE "" THEN
+      MESSAGE c_not_largeseq.
+end.
 
 /*----- LEAVE of INCREMENT -----*/
 on leave of b_Seq._Seq-Incr in frame seq-detail
 do:
-   Define var incr as integer NO-UNDO.
+   Define var incr as DECIMAL NO-UNDO.
+   Define var iValue as int64 NO-UNDO.
+   DEFINE VAR IntVal AS INTEGER NO-UNDO.
 
-   incr = input frame seq-detail b_Seq._Seq-Incr.
+   incr = DECIMAL(b_Seq._Seq-Incr:SCREEN-VALUE).
+
    if incr = 0 then
    do:
       message "Increment can be negative or positive but not 0.".
       return NO-APPLY.
    end.
+
+    /* large_seq can be ? for pre-101b dbs */
+    IF large_seq NE YES THEN DO:
+        intVal = INT(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
+    ELSE DO:
+        iValue = int64(SELF:SCREEN-VALUE) NO-ERROR.
+        IF ERROR-STATUS:ERROR THEN DO:
+            MESSAGE ERROR-STATUS:GET-MESSAGE(1).
+            RETURN NO-APPLY.
+        END.
+    END.
 
    if incr < 0 then
       limit:LABEL in frame seq-detail = "Lower Limit".
@@ -206,15 +275,19 @@ do:
       limit:LABEL in frame seq-detail = "Upper Limit".
   
    HIDE MESSAGE NO-PAUSE.
+   /* message to let the user know that 64-bit sequences support is not on */
+   IF c_not_largeseq NE "" THEN
+      MESSAGE c_not_largeseq.
+
 end.
 
 
 /*----- ON GO -----*/
 ON GO of FRAME seq-detail 
 do:
-   Define var incr as integer NO-UNDO.
-   Define var lmt  as integer NO-UNDO.
-   Define var init as integer NO-UNDO.
+   Define var incr as int64 NO-UNDO.
+   Define var lmt  as int64 NO-UNDO.
+   Define var init as int64 NO-UNDO.
 
    do ON ERROR UNDO, LEAVE:
       assign
@@ -274,6 +347,7 @@ PROCEDURE Add_Modify:
                        b_Seq._Seq-Incr
                        limit
                  b_Seq._Cycle-Ok
+                   "" @ curr_value
                        WITH FRAME seq-detail.
          SET
             b_Seq._Seq-Name
@@ -349,6 +423,41 @@ IF NOT CAN-DO(_Can-read,USERID("DICTDB")) THEN DO:
   RETURN.
 END.
 
+/* check if this db supports 64-bit sequences 
+   just care about large_seq really.
+   
+   
+   Pass the DICTDB name since that for non-OE schemas, we will know if
+   it is turned on of it's on for the schema holder.
+*/
+RUN prodict/user/_usrinf3.p 
+      (INPUT  LDBNAME("DICTDB"),
+       INPUT  "PROGRESS",
+       OUTPUT cTemp, 
+       OUTPUT cTemp,
+       OUTPUT large_seq,
+       OUTPUT answer).
+
+/* dbs running with pre-10.01B servers will have no knowledge of 64-bit sequences,
+   so don't need to display message (in which case large_seq = ?)
+*/
+IF large_seq NE NO THEN
+   ASSIGN c_not_largeseq = "".
+ELSE 
+   ASSIGN c_not_largeseq = "64-bit sequences support not enabled".
+
+DO WITH FRAME seq-detail:
+    /* alter format if 64-bit sequences support it not turned on */
+    /* don't resize fill-in */
+    IF large_seq NE YES THEN
+        ASSIGN b_Seq._Seq-Init:AUTO-RESIZE = NO
+               b_Seq._Seq-Incr:AUTO-RESIZE = NO
+               limit:AUTO-RESIZE = NO
+               b_Seq._Seq-Init:FORMAT = "->,>>>,>>>,>>9"
+               b_Seq._Seq-Incr:FORMAT = "->,>>>,>>>,>>9"
+               limit:FORMAT = "->,>>>,>>>,>>9".
+END.
+
 {prodict/dictgate.i
     &action = "query"
     &output = "capab"
@@ -386,6 +495,10 @@ PAUSE 0.
 VIEW FRAME seq-browse.
 VIEW FRAME seq-detail.
 
+/* message to let the user know that 64-bit sequences support is not on */
+IF c_not_largeseq NE "" THEN
+   MESSAGE c_not_largeseq.
+
 qbf_block:
 DO TRANSACTION ON ERROR UNDO,RETRY:
 
@@ -396,6 +509,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
 
     IF redraw THEN DO:
       DISPLAY qbf WITH FRAME qbf.
+
       ASSIGN
         qbf_disp = ?
         redraw   = FALSE.
@@ -471,6 +585,14 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                limit:LABEL in frame seq-detail = "Lower Limit".
       else 
                limit:LABEL in frame seq-detail = "Upper Limit".
+
+      /* get current value of sequence, for Progress db only */
+      IF INDEX(capab,"n":u) = 0 THEN DO:
+          ASSIGN curr_value = ""
+                 /* if sequence was just created, this will fail so need to specify NO-ERROR */
+                 curr_value = TRIM(STRING(DYNAMIC-CURRENT-VALUE(b_Seq._Seq-Name, "DICTDB"),"->,>>>,>>>,>>>,>>>,>>>,>>9")) NO-ERROR.
+      END.
+
       DISPLAY
         b_Seq._Seq-Name  
               b_Seq._Seq-Init  
@@ -478,6 +600,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         (if b_Seq._Seq-Incr > 0 then b_Seq._Seq-Max else b_Seq._Seq-Min)
                   @ limit
         b_Seq._Cycle-Ok
+        (IF INDEX(capab,"n":u) = 0 THEN curr_value ELSE "n/a") @ curr_value
         (IF INDEX(capab,"n":u) = 0 THEN "n/a" ELSE b_Seq._Seq-misc[1])
                   @ b_Seq._Seq-misc[1]
         (IF INDEX(capab,"o":u) = 0 THEN "n/a" ELSE b_Seq._Seq-misc[2])
@@ -523,6 +646,9 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
     END.
                   
     HIDE MESSAGE NO-PAUSE.
+    /* message to let the user know that 64-bit sequences support is not on */
+    IF c_not_largeseq NE "" THEN
+       MESSAGE c_not_largeseq.
 
     /* Only add, undo and exit are appropriate when there are no sequences. */
     IF (NOT AVAILABLE b_Seq AND
@@ -629,6 +755,10 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       adding = TRUE.
       RUN ADD_MODIFY (OUTPUT answer).
       HIDE MESSAGE NO-PAUSE.
+      /* message to let the user know that 64-bit sequences support is not on */
+      IF c_not_largeseq NE "" THEN
+         MESSAGE c_not_largeseq.
+
       IF answer THEN DO:
               DOWN FRAME-DOWN - FRAME-LINE.
               in_trans = TRUE.
@@ -639,6 +769,10 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
       adding = false.
       RUN ADD_MODIFY (OUTPUT answer).
       HIDE MESSAGE NO-PAUSE.
+      /* message to let the user know that 64-bit sequences support is not on */
+      IF c_not_largeseq NE "" THEN
+         MESSAGE c_not_largeseq.
+
       IF answer THEN DO:
                ASSIGN
             redraw   = b_Seq._Seq-Name ENTERED

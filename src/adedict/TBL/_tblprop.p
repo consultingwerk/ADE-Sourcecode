@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -43,8 +27,12 @@ Date Created: 03/16/92
               05/19/99 Mario B.  Adjust Width Field browser integration.
               08/16/00 DLM Added _db-recid to StorageObject find 20000815029
               10/01/02 DLM Changed check for SQL tables
+              10/12/06 fernando Don't show DataServer button if Progress table
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
+
+/* copied from prodict/users/uservar.i */
+&GLOBAL-DEFINE PRO_DISPLAY_NAME OpenEdge
 
 {adedict/dictvar.i shared}
 {adedict/uivar.i shared}
@@ -119,12 +107,12 @@ run adedict/_capab.p (INPUT {&CAPAB_TBL}, OUTPUT capab).
 s_Tbl_Type =
    (
    if b_File._Db-lang >= {&TBLTYP_SQL} then
-      "PROGRESS/SQL"
+      "{&PRO_DISPLAY_NAME}/SQL"
    else if b_File._File-Number >= {&TBLNUM_FASTTRK_START} AND
       	   b_File._File-Number <= {&TBLNUM_FASTTRK_END} then
       "FAST TRACK Schema"
    else if b_File._File-Number < 0 then  /* all other negative numbers */
-      "PROGRESS Schema"
+      "{&PRO_DISPLAY_NAME} Schema"
    else if INDEX(capab, {&CAPAB_TBL_TYPE_MOD}) = 0 then
       /* Only concat on gateway name if user can't change the type */
       s_DbCache_Type[s_DbCache_ix] + " " /* gateway type */
@@ -187,7 +175,6 @@ do with frame tblprops:
                                      else 1
                                   ) 
       s_btn_Tbl_ds:hidden       = NOT junk.
-
   end.  /* do with frame tblprops */
 
 
@@ -210,7 +197,7 @@ do:
       s_Tbl_ReadOnly = true.
    end.
    ELSE IF b_File._Db-lang > {&TBLTYP_SQL} THEN DO:
-      DISPLAY "Note: PROGRESS/SQL92 table, cannot be modified." @ s_Status
+      DISPLAY "Note: {&PRO_DISPLAY_NAME}/SQL92 table, cannot be modified." @ s_Status
            WITH FRAME tblprops.
        ASSIGN s_tbl_Readonly = TRUE.
    END.
@@ -318,7 +305,7 @@ else do:
 	  s_btn_Tbl_Triggers
 	  s_btn_Tbl_Validation
 	  s_btn_Tbl_StringAttrs
-	  s_btn_Tbl_ds
+	  s_btn_Tbl_ds WHEN NOT s_btn_Tbl_ds:hidden
       	  s_btn_OK
 	  s_btn_Save
 	  s_btn_Close

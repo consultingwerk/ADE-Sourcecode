@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
 
@@ -46,11 +30,11 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 13 NO-UNDO INITIAL [
   /* 5*/ "", /* reserved */
   /* 6*/ "Are you sure that you want to do this?",
   /* 7*/ "", /* reserved */
-  /* 8*/ "Changing the VIEW structure may cause PROGRESS/SQL to malfunction.",
+  /* 8*/ "Changing the VIEW structure may cause {&PRO_DISPLAY_NAME}/SQL to malfunction.",
   /* 9*/ "It is not recommended that you proceed.",
   /*10*/ "Changing FAST TRACK tables may disable FAST TRACK for this database.",
   /*11*/ "The potential exists to lose *ALL* FAST TRACK data.",
-  /*12*/ "Changing the PROGRESS meta-schema tables can disable",
+  /*12*/ "Changing the {&PRO_DISPLAY_NAME} meta-schema tables can disable",
   /*13*/ "the dictionary, FAST TRACK, and most application programs."
 ].
 

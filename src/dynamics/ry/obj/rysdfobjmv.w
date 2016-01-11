@@ -1,12 +1,5 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12 GUI ADM2
 &ANALYZE-RESUME
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Connected Databases 
           icfdb            PROGRESS
 */
@@ -27,6 +20,7 @@ af/cod/aftemwizpw.w
 */
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
 
 
 /* Temp-Table and Buffer definitions                                    */
@@ -699,7 +693,7 @@ PROCEDURE adm-create-objects :
                      EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO] INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,ryc_smartobject.template_smartobject,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,logical,characterBrowseFieldFormatsX(70)|X(35)|X(35)|YES/NO|X(70)RowsToBatch200BrowseTitleLookup Custom Super ProcedureViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldName<Local5>DisplayFieldyesEnableFieldnoLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO] INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_moduleBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_code,ryc_smartobject.template_smartobject,ryc_smartobject.object_pathBrowseFieldDataTypescharacter,character,character,logical,characterBrowseFieldFormatsX(70)|X(35)|X(35)|YES/NO|X(70)RowsToBatch200BrowseTitleLookup Custom Super ProcedureViewerLinkedFieldsryc_smartobject.object_pathLinkedFieldDataTypescharacterLinkedFieldFormatsX(70)ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureDataSourceNameFieldName<Local5>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hCustomSuperProcedure ).
        RUN repositionObject IN hCustomSuperProcedure ( 3.10 , 19.80 ) NO-ERROR.
        RUN resizeObject IN hCustomSuperProcedure ( 1.00 , 50.00 ) NO-ERROR.
@@ -1638,11 +1632,16 @@ PROCEDURE lookupComplete :
       RUN changesMade.
     END.
   END.
+  ELSE IF phObject = hCustomSuperProcedure THEN
+  DO:
+    IF pcDisplayedFieldValue <> pcOldFieldValue THEN
+    RUN changesMade.
+  END.
   ELSE DO:
-    IF pcDisplayedFieldValue <> pcOldFieldValue AND
+      IF pcDisplayedFieldValue <> pcOldFieldValue AND
        pcDisplayedFieldValue <> "":U THEN
       RUN changesMade.
-  END.
+  END. 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -2512,7 +2511,7 @@ PROCEDURE validateData :
     END.
     ELSE RETURN.
   END.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

@@ -131,7 +131,11 @@ DEFINE VARIABLE hBufferTT                   AS HANDLE       NO-UNDO.
     hQuery:QUERY-OPEN.
 
     REPEAT:
-        IF NOT hQuery:GET-NEXT THEN LEAVE.
+         IF NOT hQuery:GET-NEXT THEN LEAVE.
+
+         /* don't add auditing data tables to the list */
+         IF hBuffer::_File-name = "_aud-audit-data":U OR
+            hBuffer::_File-name = "_aud-audit-data-value":U THEN NEXT.
 
          hBufferTT:BUFFER-CREATE().
         

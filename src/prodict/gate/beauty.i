@@ -1,25 +1,10 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
+
 
 /*--------------------------------------------------------------------
 
@@ -37,6 +22,7 @@ Output-Parameters:
     none
     
 History:
+    09/12/06   fernando   help id
     11/26/02   D. McMann  Added OS-DELETE for x.p
     04/13/00   D. McMann  Added long path name support
     12/13/1999 D. McMann  Added message for not being connected
@@ -62,16 +48,16 @@ define variable l_db-type       as character format "x(20)" NO-UNDO.
                 /*## UI-Part ##*/
 form
   SKIP ({&TFM_WID})
-  l_pro-db      colon 21 label "Original Progress DB" FORMAT "x({&PATH_WIDG})"
+  l_pro-db      colon 22 label "Original {&PRO_DISPLAY_NAME} DB" FORMAT "x({&PATH_WIDG})"
     VIEW-AS FILL-IN SIZE 40 BY 1
-    help "Name of the original PROGRESS DB"  {&STDPH_FILL}  SKIP ({&VM_WID})
-  l_for-db      colon 21 label "Schema Image"
-    help "Name of the SI to fix-up to match the PROGRESS DB"
+    help "Name of the original {&PRO_DISPLAY_NAME} DB"  {&STDPH_FILL}  SKIP ({&VM_WID})
+  l_for-db      colon 22 label "Schema Image"
+    help "Name of the SI to fix-up to match the {&PRO_DISPLAY_NAME} DB"
        {&STDPH_FILL}  SKIP ({&VM_WID})
 
    &if "{&edb-type}" = " "
             &then
-      l_db-type     colon 21 label "DB Type"
+      l_db-type     colon 22 label "DB Type"
         view-as radio-set horizontal radio-buttons 
     "MS SQL Server","MS SQL Server","ORACLE","ORACLE","SYBASE-10","SYBASE-10"
 /*
@@ -97,6 +83,17 @@ form
       VIEW-AS DIALOG-BOX title "Adjust Schema".
                 /*## UI-Part ##*/
 
+/*===============================Triggers==================================*/
+ 
+  /*----- HELP -----*/
+&IF "{&WINDOW-SYSTEM}" <> "TTY"
+ &THEN
+  on HELP of frame l_frm_beauty OR CHOOSE of btn_Help in frame l_frm_beauty
+     RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
+                 	     	     INPUT {&Adjust_Schema_dialog_box},
+        	       	     	     INPUT ?).
+&ENDIF
+ 
 /*------------------------  INT.-PROCEDURES  -----------------------*/
 
 /*------------------------  INITIALIZATIONS  -----------------------*/
@@ -162,14 +159,14 @@ if LDBNAME("DICTDB") <> SDBNAME(l_for-db)
 if LDBNAME("DICTDB2") = ?
  or ldbname("DICTDB") = ?
  then do:
-    MESSAGE "You must be connect to both the Original Progress Database" SKIP
+    MESSAGE "You must be connected to both the Original {&PRO_DISPLAY_NAME} Database" SKIP
             "and the Schema Holder before running adjust schema." SKIP
     VIEW-AS ALERT-BOX.
     leave.
 END.
 if LDBNAME("DICTDB2") = LDBNAME("DICTDB")
 then do:
-   message "The Original Progress DB cannot be the same as" skip
+   message "The Original {&PRO_DISPLAY_NAME} DB cannot be the same as" skip
            "the Schema Image DB."
            view-as alert-box.
    undo,retry.

@@ -87,17 +87,6 @@ ASSIGN cObjectName = "{&object-name}":U.
 
 /* ************************  Function Prototypes ********************** */
 
-&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD fixQueryString Procedure 
-FUNCTION fixQueryString RETURNS CHARACTER
-  ( INPUT pcQueryString AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-insertExpression) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD insertExpression Procedure 
@@ -1188,23 +1177,6 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-
-&IF DEFINED(EXCLUDE-fixQueryString) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION fixQueryString Procedure 
-FUNCTION fixQueryString RETURNS CHARACTER
-  ( INPUT pcQueryString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose: None  
-    Notes: currently kept in case someone calls it. 
-------------------------------------------------------------------------------*/
-    RETURN pcQueryString.    
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-insertExpression) = 0 &THEN
 

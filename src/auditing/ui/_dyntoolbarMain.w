@@ -8,7 +8,7 @@ icons and are arranged horizontally."
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS P-Win 
 /*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -237,13 +237,18 @@ PROCEDURE initializeObject :
   Notes:       
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cImagePath AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cHidden AS CHARACTER NO-UNDO.
 
   /* Code placed here will execute PRIOR to standard behavior. */
   
-  ASSIGN cImagePath = "auditing/ui/image":U.
+  ASSIGN cImagePath = "auditing/ui/image":U
+         cHidden = "UndoChange".
   
   /* let's set the image directory to ours */
   {set ImagePath cImagePath} .
+
+  /* don't want undochange to show up */
+  {set HiddenActions cHidden}.
 
   RUN SUPER.
 

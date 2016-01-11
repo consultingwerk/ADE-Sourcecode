@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -44,6 +44,8 @@ DEFINE VARIABLE cProcName                   AS CHARACTER  NO-UNDO INITIAL "adeco
 
 
 /* **********************  Forward Declarations  ********************** */
+
+&IF DEFINED(OEIDE-EXCLUDE-PROTOTYPES) = 0 &THEN
 
 FUNCTION showView RETURNS LOGICAL 
          (viewId      AS CHARACTER,
@@ -107,6 +109,8 @@ FUNCTION createLinkedFile RETURNS CHARACTER
          (user_chars   AS CHARACTER,
           extension    AS CHARACTER)
          IN hOEIDEService. 
+                           
+&ENDIF
                            
 /* ***************************  Main Block  *************************** */
 

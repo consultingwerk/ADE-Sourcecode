@@ -1,10 +1,6 @@
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/* Copyright © 1984 -2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
   FILE: ryrepgeidi.i
   
@@ -651,6 +647,16 @@
                         END.
                         WHEN "COMBO-BOX" THEN
                         DO:
+                            /* Always try to translate the label. If we need to translate the LIST-ITEM-PAIRS
+                               then the code below will do so. THere's a hard-coded check for the LABEL after
+                               the translation is done. */
+                            ASSIGN cWidgetName           = cacheObject.ObjectName
+                                   iWidgetEntries        = 0
+                                   iSkipBy               = 0
+                                   cLabelAttributeName   = "LABEL":U
+                                   cTooltipAttributeName = "TOOLTIP":U
+                                   cacheObject.ObjectTranslated = NO.
+                                                        
                             /* Can we find LIST-ITEM-PAIRS to translate? */
                             ASSIGN hBufferField = ?
                                    hBufferField = ttClass.ClassBufferHandle:BUFFER-FIELD("LIST-ITEM-PAIRS":U) 
@@ -669,15 +675,12 @@
                                     ELSE
                                         ASSIGN iDelimiterEntry = 0.
                                     
-                                    ASSIGN cWidgetName           = cacheObject.ObjectName
-                                           iWidgetEntries        = NUM-ENTRIES(ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-delimiter}),
+                                    ASSIGN iWidgetEntries        = NUM-ENTRIES(ENTRY(iAttributeEntry, cacheObject.AttrValues, {&Value-delimiter}),
                                                                                IF iDelimiterEntry = 0
                                                                                THEN ",":U
                                                                                ELSE ENTRY(iDelimiterEntry, cacheObject.AttrValues, {&Value-delimiter})) / 2
                                            iSkipBy               = 2
-                                           cLabelAttributeName   = "LIST-ITEM-PAIRS":U
-                                           cTooltipAttributeName = "TOOLTIP":U
-                                           cacheObject.ObjectTranslated = NO.
+                                           cLabelAttributeName   = "LIST-ITEM-PAIRS":U.
                                 END.                                           
                             END.
                         END.

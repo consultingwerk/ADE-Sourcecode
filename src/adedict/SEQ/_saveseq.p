@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -42,6 +26,7 @@ Author: Laura Stern
 
 Date Created: 10/19/92
 History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Peer Direct
+          fernando  05/25/06 Added support for large sequences
 
 ----------------------------------------------------------------------------*/
 
@@ -53,14 +38,14 @@ History:  D. McMann 08/08/02 Eliminated any sequences whose name begins "$" - Pe
 {adedict/SEQ/seqvar.i shared}
 
 Define INPUT PARAMETER p_NameHdl as widget-handle NO-UNDO.
-Define INPUT PARAMETER p_Incr 	 as integer  	  NO-UNDO.
-Define INPUT PARAMETER p_Limit   as integer       NO-UNDO.
+Define INPUT PARAMETER p_Incr 	 as int64  	  NO-UNDO.
+Define INPUT PARAMETER p_Limit   as int64       NO-UNDO.
 Define INPUT PARAMETER p_Init    as widget-handle NO-UNDO.
 Define INPUT PARAMETER p_Cycle   as logical   	  NO-UNDO.
 
-Define var incr     as integer NO-UNDO.
-Define var limit    as integer NO-UNDO.
-Define var initval  as integer NO-UNDO.
+Define var incr     as INT64 NO-UNDO.
+Define var limit    as INT64 NO-UNDO.
+Define var initval  as INT64 NO-UNDO.
 Define var cycle    as logical NO-UNDO.
 Define var oldname  as char    NO-UNDO CASE-SENSITIVE.
 Define var newname  as char    NO-UNDO CASE-SENSITIVE.
@@ -95,7 +80,7 @@ if NOT s_Adding then current-window = s_win_Seq.
 run adedict/_blnknam.p (INPUT p_NameHdl, INPUT "sequence", OUTPUT no_name).
 if no_name then return "error".
 
-initval = INTEGER(p_Init:screen-value).
+initval = INT64(P_Init:screen-value).
 
 if p_Incr > 0 then
 do:
@@ -138,10 +123,12 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    if p_Incr > 0 then
       assign
    	 b_Sequence._Seq-Min = initval
+   	 b_Sequence._Seq-Min = ?
    	 b_Sequence._Seq-Max = p_Limit.
    else  
       assign
    	 b_Sequence._Seq-Min = p_Limit
+   	 b_Sequence._Seq-Max = ?
    	 b_Sequence._Seq-Max = initval.
 
    /* Make adjustments to browse and edit windows. */

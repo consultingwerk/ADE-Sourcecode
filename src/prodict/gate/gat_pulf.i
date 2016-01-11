@@ -1,23 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions        *
+* contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
 
@@ -49,6 +33,9 @@ History:
     mcmann    07/03/01  Verify that initial value starts with '"' or "'"
                         20010531-003
     mcmann    08/21/01  Added check for initial value length being > 1.
+    fernando  04/19/06  Unicode support
+    fernando  09/29/06  Handle default values surrounded by parenthesis.
+                        20060928-048
 
 --------------------------------------------------------------------*/
 
@@ -81,7 +68,7 @@ if NOT SESSION:BATCH-MODE
 assign
   dtyp    = LOOKUP(l_dt,user_env[12])
   l_init  = ?
-  ntyp    = ( if dtyp = 0 OR dtyp = 15
+  ntyp    = ( if dtyp = 0 OR ENTRY(dtyp,user_env[15]) = "undefined"
                 then "undefined"
                 else ENTRY(dtyp,user_env[15])
             )
@@ -113,8 +100,15 @@ IF l_init <> ? AND LENGTH(l_init) >= 3 THEN DO:
       ASSIGN l_init = SUBSTRING(l_init, 5, (LENGTH(l_init) - 5)).
   ELSE IF l_init BEGINS 'UPPER(' THEN
       ASSIGN l_init = SUBSTRING(l_init,8, (LENGTH(l_init) - 9)).
-  ELSE IF l_init BEGINS '"' OR l_init BEGINS "'"  THEN
+  ELSE IF l_init BEGINS '(' THEN
       ASSIGN l_init = SUBSTRING(l_init, 2, (LENGTH(l_init) - 2)).
+
+  /* 20060928-048 - check parenthesis above and then check for
+     quotes here regardless.
+  */
+  IF l_init BEGINS '"' OR l_init BEGINS "'"  THEN
+      ASSIGN l_init = SUBSTRING(l_init, 2, (LENGTH(l_init) - 2)).
+
 END.
  
 IF LENGTH(l_init) > 1 AND (SUBSTRING(l_init, (LENGTH(l_init) - 1), 1) = '"' OR

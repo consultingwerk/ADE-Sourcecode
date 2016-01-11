@@ -3,9 +3,9 @@
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
 * Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
 ***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookup.p
@@ -1741,7 +1741,7 @@ PROCEDURE initializeBrowse :
     AND cDisplayedValue <> hLookup:INPUT-VALUE THEN
       {set LookupFilterValue hLookup:INPUT-VALUE}.
     ELSE
-      {set LookupFilterValue "":U}.
+      {set LookupFilterValue '':U}.
 
     /* construct browser and filter settings */
     PUBLISH "buildBrowser":U FROM hBrowseContainer (INPUT TARGET-PROCEDURE).
@@ -1887,6 +1887,7 @@ PROCEDURE initializeLookup :
     WHEN "datetime":U THEN ASSIGN cKeyFormat = "99/99/9999 HH:MM:SS.SSS":U.
     WHEN "datetime-tz":U THEN ASSIGN cKeyFormat = "99/99/9999 HH:MM:SS.SSS+HH:MM":U.
     WHEN "integer":U THEN ASSIGN cKeyFormat = ">>>>>>>9":U.
+    WHEN "int64":U THEN ASSIGN cKeyFormat = ">>>>>>>>>>9":U.
     OTHERWISE ASSIGN cKeyFormat = "x(256)":U.
   END CASE.
   {set KeyFormat  cKeyFormat}.
@@ -1906,6 +1907,7 @@ PROCEDURE initializeLookup :
       WHEN "datetime":U THEN ASSIGN cDisplayFormat = "99/99/9999 HH:MM:SS.SSS":U.
       WHEN "datetime-tz":U THEN ASSIGN cDisplayFormat = "99/99/9999 HH:MM:SS.SSS+HH:MM":U.
       WHEN "integer":U THEN ASSIGN cDisplayFormat = ">>>>>>>9":U.
+      WHEN "int64":U THEN ASSIGN cKeyFormat = ">>>>>>>>>>9":U.
       OTHERWISE ASSIGN cDisplayFormat = "x(256)":U.
     END CASE.
   {set DisplayFormat cDisplayFormat}.
@@ -2900,13 +2902,20 @@ PROCEDURE translateBrowseColumns :
   DEFINE VARIABLE hBrowseColumn       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cWidgetType         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cWidgetName         AS CHARACTER  NO-UNDO.
-  
+  define variable cBrowseFields       as character no-undo.
+  define variable iCnt                as integer no-undo.
+  define variable cColumn             as character no-undo.
+
+    /* We don't always needs these. */
+    if phBrowseHandle:name eq 'LookupDataBrowser':u then
+        {get BrowseFields cBrowseFields}.
+    
   /* Get the current language */
-  IF VALID-HANDLE(gshAstraAppserver) THEN
+  IF VALID-HANDLE(gshSessionManager) THEN
     dCurrentLanguageObj = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
                                                    INPUT "CurrentLanguageObj":U,
                                                    INPUT NO)) NO-ERROR.
-                                                     
+  
   IF NOT VALID-HANDLE(phBrowseHandle) THEN
     RETURN.
   hBrowseColumn = phBrowseHandle:FIRST-COLUMN.
@@ -2914,15 +2923,20 @@ PROCEDURE translateBrowseColumns :
   IF NOT VALID-HANDLE(hBrowseColumn) THEN
     RETURN.
   
+  iCnt = 0.
   DO WHILE VALID-HANDLE(hBrowseColumn):
     ASSIGN cWidgetType = "BROWSE":U
            cWidgetName = hBrowseColumn:NAME
+           iCnt = iCnt + 1
            NO-ERROR.
+    
     IF CAN-QUERY(hBrowseColumn,"TABLE":U) AND
        hBrowseColumn:TABLE <> "RowObject":U THEN
       cWidgetName =  hBrowseColumn:TABLE + ".":U + cWidgetName.
-
-    IF VALID-HANDLE(gshAstraAppserver) THEN
+    
+    /* Find translations on exact column names. This will
+       be "Table_Field" for DB columns. */
+    IF VALID-HANDLE(gshTranslationManager) THEN
       RUN getTranslation IN gshTranslationManager
           ( INPUT  dCurrentLanguageObj,
             INPUT  pcObjectName,
@@ -2933,11 +2947,40 @@ PROCEDURE translateBrowseColumns :
             OUTPUT cTranslatedLabel,
             OUTPUT cOriginalTooltip,
             OUTPUT cTranslatedTooltip).
+    
+    /* If no specific translation was found for this column,
+       nn this object, and this is the data browser for the lookup
+       (not the filter), then look for global translations for 
+       the underlying column. */
+    if phBrowseHandle:name eq 'LookupDataBrowser':u and
+      (cTranslatedLabel eq ? or cTranslatedLabel eq '':u) then
+    do:
+        cColumn = ?.
+        cColumn = entry(iCnt, cBrowseFields) no-error.
+        
+        if cColumn ne ? and
+           replace(cColumn, '.':u, '_':u) eq cWidgetName then
+            cWidgetName = entry(2, cColumn, '.':u).
+        
+        IF VALID-HANDLE(gshTranslationManager) THEN
+          RUN getTranslation IN gshTranslationManager
+              ( INPUT  dCurrentLanguageObj,
+                INPUT  '':u,    /* pcObjectName */
+                INPUT  '':u,    /* cWidgetType */
+                INPUT  cWidgetName,
+                INPUT  0,
+                OUTPUT cOriginalLabel,
+                OUTPUT cTranslatedLabel,
+                OUTPUT cOriginalTooltip,
+                OUTPUT cTranslatedTooltip).
+    end.    /* translations not found */
+        
     IF cTranslatedLabel <> "":U AND
        cTranslatedLabel <> ? THEN
       hBrowseColumn:LABEL = cTranslatedLabel.
+    
     hBrowseColumn = hBrowseColumn:NEXT-COLUMN.
-  END.
+  END.    /* browser column loop */
 
 END PROCEDURE.
 
@@ -3435,6 +3478,8 @@ FUNCTION getDataValue RETURNS CHARACTER
         CASE cKeyDataType:
           WHEN "INTEGER" THEN
             ASSIGN cDataValue = "0":U.
+          WHEN "INT64" THEN
+            ASSIGN cDataValue = "0":U.
           WHEN "DECIMAL" THEN
             ASSIGN cDataValue = "0":U.
           WHEN "DATE" THEN
@@ -3461,6 +3506,8 @@ FUNCTION getDataValue RETURNS CHARACTER
       {get DisplayDataType cDisplayDataType}.
       CASE cDisplayDataType:
         WHEN "integer" THEN
+          ASSIGN cChar = "0":U.
+        WHEN "int64" THEN
           ASSIGN cChar = "0":U.
         WHEN "decimal" THEN
           ASSIGN cChar = "0":U.

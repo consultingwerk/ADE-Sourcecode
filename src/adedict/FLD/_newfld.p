@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -32,6 +32,10 @@ Date Created: 02/05/92
                            20051018-026
               10/28/05 KSM Added code to use _ianum if uncommitted table or
                            fall back on schema area for LOBs
+              05/24/06 fernando Added support for int64 datatype
+              06/08/06 fernando Hide toint64 button
+              06/15/06 fernando Make sure we call setlob when leaving data type to
+                                enable/disable needed fields depending on the type.
 ----------------------------------------------------------------------------*/
 
 
@@ -93,7 +97,10 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
       assign
       	 types = "CHARACTER,DATE,DECIMAL,INTEGER,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
       	 num = 11.
-      
+      IF NOT is-pre-101b-db THEN
+          /* not a pre-10.1B db, include int64 */
+          ASSIGN types = REPLACE(types, "INTEGER","INTEGER,INT64")
+              num = 12.
    END.
    else do:
       /* Compose a string to pass to list-items function where each entry
@@ -112,7 +119,7 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
    
    s_lst_Fld_DType:list-items in frame newfld = types.
    s_lst_Fld_DType:inner-lines in frame newfld = 
-      (if num <= 11 then num else 11).
+      (if num <= 12 then num else 12).
 end.
 
 
@@ -336,6 +343,15 @@ do:
       	 has also been set.
       */
 
+      IF s_Fld_Protype = "INT64" THEN DO:
+         IF DECIMAL(B_Field._Initial:SCREEN-VALUE) > 9223372036854775807 OR 
+            DECIMAL(B_Field._Initial:SCREEN-VALUE) < -9223372036854775808 THEN DO:
+             MESSAGE "Initial Value has value too large for int64"
+                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+             UNDO.
+         END.
+      END.
+
       assign
 	 b_Field._File-recid = Record_Id
 	 b_Field._Data-Type = s_Fld_Protype /*WHEN s_Fld_Protype <> "CLOB"*/
@@ -436,6 +452,8 @@ ON LEAVE OF s_Fld_DType IN FRAME newfld,
             s_btn_Fld_DType IN FRAME newfld,
             s_lst_Fld_DType IN FRAME newfld
 DO:
+   DEFINE VARIABLE lob AS LOGICAL NO-UNDO.
+
    ASSIGN cObjList = STRING(s_Fld_DType:HANDLE) + ',' +
                      STRING(s_btn_Fld_DType:HANDLE) + ',' +
                      STRING(s_lst_Fld_DType:HANDLE).
@@ -452,12 +470,20 @@ DO:
    */
 
    if s_Fld_DType <> s_Fld_DType:screen-value in frame newfld THEN DO:
+       /* check if we are changing from a lob type so that we enable/disable
+          the right fields 
+       */
+       IF s_Fld_DType = "BLOB" OR s_Fld_DType = "CLOB" OR s_Fld_DType = "XLOB" THEN 
+          ASSIGN lob = YES.
 
     run SetDefaults.  /* sets s_Fld_Typecode */
 
+    /* this will enable or disable some fields if we are changing to 
+       or from a lob type 
+    */
     IF s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "BLOB" OR
        s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "CLOB" OR 
-       s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "XLOB" OR islob THEN
+       s_Fld_Dtype:SCREEN-VALUE IN FRAME newfld = "XLOB" OR islob OR lob THEN
        RUN setlob. 
 
    END.
@@ -593,7 +619,7 @@ end.
 find _File where RECID(_File) = s_TblRecId.
 msg = "".
 if _File._Db-lang >= {&TBLTYP_SQL} then
-   msg = "This is a PROGRESS/SQL table.  Use ALTER TABLE/ADD COLUMN.".
+   msg = "This is a {&PRO_DISPLAY_NAME}/SQL table.  Use ALTER TABLE/ADD COLUMN.".
 else if _File._Frozen then  
    msg = "This table is frozen and cannot be modified.".
 if msg <> "" then
@@ -637,7 +663,8 @@ else
 IsPro = {adedict/ispro.i}.
 
 /* InIndex and InView aren't relevant on "add", Order# isn't relevant 
-   for domains, copy is only used in create not props.
+   for domains, copy is only used in create not props. toint64 is only
+   for field properties.
 */
 assign
    s_Fld_InIndex:hidden  in frame newfld = yes
@@ -646,7 +673,8 @@ assign
    b_Field._Order:hidden in frame newfld =
       (if s_CurrObj = {&OBJ_DOM} then yes else no)
    s_btn_Fld_Gateway:sensitive in frame newfld = 
-      (if IsPro then no else yes).
+      (if IsPro then no else yes)
+    s_btn_toint64:HIDDEN in frame newfld = yes.
 
 /* specific to LOB fields */
 ASSIGN s_lob_size:HIDDEN IN FRAME newfld = YES

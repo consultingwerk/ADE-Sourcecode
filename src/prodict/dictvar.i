@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -12,6 +12,8 @@ Modified:
    12/28/98 Mario B 12/28/98 Add s_In_Schema_Area enable 1 time notification. 
    07/28/99 Mario B Support for array data types. BUG 19990716-033.
    10/14/99 Mario B Removed shared variable s_Set_Anyway.  No longer needed.
+   03/13/06 fernando Store table names in temp-table - bug 20050930-006.
+   06/12/06 fernando Support for int64
 */
 
 DEFINE {1} SHARED VARIABLE dict_rog        AS LOGICAL               NO-UNDO.
@@ -30,12 +32,27 @@ DEFINE {1} SHARED VARIABLE cache_db_e       AS CHARACTER EXTENT 64   NO-UNDO.
 
 DEFINE {1} SHARED VARIABLE cache_file#      AS INTEGER  INITIAL 0    NO-UNDO.
 DEFINE {1} SHARED VARIABLE cache_file       AS CHARACTER EXTENT 2048 NO-UNDO.
+DEFINE {1} SHARED VARIABLE l_cache_tt       AS LOGICAL  INIT NO      NO-UNDO.
 
 DEFINE {1} SHARED VARIABLE drec_db          AS RECID    INITIAL ?    NO-UNDO.
 DEFINE {1} SHARED VARIABLE drec_file        AS RECID    INITIAL ?    NO-UNDO.
 
 DEFINE {1} SHARED VARIABLE s_DbRecId        AS RECID    INITIAL ?    NO-UNDO.
 DEFINE {1} SHARED VARIABLE s_In_Schema_Area AS LOGICAL  INIT NO      NO-UNDO.
+
+/* set when a pre-101b db, so we don't allow 10.1B stuff */
+DEFINE {1} SHARED VARIABLE is-pre-101b-db   AS LOGICAL               NO-UNDO.
+
+/* for bug fix 20050930-006 */
+&IF DEFINED(NOTTCACHE) = 0 &THEN
+
+DEFINE {1} SHARED TEMP-TABLE tt_cache_file NO-UNDO
+    FIELD nPos       AS INTEGER
+    FIELD cName      AS CHARACTER
+    FIELD p_flag     AS LOGICAL
+    INDEX nPos IS UNIQUE PRIMARY nPos
+    INDEX cName cName.
+&ENDIF
 
 &IF "{&DATASERVER}" = "YES" OR "{&ORACLE-DATASERVER}" = "YES"
  &THEN

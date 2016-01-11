@@ -1,25 +1,8 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+**********************************************************************/
 
 /* _ora_typ.p - Oracle-to-Progress datatype conversion subroutine */
 
@@ -59,6 +42,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
   family can be switched with each other.  0 = an orphan: cannot be changed.
 */
 /* history:
+    06/05/26    fernando    Added support for int64
     98/01/15    D. McMann   Swapped Cursor and Number/logical so that the
                             Number entries are contiguous
     95/05/24    hutegger    added datatype UNDEFINED (treat it like RAW)
@@ -79,7 +63,7 @@ To get the Oracle-to-PROGRESS tables copied to the environment:
    * ? to use the PROGRESS default format  
 */ 
 
-DEFINE VARIABLE gate-config AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
+DEFINE VARIABLE gate-config AS CHARACTER EXTENT 21 NO-UNDO INITIAL [
   /*description     datatyp  sz code pro type fm format*/
   /*--------------- -------  - ----- -------- -- ------*/ 
   "Character string,Char      ,0, 4096,character,0,|c", 
@@ -87,6 +71,7 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 20 NO-UNDO INITIAL [
   "Var-length Char2,VarChar2  ,0, 4096,character,0,|c",
   "Number          ,Number    ,0, 8192,decimal  ,1,|#",
   "Number          ,Number    ,0, 8192,integer  ,1,|i",
+  "Number          ,Number    ,0, 8192,int64    ,1,|i",
   "Number          ,Number    ,0, 8192,logical  ,1,|?",
   "Cursor          ,Cursor    ,0, 8192,integer  ,1,|i",
   "Float           ,Float     ,0, 8192,decimal  ,0,|#",

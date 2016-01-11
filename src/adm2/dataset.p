@@ -33,19 +33,6 @@ DEFINE TEMP-TABLE ttBatch NO-UNDO
      FIELD TTHandle  AS HANDLE
      INDEX BatchTable AS UNIQUE TargetProcedure TableName.
 
-/* DataTable props are currently stored in adm-data 
-   Tests indicates that a temp-table is faster, this was not a 
-   scalability test though and the temp-table access was not wrapped 
-   in any function, which it would be to support multiple props . 
-DEFINE TEMP-TABLE ttDataTable NO-UNDO
-     FIELD TargetProcedure AS HANDLE  
-     FIELD TableName       AS CHAR
-     FIELD NumRecords      AS CHAR 
-     FIELD NextContext     AS CHAR 
-     INDEX DataTable AS UNIQUE TargetProcedure TableName.
-
-*/
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -65,12 +52,47 @@ DEFINE TEMP-TABLE ttDataTable NO-UNDO
 
 /* ************************  Function Prototypes ********************** */
 
+&IF DEFINED(EXCLUDE-activateRelation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD activateRelation Procedure 
+FUNCTION activateRelation RETURNS LOGICAL
+        ( pcTable AS CHAR,
+          pcRelTable AS CHAR ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-allForeignFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD allForeignFields Procedure 
+FUNCTION allForeignFields RETURNS CHARACTER
+        ( pcTable AS CHAR  ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignTableContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableContext Procedure 
 FUNCTION assignTableContext RETURNS LOGICAL
   ( pcTable AS CHAR,
     pcContext AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignTableExceptionBuffer Procedure 
+FUNCTION assignTableExceptionBuffer RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    phBuffer AS HANDLE)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -117,6 +139,20 @@ FUNCTION childTables RETURNS CHARACTER
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-collectChanges) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD collectChanges Procedure 
+FUNCTION collectChanges RETURNS LOGICAL PRIVATE
+  ( phChangeDataset AS HANDLE,
+    pcTable         AS CHAR,
+    pcPrefix        AS CHAR,
+    plChildren      AS LOGICAL)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-columnName) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD columnName Procedure 
@@ -133,6 +169,20 @@ FUNCTION columnName RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createBuffer Procedure 
 FUNCTION createBuffer RETURNS HANDLE
   ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createChangeDataset) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createChangeDataset Procedure 
+FUNCTION createChangeDataset RETURNS HANDLE
+  ( pcDataTable      AS CHAR,
+    plSubmitParent   AS LOGICAL,
+    plSubmitChildren AS LOGICAL,
+    pcChangePrefix   AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -274,6 +324,17 @@ FUNCTION hasChanges RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-isChild) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isChild Procedure 
+FUNCTION isChild RETURNS LOGICAL
+  ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-isReposition) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isReposition Procedure 
@@ -331,12 +392,49 @@ FUNCTION mergeBatch RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-mergeChangeDataset) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD mergeChangeDataset Procedure 
+FUNCTION mergeChangeDataset RETURNS LOGICAL
+  ( phChangeDataset AS HANDLE,
+    plCopyAll       AS LOGICAL  )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-relationFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD relationFields Procedure 
 FUNCTION relationFields RETURNS CHARACTER
-  ( pcParentTable AS CHAR,
-    pcChildTable  AS CHAR)  FORWARD.
+  ( pcFromTable AS CHAR,
+    pcToTable  AS CHAR)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD relationHandle Procedure 
+FUNCTION relationHandle RETURNS HANDLE
+        ( pcParent AS CHAR ,
+          pcChild AS CHAR ) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationHandleFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD relationHandleFields Procedure 
+FUNCTION relationHandleFields RETURNS CHARACTER PRIVATE
+  ( phRelation   AS HANDLE,
+    plChildFirst AS LOGICAL,
+    plExpression AS LOGICAL)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -348,6 +446,17 @@ FUNCTION relationFields RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD relationType Procedure 
 FUNCTION relationType RETURNS CHARACTER
    (phRelation AS HANDLE) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-removeTableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD removeTableExceptionBuffer Procedure 
+FUNCTION removeTableExceptionBuffer RETURNS LOGICAL
+  ( pcTable AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -405,6 +514,17 @@ FUNCTION storeBatch RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD tableContext Procedure 
 FUNCTION tableContext RETURNS CHARACTER
+  ( pcTable AS CHAR )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-TableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD TableExceptionBuffer Procedure 
+FUNCTION TableExceptionBuffer RETURNS HANDLE
   ( pcTable AS CHAR )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
@@ -550,6 +670,100 @@ FUNCTION viewTables RETURNS CHARACTER
 
 /* **********************  Internal Procedures  *********************** */
 
+&IF DEFINED(EXCLUDE-buildViewRequest) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE buildViewRequest Procedure 
+PROCEDURE buildViewRequest :
+/*------------------------------------------------------------------------------
+    Purpose:
+    Parameters: <none>
+    Notes:
+------------------------------------------------------------------------------*/
+  DEFINE INPUT  PARAMETER pcDataTable     AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcKeyWhere      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT  PARAMETER pcJoinTables    AS CHARACTER  NO-UNDO. 
+  DEFINE INPUT  PARAMETER plRepos         AS LOGICAL    NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcTables        AS CHARACTER  NO-UNDO.
+  DEFINE OUTPUT PARAMETER pcQueries       AS CHARACTER  NO-UNDO. 
+  DEFINE OUTPUT PARAMETER pcPositions     AS CHARACTER  NO-UNDO.
+    
+  DEFINE VARIABLE hBuffer      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cExpressions AS CHARACTER  NO-UNDO. 
+  DEFINE VARIABLE iTable       AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cTableWhere  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cTable       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQuery       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lFirst       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cFieldList   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDlm1        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAvail       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cDlm2        AS CHARACTER  NO-UNDO.
+  
+  hBuffer = {fnarg dataTableHandle pcDataTable}.
+  IF VALID-HANDLE(hBuffer) THEN 
+  DO:
+    IF pcKeyWhere > "" THEN 
+    DO:
+      IF NOT pcKeyWhere BEGINS 'WHERE' THEN 
+        pcKeyWhere = 'WHERE ' + pcKeyWhere.
+      CREATE BUFFER hBuffer FOR TABLE hBuffer.
+      hBuffer:FIND-UNIQUE(pcKeyWhere) NO-ERROR. 
+      lAvail = hBuffer:AVAIL.   
+    END.   
+       
+    RUN obtainBufferExpressions IN TARGET-PROCEDURE 
+           (hBuffer,
+            YES, /* unique relations */
+            plRepos, /* include repos relations */
+            lAvail,
+            INPUT-OUTPUT pcJoinTables,
+            INPUT-OUTPUT cExpressions).
+            
+    DO iTable = 1 TO NUM-ENTRIES(pcJoinTables):
+      cTableWhere = ENTRY(iTable,cExpressions,CHR(1)).
+      IF cTableWhere > '':U THEN 
+      DO:
+        ASSIGN 
+          cTable   = ENTRY(iTable,pcJoinTables)
+          lQuery   = (INDEX(cTableWhere,'"':U) > 0 
+                      OR
+                      INDEX(cTableWhere,"'":U) > 0)                  
+          pcTables = pcTables 
+                   + cDlm1
+                   + cTable
+          pcQueries = pcQueries 
+                    + cDlm2
+                    + "FOR EACH ":U + cTable
+          pcPositions = pcPositions
+                      + cDlm2
+          cDlm1 = ",":U
+          cDlm2 = CHR(1).     
+              
+        IF lQuery THEN 
+          pcQueries = pcQueries + " WHERE "
+                    + cTableWhere.
+        ELSE 
+        DO:
+          ASSIGN 
+            cFieldList = REPLACE(cTableWhere," AND ":U,",":U)             
+            cFieldList = REPLACE(cFieldList,"=":U,",":U)             
+            cFieldList = REPLACE(cFieldList," ":U,"":U)             
+            pcPositions = pcPositions
+                        + cFieldList.
+        END.              
+      END.                                 
+    END.
+    IF lAvail THEN 
+      DELETE OBJECT hBuffer.
+  END.   
+           
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-destroyObject) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE destroyObject Procedure 
@@ -557,13 +771,179 @@ PROCEDURE destroyObject :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
-  Notes:       
+  Notes:   Super will publish the event which is picked up by the 
+           datacontainer and possibly passed to the service adapter.   
 ------------------------------------------------------------------------------*/
    DEFINE VARIABLE hDataset AS HANDLE     NO-UNDO.
    {get DatasetHandle hDataset}.
-   DELETE OBJECT hDataset NO-ERROR. 
    RUN SUPER.
+   DELETE OBJECT hDataset NO-ERROR. 
+  
+END PROCEDURE.
 
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-obtainBufferExpressions) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE obtainBufferExpressions Procedure 
+PROCEDURE obtainBufferExpressions :
+/*------------------------------------------------------------------------------
+  Purpose: Obtain join expression with corresponding tables
+    Notes:          
+ ------------------------------------------------------------------------------*/
+  DEFINE INPUT        PARAMETER phBuffer      AS HANDLE     NO-UNDO.
+  DEFINE INPUT        PARAMETER plUnique      AS LOGICAL    NO-UNDO.
+  DEFINE INPUT        PARAMETER plRepos       AS LOGICAL    NO-UNDO.
+  DEFINE INPUT        PARAMETER plCheckAvail   AS LOGICAL    NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcTables      AS CHARACTER  NO-UNDO.
+  DEFINE INPUT-OUTPUT PARAMETER pcExpressions AS CHARACTER  NO-UNDO.
+   
+  DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTables         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cChild          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParent         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iEntry          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cWhere          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hChild          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iField          AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cField          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cAvailWhere     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lAvailChild     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lUseList        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hAvailBuffer    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lNoValue        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hField          AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cTableNoValues  AS CHARACTER  NO-UNDO. 
+  
+  IF pcExpressions = '' THEN 
+    pcExpressions = FILL(CHR(1),NUM-ENTRIES(pcTables) - 1).
+  
+  IF VALID-HANDLE(phBuffer) THEN
+  DO:
+    IF plCheckAvail THEN 
+      ASSIGN 
+        hAvailBuffer = phBuffer
+        phBuffer     = {fnarg dataTableHandle phBuffer:name}.
+      
+    DO iRel = 1 TO phBuffer:NUM-CHILD-RELATIONS:
+      ASSIGN 
+        hRelation = phBuffer:GET-CHILD-RELATION(iRel)
+        hChild    = hRelation:CHILD-BUFFER
+        cChild    = hChild:NAME
+        iEntry    = LOOKUP(cChild,pcTables).
+      IF iEntry > 0
+      AND (plRepos OR hRelation:REPOSITION = FALSE)  
+      AND ((plUnique AND {fnarg relationType hRelation} MATCHES '*-one')
+            OR  
+           (NOT plUnique AND {fnarg relationType hRelation} MATCHES 'one-*')
+          ) THEN          
+      DO:
+        assign
+          lNoValue = false 
+          lUseList = plCheckAvail AND hAvailBuffer:AVAIL
+          cWhere   = DYNAMIC-FUNCTION('relationHandleFields' IN TARGET-PROCEDURE,
+                                     hRelation,
+                                     YES, /* parent on right */
+                                     NOT lUseList /* return expression */).
+   
+        IF plCheckAvail AND hAvailBuffer:AVAIL THEN 
+        DO:
+          cAvailWhere = "".         
+          /* allow override of no values  
+              - Trick: '?' will make 0 or blank into values that need data 
+            NOTE: currently applies to ANY of the keyfields if multi key  */
+          cTableNoValues = dynamic-function("tableNoValues" in target-procedure,
+                                             cChild) no-error.
+          
+          DO iField = 1 TO NUM-ENTRIES(cWhere) BY 2:
+            ASSIGN 
+              cField      = ENTRY(2,ENTRY(iField + 1,cWhere),".") 
+              hField      = hAvailBuffer:BUFFER-FIELD(cField).
+            
+            if iField = 1 or not lNoValue then 
+            do:
+              if hField:buffer-value = ? then 
+                lNoValue = true.
+              else do: 
+                if cTableNoValues > "" then 
+                  lookup(hField:buffer-value,cTableNoValues,chr(1)) > 0.
+                else do:   
+                  case hField:data-type:
+                    when "character" then
+                      lNoValue = hField:buffer-value = "".
+                    when "integer" or when "int64" then
+                      lNoValue = (hField:buffer-value = 0).                             
+                    when "decimal" then
+                      lNoValue = (hField:buffer-value = 0.0).                             
+                  end. /* case data type */
+                end. /* else (no tableNoValues property) */ 
+              end. /* else (not unknown) */ 
+            end. /* first field or not novalue */. 
+            
+            if not lNoValue then
+              cAvailWhere = (if iField = 1 then ""
+                             else cAvailWhere + ' AND ')             
+                          + ENTRY(iField,cWhere) 
+                          + ' = ':U
+                          + QUOTER(hField:BUFFER-VALUE).             
+          END. /* iField loop */
+          
+          if not lNoValue then
+          do:
+            CREATE BUFFER hChild FOR TABLE hChild.
+            lAvailChild = hChild:FIND-UNIQUE('WHERE ' + cAvailWhere) NO-ERROR.
+            /* if nothing found then return the expression so it can 
+               be passed to server */ 
+            IF NOT lAvailChild THEN
+              ENTRY(iEntry,pcExpressions,CHR(1)) = cAvailWhere.
+          end. /* if not lnovalue */
+        END. /* checkavail and buffer avail */           
+        ELSE
+        IF cWhere > '' THEN 
+          ENTRY(iEntry,pcExpressions,CHR(1)) = cWhere.
+        
+        if not lNoValue then
+        do:
+          RUN obtainBufferExpressions IN TARGET-PROCEDURE 
+           (hChild,
+            plUnique, /* unique relations */
+            plRepos, /* include repos relations */
+            lAvailChild,
+            INPUT-OUTPUT pcTables,
+            INPUT-OUTPUT pcExpressions).
+            
+          if plCheckAvail AND phBuffer:AVAIL then
+            delete object hChild no-error.
+        end.    
+      END.
+    END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
+    
+    /* check parent of buffer if buffer not in list (top) */
+    IF LOOKUP(phBuffer:NAME,pcTables) = 0 AND NOT plCheckAvail THEN 
+    DO: 
+      hRelation = phBuffer:PARENT-RELATION.
+      IF VALID-HANDLE(hRelation) THEN 
+      DO:
+        ASSIGN 
+          cParent = hRelation:PARENT-BUFFER:NAME
+          iEntry  = LOOKUP(cParent,pcTables).
+        IF iEntry > 1 THEN 
+        DO:  
+          cWhere = DYNAMIC-FUNCTION('relationHandleFields' IN TARGET-PROCEDURE,
+                                     hRelation,
+                                     NO, /* parent on left */
+                                     YES).
+          IF cWhere > '' THEN 
+            ENTRY(iEntry,pcExpressions,CHR(1)) = cWhere.
+        END. 
+      END.
+    END.        
+  END.  /* valid hbuffer */
+  RETURN. 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -613,6 +993,95 @@ END PROCEDURE.
 
 /* ************************  Function Implementations ***************** */
 
+&IF DEFINED(EXCLUDE-activateRelation) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION activateRelation Procedure 
+FUNCTION activateRelation RETURNS LOGICAL
+        ( pcTable AS CHAR,
+          pcRelTable AS CHAR ):
+/*------------------------------------------------------------------------------
+    Purpose:
+    Notes:
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataSet  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iRelation AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hRelation AS HANDLE     NO-UNDO.
+  
+  {get DatasetHandle hDataset}.
+  DO iRelation = 1 TO hDataset:NUM-RELATIONS:
+    hRelation = hDataset:GET-RELATION(iRelation).
+    IF  hRelation:CHILD-BUFFER:TABLE = pcRelTable 
+    AND hRelation:PARENT-BUFFER:TABLE = pcTable THEN
+    DO:
+      hRelation:ACTIVE = TRUE.  
+      RETURN TRUE.
+    END.   
+  END.  
+  RETURN FALSE. 
+  
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-allForeignFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION allForeignFields Procedure 
+FUNCTION allForeignFields RETURNS CHARACTER
+        ( pcTable AS CHAR  ):
+/*------------------------------------------------------------------------------
+    Purpose: Return a comma separated list of ALL foreignfields of the table
+      Notes: A single foreign key may consist of one or more of the returned 
+             fields. 
+-----------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO. 
+  DEFINE VARIABLE cFields        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataset       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iRelation      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hRelation      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lActiveParent  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lRelFound      AS LOGICAL    NO-UNDO.
+  
+  DEFINE VARIABLE cRelationType  AS CHARACTER  NO-UNDO.
+
+  hBuffer = {fnarg dataTableHandle pcTable}.
+  
+  IF VALID-HANDLE(hBuffer) THEN 
+  DO:
+    {get DataSetHandle hDataset}.
+    DO iRelation = 1 TO hDataset:NUM-RELATIONS:
+      ASSIGN 
+        hRelation     = hDataset:GET-RELATION(iRelation)
+        lRelFound     = (hRelation:PARENT-BUFFER:NAME = pcTable)
+        lActiveParent = (hRelation:CHILD-BUFFER:NAME  = pcTable).
+      IF lRelFound OR lActiveParent THEN 
+      DO:    
+        cRelationType = {fnarg relationType hRelation}.
+        IF lRelFound     AND cRelationType MATCHES "*-one" 
+        OR lActiveParent AND cRelationType MATCHES "one-*" THEN
+        DO: 
+          cFields = cFields  
+                    + (IF cFields = "" THEN "" ELSE ",")  
+                    + DYNAMIC-FUNCTION("relationHandleFields":U IN TARGET-PROCEDURE,
+                                       hRelation,lActiveParent,NO).   
+        END. /* pcTable relation found */
+      END. 
+    END.  /* do iRelation 1 to num-relations */      
+  END. /* valid buffer */
+  ELSE /* return ? for bad request */
+    cFields = ?.
+    
+  RETURN cFields.
+   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-assignTableContext) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableContext Procedure 
@@ -642,6 +1111,36 @@ FUNCTION assignTableContext RETURNS LOGICAL
   DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
                     TARGET-PROCEDURE, pcTable,'TableContext':U,pcContext).
   RETURN TRUE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-assignTableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignTableExceptionBuffer Procedure 
+FUNCTION assignTableExceptionBuffer RETURNS LOGICAL
+  ( pcTable AS CHAR,
+    phBuffer AS HANDLE) :
+/*------------------------------------------------------------------------------
+  Purpose: Stores the buffer that has failed changes.  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cBuffer AS CHARACTER  NO-UNDO.
+
+  /* an invalid handle makes no sense so just ignore it (for now..)  */ 
+  IF VALID-HANDLE(phBuffer) THEN
+  DO:
+    cBuffer = STRING(phBuffer).
+    DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
+                      TARGET-PROCEDURE, pcTable,'ErrorBuffer':U,cBuffer).
+    RETURN TRUE.   
+  END.
+  
+  RETURN FALSE.
 
 END FUNCTION.
 
@@ -685,9 +1184,7 @@ FUNCTION assignTableInformation RETURNS LOGICAL
       pcPrev = '':U.
     DYNAMIC-FUNCTION('setTableProperty':U IN TARGET-PROCEDURE,
                          TARGET-PROCEDURE, pcTable,'PrevContext':U,pcPrev).
-
   END.
-  
   IF NOT plAppend OR plForward THEN
   DO:
     IF pcNext = 'LAST':U THEN
@@ -744,7 +1241,8 @@ FUNCTION childTables RETURNS CHARACTER
 /*------------------------------------------------------------------------------
   Purpose: Returns the list of children and their children and their children
            etc..    
-    Notes: Goes deep before wide, all children are listed after their parent 
+    Notes: Goes deep before wide, all children are listed after their parent
+           one-to-one relations are included
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDataset        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
@@ -757,7 +1255,7 @@ FUNCTION childTables RETURNS CHARACTER
   DO:
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
-      IF {fnarg relationType hRelation} MATCHES '*-many':U THEN 
+      IF {fnarg relationType hRelation} BEGINS 'one-':U THEN 
         cChildren = cChildren 
                   + (IF cChildren = '':U THEN '':U ELSE ',':U) 
                   + hRelation:CHILD-BUFFER:NAME
@@ -765,8 +1263,60 @@ FUNCTION childTables RETURNS CHARACTER
                   + {fnarg childTables hRelation:CHILD-BUFFER:NAME}.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
+ 
+  RETURN RIGHT-TRIM(cChildren,","). 
 
-  RETURN cChildren. 
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-collectChanges) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION collectChanges Procedure 
+FUNCTION collectChanges RETURNS LOGICAL PRIVATE
+  ( phChangeDataset AS HANDLE,
+    pcTable         AS CHAR,
+    pcPrefix        AS CHAR,
+    plChildren      AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iRel      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hRelation AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lOk       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lChildOk  AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lTrack    AS LOGICAL    NO-UNDO.
+  hBuffer  = {fnarg dataTableHandle pcTable}.
+  IF VALID-HANDLE(hBuffer) THEN
+  DO:
+    IF hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE THEN
+    DO: 
+      hBuffer:TABLE-HANDLE:TRACKING-CHANGES = FALSE. 
+      lOk = phChangeDataset:GET-BUFFER-HANDLE(pcPrefix + hBuffer:NAME):GET-CHANGES(hBuffer). 
+      hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
+    END.      
+    IF plChildren THEN
+    DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
+      hRelation = hBuffer:GET-CHILD-RELATION(iRel).
+      IF {fnarg relationType hRelation} BEGINS 'one-':U THEN 
+      DO:
+        lChildOk = DYNAMIC-FUNCTION("collectChanges" IN TARGET-PROCEDURE,
+                                     phChangeDataset,
+                                     hRelation:CHILD-BUFFER:NAME,
+                                     pcPrefix,
+                                     YES). 
+        IF NOT lok AND lChildOk THEN
+          lOk = TRUE.
+      END. /* true child relation */
+    END. /* if plchildren then do iRel = 1 to num-child */
+  END.
+
+  RETURN lOk.   
 
 END FUNCTION.
 
@@ -837,6 +1387,44 @@ FUNCTION createBuffer RETURNS HANDLE
   END.
 
   RETURN hBuffer.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-createChangeDataset) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createChangeDataset Procedure 
+FUNCTION createChangeDataset RETURNS HANDLE
+  ( pcDataTable      AS CHAR,
+    plSubmitParent   AS LOGICAL,
+    plSubmitChildren AS LOGICAL,
+    pcChangePrefix   AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose: Create a dataset from the changes  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hChangeDataset AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hDataset       AS HANDLE     NO-UNDO.
+
+  {get DatasetHandle hDataset}.
+    
+  CREATE DATASET hChangeDataset.
+  hChangeDataset:CREATE-LIKE(hDataSet, pcChangePrefix).
+  
+  IF pcDataTable = '' OR plSubmitParent THEN
+    hChangeDataset:GET-CHANGES(hDataset,plSubmitParent).   
+  ELSE
+    DYNAMIC-FUNCTION("collectChanges":U IN TARGET-PROCEDURE,
+                      hChangeDataset,
+                      pcDataTable,
+                      pcChangePrefix,
+                      plSubmitChildren).  
+ 
+  RETURN hChangeDataset.
 
 END FUNCTION.
 
@@ -923,19 +1511,49 @@ FUNCTION dataQueryString RETURNS CHARACTER
     Notes: One to many relations are not included. 
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
+  
   DEFINE VARIABLE cQueries        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cSortTables     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQuery          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cExpressions    AS CHARACTER  NO-UNDO. 
+  DEFINE VARIABLE cJoinTables     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cRelTable       AS CHARACTER  NO-UNDO.
+   
+  DEFINE VARIABLE cDataTable AS CHARACTER  NO-UNDO.
+  ASSIGN 
+    cDataTable  = ENTRY(1,pcTableList)
+    cJoinTables = SUBSTR(pcTableList,LENGTH(cDataTable) + 2) 
+    hBuffer = {fnarg dataTableHandle cDataTable}.
+  IF VALID-HANDLE(hBuffer) THEN 
+  DO:
+    RUN obtainBufferExpressions IN TARGET-PROCEDURE 
+           (hBuffer,
+            YES, /* unique relations */
+            YES , /* include repos relations */
+            NO , /* don't check available */
+            INPUT-OUTPUT cJoinTables,
+            INPUT-OUTPUT cExpressions).
+    cQueries     = 'FOR EACH ':U + hBuffer:NAME.
+    
+    DO iRel = 1 TO NUM-ENTRIES(cJoinTables):
+      ASSIGN 
+        cRelTable = ENTRY(iRel,cJoinTables)
+        cQueries  = cQueries 
+                  + ", EACH ":U
+                  + cRelTable
+                  + " WHERE ":U
+                  + ENTRY(iRel,cExpressions,CHR(1)).     
+    END.    
+                        
+  END.
+  
+  /*
   DEFINE VARIABLE iField          AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cParentField    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cChildField     AS CHARACTER  NO-UNDO.
-
-  hBuffer = {fnarg dataTableHandle "entry(1,pcTableList)"}.
+  DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cQuery          AS CHARACTER  NO-UNDO.
   IF VALID-HANDLE(hBuffer) THEN
   DO:
-    cQueries = 'FOR EACH ':U + hBuffer:NAME. 
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
       IF  LOOKUP(hRelation:CHILD-BUFFER:NAME,pcTableList) > 0 
@@ -974,7 +1592,7 @@ FUNCTION dataQueryString RETURNS CHARACTER
 
     END. /* join parent to our query.. */
   END.  /* valid hbuffer */
-
+  */
   RETURN cQueries.  
 
 END FUNCTION.
@@ -1225,8 +1843,10 @@ FUNCTION getTableProperty RETURNS CHAR PRIVATE
 
   {get DatasetHandle hDataset phTarget}.
 
-  hTable = hDataset:GET-BUFFER-HANDLE(pcTable):TABLE-HANDLE NO-ERROR.        
-  iLookup = lookupProperty(pcProperty,hTable:ADM-DATA).
+  hTable = hDataset:GET-BUFFER-HANDLE(pcTable):TABLE-HANDLE NO-ERROR. 
+  /* probably only a problem if dataset is lost */
+  IF VALID-HANDLE(hTable) THEN
+    iLookup = lookupProperty(pcProperty,hTable:ADM-DATA).
 
   IF iLookup > 0 THEN
     RETURN ENTRY(iLookup + 1,hTable:ADM-DATA,CHR(1)).
@@ -1271,6 +1891,36 @@ FUNCTION hasChanges RETURNS LOGICAL
   END.
 
   RETURN FALSE.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-isChild) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isChild Procedure 
+FUNCTION isChild RETURNS LOGICAL
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns true if the dataset has a parent relation that is 
+           unique and not reposition (which really is a child) 
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRelation      AS HANDLE     NO-UNDO.
+
+  hBuffer = {fnarg dataTableHandle pcTable}. 
+  IF VALID-HANDLE(hBuffer) THEN
+  DO:
+    hRelation = hBuffer:PARENT-RELATION.
+    RETURN VALID-HANDLE(hRelation) 
+           AND hRelation:REPOSITION = FALSE 
+           AND {fnarg relationType hRelation} BEGINS 'one-':U. 
+  END.
+  RETURN ?.   
 
 END FUNCTION.
 
@@ -1487,7 +2137,7 @@ Parameter:
         DO:
           FIND bttBatch WHERE bttBatch.TargetProcedure = TARGET-PROCEDURE
                           AND bttBatch.TableName       = STRING(hRelation:CHILD-BUFFER:NAME)
-                        NO-ERROR.
+                         NO-ERROR.
           IF AVAIL bttBatch THEN
           DO:
             hRelation:CHILD-BUFFER:TABLE-HANDLE:COPY-TEMP-TABLE(bttBatch.TTHandle,YES).
@@ -1509,58 +2159,252 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-mergeChangeDataset) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION mergeChangeDataset Procedure 
+FUNCTION mergeChangeDataset RETURNS LOGICAL
+  ( phChangeDataset AS HANDLE,
+    plCopyAll       AS LOGICAL  ) :
+/*------------------------------------------------------------------------------
+  Purpose: Merge the change dataset to the origin if successfully submitted
+           or add the change buffers to TableExceptionBuffer for processing later
+           if not ( dataset:ERROR ). 
+    Notes: The Dataset:ERROR is defined as the Service Adapter API's way to
+           signal data errors. It is typically set to true implicitly when 
+           save-row-changes errors and is marshalled automatically over 
+           the session, but it's the repsonsibility of the Service Adapter
+           to ensure that this is set to true to signal a data submit error
+           if the service uses different mechanisms, XML or non progress
+           etc... It may also be necessary to set this to true explicitly 
+           if manual pre trans or transaction processing returns before 
+           the actual save is attempted.
+        -  All buffers are added to the table property if the dataset:error 
+           is true, even if there may be only one buffer with the actual 
+           error. 
+         - Although there is an error property on the table, we currently rely on 
+           record by record processing to find the actual error. The dataview 
+           is responsible for record processing and merge of correct records
+           and error management.           
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hChangeBuffer  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cBuffer        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iBuffer        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lok            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lMerge         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDatasetHandle AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTable         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lComplete      AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cTracking      AS CHARACTER  NO-UNDO.
+
+  lComplete = NOT phChangeDataset:ERROR.
+  
+  /* if everything is ok, just merge and get rid of the change dataset */
+  IF lComplete AND plCopyAll THEN
+  DO:
+    {get DatasetHandle hDatasetHandle}.
+    /* turn off tracking changes before the merge */
+    DO iBuffer = 1 TO hDatasetHandle:NUM-BUFFERS:
+
+      hTable = hDatasetHandle:GET-BUFFER-HANDLE(iBuffer):TABLE-HANDLE. 
+      IF hTable:TRACKING-CHANGES THEN
+        ASSIGN 
+          cTracking = cTracking 
+                    + (IF cTracking = "":U THEN "":U ELSE ",":U)
+                    + STRING(hTable)
+          hTable:TRACKING-CHANGES = FALSE.
+    END. /* do ibuffer loop num-buffers */
+    
+    /* Use transaction prevent row-update triggers from firing when record goes out of 
+       scope later  */
+    DO TRANSACTION:
+      phChangeDataset:MERGE-CHANGES(hDatasetHandle,plCopyAll).
+    END.
+
+    DO iBuffer = 1 TO NUM-ENTRIES(cTracking):
+      hTable = WIDGET-HANDLE(ENTRY(iBuffer,cTracking)).
+      
+      hTable:TRACKING-CHANGES = TRUE.
+    END. /* do ibuffer loop num-entries ctracking */
+  END. /* complete (not error) */
+  /**/
+  ELSE
+  DO iBuffer = 1 TO phChangeDataset:NUM-BUFFERS:
+    hChangeBuffer = phChangeDataset:GET-BUFFER-HANDLE(iBuffer).
+    IF hChangeBuffer:TABLE-HANDLE:HAS-RECORDS THEN 
+    DO:   
+      ASSIGN 
+        hChangeBuffer = phChangeDataset:GET-BUFFER-HANDLE(iBuffer)
+        cBuffer       = hChangeBuffer:TABLE-HANDLE:ORIGIN-HANDLE:NAME
+        hBuffer       = {fnarg dataTableHandle cBuffer}. 
+      IF VALID-HANDLE(hBuffer) THEN
+      DO:
+        IF lComplete THEN
+        DO TRANSACTION: /* transaction to avoid row-update triggers to fire
+                                 when reord goes out of scope later */
+          hBuffer:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
+          IF VALID-HANDLE(hChangeBuffer:BEFORE-BUFFER)
+          AND hChangeBuffer:BEFORE-BUFFER:TABLE-HANDLE:HAS-RECORDS THEN
+            hChangeBuffer:MERGE-CHANGES(hBuffer).
+          ELSE /* refresh (parent of the changed , for example) */
+            hBuffer:TABLE-HANDLE:COPY-TEMP-TABLE(hChangeBuffer:TABLE-HANDLE, NO, YES).
+          
+          hBuffer:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
+        END. /* transaction */
+              /* if any error store the buffer to be processed by the dataview
+                 (we do not trust table:error since it is not propagated if 
+                  buffer:error is set true in code and no error is thrown ) */
+        ELSE
+          DYNAMIC-FUNCTION('assignTableExceptionBuffer':U IN TARGET-PROCEDURE,
+                            cBuffer, hChangeBuffer).
+      END. /* valid buffer */
+    END.
+  END. /* else ibuffer = 1 to dataset:num-buffers */
+  
+  RETURN lComplete.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-relationFields) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION relationFields Procedure 
 FUNCTION relationFields RETURNS CHARACTER
-  ( pcParentTable AS CHAR,
-    pcChildTable  AS CHAR) :
+  ( pcFromTable AS CHAR,
+    pcToTable  AS CHAR) :
 /*------------------------------------------------------------------------------
-   Purpose: Returns relationfields in paramter order (parent,child)    
-Parameters: pcTable X 2  (order is irrelevant)  
-     Notes: 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hBufferOne      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBufferTwo      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cFieldOne       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cFieldTwo       AS CHARACTER  NO-UNDO.
+   Purpose: Returns relationfields in passed order     
+Parameters: pcFromTable - from table 
+            pcToTable   - to table   
+     Notes: If no relation found in queried order the fields will be attempted
+            found in a non-recursive relation in opposite direction. 
+ -----------------------------------------------------------------------------*/
   DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cRelationFields AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQualFields     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iColumn         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE lOpposite       AS LOGICAL    NO-UNDO.
+  
+  hRelation = DYNAMIC-FUNCTION('relationHandle' IN TARGET-PROCEDURE,pcFromTable,pcToTable). 
+   
+  /* Check if fields can be derived from relation in opposite direction */
+  IF NOT VALID-HANDLE(hRelation) THEN 
+  DO: 
+    hRelation = DYNAMIC-FUNCTION('relationHandle' IN TARGET-PROCEDURE,pcToTable,pcFromTable). 
+    /* Cannot derrive opposite from recursive relation as it will point to 
+       a different record */ 
+    IF NOT VALID-HANDLE(hRelation) OR hRelation:RECURSIVE THEN 
+      RETURN ''.
+       
+    lOpposite = TRUE.     
+  END.
 
-  hBufferTwo = {fnarg dataTableHandle pcChildTable}.
-  IF NOT VALID-HANDLE(hBufferTwo) THEN
+  /* We should only get here with valid relations .. but .. */
+  IF VALID-HANDLE(hRelation) THEN 
+    RETURN DYNAMIC-FUNCTION("relationHandleFields":U IN TARGET-PROCEDURE,
+                             hRelation,lOpposite,NO).  
+  
+  RETURN ''.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationHandle) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION relationHandle Procedure 
+FUNCTION relationHandle RETURNS HANDLE
+        ( pcParent AS CHAR ,
+          pcChild AS CHAR ):
+/*------------------------------------------------------------------------------
+    Purpose: Returns THE relation handle  
+    Notes:   This is used to identify a relation in queried order.  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hDataset     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iRelation    AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hRelation    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hChildBuffer AS HANDLE     NO-UNDO.
+  
+  hChildBuffer = {fnarg dataTableHandle pcChild}.
+ 
+  IF NOT VALID-HANDLE(hChildBuffer) THEN
     RETURN ?.
 
-  hRelation = hBufferTwo:PARENT-RELATION.  
+  hRelation = hChildBuffer:PARENT-RELATION.  
 
-  IF VALID-HANDLE(hRelation) AND hRelation:PARENT-BUFFER:NAME = pcParentTable THEN
-    hBufferOne = hRelation:PARENT-BUFFER.
-
-  IF NOT VALID-HANDLE(hBufferOne) THEN
-  DO:
-    hBufferOne = {fnarg dataTableHandle pcParentTable}.
-    IF NOT VALID-HANDLE(hBufferOne) THEN
-      RETURN ?.
-    hRelation = hBufferOne:PARENT-RELATION.  
-    IF NOT VALID-HANDLE(hRelation) OR hRelation:PARENT-BUFFER:NAME <> pcChildTable THEN
-      RETURN ?. 
-    /* set flag to tell that the passed parent is the child of the relation */
+  IF VALID-HANDLE(hRelation) AND hRelation:PARENT-BUFFER:NAME = pcParent THEN
+    RETURN hRelation.
+  
+  /* if no parent relation matching for child check for inactive relation */ 
+  {get DatasetHandle hDataset}.
+  DO iRelation = 1 TO hDataset:NUM-RELATIONS:
+    hRelation = hDataset:GET-RELATION(iRelation).
+    IF  hRelation:PARENT-BUFFER:NAME = pcParent 
+    AND hRelation:CHILD-BUFFER:NAME = pcChild THEN 
+      RETURN hRelation.   
   END.
+  
+  RETURN ?. 
+END FUNCTION.
 
-  cRelationFields = hRelation:RELATION-FIELDS.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-relationHandleFields) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION relationHandleFields Procedure 
+FUNCTION relationHandleFields RETURNS CHARACTER PRIVATE
+  ( phRelation   AS HANDLE,
+    plChildFirst AS LOGICAL,
+    plExpression AS LOGICAL) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns a qualified list of the handle's relation fields 
+  Paramters: phRelation - relationhandle
+             plChildFirst - return child first in paired list  
+             plExpression - No - Return as klist
+                           Yes - Return as where expression 
+ Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE cRelationFields AS CHARACTER  NO-UNDO. 
+  DEFINE VARIABLE hParentField    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hChildField     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cParentField    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cChildField     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cParent         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cChild          AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iColumn         AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cQualFields     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSep1           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSep2           AS CHARACTER  NO-UNDO.
+  
+  IF NOT VALID-HANDLE(phRelation) THEN 
+    RETURN ?. 
+  
+  ASSIGN 
+    cRelationFields = phRelation:RELATION-FIELDS
+    cParent         = phRelation:PARENT-BUFFER:NAME
+    cChild          = phRelation:CHILD-BUFFER:NAME
+    cSep1           = (IF plExpression THEN ' AND ':U ELSE ',') 
+    cSep2           = (IF plExpression THEN ' = ':U ELSE ','). 
+    
   DO iColumn = 1 TO NUM-ENTRIES(cRelationFields) BY 2:
     ASSIGN 
-      cFieldOne = hBufferOne:NAME + '.' + ENTRY(iColumn,cRelationFields)
-      cFieldTwo = hBufferTwo:NAME + '.' + ENTRY(iColumn + 1,cRelationFields)                  
+      cParentField = cParent + '.' + ENTRY(iColumn,cRelationFields)
+      cChildField  = cChild  + '.' + ENTRY(iColumn + 1,cRelationFields)                  
       cQualFields = cQualFields
-                  + cFieldOne
-                  + ',':U
-                  + cFieldTwo.
-  END.
+                  + (IF iColumn = 1 THEN '' ELSE cSep1)
+                  + (IF plChildFirst THEN cChildField ELSE cParentField) 
+                  + cSep2
+                  + (IF plChildFirst THEN cParentField ELSE cChildField).
+  END.  /* do icolumn loop */
 
-  RETURN cQualFields.
+  RETURN cQualFields.    
 
 END FUNCTION.
 
@@ -1588,7 +2432,7 @@ DEFINE VARIABLE cChildFields  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE cParentFields AS CHARACTER   NO-UNDO.
 
 IF NOT VALID-HANDLE(phRelation) THEN
-RETURN ''.
+  RETURN ''.
 
 ASSIGN cRelFields = phRelation:RELATION-FIELDS.
 
@@ -1600,9 +2444,65 @@ END.
 ASSIGN cParentFields = TRIM(cParentFields, ",")
        cChildFields  = TRIM(cChildFields,  ",").
 
-RETURN (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, INPUT cParentFields, INPUT phRelation:PARENT-BUFFER:NAME) THEN "One":U ELSE "Many":U)
+RETURN (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, 
+                            cParentFields, 
+                            phRelation:PARENT-BUFFER:NAME) 
+        THEN "One":U 
+        ELSE "Many":U)
        + "-" +
-       (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, INPUT cChildFields,  INPUT phRelation:CHILD-BUFFER:NAME)  THEN "One":U ELSE "Many":U).
+       (IF DYNAMIC-FUNCTION('isUniqueID':U IN TARGET-PROCEDURE, 
+                            cChildFields,
+                            phRelation:CHILD-BUFFER:NAME)  
+        THEN "One":U 
+        ELSE "Many":U).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-removeTableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION removeTableExceptionBuffer Procedure 
+FUNCTION removeTableExceptionBuffer RETURNS LOGICAL
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hBuffer     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iBuffer     AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hChgDataset AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lEmpty      AS LOGICAL    NO-UNDO.
+
+  hBuffer = {fnarg TableExceptionBuffer pcTable}.
+  IF VALID-HANDLE(hBuffer) THEN
+  DO:
+    hBuffer:EMPTY-TEMP-TABLE.
+    DYNAMIC-FUNCTION('assignTableExceptionBuffer':U IN TARGET-PROCEDURE,
+                      pcTable, ?).
+
+    ASSIGN
+      hChgDataset = hBuffer:DATASET.
+      lEmpty = TRUE.
+    
+    Bufferloop:
+    DO iBuffer = 1 TO hChgDataset:NUM-BUFFERS:
+      ASSIGN
+        hBuffer   = hChgDataset:GET-BUFFER-HANDLE(iBuffer).
+        IF hBuffer:TABLE-HANDLE:HAS-RECORDS THEN
+        DO:
+          lEmpty = FALSE.
+          LEAVE bufferloop.
+        END.
+    END.
+    IF lEmpty THEN 
+      DELETE OBJECT hChgDataset.
+  END.
+
+  RETURN lEmpty. 
 
 END FUNCTION.
 
@@ -1672,7 +2572,7 @@ FUNCTION setTableProperty RETURNS LOGICAL PRIVATE
             + pcValue.
 
   hTable:ADM-DATA = cList.  
-
+ 
   RETURN TRUE.
 
 END FUNCTION.
@@ -1691,12 +2591,13 @@ FUNCTION sortTables RETURNS CHARACTER
   Purpose: Returns the tables that can be sorted together with the passed table 
     Notes: The parent relation is either part of this table's query or a 
            reposition parent and is thus not included in the sort. 
-        -  DataView QuetyTables defaults to thid.            
+        -  DataView QuetyTables gets its default value from this.            
  ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDataset        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cTables         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cSortTables     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
 
   hBuffer = {fnarg dataTableHandle pcTable}.
@@ -1705,15 +2606,16 @@ FUNCTION sortTables RETURNS CHARACTER
     cTables = pcTable.
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
-      IF {fnarg relationType hRelation} matches '*-one' THEN
+      IF {fnarg relationType hRelation} MATCHES '*-one' THEN
       DO:
-        cTables = cTables 
-                + (IF ctables = '' THEN '' ELSE ',')
-                +  hRelation:CHILD-BUFFER:NAME.
+        cSortTables = {fnarg sortTables hRelation:CHILD-BUFFER:NAME}.
+        IF cSortTables > '' THEN 
+          cTables = cTables + "," + cSortTables.
+                  
       END.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
-
+  
   RETURN cTables.  
 
 END FUNCTION.
@@ -1763,8 +2665,8 @@ Parameter: pcTable - table name
             bttBatch.TTHandle        = hTable
             lStored                  = TRUE
             hRelation:CHILD-BUFFER:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
-          hRelation:CHILD-BUFFER:EMPTY-TEMP-TABLE.
-        END.
+            hRelation:CHILD-BUFFER:EMPTY-TEMP-TABLE.
+        END.  
         lStoredChild = {fnarg storeBatch hRelation:CHILD-BUFFER:NAME}.
       END.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
@@ -1789,6 +2691,24 @@ FUNCTION tableContext RETURNS CHARACTER
     Notes:  
 ------------------------------------------------------------------------------*/
   RETURN getTableProperty(TARGET-PROCEDURE, pcTable,'TableContext':U).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-TableExceptionBuffer) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION TableExceptionBuffer Procedure 
+FUNCTION TableExceptionBuffer RETURNS HANDLE
+  ( pcTable AS CHAR ) :
+/*------------------------------------------------------------------------------
+  Purpose: Returns the buffer that has the failed changes frm previous submit.
+    Notes:  
+------------------------------------------------------------------------------*/
+  RETURN WIDGET-HANDLE(getTableProperty(TARGET-PROCEDURE,pcTable,'ErrorBuffer':U)).
 
 END FUNCTION.
 

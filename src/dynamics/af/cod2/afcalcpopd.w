@@ -55,13 +55,13 @@
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
 &Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS RECT-1 bu_mu bu_bk bu_7 bu_8 bu_9 bu_di ~
-bu_cl bu_4 bu_5 bu_6 bu_pr bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt ~
-bu_pl bu_eq bu_ok bu_cn 
+&Scoped-Define ENABLED-OBJECTS bu_bk RECT-1 bu_7 bu_8 bu_9 bu_di bu_cl bu_4 ~
+bu_5 bu_6 bu_mu bu_pr bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl ~
+bu_eq bu_ok bu_cn 
 &Scoped-Define DISPLAYED-OBJECTS fi_value 
 
 /* Custom List Definitions                                              */
@@ -155,7 +155,7 @@ DEFINE BUTTON bu_mi
      LABEL "-" 
      SIZE 6.4 BY 1.52.
 
-DEFINE BUTTON bu_mu  NO-FOCUS
+DEFINE BUTTON bu_mu 
      LABEL "*" 
      SIZE 6.4 BY 1.52.
 
@@ -186,7 +186,7 @@ DEFINE VARIABLE fi_value AS DECIMAL FORMAT "->,>>>,>>>,>>>,>>>,>>9.99<<<<<<<<":U
      BGCOLOR 0 FGCOLOR 10  NO-UNDO.
 
 DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
      SIZE 29.4 BY 7.
 
 
@@ -194,7 +194,6 @@ DEFINE RECTANGLE RECT-1
 
 DEFINE FRAME Dialog-Frame
      fi_value AT ROW 1 COL 1 NO-LABEL
-     bu_mu AT ROW 4.1 COL 23
      bu_bk AT ROW 1 COL 31
      bu_7 AT ROW 2.43 COL 2
      bu_8 AT ROW 2.43 COL 9
@@ -204,6 +203,7 @@ DEFINE FRAME Dialog-Frame
      bu_4 AT ROW 4.1 COL 2
      bu_5 AT ROW 4.1 COL 9
      bu_6 AT ROW 4.1 COL 16
+     bu_mu AT ROW 4.1 COL 23
      bu_pr AT ROW 4.1 COL 31
      bu_1 AT ROW 5.76 COL 2
      bu_2 AT ROW 5.76 COL 9
@@ -241,7 +241,7 @@ DEFINE FRAME Dialog-Frame
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX Dialog-Frame
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME Dialog-Frame:SCROLLABLE       = FALSE
        FRAME Dialog-Frame:HIDDEN           = TRUE.
@@ -613,7 +613,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY fi_value 
       WITH FRAME Dialog-Frame.
-  ENABLE RECT-1 bu_mu bu_bk bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_pr 
+  ENABLE bu_bk RECT-1 bu_7 bu_8 bu_9 bu_di bu_cl bu_4 bu_5 bu_6 bu_mu bu_pr 
          bu_1 bu_2 bu_3 bu_mi bu_1x bu_0 bu_pm bu_pt bu_pl bu_eq bu_ok bu_cn 
       WITH FRAME Dialog-Frame.
   VIEW FRAME Dialog-Frame.

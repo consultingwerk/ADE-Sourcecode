@@ -86,6 +86,7 @@ kmcintos 09/01/05   Moved setting of user_env[9] to before call to table list
 kmcintos 10/28/05   Changed audit event inserter perm requirement to audit admin
                     bug # 20051026-058.
 fernando 01/04/06   Changes for 20051230-006.
+fernando 06/09/06   Support for large key entries
 
 Date Created: 01/04/93 
 ----------------------------------------------------------------------------*/
@@ -148,7 +149,7 @@ Define var Gray_Table as char extent 32 NO-UNDO init /*###*/
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    /*&Schema   */ "FCXQR-,FCX---,FCX---,FCXQR-,FCX---,FCX---,FCXQR-,FCXQR-,FCXQR",         
   &ENDIF
-   /*Admin     */ "FCX---,FCX---Z",
+   /*Admin     */ "FCX---,FCX---Z,FCX----",
    /*Dump      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,FCX---,FCX---,FCX---,F-----,FCXQR-Z,FCXQR-Z,------,FCXQR-A,------,FCX---",
    /*Audit Policies*/ "FCXQR-A,FCXQR-A,-------,FCXQR-A",
    /*Load      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,F-----,FCX---,FCXQR-Z,FCXQR-Z,------,FCXQR-A",   
@@ -360,27 +361,28 @@ Define sub-menu mnu_Admin
    sub-menu  mnu_Import       label "&Import Data"
    menu-item mi_BulkLoad      label "Create &Bulk Loader Description File..."
    MENU-ITEM mi_DbOptions     LABEL "Database &Options..."
+   MENU-ITEM mi_LargeKeys     LABEL "Enable Large &Key Entries"
    .
 
 /*== Pop-up menus for "protoxxx" tools -  MS-SQL ==*/
 
 Define sub-menu mnu_mss_tools 
-   menu-item mi_mss_Migrate   label "&Progress DB to MS SQL Server..."
-   menu-item mi_mss_Incre     label "&Generate Delta.sql Progress to MSS..." 
+   menu-item mi_mss_Migrate   label "&OpenEdge DB to MS SQL Server..."
+   menu-item mi_mss_Incre     label "&Generate Delta.sql OpenEdge to MSS..." 
    menu-item mi_mss_AdjstSI   label "&Adjust Schema..."
    .
 /*== Pop-up menus for "protoxxx" tools -  ODBC ==*/
 
 Define sub-menu mnu_odb_tools
-   menu-item mi_odb_DBtoodb    label "&Progress DB to ODBC..."
+   menu-item mi_odb_DBtoodb    label "&OpenEdge DB to ODBC..."
    MENU-ITEM mi_odb_AdjstSI    LABEL "&Adjust Schema..."
    .
 
 /*== Pop-up menus for "protoxxx" tools -  Oracle ==*/
 
 Define sub-menu mnu_ora_tools
-   menu-item mi_ora_DBtoORA   label "&Progress DB to ORACLE..."
-   menu-item mi_ora_Incre     label "&Generate Delta.sql Progress to ORACLE..." 
+   menu-item mi_ora_DBtoORA   label "&OpenEdge DB to ORACLE..."
+   menu-item mi_ora_Incre     label "&Generate Delta.sql OpenEdge to ORACLE..." 
    menu-item mi_ora_AdjstSI   label "&Adjust Schema..."
    MENU-ITEM mi_ora_BInsert   LABEL "&Bulk Inserts..."
    .
@@ -448,7 +450,7 @@ Define sub-menu mnu_Utilities
    sub-menu  mnu_Quoter              label "&Quoter Functions"
    sub-menu  mnu_GenIncl      label "&Generate Include Files"
    RULE
-   menu-item mi_Util_AutoConn label "Edit PROGRESS &Auto-Connect List..."
+   menu-item mi_Util_AutoConn label "Edit OpenEdge &Auto-Connect List..."
    menu-item mi_Util_Freeze   label "&Freeze/Unfreeze..."
    menu-item mi_Util_IdxDeact label "Index &Deactivation..."
    RULE
@@ -1756,6 +1758,19 @@ ON CHOOSE OF MENU-ITEM mi_DbOptions     IN MENU mnu_Admin DO:
   END.
   
   RUN Perform_Func ("_db-optn").
+END.
+
+/*----- ENABLE LARGE KEY ENTRIES -----*/
+ON CHOOSE OF MENU-ITEM mi_LargeKeys     IN MENU mnu_Admin DO:
+  IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
+    MESSAGE "You must be a Database Administrator to access this utility!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        
+    user_env = "".
+    RETURN NO-APPLY.
+  END.
+  
+  RUN Perform_Func ("_db-lkey").
 END.
 
 /*-------------------------------DataServer/MSSQL--------------------------*/

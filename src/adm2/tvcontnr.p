@@ -1298,8 +1298,7 @@ PROCEDURE dataAvailable :
   DEFINE VARIABLE hTreeDataTable   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer          AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lRowAvailable    AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cValueList       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRecordRef       AS CHARACTER  NO-UNDO.
 
   IF pcState = "DIFFERENT":U OR
@@ -1329,11 +1328,8 @@ PROCEDURE dataAvailable :
         RETURN.
       END.
       
-      ASSIGN cValueList = DYNAMIC-FUNCTION("getEntityName":U IN TARGET-PROCEDURE,ttFrame.hDataSource).
-      IF LENGTH(TRIM(cValueList)) > 0 THEN 
-        ASSIGN cObjField = DYNAMIC-FUNCTION("getObjKeyField":U IN TARGET-PROCEDURE,cValueList).
-      
-      cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, INPUT cObjField, INPUT ttFrame.hDataSource).
+      {get KeyFields cKeyFields ttFrame.hDataSource}.
+      cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, INPUT cKeyFields, INPUT ttFrame.hDataSource).
       
       {get TreeDataTable hTreeDataTable hTreeViewOCX}.
       
@@ -1872,8 +1868,7 @@ PROCEDURE loadPRGData :
   DEFINE VARIABLE hQry                    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hTreeViewOCX            AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSDOHandle              AS HANDLE     NO-UNDO.           
-  DEFINE VARIABLE cValueList              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataSource             AS CHARACTER  NO-UNDO.
 
   DEFINE BUFFER bChildNode FOR ttNode.
@@ -1908,18 +1903,18 @@ PROCEDURE loadPRGData :
                   INPUT  pdChildNodeObj,
                   INPUT  bThisNode.iStrucLevel,
                   OUTPUT hSDOHandle).
-
+    
   IF NOT VALID-HANDLE(hSDOHandle) THEN 
   DO:
     SESSION:SET-WAIT-STATE("":U).
     RETURN.
   END.
-
+  
   {get TreeViewOCX hTreeViewOCX}.
   {get TreeDataTable hTable hTreeViewOCX}.  
-
+  
   SESSION:SET-WAIT-STATE("GENERAL":U).
-
+   
   /* Run the program to populate the data */
   {launch.i &PLIP  = cDataSource 
             &IPROC = 'loadData' 
@@ -1945,10 +1940,7 @@ PROCEDURE loadPRGData :
     RETURN.
   END.
 
-  cValueList = DYNAMIC-FUNCTION("getEntityName":U IN TARGET-PROCEDURE,hSDOHandle).
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    cObjField = DYNAMIC-FUNCTION("getObjKeyField":U IN TARGET-PROCEDURE,cValueList).
-
+  {get KeyFields cKeyFields hSDOHandle}.
   hBuf = hTable:DEFAULT-BUFFER-HANDLE.
   CREATE QUERY hQry.
   hQry:ADD-BUFFER(hBuf).
@@ -1968,7 +1960,7 @@ PROCEDURE loadPRGData :
                                                                    THEN bThisNode.selected_image_file_name 
                                                                    ELSE hBuf:BUFFER-FIELD('selected_image':U):BUFFER-VALUE
            hBuf:BUFFER-FIELD('node_sort':U):BUFFER-VALUE      = ttProp.lAutoSort
-           hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE     = cObjField
+           hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE     = cKeyFields
            hBuf:BUFFER-FIELD('node_type':U):BUFFER-VALUE      = "SDO":U
            hBuf:BUFFER-FIELD('sdo_handle':U):BUFFER-VALUE     = hSDOHandle
            hBuf:BUFFER-FIELD('node_insert':U):BUFFER-VALUE    = IF pcParentNodeKey = "":U THEN 1 ELSE 4.
@@ -2020,8 +2012,7 @@ PROCEDURE loadSDOSBOData :
   
   DEFINE VARIABLE cErrorMessage           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSDOHandle              AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cValueList              AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField               AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields              AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLoop                   AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cWhere                  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lRowAvailable           AS LOGICAL    NO-UNDO.
@@ -2144,30 +2135,7 @@ PROCEDURE loadSDOSBOData :
     DYNAMIC-FUNCTION("OpenQuery":U IN hSDOHandle).
   END.
 
-
-  cValueList = DYNAMIC-FUNCTION("getEntityName":U IN TARGET-PROCEDURE, hSDOHandle).
-  IF cValueList = ? THEN DO:
-    cErrorMessage = "No Entity detail for the table(s) in " + 
-                    hSDOHandle:FILE-NAME + " could be found.~n" +
-                    "Do an Entity Import of the appropriate table(s).~n~n" +
-                    "NOTE:~n" +
-                    "After doing an import you MUST trim the servers on your AppServer in order for the details to be cached.".
-
-    RUN showMessages IN gshSessionManager (INPUT  cErrorMessage ,    /* message to display */
-                                           INPUT  "ERR":U,          /* error type */
-                                           INPUT  "&OK,&Cancel":U,    /* button list */
-                                           INPUT  "&OK":U,           /* default button */ 
-                                           INPUT  "&Cancel":U,       /* cancel button */
-                                           INPUT  "Entity Detail Not Found":U,             /* error window title */
-                                           INPUT  YES,              /* display if empty */ 
-                                           INPUT  ?,                /* container handle */ 
-                                           OUTPUT cButton           /* button pressed */
-                                          ).
-    RETURN.
-  END.
-
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    cObjField = DYNAMIC-FUNCTION("getObjKeyField":U IN TARGET-PROCEDURE,cValueList).
+  {get KeyFields cKeyFields hSDOhandle}.
 
   lRowAvailable = DYNAMIC-FUNCTION("rowAvailable":U IN hSDOHandle, "CURRENT":U).
   IF NOT lRowAvailable THEN 
@@ -2192,7 +2160,7 @@ PROCEDURE loadSDOSBOData :
     END.
     
     cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, 
-                                  INPUT cObjField, 
+                                  INPUT cKeyFields, 
                                   INPUT hSDOHandle).
 
     IF pcParentNodeKey = ? OR pcParentNodeKey = "?":U THEN
@@ -2215,7 +2183,7 @@ PROCEDURE loadSDOSBOData :
                                                                                  cSubstitute[7],
                                                                                  cSubstitute[8],
                                                                                  cSubstitute[9]))
-           hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
+           hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cKeyFields
            hBuf:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
            hBuf:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
            hBuf:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
@@ -2251,13 +2219,13 @@ PROCEDURE loadSDOSBOData :
       IF iRowsToBatch > 0 AND iRecordsRead > iRowsToBatch THEN
       DO:
         cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, 
-                                      INPUT cObjField, INPUT hSDOHandle).
+                                      INPUT cKeyFields, INPUT hSDOHandle).
         hBuf:BUFFER-CREATE().
         ASSIGN hBuf:BUFFER-FIELD('parent_node_key':U):BUFFER-VALUE = pcParentNodeKey
                hBuf:BUFFER-FIELD('node_key':U):BUFFER-VALUE        = DYNAMIC-FUNCTION('getNextNodeKey':U IN hTreeViewOCX)
                hBuf:BUFFER-FIELD('node_obj':U):BUFFER-VALUE        = pdChildNodeObj
                hBuf:BUFFER-FIELD('node_label':U):BUFFER-VALUE      = "...More":U
-               hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
+               hBuf:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cKeyFields
                hBuf:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
                hBuf:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
                hBuf:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
@@ -2806,8 +2774,7 @@ PROCEDURE newRecordAdded :
   DEFINE VARIABLE cSubstitute           AS CHARACTER  NO-UNDO EXTENT 9.
   DEFINE VARIABLE iLoop                 AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hTreeViewOCX          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cValueList            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjField             AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cKeyFields            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cRecordRef            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lHasChildren          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cNewNodeKey           AS CHARACTER  NO-UNDO.
@@ -2850,10 +2817,7 @@ PROCEDURE newRecordAdded :
      ttNode.structured_node THEN
     lHasChildren = TRUE.
   
-  ASSIGN cValueList = DYNAMIC-FUNCTION("getEntityName":U IN TARGET-PROCEDURE, INPUT hSDOHandle).
-  
-  IF LENGTH(TRIM(cValueList)) > 0 THEN 
-    ASSIGN cObjField = DYNAMIC-FUNCTION("getObjKeyField":U IN TARGET-PROCEDURE, INPUT cValueList).
+  {get KeyFields cKeyFields hSDOHandle}.
   
   LABEL_LOOP:
   DO iLoop = 1 TO NUM-ENTRIES(cLabelSubsFields):
@@ -2865,7 +2829,7 @@ PROCEDURE newRecordAdded :
       ASSIGN cSubstitute[iLoop] = "":U.
   END.
 
-  cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, INPUT cObjField, INPUT hSDOHandle).
+  cRecordRef = DYNAMIC-FUNCTION("assignRefValue":U IN TARGET-PROCEDURE, INPUT cKeyFields, INPUT hSDOHandle).
   /* Check if parent is Root Node */
   IF cParentNode = "":U THEN
     cParentNode = ?.
@@ -2875,7 +2839,7 @@ PROCEDURE newRecordAdded :
          hTreeBuffer:BUFFER-FIELD('node_key':U):BUFFER-VALUE        = DYNAMIC-FUNCTION('getNextNodeKey':U IN hTreeViewOCX)
          hTreeBuffer:BUFFER-FIELD('node_obj':U):BUFFER-VALUE        = ttNode.node_obj
          hTreeBuffer:BUFFER-FIELD('node_label':U):BUFFER-VALUE      = TRIM(SUBSTITUTE(cNodeLabelExpression,cSubstitute[1],cSubstitute[2],cSubstitute[3],cSubstitute[4],cSubstitute[5],cSubstitute[6],cSubstitute[7],cSubstitute[8],cSubstitute[9]))
-         hTreeBuffer:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cObjField
+         hTreeBuffer:BUFFER-FIELD('key_fields':U):BUFFER-VALUE      = cKeyFields
          hTreeBuffer:BUFFER-FIELD('record_ref':U):BUFFER-VALUE      = cRecordRef
          hTreeBuffer:BUFFER-FIELD('record_rowid':U):BUFFER-VALUE    = TO-ROWID(ENTRY(1,DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)))
          hTreeBuffer:BUFFER-FIELD('rowident':U):BUFFER-VALUE        = DYNAMIC-FUNCTION("getRowIdent":U IN hSDOHandle)
@@ -4855,7 +4819,12 @@ FUNCTION getEntityName RETURNS CHARACTER
   Purpose:  This function was added to take over the functionality of the function
             in the Gen Manager called getUpdateableTableInfo since this function
             was doing an AppServer hit.
-    Notes:  
+    Notes:  DEPRECATED - This is unsafe.     
+            It was used to derive the datasource key, which is available in 
+            KeyFields in the datasource (also for non-updatable....)
+            There is also a KeyTableId in the datasource that returns the 
+            entity's unique dump name if that is needed, but the treeview should
+            not need to know this.  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cUpdatableColumns AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cUpdatableTable   AS CHARACTER  NO-UNDO.
@@ -4976,7 +4945,7 @@ FUNCTION getObjKeyField RETURNS CHARACTER
   ( pcValueList AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose:  
-    Notes:  
+    Notes: NOT IN USE - replaced by calls to data source KeyFields  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cObjField AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cEntity   AS CHARACTER  NO-UNDO.

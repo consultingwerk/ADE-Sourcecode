@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -137,7 +137,7 @@ DO:
         PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
            "Load of " user_env[2] " into database " 
            LDBNAME("DICTDB") " was unsuccessful." SKIP " All the changes were backed out..." 
-           SKIP " Progress Recent Message(s): (" _msg(1) ") " .
+           SKIP " {&PRO_DISPLAY_NAME} Recent Message(s): (" _msg(1) ") " .
             IF _msg(2) > 0 THEN 
                 PUT UNFORMATTED "(" _msg(2) ")." SKIP(1).
             

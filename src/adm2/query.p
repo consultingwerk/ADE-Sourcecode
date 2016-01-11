@@ -230,20 +230,6 @@ FUNCTION colValues RETURNS CHARACTER
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-compareClobValues) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD compareClobValues Procedure 
-FUNCTION compareClobValues RETURNS LOGICAL PRIVATE
-  ( phColumn1  AS HANDLE,
-    pcOperator AS CHAR,
-    phcolumn2  AS HANDLE,
-    pcStrength AS CHAR)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-createBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createBuffer Procedure 
@@ -308,17 +294,6 @@ FUNCTION excludeColumns RETURNS CHARACTER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD firstBufferName Procedure 
 FUNCTION firstBufferName RETURNS CHARACTER PRIVATE
   (pcExpression AS CHAR)  /* expression */  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-firstRowIds) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD firstRowIds Procedure 
-FUNCTION firstRowIds RETURNS CHARACTER
-  (pcQueryString AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1542,7 +1517,8 @@ PROCEDURE bufferProcessNew PRIVATE :
     CREATE QUERY hQuery.
     hQuery:SET-BUFFERS(hRowObjUpd).
     hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + 
-                         ' WHERE RowMod = "A" OR RowMod = "C"':U).
+                         ' WHERE RowMod = "A" OR RowMod = "C" BY RowNum':U).
+    
     hQuery:QUERY-OPEN().
   
     REPEAT:
@@ -1756,33 +1732,45 @@ PROCEDURE bufferTransactionValidate :
   IF NOT VALID-HANDLE(hLogicObject) THEN
     RETURN.
   
-  CREATE BUFFER hRowObjUpd   FOR TABLE hRowObjUpd.
-  CREATE BUFFER hRowObjUpdBI FOR TABLE hRowObjUpd.
-
+  RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hReturnBuffer).
+  
+  /* if in the scope of a by-reference call to the DLP then use the DLP buffer */
+  IF hReturnBuffer:TABLE-HANDLE = hRowObjUpd:TABLE-HANDLE THEN 
+  DO:
+    hRowObjUpd = hReturnBuffer.
+    RUN getLogicBeforeBuffer IN TARGET-PROCEDURE (OUTPUT hRowObjUpdBI).
+  END.
+  ELSE
+  DO:
+    CREATE BUFFER hRowObjUpd   FOR TABLE hRowObjUpd.  
+    CREATE BUFFER hRowObjUpdBI FOR TABLE hRowObjUpd.
+  END.
 
   /* set up RowObjUpd query */
   CREATE QUERY hQuery.
+
   hQuery:SET-BUFFERS(hRowObjUpd).
-  hQuery:QUERY-PREPARE('FOR EACH ' + hRowObjUpd:NAME + ' WHERE RowMod <> ""':U).
+  hQuery:QUERY-PREPARE('FOR EACH ':U + hRowObjUpd:NAME + ' WHERE RowMod <> ""':U).
   hQuery:QUERY-OPEN().
   hQuery:GET-FIRST().
   
   DO WHILE hRowObjUpd:AVAILABLE:
     
     /* Fetch the before image of the current record if this is an update */
-    IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "U":U THEN
+    IF hRowObjUpd::RowMod = "U":U THEN
       hRowObjUpdBI:FIND-FIRST('WHERE RowMod = "" AND RowNum = ':U +
-                                 STRING(hRowObjUpd:BUFFER-FIELD('RowNum':U):BUFFER-VALUE)).
+                                 STRING(hRowObjUpd::RowNum)).
     ELSE 
       hROwObjUpdBI:BUFFER-RELEASE. 
-    
-    RUN setLogicBuffer IN TARGET-PROCEDURE
+
+    IF hReturnBuffer <> hRowObjUpd THEN
+      RUN setLogicBuffer IN TARGET-PROCEDURE
            (INPUT hRowObjUpd,
             INPUT IF hRowObjUpdBI:AVAILABLE THEN hRowObjUpdBI ELSE ?).
-
-    IF CAN-DO("A,C,U":U,hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE) THEN
+    
+    IF CAN-DO("A,C,U":U,hRowObjUpd::RowMod) THEN
     DO:
-      IF CAN-DO("A,C":U,hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE) THEN
+      IF CAN-DO("A,C":U,hRowObjUpd::RowMod) THEN
       DO:
         RUN VALUE('create':U + pcLevel + xcFixedName) IN TARGET-PROCEDURE NO-ERROR.
         IF RETURN-VALUE NE "":U THEN
@@ -1797,7 +1785,7 @@ PROCEDURE bufferTransactionValidate :
                      + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) 
                      + RETURN-VALUE.
     END. /* Add, Copy, Update */
-    ELSE IF hRowObjUpd:BUFFER-FIELD('RowMod':U):BUFFER-VALUE = "D":U THEN
+    ELSE IF hRowObjUpd::RowMod = "D":U THEN
     DO:
       RUN VALUE('delete':U + pcLevel + xcFixedName) IN TARGET-PROCEDURE NO-ERROR.
       IF RETURN-VALUE NE "":U THEN
@@ -1806,18 +1794,23 @@ PROCEDURE bufferTransactionValidate :
                      + RETURN-VALUE.
     END. /* Delete */
 
-    RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hReturnBuffer).
-     
-    hRowObjUpd:BUFFER-COPY(hReturnBuffer).
-    
-    RUN clearLogicRows IN TARGET-PROCEDURE.
-    
+    IF hReturnBuffer <> hRowObjUpd THEN
+    DO:
+      RUN getLogicBuffer IN TARGET-PROCEDURE (OUTPUT hReturnBuffer).  
+      hRowObjUpd:BUFFER-COPY(hReturnBuffer).     
+      RUN clearLogicRows IN TARGET-PROCEDURE.
+    END.
+
     hQuery:GET-NEXT.
 
   END.
-   
-  DELETE OBJECT hRowObjUpd. 
-  DELETE OBJECT hRowObjUpdBI. 
+    
+  IF hReturnBuffer <> hRowObjUpd THEN   
+  DO:
+    DELETE OBJECT hRowObjUpd. 
+    DELETE OBJECT hRowObjUpdBI. 
+  END.
+
   DELETE OBJECT hQuery. 
   
   ERROR-STATUS:ERROR = NO.
@@ -1841,7 +1834,6 @@ PROCEDURE bufferValidate :
 ------------------------------------------------------------------------------*/
 DEFINE INPUT PARAMETER pcValType AS CHAR   NO-UNDO.
 
-DEFINE VARIABLE lLogicHook        AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lLocalHook        AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cHook             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hLogicObject      AS HANDLE     NO-UNDO.
@@ -1851,27 +1843,24 @@ DEFINE VARIABLE cReturn           AS CHARACTER  NO-UNDO.
    {get RowObjUpdTable hRowObjUpdTable}.
    {get DataLogicObject hLogicObject}.
    
-   /* We need to identify where the hook is because if the hook is ONLY in 
-      the Logical Object then the TT need to be transfered back and forth.
-      If the hook is local then we cannot transfer here asa th elocal then would
-      change a different TT. It there for some reason should be hooks both
-      locally and in the logic procedure the local hook would be a complete 
-      overrride or it would need to do the transfer itself  */
+   /* If the table hook is ONLY in the Logical Object or in this class then 
+      we pass the table by reference.
+      If the hook is local then we don't as we currently assume that this 
+      means that there is no use of the DLP OR that it does its own 
+      calls to the DLP low level hooks with a clearLogicRows clean up that 
+      would mess with the by-reference table.  */
    
    ASSIGN
      cHook      = pcValType + "TransactionValidate":U
-     lLocalHook = LOOKUP(cHook,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0
-     lLogicHook = VALID-HANDLE(hLogicObject) 
-                  AND LOOKUP(cHook,hLogicObject:INTERNAL-ENTRIES) > 0.
+     lLocalHook = LOOKUP(cHook,TARGET-PROCEDURE:INTERNAL-ENTRIES) > 0.
    
-   IF NOT lLocalHook AND lLogicHook THEN
-     RUN setLogicRows IN TARGET-PROCEDURE (INPUT TABLE-HANDLE hRowObjUpdTable).
+   IF NOT lLocalHook AND VALID-HANDLE(hLogicObject) THEN 
+     RUN runTableEvent IN TARGET-PROCEDURE (TABLE-HANDLE hRowObjUpdTable BY-REFERENCE,
+                                            cHook).
+   ELSE
+     RUN VALUE(cHook) IN TARGET-PROCEDURE.
 
-   RUN VALUE(cHook) IN TARGET-PROCEDURE.
    cReturn = RETURN-VALUE.
-   
-   IF NOT lLocalHook AND lLogicHook THEN
-     RUN getLogicRows IN TARGET-PROCEDURE (OUTPUT TABLE-HANDLE hRowObjUpdTable).
 
    RETURN cReturn.
 
@@ -5383,52 +5372,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-compareClobValues) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION compareClobValues Procedure 
-FUNCTION compareClobValues RETURNS LOGICAL PRIVATE
-  ( phColumn1  AS HANDLE,
-    pcOperator AS CHAR,
-    phcolumn2  AS HANDLE,
-    pcStrength AS CHAR) :
-/*------------------------------------------------------------------------------
-  Purpose: compare two CLOB buffer-fields  
-    Notes: The core does not currently support compare of CLOBs 
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cLong1    AS LONGCHAR   NO-UNDO.
-  DEFINE VARIABLE cLong2    AS LONGCHAR   NO-UNDO.
-  DEFINE VARIABLE lUnknown1 AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lUnknown2 AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lEqual    AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lCompare  AS LOGICAL    NO-UNDO.
-
-  ASSIGN
-    lEqual    = CAN-DO('=,EQ':U,pcOperator) 
-    lUnknown1 = (phColumn1:BUFFER-VALUE = ?)
-    lUnknown2 = (phColumn2:BUFFER-VALUE = ?).
-
-  IF lUnknown1 AND lUnknown2 THEN
-    lCompare = lEqual.
-  ELSE IF lUnknown1 OR lUnknown2 THEN
-    lCompare = NOT lEqual.
-  ELSE IF LENGTH(phColumn1:BUFFER-VALUE) <> LENGTH(phColumn2:BUFFER-VALUE) THEN
-    lCompare = NOT lEqual. 
-
-  ELSE DO:
-    COPY-LOB FROM phColumn1:BUFFER-VALUE TO cLong1.
-    COPY-LOB FROM phColumn2:BUFFER-VALUE TO cLong2.
-    lCompare = COMPARE(cLong1,pcOperator,cLong2,pcStrength).
-  END.
-
-  RETURN lCompare.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-createBuffer) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createBuffer Procedure 
@@ -5950,75 +5893,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-firstRowIds) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION firstRowIds Procedure 
-FUNCTION firstRowIds RETURNS CHARACTER
-  (pcQueryString AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-   Purpose:   Returns the ROWID (converted to a character string) of the first 
-              database query row satisfying the passed query prepare string.   
-Parameters:
-    pcWhere - A complete query where clause that matches the database query's 
-              buffers.
-     Notes:   Used by rowidwhere, findRow and findRowWhere    
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hQuery      AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE hBuffer     AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE cBuffer     AS CHAR      NO-UNDO.
-  DEFINE VARIABLE cBufferList AS CHAR      NO-UNDO.
-  DEFINE VARIABLE hRowQuery   AS HANDLE    NO-UNDO.
-  DEFINE VARIABLE lOK         AS LOGICAL   NO-UNDO.
-  DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
-    
-  DEFINE VARIABLE cRowIds    AS CHARACTER NO-UNDO.
-  
-  {get QueryHandle hQuery}.
-    
-  CREATE QUERY hRowQuery.     /* Get a query to do the "FIND" */
-  
-  /* Create buffers and add to the query. 
-     we must create buffers to avoid conflict with the original query
-     in case it's PRESELECT (non-indexed sort) */
-  DO i = 1 TO hQuery:NUM-BUFFERS:
-    ASSIGN
-      hBuffer = hQuery:GET-BUFFER-HANDLE(i)
-      cBuffer = hBuffer:NAME.
-       
-    CREATE BUFFER hBuffer FOR TABLE hBuffer BUFFER-NAME cBuffer.
-    hRowQuery:ADD-BUFFER(hBuffer).
-    cBufferList = cBufferList 
-                  + (IF i = 1 THEN '':U ELSE ',':U)
-                  + STRING(hBuffer). 
-  END.  /* do i = 1 to */
-
-  lOK = hRowQuery:QUERY-PREPARE(pcQueryString) NO-ERROR.
-      
-  IF lOK THEN lOK = hRowQuery:QUERY-OPEN().
-  IF lOK THEN lOK = hRowQuery:GET-FIRST().
-    
-  /* Get the rowids and delete the temporary buffers */
-  DO i = 1 TO NUM-ENTRIES(cBufferList):
-    ASSIGN
-      hBuffer = WIDGET-HANDLE(ENTRY(i,cBufferList))
-      cRowids = cRowids 
-              + (IF i = 1 THEN "":U ELSE ",":U)
-              + (IF lOk AND hBuffer:AVAILABLE 
-                 THEN STRING(hBuffer:ROWID)
-                 ELSE '':U).
-    DELETE OBJECT hBuffer.
-  END. /* do i = 1 to hRowQuery:num-buffers */ 
-  DELETE OBJECT hRowQuery.  
-    
-  RETURN IF lOk THEN cRowids ELSE ?.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getTargetProcedure) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getTargetProcedure Procedure 
@@ -6052,12 +5926,6 @@ FUNCTION instanceOf RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
  IF pcClass = 'Query':U THEN
    RETURN TRUE.
-
- /* We lie about our inheritance or we have psychic abilities.
-    10.1B has moved dataview to the side, but some code relies on this 
-    already in 10.1A02..  */
- IF pcClass = 'DataView':u THEN
-   RETURN FALSE.
 
  RETURN SUPER(pcClass).
 
