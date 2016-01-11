@@ -33,7 +33,6 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
   DEFINE VARIABLE hSmart           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hObj             AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hSdo             AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lSourceDBAware   AS LOGICAL    NO-UNDO.
 
   {src/adm2/globals.i}
 
@@ -58,11 +57,10 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
 
     DYNAMIC-FUNCTION("setObjectName":U IN hSDO, DYNAMIC-FUNCTION("getLogicalObjectName":U IN hSDO)).
 
-    /* If this is a DataView (DbAware is false) then we need to set the
+    /* If this is a DataView then we need to set the
        BusinessEntity and DataTable attributes for its instance in order to 
        maintain instance attributes for objects linked to it.  */
-    {get DbAware lSourceDbAware hSDO}.
-    IF NOT lSourceDbAware THEN
+    IF {fnarg instanceOf 'DataView':U hSDO} THEN
     DO:
 
       /* Destroy the DataView, so that we can set the pertinent information. */
@@ -99,7 +97,8 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
   IF cPhysicalName = ? THEN
     RETURN ERROR "No repository records exist for ":U + pcObject.
 
-  RUN getAttributeList IN phContainerBuilder (INPUT pcInstanceName, OUTPUT cOldPropertyList).
+  RUN getAttributeList IN phContainerBuilder (INPUT pcInstanceName, 
+                                              OUTPUT cOldPropertyList).
 
 
   RUN adeuib/_open-w.p (INPUT cWindow,
@@ -177,8 +176,9 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
 
     DYNAMIC-FUNCTION("setUserProperty":U IN hSmart, "EditSingleInstance":U, "YES":U).
 
-    cOldPropertyList = getRequiredPropertyValues(DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U), cOldPropertyList, DYNAMIC-FUNCTION("getObjectType":U IN hSmart)).
-
+    cOldPropertyList = getRequiredPropertyValues(DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U),
+                                                 cOldPropertyList, 
+                                                 DYNAMIC-FUNCTION("getObjectType":U IN hSmart)).
     IF cOldPropertyList <> "":U THEN
       RUN setAttributesInObject IN gshSessionManager( INPUT hSmart,
                                                       INPUT cOldPropertyList) NO-ERROR.
@@ -190,8 +190,8 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
     RUN editInstanceProperties IN hSmart.
 
     ASSIGN
-        cNewPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U)
-        cNewPropertyList = REPLACE(cNewPropertyList, CHR(4), CHR(3)) NO-ERROR.
+      cNewPropertyList = DYNAMIC-FUNCTION("instancePropertyList":U IN hSmart, "":U)
+      cNewPropertyList = REPLACE(cNewPropertyList, CHR(4), CHR(3)) NO-ERROR.
 
     IF VALID-HANDLE(hSDO) THEN
       RUN destroyObject IN hSDO.
@@ -236,7 +236,9 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
 
   RETURN.
 
-FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER, pcPropsWithValues AS CHARACTER, pcObjectType AS CHARACTER):
+FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
+                                                      pcPropsWithValues AS CHARACTER, 
+                                                      pcObjectType AS CHARACTER):
   DEFINE VARIABLE cRequiredValues AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cProperty       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iCounter        AS INTEGER    NO-UNDO.
@@ -252,12 +254,13 @@ FUNCTION getRequiredPropertyValues RETURNS CHARACTER (pcProperties AS CHARACTER,
 
   DO iCounter = 1 TO NUM-ENTRIES(pcProperties, CHR(3)) BY 2:
     ASSIGN
-        cProperty       = ENTRY(iCounter, pcProperties, CHR(3))
-        iLookup         = LOOKUP(cProperty, pcPropsWithValues, CHR(3)).
+      cProperty       = ENTRY(iCounter, pcProperties, CHR(3))
+      iLookup         = LOOKUP(cProperty, pcPropsWithValues, CHR(3)).
 
     /* Check if the property is already listed - if so, then do not create an entry for it again */
     IF INDEX(cRequiredValues, CHR(4)) <> 0 THEN
-      IF LOOKUP(cProperty, REPLACE(cRequiredValues, CHR(4), CHR(3)), CHR(3)) <> 0 THEN NEXT.
+      IF LOOKUP(cProperty, REPLACE(cRequiredValues, CHR(4), CHR(3)), CHR(3)) <> 0 THEN 
+        NEXT.
 
     cRequiredValues = cRequiredValues + (IF cRequiredValues = "" THEN "" ELSE CHR(3))
                     + cProperty + CHR(4)

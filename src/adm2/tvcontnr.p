@@ -111,7 +111,7 @@ DEFINE TEMP-TABLE ttFrame NO-UNDO
 /* Define temp-tables required for TreeView */
 {src/adm2/treettdef.i}
 
-{dynlaunch.i &DEFINE-ONLY=YES}
+{launch.i &DEFINE-ONLY=YES}
 
 {src/adm2/tttranslate.i}
 
@@ -1908,18 +1908,18 @@ PROCEDURE loadPRGData :
                   INPUT  pdChildNodeObj,
                   INPUT  bThisNode.iStrucLevel,
                   OUTPUT hSDOHandle).
-    
+
   IF NOT VALID-HANDLE(hSDOHandle) THEN 
   DO:
     SESSION:SET-WAIT-STATE("":U).
     RETURN.
   END.
-  
+
   {get TreeViewOCX hTreeViewOCX}.
   {get TreeDataTable hTable hTreeViewOCX}.  
-  
+
   SESSION:SET-WAIT-STATE("GENERAL":U).
-   
+
   /* Run the program to populate the data */
   {launch.i &PLIP  = cDataSource 
             &IPROC = 'loadData' 
@@ -2072,7 +2072,7 @@ PROCEDURE loadSDOSBOData :
          INPUT hSDOHandle,
          INPUT pdChildNodeObj).
 
-    DYNAMIC-FUNCT("closeQuery" IN hSDOHandle).
+ 
     DYNAMIC-FUNCTION("findRowWhere":U IN hSDOHandle, 
                      INPUT hTreeBuffer:BUFFER-FIELD("key_fields":U):BUFFER-VALUE, 
                      INPUT hTreeBuffer:BUFFER-FIELD("record_ref":U):BUFFER-VALUE, 

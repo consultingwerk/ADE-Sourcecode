@@ -540,7 +540,6 @@ ON GO OF FRAME frmAttributes /* SmartSelect Properties */
 DO:     
    DEFINE VARIABLE hFrame       AS HANDLE NO-UNDO.
    DEFINE VARIABLE cDataColumns AS CHAR NO-UNDO.
-   DEFINE VARIABLE lDbaware     AS LOGICAL    NO-UNDO.
 
    /* The SDO was valid when the user entered this dialog so ..??.  */
    ASSIGN 
@@ -618,7 +617,7 @@ DO:
       RETURN NO-APPLY.
     END. /* not valid keyfield */
     
-    IF {fn getDBAware ghSDO} 
+    IF NOT {fnarg instanceOf 'DataView':U ghSDO} 
     AND LOOKUP(cKeyField,{fn getCalculatedColumns ghSDO}) > 0 THEN
     DO:    
       MESSAGE 
@@ -1357,22 +1356,21 @@ FUNCTION initSDO RETURNS LOGICAL
        cKeyField:LIST-ITEMS = DYNAMIC-FUNCTION("getDataColumns" IN ghSDO)
        iLines = NUM-ENTRIES(cKeyField:LIST-ITEMS)
 
-       cDisplayedField:LIST-ITEMS = cKeyField:LIST-ITEMS
-       cKeyField:INNER-LINES = IF iLines <> ? THEN MAX(iLines,15) ELSE 1 /*whatever*/
-       cDisplayedField:INNER-LINES = cKeyField:INNER-LINES
-       cKeyField:SENSITIVE        = TRUE
-       cDisplayedField:SENSITIVE  = TRUE
-       lLabelDataSource:SENSITIVE = TRUE
-       btnInst:SENSITIVE          = TRUE 
+       cDisplayedField:LIST-ITEMS   = cKeyField:LIST-ITEMS
+       cKeyField:INNER-LINES        = IF iLines <> ? THEN MAX(iLines,15) ELSE 1 /*whatever*/
+       cDisplayedField:INNER-LINES  = cKeyField:INNER-LINES
+       cKeyField:SENSITIVE          = TRUE
+       cDisplayedField:SENSITIVE    = TRUE
+       lLabelDataSource:SENSITIVE   = TRUE
+       btnInst:SENSITIVE            = TRUE 
        /* Not that this is also set in initViewAs() */       
-       btnBrowse:SENSITIVE        = cViewAs =  "Browser":U 
-       cDataSourcefilter:SENSITIVE  = DYNAMIC-FUNCTION("getDBAware" IN ghSDO)
-     .
-     /* Try to match with SDV field */  
-     cKeyField:SCREEN-VALUE       = IF cKeyField = "":U THEN cField 
-                                    ELSE cKeyField NO-ERROR .
-     cDisplayedField:SCREEN-VALUE = IF cDisplayedField = "":U THEN cField
-                                    ELSE cDisplayedField NO-ERROR .
+       btnBrowse:SENSITIVE          = cViewAs =  "Browser":U 
+       cDataSourcefilter:SENSITIVE  = NOT {fnarg instanceOf 'DataView':U ghSDO}
+      /* Try to match with SDV field */  
+       cKeyField:SCREEN-VALUE       = IF cKeyField = "":U THEN cField 
+                                      ELSE cKeyField NO-ERROR .
+       cDisplayedField:SCREEN-VALUE = IF cDisplayedField = "":U THEN cField
+                                      ELSE cDisplayedField NO-ERROR .
 
      /* not supported against dataview (non dbaware) */
     IF NOT cDataSourcefilter:SENSITIVE THEN 

@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,6 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: ry/prc/rygendynp.p
   ACCESS_LEVEL=PRIVATE
@@ -5449,39 +5449,6 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-testu) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE testu Procedure 
-PROCEDURE testu :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
- DEFINE INPUT  PARAMETER cc AS CHARACTER  NO-UNDO.
- DEFINE VARIABLE c AS CHARACTER  NO-UNDO.
- DEFINE BUFFER b_U FOR _U.
-
-/*  FOR EACH b_U WHERE b_U._WINDOW-HANDLE = _U._WINDOW-HANDLE AND */
-/*                     b_U._STATUS = "NORMAL":U AND               */
-/*                     NOT b_U._NAME BEGINS "_LBL-":U AND         */
-/*                     b_U._TYPE NE "WINDOW":U AND                */
-/*                     b_U._TYPE NE "FRAME":U:                    */
-/*                                                                */
-/*     MESSAGE                                                    */
-/*       cc SKIP                                                  */
-/*      'buf' b_U._buffer skip                                    */
-/*      'tbl' b_U._table SKIP                                     */
-/*       'name' b_U._name  SKIP                                   */
-/*       VIEW-AS ALERT-BOX INFO BUTTONS OK.                       */
-/*  END.                                                          */
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-writeFieldLevelObjects) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE writeFieldLevelObjects Procedure 
@@ -5674,12 +5641,9 @@ PROCEDURE writeObjectToRepository :
     gcObjClassType from the user profile for their
     preferred subClass of gcClassName             */
 
- /*   
- ASSIGN gcClassName = DYNAMIC-FUNCTION("repositoryDynamicClass" IN _h_func_lib, INPUT _P._TYPE)
+ ASSIGN gcClassName    = DYNAMIC-FUNCTION("repositoryDynamicClass":U IN _h_func_lib, 
+                         IF _P.Object_type_code > '' THEN _P.Object_type_code  ELSE  _P._TYPE)
         gcObjClassType = gcClassName.
- */
- 
- gcClassName = _p.OBJECT_type_code.
 
  /* If migrating code, set global variables for superprocedure and Super options */
  IF glMigration THEN

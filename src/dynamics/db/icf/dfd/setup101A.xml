@@ -8,6 +8,10 @@
       <SkipButtons>Close,Cancel,Quit,Finish,Check</SkipButtons>
       <VersionNo>10.1A</VersionNo>
       <message>
+         <MessageCode>MSG_cannot_migrate</MessageCode>
+         <MessageDesc>The database %1 has a version number (%2) that does not match the version (%3) required for migration to this release.</MessageDesc>
+      </message>
+      <message>
          <MessageCode>MSG_invalid_dbversion</MessageCode>
          <MessageDesc>The database %1 has a version number (%2) that predates the minimum version (%3) supported by this install release.</MessageDesc>
       </message>
@@ -936,6 +940,10 @@ Please see the log files for details of the failures and correct these before tr
       <SkipButtons>Close,Cancel,Quit,Finish,Check</SkipButtons>
       <VersionNo>10.1A</VersionNo>
       <message>
+         <MessageCode>MSG_cannot_migrate</MessageCode>
+         <MessageDesc>The database %1 has a version number (%2) that does not match the version (%3) required for migration to this release.</MessageDesc>
+      </message>
+      <message>
          <MessageCode>MSG_invalid_dbversion</MessageCode>
          <MessageDesc>The database %1 has a version number (%2) that predates the minimum version (%3) supported by this install release.</MessageDesc>
       </message>
@@ -1862,6 +1870,10 @@ Please see the log files for details of the failures and correct these before tr
       <StartPage>Welcome</StartPage>
       <SkipButtons>Close,Cancel,Quit,Finish,Check</SkipButtons>
       <VersionNo>10.1A</VersionNo>
+      <message>
+         <MessageCode>MSG_cannot_migrate</MessageCode>
+         <MessageDesc>The database %1 has a version number (%2) that does not match the version (%3) required for migration to this release.</MessageDesc>
+      </message>
       <message>
          <MessageCode>MSG_invalid_dbversion</MessageCode>
          <MessageDesc>The database %1 has a version number (%2) that predates the minimum version (%3) supported by this install release.</MessageDesc>

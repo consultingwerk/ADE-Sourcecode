@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,6 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydyncontp.p
 
@@ -246,7 +246,10 @@ PROCEDURE createObjects :
     DEFINE VARIABLE dHeight                      AS DECIMAL            NO-UNDO.
     DEFINE VARIABLE dWidth                       AS DECIMAL            NO-UNDO.
     DEFINE VARIABLE lObjectsCreated              AS LOGICAL            NO-UNDO.
-    
+    DEFINE VARIABLE hWindow                      AS HANDLE             NO-UNDO.
+    DEFINE VARIABLE cErrorMessage                AS CHARACTER          NO-UNDO.
+    DEFINE VARIABLE cButton                      AS CHARACTER          NO-UNDO.
+
     /* If on page 0, set the window's minimum height/width etc.
        Also pack the window as per page 0. This should give us minimum
        size in cases where there are static objects on the container.
@@ -261,7 +264,33 @@ PROCEDURE createObjects :
         {fn prepareInitialWindowSize}.
     
     RUN SUPER.
-    
+
+    {get ContainerHandle hWindow} NO-ERROR.
+
+    /* Check forced exit of the dynamic container. This is checked after the RUN SUPER in case the instantiation of the
+       objects on the frame fail.
+     */
+    IF LENGTH(hWindow:PRIVATE-DATA)         GT 0              AND
+       ENTRY(1,hWindow:PRIVATE-DATA,CHR(3)) EQ "ForcedExit":U THEN
+    DO:
+        IF NUM-ENTRIES(hWindow:PRIVATE-DATA,CHR(3)) EQ 2 THEN
+            ASSIGN cErrorMessage = ENTRY(2,hWindow:PRIVATE-DATA,CHR(3)).
+        ELSE 
+            ASSIGN cErrorMessage = "Program aborted due to unknown reason.":U.
+        
+        RUN showMessages IN gshSessionManager ( INPUT  cErrorMessage,            /* message to display */
+                                                INPUT  "ERR":U,                  /* error type */
+                                                INPUT  "&OK":U,                  /* button list */
+                                                INPUT  "&OK":U,                  /* default button */ 
+                                                INPUT  "&OK":U,                  /* cancel button */
+                                                INPUT  "Error on window initialization":U,  /* error window title */
+                                                INPUT  YES,                      /* display if empty */ 
+                                                INPUT  TARGET-PROCEDURE,           /* container handle */ 
+                                                OUTPUT cButton                   /* button pressed */       ).
+        RUN destroyObject IN TARGET-PROCEDURE.
+        RETURN.
+    END.    /* forced exit */    
+
 END PROCEDURE.    /* createObjects */
 
 /* _UIB-CODE-BLOCK-END */

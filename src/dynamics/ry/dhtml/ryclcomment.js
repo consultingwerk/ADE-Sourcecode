@@ -51,14 +51,8 @@ function assign_entity_values() {
   if (apph.action('gsmcmfullow.owning_entity_mnemonic.get') == '')
     apph.action('gsmcmfullow.owning_entity_mnemonic.set|'+cOwningEntityMnemonic);
 
-  if (lTableHasObjField) {
-    apph.action('gsmcmfullow.owning_reference.set|');
-    apph.action('gsmcmfullow.owning_obj.set|'+ cOwningReference);
-  }
-  else {
-    apph.action('gsmcmfullow.owning_reference.set|' + cOwningReference);
-    apph.action('gsmcmfullow.owning_obj.set|0');
-  }
+  apph.action('gsmcmfullow.owning_reference.set|' + cOwningReference);
+  apph.action('gsmcmfullow.owning_obj.set|0');
 }
 
 function gsmcmfullow_saveok() {

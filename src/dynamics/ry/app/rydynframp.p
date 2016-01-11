@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,6 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: rydynframp.p
 
@@ -115,28 +115,6 @@ DEFINE VARIABLE glUseThinRendering         AS LOGICAL                   NO-UNDO.
 
 
 /* ************************  Function Prototypes ********************** */
-&IF DEFINED(EXCLUDE-setCurrentLogicalName) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentLogicalName Procedure
-FUNCTION setCurrentLogicalName RETURNS LOGICAL 
-	( input pcCurrentLogicalName         as character ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getCurrentLogicalName) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getCurrentLogicalName Procedure
-FUNCTION getCurrentLogicalName RETURNS CHARACTER 
-	(  ) FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 
 &IF DEFINED(EXCLUDE-addAllLinks) = 0 &THEN
 
@@ -285,7 +263,7 @@ FUNCTION setContainerInitialMode RETURNS LOGICAL
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setCurrentLogicalName Procedure 
 FUNCTION setCurrentLogicalName RETURNS LOGICAL
-  ( pcCurrentObjectName AS CHARACTER )  FORWARD.
+    ( pcCurrentObjectName AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -808,7 +786,7 @@ PROCEDURE createObjects :
            making it smaller. However, we need a very large canvas to paint on
            because we don't know at this stage exactly how big all of the bits
            are that will be painted on this frame.    
-		 */
+                 */
         ASSIGN hContainingWindow = {fn getContainingWindow}.
         IF VALID-HANDLE(hContainingWindow) THEN
             {get ContainerHandle hWindow hContainingWindow}.
@@ -1017,14 +995,23 @@ PROCEDURE initializeObject :
     {get CurrentPage iCurrentPageNumber}
     {get ObjectInitialized lObjectInitted}
     {get ContainerType cContainerType}
-    {get ContainerMode cContainerMode}.
+    {get ContainerMode cContainerMode}
+    {get ContainerHandle hContainerHandle}.
     &UNDEFINE xp-assign
     
     /* Make sure that all the objects are created first. */
     IF NOT {fn getObjectsCreated} THEN
         RUN createObjects IN TARGET-PROCEDURE.
-    
+
+    /*CreateObjects may set 'forcedExit', so we have to check it here*/
+    IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U THEN
+       RETURN.
+
     RUN SUPER.
+
+    /*'forcedExit' is may be set in the super procedures stack, so we have to check it here*/
+    IF VALID-HANDLE(hContainerHandle) AND hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U THEN
+       RETURN.
     
     IF NOT LOOKUP(cContainerType, "WINDOW,VIRTUAL":U) > 0 THEN
     DO:
@@ -1047,7 +1034,6 @@ PROCEDURE initializeObject :
         END.
         /* The window controls its self-destruction. This will cause all * objects contained on
            it to be destroyed, too. Don't overwrite any forced exit statements already there      */
-        {get ContainerHandle hContainerHandle}.
         IF VALID-HANDLE(hContainerHandle) THEN
             IF NOT hContainerHandle:PRIVATE-DATA BEGINS "ForcedExit":U OR hContainerHandle:PRIVATE-DATA = ? THEN
                 ASSIGN hContainerHandle:PRIVATE-DATA = "ForcedExit":U + CHR(3) + {aferrortxt.i 'RY' '11'}.
@@ -1543,6 +1529,7 @@ END PROCEDURE.  /* setContainerViewMode */
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
 &IF DEFINED(EXCLUDE-addAllLinks) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addAllLinks Procedure 
@@ -2264,7 +2251,7 @@ FUNCTION getWindowName RETURNS CHARACTER ( ) :
     
     /* Look to see if this container is a window, and try to
        retrieve the title from the window. If not, then use
-	   the WindowName property from the ADMProps table.
+           the WindowName property from the ADMProps table.
      */
     cWindowName = super().
     
@@ -2395,8 +2382,8 @@ FUNCTION setCurrentLogicalName RETURNS LOGICAL
     ( pcCurrentObjectName AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose: This function is called from the rendering before the calls are 
-  		   made to constructObject. This value is used by the prepareInstance
-  		   bootstrapping API.
+                   made to constructObject. This value is used by the prepareInstance
+                   bootstrapping API.
     Notes: 
 ------------------------------------------------------------------------------*/
     gcCurrentObjectName = pcCurrentObjectName.

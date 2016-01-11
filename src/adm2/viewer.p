@@ -1224,9 +1224,16 @@ Parameters:  pcFieldList  - List of fields to display.
           IF hField:TYPE = "SELECTION-LIST":U AND hField:MULTIPLE THEN
              hField:SCREEN-VALUE = "":U.
 
-          /* A combo with blank in list-items needs screen-value = space */         
-          IF hField:TYPE = "COMBO-BOX":U AND cValue = "":U THEN
-            cValue = " ":U.
+          IF cValue = "":U THEN
+          DO:
+            /* A combo with blank in list-items needs screen-value = space */         
+            IF hField:TYPE = "COMBO-BOX":U THEN
+              cValue = " ":U.
+            /* If logical fill-in allow blank as NO (claimed to be old behavior) */         
+            ELSE IF hField:DATA-TYPE = "LOGICAL":U AND hField:TYPE = "FILL-IN":U THEN
+              cValue = "NO":U.
+          END.
+
           /* (toggle boxes need special treatment as they do not handle 
              'no' or 'yes' with non-default format)  */
           IF hField:TYPE = "TOGGLE-BOX":U THEN
@@ -1255,6 +1262,7 @@ Parameters:  pcFieldList  - List of fields to display.
                  also was silent when the LIST- does not have a blank entry) 
                Note that NO behavior is supported for this!! */
             END.
+
             /* Otherwise keep behavior as if NO-ERROR was not used.. 
                Everyone is better off with explicit error when data cannot be 
                displayed properly.. Silent forgiveness in this area is bad, 
@@ -1537,15 +1545,14 @@ PROCEDURE displayFields :
       END.
     END. /* lRefreshFields */
   END. /* if pcColValues = ? and useRepository */
-
-  RUN updateTitle IN TARGET-PROCEDURE.
-
-  RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
-  
   /* publish displayField if record avail ( pcColValues <> ? ) 
      clearField is being run in all SDFs above if no record avail*/
   IF pcColValues <> ? OR lRefreshDataFields THEN
     PUBLISH 'displayField':U FROM TARGET-PROCEDURE.  
+
+  RUN updateTitle IN TARGET-PROCEDURE.
+  
+  RUN rowDisplay IN TARGET-PROCEDURE NO-ERROR. /* Custom display checks. */
 
   RETURN.
 

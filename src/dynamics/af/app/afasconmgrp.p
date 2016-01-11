@@ -27,12 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */
 /*---------------------------------------------------------------------------------
   File: afasconmgrp.p
 
@@ -225,89 +222,98 @@ PROCEDURE connectServiceWithParams :
   DEFINE VARIABLE lDefault              AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cAppServerInfo        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cSessionType          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cPhysSessType          AS CHARACTER  NO-UNDO.
-
-  /* cAppServerInfo contains several parameters in a string. This string is passed
-     as the AppServerInfo parameter in the connect method so that the as_connect.p
-     procedure can parse these values out for use by the AppServer. */
-
-  cPhysSessType  = DYNAMIC-FUNCTION("getPhysicalSessionType":U IN THIS-PROCEDURE).
-  IF cPhysSessType = ? THEN
-    cPhysSessType = "?":U.
-
-  cAppServerInfo = "VER:2.1A":U + CHR(3) 
-                 + cPhysSessType + CHR(3)
-                 + SESSION:NUMERIC-SEPARATOR + CHR(3) 
-                 + SESSION:NUMERIC-DECIMAL-POINT + CHR(3)
-                 + SESSION:DATE-FORMAT + CHR(3)
-                 + STRING(SESSION:YEAR-OFFSET) + CHR(3).
+  DEFINE VARIABLE cPhysSessType         AS CHARACTER  NO-UNDO.
+  define variable cPhysicalService      as character no-undo.
     
-  cSessionType = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                  "ICFSESSTYPE":U).
-
-  IF cSessionType = ? THEN
-    cSessionType = "?":U.
-
-  cAppServerInfo = cAppServerInfo + cSessionType + CHR(3).
-
-
-  lDefault = DYNAMIC-FUNCTION("isDefaultService":U IN THIS-PROCEDURE,
-                              INPUT pcServiceName ).
- 
-  IF lDefault AND
-     gscSessionID <> "":U AND
-     gscSessionID <> ? THEN
-    cAppServerInfo = cAppServerInfo + gscSessionID.
-
-  {aficfcheck.i}
-
-
-  /* Get the connection parameters */
-  cConnectString = DYNAMIC-FUNCTION("getConnectionString":U IN THIS-PROCEDURE,
-                                    INPUT pcServiceName ).
-  IF cConnectString = ? THEN
-    RETURN "INVALID CONNECTION STRING":U.
-
-  lRunLocal = cConnectString = "<LOCAL>":U.
-
-  IF NOT lRunLocal THEN DO:
-      /* Now append the parameter list to the connection string */
-      IF ( pcParameterList > "":U ) THEN
-        ASSIGN cConnectString = cConnectString + " ":U + pcParameterList.
-
-      /* Now invoke the substitute param to substitute list */
-      RUN substituteParams IN TARGET-PROCEDURE (INPUT cConnectString, 
-                           INPUT pcSubstitutionList,
-                           OUTPUT cConnectString).
-
-      lRunLocal = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
-                                 "run_local":U) = "YES":U.
-  END.
-
-  IF lRunLocal THEN
-  DO:
-    pcHandle = STRING(SESSION).
-    DYNAMIC-FUNCTION("setServiceHandle":U IN THIS-PROCEDURE, 
-                     pcServiceName, pcHandle).
-    RETURN.
-  END.
-
-  IF isConnected(pcServiceName) THEN
-    RUN disconnectService (pcServiceName).
-
-  /* Connect to the AppServer with a generated user name and password */
-  cUserName = DYNAMIC-FUNCTION("generateUserName":U IN hDynUser).
-  cPassword = DYNAMIC-FUNCTION("createPassword":U IN hDynUser, cUserName).
-
-  /* Now create the server and connect it */
-  CREATE SERVER hServer.
-  lAns = hServer:CONNECT(cConnectString,cUserName,cPassword,cAppServerInfo) NO-ERROR.
-
-  IF ERROR-STATUS:ERROR OR
-     ERROR-STATUS:NUM-MESSAGES <> 0 OR
-     lAns <> YES THEN
-    RETURN DYNAMIC-FUNCTION('buildErrorList':U IN THIS-PROCEDURE).
-
+    /* Check whether there's a connection already made to the 
+       actual AppServer (ie the physical service). If so, re-use
+       the connection, while keeping the (logical) service name. */
+    cPhysicalService = {fnarg getPhysicalService pcServiceName}.
+    hServer = dynamic-function('findConnectedPhysicalService':u in target-procedure,
+                               cPhysicalService, '':u /* service name not required */).
+    
+    /* We use this value regardless of whether we've reused the connection. */    
+    lDefault = {fnarg isDefaultService pcServiceName}.
+    
+    if not valid-handle(hServer) then
+    do:
+      /* cAppServerInfo contains several parameters in a string. This string is passed
+             as the AppServerInfo parameter in the connect method so that the as_connect.p
+             procedure can parse these values out for use by the AppServer. */
+    
+      cPhysSessType  = DYNAMIC-FUNCTION("getPhysicalSessionType":U IN THIS-PROCEDURE).
+      IF cPhysSessType = ? THEN
+        cPhysSessType = "?":U.
+    
+      cAppServerInfo = "VER:2.1A":U + CHR(3) 
+                     + cPhysSessType + CHR(3)
+                     + SESSION:NUMERIC-SEPARATOR + CHR(3) 
+                     + SESSION:NUMERIC-DECIMAL-POINT + CHR(3)
+                     + SESSION:DATE-FORMAT + CHR(3)
+                     + STRING(SESSION:YEAR-OFFSET) + CHR(3).
+        
+      cSessionType = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                      "ICFSESSTYPE":U).
+    
+      IF cSessionType = ? THEN
+        cSessionType = "?":U.
+    
+      cAppServerInfo = cAppServerInfo + cSessionType + CHR(3).
+           
+      IF lDefault AND
+         gscSessionID <> "":U AND
+         gscSessionID <> ? THEN
+        cAppServerInfo = cAppServerInfo + gscSessionID.
+    
+      {aficfcheck.i}    
+    
+      /* Get the connection parameters */
+      cConnectString = DYNAMIC-FUNCTION("getConnectionString":U IN THIS-PROCEDURE,
+                                        INPUT pcServiceName ).
+      IF cConnectString = ? THEN
+        RETURN "INVALID CONNECTION STRING":U.
+    
+      lRunLocal = cConnectString = "<LOCAL>":U.
+    
+      IF NOT lRunLocal THEN DO:
+          /* Now append the parameter list to the connection string */
+          IF ( pcParameterList > "":U ) THEN
+            ASSIGN cConnectString = cConnectString + " ":U + pcParameterList.
+    
+          /* Now invoke the substitute param to substitute list */
+          RUN substituteParams IN TARGET-PROCEDURE (INPUT cConnectString, 
+                               INPUT pcSubstitutionList,
+                               OUTPUT cConnectString).
+    
+          lRunLocal = DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
+                                     "run_local":U) = "YES":U.
+      END.
+    
+      IF lRunLocal THEN
+      DO:
+        pcHandle = STRING(SESSION).
+        DYNAMIC-FUNCTION("setServiceHandle":U IN THIS-PROCEDURE, 
+                         pcServiceName, pcHandle).
+        RETURN.
+      END.
+    
+      IF isConnected(pcServiceName) THEN
+        RUN disconnectService (pcServiceName).
+    
+      /* Connect to the AppServer with a generated user name and password */
+      cUserName = DYNAMIC-FUNCTION("generateUserName":U IN hDynUser).
+      cPassword = DYNAMIC-FUNCTION("createPassword":U IN hDynUser, cUserName).
+    
+      /* Now create the server and connect it */
+      CREATE SERVER hServer.
+      lAns = hServer:CONNECT(cConnectString,cUserName,cPassword,cAppServerInfo) NO-ERROR.
+    
+      IF ERROR-STATUS:ERROR OR
+         ERROR-STATUS:NUM-MESSAGES <> 0 OR
+         lAns <> YES THEN
+        RETURN DYNAMIC-FUNCTION('buildErrorList':U IN THIS-PROCEDURE).
+    end.    /* Re-usable connection */
+        
   pcHandle = STRING(hServer).
 
   DYNAMIC-FUNCTION('setServiceHandle':U IN THIS-PROCEDURE,
@@ -343,23 +349,36 @@ PROCEDURE disconnectService :
   DEFINE VARIABLE hServer  AS HANDLE     NO-UNDO.
   DEFINE VARIABLE lAns     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lDefault AS LOGICAL    NO-UNDO.
+    define variable hOtherServer            as handle no-undo.  
+    define variable cPhysicalService        as character no-undo.
 
   /* Get the handle to the AppServer */
   hServer = WIDGET-HANDLE(DYNAMIC-FUNCTION('getServiceHandle':U IN THIS-PROCEDURE,
                                               INPUT pcServiceName)).
+    
   IF NOT VALID-HANDLE(hServer) OR
      hServer = SESSION:HANDLE THEN
     RETURN.
 
+    /* Look for another logical connection using this physical
+       connection. */
+    cPhysicalService = {fnarg getPhysicalService pcServiceName}.
+    hOtherServer = dynamic-function('findConnectedPhysicalService':u in target-procedure,
+                                    cPhysicalService, pcServiceName).
+    
   lDefault = DYNAMIC-FUNCTION("isDefaultService":U IN THIS-PROCEDURE,
                           INPUT pcServiceName ).
-
-
-  IF hServer:CONNECTED() THEN
-    hServer:DISCONNECT().
-
-  DELETE OBJECT hServer.
-  
+    
+    /* Only delete the service if there's no connection sharing going on.
+       If there's another logical service using this physical service, then 
+       don't delete the physical service. */
+    if hServer ne hOtherServer then
+    do:
+        IF hServer:CONNECTED() THEN
+            hServer:DISCONNECT().
+        DELETE OBJECT hServer.
+    end.    /* there's another service on this connection */
+      
   DYNAMIC-FUNCTION('setServiceHandle':U IN THIS-PROCEDURE,
                    INPUT pcServiceName,
                    INPUT ?). 

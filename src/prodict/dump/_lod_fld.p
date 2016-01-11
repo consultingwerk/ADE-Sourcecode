@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -20,7 +20,7 @@
       09/22/03 Added check for CLOB to have codepage and collation set.
       09/29/03 Added check for invalid data type 20030925-014
       07/09/04 Added abbreviations for data types 20040430-023
-              
+      08/16/06 Raw comparison when checking if char values are different - 20060301-002
 */    
     
 define input-output parameter minimum-index as integer.
@@ -127,14 +127,14 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   END.
 
   IF _File._Db-lang = 0 THEN DO:
-    IF _Field._Can-write   <> wfld._Can-write    THEN _Field._Can-write     = wfld._Can-write.
-    IF _Field._Can-read    <> wfld._Can-read     THEN _Field._Can-read      = wfld._Can-read.
+    IF COMPARE(_Field._Can-write,"NE",wfld._Can-write,"RAW") THEN _Field._Can-write     = wfld._Can-write.
+    IF COMPARE(_Field._Can-read,"NE",wfld._Can-read,"RAW")   THEN _Field._Can-read      = wfld._Can-read.
     IF _Field._Mandatory   <> wfld._Mandatory    THEN _Field._Mandatory     = wfld._Mandatory.
     IF _Field._Decimals    <> wfld._Decimals     THEN _Field._Decimals      = wfld._Decimals.
   END.
   ELSE IF _file._db-lang = 1 THEN DO:
-    IF _Field._Can-write   <> wfld._Can-write  OR
-       _Field._Can-read    <> wfld._Can-read   OR
+    IF COMPARE(_Field._Can-write,"NE",wfld._Can-write,"RAW") OR
+       COMPARE(_Field._Can-read,"NE",wfld._Can-read,"RAW")   OR
        _Field._Mandatory   <> wfld._Mandatory  OR
        _Field._Decimals    <> wfld._Decimals   THEN
        ASSIGN iwarnlst = iwarnlst + "23,"
@@ -142,22 +142,22 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   END.
 
   IF COMPARE(_Field._Col-label,"NE",wfld._Col-label,"RAW")  THEN _Field._Col-label     = wfld._Col-label.
-  IF _Field._Col-label-SA  <> wfld._Col-label-SA            THEN _Field._Col-label-SA  = wfld._Col-label-SA.
+  IF COMPARE(_Field._Col-label-SA,"NE",wfld._Col-label-SA,"RAW") THEN _Field._Col-label-SA  = wfld._Col-label-SA.
   IF COMPARE(_Field._Desc,"NE",wfld._Desc,"RAW")            THEN _Field._Desc          = wfld._Desc.
-  IF _Field._Format        <> wfld._Format                  THEN _Field._Format        = wfld._Format.
-  IF _Field._Format-SA     <> wfld._Format-SA               THEN _Field._Format-SA     = wfld._Format-SA.
+  IF COMPARE(_Field._Format,"NE",wfld._Format,"RAW")        THEN _Field._Format        = wfld._Format.
+  IF COMPARE(_Field._Format-SA,"NE",wfld._Format-SA,"RAW")  THEN _Field._Format-SA     = wfld._Format-SA.
   IF COMPARE(_Field._Help,"NE",wfld._Help,"RAW")            THEN _Field._Help          = wfld._Help.
-  IF _Field._Help-SA       <> wfld._Help-SA                 THEN _Field._Help-SA       = wfld._Help-SA.
+  IF COMPARE(_Field._Help-SA ,"NE",wfld._Help-SA,"RAW")     THEN _Field._Help-SA       = wfld._Help-SA.
   IF COMPARE(_Field._Initial,"NE",wfld._Initial,"RAW")      THEN _Field._Initial       = wfld._Initial.
-  IF _Field._Initial-SA    <> wfld._Initial-SA              THEN _Field._Initial-SA    = wfld._Initial-SA.
+  IF COMPARE(_Field._Initial-SA,"NE",wfld._Initial-SA,"RAW") THEN _Field._Initial-SA    = wfld._Initial-SA.
   IF COMPARE(_Field._Label,"NE",wfld._Label,"RAW")          THEN _Field._Label         = wfld._Label.
-  IF _Field._Label-SA      <> wfld._Label-SA                THEN _Field._Label-SA      = wfld._Label-SA.
+  IF COMPARE(_Field._Label-SA,"NE",wfld._Label-SA,"RAW")    THEN _Field._Label-SA      = wfld._Label-SA.
   IF _Field._Order         <> wfld._Order                   THEN _Field._Order         = wfld._Order.
   IF _Field._Field-rpos    <> wfld._Field-rpos              THEN _Field._Field-rpos    = wfld._Field-rpos.
-  IF _Field._Valexp        <> wfld._Valexp                  THEN _Field._Valexp        = wfld._Valexp.
+  IF COMPARE(_Field._Valexp,"NE",wfld._Valexp,"RAW")        THEN _Field._Valexp        = wfld._Valexp.
   IF _Field._Valmsg        <> wfld._Valmsg                  THEN _Field._Valmsg        = wfld._Valmsg.
-  IF _Field._Valmsg-SA     <> wfld._Valmsg-SA               THEN _Field._Valmsg-SA     = wfld._Valmsg-SA.
-  IF _Field._View-as       <> wfld._View-as                 THEN _Field._View-as       = wfld._View-as.
+  IF COMPARE(_Field._Valmsg-SA,"NE",wfld._Valmsg-SA,"RAW")  THEN _Field._Valmsg-SA     = wfld._Valmsg-SA.
+  IF COMPARE(_Field._View-as,"NE",wfld._View-as,"RAW")      THEN _Field._View-as       = wfld._View-as.
 
   IF _Field._Fld-case      <> wfld._Fld-case                THEN DO:
    IF NOT CAN-FIND(FIRST _Index-field OF _Field) THEN _Field._Fld-case     = wfld._Fld-case.

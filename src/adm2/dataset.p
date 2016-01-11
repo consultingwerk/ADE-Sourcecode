@@ -1097,10 +1097,10 @@ FUNCTION emptyBatch RETURNS LOGICAL
   DEFINE VARIABLE iRel            AS INTEGER    NO-UNDO.
 
   hBuffer = {fnarg dataTableHandle pcTable}.
-  hBuffer:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
-  hBuffer:EMPTY-TEMP-TABLE.
-  IF VALID-HANDLE(hbuffer) THEN
+  IF VALID-HANDLE(hBuffer) THEN
   DO:
+    hBuffer:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
+    hBuffer:EMPTY-TEMP-TABLE.
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
       IF NOT hRelation:REPOSITION THEN
@@ -1395,7 +1395,8 @@ DO WHILE TRUE:
    IF cIndexfields = pcFields THEN
       RETURN TRUE.
 
-   ELSE IF NUM-ENTRIES(pcFields) LT NUM-ENTRIES(cIndexFields) THEN NEXT.
+   ELSE IF NUM-ENTRIES(pcFields) LT NUM-ENTRIES(cIndexFields) THEN 
+     NEXT.
 
    ELSE DO iField = 1 TO NUM-ENTRIES(pcFields):
         ASSIGN cField = ENTRY(iField,pcFields)
@@ -1461,7 +1462,7 @@ FUNCTION mergeBatch RETURNS LOGICAL
   ( pcTable AS CHARACTER ) :
 /*------------------------------------------------------------------------------
   Purpose: Merge the tables that was retrieved together with the passed 
-           table, but not are true children with the data that was stored 
+           table, but not are true children, with the data that was stored 
            away before retrieval to avoid conflict with the current data. 
 Parameter:
     pcTable - table name 
@@ -1480,20 +1481,22 @@ Parameter:
   DO:
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
-      IF NOT hRelation:REPOSITION 
-      AND {fnarg relationType hRelation} MATCHES '*-one':U  THEN
+      IF NOT hRelation:REPOSITION THEN
       DO:
-        FIND bttBatch WHERE bttBatch.TargetProcedure = TARGET-PROCEDURE
-                        AND bttBatch.TableName       = STRING(hRelation:CHILD-BUFFER:NAME)
-                       NO-ERROR.
-        IF AVAIL bttBatch THEN
+        IF {fnarg relationType hRelation} MATCHES '*-one':U  THEN
         DO:
-          hRelation:CHILD-BUFFER:TABLE-HANDLE:COPY-TEMP-TABLE(bttBatch.TTHandle,YES).
-          DELETE OBJECT bttBatch.TTHandle.
-          DELETE bttBatch.
+          FIND bttBatch WHERE bttBatch.TargetProcedure = TARGET-PROCEDURE
+                          AND bttBatch.TableName       = STRING(hRelation:CHILD-BUFFER:NAME)
+                        NO-ERROR.
+          IF AVAIL bttBatch THEN
+          DO:
+            hRelation:CHILD-BUFFER:TABLE-HANDLE:COPY-TEMP-TABLE(bttBatch.TTHandle,YES).
+            DELETE OBJECT bttBatch.TTHandle.
+            DELETE bttBatch.
+          END.
         END.
-      END.
-      {fnarg mergeBatch hRelation:CHILD-BUFFER:NAME}.
+        {fnarg mergeBatch hRelation:CHILD-BUFFER:NAME}.
+      END. /* NOT reposition*/
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
 
@@ -1726,13 +1729,11 @@ END FUNCTION.
 FUNCTION storeBatch RETURNS LOGICAL
   ( pcTable AS CHARACTER ) :
 /*------------------------------------------------------------------------------
-  Purpose: Store away the tables that are retrieved together with the passed 
-           table, but not are true children, such that new data may conflict
-           with the current data. 
-Parameter:
-    pcTable - table name 
-             
-    Notes:          
+  Purpose: Store away and empty the tables that are retrieved together with the 
+           passed table and may conflict with existing data because they have 
+           a many-to-one or one-to-one relationship.   
+Parameter: pcTable - table name              
+    Notes: Use when a new batch is to be appended to an existing batch        
  ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hBuffer         AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRelation       AS HANDLE     NO-UNDO.
@@ -1748,23 +1749,24 @@ Parameter:
   DO:
     DO iRel = 1 TO hBuffer:NUM-CHILD-RELATIONS:
       hRelation = hBuffer:GET-CHILD-RELATION(iRel).
-      IF NOT hRelation:REPOSITION 
-      AND hRelation:CHILD-BUFFER:TABLE-HANDLE:HAS-RECORDS 
-      AND {fnarg relationType hRelation} MATCHES '*-one':U  THEN
+      IF NOT hRelation:REPOSITION THEN
       DO:
-        CREATE TEMP-TABLE hTable.
-        hTable:COPY-TEMP-TABLE(hRelation:CHILD-BUFFER:TABLE-HANDLE).
-        CREATE bttBatch.
-        ASSIGN
-          bttBatch.TargetProcedure = TARGET-PROCEDURE
-          bttBatch.TableName       = hRelation:CHILD-BUFFER:NAME
-          bttBatch.TTHandle        = hTable
-          lStored                  = TRUE
-          hRelation:CHILD-BUFFER:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
-        hRelation:CHILD-BUFFER:EMPTY-TEMP-TABLE.
+        IF hRelation:CHILD-BUFFER:TABLE-HANDLE:HAS-RECORDS 
+        AND {fnarg relationType hRelation} MATCHES '*-one':U  THEN
+        DO:
+          CREATE TEMP-TABLE hTable.
+          hTable:COPY-TEMP-TABLE(hRelation:CHILD-BUFFER:TABLE-HANDLE).
+          CREATE bttBatch.
+          ASSIGN
+            bttBatch.TargetProcedure = TARGET-PROCEDURE
+            bttBatch.TableName       = hRelation:CHILD-BUFFER:NAME
+            bttBatch.TTHandle        = hTable
+            lStored                  = TRUE
+            hRelation:CHILD-BUFFER:TABLE-HANDLE:TRACKING-CHANGES = FALSE.
+          hRelation:CHILD-BUFFER:EMPTY-TEMP-TABLE.
+        END.
+        lStoredChild = {fnarg storeBatch hRelation:CHILD-BUFFER:NAME}.
       END.
-
-      lStoredChild = {fnarg storeBatch hRelation:CHILD-BUFFER:NAME}.
     END. /* Do iRel = 1 to hBuffer:NUM-CHILD-RELATIONS: */
   END.  /* valid hbuffer */
 

@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* _lod_fil.p  -  moves temptable-info to new or existing _File
 
@@ -27,6 +11,9 @@
              99-01-21-013 Reinitialized file-area-number DLM
 	     99-07-08 Mario B. Assign _File._File-name when trigger is created
 	                       or updated.  BUG# 99-02-09-002
+      
+      fernando 08/16/06 Raw comparison when checking if char values are different - 20060301-002
+                           
    
  */
 
@@ -130,28 +117,28 @@ ELSE
 IF imod = "m" THEN DO: /*---------------------------------------------------*/
   ierror = 23. /* default error to general table attr error */
   IF _File._Db-lang = 0 THEN DO:
-    IF _File._Can-create <> wfil._Can-create THEN
+    IF COMPARE(_File._Can-create,"NE", wfil._Can-create,"RAW") THEN
       _File._Can-create = wfil._Can-create.
-    IF _File._Can-delete <> wfil._Can-delete THEN
+    IF COMPARE(_File._Can-delete,"NE",wfil._Can-delete,"RAW") THEN
       _File._Can-delete = wfil._Can-delete.
-    IF _File._Can-write <> wfil._Can-write THEN
+    IF COMPARE(_File._Can-write,"NE",wfil._Can-write,"RAW") THEN
       _File._Can-write = wfil._Can-write.
-    IF _File._Can-read <> wfil._Can-read THEN
+    IF COMPARE(_File._Can-read,"NE",wfil._Can-read,"RAW") THEN
       _File._Can-read = wfil._Can-read.
-    IF _File._Can-dump <> wfil._Can-dump THEN
+    IF COMPARE(_File._Can-dump,"NE",wfil._Can-dump,"RAW") THEN
       _File._Can-dump = wfil._Can-dump.
-    IF _File._Can-load <> wfil._Can-load THEN
+    IF COMPARE(_File._Can-load,"NE",wfil._Can-load,"RAW") THEN
       _File._Can-load = wfil._Can-load.
   END.
 
   IF _File._Desc       	<> wfil._Desc   THEN _File._Desc   = wfil._Desc.
-  IF _File._File-label 	<> wfil._File-label THEN 
+  IF COMPARE(_File._File-label,"NE",wfil._File-label,"RAW") THEN 
     _File._File-label = wfil._File-label.
-  IF _File._File-label-SA <> wfil._File-label-SA THEN 
+  IF COMPARE(_File._File-label-SA,"NE",wfil._File-label-SA,"RAW") THEN 
     _File._File-label-SA = wfil._File-label-SA.
-  IF _File._Valexp   	<> wfil._Valexp THEN _File._Valexp = wfil._Valexp.
+  IF COMPARE(_File._Valexp,"NE",wfil._Valexp,"RAW") THEN _File._Valexp = wfil._Valexp.
   IF _File._Valmsg   	<> wfil._Valmsg THEN _File._Valmsg = wfil._Valmsg.
-  IF _File._Valmsg-SA  	<> wfil._Valmsg-SA THEN 
+  IF COMPARE(_File._Valmsg-SA,"NE",wfil._Valmsg-SA,"RAW") THEN 
     _File._Valmsg-SA = wfil._Valmsg-SA.
   IF _File._Hidden   	<> wfil._Hidden THEN _File._Hidden = wfil._Hidden.
   IF _File._Dump-name 	<> wfil._Dump-name AND wfil._Dump-name <> ? THEN
@@ -187,7 +174,7 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
   IF _File._Fil-misc2[5] <> wfil._Fil-misc2[5] THEN
     _File._Fil-misc2[5] = wfil._Fil-misc2[5].
 
-  IF _File._Fil-misc2[6] <> wfil._Fil-misc2[6] THEN
+  IF COMPARE(_File._Fil-misc2[6],"NE",wfil._Fil-misc2[6],"RAW") THEN
     _File._Fil-misc2[6] = wfil._Fil-misc2[6].
 
   IF _File._Fil-misc2[7] <> wfil._Fil-misc2[7] THEN

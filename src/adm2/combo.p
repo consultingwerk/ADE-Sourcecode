@@ -2229,7 +2229,7 @@ FUNCTION createDataSource RETURNS HANDLE
   DEFINE VARIABLE cRenderingProc    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lUseProxy         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lDynamic          AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lDbAware          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lDataView         AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cProps            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cBusinessEntity   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDatasetName      AS CHARACTER  NO-UNDO.
@@ -2247,15 +2247,15 @@ FUNCTION createDataSource RETURNS HANDLE
   DO:
     {get DataSource hViewerDataSource hContainer}.
     IF VALID-HANDLE(hViewerDataSource) THEN
-      {get DbAware lDbAware hViewerDataSource}.
+      lDataView = {fnarg InstanceOf 'DataView':U hViewerDataSource}.
 
    /* A viewer with no data source may exist... (not recommended, but..)
       Currently assume that it always exists for DataView cases.. since the 
       combo is assigned to one of the viewer's tables at design time*/ 
     ELSE  
-      lDbAware = YES. 
+      lDataView = NO. 
 
-    IF lDbAware THEN
+    IF NOT lDataView THEN
     DO:
       IF VALID-HANDLE(gshAstraAppServer) THEN 
       DO:
@@ -2305,7 +2305,7 @@ FUNCTION createDataSource RETURNS HANDLE
            cProps, 
            OUTPUT hRequestSDO).
 
-    IF lDbAware THEN
+    IF NOT lDataView THEN
     DO:
       /* The proxy is created from the class and need a logical name */  
       IF lUseProxy THEN

@@ -1,11 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/******************************************************************************/
-/* Copyright (C) 2005 by Progress Software Corporation. All rights reserved.  */
+/**********************************************************************************/
+/* Copyright (C) 2005-2006 by Progress Software Corporation. All rights reserved. */
 /* Prior versions of this work may contain portions contributed by            */
 /* participants of Possenet.                                                  */             
-/******************************************************************************/
+/**********************************************************************************/
 
 /*--------------------------------------------------------------------------
     File        : data.p
@@ -413,6 +413,17 @@ FUNCTION hasOneToOneTarget RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD initializeFromCache Procedure 
 FUNCTION initializeFromCache RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1490,9 +1501,15 @@ DEFINE VARIABLE lTranslateColumnLabel   AS LOGICAL    NO-UNDO.
                    /* Translate ttSchema.column_label */
                    IF lTranslateColumnLabel AND VALID-HANDLE(hTranslatedBuffer) THEN
                    DO:
-                       hColumn = hTranslatedBuffer:BUFFER-FIELD(cFieldName).                    
-                       IF VALID-HANDLE(hColumn) THEN
-                           ttSchema.column_label = hColumn:COLUMN-LABEL. /* Assign column_label from entity cache */
+                     /* The Entity stores array fields (wrongly) without bracket! */
+                     IF INDEX(cFieldname,"[":U) > 0 THEN
+                       ASSIGN
+                         cFieldName = REPLACE(cFieldName,'[':U,'':U)
+                         cFieldName = REPLACE(cFieldName,']':U,'':U).
+                     
+                     hColumn = hTranslatedBuffer:BUFFER-FIELD(cFieldName) NO-ERROR.                     
+                     IF VALID-HANDLE(hColumn) THEN
+                       ttSchema.column_label = hColumn:COLUMN-LABEL. /* Assign column_label from entity cache */
                    END.
                    /* Remarked out as it is set above */
     /*                ttSchema.calculated_field = NO. /* Previously assigned all fields as calculated, now overwrite fields with tables to NOT calcualted */ */
@@ -2771,7 +2788,8 @@ PROCEDURE initializeObject :
   DEFINE VARIABLE cEntityFields   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lFoundInCache   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hParentSource   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lParentOpen     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lParentAvail    AS LOGICAL    NO-UNDO.
+  
   /* If the object has a Partition named, then connect to it. */
   /* Skip all this if we're in design mode. */
   {get UIBMode cUIBMode}.
@@ -2820,13 +2838,13 @@ PROCEDURE initializeObject :
       /* Set openoninit false if parent is closed and has openoninit false */ 
       IF lQuerySource AND NOT lQueryContainer THEN
       DO WHILE VALID-HANDLE(hParentSource) AND lOpenOnInit:
+        lParentAvail = {fnarg rowAvailable '' hParentSource}.
         &SCOPED-DEFINE xp-assign
         {get OpenOnInit lOpenOnInit hParentSource} 
-        {get QueryOpen lParentOpen hParentSource}
         {get DataSource hParentSource hParentSource}
          .
         &UNDEFINE xp-assign
-        lOpenOnInit = lOpenOnInit OR lParentOpen.
+        lOpenOnInit  = lOpenOnInit OR lParentAvail.
       END.
     END.
 
@@ -2908,8 +2926,7 @@ PROCEDURE initializeObject :
 
   END.       /* END IF not UIBMode   */
 
-  {get AsDivision cAsDivision}.
-  
+  {get AsDivision cAsDivision}.   
   IF VALID-HANDLE(hContainer) AND cAsDivision = 'CLIENT':U THEN
       /* Check AppServer properties to see if the object has no current or future 
          server bindings and is using a stateless operating mode. */  
@@ -2949,7 +2966,7 @@ PROCEDURE initializeObject :
       (openquery does this otherwise) */ 
     IF lWait THEN 
       lFoundInCache = {fn initializeFromCache}. 
-    
+  
     IF NOT lFoundInCache THEN
     DO:
       /* Retrieve stored filter information */      
@@ -2962,7 +2979,7 @@ PROCEDURE initializeObject :
         IF cEntityFields = ? THEN
           RUN initializeEntityDetails IN TARGET-PROCEDURE.
       END.
-    
+      
       /* Don't open the query or run dataavailable if we're inside a 
          container such as an SBO or waiting for the datacontainer's fetch
          in that case it gets our data for us. */  
@@ -5522,25 +5539,24 @@ END PROCEDURE.
 PROCEDURE updateQueryPosition :
 /*------------------------------------------------------------------------------
   Purpose: Reset the QueryPosition property after a record navigation.  
-           The main purpose of this function is to eliminate duplication, 
-           errors and minimize messaging (setQueryPosition PUBLISHes)
-           in fetchFirst, fetchPrev, fetchNext and fetchLast.   
-    Notes: data.p should update LastRowNum, FirstRowNum properties and call this. 
+    Notes: LastRowNum, FirstRowNum properties must be set before this is called. 
          - The properties LastRowNum and FirstRowNum stores the 
            RowObject.RowNum of the first and last record in the database query. 
+         - Overrides and duplicates some of the logic in dataquery because 
+           RowNum is used and because we may be inside an SBO.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hRowObject   AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE iLastRowNum  AS INT     NO-UNDO.
-  DEFINE VARIABLE iFirstRowNum AS INT     NO-UNDO.  
-  DEFINE VARIABLE hRowNum      AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lLast        AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE cQueryPos    AS CHAR    NO-UNDO.
-  DEFINE VARIABLE cFFields     AS CHAR    NO-UNDO.
-  DEFINE VARIABLE cFValues     AS CHAR    NO-UNDO.
-  DEFINE VARIABLE lNew         AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE hDataSource  AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hDataTarget  AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lQuery       AS LOGICAL NO-UNDO.
+  DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLastRowNum  AS INT        NO-UNDO.
+  DEFINE VARIABLE iFirstRowNum AS INT        NO-UNDO.  
+  DEFINE VARIABLE hRowNum      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lLast        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cQueryPos    AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lNew         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hContainer   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lSBO         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lQuery       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cParentPos   AS CHARACTER  NO-UNDO.
 
   {get RowObject hRowObject}.
 
@@ -5563,59 +5579,53 @@ PROCEDURE updateQueryPosition :
       .   
   END. /* If hRowObject:available */
   ELSE DO: 
-     /* Check for a DataSource.  If there is a data source then we test
-        foreign key values, we could also have checked queryPosition..
-        but this is what Add uses, and this QueryPos is used to disable Add 
-        in toolbar .. */
-     {get DataSource hDataSource}.
+    /* Check for a DataSource. If there is a data source then we check 
+       queryPosition in the source */
+    {get DataSource hDataSource}.
+    /* if no datasource check to see if we're in an SBO with a DataSource */
+    IF NOT VALID-HANDLE(hDataSource) THEN 
+    DO:
+      {get ContainerSource hContainer}.
+      /* If we're inside an SBO, get its datasource */
+      IF VALID-HANDLE(hContainer) THEN 
+      DO:
+        {get QueryObject lSBO hContainer}.
+        IF lSBO THEN
+          {get DataSource hDataSource hContainer}.
+      END.
+    END. /* not valid DataSource  (check if container is SBO DataTarget)  */
+    
+    IF VALID-HANDLE(hDataSource) THEN 
+    DO:
+      {get QueryObject lQuery hDataSource}.
+      IF lQuery THEN
+      DO:        
+        /* Set the "dirty call back identifier" in case the datasource is an SBO */
+        ghTargetProcedure = TARGET-PROCEDURE.
+        {get QueryPosition cParentPos hDataSource}.
+        ghTargetProcedure = ?.
+        IF cParentPos BEGINS 'NoRecordAvailable':U THEN
+          cQueryPos = 'NoRecordAvailableExt':U.
 
-     /* Check to see if we're in an sbo and, if so, use that to get the 
-        ForeignFields */
-     IF NOT VALID-HANDLE(hDataSource) THEN 
-     DO:
-       {get ContainerSource hDataTarget}.
-       /* Determine if the appropriate data-target to use is the container
-          or the target-procedure (i.e. the sdo) */
-       IF VALID-HANDLE(hDataTarget) THEN 
-       DO:
-         {get QueryObject lQuery hDataTarget}.
-         IF lQuery THEN
-           {get DataSource hDataSource hDataTarget}.
-         ELSE 
-           hDataTarget = TARGET-PROCEDURE.
-       END.
-     END. /* not valid DataSource  (check if container is SBO DataTarget)  */
-     ELSE
-       hDataTarget = TARGET-PROCEDURE.
-     
-     IF VALID-HANDLE(hDataSource) THEN 
-     DO:
-       /* Check and see if any foreign fields are used */
-       {get ForeignFields cFFields hDataTarget}.
-       IF cFFields <> ? THEN 
-       DO:
-         /* get the values for the foreign fields */
-         {get ForeignValues cFValues hDataTarget}.
-         IF cFvalues = ? THEN
-            /* No Foreign values */
-           cQueryPos = 'NoRecordAvailableExt':U.
-       END. /* cFFields <> ? */
-       IF cQueryPos = '':U THEN
-       DO:
-         /* Check if dataSource has an unsaved new record 
-            Use no-error in case the datasource is a container with 
-            ExternalForegnKey  */
-         {get NewMode lNew hDataSource} NO-ERROR.
-         IF lNew THEN
-           cQueryPos = 'NoRecordAvailableExt':U.
-       END. /* cQueryPos = '' */
-     END.  /* valid DataSource */     
-     /* If not set above set the cQueryPos variable to NoRecordAvailable */ 
-     IF cQueryPos = '':U THEN
-       cQueryPos = 'NoRecordAvailable':U.
+        IF cQueryPos = '':U THEN
+        DO:
+          /* Check if dataSource has an unsaved new record */
+          {get NewMode lNew hDataSource}.
+          IF lNew THEN
+            cQueryPos = 'NoRecordAvailableExt':U.
+        END. /* cQueryPos = '' */
+      END. /* query */
+      ELSE /* if datasource not query object ( possibly pass-thru) then
+               assume nothing is available (yet) */ 
+        cQueryPos = 'NoRecordAvailableExt':U.
+    END.  /* valid DataSource */     
+    /* If not set above set the cQueryPos variable to NoRecordAvailable */ 
+    IF cQueryPos = '':U THEN
+      cQueryPos = 'NoRecordAvailable':U.
   END.  /* else (not avail)*/
 
   {set QueryPosition cQueryPos}.
+  
   RETURN.
 
 END PROCEDURE.
@@ -6289,7 +6299,7 @@ FUNCTION closeQuery RETURNS LOGICAL
   DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lQueryContainer AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lAsBound        AS LOGICAL    NO-UNDO.
-
+  
   {get ASDivision cASDivision}.
   {get DataHandle hDataQuery}.  /* Close the RowObject query. */
 
@@ -8514,6 +8524,28 @@ END FUNCTION.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override instanceOf to support SmartDataObject subtypes in 
+           non repository
+    Notes: This is currently only supported for DataView, Data and Query 
+------------------------------------------------------------------------------*/
+ IF pcClass = 'Data':U THEN
+   RETURN TRUE.
+
+ RETURN SUPER(pcClass).
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-isDataQueryComplete) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isDataQueryComplete Procedure 
@@ -9456,7 +9488,10 @@ Parameters: pcOptions - char
       DO:
         {get BaseQuery cBaseQuery}.
         IF cBaseQuery = cQuery THEN
-          {get QueryWhere cQuery}.   
+        DO:
+            {fn addForeignKey}.
+            {get QueryString cQuery}.   
+        END.
       END.
     END. /* iSDO = iSDONum */
   END.

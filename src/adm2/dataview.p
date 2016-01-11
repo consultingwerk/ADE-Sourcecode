@@ -23,10 +23,10 @@ DEFINE VARIABLE ghDataContainer AS HANDLE     NO-UNDO.
 
 &SCOP ADMSuper dataview.p
 
-  /* Custom exclude file */
+/* Custom exclude file */
 
-  {src/adm2/custom/dataviewexclcustom.i}
-  
+{src/adm2/custom/dataviewexclcustom.i}
+
 {src/adm2/ttsdoout.i}
 {src/adm2/schemai.i}
 
@@ -50,6 +50,17 @@ DEFINE VARIABLE ghDataContainer AS HANDLE     NO-UNDO.
 
 
 /* ************************  Function Prototypes ********************** */
+
+&IF DEFINED(EXCLUDE-activateHiddenFetchChildren) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD activateHiddenFetchChildren Procedure 
+FUNCTION activateHiddenFetchChildren RETURNS CHARACTER PRIVATE
+  (   )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-addDatasetClone) = 0 &THEN
 
@@ -552,6 +563,17 @@ FUNCTION findUniqueRowWhere RETURNS LOGICAL
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-firstRowids) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD firstRowids Procedure 
+FUNCTION firstRowids RETURNS CHARACTER
+  (pcQueryString AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-getAuditEnabled) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getAuditEnabled Procedure 
@@ -898,17 +920,6 @@ FUNCTION getHasFirst RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getHasLast Procedure 
 FUNCTION getHasLast RETURNS LOGICAL
   (  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-getHiddenFetchChildren) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getHiddenFetchChildren Procedure 
-FUNCTION getHiddenFetchChildren RETURNS CHARACTER PRIVATE
-  (   )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1304,7 +1315,7 @@ FUNCTION getUpdatableColumns RETURNS CHARACTER
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getUpdateSource Procedure 
 FUNCTION getUpdateSource RETURNS CHARACTER
-  ( )  FORWARD.
+  (  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -1397,6 +1408,17 @@ FUNCTION insertExpression RETURNS CHARACTER
   (pcWhere      AS CHAR,   
    pcExpression AS CHAR,     
    pcAndOr      AS CHAR) FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2481,9 +2503,9 @@ Parameters:
   DO:
     IF cDatasetName = '' OR cDatasetName = ? THEN 
       cDatasetName = cBusinessEntity.
-
+    /* allow pass-thru SDO (currently has function but no buffer-field) */
     IF VALID-HANDLE(hDataSource) THEN
-      {get DataTable cParentTable hDataSource}.
+      {get DataTable cParentTable hDataSource} NO-ERROR.
     
     /* Check if parent is DEFS (openoninit false ) and set DEFS on this object
        if it is. */
@@ -2491,7 +2513,7 @@ Parameters:
     DO:
       IF phOwner <> TARGET-PROCEDURE THEN
         SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'dataRequestComplete':U IN phOwner
-         RUN-PROCEDURE 'startObject':U.
+          RUN-PROCEDURE 'startObject':U.
       IF lOpenOnInit AND VALID-HANDLE(hDataSource) AND pcDataSource > '' THEN
       DO:
         iSource = LOOKUP(pcDataSource + '.':U + cParentTable,pcDataTables).
@@ -2518,6 +2540,11 @@ Parameters:
     END. /* not initialized */
     ELSE 
     DO:
+      /* don't open openoninit from parent request so just return as no chidren
+         should be opened either (openoninit is is set to true when opened) */
+      IF NOT lOpenOnInit AND VALID-HANDLE(hDataSource) AND pcDataSource > '' THEN
+        RETURN. /* --------------------------------------> */ 
+
       {get PositionSource hPositionSource}.
       IF VALID-HANDLE(hPositionSource) AND pcViewerSource > '' THEN 
       DO:
@@ -2526,8 +2553,12 @@ Parameters:
         /* The phOwner's data flow will not open our query, so subscribe to 
             the request completion  */ 
         ELSE IF phOwner <> TARGET-PROCEDURE AND NOT VALID-HANDLE(hDataSource) THEN
+        DO:
           SUBSCRIBE PROCEDURE TARGET-PROCEDURE TO 'dataRequestComplete':U IN phOwner
            RUN-PROCEDURE 'refreshDataQuery':U.
+          IF LOOKUP(cDatasetName + '.':U + cDataTable,pcDataTables) > 0 THEN
+            lSkip = TRUE.
+        END.
       END.
     END.
     IF NOT lSkip THEN
@@ -2654,7 +2685,7 @@ Parameters:
           cBatch   = '?':U
           cRequest = 'DEFS':U
           cQuery   = 'DEFS':U.
-
+    
       ASSIGN
         cDatasetTable = cDatasetName + '.':U + cDataTable 
         cDlm1 = (IF (pcDataTables = '':U) THEN '':U ELSE ',':U)
@@ -2746,7 +2777,7 @@ Parameters:
                                 INPUT-OUTPUT pcDatasetSources,
                                 INPUT-OUTPUT pcEntities,
                                 INPUT-OUTPUT pcEntityNames).
-
+ 
   END. /* IF cBusinessEntity > '' AND cDataTable > '' */
 
 END PROCEDURE.
@@ -2787,7 +2818,7 @@ PROCEDURE commitTransaction :
       cKeyWhere = ''.
     ELSE
       cKeyWhere = 'WHERE ':U + cKeyWhere.
-     {fnarg openDataQuery cKeyWhere}.
+    {fnarg openDataQuery cKeyWhere}.
     RUN rowChanged IN TARGET-PROCEDURE ('RESET':U).
   END.
   ELSE DO:  
@@ -2850,11 +2881,14 @@ Parameters: INPUT-OUTPUT  pioCancel (logical)
   Notes:   This method should be called from any method that may change the 
            result set somewhere in the data-source chain like openQuery or 
            navigation actions.
+           
            Currently called from the filter-source to see if new criteria can 
-           be applied.        
-           (Currently the Navigation actions are disabled whenever a state
-            that may disallow continuation is set to true, but if a less modal 
-            dialog could be achieved by calling this from fetch* methods.)
+           be applied.  
+                 
+        -  Currently Navigation actions are disabled whenever a state
+           that may disallow continuation is set to true. A less modal 
+           could be achieved by always enable navigation and calling this 
+           from fetch* methods.
 ------------------------------------------------------------------------------*/
    DEFINE INPUT-OUTPUT PARAMETER pioCancel AS LOGICAL NO-UNDO.  
    
@@ -3051,7 +3085,7 @@ PROCEDURE dataAvailable :
   .
   &UNDEFINE xp-assign
   
-  IF NOT lInitialized THEN 
+  IF NOT lInitialized OR pcMode = 'SAME':U THEN 
     RETURN.
 
   /* Support browser publish of whatever.. */  
@@ -3064,15 +3098,13 @@ PROCEDURE dataAvailable :
     {get DataSource hDataSource}.
     IF VALID-HANDLE(hDataSource)  THEN
     DO: 
-      /* if published from datasource and no foreignvalues then data has just 
-         been retrieved by our parent (initialization or buildDatarequest 
-         removeForeignKey) */
-      IF SOURCE-PROCEDURE = hDataSource THEN
-      DO:
-        {get ForeignValues cForeignValues}.
-        lFetchedByParent = (cForeignValues = ?).
-      END.
-      
+      /* builddatarequest will applyforeignkey for standalone child 
+         request, but removes foreign key otherwise, so an unknown value 
+         means that the parent has retrieved the data 
+         (used when dataisfetched is false below) */                                               
+      {get ForeignValues cForeignValues}.
+      lFetchedByParent = (cForeignValues = ?).
+         
       {get QueryOpen lOpen hDataSource}.
       IF lOpen THEN
       DO:
@@ -3106,7 +3138,6 @@ PROCEDURE dataAvailable :
     IF NOT lOpen THEN
       {set DataIsFetched NO}.     
   END.
-
   IF lClose THEN
     {fn closequery}.
 
@@ -3118,7 +3149,7 @@ PROCEDURE dataAvailable :
     {get DatasetSource hDatasetSource}
     .
     &UNDEFINE xp-assign  
- 
+
     IF (lDataIsFetched = FALSE AND lFetchedByParent = FALSE AND pcMode <> 'RESET':U) 
     OR NOT VALID-HANDLE(hDatasetSource) THEN
       {fn openQuery}.                                                 
@@ -3298,7 +3329,7 @@ PROCEDURE destroyObject :
   
  IF NOT lDbAware THEN
  */
-  {fn destroyView}.
+ {fn destroyView}.
  
  RUN SUPER.
 
@@ -3320,9 +3351,9 @@ PROCEDURE exportData :
                input include object fields yes/no
                input use existing running excel yes/no
                input maximum records to process
-  Notes:    -  The external tool's exportData will do a call back to the SDO's
-               tableout procedure for the actual retrieval of the data.    
-            -  Always excludes rowobject specific fields,
+  Notes:    -  The external tool's exportData will do a call back to the 
+               data object's tableout procedure for the actual retrieval of the data.    
+            -  Data: Always excludes rowobject specific fields,
                e.g. RowNum,RowIdent,RowMod
 ------------------------------------------------------------------------------*/
  DEFINE INPUT  PARAMETER pcExportType   AS CHARACTER  NO-UNDO.
@@ -3360,8 +3391,8 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchBatch Procedure 
 PROCEDURE fetchBatch :
 /*------------------------------------------------------------------------------
-  Purpose:     To transfer another "batch" of rows from the database query to 
-               the RowObject Temp-Table query, without changing the current 
+  Purpose:     To transfer another "batch" of rows from the data provider to 
+               the Temp-Table query, without changing the current 
                record position.
   Parameters:
     INPUT plForwards - TRUE if we should retrieve a batch of rows after the current rows,
@@ -3449,16 +3480,16 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE fetchLast Procedure 
 PROCEDURE fetchLast :
 /*------------------------------------------------------------------------------
-  Purpose:     To reposition the RowObject query to the last row of the dataset.
+  Purpose:     To reposition the temp-table query to the last row of the dataset.
                If the last row has not yet been retrieved, then fetchLast gets 
-               the last batch of records and repositions the RowObject query 
+               the last batch of records and repositions the temp-table query 
                to the last row.
   Parameters:  <none>
   Notes:       IF RebuildOnReposition is false and the last row has not been 
                fetch yet, fetchLast will ask for the rest of the data and 
                append it to the current data. 
                If RebuildOnReposition is true and the last row from the db query
-               has not been fetch yet, all RowObject records are discarded and
+               has not been fetch yet, all temp-table records are discarded and
                just the last batch is fetched.  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE hDataQuery    AS HANDLE  NO-UNDO.
@@ -3757,13 +3788,13 @@ PROCEDURE initializeObject :
   
   IF VALID-HANDLE(hContainerSource) THEN
     {get ObjectInitialized lContainerInitialized hContainerSource}.
- 
+  
   IF NOT VALID-HANDLE(hContainerSource) 
   OR lContainerInitialized THEN
   DO:
     {get FetchOnOpen cFetchOnOpen}.
-    IF DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,cFetchOnOpen,YES,?) THEN
-        RUN startObject IN TARGET-PROCEDURE. 
+    DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,cFetchOnOpen,YES,?).
+    RUN startObject IN TARGET-PROCEDURE. 
   END.  
 END.
 
@@ -3864,7 +3895,7 @@ END PROCEDURE.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE linkState Procedure 
 PROCEDURE linkState :
 /*------------------------------------------------------------------------------
-  Purpose:     Run LinkStatHandler in source(pcState) if ToggleDataTargets
+  Purpose:     Run LinkStateHandler in source(pcState) if ToggleDataTargets
                And publish the state with a potential appended 'Target' 
                Recieved from DataTargets.                                
   Parameters:  pcState AS CHARACTER -- 'active'/'inactive'
@@ -3912,7 +3943,7 @@ PROCEDURE linkStateHandler :
   DEFINE VARIABLE cDatasetName    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDatasetSource     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iPos            AS INTEGER    NO-UNDO.
-
+   
   IF pcState = 'remove':U AND pcLink = 'DataTarget':U  THEN 
   DO:
     {get ObjectType cObjectType phObject}.
@@ -3931,7 +3962,7 @@ PROCEDURE linkStateHandler :
        IF {fn getScrollable} = FALSE THEN 
         {fn addDatasetClone}.     
   END.
-   
+ 
   IF pcState = 'active':U AND pcLink = 'DataSource':U  THEN
   DO:
     /* if the source is inactive then wait for the dataavailable that it will 
@@ -3944,7 +3975,7 @@ PROCEDURE linkStateHandler :
   END.
   
   RUN SUPER(pcState,phObject,pcLink).
-
+  
   IF lDataInactive THEN
     RUN dataAvailable IN TARGET-PROCEDURE('RESET':U).
     
@@ -4373,6 +4404,7 @@ PROCEDURE refreshRow :
      (A more specific refreshfromserver method could possibly be added  *)*/
   IF lRebuild THEN
     {set RebuildOnRepos FALSE}.
+
   lOk = DYNAMIC-FUNCTION('retrieveBatch':U IN TARGET-PROCEDURE,cKeyWhere,1).
   
   IF lRebuild THEN
@@ -5057,8 +5089,7 @@ EMPTY TEMP-TABLE ttTable.
 RUN fetchFirst IN TARGET-PROCEDURE.
 
 /* check if any records */
-lAvailable = DYNAMIC-FUNCTION('getQueryPosition':U IN TARGET-PROCEDURE) <> "NoRecordAvailable":U.
- 
+lAvailable = {fnarg rowAvailable '':U}.
 IF lAvailable THEN
 DO:
 
@@ -5113,7 +5144,6 @@ DO:
   iRowNum = 9.  /* >9 = data */
  
   /* now loop through all available records */
-  IF {fnarg rowAvailable 'NEXT':U} THEN
   DO WHILE TRUE:
     
     ASSIGN iRowNum = iRowNum + 1.
@@ -5300,40 +5330,34 @@ END PROCEDURE.
 PROCEDURE updateQueryPosition :
 /*------------------------------------------------------------------------------
   Purpose: Reset the QueryPosition property after a record navigation.  
-           The main purpose of this function is to eliminate duplication, 
-           errors and minimize messaging (setQueryPosition PUBLISHes)
-           in fetchFirst, fetchPrev, fetchNext and fetchLast.   
-    Notes: data.p should update LastRowNum, FirstRowNum properties and call this. 
-         - The properties LastRowNum and FirstRowNum stores the 
-           RowObject.RowNum of the first and last record in the database query. 
+    Notes: The assumption is that LastRowNum and FirstRowNum stores the 
+           id of the first and last record in the database query when this is 
+           called. 
+         - Some of the logic here is duplicated in data's override.  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hRowObject   AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE iLastRow     AS INT     NO-UNDO.
-  DEFINE VARIABLE iFirstRow    AS INT     NO-UNDO.  
-  DEFINE VARIABLE lLast        AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE cQueryPos    AS CHAR    NO-UNDO.
-  DEFINE VARIABLE cFFields     AS CHAR    NO-UNDO.
-  DEFINE VARIABLE cFValues     AS CHAR    NO-UNDO.
-  DEFINE VARIABLE lNew         AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE hDataSource  AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE hDataTarget  AS HANDLE  NO-UNDO.
-  DEFINE VARIABLE lQuery       AS LOGICAL NO-UNDO.
-  DEFINE VARIABLE iROwNum      AS INTEGER NO-UNDO.
+  DEFINE VARIABLE hRowObject   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iLastRow     AS INT        NO-UNDO.
+  DEFINE VARIABLE iFirstRow    AS INT        NO-UNDO.  
+  DEFINE VARIABLE lLast        AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cQueryPos    AS CHAR       NO-UNDO.
+  DEFINE VARIABLE lNew         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE hDataSource  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lQuery       AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE iROwNum      AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cParentPos   AS CHARACTER  NO-UNDO.
 
   {get RowObject hRowObject}.
   IF VALID-HANDLE(hRowObject) AND hRowObject:AVAILABLE THEN
   DO:
-
     &SCOPED-DEFINE xp-assign
-     {get FirstRowNum iFirstRow}
-     {get LastRowNum iLastRow}.
+    {get FirstRowNum iFirstRow}
+    {get LastRowNum iLastRow}.
     &UNDEFINE xp-assign
-    
      
-     ASSIGN
+    ASSIGN
       iRowNum   = INT(hRowObject:RECID)
       /* Are we on the last record?  */
-      lLast     = iRowNum   = iLastRow
+      lLast     = (iRowNum = iLastRow)
       cQueryPos = IF iRowNum = iFirstRow                   
                   THEN (IF NOT lLast 
                         THEN 'FirstRecord':U 
@@ -5344,59 +5368,39 @@ PROCEDURE updateQueryPosition :
       .   
 
   END. /* If hRowObject:available */
-  ELSE DO: 
-     /* Check for a DataSource.  If there is a data source then we test
-        foreign key values, we could also have checked queryPosition..
-        but this is what Add uses, and this QueryPos is used to disable Add 
-        in toolbar .. */
-     {get DataSource hDataSource}.
+  ELSE DO:
 
-     /* Check to see if we're in an sbo and, if so, use that to get the 
-        ForeignFields */
-     IF NOT VALID-HANDLE(hDataSource) THEN 
-     DO:
-       {get ContainerSource hDataTarget}.
-       /* Determine if the appropriate data-target to use is the container
-          or the target-procedure (i.e. the sdo) */
-       IF VALID-HANDLE(hDataTarget) THEN 
-       DO:
-         {get QueryObject lQuery hDataTarget}.
-         IF lQuery THEN
-           {get DataSource hDataSource hDataTarget}.
-         ELSE 
-           hDataTarget = TARGET-PROCEDURE.
-       END.
-     END. /* not valid DataSource  (check if container is SBO DataTarget)  */
-     ELSE
-       hDataTarget = TARGET-PROCEDURE.
-     
-     IF VALID-HANDLE(hDataSource) THEN 
-     DO:
-       /* Check and see if any foreign fields are used */
-       {get ForeignFields cFFields hDataTarget}.
-       IF cFFields <> ? THEN 
-       DO:
-         /* get the values for the foreign fields */
-         {get ForeignValues cFValues hDataTarget}.
-         IF cFvalues = ? THEN
-            /* No Foreign values */
-           cQueryPos = 'NoRecordAvailableExt':U.
-       END. /* cFFields <> ? */
-       IF cQueryPos = '':U THEN
-       DO:
-         /* Check if dataSource has an unsaved new record 
-            Use no-error in case the datasource is a container with 
-            ExternalForegnKey  */
-         {get NewMode lNew hDataSource} NO-ERROR.
-         IF lNew THEN
-           cQueryPos = 'NoRecordAvailableExt':U.
-       END. /* cQueryPos = '' */
-     END.  /* valid DataSource */     
-     /* If not set above set the cQueryPos variable to NoRecordAvailable */ 
-     IF cQueryPos = '':U THEN
-       cQueryPos = 'NoRecordAvailable':U.
+    /* Check for a DataSource. If there is a data source then we check
+       the parent's queryPosition. */
+    {get DataSource hDataSource}.     
+    IF VALID-HANDLE(hDataSource) THEN 
+    DO:
+      {get QueryObject lQuery hDataSource}.
+      IF lQuery THEN
+      DO:
+        {get QueryPosition cParentPos hDataSource}.
+        IF cParentPos BEGINS 'NoRecordAvailable':U THEN
+          cQueryPos = 'NoRecordAvailableExt':U.
+
+        IF cQueryPos = '':U THEN
+        DO:
+          /* Check if dataSource has an unsaved new record */
+          {get NewMode lNew hDataSource}.
+          IF lNew THEN
+            cQueryPos = 'NoRecordAvailableExt':U.
+        END. /* cQueryPos = '' */
+      END. /* query */
+      ELSE /* if datasource not query object ( possibly pass-thru) then
+               assume nothing is available (yet) */ 
+         cQueryPos = 'NoRecordAvailableExt':U.
+    END.  /* valid DataSource */     
+    /* If not set above set the cQueryPos variable to NoRecordAvailable */ 
+    IF cQueryPos = '':U THEN
+      cQueryPos = 'NoRecordAvailable':U.
   END.  /* else (not avail)*/
+  
   {set QueryPosition cQueryPos}.
+  
   RETURN.
 
 END PROCEDURE.
@@ -5517,6 +5521,78 @@ END PROCEDURE.
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
+
+&IF DEFINED(EXCLUDE-activateHiddenFetchChildren) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION activateHiddenFetchChildren Procedure 
+FUNCTION activateHiddenFetchChildren RETURNS CHARACTER PRIVATE
+  (   ) :
+/*------------------------------------------------------------------------------
+  Purpose: Return all dependant childrent that are deactivated, but 
+           that we are responsible to retrieve data for.     
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hTarget        AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE iTarget        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE cTarget        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataTargets   AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cChildren      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cGrandChildren AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lQuery         AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lIsFetched     AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lOpenOnInit    AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cInactiveLinks AS CHARACTER  NO-UNDO.
+
+  {get DataTarget cDataTargets}.
+
+  DO iTarget = 1 TO NUM-ENTRIES(cDataTargets):
+    ASSIGN 
+      cTarget = ENTRY(iTarget,cDataTargets)
+      hTarget = WIDGET-HANDLE(cTarget).
+
+    IF VALID-HANDLE(hTarget) THEN
+    DO:
+      {get QueryObject lQuery hTarget}.
+      IF lQuery THEN
+      DO:
+        &SCOPED-DEFINE xp-assign
+        {get DataIsFetched lIsFetched hTarget}
+        {get InactiveLinks cInactiveLinks hTarget}
+        {get OpenOnInit lOpenOnInit hTarget}.
+        &UNDEFINE xp-assign
+        
+        IF lOpenOnInit THEN
+        DO:
+          cGrandChildren = {fn activateHiddenFetchChildren hTarget}.
+          
+          IF LOOKUP(STRING(TARGET-PROCEDURE),cInactiveLinks) > 0
+          AND (lIsFetched <> FALSE OR cGrandChildren > '') THEN
+          DO:
+            cChildren = cChildren 
+                      + (IF cChildren = '' THEN '' ELSE ',')
+                      + STRING(hTarget).
+            RUN linkStateHandler IN hTarget
+                        ('ACTIVE':U,TARGET-PROCEDURE,'DataSource':U).
+          END.
+  
+          IF cGrandChildren > '' THEN
+            cChildren = cChildren 
+                      + (IF cChildren = '' THEN '' ELSE ',')
+                      + cGrandChildren.
+
+        END. /* openoninit */
+      END. /* queryobject */
+    END. /* valid htarget*/ 
+  END. /* cDataTargets */
+
+  RETURN cChildren.   
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
 &IF DEFINED(EXCLUDE-addDatasetClone) = 0 &THEN
 
@@ -6480,7 +6556,7 @@ FUNCTION cancelRow RETURNS CHARACTER
    {set CurrentRowid ?}.
  END.
  RUN rowChanged IN TARGET-PROCEDURE('DIFFERENT':U).
- 
+
  RETURN '':U. /* This used to return a cError variable for some forgotten reason*/
 
 END FUNCTION.
@@ -7956,9 +8032,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  DEFINE VARIABLE cWhere         AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cQueryString   AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE lOk            AS LOGICAL    NO-UNDO.
- DEFINE VARIABLE hRowQuery      AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hRowObject     AS HANDLE     NO-UNDO.
- DEFINE VARIABLE hRowObjectBuf  AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hDataQuery     AS HANDLE     NO-UNDO.
  DEFINE VARIABLE rRowid         AS ROWID      NO-UNDO.
  DEFINE VARIABLE iFirstRowNum   AS INTEGER    NO-UNDO.
@@ -7970,6 +8044,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  DEFINE VARIABLE iBuffer        AS INTEGER    NO-UNDO.
  DEFINE VARIABLE hBuffer        AS HANDLE     NO-UNDO.
  DEFINE VARIABLE hDatasetSource AS HANDLE     NO-UNDO.
+ DEFINE VARIABLE cRowids        AS CHARACTER  NO-UNDO.
 
  {get DataHandle hDataQuery}.
 
@@ -8037,48 +8112,31 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
                                   'AND':U). 
  {get RowObject hRowObject}.
  rCurrent = hRowObject:ROWID.
+ /** pcMode = 'last' is not supported, returned with error message above */ 
+ cRowids = {fnarg firstRowids cQueryString}. 
+
+ lOk = (cRowids <> ?).
  
- /* Create local buffer and query for the search */
- CREATE QUERY hRowQuery.     /* Get a query to do "FIND first" */
- DO iBuffer = 1 TO hDataQuery:NUM-BUFFERS:
-   hBuffer = hDataQuery:GET-BUFFER-HANDLE(iBuffer).
-   CREATE BUFFER hRowObjectBuf FOR TABLE hBuffer BUFFER-NAME hBuffer:NAME.
-   hRowQuery:ADD-BUFFER(hRowObjectBuf).
- END.
-
- lOK = hRowQuery:QUERY-PREPARE(cQueryString).
- IF lOK THEN
-   lOK = hRowQuery:QUERY-OPEN().
-
- IF lOK THEN
- DO:
-   IF pcMode = '':U OR pcMode = 'FIRST':U THEN
-     hRowQuery:GET-FIRST() NO-ERROR.
-   /** Not supported yet, returned with error message above   
-      (This need to be coordinated with the asc/desc sorting to work correctly) */
-   ELSE IF pcMode = 'LAST':U THEN
-     hRowQuery:GET-LAST().
- END.
-
- lOK = hRowObjectBuf:AVAILABLE.
-
  /* if we have first and last or found something then the answer is definite */
  IF iFirstRownum <> ? AND (lOk OR iLastRowNum <> ?) THEN
    lDefinite = TRUE.
  /* else if we have found something with equality match then we have 
-    a definite answer if a unique index is used */    
+    a definite answer if a unique index is used 
+    (the check for equalcolumns blank and unknown first is already done, so
+     could be avoided here) */    
  ELSE IF lOk AND cEqualColumns > '' THEN
  DO:
    {get DatasetSource hDatasetSource}.
    lDefinite = DYNAMIC-FUNCTION('isUniqueId':U IN hDatasetSource,
                                 cEqualColumns,cDataTable). 
  END. /* else (record was found, but columns need to be checked against index)*/
- 
+
  /* If the request can be resolved on the client and we have a record then
     position the sdo's query to it */ 
  IF lDefinite AND lOk THEN 
  DO:
-   rRowId = hRowQuery:GET-BUFFER-HANDLE(1):ROWID.
+   /* the datatable is unique so we only need the first rowid if joined */
+   rRowId = TO-ROWID(ENTRY(1,cRowids)).
    lOK = hDataQuery:REPOSITION-TO-ROWID(rRowid) NO-ERROR.  
    /* Repos only makes rec avail if browsed  */
    IF lOK AND NOT hRowObject:AVAIL THEN    
@@ -8086,13 +8144,7 @@ FUNCTION findRowObjectWhere RETURNS LOGICAL
  END.
  ELSE  /* keep current record avail if not found */ 
    hRowObject:FIND-BY-ROWID(rCurrent) NO-ERROR.
- /* delete local widget handles */
- DO iBuffer = 1 TO hRowQuery:NUM-BUFFERS:
-   hBuffer = hRowQuery:GET-BUFFER-HANDLE(iBuffer).
-   DELETE OBJECT hBuffer.
- END.
- DELETE WIDGET hRowQuery.
-
+ 
  /* If definite then return yes or no (found or not) otherwise returm ?   */
  RETURN IF lDefinite THEN lOK ELSE ?. 
 
@@ -8135,7 +8187,8 @@ Parameters:
   DEFINE VARIABLE cPosition        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDatasetName     AS CHARACTER  NO-UNDO.
-   
+  DEFINE VARIABLE cRowid           AS CHARACTER  NO-UNDO.
+  
   IF {fn getScrollable} = FALSE THEN
   DO:
     {get DataQueryBrowsed lBrowsed}.
@@ -8160,47 +8213,73 @@ Parameters:
                                   pcValues,
                                   pcOperators,
                                   'First':U).  
- 
+  /* ? means cannot be resolved on client */ 
   IF lOnClient = ? THEN
   DO:
+    /* Add find criteria to default query as we don't want/need to include 
+       querystring in server position request */
     cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
                                      pcColumns,
                                      pcValues,
                                      pcOperators,
-                                     ?,
+                                     {fn getQueryStringDefault},
                                      ?).
-
     {get QueryTables cSortTables}.
+
+    /* remove sort criteria and secondary tables if not searched */ 
     DO iTable = 1 TO NUM-ENTRIES(cSortTables):
       cTable = ENTRY(iTable,cSortTables).
       /* Only pass secondary tables if explicitly in the query expression  */
       IF iTable = 1 
       OR INDEX(',':U + pcColumns,',':U + cTable + '.':U) > 0 THEN
-        cPosition = cPosition 
-                  + (IF cPosition = '':U THEN '':U ELSE ',':U)
-                  + DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
-                                      cTable,
-                                      cQueryString).
-
+        ASSIGN 
+          cPosition = cPosition 
+                    + (IF iTable = 1 THEN '':U ELSE ',':U)
+                    + DYNAMIC-FUNCTION('bufferWhereClause':U IN TARGET-PROCEDURE,
+                                        cTable,
+                                        cQueryString).
     END. /* DO iTable = 1 TO NUM-ENTRIES(cSortTables) */
-    lOnCLient = DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,
-                                  cPosition,NOT lQueryOpen,?).
-  
-    IF lOnCLient <> ? THEN 
-    DO:
-      lOnClient = {fnarg openDataQuery cPosition}.
-      {get DataQueryBrowsed lBrowsed}.
-      IF lBrowsed THEN
-        PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
+
+    cPosition = SUBSTRING(cPosition,INDEX(cPosition,' WHERE ':U) + 1).
+    
+    DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,
+                      cPosition,
+                      NOT lQueryOpen, /* don't refresh if open */
+                      ?).
+
+    ASSIGN 
+      /* Get the current query + find criteria 
+         The QueryString we had from above is not sufficient in all cases as 
+         we need the sort to be correct and also include the foreign 
+         key to be sure to not find wrong record. (Even if a child 
+         request should not be issued to server when DataIsFetched is true,
+         could also be a problem if the server returned too much data for 
+         some reason) */
+      cQueryString = DYNAMIC-FUNCTION('newQueryString':U IN TARGET-PROCEDURE,
+                                         pcColumns,
+                                         pcValues,
+                                         pcOperators,
+                                         ?, /* default= querystring */
+                                         ?)   
+           
+      /*  first rowid is sufficent for position as DataTable is unique*/
+      cRowid = ENTRY(1,{fnarg firstRowids cQueryString}).
       
-    END. /* lOnClient <> ? */
+    IF cRowid <> ? THEN
+      lOnClient = {fnarg openDataQuery cRowid}.
+    
+    {get DataQueryBrowsed lBrowsed}.
+    IF lBrowsed THEN
+      PUBLISH 'fetchDataSet':U FROM TARGET-PROCEDURE ('BatchEnd':U).
+      
   END. /* lOnClient = ? */
-  /* we cannot publish for not found, since there currently always is a 
-     record available..  */ 
-  IF lOnClient THEN
-    RUN rowChanged IN TARGET-PROCEDURE ('RESET':U).
   
-  RETURN lOnCLient.
+  /* Signal change also when find failed, as foreignvalues of children 
+     has been set to unknown in buildDatarequest and need to be reset.
+     (mainly because dataAvailable uses unknwon as fetchedbyparent signal) */  
+  RUN rowChanged IN TARGET-PROCEDURE ('RESET':U).
+
+  RETURN IF lOnCLient THEN TRUE ELSE FALSE.
 
 END FUNCTION.
 
@@ -8244,7 +8323,7 @@ Parameters:
  {get RowObject hRowObject}
    .
  &UNDEFINE xp-assign
- 
+
  IF NOT VALID-HANDLE(hRowObject) THEN
    RETURN FALSE.
 
@@ -8280,6 +8359,76 @@ Parameters:
  RUN rowChanged IN TARGET-PROCEDURE('RESET':U).
 
  RETURN lFound.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-firstRowids) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION firstRowids Procedure 
+FUNCTION firstRowids RETURNS CHARACTER
+  (pcQueryString AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+   Purpose:   Returns the ROWID (converted to a character string) of the first 
+              query row satisfying the passed query prepare string.   
+Parameters:
+    pcWhere - A complete query where clause that matches the database query's 
+              buffers.
+     Notes:   Used by data class rowidwhere.
+              Dataview findRowobjectwhere and findRowWhere  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE hQuery      AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE hBuffer     AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE cBuffer     AS CHAR      NO-UNDO.
+  DEFINE VARIABLE cBufferList AS CHAR      NO-UNDO.
+  DEFINE VARIABLE hRowQuery   AS HANDLE    NO-UNDO.
+  DEFINE VARIABLE lOK         AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE i           AS INTEGER   NO-UNDO.
+    
+  DEFINE VARIABLE cRowIds    AS CHARACTER NO-UNDO.
+  
+  {get QueryHandle hQuery}.
+    
+  CREATE QUERY hRowQuery.     /* Get a query to do the "FIND" */
+  
+  /* Create buffers and add to the query. 
+     we must create buffers to avoid conflict with the original query
+     in case it's PRESELECT (non-indexed sort) */
+  DO i = 1 TO hQuery:NUM-BUFFERS:
+    ASSIGN
+      hBuffer = hQuery:GET-BUFFER-HANDLE(i)
+      cBuffer = hBuffer:NAME.
+       
+    CREATE BUFFER hBuffer FOR TABLE hBuffer BUFFER-NAME cBuffer.
+    hRowQuery:ADD-BUFFER(hBuffer).
+    cBufferList = cBufferList 
+                  + (IF i = 1 THEN '':U ELSE ',':U)
+                  + STRING(hBuffer). 
+  END.  /* do i = 1 to */
+
+  lOK = hRowQuery:QUERY-PREPARE(pcQueryString) NO-ERROR.
+      
+  IF lOK THEN lOK = hRowQuery:QUERY-OPEN().
+  IF lOK THEN lOK = hRowQuery:GET-FIRST().
+    
+  /* Get the rowids and delete the temporary buffers */
+  DO i = 1 TO NUM-ENTRIES(cBufferList):
+    ASSIGN
+      hBuffer = WIDGET-HANDLE(ENTRY(i,cBufferList))
+      cRowids = cRowids 
+              + (IF i = 1 THEN "":U ELSE ",":U)
+              + (IF lOk AND hBuffer:AVAILABLE 
+                 THEN STRING(hBuffer:ROWID)
+                 ELSE '':U).
+    DELETE OBJECT hBuffer.
+  END. /* do i = 1 to hRowQuery:num-buffers */ 
+  DELETE OBJECT hRowQuery.  
+    
+  RETURN IF lOk THEN cRowids ELSE ?.
 
 END FUNCTION.
 
@@ -8340,7 +8489,8 @@ FUNCTION getAutoCommit RETURNS LOGICAL
     
     IF VALID-HANDLE(hSource) THEN 
     DO:
-      {get DatasetSource hDatasetSource2 hSource}.
+      /* datasetsource no-error, in case "wrong" type datasource */ 
+      {get DatasetSource hDatasetSource2 hSource} NO-ERROR.
       IF hDatasetsource1 = hDatasetsource2 THEN
         RETURN {fn getAutoCommit hSource}.
     END.
@@ -9175,68 +9325,6 @@ END FUNCTION.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-getHiddenFetchChildren) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getHiddenFetchChildren Procedure 
-FUNCTION getHiddenFetchChildren RETURNS CHARACTER PRIVATE
-  (   ) :
-/*------------------------------------------------------------------------------
-  Purpose: Return all dependant childrent that are deactivated, but 
-           that we are responsible to retrieve data for.     
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hTarget        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iTarget        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE cTarget        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataTargets   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cChildren      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cGrandChildren AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lQuery         AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lIsFetched     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cInactiveLinks AS CHARACTER  NO-UNDO.
-
-  {get DataTarget cDataTargets}.
-
-
-  DO iTarget = 1 TO NUM-ENTRIES(cDataTargets):
-    ASSIGN 
-      cTarget = ENTRY(iTarget,cDataTargets)
-      hTarget = WIDGET-HANDLE(cTarget).
-
-    IF VALID-HANDLE(hTarget) THEN
-    DO:
-      {get QueryObject lQuery hTarget}.
-      IF lQuery THEN
-      DO:
-        &SCOPED-DEFINE xp-assign
-        {get DataIsFetched lIsFetched hTarget}
-        {get InactiveLinks cInactiveLinks hTarget}
-        {get HiddenFetchChildren cGrandChildren hTarget}.
-        .
-        &UNDEFINE xp-assign
-       
-        IF LOOKUP(STRING(TARGET-PROCEDURE),cInactiveLinks) > 0 
-        AND lIsFetched <> FALSE THEN 
-          cChildren = cChildren 
-                    + (IF cChildren = '' THEN '' ELSE ',')
-                    + STRING(hTarget).
-        IF cGrandChildren > '' THEN
-          cChildren = cChildren 
-                    + (IF cChildren = '' THEN '' ELSE ',')
-                    + cGrandChildren.
-      END. /* queryobject */
-    END. /* valid htarget*/ 
-  END. /* cDataTargets */
-
-  RETURN cChildren.   
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-getIndexInformation) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getIndexInformation Procedure 
@@ -9524,7 +9612,7 @@ FUNCTION getNewRow RETURNS LOGICAL
     RETURN FALSE.
 
   ELSE DO:
-    RETURN hRowObject:ROW-STATE = ROW-CREATED. 
+  RETURN hRowObject:ROW-STATE = ROW-CREATED. 
     /*
     hColumn = hRowObject:BUFFER-FIELD('RowMod':U).
     IF hColumn:BUFFER-VALUE = "A":U OR
@@ -10685,7 +10773,7 @@ Parameters: pcQuery - What information?
           
           pcIndexInfo - Query or previously retrieved info. Enables the 
                          function to be used with no database connection.    
-                - ? use query - if plUseTableSep = yes the field will be 
+                - ? use query - if plUseTableSep = no the field will be 
                                 returned qualified.     
                 -  Index info in EXACT SAME FORMAT as returned from this 
                    function earlier with indexInformation('info',yes,?).
@@ -10957,6 +11045,28 @@ FUNCTION insertExpression RETURNS CHARACTER
                                             
   RETURN RIGHT-TRIM(pcWhere).
   
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override instanceOf to support SmartDataObject subtypes in 
+           non repository
+    Notes: This is currently only supported for DataView, Data and Query 
+------------------------------------------------------------------------------*/
+ IF pcClass = 'DataView':U THEN
+   RETURN TRUE.
+
+ RETURN SUPER(pcClass).
+
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
@@ -11482,23 +11592,30 @@ FUNCTION openDataQuery RETURNS LOGICAL
   (pcPosition AS CHAR):
 /*------------------------------------------------------------------------------
    Purpose: Open the DataQuery  
-Parameters: pcPosition -  First
-                          Last 
-                          WHERE <criteria>
-                          string(Rowid)   
-     Notes:   
+Parameters: pcPosition - 
+                     First  
+                     Last   
+                     WHERE <criteria>
+                     <criteria>  (with ' ' or '=')
+                     string(Rowid)   
+               internal use only (see comments in retrieveBatch):              
+                     NEXT    
+                     PREV    
+     Notes:  This function is responsible for keeping track of which record
+             is first and last on the client and whether these also are 
+             first and last of the complete result set. 
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE hDataQuery       AS HANDLE     NO-UNDO.
  DEFINE VARIABLE cQuery           AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE cAsDivision      AS CHARACTER  NO-UNDO.
  DEFINE VARIABLE iLastRownum      AS INTEGER    NO-UNDO.
  DEFINE VARIABLE iFirstRownum     AS INTEGER    NO-UNDO.
- DEFINE VARIABLE lQueryIsComplete AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE hRowObject       AS HANDLE     NO-UNDO.
  DEFINE VARIABLE lHasFirst        AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE lHasLast         AS LOGICAL    NO-UNDO.
  DEFINE VARIABLE iLoop            AS INTEGER    NO-UNDO.         
  DEFINE VARIABLE lok              AS LOGICAL    NO-UNDO.
+ DEFINE VARIABLE lWhere           AS LOGICAL    NO-UNDO.
 
  &SCOPED-DEFINE xp-assign
  {get DataHandle hDataQuery}
@@ -11526,11 +11643,14 @@ Parameters: pcPosition -  First
      cQuery = {fn getQueryStringDefault}.
      {set QueryString cQuery}.
    END.
+
    IF cQuery <> hDataQuery:PREPARE-STRING THEN
      hDataQuery:QUERY-PREPARE(cQuery).
+
    hRowObject = hDataQuery:GET-BUFFER-HANDLE(1).
    
    hDataQuery:QUERY-OPEN().
+   
    /* We need both first and last info so we do two positioning passes in order
       to do GET-LAST last if "LAST" is requested and do the GET-LAST first if
       it's not */
@@ -11559,28 +11679,40 @@ Parameters: pcPosition -  First
   
        IF pcPosition = 'FIRST':U THEN
          LEAVE.
-
+       ELSE 
        IF pcPosition <> '':U AND pcPosition <> ? AND pcPosition <> 'LAST'  THEN
        DO:
+         /* ensure reposition returns true also if searched record is current*/
          hRowObject:BUFFER-RELEASE().
          IF pcPosition BEGINS 'WHERE ':U THEN
+           lWhere = TRUE.
+         ELSE IF INDEX(pcPosition,' ') > 0 OR INDEX(pcPosition,'=') > 0 THEN 
+           ASSIGN 
+             pcPosition = 'WHERE ' + pcPosition
+             lWhere     = TRUE.
+
+         IF lWhere THEN
          DO:
-           /* we synch the browse here (this is somewhat inconsistent since
-              next,last request currently relies on this being done elsewhere)
-             */
            hRowObject:FIND-FIRST(pcPosition) NO-ERROR.
+           /* show progress message for syntax error */
+           IF ERROR-STATUS:GET-NUMBER(3) = 10041 THEN 
+             MESSAGE 
+               ERROR-STATUS:GET-MESSAGE(3) VIEW-AS ALERT-BOX ERROR.
+           /* Synch the browse here (this is somewhat inconsistent since
+              next,last request currently relies on this being done elsewhere)*/
            IF hRowObject:AVAIL THEN   
              lOk = hDataQuery:REPOSITION-TO-ROWID(hRowObject:ROWID) NO-ERROR.
          END.
          ELSE 
            lOk = hDataQuery:REPOSITION-TO-ROWID(TO-ROWID(pcPosition)) NO-ERROR.
-
+         
          /* if not browsed reposition will make record not avail */
          IF lOk AND NOT hRowObject:avail THEN 
            hDataQuery:GET-NEXT(). 
+             
          LEAVE.
        END.
-     END.
+     END.  /* iloop = 1 */
    END. /* iloop = 1 to 2 */
 
    hRowObject:TABLE-HANDLE:TRACKING-CHANGES = TRUE.
@@ -11682,7 +11814,10 @@ FUNCTION openQueryAtPosition RETURNS LOGICAL
   {get DataIsFetched lIsFetched}
   .
   &UNDEFINE xp-assign  
-
+  
+  /* Allow callers to pass expression without "WHERE"  */
+  IF LOOKUP(pcPosition,'FIRST,LAST') = 0 AND NOT (pcPosition BEGINS 'WHERE') THEN
+    pcPosition = 'WHERE ' + pcPosition.
   IF VALID-HANDLE(hDataSource) THEN
   DO:
     {get QueryOpen lParentOpen hDataSource}. 
@@ -11704,7 +11839,10 @@ FUNCTION openQueryAtPosition RETURNS LOGICAL
   /* If data is fetched then any query change should be resolved locally
      (ALL valid queries retrieved by parent) */
   IF lIsFetched <> TRUE THEN
-    DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,pcPosition,YES,?). 
+    DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,
+                     pcPosition,
+                     YES, /* refresh (unconditional empty) */
+                     ?). 
   
   lOk = {fnarg openDataQuery pcPosition}.
   
@@ -11735,7 +11873,7 @@ FUNCTION refreshQuery RETURNS LOGICAL
   DEFINE VARIABLE cKeyWhere AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lOpen     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lOk       AS LOGICAL    NO-UNDO.
-
+ 
   &SCOPED-DEFINE xp-assign  
   {get KeyWhere cKeyWhere}
   {get QueryOpen lOpen}
@@ -11743,7 +11881,7 @@ FUNCTION refreshQuery RETURNS LOGICAL
   &UNDEFINE xp-assign
   
   /* A never opened or closed query cannot be refreshed */ 
-  IF lOpen THEN 
+  IF NOT lOpen THEN 
     RETURN FALSE.
 
   lOk = {fnarg openQueryAtPosition cKeywhere}.  
@@ -12274,15 +12412,11 @@ Parameter: pcRowident
                - ?  will reset current.    
     Notes: This is used to reset current row from a visual object's resetRecord. 
            The data class has logic to deal with rowobjupd records from failed 
-           commits in the data class, the dataview does not really need it 
-           currently as the visual object also sets datamodified that publishes 
-           updateState that reaches this and also sets DataModified.. 
+           commits in the data class, the dataview rolls back immediately on
+           failed submit. 
          Future (discussion)  
-         - reset can be extended to be incremental and do an undo if already 
-           reset.
-           - reset - undo - undo all 
-         - We do want to remove the need for the visual object to call
-           updateState. 
+         - The setting of DataModified is a step towards removing the need to 
+           call updateState after update from visual objects.  
          - But we may also want to remove DataModified completely from 
            data/dataview  as this is a state that can be detected from targets.   
 ------------------------------------------------------------------------------*/
@@ -12384,7 +12518,7 @@ Parameter: pcSort - sort expression
   DEFINE VARIABLE lDataIsFetched AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lSort          AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cKeyWhere      AS CHARACTER  NO-UNDO.
-
+  DEFINE VARIABLE lOk            AS LOGICAL    NO-UNDO.
 
   /* if the query is open open we check the current sort to avoid resorting if 
      the same sort is applied (visual objects may request a specific sort 
@@ -12413,7 +12547,7 @@ Parameter: pcSort - sort expression
        /* Refresh data if not all data on client 
          (no publish since we remain at same position) */
       IF {fn isDataQueryComplete} THEN 
-        {fnarg openDataQuery cKeyWhere}.     
+        lOk = {fnarg openDataQuery cKeyWhere}.     
       ELSE 
       DO:
         {get DataTarget cTargets}.        
@@ -12447,8 +12581,8 @@ Parameter: pcSort - sort expression
         IF cKeyWhere = ? THEN
           cKeyWhere = 'FIRST':U.
 
-        RETURN {fnarg openQueryAtPosition cKeywhere}.  
-        
+        lOk = {fnarg openQueryAtPosition cKeywhere}.  
+      
         /* enable data link to targets again  */ 
         DO iTarget = 1 TO NUM-ENTRIES(cDisabled):
           hTarget = WIDGET-HANDLE(ENTRY(iTarget,cDisabled)).
@@ -12458,7 +12592,9 @@ Parameter: pcSort - sort expression
                                             "DataSource":U).
         END. /* do iTarget = 1 to */        
       END. /* else (do sort on server) */
+      RETURN lOk.
     END. /* newsort <> oldsort and rowident > '' */
+
   END. /* if open */
 
   RETURN TRUE.
@@ -12494,9 +12630,9 @@ parameter: pcMode - Tells where to start retrieving in relation to current
                
     Notes: Passes FillBatch to the server/service
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cReopen  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hQuery   AS HANDLE     NO-UNDO.
-  
+  DEFINE VARIABLE cReopen    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hQuery     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hRowObject AS HANDLE     NO-UNDO.
 
   CASE pcMode:
     WHEN 'PREV':U OR WHEN 'NEXT':U THEN
@@ -12516,28 +12652,27 @@ parameter: pcMode - Tells where to start retrieving in relation to current
       cReopen = pcMode.
   END.
 
-  IF DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,pcMode,NO,piNumRows) THEN
-  DO:  
-    {fnarg openDataQuery cReopen}.
+  DYNAMIC-FUNCTION('retrieveData':U IN TARGET-PROCEDURE,pcMode,NO,piNumRows). 
     
-    /* The following will not be noticed by the browse, and is relying on the 
-       calling method (fetchNext,fetchPrev) publishing dataAvailable(pcmode) to 
-       synchronize the browser.
-       The fetchBatch calling procedure repositions forwards/backwards to synch
-       the browse instead (called from browse).
-       The reposition-forward could alternatively be moved here and removed 
-       from fetchBatch. fetchnext,fetchprev would then need to be changed to 
-       run rowChanged('repositioned') */
+  {fnarg openDataQuery cReopen}.
+    
+  /* The following will not be noticed by the browse, and is relying on the 
+     calling method (fetchNext,fetchPrev) publishing dataAvailable(pcmode) to 
+     synchronize the browser.
+     The fetchBatch calling procedure repositions forwards/backwards to synch
+     the browse instead (called from browse).
+     The reposition-forward could alternatively be moved into openDataQuery 
+     and removed from fetchBatch. fetchnext,fetchprev would then need to be 
+     changed to run rowChanged('repositioned') */
         
-    IF pcMode = 'NEXT':U THEN
-      hQuery:GET-NEXT.
-    ELSE IF pcMode = 'PREV':U THEN
-      hQuery:GET-PREV.
+  IF pcMode = 'NEXT':U THEN
+    hQuery:GET-NEXT.
+  ELSE IF pcMode = 'PREV':U THEN
+    hQuery:GET-PREV.
 
-    RETURN TRUE.
-  END.
+  {get RowObject hRowObject}.
 
-  RETURN FALSE.
+  RETURN hRowObject:AVAIL.
 
 END FUNCTION.
 
@@ -12560,9 +12695,12 @@ parameter: pcMode - Tells where to start retrieving in relation to current
                     Values:  
                     - 'NEXT'  - Retrieve next batch
                     - 'PREV'  - Retrieve prev batch
-                    - 'LAST'  - Retrieve LAST batch (APPEND if not RebuildOnRepos!)
-                    - 'FIRST' - Retrieve FIRST batch. Can only happen if RebuildOnRepos
+                    - 'LAST'  - Retrieve LAST batch 
+                                  (APPEND if not RebuildOnRepos!)
+                    - 'FIRST' - Retrieve FIRST batch. 
+                                 Can only happen if RebuildOnRepos
                     - query expression  (forward)
+        plRefresh   - Empty temp-tables even when not rebuild (append)         
         piNumRows - Number of records to retrieve 
                     Special values:
                     - ? - use RowstoBatch
@@ -12571,7 +12709,6 @@ parameter: pcMode - Tells where to start retrieving in relation to current
     Notes: Passes FillBatch to the server/service
 ------------------------------------------------------------------------------*/
 
-   DEFINE VARIABLE cHandles        AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cEntities       AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cEntityNames    AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cDatasetSources AS CHARACTER  NO-UNDO.
@@ -12582,7 +12719,6 @@ parameter: pcMode - Tells where to start retrieving in relation to current
    DEFINE VARIABLE cPositionFields AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cBatchSizes     AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE cContext        AS CHARACTER  NO-UNDO.
-   DEFINE VARIABLE cBusinessEntity AS CHARACTER  NO-UNDO.
    DEFINE VARIABLE hDatasetsource  AS HANDLE     NO-UNDO.
    DEFINE VARIABLE lRebuild        AS LOGICAL    NO-UNDO.
    DEFINE VARIABLE hQuery          AS HANDLE     NO-UNDO.
@@ -12590,13 +12726,8 @@ parameter: pcMode - Tells where to start retrieving in relation to current
    DEFINE VARIABLE lFillBatch      AS LOGICAL    NO-UNDO.
    DEFINE VARIABLE lAppend         AS LOGICAL    NO-UNDO.
 
-   DEFINE VARIABLE hDataset    AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE iChild      AS INTEGER    NO-UNDO.
-   DEFINE VARIABLE hChild      AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE hBuffer     AS HANDLE     NO-UNDO.
-   DEFINE VARIABLE iTable      AS INTEGER    NO-UNDO.
-   DEFINE VARIABLE cName       AS CHARACTER  NO-UNDO.
-   DEFINE VARIABLE cRelType    AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE iChild          AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE hChild          AS HANDLE     NO-UNDO.
    
    DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
    DEFINE VARIABLE hRequestor      AS HANDLE     NO-UNDO.
@@ -12604,7 +12735,6 @@ parameter: pcMode - Tells where to start retrieving in relation to current
 
   &SCOPED-DEFINE xp-assign
   {get DatasetSource hDatasetSource}
-  {get RowObject hBuffer}
   {get DataHandle hQuery}
   {get RebuildOnRepos lRebuild}
   .
@@ -12637,13 +12767,7 @@ parameter: pcMode - Tells where to start retrieving in relation to current
     END.
   END CASE.
   
-  cHiddenChildren = {fn getHiddenFetchChildren}.
-  DO iChild = 1 TO NUM-ENTRIES(cHiddenChildren):
-    hChild = WIDGET-HANDLE(ENTRY(iChild,cHiddenChildren)).
-    RUN linkStateHandler IN hChild
-                          ('ACTIVE':U,TARGET-PROCEDURE,'DataSource':U).
-  END.
-
+  cHiddenChildren = {fn activateHiddenFetchChildren}.
   /* run in this to collect own data */
   RUN buildDataRequest IN TARGET-PROCEDURE
                                (INPUT TARGET-PROCEDURE,  
@@ -12662,8 +12786,9 @@ parameter: pcMode - Tells where to start retrieving in relation to current
 
   DO iChild = 1 TO NUM-ENTRIES(cHiddenChildren):
     hChild = WIDGET-HANDLE(ENTRY(iChild,cHiddenChildren)).
+    {get DataSource hDataSource hChild}.
     RUN linkStateHandler IN hChild
-                          ('INACTIVE':U,TARGET-PROCEDURE,'DataSource':U).
+                          ('INACTIVE':U,hDataSource,'DataSource':U).
   END.
 
   IF piNumRows = ? THEN
@@ -12676,7 +12801,7 @@ parameter: pcMode - Tells where to start retrieving in relation to current
       ENTRY(1,cRequests,CHR(1)) = pcMode.
   
   {get RequestHandle hRequestor}.
-
+  
   RUN retrieveData IN {fn getDataContainerHandle}
                          (hRequestor,
                           plRefresh,
@@ -12703,7 +12828,6 @@ parameter: pcMode - Tells where to start retrieving in relation to current
     /*   RUN addmessage IN TARGET-PROCEDURE(RETURN-VALUE,?,?). */
     RETURN FALSE.
   END.
-  
   /* startobject will applycontext after attaching dataset */ 
   IF VALID-HANDLE(hDatasetSource) THEN
   DO:
@@ -12715,8 +12839,6 @@ parameter: pcMode - Tells where to start retrieving in relation to current
 
   PUBLISH "dataRequestComplete":U FROM TARGET-PROCEDURE.
   
-  
-
   RETURN TRUE. 
 
 END FUNCTION.
@@ -14304,11 +14426,11 @@ FUNCTION submitData RETURNS LOGICAL
            does the necessary check for unsaved changes before calling
            this.             
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE hDataset      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cEntityName   AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cDataTable    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lOk           AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE cContext      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hDataset       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cEntityName    AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cDataTable     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE lOk            AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE cContext       AS CHARACTER  NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get DatasetSource hDataset}
@@ -14316,7 +14438,7 @@ FUNCTION submitData RETURNS LOGICAL
   {get DataTable cDataTable}
   .
   &UNDEFINE xp-assign
-  
+ 
   cContext = {fn obtainContextForServer}.
   RUN submitDataset IN {fn getDataContainerHandle} 
                                  (hDataSet,
@@ -14332,7 +14454,7 @@ FUNCTION submitData RETURNS LOGICAL
   IF lOk THEN 
     {set rowObjectState 'noUpdates':U}.
   
-  
+
   RETURN lok. 
 
 END FUNCTION.
@@ -14358,10 +14480,7 @@ FUNCTION submitRow RETURNS LOGICAL
   Parameters:
     INPUT pcRowIdent  - "key" with row to update.
                          The RowObject ROWID, typically derrived from the visual 
-                         DataTarget's Rowident property, which often also 
-                         has an additional list of the ROWID(s) of the db 
-                         record(s). This appended list is not used here and is thus 
-                         not required.  
+                         DataTarget's Rowident property
                       - ?  indicates current record.    
     INPUT pcValueList - CHR(1) delimited list of alternating column names 
                         and values to be assigned.
@@ -14388,7 +14507,7 @@ FUNCTION submitRow RETURNS LOGICAL
   DEFINE VARIABLE cValue         AS CHARACTER  NO-UNDO.
 
   rRowObject = TO-ROWID(ENTRY(1, pcRowIdent)) NO-ERROR.
-  
+
   &SCOPED-DEFINE xp-assign
   {get RowObject hRowObject}
   {get DataTable cDataTable}
@@ -14697,10 +14816,10 @@ Parameter: pcLargeColumns - List of columns to set in LargeColumns
     /* Store the result (also blank), for future requests */  
     {set LargeColumns cLargeColumns}.
 
-    /* This is normally not allowed outside of the setfunction,    
+     /* This is normally not allowed outside of the setfunction,    
        R&D Mode... 
-       These are considered READ-ONLY, so there is no set functions, but for 
-       performance reasons we do want to store them. (By not defining the xp 
+        These are considered READ-ONLY, so there is no set functions, but for 
+        performance reasons we do want to store them. (By not defining the xp 
        in the prop file they are safe from being changed by the set include. */ 
        
     &SCOPED-DEFINE xpCLOBColumns

@@ -4,12 +4,12 @@
 */
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights*
+* reserved.  Prior versions of this work may contain portions         *
+* contributed by participants of Possenet.                            *
+*                                                                     *
+**********************************************************************/
 /*------------------------------------------------------------------------
 
   File: 
@@ -1081,7 +1081,6 @@ PROCEDURE clearFilter :
 
     DEFINE VARIABLE dRowsToBatch    AS DECIMAL    NO-UNDO.
     DEFINE VARIABLE lRebuildOnRepos AS LOGICAL    NO-UNDO.
-    DEFINE VARIABLE cQueryString    AS CHARACTER  NO-UNDO.
 
     RUN selectPage (INPUT 1).
 

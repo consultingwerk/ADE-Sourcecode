@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
-*********************************************************************/
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : lookup.p
     Purpose     : Super procedure for adm2 dynlookup class.
@@ -1253,9 +1253,11 @@ ELSE DO: /* deal with an invalid value */
                             ELSE hLookup:INPUT-VALUE).
   ELSE IF lDataModified THEN  /* keep the entered value while in Modified mode */
   DO:
-    {set DataValue ?}.   
     IF cKeyField <> cDisplayedField THEN
+    DO:
+      {set DataValue ?}. 
       hLookup:SCREEN-VALUE = hDynLookupBuf:BUFFER-FIELD('cScreenValue':U):BUFFER-VALUE.
+    END.
     ELSE DO:
       {get DataValue cKeyFieldValue}.
       hLookup:SCREEN-VALUE = cKeyFieldValue.
@@ -2222,10 +2224,12 @@ ELSE DO:
 END.
 
 IF (cFoundValues = "":U OR cFoundValues = ?) AND NOT lBlankOnNotAvail THEN 
-DO:
-  {set DataValue ?}.   
+DO: 
   IF cKeyField <> cDisplayedField THEN
+  DO:
+    {set DataValue ?}.   
     hLookup:SCREEN-VALUE = hDynLookupBuf:BUFFER-FIELD('cScreenValue':U):BUFFER-VALUE.
+  END.
   ELSE DO:
     {get DataValue cKeyFieldValue}.
     hLookup:SCREEN-VALUE = cKeyFieldValue.

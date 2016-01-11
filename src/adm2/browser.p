@@ -12,21 +12,6 @@
     Purpose     : Super procedure for SmartDataBrowser objects
 
     Syntax      : adm2/browser.p
-
-    Modified    : August 8, 2000 -- Version 9.1B
-    Modified    : 09/29/2001        Mark Davies (MIP)
-                  Added security to Excel and Crysal Exports.
-    Modified    : 10/19/2001        Mark Davies (MIP)
-                  Security for hiding secured fields works for a browse on an
-                  object controller with a standard layout, but does not
-                  work when you design it with a browser, viewer and toolbars
-                  on one container. To rectify this I took out the container
-                  name being passed to the field security check API.
-    Modified    : 11/13/2001        Mark Davies (MIP)
-                  Check for valid-handle for all gsh... variables
-    Modified    : 02/27/2002        Mark Davies (MIP)
-                  Fix for issue #4086 - Changes made to cater for SBO caused
-                  an error.
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -1722,7 +1707,8 @@ DEFINE VARIABLE hFrame       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hSearchField AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hSearchLabel AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lHideOnInit  AS LOGICAL    NO-UNDO.
-DEFINE VARIABLE lDbAware     AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE lOpen        AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE hPosSrc      AS HANDLE     NO-UNDO.
 
   &SCOPED-DEFINE xp-assign
   {get DataSource hDataSource}    /* Proc. handle of our SDO. */
@@ -1735,10 +1721,9 @@ DEFINE VARIABLE lDbAware     AS LOGICAL    NO-UNDO.
   IF cSearchField NE "":U AND cSearchField NE ? THEN
   DO:
     {get ContainerHandle hFrame}.    /* Frame handle to put the widgets in. */
-    {get DBAware lDbAware hDataSource}.
-
-     /*  we only support dbfields as search/sort field in dbaware datasource*/  
-    IF NOT lDbAware OR {fnarg columnDbColumn cSearchField hDataSource} > "":U THEN
+    /*  we only support dbfields as search/sort field in sdo datasource*/  
+    IF {fnarg instanceOf 'DataView':U hDataSource}
+    OR {fnarg columnDbColumn cSearchField hDataSource} > "":U THEN
     DO:
       ASSIGN hBrowse:HEIGHT = hBrowse:HEIGHT - 1  /* Shorten the browse */
              hBrowse:ROW = 2                     /* and place at row 2 */ 
@@ -1773,21 +1758,24 @@ DEFINE VARIABLE lDbAware     AS LOGICAL    NO-UNDO.
             PERSISTENT RUN searchTrigger IN TARGET-PROCEDURE. 
         END TRIGGERS.
 
-      IF NUM-ENTRIES(cSearchField,'.') = 1 THEN
+      IF NUM-ENTRIES(cSearchField,'.':U) = 1 THEN
         cSearchField = 'RowObject.':U + cSearchField.
       
       /* reopens only if different from before, sets QuerySort if query is not 
          opened yet */
       {fnarg resortQuery cSearchField hDataSource}.
-
-      /* We want to reposition to the first row after the resort,
-         regardless of what was previouisly selected.
-       */
-      DYNAMIC-FUNCTION('findRowWhere':U IN hDataSource,
-                       cSearchField, 
-                       '':u,
-                       '>=':U).
       
+      /* Reposition to the first row after the resort,
+         unless the SDO is not open (for example openoninit false )
+         or already has a positionsource (SDF -> viewer -> datasource)*/
+      &SCOPED-DEFINE xp-assign
+      {get QueryOpen lOpen hDataSource}
+      {get PositionSource hPosSrc hDataSource}
+       .
+      &UNDEFINE xp-assign
+      IF lOpen AND NOT VALID-HANDLE(hPosSrc) THEN
+        RUN fetchFirst IN hDataSource.
+
       &SCOPED-DEFINE xp-assign
       {get HideOnInit lHideOnInit}
       {set SearchHandle hSearchField}
@@ -4686,7 +4674,8 @@ PROCEDURE searchTrigger :
   DEFINE VARIABLE cSearchField AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cDataType    AS CHARACTER NO-UNDO.
   DEFINE VARIABLE cRowIdent    AS CHARACTER NO-UNDO.
-  
+  DEFINE VARIABLE lOk          AS LOGICAL   NO-UNDO.
+
   /* First we must capture the keystroke which fired the trigger. */
   APPLY LAST-KEY.
   
@@ -4698,11 +4687,14 @@ PROCEDURE searchTrigger :
   IF NUM-ENTRIES(cSearchField,'.') = 1 THEN
     cSearchField = 'RowObject.':U + cSearchField.
 
-  DYNAMIC-FUNCTION('findRowWhere':U IN hSource,
-                    cSearchField, 
-                    SELF:SCREEN-VALUE,
-                    '>=':U).
-  
+  lOk = DYNAMIC-FUNCTION('findRowWhere':U IN hSource,
+                          cSearchField, 
+                          SELF:SCREEN-VALUE,
+                         '>=':U).
+  /* the ui just remains as is, so give some feedback...*/
+  IF NOT lok THEN
+    BELL. 
+
   /* Now we must throw away the krystroke event to avoid getting double
      characters in the fill-in. */
   RETURN NO-APPLY.

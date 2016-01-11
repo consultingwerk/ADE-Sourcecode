@@ -81,11 +81,17 @@
   .
   &UNDEFINE xp-assign
   
+  /* outside the xp-assign because of the no-error */
+  {get keepChildPositions lKeepChildPositions phObject} NO-ERROR.
+  IF lKeepChildPositions eq ? THEN 
+     /* Default behaviour is to resize */
+     lKeepChildPositions = No.
+  
   RUN multiTranslation IN gshTranslationManager (INPUT NO, INPUT-OUTPUT TABLE ttTranslate).
   
   EMPTY TEMP-TABLE ttViewerCol.
   
-  ASSIGN cResizeForTranslation = {fnarg getUserProperty "'ResizeForTranslation'" phObject}.
+  ASSIGN cResizeForTranslation = {fnarg getUserProperty "'ResizeForTranslation'" phObject}.  
 
   IF NOT CAN-FIND(FIRST ttTranslate
                   WHERE ttTranslate.cTranslatedLabel <> "":U
@@ -109,7 +115,6 @@
        DYNAMIC-FUNCTION("setUserProperty":U IN hSDFParentFrame, INPUT "ResizeForTranslation", INPUT "YES":U). 
   END.  /* this is a single SDF */
   
-
     /* BUG 20040312-024 describes a core bug which results in the 
        translated label of a static SDF not showing until the viewer
        has been hidden and then re-viewed. If the SDF's frame is not hidden, 
@@ -122,8 +127,10 @@
   IF lFrameVisible THEN
     ASSIGN phFrame:HIDDEN = YES.
         
-  /* Calculate column offsets
-   */
+   /* Calculate column offsets. We dont' want to do this if KeepChildPositions
+      is true, since no moving and shaking will take place. */
+    if not lKeepChildPositions eq true then
+    do:   
   IF cAllFieldHandles > "":U  THEN 
   DO:
     field-loop:
@@ -207,12 +214,24 @@
                  AND ttTranslate.cTranslatedLabel <> "":U
                NO-ERROR.
 
-          IF AVAILABLE ttTranslate THEN 
+          IF AVAILABLE ttTranslate THEN
           DO:
               /* Always assume we're going to have to take the colon into account as well */
-              ASSIGN cLabelText      = ttTranslate.cTranslatedLabel
-                     cLabelText      = cLabelText + (IF INDEX(cLabelText, ":":U) = 0 THEN " :   ":U ELSE "":U)
-                     dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont).
+              ASSIGN cLabelText = ttTranslate.cTranslatedLabel .
+              
+              /* Let the 4gl handle adding of colons, except for PGEN where we need 
+                 to do it ourselves.
+               */
+              if can-query(ttTranslate.hWidgetHandle, 'Side-Label-Handle':U) and
+                     valid-handle(ttTranslate.hWidgetHandle:side-label-handle) and
+                 ttTranslate.hWidgetHandle:SIDE-LABEL-HANDLE:DYNAMIC and
+                 INDEX(cLabelText, ":":U) = 0 THEN
+                 cLabelText = cLabelText + ":":u.
+              
+              dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont)
+                              /* Pad the width by 3 pixels, as done when actually writing the translated label.
+                                 Convert this into column PPUs because that's what we're working with here.     */
+                              + (3 / session:pixels-per-column).
           END.  /* there is a translation. */
           else
               ASSIGN dNewLabelLength = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cLabelText, iFont).
@@ -283,7 +302,7 @@
                   DO:
                       DO iRadioLoop = 1 TO NUM-ENTRIES(cRadioButtons) BY 2:
                           ASSIGN cRadioOption = ENTRY(iRadioLoop, cRadioButtons).
-                          ASSIGN dOptionWidth = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cRadioOption, iFont) + 3.8. /* to reserve space for the UI (sircle) */
+                          ASSIGN dOptionWidth = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cRadioOption, iFont) + 3.8. /* to reserve space for the UI (circle) */
                           ASSIGN dWidth = MAX(dWidth,dOptionWidth).
                       END.  /* loop through buttons */
                   END.  /* vertical alignment */
@@ -292,7 +311,7 @@
                       DO iRadioLoop = 1 TO NUM-ENTRIES(cRadioButtons) BY 2:
                           ASSIGN cRadioOption = ENTRY(iRadioLoop, cRadioButtons).
                           ASSIGN dOptionWidth = FONT-TABLE:GET-TEXT-WIDTH-CHARS(cRadioOption, iFont).
-                          ASSIGN dWidth = dWidth + dOptionWidth + 3.8. /* to reserve space for the UI (sircle) */.
+                          ASSIGN dWidth = dWidth + dOptionWidth + 3.8. /* to reserve space for the UI (circle) */.
                       END.  /* loop through buttons */
                   END.  /* horizontal alignment */
               END.  /* can find a translation for the radio-set */
@@ -351,7 +370,7 @@
   END.  /* loop through all viewer columns */
 
   /* If the new size causes the viewer to be larger than the session's max width
-     we need to trim the translations down a bit */
+     we need to trim the translations down a bit */     
   IF dMinFrameWidth > (SESSION:WIDTH - 5) THEN 
   DO:
       RUN afmessagep IN TARGET-PROCEDURE 
@@ -367,7 +386,11 @@
       IF cFullMessage <> "":U THEN
           MESSAGE cFullMessage
               VIEW-AS ALERT-BOX WARNING.
-      RETURN.
+    
+    /* Reset frame visibility upon returning */
+    IF lFrameVisible THEN
+        ASSIGN phFrame:HIDDEN = NO.
+    RETURN.
   END.  /* frame too big for monitor. */
   
   ASSIGN lHasFieldLabel    = FALSE
@@ -382,10 +405,6 @@
   IF {fn getObjectType phObject} = 'SmartDataField':U THEN
     lIsSmartDataField = TRUE.
 
-  {get keepChildPositions lKeepChildPositions phObject} NO-ERROR.
-  IF lKeepChildPositions = ? THEN 
-     lKeepChildPositions = NO. /* Ensure lKeepChildPositions is yes/no */
-  
   /* Need to resize frame to fit new labels */
   IF CAN-FIND(FIRST ttViewerCol WHERE ttViewerCol.dColumn <> ttViewerCol.dNewCol) THEN 
   DO:
@@ -399,8 +418,6 @@
 
       IF dAddCol > 0 
       THEN DO:
-          IF NOT lKeepChildPositions THEN
-          DO:
              RUN resizeNormalFrame IN TARGET-PROCEDURE (INPUT phObject, INPUT phFrame, INPUT dMinFrameWidth).
       
              IF lHasFieldLabel THEN
@@ -410,7 +427,6 @@
                  RUN resizeSDFFrame IN TARGET-PROCEDURE (INPUT phObject, INPUT phFrame, INPUT dAddCol). 
              ELSE 
                  RUN adjustWidgets IN TARGET-PROCEDURE (INPUT phObject, INPUT phFrame, INPUT dAddCol).
-          END.
       END.  /* there are columns to add */
   END.  /* we need to move some stuff to the right */
   /* If lHasFieldLabel then this is a dynamic lookup or dynamic combo.  The labels for 
@@ -428,6 +444,7 @@
       IF dAddCol > 0 THEN
           RUN resizeNormalFrame IN TARGET-PROCEDURE (INPUT phObject, INPUT phFrame, INPUT dMinFrameWidth).
   END.  /* no fieldlabel */
+    end.    /* keep child positions */
 
   /* Now apply the translations to the widgets */
   translate-loop:

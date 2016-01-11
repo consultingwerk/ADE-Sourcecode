@@ -1,25 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /* _usrincr.p */
 
@@ -42,6 +26,9 @@ end.
 
 History:  07/14/98 DLM Added _Owner to _File Finds
           04/12/00 DLM Added support for long path names
+
+          08/03/2006 fernando   Check permission on DICTDB2 - 20060621-015
+
 */
 
 { prodict/dictvar.i }
@@ -101,6 +88,10 @@ DEFINE VARIABLE answer 	AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE c      	AS CHARACTER NO-UNDO.
 DEFINE VARIABLE i      	AS INTEGER   NO-UNDO.
 DEFINE VARIABLE canned  AS LOGICAL   NO-UNDO INIT TRUE.
+DEFINE VARIABLE hBuffer AS HANDLE    NO-UNDO.
+DEFINE VARIABLE bufList AS CHARACTER NO-UNDO EXTENT 4
+       INIT ["_db","_File","_Field","_Index"].
+
 {prodict/misc/filesbtn.i}
 
 FORM                                                SKIP({&TFM_WID})
@@ -224,20 +215,41 @@ IF pik_first = ? THEN DO:
 END.
 CREATE ALIAS "DICTDB2" FOR DATABASE VALUE(pik_first) NO-ERROR.
 
-/*
-DO FOR DICTDB2._File:
-  FIND DICTDB2._File "_Db" WHERE DICTDB2._File._Owner = "PUB" NO-LOCK.
-  IF NOT CAN-DO(_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
-  
-  FIND DICTDB2._File "_File" WHERE DICTDB2._File._Owner = "PUB" NO-LOCK.
-  IF NOT CAN-DO(_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
-  
-  FIND DICTDB2._File "_Field" WHERE DICTDB2._File._Owner = "PUB" NO-LOCK.
-  IF NOT CAN-DO(_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
-  FIND DICTDB2._File "_Index" WHERE DICTDB2._File._Owner = "PUB" NO-LOCK.
-  IF NOT CAN-DO(_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
-END.
+/* check permissions on both databases. For DICTDB2, we need to run a dynamic
+   find because the reference to DICTDB2 causes the .r not to run since
+   DICTDB2 isn't known until the execution of the above line.
 */
+
+CREATE BUFFER hBuffer FOR TABLE "DICTDB2._File" NO-ERROR.
+IF VALID-HANDLE(hBuffer) THEN DO:
+    /* check all the tables we're interested in */
+    REPEAT pik_count = 1 TO 4:
+        hBuffer:FIND-FIRST('WHERE DICTDB2._File._File-name = '
+                           + QUOTER(bufList[pik_count]) 
+                           + ' AND DICTDB2._File._Owner = "PUB"', NO-LOCK) NO-ERROR.
+        /* if an error occurred, assume we don't have permissions to read */
+        IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN
+            ASSIGN C = LDBNAME("DICTDB2").
+        ELSE IF hBuffer:AVAILABLE THEN DO:
+            IF NOT CAN-DO(hBuffer::_Can-read,USERID("DICTDB2")) THEN c = LDBNAME("DICTDB2").
+            hBuffer:BUFFER-RELEASE().
+        END.
+
+        IF c NE ? THEN 
+            LEAVE.
+    END.
+
+    DELETE OBJECT hBuffer NO-ERROR.
+END.
+ELSE /* if we could not create a buffer, assume we can't read the table */
+    ASSIGN C = LDBNAME("DICTDB2").
+
+IF c <> ? THEN DO:
+  MESSAGE new_lang[2] SKIP new_lang[3] c /* not enough privs on db */
+    VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+  user_path = "".
+  RETURN.
+END.
 
 DO FOR DICTDB._File:
   FIND DICTDB._File "_Db" WHERE DICTDB._File._Owner = "PUB" NO-LOCK.

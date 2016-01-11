@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -14,7 +14,7 @@ Purpose: Import procedure responsible for executing the actual
          (prodict/dump/_lodsec.p). 
          
          This is for audit data tables only - for audit policy
-         tables, see adecomm/_impblnap.p.
+         tables, see adecomm/_impblna.p.
 
 Parameters:
   phBuffer     = Handle to the buffer to be loaded.
@@ -30,17 +30,24 @@ History:
    11/02/2005  fernando  Split file - moved audit tables to _impblnap.p so
                          that rcode doesn't depend on audit policy tables - 20051026-060.
    11/10/2005  fernando  Adding _db-detail and _client-session 20051110-020                   
+   05/02/2006  fernando  Moved code to internal procedure and call this as a persistent procedure
+                         so that a new temp-table is not instantiated everytime for each record
+                         imported. (20060503-008)
 */
 
 /* Define input streams */
 {prodict/dump/loadvars.i "SHARED"}
 
+DEFINE TEMP-TABLE ttDbDet   LIKE DICTDB2._Db-detail.
+DEFINE TEMP-TABLE ttCliSess LIKE DICTDB2._Client-session.
+
+
+PROCEDURE import-data:
+
 DEFINE INPUT  PARAMETER phBuffer  AS HANDLE      NO-UNDO.
 DEFINE INPUT  PARAMETER plOmitLob AS LOGICAL     NO-UNDO.
 DEFINE INPUT  PARAMETER isTemp    AS LOGICAL     NO-UNDO.
 
-DEFINE TEMP-TABLE ttDbDet   LIKE DICTDB2._Db-detail.
-DEFINE TEMP-TABLE ttCliSess LIKE DICTDB2._Client-session.
 
 IF NOT phBuffer:AVAILABLE THEN RETURN ERROR.
 
@@ -96,3 +103,5 @@ IF ERROR-STATUS:ERROR THEN
    RETURN ERROR-STATUS:GET-MESSAGE(1).
 ELSE
    RETURN "".
+
+END PROCEDURE.

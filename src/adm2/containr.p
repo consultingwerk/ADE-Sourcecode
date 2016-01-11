@@ -4068,13 +4068,20 @@ PROCEDURE initializeDataObjects :
   DO iTarget = 1 TO NUM-ENTRIES(cTargets): 
     ASSIGN 
       hObject  = WIDGET-HANDLE(ENTRY(iTarget,cTargets))
-      lDbAware = ?.
+      lDBAware = ?.
     {get QueryObject lQuery hObject}.
     
+    /* Note that there is a DBAware property in the instances, but 
+       it may have been set to false in TT SDOs to avoid having to 
+       deploy the _cl or use the dynSDO, and cannot be used here.  
+      (As one may guess this was not considered when the HasDBawareObjects
+       was implemented) */
+
     IF lQuery THEN
-      {get DBAware lDBAware hObject}.
+      lDBAware = NOT {fnarg instanceOf 'DataView':U hObject}.
     ELSE 
-      {get HasDBAwareObjects lDBAware Hobject } NO-ERROR.
+      {get HasDBAwareObjects lDBAware hObject} NO-ERROR.
+
     IF lDbAware <> ? THEN
     DO:
       IF lHasDBAware = ? AND lDbAware <> ? THEN
@@ -7626,6 +7633,10 @@ FUNCTION getHasDbAwareObjects RETURNS LOGICAL
            DbAware. 
            SDOs and SBOs are DbAware and are managed differently than 
            DataViews who are not DbAware.                             
+        -  The property name is somewhat misleading/inconsistent, since it is not 
+           reflecting the DBAware property of the contained instances. 
+           TT based SDOs may have their instance DBAware set to false, but is 
+           still considered as DBAware in this context.                        
 ------------------------------------------------------------------------------*/
  DEFINE VARIABLE lDbObjects AS LOGICAL    NO-UNDO.
  {get HasDbAwareObjects lDbObjects}.
@@ -8112,14 +8123,25 @@ FUNCTION getRequestHandle RETURNS HANDLE
            container has db aware object (currently deaults to yes if appserver
            aware to handle non-dbware objects).  
         -  In short, the top-most uninitialized object becomes the datacontainer
-           unless a parent already is datacontainer                            
+           unless a parent already is datacontainer
+        -  The DataContainer flag is also used for appserver aware standard
+           containers, so we ignore it if the object HasDbAwareObjects.                                     
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE lDataContainer   AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lInitialized     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hContainerSource AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hRequestor       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE lDbAware         AS LOGICAL    NO-UNDO.
 
   {get Datacontainer lDataContainer}.
+  IF lDataContainer THEN
+  DO:
+    /* Standard appserver aware container will have YES or ? */
+    {get HasDbAwareObjects lDbAware}.
+    IF lDbAware = TRUE OR lDbAware = ? THEN
+      RETURN ?.
+  END. /* DataContainer true */
+
   IF NOT lDataContainer THEN
   DO:
     {get ContainerSource hContainerSource}.
@@ -8135,9 +8157,9 @@ FUNCTION getRequestHandle RETURNS HANDLE
 
     {set Datacontainer TRUE}.
   END.  /* not datacontainer */
-  /* datacontainer or not initialized with no parent that is either 
-     datacontainer or not initialized*/
 
+  /* datacontainer or not initialized with no parent that is  
+     datacontainer or not initialized */
   RETURN TARGET-PROCEDURE.  
 
 END FUNCTION.
@@ -9469,6 +9491,10 @@ FUNCTION setHasDbAwareObjects RETURNS LOGICAL
            DbAware. 
            SDOs and SBOs are DbAware and are managed differently than 
            DataViews who are not DbAware.                             
+        -  The property name is somewhat misleading/inconsistent, since it is not 
+           reflecting the DBAware property of the contained instances. 
+           TT based SDOs may have their instance DBAware set to false, but is 
+           still considered as DBAware in this context.                        
 ------------------------------------------------------------------------------*/
  {set HasDbAwareObjects plDbObjects}.
  RETURN TRUE.

@@ -27,28 +27,9 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/* Copyright © 2000-2006 by Progress Software Corporation.  All rights 
+   reserved.  Prior versions of this work may contain portions 
+   contributed by participants of Possenet.  */
 /*---------------------------------------------------------------------------------
   File: afservicetype.p
 
@@ -112,6 +93,18 @@ DEFINE VARIABLE hConnMan AS HANDLE     NO-UNDO.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD canConnectAtStartup Procedure 
 FUNCTION canConnectAtStartup RETURNS LOGICAL
   ( INPUT pcServiceName AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-findConnectedPhysicalService) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD findConnectedPhysicalService Procedure 
+FUNCTION findConnectedPhysicalService RETURNS HANDLE
+    ( input pcPhysicalService      as character,
+      input pcServiceName          as character    ) FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -492,6 +485,54 @@ FUNCTION canConnectAtStartup RETURNS LOGICAL
     RETURN ?.
 
 END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-findConnectedPhysicalService) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION findConnectedPhysicalService Procedure 
+FUNCTION findConnectedPhysicalService RETURNS HANDLE
+    ( input pcPhysicalService      as character,
+      input pcServiceName          as character    ):
+/*------------------------------------------------------------------------------
+  Purpose: Find the first service by physical service that has a valid service handle.
+    Notes: - pcServiceName is an optional parameter used in cases where the caller 
+             wants to find serivces other than itself that are connected with the
+             same physical service.
+           - connectServiceWithParams() and disconnectService() are usually the APIs 
+             calling this function. This functionality currently only applies to
+             AppServer connections.
+           - It's up to the calling connection manager to decide what to do in
+             cases where a connection already exists.
+------------------------------------------------------------------------------*/
+    define variable hServer                    as handle no-undo.
+    define variable hService                   as handle no-undo.    
+    
+    hServer = ?.
+    
+    /* Get the service. Use the buffer handles for better abstraction
+       (as oppposed to getting ttService directly). */
+    hService = dynamic-function('getSTTableBuffer':u in target-procedure).
+    if valid-handle(hService) then
+    do:
+        if hService:available then
+            hService:buffer-release().
+        
+        hService:find-first('where ':u
+                            + hService:name + '.cPhysicalService = ':u + quoter(pcPhysicalService) + ' and ':u                            
+                            + (if pcServiceName eq '':u then '':u
+                               else hService:name + '.cServiceName <> ':u + quoter(pcServiceName) + ' and ':u)
+                            + 'valid-handle(widget-handle(':u + hService:name + '.cServiceHandle))':u ) no-error.
+        if hService:available then
+            hServer = widget-handle(hService:buffer-field('cServiceHandle':U):buffer-value) no-error.
+    end.    /* valid service */
+    
+    error-status:error = no.
+    return hServer.
+END FUNCTION.    /* findConnectedPhysicalService */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

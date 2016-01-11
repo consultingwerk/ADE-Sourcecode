@@ -1,11 +1,11 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation.  All rights   *
+/************************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
-*********************************************************************/
+************************************************************************/
 /*--------------------------------------------------------------------------
     File        : adeuib/_abfuncs.w
     Purpose     : A library of functions that can be called anywhere in the
@@ -1735,7 +1735,7 @@ FUNCTION repositoryDynamicClass RETURNS CHARACTER
         WHEN "SmartBusinessObject":U THEN cDynClass = "DynSBO":U.
         OTHERWISE DO:
 
-          cNativeClasses = getNativeDynamicClasses().
+          cNativeClasses = getNativeDynamicClasses() + ",DynSBO":U.
           DO iClass = 1 TO NUM-ENTRIES(cNativeClasses):
             cClass = ENTRY(iClass,cNativeClasses).
             IF DYNAMIC-FUNC("ClassIsA":U IN gshRepositoryManager,pType,cClass) THEN

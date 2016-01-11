@@ -785,6 +785,7 @@ PROCEDURE launch_object.
         ,OUTPUT cRunContainerType    /* procedure type (e.g ADM1, Astra1, ADM2, ICF, "") */
         ).
     
+    IF VALID-HANDLE(hRunContainer) THEN
     WAIT-FOR WINDOW-CLOSE, CLOSE OF hRunContainer. 
 
   END.  /* do on stop, on error */

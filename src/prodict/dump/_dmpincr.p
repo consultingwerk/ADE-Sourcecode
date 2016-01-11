@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,10 +13,6 @@
    The aim is to produce a database like DICTDB.  So this .df file will be
    run against a database like DICTDB2 to create a database like DICTDB.
    
-   History:
-     kmcintos   Sept 16, 2005  Fixed problems with renaming indexed and non
-                               indexed fields (Supporting changes in 
-                               dump/_dmputil.p) 20040402-004.
 */
 
 /*
@@ -76,6 +72,11 @@ History:
     P. Kullman  09/22/03    Changed call to _dmpisub.p from _dmpincr.p 12796                        
     McMann      10/17/03    Add NO-LOCK statement to _Db find in support of on-line schema add
     K. McIntosh 07/26/04    Added CLOB support for incremental dump
+    kmcintos    09/16/05    Fixed problems with renaming indexed and non
+                               indexed fields (Supporting changes in 
+                               dump/_dmputil.p) 20040402-004.
+    fernando    06/12/06    Support for int64 - allow int->int64 type change
+    fernando    08/16/06    raw comparison when checking if char values are different - 20060301-002
 */
 /*h-*/
 
@@ -467,27 +468,27 @@ DO ON STOP UNDO, LEAVE:
       ddl    = ""
       ddl[1] = 'UPDATE TABLE "' + DICTDB._File._File-name + '"'.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Read,'"',OUTPUT c).
-    IF DICTDB._File._Can-read <> DICTDB2._File._Can-read THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-read,"NE",DICTDB2._File._Can-read,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-READ " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Write,'"',OUTPUT c).
-    IF DICTDB._File._Can-write <> DICTDB2._File._Can-write THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-write,"NE",DICTDB2._File._Can-write,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-WRITE " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Create,'"',OUTPUT c).
-    IF DICTDB._File._Can-create <> DICTDB2._File._Can-create THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-create,"NE",DICTDB2._File._Can-create,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-CREATE " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Delete,'"',OUTPUT c).
-    IF DICTDB._File._Can-delete <> DICTDB2._File._Can-delete THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-delete,"NE",DICTDB2._File._Can-delete,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-DELETE " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Dump,'"',OUTPUT c).
-    IF DICTDB._File._Can-Dump <> DICTDB2._File._Can-Dump THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-Dump,"NE",DICTDB2._File._Can-Dump,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-DUMP " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Can-Load,'"',OUTPUT c).
-    IF DICTDB._File._Can-Load <> DICTDB2._File._Can-Load THEN ASSIGN
+    IF COMPARE(DICTDB._File._Can-Load,"NE",DICTDB2._File._Can-Load,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  CAN-LOAD " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Desc,'"',OUTPUT c).
@@ -495,15 +496,15 @@ DO ON STOP UNDO, LEAVE:
       j = j + 1
       ddl[j] = "  DESCRIPTION " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._File-label,'"',OUTPUT c).
-    IF DICTDB._File._File-label <> DICTDB2._File._File-label THEN ASSIGN
+    IF COMPARE(DICTDB._File._File-label,"NE",DICTDB2._File._File-label,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  LABEL " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._File-label-SA,'"',OUTPUT c).
-    IF DICTDB._File._File-label-SA <> DICTDB2._File._File-label-SA THEN ASSIGN
+    IF COMPARE(DICTDB._File._File-label-SA,"NE",DICTDB2._File._File-label-SA,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  LABEL-SA " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Valexp,'"',OUTPUT c).
-    IF DICTDB._File._Valexp <> DICTDB2._File._Valexp THEN ASSIGN
+    IF COMPARE(DICTDB._File._Valexp,"NE",DICTDB2._File._Valexp,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  VALEXP " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Valmsg,'"',OUTPUT c).
@@ -511,7 +512,7 @@ DO ON STOP UNDO, LEAVE:
       j = j + 1
       ddl[j] = "  VALMSG " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Valmsg-SA,'"',OUTPUT c).
-    IF DICTDB._File._Valmsg-SA <> DICTDB2._File._Valmsg-SA THEN ASSIGN
+    IF COMPARE(DICTDB._File._Valmsg-SA,"NE",DICTDB2._File._Valmsg-SA,"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  VALMSG-SA " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Dump-name,'"',OUTPUT c).
@@ -519,7 +520,7 @@ DO ON STOP UNDO, LEAVE:
       j = j + 1
       ddl[j] = "  DUMP-NAME " + c.
     RUN dctquot IN h_dmputil (DICTDB._File._Fil-misc2[6],'"',OUTPUT c).
-    IF DICTDB._File._Fil-misc2[6] <> DICTDB2._File._Fil-misc2[6] THEN ASSIGN
+    IF COMPARE(DICTDB._File._Fil-misc2[6],"NE",DICTDB2._File._Fil-misc2[6],"RAW") THEN ASSIGN
       j = j + 1
       ddl[j] = "  FILE-MISC26 " + c.
     IF DICTDB._File._Hidden <> DICTDB2._File._Hidden THEN DO:
@@ -739,7 +740,7 @@ DO ON STOP UNDO, LEAVE:
           l = FALSE.
         END.
       END.
-      /* If l is true we're updateing otherwise we're adding */
+      /* If l is true we're updating otherwise we're adding */
       ASSIGN ddl    = ""
              ddl[1] = (IF l THEN "UPDATE" ELSE "ADD")
                       + ' FIELD "' + DICTDB._Field._Field-name
@@ -749,10 +750,10 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR COMPARE(DICTDB._Field._Desc,"NE",DICTDB2._Field._Desc,"RAW") THEN 
            ddl[2] = "  DESCRIPTION " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Format,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Format <> DICTDB2._Field._Format THEN 
+      IF NOT l OR COMPARE(DICTDB._Field._Format,"NE",DICTDB2._Field._Format,"RAW") THEN 
         ddl[3] = "  FORMAT " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Format-SA,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Format-SA <> DICTDB2._Field._Format-SA THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Format-SA,"NE",DICTDB2._Field._Format-SA,"RAW") THEN
         ddl[4] = "  FORMAT-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Initial,'"',OUTPUT c).
       IF NOT l OR DICTDB._Field._Field-rpos <> DICTDB2._Field._Field-rpos THEN 
@@ -760,44 +761,44 @@ DO ON STOP UNDO, LEAVE:
       IF NOT l OR COMPARE(DICTDB._Field._Initial,"NE",DICTDB2._Field._Initial,"RAW") THEN
         ddl[6] = "  INITIAL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Initial-SA,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Initial-SA <> DICTDB2._Field._Initial-SA THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Initial-SA,"NE",DICTDB2._Field._Initial-SA,"RAW") THEN
         ddl[7] = "  INITIAL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Help,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Help,"NE",DICTDB2._Field._Help,"RAW") THEN
         ddl[8] = "  HELP " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Help-SA,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Help-SA <> DICTDB2._Field._Help-SA THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Help-SA,"NE",DICTDB2._Field._Help-SA,"RAW") THEN
         ddl[9] = "  HELP-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Label,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Label,"NE",DICTDB2._Field._Label,"RAW") THEN
         ddl[10] = "  LABEL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Label-SA,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Label-SA <> DICTDB2._Field._Label-SA THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Label-SA,"NE",DICTDB2._Field._Label-SA,"RAW") THEN
         ddl[11] = "  LABEL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Col-label,'"',OUTPUT c).
       IF NOT l OR COMPARE(DICTDB._Field._Col-label,"NE",DICTDB2._Field._Col-label,"RAW") THEN
         ddl[12] = "  COLUMN-LABEL " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Col-label-SA,'"',OUTPUT c).
       IF NOT l OR 
-               DICTDB._Field._Col-label-SA <> DICTDB2._Field._Col-label-SA THEN
+               COMPARE(DICTDB._Field._Col-label-SA,"NE",DICTDB2._Field._Col-label-SA,"RAW") THEN
         ddl[13] = "  COLUMN-LABEL-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Can-Read,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Can-read <> DICTDB2._Field._Can-read THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Can-read,"NE",DICTDB2._Field._Can-read,"RAW") THEN
         ddl[14] = "  CAN-READ " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Can-Write,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Can-write <> DICTDB2._Field._Can-write THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Can-write,"NE",DICTDB2._Field._Can-write,"RAW") THEN
         ddl[15] = "  CAN-WRITE " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Valexp,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Valexp <> DICTDB2._Field._Valexp THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Valexp,"NE",DICTDB2._Field._Valexp,"RAW") THEN
         ddl[16] = "  VALEXP " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Valmsg,'"',OUTPUT c).
       IF NOT l OR DICTDB._Field._Valmsg <> DICTDB2._Field._Valmsg THEN
         ddl[17] = "  VALMSG " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._Valmsg-SA,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._Valmsg-SA <> DICTDB2._Field._Valmsg-SA THEN
+      IF NOT l OR COMPARE(DICTDB._Field._Valmsg-SA,"NE",DICTDB2._Field._Valmsg-SA,"RAW") THEN
         ddl[18] = "  VALMSG-SA " + c.
       RUN dctquot IN h_dmputil (DICTDB._Field._View-as,'"',OUTPUT c).
-      IF NOT l OR DICTDB._Field._View-as <> DICTDB2._Field._View-as THEN
+      IF NOT l OR COMPARE(DICTDB._Field._View-as,"NE",DICTDB2._Field._View-as,"RAW") THEN
         ddl[19] = "  VIEW-AS " + c.
       IF NOT l OR DICTDB._Field._Extent <> DICTDB2._Field._Extent THEN
         ddl[20] = "  EXTENT " + STRING(DICTDB._Field._Extent).

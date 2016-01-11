@@ -336,6 +336,17 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
 &IF DEFINED(EXCLUDE-newQuerySort) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD newQuerySort Procedure 
@@ -6021,6 +6032,34 @@ FUNCTION getTargetProcedure RETURNS HANDLE
 ------------------------------------------------------------------------------*/
 
   RETURN ghTargetProcedure.
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-instanceOf) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION instanceOf Procedure 
+FUNCTION instanceOf RETURNS LOGICAL
+    ( INPUT pcClass AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose: Override instanceOf to support SmartDataObject subtypes in 
+           non repository
+    Notes: This is currently only supported for DataView, Data and Query 
+------------------------------------------------------------------------------*/
+ IF pcClass = 'Query':U THEN
+   RETURN TRUE.
+
+ /* We lie about our inheritance or we have psychic abilities.
+    10.1B has moved dataview to the side, but some code relies on this 
+    already in 10.1A02..  */
+ IF pcClass = 'DataView':u THEN
+   RETURN FALSE.
+
+ RETURN SUPER(pcClass).
 
 END FUNCTION.
 

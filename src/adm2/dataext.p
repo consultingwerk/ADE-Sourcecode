@@ -1,12 +1,12 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+/***********************************************************************
+* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
-*********************************************************************/
+***********************************************************************/
 /*--------------------------------------------------------------------------
     File        : dataext.p
     Purpose     : Support procedure for Data Object.  This is an extension
@@ -3338,7 +3338,7 @@ FUNCTION getNewRow RETURNS LOGICAL
 /*------------------------------------------------------------------------------
   Purpose:     Returns TRUE if the current RowObject record is new - (an added
                record or a copy of an existing record has never been written to
-               the database.)  Returns ? if there is no current RowObject.
+               the database.)  
 
   Parameters:  <none>
   
@@ -3502,7 +3502,7 @@ FUNCTION getQueryOpen RETURNS LOGICAL
 
   {get AsDivision cAsDivision}.
 
-  IF cAsDivision = 'Client':U THEN
+  IF cAsDivision <> 'Server':U THEN
   DO:
     {get DataHandle hDataQuery}.
     RETURN IF NOT VALID-HANDLE(hDataQuery) 

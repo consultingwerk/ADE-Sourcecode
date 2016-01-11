@@ -97,8 +97,9 @@ END. /* > ADM1 */
 /* ********************  Preprocessor Definitions  ******************** */
 
 &Scoped-define PROCEDURE-TYPE DIALOG-BOX
+&Scoped-define DB-AWARE no
 
-/* Name of first Frame and/or Browse and/or first Query                 */
+/* Name of designated FRAME-NAME and/or first browse and/or first query */
 &Scoped-define FRAME-NAME f-dlg
 
 /* Standard List Definitions                                            */
@@ -146,7 +147,7 @@ DEFINE FRAME f-dlg
      cType AT ROW 2.1 COL 12 COLON-ALIGNED
      "ADM Supported Links:" VIEW-AS TEXT
           SIZE 24.6 BY .67 AT ROW 3.33 COL 2
-     SPACE(28.79) SKIP(7.13)
+     SPACE(28.80) SKIP(7.13)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "SmartInfo".
@@ -163,11 +164,11 @@ DEFINE FRAME f-dlg
 
 
 
-/* ***************  Runtime Attributes and UIB Settings  ************** */
+/* ***********  Runtime Attributes and AppBuilder Settings  *********** */
 
 &ANALYZE-SUSPEND _RUN-TIME-ATTRIBUTES
 /* SETTINGS FOR DIALOG-BOX f-dlg
-                                                                        */
+   FRAME-NAME                                                           */
 ASSIGN 
        FRAME f-dlg:SCROLLABLE       = FALSE
        FRAME f-dlg:HIDDEN           = TRUE.
@@ -299,8 +300,9 @@ END.
   DO:
      ASSIGN cType = DYNAMIC-FUNCTION("getObjectType":U IN p_hSMO).
 
-     IF cType = "SmartDataObject":U AND NOT DYNAMIC-FUNCTION("getDBAware":U IN p_hSMO)
-        THEN ASSIGN cType = "DataView":U.
+     IF cType = "SmartDataObject":U 
+     AND DYNAMIC-FUNCTION("instanceOf":U IN p_hSMO,"DataView":U) THEN 
+       ASSIGN cType = "DataView":U.
 
      /* Get attributes for the object. */
     ASSIGN list-links:LIST-ITEMS = DYNAMIC-FUNCTION("getSupportedLinks":U IN p_hSMO).
@@ -330,7 +332,7 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f-dlg _DEFAULT-DISABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE disable_UI f-dlg  _DEFAULT-DISABLE
 PROCEDURE disable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     DISABLE the User Interface
@@ -347,7 +349,7 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f-dlg _DEFAULT-ENABLE
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE enable_UI f-dlg  _DEFAULT-ENABLE
 PROCEDURE enable_UI :
 /*------------------------------------------------------------------------------
   Purpose:     ENABLE the User Interface
@@ -368,5 +370,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
 

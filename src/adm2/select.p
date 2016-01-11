@@ -860,7 +860,6 @@ PROCEDURE browseHandler :
   DEFINE VARIABLE cDbField         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iNumRows         AS INTEGER    NO-UNDO.
   DEFINE VARIABLE hDataSource      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lDbAware         AS LOGICAL    NO-UNDO.
 
   /** Get the SmartSelect properties that need to be used by the browse */  
   &SCOPED-DEFINE xp-assign
@@ -876,9 +875,8 @@ PROCEDURE browseHandler :
   IF VALID-HANDLE(hDataSource) THEN
   DO:
     /* Search/sort on calculated fields is currently not supported 
-       So if this is a dbaware object but not a dbfield use the keyfield.  */
-    {get DBAware lDbAware hDataSource}.
-    IF lDbAware THEN 
+       So if this is an data class but not a dbfield use the keyfield.  */
+    IF NOT {fnarg instanceOf 'DataView':U hDataSource} THEN 
     DO:
       cDbField = {fnarg columnDbColumn cSearchField hDataSource}.      
       IF cDbField = '':U THEN
@@ -1924,7 +1922,6 @@ Parameters: See smart.p
   DEFINE VARIABLE lQueryopen       AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE cRowIdent        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lEnableField     AS LOGICAL    NO-UNDO.
-  DEFINE VARIABLE lDbAware         AS LOGICAL    NO-UNDO.
 
   IF pcstate = 'add':U AND pcLink = 'DataSource':U  THEN
   DO:
@@ -1932,8 +1929,7 @@ Parameters: See smart.p
     IF cFilter NE "":U THEN
     DO:
       /* not supported for Dataview */
-      {get DbAware lDbAware phObject}.
-      IF lDbAware THEN
+      IF NOT {fnarg instanceOf 'DataView':U phObject} THEN
         DYNAMIC-FUNCTION("addQueryWhere":U IN phObject,cFilter,?,'':U). 
     END.
 
@@ -2025,8 +2021,8 @@ PROCEDURE publishLookupComplete PRIVATE :
   Purpose:  Publish the lookup complete event    
   Parameters:  <none>
   Notes:    This is 1 of 3 alternative ways to notify the container and is 
-            the default if UseRepository and source is dbaware and eventonchange
-            is blank. 
+            the default if UseRepository and source is not dataview and 
+            eventonchange is blank. 
 ------------------------------------------------------------------------------*/
   DEFINE INPUT  PARAMETER plAvail        AS LOGICAL    NO-UNDO.
   DEFINE INPUT  PARAMETER pcOldDispValue AS CHARACTER  NO-UNDO.
@@ -2300,13 +2296,12 @@ PROCEDURE valueChanged :
   DEFINE VARIABLE cOldValue       AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cScreenValue    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hSelection      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE lRepos          AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE lReposition     AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE hDataSource     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cDisplayedField AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cDataValue      AS CHARACTER  NO-UNDO. 
   DEFINE VARIABLE hContainer      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cFieldName      AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lDbAware        AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE lFound          AS LOGICAL    NO-UNDO.
 
   /* Set modified true to make the viewer save the value */
@@ -2322,12 +2317,12 @@ PROCEDURE valueChanged :
    .
   &UNDEFINE xp-assign
   IF cViewAs <> 'Browser':U THEN
-    {get RepositionDataSource lRepos}.   
+    {get RepositionDataSource lReposition}.   
   ELSE
-    lRepos = TRUE.
+    lReposition = TRUE.
 
   /* fired from trigger valuechanged / leaveSelect */
-  IF lRepos AND cOldValue <> hSelection:INPUT-VALUE  THEN
+  IF lReposition AND cOldValue <> hSelection:INPUT-VALUE  THEN
   DO:
     cScreenValue = hSelection:INPUT-VALUE.
     {set DisplayValue cScreenValue}. 
@@ -2345,6 +2340,9 @@ PROCEDURE valueChanged :
                              cDisplayedField,
                              cScreenValue,
                              '=/BEGINS':U).
+        /* the ui just remains as is, so give some feedback...*/
+      IF NOT lFound THEN 
+        BELL. 
       {set Modify FALSE}.
     END.
     IF NOT lFound AND cViewAs = 'Browser':U THEN
@@ -2369,10 +2367,9 @@ PROCEDURE valueChanged :
     {get DataValue cDataValue}.
     PUBLISH cEvent FROM TARGET-PROCEDURE (cDataValue).
   END. /* cevent <> '' */
-  ELSE IF lRepos THEN 
+  ELSE IF lReposition THEN 
   DO:
-    {get DbAware lDbAware hDataSource}.
-    IF NOT lDbAware THEN
+    IF {fnarg instanceOf 'DataView':U hDataSource} THEN
       RUN displayRelationFields IN hContainer (cFieldName).
     ELSE 
       RUN publishLookupComplete IN TARGET-PROCEDURE(lFound,cOldValue).

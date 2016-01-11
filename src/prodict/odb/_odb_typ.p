@@ -66,6 +66,7 @@ To get the Odbc-to-PROGRESS tables copied to the environment:
                             
     04/17/02    D. McMann replaced "?" with "l" for logical data types 
     06/09/02    D. McMann added format x(26) for timestamp
+    08/06/06    rkumar replaced "c" with "99:99:99 for time data type
 */ 
 
                             
@@ -85,7 +86,7 @@ DEFINE VARIABLE gate-config AS CHARACTER EXTENT 33 NO-UNDO INITIAL [
   /*-----------      --------      -- --  --------  -- ------*/ 
   "Char,	         Char,         0, 35, character,0, |c",
   "Longvarbinary,    Longvarbinary,0, 40, character,0, |c",
-  "Time,             Time,         0, 143,character,0, |c",
+  "Time,             Time,         0, 143,character,0, |99:99:99",   
   "Timestamp,	     Timestamp,	   0, 44, character,a, |x(26)",
   "Timestamp,	     Timestamp,	   0, 44, date,     a, |d",
   "Longvarchar,	     Longvarchar,  0, 37, character,0, |c",

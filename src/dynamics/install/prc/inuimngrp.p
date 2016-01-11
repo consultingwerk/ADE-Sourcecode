@@ -1664,7 +1664,7 @@ PROCEDURE obtainPatchList :
   DEFINE VARIABLE cPatchList   AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hControl     AS HANDLE     NO-UNDO.
   DEFINE VARIABLE iWidth       AS INTEGER    NO-UNDO.
-
+    
   DEFINE BUFFER bttPatch FOR ttPatch.
   DEFINE BUFFER bttDatabase  FOR ttDatabase.
 
@@ -1675,7 +1675,7 @@ PROCEDURE obtainPatchList :
     RETURN.
 
   iLastVersion = INTEGER(obtainDBVersion(cDB)).
-
+  
   hControl:LIST-ITEM-PAIRS = hControl:LIST-ITEM-PAIRS.
 
   FIND FIRST bttDatabase
@@ -2106,16 +2106,33 @@ PROCEDURE verifyDBVersion :
   DEFINE VARIABLE cDB          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iLastVersion AS INTEGER    NO-UNDO.
   DEFINE VARIABLE iMinVersion  AS INTEGER    NO-UNDO.
+    define variable cMigrationSourceBranch            as character no-undo.
 
   cDB          = pcParams.
   iLastVersion = INTEGER(obtainDBVersion(cDB)).
-
-
+  
+    /* Get the migration source branch, for migrations */
+    cMigrationSourceBranch = {fnarg getSessionParam 'Migration_Source_Branch'}.
+    if cMigrationSourceBranch eq ? then cMigrationSourceBranch = '':u.
+  
   /* Get the minimum DB version that we support to figure out if we can
      support it */
   iMinVersion = INTEGER(DYNAMIC-FUNCTION("getSessionParam":U IN THIS-PROCEDURE,
                                          "minimum_version_":U + cDB)).
 
+    /* Migration paths are carefully defined, so the MinimumVerision and
+       DBVersion must match exactly for the migration to proceed. */
+    if cMigrationSourceBranch gt '':u and
+       (iLastVersion ne iMinVersion or
+        iLastVersion eq ? or
+        iMinVersion eq ? ) then
+    do:
+        messageBox("MSG_cannot_migrate":U,
+                    cDB + ",":U + STRING(iLastVersion, "999999":U) + ",":U + STRING(iMinVersion, "999999":U),
+                    "MB_OK,MB_ICONSTOP,MB_TASKMODAL":U).
+        return error.
+    end.    /* migrating and MinVer <> DBVersion */
+    else
   /* If this database is not greater than the minimum version number */
   IF iLastVersion = ? OR
      iMinVersion = ? OR

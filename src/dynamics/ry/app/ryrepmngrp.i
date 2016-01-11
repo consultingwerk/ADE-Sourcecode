@@ -1,13 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Check Version Notes Wizard" Procedure _INLINE
-/*************************************************************/  
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
 /* Actions: af/cod/aftemwizcw.w ? ? ? ? */
 /* MIP Update Version Notes Wizard
 Check object version notes.
@@ -34,28 +27,13 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
-* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
-* below.  All Rights Reserved.                                       *
-*                                                                    *
-* The Initial Developer of the Original Code is PSC.  The Original   *
-* Code is Progress IDE code released to open source December 1, 2000.*
-*                                                                    *
-* The contents of this file are subject to the Possenet Public       *
-* License Version 1.0 (the "License"); you may not use this file     *
-* except in compliance with the License.  A copy of the License is   *
-* available as of the date of this notice at                         *
-* http://www.possenet.org/license.html                               *
-*                                                                    *
-* Software distributed under the License is distributed on an "AS IS"*
-* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
-* should refer to the License for the specific language governing    *
-* rights and limitations under the License.                          *
-*                                                                    *
-* Contributors:                                                      *
-*                                                                    *
-*********************************************************************/
+/*************************************************************/  
+/* Copyright (c) 1984-2006 by Progress Software Corporation  */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from PROGRESS Software Corporation. */
+/*************************************************************/
 /*---------------------------------------------------------------------------------
   File: ryrepmngrp.i
 
@@ -5516,12 +5494,14 @@ ACCESS_LEVEL=PUBLIC
     /* So that prepareInstance knows which logical object is being run. */
     ASSIGN gcCurrentLogicalName = pcDataObject.
     DO ON STOP  UNDO, LEAVE ON ERROR UNDO, LEAVE:
+        RUN setReturnValue IN gshSessionManager (INPUT "").
         RUN VALUE(cSDOFile) PERSISTENT SET phSDO NO-ERROR.
     END.    /* SDO run block */
+
+    ASSIGN gcCurrentLogicalName = "":U.
+
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U OR NOT VALID-HANDLE(phSDO) THEN
         RETURN ERROR (IF RETURN-VALUE EQ "":U THEN ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
-    
-    ASSIGN gcCurrentLogicalName = "":U.
     
     /* We can only know what the class of the generated object is once it is 
        running, so although it's a little late, check that this is a SDO we're 
@@ -7294,11 +7274,18 @@ ACCESS_LEVEL=PRIVATE
     
     FIND ryc_smartobject WHERE ryc_smartobject.object_filename = ENTRY(1, pcIncludeFile, ".":U)
          NO-LOCK NO-ERROR.
+    
+    /*In older versions of dynamics the static SDO were registerd with the '.w' extension. So
+     if the SDO is not found we have to check again for the SDO registered with the '.w' extension*/
+    IF NOT AVAILABLE ryc_smartobject THEN
+    FIND ryc_smartobject WHERE ryc_smartobject.object_filename = ENTRY(1, pcIncludeFile, ".":U) + ".w"
+         NO-LOCK NO-ERROR.
+     
     IF AVAILABLE ryc_smartobject THEN
         cPathedIncludeName = ryc_smartobject.object_path + "~/":U + pcIncludeFile.
     &ENDIF
     
-    RETURN cPathedIncludeName.
+RETURN cPathedIncludeName.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
