@@ -1,0 +1,5 @@
+/* log - implements log messages for development purpose */
+&if "{&logging}" = "yes" 
+&then
+  {&log_begin} {1} {2} {3} {4} {5} {&log_end}
+&endif

@@ -1,0 +1,1 @@
+&IF "{2}":U = "":U &THEN dynamic-function("{1}":U IN TARGET-PROCEDURE) &ELSE dynamic-function("{1}":U IN {2}) &ENDIF

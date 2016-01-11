@@ -1,0 +1,219 @@
+#!/bin/sh
+#
+# Name: pbuildfxprg
+# Description: script to build fix programs for Dynamics
+# 
+# This script parses the icfsetup.xml file, which define
+# the setup types available for upgrade and/or migration. The
+# script reads the Session Types, and extracts a setup type, setup 
+# type file and source branch for each session type. 
+# 
+# The script then loops through the setup types, and reads the upgrade/
+# migration information for that setup type from the setup type file. 
+# It first ensures that the database against which the fix programs will
+# be compile is at the version specified by the MinumumVersion for the
+# setup type. It then compiles the files the patch level against that DB.
+# Fix programs are compiled in the following order:
+# 	PreDelta
+#	Delta
+#	PostDelta
+#	PreADOLoad
+#	ADOLoad
+#	PostADOLoad
+#
+# Only fix programs (p-code) and DB deltas (df files) are applied; there
+# is no reason to load any data into the DB.
+#
+# Only those fix programs that are called from the setup types specified
+# in the icfsetup.xml file are compiled.
+#
+########################################################################
+## environment variables
+########################################################################
+PROG=pbuildfxprg
+
+if $IS_CYGWIN; then
+  WORK=`cygpath -m $WORK`
+fi
+
+WORK=$WORK/fxprg
+echo =========================================================
+echo "$PROG: BEGIN Building the DCU Fix Programs..."
+echo
+echo "PATH=$PATH" 
+echo "PROGRESS=$PROGRESS + \"$PROARGS\""
+echo "DLC=$DLC"
+echo "WORK=$WORK" 
+echo "BASEPROPATH=$BASEPROPATH" 
+echo "POSSE=$POSSE" 
+echo "POSSESRC=$POSSESRC" 
+echo "POSSEDST=$POSSEDST"
+echo "POSSEICF=$POSSEICF"
+echo "POSSEICFSRC=$POSSEICFSRC"
+echo "POSSEICFDST=$POSSEICFDST"
+echo "XREFDST=$XREFDST"
+echo
+
+########################################################################
+## create working directory and go there
+########################################################################
+mkdir $WORK
+cd "$WORK"
+
+########################################################################
+## build 4gl procedure to load schema/deltas and compile fix programs
+########################################################################
+# Determine the awk command to use. 'awk' doesn't work well on Solaris,
+# so we need to use 'nawk'.
+case "`uname -s 2>&-`" in
+SunOS) AWKCMD=nawk ;;
+    *) AWKCMD=awk  ;;
+esac
+
+# Parse the icfsetup.xml file for all setup types
+$AWKCMD -f "$POSSESRC/adebuild/fxprg1.awk" $POSSESRC/dynamics/icfsetup.xml > $WORK/setups.out
+
+# read and process setup types frmom $WORK/setups.out
+while read sesstype setuptype setuptypefile sourcebranch
+do
+    echo "$PROG: Building fix programs for $setuptype"
+	
+    # Cleanup tempfiles first
+    rm -f $WORK/programs-${setuptype}.out
+    rm -f $WORK/fxprg-${setuptype}.p
+    
+    # Different setups start at different versions.
+    # Typically the startver is going to be the version
+    # following the version represented by the icfdb*full.df
+    case "$setuptype" in
+        # upgrade from 2.1x branch
+        "Migrate21Setup")
+            startver=020030
+            basedelta=icfdb020029full.df
+        ;;
+        # upgrade from 10.0x branch
+        "Migrate100Setup")
+            startver=100005
+            basedelta=icfdb100004full.df
+        ;;
+        # upgrade from 10.1Ax branch
+        "Migrate101ASetup")
+            startver=101001
+            basedelta=icfdb101000full.df
+        ;;
+        # upgrade from 10.1Bx branch
+        "Migrate101BSetup")
+            startver=101101
+            basedelta=icfdb101100full.df
+        ;;
+        # upgrade from 10.1Cx branch
+        "Migrate101CSetup")
+            startver=101201
+            basedelta=icfdb101200full.df
+        ;;
+        # ProgressSetup/standard upgrade
+        *)
+            startver=102001
+            basedelta=icfdb102001full.df
+        ;;
+    esac
+	
+	# Make sure we have the (temporary) directories to create for the r-code
+	[ ! -d $sourcebranch ] && mkdir -p $sourcebranch
+	
+    # Create empty icfdb
+    echo "$PROG: Creating icfdb database ... `date`" 
+    prodb $sourcebranch/icfdb empty
+    
+    # Parse each setup file for the names of the patchfiles for a particular setup type.
+    # eg. ProgressSetup in setup1000B.xml, or Migrate21Setup in setup1000B.xml.
+    $AWKCMD -v "SETUPTYPE=$setuptype" -v "STARTVER=$startver" -f "$POSSESRC/adebuild/fxprg2.awk" $POSSESRC/dynamics/${setuptypefile} > $WORK/patchfiles-${setuptype}.out
+    
+    # read the patch file, and build output for the setuptype
+    # patchfiles-$setup data in format
+    while read patchlevel nodeurl
+    do
+        # build database to minimum level, if a delta exists
+        if [ "$nodeurl" = "MinimumVersion" ]
+        then
+    	    if [ -f "${POSSESRC}/dynamics/db/icf/dfd/icfdb${patchlevel}delta.df" ]
+            then echo "${nodeurl} df db/icf/dfd/icfdb${patchlevel}delta.df" >> $WORK/programs-${setuptype}.out
+            fi
+        else
+            # Parse the icfdb*patch.xml file for all fix programs to run
+            $AWKCMD -v "PATCHLEVEL=$patchlevel" -f "$POSSESRC/adebuild/fxprg3.awk" $POSSESRC/dynamics/$nodeurl >> $WORK/programs-${setuptype}.out
+        fi
+    done < "$WORK/patchfiles-${setuptype}.out"
+    
+    # read through list of programs and deltas, and create
+    # 4GL code to compile them.
+    # Create a base DB first
+    if [ -f "$WORK/programs-${setuptype}.out" ] 
+    then
+        echo OUTPUT TO $PROG-${setuptype}.ldf.                    							 > $WORK/fxprg-${setuptype}.p
+        echo PROPATH = \"$POSSEICF,$POSSEICFSRC,$POSSEICFSRC/dynamics,$POSSEICFSRC/dynamics/af/sup2,$BASEPROPATH\".  >> $WORK/fxprg-${setuptype}.p
+        echo "MESSAGE ' (Initial) Loading db/icf/dfd/${basedelta}'."       				>> $WORK/fxprg-${setuptype}.p
+        echo "RUN prodict/load_df.p ('$POSSEICFSRC/dynamics/db/icf/dfd/${basedelta}')."   	>> $WORK/fxprg-${setuptype}.p
+        
+        RCODEFILES=0
+        while read patchstage progtype progname
+        do
+            if [ "$progtype" = "df" ]
+            then
+                echo "MESSAGE ' (${patchstage}) Loading ${progname}'."       >> $WORK/fxprg-${setuptype}.p
+                echo "RUN prodict/load_df.p ('"$POSSEICFSRC/dynamics/$progname"')."   >> $WORK/fxprg-${setuptype}.p
+            else
+                echo "MESSAGE ' (${patchstage}) Compiling ${progname}'." >>$WORK/fxprg-${setuptype}.p
+                if [ "X$xref" = "Xyes" ]
+                then echo "COMPILE '"$POSSEICFSRC/dynamics/$progname"' SAVE INTO '"$WORK/$sourcebranch"' XREF '"$XREFDST/dynamics${progname}.xref"'."  >> $WORK/fxprg-${setuptype}.p
+                else echo "COMPILE '"$POSSEICFSRC/dynamics/$progname"' SAVE INTO '"$WORK/$sourcebranch"'."  >> $WORK/fxprg-${setuptype}.p
+                fi
+                RCODEFILES=1
+            fi
+        done < "$WORK/programs-${setuptype}.out"
+        
+    	echo "OUTPUT CLOSE."        >> $WORK/fxprg-${setuptype}.p
+    	echo "QUIT."                >> $WORK/fxprg-${setuptype}.p
+	    
+	    # Compile the fix programs
+    	echo "Start compiling fix programs ... `date`"
+    	"$PROGRESS" $sourcebranch/icfdb -1 -zn $PROARGS -b -p $WORK/fxprg-${setuptype}.p > "$WORK/tmp-${setuptype}.log" 2>&1
+        status=$?
+    	
+    	# display compilation results
+    	cat "$WORK/$PROG-${setuptype}.ldf"
+    	cat "$WORK/tmp-${setuptype}.log"
+    	
+    	if test $status -eq 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+        
+    	if [ $RCODEFILES = 1 ]
+    	then
+        	echo "$PROG: Installing fix programs ...  `date`"    	
+        	# copy r-code from $WORK to $POSSEDST
+        	if [ "$sourcebranch" = "NONE" ]
+        	then
+                # Make sure we have the directories to create for the r-code
+                [ ! -d $POSSEDST/dynamics/db/icf/dfd/ ] && mkdir -p $POSSEDST/dynamics/db/icf/dfd
+                cp $WORK/$sourcebranch/*.r $POSSEDST/dynamics/db/icf/dfd/
+            else
+                # Make sure we have the directories to create for the r-code
+                [ ! -d $POSSEDST/dynamics/db/icf/dfd/${sourcebranch}/ ] && mkdir -p $POSSEDST/dynamics/db/icf/dfd/$sourcebranch
+                cp $WORK/$sourcebranch/*.r $POSSEDST/dynamics/db/icf/dfd/${sourcebranch}/
+            fi
+        else echo "$PROG: No fix programs to install ...  `date`"    	
+        fi
+    else echo "$PROG: No fix programs found for $setuptype"
+    fi
+		
+    echo "$PROG: Done building and compiling fix programs for $setuptype"
+    echo
+done < "$WORK/setups.out"
+
+echo "$PROG: DONE Building the DCU Fix Programs..."
+echo =========================================================

@@ -1,0 +1,1913 @@
+#!/bin/sh
+# /*********************************************************************
+# * Copyright (C) 2000 by Progress Software Corporation. All rights    *
+# * reserved. Prior versions of this work may contain portions         *
+# * contributed by participants of Possenet.                           *
+# *                                                                    *
+# *********************************************************************/
+
+###########################################################################
+#+ NAME
+#+    pbuild - Compile POSSE Procedures
+#+
+#+ SYNOPSYS
+#+    pbuild [uimode=gui|tty] [apps=<application list>]
+#+
+#+ DESCRIPTION
+#+    pbuild compiles POSSE 4GL components and stores the .r's in the
+#+    appropriate places.
+#+
+#+    The uimode=<gui|tty> option establishes the user interface used to
+#+    generate r-code, and is only a applicable to the Windows platform.
+#+    The default is gui.
+#+
+#+    The apps=<application list> option identifies a specific list of
+#+    application directories to compile.  If this parameter is missing,
+#+    all appropriate source directories are processed for the user
+#+    interface being compiled (see uimode parameter).  The special
+#+    identifier "wrappers" is used to compile all wrapper procedures.
+#+
+#+
+#+ OPTIONS
+#+    uimode=<gui|tty>                 - optional, use GUI or TTY toolkit
+#+                                       (Windows ONLY)
+#+    apps=<application list>          - optional, defines a list of apps to build
+#+    createpl=<yes|no>                - optional, should r-code procedure libraries
+#+                                       (.pl files) be created
+#+    xref=<yes|no>                    - optional, default is 'no', 'yes' generates
+#+                                       xref files within $POSSE/xref directory
+#+    fxprg=<yes|no>                   - optional, default is 'no', 'yes' builds
+#+                                       DCU fix programs under dynamics/icf/db/dfd
+#+
+#+ ENVIRONMENT VARIABLES
+#+   $DLC                       Progress 9.1B (or higher) installed directory
+#+   $POSSE                     POSSE root directory
+#+   $POSSEICF                  (Optional) ICF root directory if it is 
+#+                              different than $POSSE
+#+
+#+ FILES
+#+    $POSSE/src/...            Installed source directories
+#+    $POSSEICF/src/...         Installed ICF source directories (optionally)
+#+    $POSSE/tty/.../*.[r]      Installed run-time TTY directories
+#+    $POSSE/gui/.../*.[r]      Installed run-time GUI directories
+#+
+###########################################################################
+
+PROG=`basename $0`
+
+# Allow script processing to be traced
+[ "x${traceexec}" = "xyes" -o "x${debug}" = "xyes" ] && set -x
+
+# process command line arguments
+for i in "$@"
+do
+   case $i in
+   -*|[A-Za-z]:*)
+           # 1. necessary to strip out arguments beginning with '-'
+           # 2. necessary to ignore colon defines if the first arg is a drive
+           #    letter, so A:value will NOT ever set A=value
+           continue
+           ;;
+   *[=:]*) # "set" any arguments that have = or : in them
+           VARX=`echo $i |sed 's/[:=].*$//'`
+           ARGX=`echo $i |sed 's/^[^:=]*[:=]//'`
+           eval $VARX=\""$ARGX"\"
+           export "$VARX"
+           ;;
+   esac
+done
+
+: ${DLC?"ERROR: The environment variable DLC must be set."}
+: ${POSSE?"ERROR: The environment variable POSSE must be set."}
+
+# BEGIN script
+echo "$PROG: BEGIN Building the Progress Applications..."
+echo ""
+
+###########################################################################
+## Environment variables used to establish defaults
+###########################################################################
+case "`uname -s 2>&-`" in
+Windows_NT | Windows_95 | Windows_98 | CYGWIN_*)
+    NT=true
+    UNIX=false
+    ;;
+*)  NT=false
+    UNIX=true
+    ;;
+esac
+
+if $NT 
+then
+    if [ -x /bin/cygpath ]
+    then
+	PD=":"
+    else
+	PD=";"
+    fi
+    TMPDIR="${TMPDIR-C:/TEMP}"; export TMPDIR
+    MKDIR="mkdir -p"      # Create missing parent directories if needed
+    RMDIR="rm -fr"        # Remove directories recursively
+    uimode=${uimode-gui}  # Default R-Code User Interface
+else
+    PD=":"
+    TERM=xterm; export TERM
+    TMPDIR="${TMPDIR-/tmp}"; export TMPDIR
+    MKDIR="mkdir -p"      # Create missing parent directories if needed
+    RMDIR="rm -fr"        # Remove directories recursively
+    uimode=tty            # Default R-Code User Interface
+fi
+
+BASEDIR="${BASEDIR-`pwd`}"
+
+
+# If we are using CygWin, we need to adjust PATH variables so they use
+# a directory structure that is both Windows and CygWin friendly; this
+# requires that we first convert from Cygwin format to Windows format to
+# get the actual drive letter, and then double up the backslashes.
+# This is necessary for paths that will potentially be used by the shell
+# environment (e.g., in file system operations and PATH searches) as well
+# as by PROGRESS (e.g., startup parameters such as -T and -p and PROPATH
+# searches).
+if [ -x /bin/cygpath ]
+then
+    TMPDIR="`cygpath -wa \"$TMPDIR\"`"
+    TMPDIR="`echo $TMPDIR |sed 's@\\\@\\\\\\\@g'`"
+    BASEDIR="`cygpath -wa \"$BASEDIR\"`"
+    BASEDIR="`echo $BASEDIR |sed 's@\\\@\\\\\\\@g'`"
+    POSSE="`cygpath -wa \"$POSSE\"`"
+    POSSE="`echo $POSSE |sed 's@\\\@\\\\\\\@g'`"
+    # Don't run cygpath if POSSEICF is blank, as it will return "."
+    if [ ! "x$POSSEICF" = "x" ]; then
+      POSSEICF="`cygpath -wa \"$POSSEICF\"`"
+      POSSEICF="`echo $POSSEICF |sed 's@\\\@\\\\\\\@g'`"
+    fi
+    CYGDLC="`cygpath -ua \"$DLC\"`"
+    PATH="$PD$CYGDLC/bin$PD$PATH" ; export PATH             # Default PATH
+else
+    PATH="$PD$DLC/bin$PD$PATH" ; export PATH                # Default PATH
+fi
+
+POSSESRC="$POSSE/src"           # Default Source Location
+POSSEDST="${POSSEDST-$POSSE}/$uimode"        # Default Destination Directory
+POSSEE4GL="$POSSE/e4gl"         # Default e4gl Directory Location
+WORK="$BASEDIR/$PROG.dir"       # Where we do all of our compiles
+XREFDST="$POSSE/xref"           # xref destination directory
+
+# Set the value to be used for the -cprcodeout startup parameter when
+# compiling 4GL procedure files; default value of "undefined" ensures
+# generated r-code is backwardly compatible with older databases.
+cprcodeout="${cprcodeout-undefined}"
+
+# Set location of POSSE ICF source, since it may be different than POSSESRC
+if [ ! "x$POSSEICF" = "x" ]
+then
+  POSSEICFSRC="$POSSEICF/src"
+  POSSEICFDST="$POSSEICF/$uimode"
+else
+  POSSEICFSRC="$POSSESRC"
+  POSSEICFDST="$POSSEDST"
+fi
+
+BASEPROPATH=",$BASEDIR"
+if [ ! x"$BASEDIR" = x"$POSSE" ]
+then
+    BASEPROPATH="$BASEPROPATH,$POSSE"
+fi
+
+BASEPROPATH="$BASEPROPATH,$POSSESRC,$POSSESRC/wrappers,$POSSEE4GL" # Default PROPATH
+
+display_banner=no ; export display_banner                   # Do not echo banner
+
+# Set flag to indicate whether r-code procedure libraries (.pl files) should be built
+case $createpl in
+   no|n|NO|N)
+     PLBUILD=false ;;
+   *)
+     PLBUILD=true  ;;
+esac
+
+###########################################################################
+## Variables used to locate Progress utilities
+###########################################################################
+if $UNIX
+then
+  PROGRESS=_progres
+else
+  case $uimode in
+    tty) PROGRESS=_progres.exe ;;
+      *) PROGRESS=prowin32.exe ;;
+  esac
+fi
+
+###########################################################################
+## If $PROGRESS does not exist, then there is no point in continuing.
+###########################################################################
+if [ ! -x "$DLC/bin/$PROGRESS" ]
+then
+   echo "$PROG: ERROR - $PROGRESS client not found!"
+   echo "$PROG: Check Progress installation and \$DLC variable"
+   exit 1
+fi
+
+###########################################################################
+## GUI Specific Defaults
+###########################################################################
+# GUI Specific command line args
+GUI_PROARGS="-b -inp 18000 -yy 1950 -tok 1600 -D 150 -mmax 65534 -s 63"
+
+GUI_DIRLIST="wrappers adecomm adeedit adedesk adedict adeuib adecomp"
+GUI_DIRLIST="$GUI_DIRLIST adeshar"
+GUI_DIRLIST="$GUI_DIRLIST adexml"
+GUI_DIRLIST="$GUI_DIRLIST prohelp"
+GUI_DIRLIST="$GUI_DIRLIST adeicon"            # Images (.bmp etc)
+GUI_DIRLIST="$GUI_DIRLIST aderesc"            # Results TTY->GUI Converter
+GUI_DIRLIST="$GUI_DIRLIST aderes"             # Results
+GUI_DIRLIST="$GUI_DIRLIST protools"          
+GUI_DIRLIST="$GUI_DIRLIST adm adm2"          
+##GUI_DIRLIST="$GUI_DIRLIST as4dict"          
+GUI_DIRLIST="$GUI_DIRLIST adeweb webutil web web2"
+GUI_DIRLIST="$GUI_DIRLIST adetran"            # Tranman
+GUI_DIRLIST="$GUI_DIRLIST dynamics"           # Dynamics (formerly icf)
+GUI_DIRLIST="$GUI_DIRLIST prodict"
+
+###########################################################################
+## TTY Specific Defaults
+###########################################################################
+# TTY Specific command line args
+TTY_PROARGS="-b -inp 18000 -yy 1950 -tok 1600 -D 150 -mmax 65534 -s 63"
+TTY_DIRLIST="wrappers adecomm adeedit adecomp prohelp"
+TTY_DIRLIST="$TTY_DIRLIST adm2"
+TTY_DIRLIST="$TTY_DIRLIST adeshar web web2 webtools webutil webedit"
+##TTY_DIRLIST="$TTY_DIRLIST adm as4dict"
+TTY_DIRLIST="$TTY_DIRLIST adm"
+TTY_DIRLIST="$TTY_DIRLIST dynamics"           # Dynamics (formerly icf)
+
+if $UNIX
+then
+   TTY_DIRLIST="$TTY_DIRLIST prores proreslang"
+fi
+
+TTY_DIRLIST="$TTY_DIRLIST prodict"
+
+###########################################################################
+## Assign some variables based upon the value of uimode
+## (and error out if it's not correctly specified).
+###########################################################################
+cd "$POSSESRC"
+case $uimode in
+gui) PROARGS="$PROARGS $GUI_PROARGS"
+    if [ "x$apps" = "x" ] ; then
+      # Build default app list based on existing source directories
+      for item in `ls`; do
+        if [ -d "$item" ] ; then
+          for gui_app in $GUI_DIRLIST; do
+            if [ "$item" = "$gui_app" ] ; then
+              DIRLIST="$DIRLIST $item"
+              break
+            fi
+          done
+        fi
+      done
+    else
+      DIRLIST="$apps"
+    fi
+    break
+    ;;
+tty) PROARGS="$PROARGS $TTY_PROARGS"
+    if [ "x$apps" = "x" ] ; then
+      # Build default app list based on existing source directories
+      for item in `ls`; do
+        if [ -d "$item" ] ; then
+          for tty_app in $TTY_DIRLIST; do
+            if [ "$item" = "$tty_app" ] ; then
+              DIRLIST="$DIRLIST $item"
+              # Check for special case with prores on UNIX
+              if [ "$item" = "prores" -a $UNIX ] ; then
+                DIRLIST="$DIRLIST proreslang"
+              fi
+              break
+            fi
+          done
+        fi
+      done
+    else
+      DIRLIST="$apps"
+    fi
+    break
+    ;;
+*)  echo "$PROG: uimode must be set to \"gui\" or \"tty\".  Abort!"
+    cd "$BASEDIR"
+    $RMDIR "$WORK"
+    exit 1
+esac
+
+# If we don't have any source to compile, get out
+if [ "x$DIRLIST" = "x" ] ; then
+  echo "$PROG: There is nothing to build!"
+  exit 1
+fi
+
+###########################################################################
+## Create the temporary work directory (delete it first just in case....)
+###########################################################################
+$RMDIR "$WORK"
+$MKDIR "$WORK"
+if [ "x$xref" = "xyes" ] ; then
+   rm -rf "$XREFDST"
+   mkdir "$XREFDST"
+fi
+
+###########################################################################
+## Here, we create "$POSSEDST" if it does not yet exist
+###########################################################################
+if [ ! -d "$POSSEDST" ]
+then
+  $MKDIR "$POSSEDST"
+fi
+# If we have a different destination for ICF, create it now
+if [ x"$POSSEICFDST" != x"$POSSEDST" -a ! -d "$POSSEICFDST" ]
+then
+  $MKDIR "$POSSEICFDST"
+fi
+
+###########################################################################
+## Display key environment variable settings.
+###########################################################################
+echo "PATH=$PATH" 
+echo "PROGRESS=$PROGRESS + \"$PROARGS\""
+echo "DLC=$DLC"
+echo "WORK=$WORK" 
+echo "TMPDIR=$TMPDIR" 
+echo "BASEPROPATH=$BASEPROPATH" 
+echo "cprcodeout=$cprcodeout"
+echo "POSSE=$POSSE" 
+echo "POSSESRC=$POSSESRC" 
+echo "POSSEDST=$POSSEDST"
+echo "POSSEE4GL=$POSSEE4GL"
+echo "POSSEICF=$POSSEICF"
+echo "POSSEICFSRC=$POSSEICFSRC"
+echo "POSSEICFDST=$POSSEICFDST"
+echo "DIRLIST=$DIRLIST" 
+echo "XREFDST=$XREFDST"
+echo ""
+
+case $DIRLIST in
+   *webutil*|*webtools*|*webedit*|*dynamics*)
+        ##########################################################
+        ## Here, we create "$POSSEE4GL" if it does not yet exist
+        ##########################################################
+        cd "$WORK"
+        if [ ! -d "$POSSEE4GL" ]
+        then
+            $MKDIR "$POSSEE4GL"
+        fi
+        echo "Convert HTML w/ Embedded 4gl to .w ..."
+        echo ""
+
+        echo "PROPATH = \"$BASEPROPATH\"." > compe4gl.p
+        echo "RUN \"$POSSESRC/webutil/conve4gl.p\"." >> compe4gl.p
+
+        "$PROGRESS" -1 -b -p compe4gl.p -zn -cprcodeout $cprcodeout
+    ;;
+esac
+
+echo ">>Compile Procedures for $uimode<<"
+echo "Command: $PROG $*"
+echo ""
+
+###########################################################################
+## Create databases to be used during compilations....
+###########################################################################
+cd "$WORK"
+echo "$PROG: Creating dictdb database ... `date`"
+prodb dictdb empty
+
+###########################################################################
+## Process each application directory, building a list compilation program
+## (appname.p) and then running it with $PROGRESS.
+###########################################################################
+for j in $DIRLIST
+do
+    DICTDB=dictdb        # DB Used for compiling various ade tools
+
+    echo ""
+    echo "$PROG: Processing $j ... `date`"
+
+#    CPSTREAM=undefined   # default -cpstream for prores/reslang files
+#    CPINTERNAL=undefined # default -cpinternal for prores/reslang files
+
+    compprog="$WORK/cc$j.p"
+    srcfiles="$WORK/cc$j.tmp"
+    basefile="$WORK/cc$j.bln" ; touch "$basefile" # Ensure it exists....
+    outfile="$WORK/cc$j.out"
+    other_params=""     # Additional parameters for compile command
+
+    ###########################################################################
+    ## Do application-specific processing....
+    ###########################################################################
+
+    ###########################################################################
+    ## Setup a sed command for tailoring the directory/file list.
+    ## Default the sed command if we are not skipping anything by using a
+    ## command which just prints each line passed to it unaltered.
+    ###########################################################################
+    seddcmd="sed"       # seddcmd - used in dir creation
+    seddcmd="$seddcmd -e '/\/CVS/d'" # seddcmd - exclude cvs control directories
+    seddcmd="$seddcmd -e '/\/www/d'" # seddcmd - exclude www document directories
+    sedpcmd="sed"       # sedpcmd - used in std p-files
+    sedpcmd="$sedpcmd -e /prodict.ora/d" # sedpcmd - exclude oracle p-files
+    sedpcmd="$sedpcmd -e /prodict.odb/d" # sedpcmd - exclude odbc p-files
+    sedpcmd="$sedpcmd -e /prodict.mss/d" # sedpcmd - exclude mss p-files
+
+    ########################################################################
+    ## Create application destination directories
+    ########################################################################
+    ##
+    ## Find any source directories, and build and run a shell script
+    ## containing a series of "mkdir" commands.  Filter the script
+    ## through an application specific sed command to reduce the
+    ## number of directories built as needed.
+    ##
+    ########################################################################
+    case $j in
+#      adm|web|proreslang|as4dict)  # do nothing 
+      proreslang|as4dict)  # do nothing 
+      ;;
+
+      adm|web)  # do nothing 
+        seddcmd="$seddcmd -e \"s,^\(.*\)$,[ ! -d \1 ] \&\& $MKDIR \1,\""
+        ( cd "$POSSESRC"; find $j -type d -print | eval $seddcmd ) > "$WORK/$j.sh"
+        if [ "x$xref" = "xyes" ]
+        then cd $XREFDST; sh "$WORK/$j.sh"
+        fi
+      ;;
+
+      adm2|web2)
+        cd "$WORK"
+        seddcmd="$seddcmd -e '/\/template/d'"  # exclude template directory
+        seddcmd="$seddcmd -e '/\/image/d'"     # no image directory on tty
+        seddcmd="$seddcmd -e \"s,^\(.*\)$,[ ! -d \1 ] \&\& $MKDIR \1,\""
+        ( cd "$POSSESRC"; find $j -type d -print | eval $seddcmd ) > "$WORK/$j.sh"
+        sh "$WORK/$j.sh"
+        if [ "x$xref" = "xyes" ]
+        then cd $XREFDST; sh "$WORK/$j.sh"
+        fi
+      ;;
+
+      dynamics)
+        cd "$WORK"
+        seddcmd="$seddcmd -e '/\/scm/d'"  # exclude scm directory
+        seddcmd="$seddcmd -e \"s,^\(.*\)$,[ ! -d \1 ] \&\& $MKDIR \1,\""
+        ( cd "$POSSEICFSRC"; find $j -type d -print | eval $seddcmd ) > "$WORK/$j.sh"
+        sh "$WORK/$j.sh"
+        if [ "x$xref" = "xyes" ]
+        then cd $XREFDST; sh "$WORK/$j.sh"
+        fi
+      ;;
+
+      *)
+        cd "$WORK"
+        seddcmd="$seddcmd -e \"s,^\(.*\)$,[ ! -d \1 ] \&\& $MKDIR \1,\""
+        ( cd "$POSSESRC"; find $j -type d -print | eval $seddcmd ) > "$WORK/$j.sh"
+        sh "$WORK/$j.sh"
+        if [ "x$xref" = "xyes" ]
+        then cd $XREFDST; sh "$WORK/$j.sh"
+        fi
+      ;;
+    esac
+
+    if [ "$j" = proreslang ]
+    then
+      cd "$WORK"
+      sh "$WORK/prores.sh"
+    fi
+
+    ###########################################################################
+    ## Create a program to compile the source.  The program contains:
+    ## 
+    ##    - INPUT/OUTPUT redirection
+    ##    - DATABASE ALIASes for applications
+    ##    - MESSAGE statements for compilation audits
+    ##    - COMPILE statements to build r-code
+    ##    - QUIT statement to exit Progress
+    ##
+    ###########################################################################
+    cd "$WORK"
+    echo "OUTPUT TO '$outfile' UNBUFFERED APPEND."     >  $compprog
+    echo CREATE ALIAS DICTDB2 FOR DATABASE DICTDB. >> $compprog # Data Dictionary
+    echo CREATE ALIAS SRCSH FOR DATABASE DICTDB. >> $compprog # Data Dictionary
+    echo CREATE ALIAS TRGSH FOR DATABASE DICTDB. >> $compprog # Data Dictionary
+    echo CREATE ALIAS QBF\$0 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS QBF\$1 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS QBF\$2 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS QBF\$3 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS QBF\$4 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS QBF\$5 FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS RESULTSDB FOR DATABASE DICTDB.  >> $compprog # Results / DRW
+    echo CREATE ALIAS TINYDICT FOR DATABASE DICTDB. >> $compprog # PROTOOLS
+    echo PROPATH = \"$BASEPROPATH\". >> $compprog # PROTOOLS
+
+    ###########################################################################
+    ## Do application-specific processing to create compilation program
+    ###########################################################################
+    case $j in
+
+    # as4dict module is no longer supported
+    as4dict)
+      # do nothing
+    ;;
+
+    wrappers)
+      ###########################################################################
+      ## Wrappers are placed at top level (not in wrappers/...)
+      ###########################################################################
+      cd "$WORK"
+      if $UNIX
+      then
+        sedpcmd="$sedpcmd -e '/_[v]*tran.p/d' -e '/_proclib.p/d'"
+      fi
+      sedpcmd="$sedpcmd -e '/_freeze.p/d'"
+      ( cd "$POSSESRC"; find $j -name '*.[pw]' -print | eval $sedpcmd ) > $srcfiles
+    ;;
+
+    prores)
+      ###########################################################################
+      ## Generate a list of files to compile for results.
+      ###########################################################################
+      cd "$WORK"
+      cp "$POSSESRC/$j/results.x" "$POSSEDST"/$j
+      cp "$POSSESRC/$j/r-extra.x" "$POSSEDST"/$j
+      sedpcmd="$sedpcmd -e '/-dan\./d'"
+      sedpcmd="$sedpcmd -e '/-fin\./d'"
+      sedpcmd="$sedpcmd -e '/-fre\./d'"
+      sedpcmd="$sedpcmd -e '/-ger\./d'"
+      sedpcmd="$sedpcmd -e '/-swe\./d'"
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd) > $srcfiles
+    ;;
+
+    proreslang)
+      cd "$WORK"
+#      CPSTREAM=ibm850
+#      CPINTERNAL=iso8859-1
+      ( cd "$POSSESRC" ; \
+        find prores/reslang \( -name '*-dan\.[pw]' -o \
+           -name '*-fin\.[pw]' -o \
+           -name '*-fre\.[pw]' -o \
+           -name '*-ger\.[pw]' -o \
+           -name '*-swe\.[pw]' \) -print \
+           | eval $sedpcmd) > $srcfiles
+    ;;
+
+    as4dict)
+      #####################################################################
+      ## Now, load translation schema into the database.
+      #####################################################################
+      # Remove dictdb, and recreate.  Under some circumstances, we have
+      # seen issues where previous compiles of prodict against dictdb
+      # can impact as4dict compiles.
+      cd "$WORK"
+      rm -f dictdb.*
+      echo "$PROG: Creating dictdb database ... `date`"
+      prodb dictdb empty
+
+      echo 'ADD DATABASE "as4dict" TYPE AS400' > as4empty.df
+      echo 'COMM ""' >> as4empty.df
+      echo 'CODEPAGE-NAME "IBM037"' >> as4empty.df
+      cat "$POSSESRC"/as4dict/as4empty.df >> as4empty.df
+
+      echo OUTPUT TO $PROG.ldf.       >  ptscema.p
+      echo MESSAGE \'Loading as4empty.df ...\'. >> ptscema.p
+      echo PROPATH = \"$BASEPROPATH\". >> ptscema.p
+      echo RUN prodict/load_df.p \(\"as4empty.df\"\). >> ptscema.p
+      echo OUTPUT CLOSE.           >> ptscema.p
+      echo find _db where _db._db-name = \"as4dict\". >> ptscema.p
+      echo "assign _db._Db-misc1[8] = 7." >> ptscema.p
+      echo QUIT.             >> ptscema.p
+
+      echo "Loading as4dict schema ... `date`"
+      "$PROGRESS" dictdb -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+      status=$?
+      cat "$WORK/tmp.log"
+      if test $status = 1
+      then
+        echo "$PROG: FAILED `date`"
+        cd "$BASEDIR"
+        $RMDIR "$WORK"
+        exit 1
+      fi
+
+      ####################################################################
+      ## Compare the results against this baseline data.  If the compare 
+      ## passes (no differences), then discard the log info, as we don't
+      ## care about it.
+      ####################################################################
+      echo "Loading as4empty.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+      if [ $? != 0 ]
+      then
+        echo "$PROG: WARNING: as4empty.df Load messages found `date`"
+        echo "========================================================="
+        cat "$WORK/$PROG.ldf"
+        echo "=========================================================" 
+        echo ""
+      fi
+
+      #####################################################################
+      ## Now, load translation schema into the database as4dict2
+      #####################################################################
+      echo 'ADD DATABASE "as4dict2" TYPE AS400' > as4empty2.df
+      echo 'COMM ""' >> as4empty2.df
+      echo 'CODEPAGE-NAME "IBM037"' >> as4empty2.df
+      cat "$POSSESRC"/as4dict/as4empty.df >> as4empty2.df
+
+      echo OUTPUT TO $PROG.ldf.       >  ptscema2.p
+      echo MESSAGE \'Loading as4empty2.df ...\'. >> ptscema2.p
+      echo PROPATH = \"$BASEPROPATH\". >> ptscema2.p
+      echo RUN prodict/load_df.p \(\"as4empty2.df\"\). >> ptscema2.p
+      echo OUTPUT CLOSE.           >> ptscema2.p
+      echo find _db where _db._db-name = \"as4dict2\". >> ptscema2.p
+      echo "assign _db._Db-misc1[8] = 7." >> ptscema2.p
+      echo QUIT.             >> ptscema2.p
+
+      echo "Loading as4dict2 schema ... `date`"
+      "$PROGRESS" dictdb -1 -zn -zr $PROARGS -b -p ptscema2.p > "$WORK/tmp.log" 2>&1
+      status=$?
+      cat "$WORK/tmp.log"
+      if test $status = 1
+      then
+        echo "$PROG: FAILED `date`"
+        cd "$BASEDIR"
+        $RMDIR "$WORK"
+        exit 1
+      fi
+
+      ####################################################################
+      ## Compare the results against this baseline data.  If the compare 
+      ## passes (no differences), then discard the log info, as we don't
+      ## care about it.
+      ####################################################################
+      echo "Loading as4empty2.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+      if [ $? != 0 ]
+      then
+        echo "$PROG: WARNING: as4empty2.df Load messages found `date`"
+        echo "========================================================="
+        cat "$WORK/$PROG.ldf"
+        echo "=========================================================" 
+        echo ""
+      fi
+
+      echo "PROPATH = PROPATH + ',"$POSSESRC/as4dict"'." >> $compprog
+
+      (cd "$POSSESRC"; find $j -name '*.[pw]' -print | eval $sedpcmd) > $srcfiles
+    ;;
+    
+    adetran)
+      cd "$WORK"
+      cp "$POSSESRC/adetran/data/_tran.df" .
+      for idb in xlkit xlproj
+      do
+        if [ ! -f $idb.db ] ; then
+          echo "$PROG: Creating $idb database ... `date`"
+          prodb $idb empty
+
+          ########################################################################
+          ## Now, load translation schema into the database.
+          ########################################################################
+          cp "$POSSESRC/adetran/data/$idb.df" .
+
+          echo y | _proutil -z3 $idb -C convchar convert undefined -G 0 $PFOPTS
+
+          echo "Updating databases with Collation information ... `date`"
+          echo OUTPUT TO $PROG.xdb.       >  xlschema.p
+          echo MESSAGE \'Loading _tran.df ...\'. >> xlschema.p
+          echo PROPATH = \"$BASEPROPATH\". >> xlschema.p
+          echo RUN prodict/load_df.p \(\"./_tran.df\"\). >> xlschema.p
+          echo OUTPUT CLOSE.           >> xlschema.p
+          echo QUIT.             >> xlschema.p
+          "$PROGRESS" $idb -1 -zn -zr $PROARGS -b -p xlschema.p >"$WORK/tmp.log" 2>&1
+          status=$?
+          cat "$WORK"/tmp.log
+          if test $status = 1 ; then
+            echo "$PROG: FAILED `date`"
+            cd "$BASEDIR"
+            $RMDIR "$WORK"
+            exit 1
+          fi
+
+          echo "Index rebuild ... `date`"
+          if [ -f $idb.db ]
+          then
+            _proutil -z3 $idb -C idxbuild all -G 0 $PFOPTS
+          fi
+
+          echo OUTPUT TO $PROG.xdb.       >  xlschema.p
+          echo MESSAGE \'Loading $idb.df ...\'. >> xlschema.p
+          echo PROPATH = \"$BASEPROPATH\". >> xlschema.p
+          echo RUN prodict/load_df.p \(\"$idb.df\"\). >> xlschema.p
+          echo OUTPUT CLOSE.           >> xlschema.p
+          echo QUIT.             >> xlschema.p
+
+          echo "Loading translation schema ... `date`"
+          "$PROGRESS" $idb -1 -zn -zr $PROARGS -b -p xlschema.p >"$WORK/tmp.log" 2>&1
+
+          status=$?
+          cat "$WORK/tmp.log"
+          if test $status = 1 ; then
+            echo "$PROG: FAILED `date`"
+            cd "$BASEDIR"
+            $RMDIR "$WORK"
+            exit 1
+          fi
+
+          #######################################################################
+          ## Compare the results against this baseline data.  If the compare 
+          ## passes (no differences), then discard the log info, as we don't
+          ## care about it.
+          #######################################################################
+          echo "Loading $idb.df ..." | diff -b - $PROG.xdb > "$WORK/endiff.tmp"
+          if [ $? != 0 ] ; then
+            echo "$PROG: WARNING: $idb.df Load messages found `date`"
+            echo "=============================================================" 
+            cat "$WORK/$PROG.xdb"
+            echo "============================================================="
+            echo ""
+          fi
+        fi
+      done
+
+      other_params="$other_params -db xlproj -1 -ld xlatedb"
+      other_params="$other_params -db xlkit  -1 -ld kit"
+
+      sedpcmd="$sedpcmd -e '/_reports.w/d'"
+
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd) > $srcfiles
+    ;;
+
+    prodict)
+      ###########################################################################
+      ## Generate a list of files to compile for prodict and it's DataServer code.
+      ###########################################################################
+      cd "$WORK"
+      ( cd "$POSSESRC" ; find prodict -name '*.[pw]' -print | sed -e '/rplctn/d' \
+        | eval $sedpcmd ) > $srcfiles
+      echo insert4GL PROPATH = PROPATH + \","$POSSESRC/adebuild"\" >> $srcfiles
+
+      echo "insert4GL RUN compora.p" >> $srcfiles
+      ( cd "$POSSESRC" ; find prodict/ora -name '*.[pw]' -print ) >> $srcfiles
+      echo "insert4GL RUN nogatewy.p" >> $srcfiles
+
+      echo "insert4GL RUN compodb.p" >> $srcfiles
+      ( cd "$POSSESRC" ; find prodict/odb -name '*.[pw]' -print ) >> $srcfiles
+      echo "insert4GL RUN nogatewy.p" >> $srcfiles
+
+      echo "insert4GL RUN compmss.p" >> $srcfiles
+      ( cd "$POSSESRC" ; find prodict/mss -name '*.[pw]' -print ) >> $srcfiles
+      echo "insert4GL RUN nogatewy.p" >> $srcfiles
+
+      ## Enable auditing so we get the metaschema tables for auditing
+
+      echo "$PROG: Creating special dictdb for prodict and enabling auditing in it..."
+      prodb pdictdb empty
+
+      ##Need to add type 2 area for auditing tables
+      echo "d \"audit area\":25,32;8 ." > add.st
+
+      ##Adding extent
+      echo "$PROG: Adding storage area to database"
+      prostrct add pdictdb add.st
+
+      echo y | _proutil pdictdb -C enableauditing area "audit area" indexarea "audit area"
+
+      unset DICTDB
+      DICTDB="pdictdb -ld dictdb"
+      export DICTDB
+
+      ########################################################################
+      # Create .d files for loading _user and _sec-granted-role table records
+      ########################################################################
+
+                                     #################
+                                     #    _user.d    #
+                                     #################
+      echo "\"admuser\" \"pjqtudckibycRKbj\" \"admuser\" ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?" > _user.d 
+      echo "." >> _user.d 
+      echo "PSC" >> _user.d 
+      echo "filename=_sec-granted-role" >> _user.d 
+      echo "records=0000000000001" >> _user.d 
+      echo "ldbname=dictdb" >> _user.d 
+      echo "timestamp=2005/05/12-11:46:13" >> _user.d 
+      echo "numformat=44,46" >> _user.d 
+      echo "dateformat=mdy-1950" >> _user.d 
+      echo "cpstream=ISO8859-1" >> _user.d 
+      echo "." >> _user.d 
+      echo "0000000089" >> _user.d 
+  
+  
+                                     ##########################
+                                     #   _sec-granted-role    #
+                                     ##########################
+      echo "\"hORER+xhtKnZEfzCD48XiQ\" \"admuser\" \"_sys.audit.admin\" yes \"admuser\" \"\"" > _sec-granted-role.d
+      echo "\"hORER+xhtKnZEfzCD7Cf1g\" \"admuser\" \"_sys.audit.archive\" yes \"admuser\" \"\"" >> _sec-granted-role.d
+      echo "\"hORER+xhtKnZEfzCjy3izw\" \"admuser\" \"_sys.audit.event.insert\" yes \"admuser\" \"\"" >> _sec-granted-role.d
+      echo "\"hORER+xhtKnZEfzCz2XX5g\" \"admuser\" \"_sys.audit.event.read\" yes \"admuser\" \"\"" >> _sec-granted-role.d
+      echo "." >> _sec-granted-role.d
+      echo "PSC" >> _sec-granted-role.d
+      echo "filename=_sec-granted-role" >> _sec-granted-role.d
+      echo "records=0000000000004" >> _sec-granted-role.d
+      echo "ldbname=dictdb" >> _sec-granted-role.d
+      echo "timestamp=2005/05/12-11:46:13" >> _sec-granted-role.d
+      echo "numformat=44,46" >> _sec-granted-role.d
+      echo "dateformat=mdy-1950" >> _sec-granted-role.d
+      echo "cpstream=ISO8859-1" >> _sec-granted-role.d
+      echo "." >> _sec-granted-role.d
+      echo "0000000303" >> _sec-granted-role.d
+  
+      #########################################################################
+      # Create .p file for loading _user and _sec-granted-role table records
+      #########################################################################
+
+                                      ##########################
+                                      #       addperm.p        #
+                                      ##########################
+
+      echo PROPATH = \"$BASEPROPATH\".                    >  addperm.p
+      echo "RUN prodict/load_d.p ( INPUT \"_user\","      >> addperm.p
+      echo "                       INPUT \".\" )."        >> addperm.p
+      echo "SETUSERID(\"admuser\",\"\",\"DICTDB\")."      >> addperm.p
+      echo "RUN prodict/load_d.p (INPUT \"_sec-granted-role\"," >> addperm.p
+      echo "                      INPUT \"_sec-granted-role.d\" )." >> addperm.p
+      echo "QUIT."                                        >> addperm.p
+
+      ########################################################################
+      # Execute .p file for loading _user and _sec-granted-role table records
+      ########################################################################
+      "$PROGRESS" -db $DICTDB -1 -zn -zr -p addperm.p -T $TMPDIR -b > "$WORK/load_perm.log" 2>"$WORK/tmp.log"
+ 
+      other_params="$other_params -U admuser -P \"\""
+
+      status=$?
+      cat "$WORK/tmp.log"
+      if test $status = 1 ; then
+        echo "$PROG: FAILED `date`"
+        cd "$BASEDIR"
+        $RMDIR "$WORK"
+        exit 1
+      fi
+    ;;
+
+    adedict)
+      cd "$WORK"
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd ) > $srcfiles
+    ;;
+
+    adeshar)
+      cd "$WORK"
+      # SPECIAL case for TTY only.  _m* files ONLY for GUI. - see David Lee
+      case "$uimode" in 
+        tty) sedpcmd="$sedpcmd -e '/\/_m/d' -e '/_conthdl/d'" ;;
+      esac
+      (
+      cd "$POSSESRC"
+      find $j -name '*.[pw]' -print | eval $sedpcmd > $srcfiles
+      )
+    ;;
+
+    adecomm)
+      cd "$WORK"
+      # do not include _pw* or _so-* files for tty
+      case "$uimode" in
+         tty) sedpcmd="$sedpcmd -e '/adecomm\/_pw/d' -e '/adecomm\/_so-/d' \
+                       -e '/adecomm\/_topmost/d' -e '/adecomm\/_dbconng/d' \
+                       -e '/adecomm\/_reg2ini/d' \
+                       -e '/adecomm\/_winmenu/d' -e '/adecomm\/_winmore/d'" ;;
+         gui) sedpcmd="$sedpcmd -e '/adecomm\/_ttysr/d'" ;;
+      esac
+      (
+      cd "$POSSESRC"
+      find $j -name '*.[pw]' -print | eval $sedpcmd
+      ) > $srcfiles
+    ;;
+
+    adm)
+      ###########################################################################
+      ## Need the sports database to build adm/sample code....
+      ###########################################################################
+      cd "$WORK"
+      if [ ! -f sports.db ] ; then
+        echo "$PROG: Creating sports database ... `date`"
+        prodb sports sports
+      fi
+      other_params="$other_params -db sports -1"
+
+      case $uimode in
+        tty)
+          $MKDIR "$WORK/$j"
+          $MKDIR "$WORK/$j/objects"
+          (
+          cd "$POSSESRC"
+          find $j/objects -name '*.[pw]' -print | eval $sedpcmd
+          ) > $srcfiles
+        ;;
+        gui)
+          $MKDIR "$WORK/$j"
+          $MKDIR "$WORK/$j/objects"
+          $MKDIR "$WORK/$j/samples"
+          $MKDIR "$WORK/$j/support"
+          (
+          cd "$POSSESRC"
+          find $j/objects $j/samples $j/support -name '*.[pw]' -print | eval $sedpcmd
+          ) > $srcfiles
+        ;;
+      esac
+    ;;
+
+    adm2)
+      cd "$WORK"
+
+      if [ ! -f temp-db.db ]
+      then
+        echo "$PROG: Creating temp-db database ... `date`"
+        prodb temp-db empty
+
+        #####################################################################
+        ## Now, load translation schema into the database.
+        #####################################################################
+        cp "$POSSESRC/adettdb/temp-db.df" .
+        cp "$POSSESRC/adettdb/temp-db-ctrl.df" .
+
+        echo OUTPUT TO $PROG.ldf.       >  ptscema.p
+        echo MESSAGE \'Loading temp-db.df ...\'. >> ptscema.p
+        echo PROPATH = \"$BASEPROPATH\". >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db.df\"\). >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db-ctrl.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.           >> ptscema.p
+        echo QUIT.             >> ptscema.p
+
+        echo "Loading temp-db schema ... `date`"
+        "$PROGRESS" temp-db -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading temp-db.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: temp-db.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      other_params="$other_params -db temp-db -1"
+      sedpcmd="$sedpcmd -e '/\/template/d'"    # no template directory
+
+      (
+        cd "$POSSESRC"
+        find $j -name '*.[pw]' -print | eval $sedpcmd
+      ) > $srcfiles
+    ;;
+
+    web)
+      cd "$WORK"
+      $MKDIR "$WORK/$j"
+      $MKDIR "$WORK/$j/objects"
+      $MKDIR "$WORK/$j/support"
+      (
+        cd "$POSSESRC"
+        find $j/objects $j/support -name '*.[pw]' -print | eval $sedpcmd
+      ) > $srcfiles
+    ;;
+   
+    web2)
+      cd "$WORK"
+      sedpcmd="$sedpcmd -e '/\/template/d'"     # no template directory
+      (
+        cd "$POSSESRC"
+        find $j -name '*.[pw]' -print | eval $sedpcmd
+      ) > $srcfiles
+    ;;
+   
+    webtools|webedit|webutil)
+      cd "$WORK"
+      (
+        cd "$POSSESRC"
+        find $j -name '*.[pw]' -print | eval $sedpcmd
+      ) > $srcfiles
+      ( cd "$POSSEE4GL"
+        find $j -name '*.[pw]' -print | eval $sedpcmd
+      ) >> $srcfiles
+    ;;
+
+    protools)
+      cd "$WORK"
+      if [ ! -f temp-db.db ]
+      then
+        echo "$PROG: Creating temp-db database ... `date`"
+        prodb temp-db empty
+
+        #####################################################################
+        ## Now, load translation schema into the database.
+        #####################################################################
+        cp "$POSSESRC/adettdb/temp-db.df" .
+        cp "$POSSESRC/adettdb/temp-db-ctrl.df" .
+
+        echo OUTPUT TO $PROG.ldf.       >  ptscema.p
+        echo MESSAGE \'Loading temp-db.df ...\'. >> ptscema.p
+        echo PROPATH = \"$BASEPROPATH\". >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db.df\"\). >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db-ctrl.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.           >> ptscema.p
+        echo QUIT.             >> ptscema.p
+
+        echo "Loading temp-db schema ... `date`"
+        "$PROGRESS" temp-db -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading temp-db.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: temp-db.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      other_params="$other_params -db temp-db -1"
+      echo "PROPATH = PROPATH + ',"$POSSESRC"/protools'." >> $compprog
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd ) > $srcfiles
+    ;;
+
+    adeuib)
+      cd "$WORK"
+      if [ ! -f ab.db ]
+      then
+        echo "$PROG: Creating ab database ... `date`"
+        prodb ab empty
+
+        #####################################################################
+        ## Now, load translation schema into the database.
+        #####################################################################
+        cp "$POSSESRC/adeuib/ab.df" .
+
+        echo OUTPUT TO $PROG.ldf.       >  ptscema.p
+        echo MESSAGE \'Loading ab.df ...\'. >> ptscema.p
+        echo PROPATH = \"$BASEPROPATH\". >> ptscema.p
+        echo RUN prodict/load_df.p \(\"ab.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.           >> ptscema.p
+        echo QUIT.             >> ptscema.p
+
+        echo "Loading ab schema ... `date`"
+        "$PROGRESS" ab -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading ab.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: ab.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      if [ ! -f temp-db.db ]
+      then
+        echo "$PROG: Creating temp-db database ... `date`"
+        prodb temp-db empty
+
+        #####################################################################
+        ## Now, load translation schema into the database.
+        #####################################################################
+        cp "$POSSESRC/adettdb/temp-db.df" .
+        cp "$POSSESRC/adettdb/temp-db-ctrl.df" .
+
+        echo OUTPUT TO $PROG.ldf.       >  ptscema.p
+        echo MESSAGE \'Loading temp-db.df ...\'. >> ptscema.p
+        echo PROPATH = \"$BASEPROPATH\". >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db.df\"\). >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db-ctrl.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.           >> ptscema.p
+        echo QUIT.             >> ptscema.p
+
+        echo "Loading temp-db schema ... `date`"
+        "$PROGRESS" temp-db -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading temp-db.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: temp-db.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      other_params="$other_params -db ab -1 -db temp-db -1"
+      echo "PROPATH = PROPATH + ',"$POSSESRC/adeuib"'." >> $compprog
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd ) > $srcfiles
+    ;;
+
+    dynamics)
+      cd "$WORK"
+      if [ ! -f icfdb.db ] ; then
+        echo "$PROG: Creating icfdb database ... `date`"
+        prodb icfdb empty
+
+        ########################################################################
+        ## Now, load schema into the database.
+        ########################################################################
+        cp "$POSSEICFSRC"/dynamics/db/icf/dfd/icfdbfull.df ./icfdb.df
+
+        echo OUTPUT TO $PROG.ldf.                    >  ptscema.p
+        echo MESSAGE \'Loading icfdb.df ...\'.       >> ptscema.p
+
+        # Add ICF base location if necessary
+        if [ "x$POSSEICF" != "x" -a "x$BASEDIR" != "x$POSSEICF" -a "x$POSSEICF" != "x$POSSE" ]
+        then
+          echo PROPATH = \"$POSSEICF,$POSSEICFSRC,$POSSEICFSRC/dynamics,$POSSEICFSRC/dynamics/af/sup2,$BASEPROPATH\".  >> ptscema.p
+        else
+          echo PROPATH = \"$BASEPROPATH\".             >> ptscema.p
+        fi
+
+        echo RUN prodict/load_df.p \(\"icfdb.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.                           >> ptscema.p
+        echo QUIT.                                   >> ptscema.p
+
+        echo "Loading icfdb schema ... `date`"
+        "$PROGRESS" icfdb -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading icfdb.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: icfdb.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      # temp-db for dymamics is different, so delete if already created
+      if [ -f temp-db.db ]
+      then rm -f temp-db.*
+      fi
+
+      if [ ! -f temp-db.db ]
+      then
+        echo "$PROG: Creating temp-db database ... `date`"
+        prodb temp-db empty
+
+        #####################################################################
+        ## Now, load schema into the database.
+        #####################################################################
+        cp "$POSSESRC/adettdb/temp-db.df" .
+        cp "$POSSESRC/adettdb/temp-db-ctrl.df" .
+        cp "$POSSESRC/dynamics/db/icf/dfd/rytemp-db.df" .
+
+        echo OUTPUT TO $PROG.ldf.                      >  ptscema.p
+        echo MESSAGE \'Loading temp-db.df ...\'.       >> ptscema.p
+        echo PROPATH = \"$BASEPROPATH\".               >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db.df\"\). >> ptscema.p
+        echo RUN prodict/load_df.p \(\"temp-db-ctrl.df\"\). >> ptscema.p
+        echo RUN prodict/load_df.p \(\"rytemp-db.df\"\). >> ptscema.p
+        echo OUTPUT CLOSE.                             >> ptscema.p
+        echo QUIT.                                     >> ptscema.p
+
+        echo "Loading temp-db schema ... `date`"
+        "$PROGRESS" temp-db -1 -zn -zr $PROARGS -b -p ptscema.p > "$WORK/tmp.log" 2>&1
+        status=$?
+        cat "$WORK/tmp.log"
+        if test $status = 1
+        then
+          echo "$PROG: FAILED `date`"
+          cd "$BASEDIR"
+          $RMDIR "$WORK"
+          exit 1
+        fi
+
+        ####################################################################
+        ## Compare the results against this baseline data.  If the compare
+        ## passes (no differences), then discard the log info, as we don't
+        ## care about it.
+        ####################################################################
+        echo "Loading temp-db.df ..." | diff -b - $PROG.ldf > "$WORK/endiff.tmp"
+        if [ $? != 0 ] ; then
+          echo "$PROG: WARNING: temp-db.df Load messages found `date`"
+          echo "========================================================="
+          cat "$WORK/$PROG.ldf"
+          echo "========================================================="
+          echo ""
+        fi
+      fi
+
+      other_params="$other_params -db temp-db -1"
+      other_params="$other_params -inp 18000 -yy 1950 -tok 1600 -D 150 -mmax 65534 -s 63"
+      echo "CONNECT icfdb -1."                              >> $compprog
+      echo "CREATE ALIAS db_metaschema FOR DATABASE icfdb." >> $compprog
+      echo "CREATE ALIAS db_index FOR DATABASE icfdb."      >> $compprog
+      echo "PROPATH = '"$POSSEICF,$POSSEICFSRC,$POSSEICFSRC/dynamics,$POSSEICFSRC/dynamics/af/sup2"' + PROPATH." >> $compprog
+
+      # exclude scm directory (RoundTable stuff) 
+      sedpcmd="$sedpcmd -e '/\/scm/d'"
+      # exclude www directory (web-based support stuff)
+      sedpcmd="$sedpcmd -e '/\/www/d'"
+      # exclude db/icf/dfd directory (db utility stuff)
+      sedpcmd="$sedpcmd -e '/\/db\/icf\/dfd/d'"
+      # exclude ry/tem (templates) directory
+      sedpcmd="$sedpcmd -e '/\/ry\/tem/d'"
+
+      ##########################################################################
+      ## Exclude all unnecessary dynamics files for character mode;  
+      ## Only include files to support AppServer functionality.
+      ##########################################################################
+      case "$uimode" in
+        tty)
+          ( 
+            cd "$POSSEICFSRC"
+            ls $j/*.p $j/af/app/*.p $j/af/sup/*.p $j/af/sup2/*.p $j/ry/app/*.p \
+              $j/ry/prc/*.p $j/icf/trg/*.p
+          ) > $srcfiles
+          # Only include "server" component of SDOs - omit "client" part
+          ( 
+            cd "$POSSEICFSRC"
+            ls $j/af/obj2/*_cl.w $j/ry/obj/*_cl.w | sed 's/_cl.w$/.w/' 
+          ) >> $srcfiles
+          ( 
+            cd "$POSSEICFSRC"
+            ls $j/af/obj2/*_cl.p $j/ry/obj/*_cl.p | sed 's/_cl.p$/.p/' 
+          ) >> $srcfiles
+          # Add Dynamic SBO files
+          ( 
+            cd "$POSSEICFSRC"
+            ls $j/ry/obj/dynsbo.w 
+            ls $j/ry/obj/remotedynsbo.w
+          ) >> $srcfiles
+          # Include web converted ESS files
+          ( 
+            cd "$POSSEE4GL"
+            find $j -name '*.[pw]' -print | eval $sedpcmd
+          ) >> $srcfiles
+          # Include entity cache files
+          ( 
+            cd "$POSSEICFSRC"
+            find $j/ry/clc -name '*.p' -print 
+          ) >> $srcfiles
+        ;;
+
+        gui)
+          # Break file list into two parts; Large number of files in Dynamics
+          # can lead to compilation errors due to e-code segment limitations
+          srcfiles2="$WORK/cc"$j"2.tmp"
+          compprog2="$WORK/cc"$j"2.p"
+          # Place all files beneath ry into second temp file
+          ( 
+            cd "$POSSEICFSRC"
+            find $j/ry -name '*.[pw]' -print | eval $sedpcmd
+          ) > $srcfiles2
+          # Now place all files except those beneath ry into first temp file
+          ( 
+            cd "$POSSEICFSRC"
+            sedpcmd="$sedpcmd -e '/\/ry\//d'"           
+            find $j -name '*.[pw]' -print | eval $sedpcmd
+          ) > $srcfiles
+        ;;
+      esac
+    ;;
+
+    *)
+      ###########################################################################
+      ## Generate a list of files to compile for other applications.
+      ###########################################################################
+      cd "$WORK"
+      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd ) > $srcfiles
+    ;;
+
+    esac
+
+
+    if [ -s "$srcfiles" ]
+    then
+       #########################################################################
+       ## Process $srcfiles into a runnable program
+       #########################################################################
+       
+       echo "$PROG: Building $j ... `date`"
+       while read pfile cmd
+       do
+          if [ $pfile = insert4GL ]
+          then
+             echo "insert4GL Processing: $cmd"                >> $basefile
+             echo "MESSAGE 'insert4GL Processing: $cmd'."     >> $compprog
+             echo "$cmd."                                     >> $compprog
+             continue
+          fi
+          echo "Compiling $pfile"                             >> $basefile
+          echo "MESSAGE 'Compiling $pfile'."                  >> $compprog
+          if [ "x$xref" = "xyes" ]
+          then echo "COMPILE '$pfile' SAVE INTO '$WORK' XREF '$XREFDST/$pfile.xref'."          >> $compprog
+          else echo "COMPILE '$pfile' SAVE INTO '$WORK'."          >> $compprog
+          fi
+       done < $srcfiles
+
+       # Some modules (e.g., Dynamics) require two separate compile programs
+       # to prevent blowing out the e-code segment
+       if [ -s "$srcfiles2" ] ; then
+         while read pfile cmd
+         do
+            if [ $pfile = insert4GL ]
+            then
+               echo "insert4GL Processing: $cmd"              >> $basefile
+               echo "MESSAGE 'insert4GL Processing: $cmd'."   >> $compprog2
+               echo "$cmd."                                   >> $compprog2
+               continue
+            fi
+            echo "Compiling $pfile"                           >> $basefile
+            echo "MESSAGE 'Compiling $pfile'."                >> $compprog2
+            if [ "x$xref" = "xyes" ]
+            then echo "COMPILE '$pfile' SAVE INTO '$WORK' XREF '$XREFDST/$pfile.xref'."        >> $compprog2
+            else echo "COMPILE '$pfile' SAVE INTO '$WORK'."        >> $compprog2
+            fi
+         done < $srcfiles2
+
+         # Insert line into first compprog to run second one
+         echo "RUN '$compprog2'."                             >> $compprog
+       fi
+
+       echo "OUTPUT CLOSE."                                   >> $compprog
+       echo "QUIT."                                           >> $compprog
+
+       # DELETE the srcfiles2 file or it will mess up subsequent module compiles!
+       if [ -s "$srcfiles2" ] ; then
+         rm -f "$srcfiles2"
+       fi
+
+       # Redirection to $PROG.log is currently necessary due to some quirks
+       # in the MESSAGE statement...
+       # Also note: the database "dictdb" *MUST* be first in the connect list!
+
+       echo "$PROG: DICTDB is set to ${DICTDB}"
+
+cat <<+CAT >$TMPDIR/$$.pf
+       -zn $PROARGS 
+       -db $DICTDB -1 
+       -T "$TMPDIR"
+       -cprcodeout $cprcodeout
+       $other_params
++CAT
+       "$PROGRESS" -pf "$TMPDIR"/$$.pf -p "$compprog" >> $PROG.log 2>&1
+       status=$?  # Preserve status
+       rm -f "$TMPDIR"/$$.pf
+    else
+       # to Process non-compiled apps
+       status=0
+    fi
+
+    # check for status AND if r-code even got compiled
+    if [ $status = 1 -o \( -s "$srcfiles" -a "x`find . -type f -name \*.r -print`" = x \) ]
+    then
+       echo "$PROG: ERROR - Progress failed `date`"
+    else
+       case $j in
+
+       as4dict)
+                 # as4dict module is no longer supported - do nothing
+                 ;;
+
+       wrappers)
+                 echo "$PROG: Installing $j ... `date`"
+                 rm -f "$POSSEDST"/*.r
+                 (cd "$WORK/$j";cp *.r "$POSSEDST")
+                 if [ "x$xref" = "xyes" ] ; then
+                   (cd "$XREFDST/$j";cp *.xref "$XREFDST")
+                   rm -rf "$XREFDST/wrappers"
+                 fi
+                 ;;
+       adeicon)
+                 ;; # Not installed 
+       webtools)
+                 echo "$PROG: Installing $j ... `date`"
+                 $RMDIR "$POSSEDST/$j"
+                 (cd "$WORK";cp -r $j "$POSSEDST")
+                 echo "$PROG: Installing webtools/.dat files ... `date`"
+                 cp "$POSSESRC/$j"/*.dat "$POSSEDST/$j"
+                 ;;
+
+       proreslang)
+                 echo "$PROG: Installing $j ... `date`"
+                 # Get stuff from prores/reslang and put to "$POSSEDST/reslang"
+                 (cd "$WORK";cp prores/reslang/*.r "$POSSEDST/prores/reslang")
+                 ;;
+
+  adecomm|adecomp|adedesk|adedict|adeedit|aderes|adeshar|adetran|adeuib|adeweb|as4dict|prodict|protools)
+                 # Build and install ADE tools r-code procedure libraries
+                 echo "$PROG: Installing $j ... `date`"
+                 cd "$WORK"
+                 find $j -type f -name \*.r -depth -print | \
+                   sed -e 's,^\./,,' > ${j}prolib.pf
+                 if [ -f $j.pl ] ; then
+                   rm -f $j.pl
+                 fi
+                 if $PLBUILD
+                 then
+                   prolib $j.pl -create -codepage undefined
+                   prolib $j.pl -add -pf ${j}prolib.pf
+                   cp $j.pl "$POSSEDST"
+                 else
+                   rm -f "$POSSEDST/$j.pl"
+                   $MKDIR "$POSSEDST/$j"
+                   cp -r $j "$POSSEDST"
+                 fi
+                 ;;
+
+       adexml)
+                 # Build and install ADE tools r-code procedure libraries
+                 echo "$PROG: Installing $j ... `date`"
+                 cd "$WORK"
+                 $RMDIR "$POSSEDST/$j"
+                 $MKDIR "$POSSEDST/$j"
+                 find $j -type f -name \*.r -depth -print | \
+                   sed -e 's,^\./,,' > ${j}prolib.pf
+                 if [ -f $j.pl ] ; then
+                   rm -f $j.pl
+                 fi
+                 if $PLBUILD
+                 then
+                     prolib $j.pl -create -codepage undefined
+                     prolib $j.pl -add -pf ${j}prolib.pf
+                     cp $j.pl "$POSSEDST"
+                 else
+                     rm -f "$POSSEDST/$j.pl"
+                     cp -r $j "$POSSEDST"
+                 fi
+                 ;;
+
+       dynamics)      # Install Dynamics r-code
+                 echo "$PROG: Installing $j ... `date`"
+                 $RMDIR "$POSSEICFDST/$j"
+                 # Get stuff from "$WORK" and put to "$POSSEICFDST"
+                 (cd "$WORK";cp -r $j "$POSSEICFDST")
+                 ;;
+
+       *)        # Everything else
+                 echo "$PROG: Installing $j ... `date`"
+                 $RMDIR "$POSSEDST/$j"
+                 # Get stuff from "$WORK" and put to "$POSSEDST"
+                 (cd "$WORK";cp -r $j "$POSSEDST")
+                 ;;
+       esac
+
+       # Now check for and install any and all .wrx files for any GUI app
+       if [ "x$uimode" = xgui ]
+       then
+          # don't do anything for wrappers
+          case $j in
+
+            as4dict)
+               # no longer supported - do nothing
+               ;;
+
+            wrappers) ;;
+
+            dynamics) echo "$PROG: Special install for *.wrx files - $j"
+               $MKDIR "$POSSEICFDST/$j"
+               (cd "$POSSEICFSRC"
+                 find "$j" -type f -name \*.wrx -print | egrep -vi "activex" 
+               ) > wrxfiles.tmp
+               while read wrxline
+               do
+                   wrxdest="$POSSEICFDST/`dirname \"$wrxline\"`"
+                   if [ ! -d "$wrxdest" ] ; then
+                       $MKDIR "$wrxdest"
+                   fi
+                   # needed to prevent "access denied" errors
+                   find "$wrxdest" -type f -name '*.wrx' -exec chmod +w "{}" \;
+                   cp -p "$POSSEICFSRC/$wrxline" "$POSSEICFDST/$wrxline"
+                   # Ensure that all .wrx files are read-write in target area
+                   find "$wrxdest" -type f -name '*.wrx' -exec chmod +w "{}" \;
+               done < wrxfiles.tmp
+               rm wrxfiles.tmp
+               ;;
+
+            *) echo "$PROG: Special install for *.wrx files - $j"
+               $MKDIR "$POSSEDST/$j"
+               (cd "$POSSESRC"
+                 find "$j" -type f -name \*.wrx -print | egrep -vi "activex" 
+               ) > wrxfiles.tmp
+               while read wrxline
+               do
+                   wrxdest="$POSSEDST/`dirname \"$wrxline\"`"
+                   if [ ! -d "$wrxdest" ] ; then
+                       $MKDIR "$wrxdest"
+                   fi
+                   # needed to prevent "access denied" errors
+                   find "$wrxdest" -type f -name '*.wrx' -exec chmod +w "{}" \;
+                   cp -p "$POSSESRC/$wrxline" "$POSSEDST/$wrxline"
+                   # Ensure that all .wrx files are read-write in target area
+                   find "$wrxdest" -type f -name '*.wrx' -exec chmod +w "{}" \;
+               done < wrxfiles.tmp
+               rm wrxfiles.tmp
+               ;;
+          esac
+       fi
+
+       ########################################################################
+       ## The final phase of pbuild is to install some selected source and/or
+       ## data files from the source area into the destination area.  We handle
+       ## this on an application-by-application basis via a CASE statement.
+       ## We DO NOT do this if source=destination!
+       #########################################################################
+ 
+       if [ "x\"$POSSEDST\"" != "x\"$POSSESRC\"" ]
+       then
+          case $j in
+
+          as4dict)
+             # no longer supported - do nothing
+             ;;
+
+          wrappers) cp "$POSSESRC/wrappers/fn" \
+                       "$POSSESRC/wrappers/fnarg" \
+                       "$POSSESRC/wrappers/get" \
+                       "$POSSESRC/wrappers/set" \
+                       "$POSSESRC/wrappers/log" \
+                       "$POSSESRC/wrappers"/*.i \
+                       "$POSSESRC/wrappers/posseinfo.xml" "$POSSEDST"
+                    ;;
+          adetran)
+             # Make sure the dest directories exist
+             for idir in data labels images
+             do
+                $MKDIR "$POSSEDST/adetran/$idir"
+             done
+
+             for idb in xlkit xlproj
+             do
+                echo y | _proutil -z3 $idb -C convchar convert undefined
+                _proutil -z3 $idb -C truncate bi -G 0
+                cp -p $idb.* "$POSSEDST/adetran/data/"
+             done
+
+             for idir in data labels images
+             do
+                cp "$POSSESRC/adetran/$idir"/*.* "$POSSEDST/adetran/$idir"
+             done
+
+          ;;
+          
+          prodict) 
+		(
+               cd "$POSSESRC/prodict"
+               $MKDIR "$POSSEDST/prodict"
+               $MKDIR "$POSSEDST/prodict/misc"
+               $MKDIR "$POSSEDST/prodict/dump"
+               $MKDIR "$POSSEDST/prodict/ora"
+               cp misc/_rundump.i misc/_runload.i misc/_rundift.i \
+			misc/_runsylk.i "$POSSEDST/prodict/misc"
+               cp dump/_lod_raw.i dump/loaddefs.i "$POSSEDST/prodict/dump"
+               cp ora/_runload.i "$POSSEDST/prodict/ora"
+             )
+          ;;
+          
+          adedict) 
+            (
+               cd "$POSSESRC/adedict"
+               $MKDIR "$POSSEDST/adedict"
+               cp _isdata.i "$POSSEDST/adedict"
+             )
+          ;;
+         
+          as4dict) $MKDIR "$POSSEDST"/as4dict
+                   cp "$POSSESRC/as4dict/as4empty.df" "$POSSEDST/as4dict"
+                   ;;
+          
+          adecomm) (
+                   cd "$POSSESRC"/adecomm
+                   $MKDIR "$POSSEDST/adecomm"
+                   cp "$POSSESRC/adecomm/appserv.i" "$POSSEDST/adecomm"
+                   cp _istbl.i "$POSSEDST/adecomm"
+                   cp _isfld.i "$POSSEDST/adecomm"
+                   cp oeideservice.i "$POSSEDST/adecomm"
+                   )
+                   ;;
+
+           aderes) cp "$POSSESRC/aderes/af-rship.i" "$POSSEDST/aderes"
+                   cp "$POSSESRC/aderes/af-idefs.i" "$POSSEDST/aderes"
+                   cp "$POSSESRC/aderes/u-pvars.i"  "$POSSEDST/aderes"
+                   cp "$POSSESRC/aderes/results.l"  "$POSSEDST/aderes"
+                   cp "$POSSESRC/wrappers/login.i"  "$POSSEDST/aderes"
+                   cp "$POSSESRC/aderes"/u-*.p      "$POSSEDST/aderes"
+                   ;;
+          
+          adeicon) echo "Installing image files into "$POSSEDST"/$j ..."
+                   # Install for non-tty uimode only.
+                   if [ "x$uimode" != "xtty" ] ; then
+                      if [ ! -d "$POSSEDST/adeicon" ] ; then
+                         $MKDIR "$POSSEDST/adeicon"
+                      fi
+                      if $NT ; then
+                         echo "Installing PC image files..."
+                         # Copy bitmaps, icons, and cursors.
+                         cp "$POSSESRC/adeicon"/*.bmp "$POSSEDST/adeicon"
+                         cp "$POSSESRC/adeicon"/*.ico "$POSSEDST/adeicon"
+                         cp "$POSSESRC/adeicon"/*.cur "$POSSEDST/adeicon"
+
+                         # Build/install image procedure library adeicon.pl
+                         cd "$POSSEDST"
+                         find $j -type f -name \*.* -depth -print | \
+                              sed -e 's,^\./,,' > "$WORK/${j}prolib.pf"
+                         if [ -f $j.pl ] ; then
+                            rm -f $j.pl
+                         fi
+                         if $PLBUILD
+                         then
+                            prolib $j.pl -create -codepage undefined
+                            prolib $j.pl -add -pf "$WORK/${j}prolib.pf"
+                            # Remove all individual image files
+                            rm -f "$POSSEDST/adeicon"/*.*
+                            # Reinstall icons for Windows Shell
+                            cp "$POSSESRC/adeicon/progress.ico" \
+                               "$POSSESRC/adeicon/cnfginfo.ico" \
+                               "$POSSESRC/adeicon/proexp.ico" \
+                               "$POSSESRC/adeicon/proxygen.ico" \
+                               "$POSSESRC/adeicon/sqlexp.ico" \
+                               "$POSSESRC/adeicon"/*%.ico \
+                               "$POSSESRC/adeicon/proserve.ico" \
+                               "$POSSESRC/adeicon/proshut.ico" \
+                               "$POSSESRC/adeicon/icfdev.ico" \
+                               "$POSSESRC/adeicon/icfdevas.ico" \
+                               "$POSSESRC/adeicon/icfrt.ico" \
+                               "$POSSESRC/adeicon/startdbs.ico" \
+                               "$POSSESRC/adeicon/stopdbs.ico" \
+                               "$POSSESRC/adeicon/login.bmp" \
+                               "$POSSESRC/adeicon/select.bmp" \
+                               "$POSSEDST/adeicon"
+                         else
+                            rm -f "$POSSEDST/$j.pl"
+                            $MKDIR "$POSSEDST/$j"
+                            cp -r $j "$POSSEDST"
+                         fi
+                      fi  
+                   fi
+                   ;;
+
+           prores) echo Installing results source files 
+                   srcfiles="$WORK/cc$j.src"
+
+                   cd "$POSSESRC"
+
+                   ls prores/*.h     >> $srcfiles
+                   ls prores/*.l     >> $srcfiles
+                   ls prores/applhelp.p >> $srcfiles
+                   ls prores/r-ftask.i     >> $srcfiles
+                   ls prores/u-*.i      >> $srcfiles
+                   ls prores/u-*.p      >> $srcfiles
+                   ls prores/reslang/*.h   >> $srcfiles
+
+                   cd "$WORK"
+
+                   if [ ! -d "$POSSEDST/prores/reslang" ]
+                   then
+                     $MKDIR "$POSSEDST/prores/reslang"
+                   fi
+
+                   while read pfile
+                   do
+                     cp "$POSSESRC/$pfile" "$POSSEDST/$pfile"
+                   done < $srcfiles 2>&1
+
+                   ;;
+
+          adeshar) $MKDIR "$POSSEDST/adeshar"
+                   cp "$POSSESRC/adeshar/_mnudefs.i" "$POSSEDST/adeshar"
+                   ;;
+
+          adexml)  echo "Installing image files into "$POSSEDST"/adexml/images ..."
+                   $MKDIR "$POSSEDST/adexml/images"
+                   cp "$POSSESRC/adexml/images"/*.* "$POSSEDST/adexml/images"
+                   ;;
+
+          protools)
+                   for file in `(cd "$POSSESRC/protools";ls *.dat)`
+                   do
+                      echo "$PROG: Installing $file to $POSSEDST/protools"
+                      cp "$POSSESRC/protools/$file" "$POSSEDST/protools"
+                   done
+                   ;;
+
+          adm2)    # Install for non-tty uimode only.
+                   if [ "x$uimode" != "xtty" ] ; then
+                      if $NT ; then
+                         $MKDIR "$POSSEDST/adm2/image"
+                         cp "$POSSESRC/adm2/image"/*.* "$POSSEDST/adm2/image"
+                      fi
+                   fi
+                   ;;
+
+          adm)     # Install for non-tty uimode only.
+                   if [ "x$uimode" != "xtty" ] ; then
+                      if $NT ; then
+                        echo "Installing adm/samples non-rcode files into "$POSSEDST"/adm/samples ..."
+                        if [ ! -d "$POSSEDST/$j/samples" ] ; then
+                           $MKDIR "$POSSEDST/$j/samples"
+                        fi
+
+                        # Copy bitmaps, icons, and cursors.
+                        cp "$POSSESRC/$j/samples"/*.bmp "$POSSEDST/$j/samples"
+                      fi
+                   fi
+                   ;;          
+          esac
+       fi
+
+       # POSSE Dynamics code may be in a different location than other POSSE code... 
+       if [ "x\"$POSSEICFDST\"" != "x\"$POSSEICFSRC\"" ]
+       then
+          case $j in
+              dynamics) 
+                   # Create img directory if necessary; Note that images are
+                   # needed by both gui and tty (for Web UI support)
+                   if [ ! -d "$POSSEICFDST/dynamics/ry/img" ] ; then
+                      $MKDIR "$POSSEICFDST/dynamics/ry/img"
+                   fi
+                   # Copy image files
+                   echo "Installing dynamics/ry image files..."
+                   cp "$POSSEICFSRC/dynamics/ry/img"/*.* "$POSSEICFDST/dynamics/ry/img"
+
+                   # Copy template files - exclude .ado files (not needed) and .wrx files (already copied)
+                   echo "Installing dynamics/ry template files..."
+                   (cd "$POSSEICFSRC"/dynamics/ry/tem
+                    ls *.* | eval egrep -isv -e '\.ado$' -e '\.wrx$' | cpio -pd "$POSSEICFDST/dynamics/ry/tem")
+                   chmod +w $POSSEICFDST/dynamics/ry/tem/*
+
+                   if [ "x$uimode" = "xgui" ] ; then
+                     # Create dynamics install img directory if necessary
+                     if [ ! -d "$POSSEICFDST/dynamics/install/img" ] ; then
+                        $MKDIR "$POSSEICFDST/dynamics/install/img"
+                     fi
+                     # Copy bitmap and icon files
+                     echo "Installing dynamics/install image files..."
+                     cp "$POSSEICFSRC/dynamics/install/img"/*.bmp "$POSSEICFDST/dynamics/install/img"
+                     cp "$POSSEICFSRC/dynamics/install/img"/*.ico "$POSSEICFDST/dynamics/install/img"
+                   fi
+
+                   if [ "x$uimode" = "xtty" ] ; then
+                     # Create dynamics install img directory if necessary
+                     if [ ! -d "$POSSEICFDST/dynamics/ry/dhtml" ] ; then
+                        $MKDIR "$POSSEICFDST/dynamics/ry/dhtml"
+                     fi
+
+                     # Copy Dynamics Web support files
+                     echo "Installing dynamics/ry/dhtml files..."
+                     (cd "$POSSEICFSRC"/dynamics/ry/dhtml
+                      ls *.* | eval egrep -isv '.html$' | cpio -pdm "$POSSEICFDST/dynamics/ry/dhtml")
+                     cp "$POSSEICFSRC"/dynamics/ry/dhtml/default.htm \
+                       "$POSSEICFDST"/dynamics/ry/dhtml/index.html
+                     chmod +w $POSSEICFDST/dynamics/ry/dhtml/*
+
+                     echo "Installing dynamics/ry/*.htm* files..."
+                     cp "$POSSEICFSRC/dynamics/ry"/*.htm* "$POSSEICFDST/dynamics/ry"
+                     cp "$POSSEICFSRC/dynamics/ry/default.htm" "$POSSEICFDST/dynamics/ry/index.html"
+                   fi
+                   
+                   # These files are used by the Dynamics Configuration Utility (DCU)
+                   # Create db/icf/dfd directory if necessary
+                   if [ ! -d "$POSSEICFDST/dynamics/db/icf/dfd" ]
+                   then $MKDIR "$POSSEICFDST/dynamics/db/icf/dfd"
+                   fi
+                   # Copy program source files
+                   echo "Installing dynamics/db/icf/dfd program files..."
+                   cp "$POSSEICFSRC/dynamics/db/icf/dfd"/*.* "$POSSEICFDST/dynamics/db/icf/dfd"
+                   if [ "x$fxprg" = "xyes" ]
+                   then rm "$POSSEICFDST/dynamics/db/icf/dfd/"*.p
+                   fi
+
+                   # Copy cst files
+                   echo "Installing dynamics/af cst files..."
+                   cp "$POSSEICFSRC/dynamics/af/cod"/*.cst "$POSSEICFDST/dynamics/af/cod"
+                   cp "$POSSEICFSRC/dynamics/af/cod2"/*.cst "$POSSEICFDST/dynamics/af/cod2"
+
+                   # Copy xml files
+                   echo "Installing dynamics xml files..."
+                   cp "$POSSEICFSRC/dynamics/icfconfig.xml" "$POSSEICFDST/dynamics"
+                   cp "$POSSEICFSRC/dynamics/icfsetup.xml" "$POSSEICFDST/dynamics"
+
+                   # Copy entity cache data files files, if they exist
+                   (
+                    cd "$POSSEICFSRC"
+                    if [ "x`find dynamics/ry/clc -type f -name \*.d -print`" != "x" ]
+                    then
+                      echo "Installing dynamics/ry/clc entity cache data files..."
+                      cp "$POSSEICFSRC/dynamics/ry/clc"/*.d "$POSSEICFDST/dynamics/ry/clc"
+                    fi
+                   )
+
+                   ;;
+          esac
+       fi
+    fi
+
+    if [ -f "$outfile" ]
+    then
+      if diff -b "$basefile" "$outfile" > "$WORK/endiff.tmp"
+      then
+         :
+      else
+         echo "$PROG: WARNING: Messages found for $j `date`" 
+         echo "================================================================"
+         cat "$outfile"
+         echo "================================================================"
+      fi
+    fi
+done
+
+###########################################################################
+## Run fix program compilation script
+###########################################################################
+if [ "x$fxprg" = "xyes" ]
+then echo
+     echo "$PROG: running fix program compilation script"
+     export PROGRESS WORK BASEPROPATH POSSESRC POSSEDST POSSEICF POSSEICFSRC POSSEICFDST xref XREFDST
+     $POSSESRC/adebuild/pbuildfxprg
+fi
+
+cd "$BASEDIR"
+if [ ! "x${debug}" = "xyes" ]; then
+  # Remove pbuild working directory
+  $RMDIR "$WORK"
+
+  # Remove webtools|webedit|webutil "e4gl" directory
+  if [ -d "$POSSEE4GL" ]
+  then
+    $RMDIR "$POSSEE4GL"
+  fi
+fi
+
+# END script
+echo ""
+echo "$PROG: DONE Building Progress Applications."

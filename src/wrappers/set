@@ -1,0 +1,33 @@
+&IF DEFINED(xp-assign) = 0 AND DEFINED(xp-reset-values) <> 0 &THEN &UNDEFINE xp-reset-values &ENDIF
+&IF "{3}":U = "":U &THEN &SCOPED-DEFINE ADMHdl TARGET-PROCEDURE 
+&ELSE &SCOPED-DEFINE ADMHdl {3}
+&ENDIF
+&IF DEFINED(xp-assign) = 1 AND '{&xp-assign}' <> '{3}' &THEN &MESSAGE ADM COMPILE ERROR: The 3rd parameter used in ~{{0} {1} {2} {3}~} is invalid or missing.~
+ The xp-assign preprocessor cannot group assignments to different objects.  
+&ENDIF  
+           &IF (DEFINED(xp-assign) = 0 AND DEFINED(xp{1}) <> 0) OR DEFINED(xp-assign) = 3 &THEN  
+ASSIGN 
+           &ENDIF 
+           &IF DEFINED(xp{1}) <> 0 &THEN 
+                 &IF DEFINED(xp-assign) <> 1 OR DEFINED(xp-reset-values) <> 0 &THEN            
+   ghProp = WIDGET-H(ENTRY(1,{&ADMHdl}:ADM-DATA,CHR(1))) 
+                     &IF DEFINED(xp-no-repository) = 0 &THEN 
+   glADMOk = IF ghProp:NAME = 'ADMProps':U OR (ghProp:AVAIL AND ghProp:BUFFER-FIELD('Target':U):BUFFER-VALUE = {&ADMHdl}) THEN TRUE
+             ELSE ghProp:FIND-FIRST('WHERE Target = WIDGET-H("':U + STRING({&ADMHdl}) + '")':U) 
+                     &ENDIF 
+                     &IF DEFINED(xp-reset-values) <> 0 &THEN &UNDEFINE xp-reset-values &ENDIF              
+                 &ENDIF 
+  ghProp:BUFFER-FIELD('{1}':U):BUFFER-VALUE = {2}
+           &ELSE 
+                 &IF DEFINED(xp-assign) <> 0 &THEN
+  glADMOk = 
+                 &ENDIF
+   DYNAMIC-FUNC('set{1}':U IN {&ADMHdl},{2}) 
+                 &GLOBAL-DEFINE xp-reset-values
+           &ENDIF 
+&IF DEFINED(xp-assign) = 3 &THEN 
+   &UNDEFINE xp-assign
+   &GLOBAL-DEFINE xp-assign {3}
+&ENDIF
+&UNDEFINE ADMHdl
+                      
