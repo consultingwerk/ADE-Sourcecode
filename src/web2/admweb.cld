@@ -1,0 +1,19 @@
+/* Class Definition for admweb - src\web2\admweb.cld - 06/16/1999 
+   Class Type: Progress	
+   Class Name: admweb
+   Class DeriveFrom: 
+   Class SourcePath: src/web2
+   Class RcodePath: web2
+   Class TemplatePath: src/web2/template   
+   Class Method: admweb.i
+   Class Property: admwprop.i
+   Class Super: admweb.p
+   Class Prototype: admwprto.i
+   Class Template: admweb.w
+   Custom Method: admwebcustom.i
+   Custom Property: admwpropcustom.i
+   Custom Super: admwebcustom.p
+   Custom Prototype: admwprtocustom.i
+   Custom Exclude: admwebexclcustom.i
+   Custom Instance: admwebdefscustom.i
+ */

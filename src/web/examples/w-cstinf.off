@@ -1,0 +1,14 @@
+/* HTML offsets */
+htm-file= D:\PROGRESS\WRK\examples\w-cstinf.htm
+version= 
+
+field[1]= "Name,INPUT,,fill-in,10,16,10,44"
+field[2]= "CustNum,INPUT,,fill-in,12,5,12,35"
+field[3]= "Phone,INPUT,,fill-in,13,16,13,45"
+field[4]= "Address,INPUT,,fill-in,14,12,14,43"
+field[5]= "Address2,INPUT,,fill-in,15,12,15,44"
+field[6]= "City,INPUT,,fill-in,16,7,16,35"
+field[7]= "State,INPUT,,fill-in,17,11,17,40"
+field[8]= "PostalCode,INPUT,,fill-in,18,9,18,43"
+field[9]= "Comments,TEXTAREA,,editor,19,11,19,66"
+ 

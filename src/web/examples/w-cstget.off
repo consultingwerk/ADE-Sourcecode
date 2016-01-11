@@ -1,0 +1,14 @@
+/* HTML offsets */
+htm-file= D:\PROGRESS\WRK\examples\w-cstget.htm
+version= 
+
+field[1]= "CustNum,INPUT,,fill-in,11,20,11,50"
+field[2]= "Name,INPUT,,fill-in,13,7,13,35"
+field[3]= "Phone,INPUT,,fill-in,14,16,14,45"
+field[4]= "Address,INPUT,,fill-in,15,12,15,43"
+field[5]= "Address2,INPUT,,fill-in,16,12,16,44"
+field[6]= "City,INPUT,,fill-in,17,7,17,35"
+field[7]= "State,INPUT,,fill-in,18,11,18,40"
+field[8]= "PostalCode,INPUT,,fill-in,19,9,19,43"
+field[9]= "Comments,TEXTAREA,,editor,20,11,20,66"
+ 

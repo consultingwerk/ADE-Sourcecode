@@ -1,0 +1,19 @@
+/* Class Definition for html-map - src\web2\html-map.cld - 06/16/1999 
+   Class Type: Progress	
+   Class Name: html-map
+   Class DeriveFrom: 
+   Class SourcePath: src/web2
+   Class RcodePath: web2
+   Class TemplatePath: src/web2/template   
+   Class Method: html-map.i
+   Class Property: htmlprop.i
+   Class Super: html-map.p
+   Class Prototype: htmlprto.i
+   Class Template: html-map.w
+   Custom Method: html-mapcustom.i
+   Custom Property: htmlpropcustom.i
+   Custom Super: html-mapcustom.p
+   Custom Prototype: htmlprtocustom.i
+   Custom Exclude: html-mapexclcustom.i
+   Custom Instance: html-mapdefscustom.i
+ */

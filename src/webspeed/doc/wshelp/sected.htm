@@ -1,0 +1,414 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!--------------------------------------------------------------------
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+--------------------------------------------------------------------->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage 2.0">
+<title>Section Editor</title>
+<meta name="FORMATTER" content="Microsoft FrontPage 2.0">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1><font color="#000080" face="MS Sans Serif"><img
+src="images/helpbook.gif" width="53" height="40"> WebSpeed Editor</font></h1>
+
+<hr size="4" color="#0000FF">
+
+<p><font size="2" face="Arial">The WebSpeed Editor allows you to
+edit the contents of a file. The WebSpeed Editor window contains
+the following interface elements:</font></p>
+
+<ul>
+    <li><a href="sected.htm#Menu Bar"><font size="2" face="Arial">Menu
+        bar</font></a></li>
+    <li><a href="sected.htm#Toolbar"><font size="2" face="Arial">Toolbar
+        buttons</font></a></li>
+    <li><a href="sected.htm#edit area"><font size="2"
+        face="Arial">Edit area</font></a></li>
+</ul>
+
+<p><font size="2" face="Arial"><strong>Note</strong>: Some
+options are specific to the file type you are editing.</font></p>
+
+<h2><a name="Menu Bar"><font size="4" face="Arial">Menu Bar</font></a></h2>
+
+<p><font size="2" face="Arial">This is the main menu of the
+WebSpeed Editor:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="23%"><a
+        href="sected.htm#File Menu"><font size="2" face="Arial"><b>File</b></font></a></td>
+        <td width="77%"><font size="2" face="Arial">Saves, or
+        compiles the file, and closes the Editor window.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><a
+        href="sected.htm#Edit Menu"><font size="2" face="Arial"><b>Edit</b></font></a></td>
+        <td width="77%"><font size="2" face="Arial">Allows you to
+        edit blocks of code.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><a
+        href="sected.htm#Search Menu"><font size="2" face="Arial"><b>Search</b></font></a></td>
+        <td width="77%"><font size="2" face="Arial">Searches for
+        and replaces code strings in the current buffer.</font></td>
+    </tr>
+    <tr>
+        <td><a href="#Section Menu"><font size="2" face="Arial"><strong>Section</strong></font></a></td>
+        <td><font size="2" face="Arial">Submits, resets, deletes,
+        renames or creates a new code section.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Compile</strong></font></td>
+        <td><font size="2" face="Arial">Checks SpeedScript code
+        for the current section.</font> </td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Help</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Accesses this
+        on-line help information.</font></td>
+    </tr>
+</table>
+
+<h3><a name="File Menu"><font size="3" face="Arial"><strong>File
+Menu</strong></font></a></h3>
+
+<p><font size="2" face="Arial">The File menu offers the following
+options:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Save
+        </strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Saves changes
+        to the current file. If the file is untitled, displays
+        the Save As frame so you can specify a file name.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Save
+        As...</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Displays the
+        Save As Frame and lets you save changes to a file you
+        specify.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Compile</strong></font></td>
+        <td><font size="2" face="Arial">Compiles the file. Prior
+        to compiling, saves any changes to the file. </font></td>
+    </tr>
+</table>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Close
+        Window</strong> </font></td>
+        <td width="77%"><font size="2" face="Arial">Closes the
+        WebSpeed Editor window. Edits are not lost. (Select Bring
+        Editor to Front in the File Menu to restore).</font></td>
+    </tr>
+</table>
+
+<h3><a name="Edit Menu"><font size="3" face="Arial">Edit Menu</font></a></h3>
+
+<p><font size="2" face="Arial">The Edit menu offers the following
+options:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Undo
+        <br>
+        Changes</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Undoes the
+        most recent changes made to the current section since the
+        beginning of the editing session or the last since the
+        last </font><a href="#Submit Section"><font size="2"
+        face="Arial">Submit Section</font></a><font size="2"
+        face="Arial">.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Cut</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Deletes
+        selected code from the current buffer and copies it to
+        the clipboard. (See </font><a
+        href="#Note on system Clipboard"><font size="2"
+        face="Arial">note on system clipboard</font></a><font
+        size="2" face="Arial">.)</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Copy</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Copies the
+        code selected to the WebSpeed clipboard.(See </font><a
+        href="#Note on system Clipboard"><font size="2"
+        face="Arial">note on system clipboard</font></a><font
+        size="2" face="Arial">.)</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Paste</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Inserts the
+        contents of the clipboard into the editor at the
+        insertion point. If code is already selected, replaces it
+        with the contents of the clipboard. (See </font><a
+        href="#Note on system Clipboard"><font size="2"
+        face="Arial">note on system clipboard</font></a><font
+        size="2" face="Arial">.)</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><a
+        href="#Format Selection Submenu"><font size="2"
+        face="Arial"><strong>Format Selection</strong></font></a></td>
+        <td width="77%"><font size="2" face="Arial">Indents and
+        un-indents the code selected in the editor. Adds and
+        removes comment markers to the code selected in the
+        editor.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Insert Utility
+        Call...</strong></font></td>
+        <td><font size="2" face="Arial">SpeedScript files only.
+        Inserts a call to a method, function, or event in the
+        WebSpeed control program (</font><font size="1"
+        face="Lucida Console">web-utilities -hdl</font><font
+        size="2" face="Arial">)</font></td>
+    </tr>
+</table>
+
+<p><a name="Note on system Clipboard"><font size="2" face="Arial"><strong>Note
+on system clipboard</strong></font></a><font size="2"
+face="Arial">:Cut, Copy, and Paste, when selected from the menu
+do not use the system clipboard. However the system clipboard is
+used if you use the system shortcut keystrokes (^X, ^C, and ^V).
+Using the system clipboard allows you to cut/copy and paste from
+the WebSpeed editor to other applications.</font></p>
+
+<h3><a name="Search Menu"><font size="3" face="Arial"><b>Search
+Menu</b></font></a></h3>
+
+<p><font size="2" face="Arial">Use Search menu commands to search
+for and replace code strings in the current buffer. The Search
+Menu offers the following options:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Find</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Searches for
+        a code string inside the current buffer.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Find
+        Next</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Finds the
+        next instance of the search string entered in the Find
+        dialog box or the currently selected code string.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Find
+        <br>
+        Previous</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Finds the
+        previous instance of the search string entered in the
+        Find dialog box or the currently selected code string.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="23%"><font size="2" face="Arial"><strong>Replace</strong></font></td>
+        <td width="77%"><font size="2" face="Arial">Searches and
+        replaces a code string.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Go To Line...</strong></font></td>
+        <td><font size="2" face="Arial">Goes to a specified line
+        number in the current section or file. <strong>Note:</strong>
+        For single section files this is the line number in the
+        file. For multi-section files, use the File Menu to View
+        the file with line numbers.</font></td>
+    </tr>
+</table>
+
+<h3><a name="Section Menu"><font size="3" face="Arial">Section
+Menu</font></a></h3>
+
+<p><font size="2" face="Arial">The Section Menu offers the
+following options:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="26%"><a name="Submit Section"><font
+        size="2" face="Arial"><strong>Submit Section</strong></font></a></td>
+        <td width="74%"><font size="2" face="Arial">Forces
+        changes made in the Editor to be down loaded to the
+        WebSpeed Transaction Agent. In most cases, the WebSpeed
+        Editor automatically forces submit actions when
+        appropriate. Some user actions that force a submit
+        include, compiling, closing the window, and navigating to
+        another section. </font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Reset
+        Section</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Undoes all
+        unsubmitted edits to the current code section.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>New
+        Section</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Creates a new
+        code section</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Delete
+        Section</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Deletes the
+        current code section.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Rename Section</strong></font></td>
+        <td><font size="2" face="Arial">Renames the current code
+        section.</font></td>
+    </tr>
+</table>
+
+<h3><a name="Format Selection Submenu"><font size="3"
+face="Arial"><b>Format Selection Submenu</b></font></a></h3>
+
+<p><font size="2" face="Arial">The Format Selection submenu
+commands allow you to make formatting changes to code selected in
+the Code Section Editor.</font></p>
+
+<p><font size="2" face="Arial"><strong>Note</strong>: These
+options are duplicated as </font><a href="#Toolbar"><font
+size="2" face="Arial">Tool Bar buttons</font></a><font size="2"
+face="Arial">.</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Indent</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Indents the
+        code selected in the editor. <strong>Note:</strong> The
+        first line is not indented unless selected to the start
+        of the line.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Un-indent</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Un-indents
+        the code selected in the editor.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Comment</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Adds comment
+        markers around the code selected in the editor.</font></td>
+    </tr>
+    <tr>
+        <td valign="top" width="26%"><font size="2" face="Arial"><strong>Uncomment</strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Removes the
+        outer-most comment markers from the code selected in the
+        editor.<strong>Note: </strong>Be sure to select through
+        the comment characters /* and */.</font></td>
+    </tr>
+</table>
+
+<h2><a name="Toolbar"><font size="4" face="Arial">Toolbar</font></a><font
+size="4" face="Arial"> buttons</font></h2>
+
+<p><font size="2" face="Arial">The Section Editor has the
+following Tool Bar buttons:</font></p>
+
+<table border="0" cellpadding="7" cellspacing="0" width="374">
+    <tr>
+        <td><font size="2" face="Arial"><strong>Section Selector</strong></font></td>
+        <td><font size="2" face="Arial">For multi-section files,
+        displays the current code section, and allows you to move
+        to another section (using the drop down menu). For all
+        other files, displays the file name.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>New</strong></font></td>
+        <td><font size="2" face="Arial">For WebSpeed-generated
+        files (.w procedures) adds a new code section.</font></td>
+    </tr>
+    <tr>
+        <td><font size="2" face="Arial"><strong>Find</strong></font></td>
+        <td><font size="2" face="Arial">Finds a text string
+        within the current section.</font></td>
+    </tr>
+    <tr>
+        <td width="26%"><font size="2" face="Arial"><strong><img
+        src="../../workshop/comment.gif" width="29" height="28"></strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Adds comment
+        markers around the code selected in the editor.<strong>Note:</strong>
+        The first line is not indented unless selected to the
+        start of the line.</font></td>
+    </tr>
+    <tr>
+        <td width="26%"><font size="1" face="Arial"><strong><img
+        src="../../workshop/tkaway.gif" width="29" height="27"></strong></font></td>
+        <td width="74%"><font size="2" face="Arial">Removes
+        comment markers from the code selected in the editor.<strong>Note:
+        </strong>Be sure to select through the comment characters
+        /* and */.</font></td>
+    </tr>
+    <tr>
+        <td width="26%"><img src="../../workshop/indnt.gif"
+        width="30" height="28"></td>
+        <td width="74%"><font size="2" face="Arial">Indents the
+        code selected in the editor.</font></td>
+    </tr>
+    <tr>
+        <td><img src="../../workshop/unindnt.gif" width="29"
+        height="27"></td>
+        <td><font size="2" face="Arial">Un-indents the code
+        selected in the editor.</font></td>
+    </tr>
+</table>
+
+<h2><a name="edit area"><font size="4" face="Arial">Edit Area</font></a></h2>
+
+<p><font size="2" face="Arial">Allows you to edit the file. For
+multi-section files, allows you to edit the current section. </font></p>
+<!--webbot bot="Include" u-include="standard.htm" tag="BODY"
+startspan -->
+
+<hr noshade color="#0000FF">
+
+<dl>
+    <dd><a href="howtouse.htm"><img src="images/help-sm.gif"
+        border="0" width="18" height="18"></a> <a
+        href="howtouse.htm"><font size="2" face="Arial">How to
+        Use Workshop</font></a></dd>
+    <dd><a href="glossary.htm"><img src="images/help-sm.gif"
+        border="0" width="18" height="18"></a> <a
+        href="glossary.htm"><font size="2" face="Arial">WebSpeed
+        Glossary</font></a><font size="2" face="Arial"> </font></dd>
+    <dd><a href="../library/homepage.htm"><img
+        src="images/book.gif" border="0" width="19" height="17"></a><font
+        size="2" face="Arial"> </font><a
+        href="../library/homepage.htm"><font size="2"
+        face="Arial">WebSpeed Library</font></a></dd>
+</dl>
+
+<p>&nbsp;</p>
+<!--webbot bot="Include" endspan i-checksum="30635" -->
+</body>
+</html>

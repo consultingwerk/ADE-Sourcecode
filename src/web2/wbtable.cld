@@ -1,0 +1,19 @@
+/* Class Definition for wbtable - src\web2\wbtable.cld - 06/16/1999 
+   Class Type: Progress	
+   Class Name: wbtable
+   Class DeriveFrom: 
+   Class SourcePath: src/web2
+   Class RcodePath: web2
+   Class TemplatePath: src/web2/template   
+   Class Method: wbtable.i
+   Class Property: wbtaprop.i
+   Class Super: wbtable.p
+   Class Prototype: wbtaprto.i
+   Class Template: wbtable.w
+   Custom Method: wbtablecustom.i
+   Custom Property: wbtapropcustom.i
+   Custom Super: wbtablecustom.p
+   Custom Prototype: wbtaprtocustom.i
+   Custom Exclude: wbtableexclcustom.i
+   Custom Instance: wbtabledefscustom.i
+ */

@@ -1,0 +1,14 @@
+/* HTML offsets */
+htm-file= D:\PROGRESS\WRK\examples\w-cststa.htm
+version= 
+
+field[1]= "Name,INPUT,,fill-in,9,16,9,44"
+field[2]= "CustNum,INPUT,,fill-in,11,5,11,35"
+field[3]= "Phone,INPUT,,fill-in,12,16,12,45"
+field[4]= "Address,INPUT,,fill-in,13,12,13,43"
+field[5]= "Address2,INPUT,,fill-in,14,12,14,44"
+field[6]= "City,INPUT,,fill-in,15,7,15,35"
+field[7]= "State,INPUT,,fill-in,16,11,16,40"
+field[8]= "PostalCode,INPUT,,fill-in,17,9,17,43"
+field[9]= "Comments,TEXTAREA,,editor,18,11,18,66"
+ 

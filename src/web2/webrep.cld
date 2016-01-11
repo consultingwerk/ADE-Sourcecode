@@ -1,0 +1,19 @@
+/* Class Definition for webrep - src\web2\webrep.cld - 06/16/1999 
+   Class Type: Progress	
+   Class Name: webrep
+   Class DeriveFrom: 
+   Class SourcePath: src/web2
+   Class RcodePath: web2
+   Class TemplatePath: src/web2/template   
+   Class Method: webrep.i
+   Class Property: webrprop.i
+   Class Super: webrep.p
+   Class Prototype: webrprto.i
+   Class Template: webrep.w
+   Custom Method: webrepcustom.i
+   Custom Property: webrpropcustom.i
+   Custom Super: webrepcustom.p
+   Custom Prototype: webrprtocustom.i
+   Custom Exclude: webrepexclcustom.i
+   Custom Instance: webrepdefscustom.i
+ */

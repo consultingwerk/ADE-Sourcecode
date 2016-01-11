@@ -1,0 +1,52 @@
+ 
+ 
+ International Glossaries: Provide International
+ Terminology
+ 
+ All rights reserved. No part of these documents may be
+ reproduced, adapted, distributed, or transmitted in any
+ form or by any means, electronic, mechanical, or
+ otherwise, including photocopying and entry into an
+ information storage and/or retrieval system, for any
+ purpose without the express consent of Microsoft
+ Corporation. Microsoft Corporation hereby authorizes you
+ to use the individual terms described in these documents
+ as descriptions. You are not permitted to duplicate the
+ compiled glossaries in whole or substantial part for
+ distribution. Except as expressly stated, nothing herein
+ is intended to constitute a license under any Microsoft
+ Corporation copyright, trademark, or other intellectual
+ property right. If you require additional rights, please
+ contact Microsoft Corporation, One Microsoft Way, Redmond,
+ WA  98052, USA, Attn: International Quality Assurance.
+ 
+ MICROSOFT CORPORATION PROVIDES THE GLOSSARY TERMS AND
+ INFORMATION CONTAINED IN THESE DOCUMENTS ON AN “AS IS"
+ BASIS WITHOUT WARRANTY. Microsoft Corporation DOES NOT
+ represent, guarantee, or warrant that: (1) the glossary
+ terms and other information contained in these documents
+ are non-infringing and freely available for use; nor (2)
+ that the glossary terms, the glossaries themselves, and
+ other information contained in these documents are
+ completely accurate and current.
+ 
+ The purpose of the glossaries is to provide international
+ terminology, not English. These glossaries may contain
+ Microsoft terminology for both applications and systems.
+ In an effort to standardize this terminology, the
+ glossaries are being released.
+ 
+ Note that the English terminology is a byproduct of
+ Microsoft's international glossaries and that Microsoft
+ cannot guarantee the quality of this product. The
+ subscriber may use individual terms, but may not reproduce
+ the compiled glossaries for resale.
+ 
+ Glossary files are available in French, German, Spanish,
+ Italian, Swedish, Dutch, Finnish, Danish, Norwegian,
+ Russian, Czech, Hungarian, Polish, Turkish, Greek, and
+ Brazilian Portuguese. The glossaries are in .CSV files so
+ that they can be opened in Microsoft(R) Excel, Word, and
+ Works.
+ 
+ KEYWORDS: CD10

@@ -1,0 +1,21 @@
+/* 
+ * ACTIVEX.CST - PROGRESS ActiveX controls - Version 9 - 04/01/98 
+ */
+
+#CSSpin &Default
+CONTROL {EAF26C8F-9586-101B-9306-0020AF234C9D} CSSpin
+UP-IMAGE-FILE   adeicon/csspin-u.bmp
+DOWN-IMAGE-FILE adeicon/csspin-d.bmp
+LABEL CSSpin
+
+#CSComboBox &Default
+CONTROL {93330F00-7CA6-101B-874B-0020AF109266} CSComboBox
+UP-IMAGE-FILE   adeicon/cscomb-u.bmp
+DOWN-IMAGE-FILE adeicon/cscomb-d.bmp
+LABEL CSCombo
+
+#PSTimer &Default
+CONTROL {F0B88A90-F5DA-11CF-B545-0020AF6ED35A} PSTimer
+UP-IMAGE-FILE   adeicon/pstime-u.bmp
+DOWN-IMAGE-FILE adeicon/pstime-d.bmp
+LABEL PSTimer

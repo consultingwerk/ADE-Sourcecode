@@ -1,0 +1,46 @@
+<SCRIPT LANGUAGE="SpeedScript">
+  /*------------------------------------------------------------------------
+    File: workshop/_exit.html
+
+    Description: Display a SHUTDOWN message for Workshop.
+   
+    Parameters:  <none>
+
+    Author:  Wm. T. Wood
+    Created: April 5, 1997
+  ------------------------------------------------------------------------*/
+  /*          This .HTML file was created with WebSpeed Workshop.         */
+  /*----------------------------------------------------------------------*/
+
+  /* Include files ---                                                    */
+  { webutil/wstyle.i }       /* Standard style functions and definitions. */ 
+  { workshop/sharvars.i }    /* Standard Workshop shared variables        */
+
+  /* Output the standard HTML header. */
+  {&OUT}
+     { workshop/html.i &SEGMENTS = "head,open-body"
+                       &AUTHOR   = "Wm.T.Wood"
+                       &TITLE    = "Shutdown Message" 
+                       &FRAME    = "_top" } .
+</SCRIPT>
+<UL>
+<TABLE BORDER="0" CELLSPACING="5" CELLPADDING="5">
+  <TR>
+    <TD> <IMG SRC="/webspeed/workshop/webspeed.gif" ALT="WebSpeed" HEIGHT=27 WIDTH=112><BR>
+         <IMG SRC="/webspeed/workshop/workshop.gif" ALT="Workshop" HEIGHT=27 WIDTH=112>    
+    </TD>
+    <TD> <BR>Workshop has shutdown. <BR><BR>
+         Your <B><FONT COLOR="RED">Web</FONT>Speed</B> Transaction Agent has been unlocked.<BR>
+         Click <A HREF="`AppURL`/workshop?exitAt=`TIME`" TARGET="_top">here</A> to restart Workshop </TD>.
+    </TD>
+  </TR>
+</TABLE>
+<SCRIPT LANGUAGE="SpeedScript">
+  /* Add the WebSpeed Editor stub needed to close any editor windows. */
+  {&OUT} { workshop/startse.i &DoCommand = "~'CloseAll~':U" } .
+</SCRIPT>
+</UL>
+<BR>
+&nbsp;
+</BODY>
+</HTML>

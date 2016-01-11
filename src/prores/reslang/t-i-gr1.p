@@ -1,0 +1,78 @@
+/*********************************************************************
+* Copyright (C) 2000 by Progress Software Corporation ("PSC"),       *
+* 14 Oak Park, Bedford, MA 01730, and other contributors as listed   *
+* below.  All Rights Reserved.                                       *
+*                                                                    *
+* The Initial Developer of the Original Code is PSC.  The Original   *
+* Code is Progress IDE code released to open source December 1, 2000.*
+*                                                                    *
+* The contents of this file are subject to the Possenet Public       *
+* License Version 1.0 (the "License"); you may not use this file     *
+* except in compliance with the License.  A copy of the License is   *
+* available as of the date of this notice at                         *
+* http://www.possenet.org/license.html                               *
+*                                                                    *
+* Software distributed under the License is distributed on an "AS IS"*
+* basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You*
+* should refer to the License for the specific language governing    *
+* rights and limitations under the License.                          *
+*                                                                    *
+* Contributors:                                                      *
+*                                                                    *
+*********************************************************************/
+/* t-i-eng.p - English language definitions for Directory */
+
+{ prores/t-define.i }
+
+DEFINE INPUT PARAMETER qbf-s AS INTEGER NO-UNDO.
+
+IF qbf-s < 0 THEN RETURN.
+qbf-lang = "".
+
+/*i-dir.p,i-pick.p,i-zap.p,a-info.p,i-read.p*/
+ASSIGN
+  qbf-lang[ 1] = 'εξαγωγή,graph,ετικέττα,query,εκτύπωση'
+  qbf-lang[ 2] = 'Δώστε μία περιγραφή της'
+  qbf-lang[ 3] = 'Για έναν από τους παρακάτω λόγους μερικά αρχεία 
+                  και/ή πεδία παραλείπονται :^'
+               + '1) Οι αρχικές "database" δεν έχουν συνδεθεί^'
+               + '2) Εχουν γίνει μεταβολές των ορισμών της "database"^'
+               + '3) Δεν έχετε δικαιώματα πρόσβασης'
+  qbf-lang[ 4] = 'Η ονομασία της κάθε ~{1~} πρέπει να είναι μοναδική. Παρακαλώ ξαναδώστε.'
+  qbf-lang[ 5] = 'Οριο αποθήκευσης αρχείων. Παρακαλώ διαγράψτε μερικά ! '
+               + 'Η διαγραφή από κάποιο κατάλογο εργασίων θα αποελευθερώσει χώρο.'
+  qbf-lang[ 6] = 'Περιγραφή,Database-,Πρόγραμμα'
+  qbf-lang[ 7] = 'Επιβεβαίωση επικάλυψης του αρχείου'
+  qbf-lang[ 8] = 'με'
+  qbf-lang[ 9] = 'Επιλογή'
+  qbf-lang[10] = 'μορφής εξαγωγής,graph,ετικέττας,query,εκτύπωσης'
+  qbf-lang[11] = 'μορφής εξαγωγής,graph,ετικέττας,query,εκτύπωσης'
+  qbf-lang[12] = 'μορφών εξαγωγής,graph,ετικεττών,query,εκτυπώσεων'
+  qbf-lang[13] = 'Μορφές Εξαγωγής,graph,Μορφές Ετικεττών,query,'
+               + 'Ορισμοί Εκτυπώσεων'
+  qbf-lang[14] = 'για Φόρτωση,για Αποθήκευση,για Διαγραφή'
+  qbf-lang[15] = 'Εκτέλεση...'
+  qbf-lang[16] = 'Φόρτωση ~{1~} από άλλο κατάλογο'
+  qbf-lang[17] = 'Αποθήκευση νέας ~{1~}'
+  qbf-lang[18] = 'δεν διατίθεται'
+  qbf-lang[19] = 'Ολα τα επιλεγμένα θα διαγραφούν. ['
+               + KBLABEL('RETURN') + '] για επιλογή/ακύρωση επιλογής.'
+  qbf-lang[20] = 'Πατήστε [' + KBLABEL('GO') + '] αφού επιλέξετε, ή ['
+               + KBLABEL('END-ERROR') + '] για τέλος χωρίς διαγραφή.'
+  qbf-lang[21] = 'Μετακίνηση του ~{1~} στη θέση ~{2~}.'
+  qbf-lang[22] = 'Διαγραφή του ~{1~}.'
+  qbf-lang[23] = '[' + KBLABEL("GO") + '] για επιλογή, ['
+               + KBLABEL("INSERT-MODE") + '] για εναλλαγή, ['
+               + KBLABEL("END-ERROR") + '] για τέλος.'
+  qbf-lang[24] = 'Δημιουργία του καταλόγου Εκτυπώσεων με τις μεταβολές ...'
+/*a-info.p only:*/ /* 25..29 use format x(64) */
+  qbf-lang[25] = 'Αυτό το πρόγραμμα εμφανίζει τα περιεχόμενα του αρχείου'
+  qbf-lang[26] = 'Στοιχείων Χρήστη από τον καταλόγό του, δείχνοντας ποιά'
+  qbf-lang[27] = 'δημιουργημένα προγράμματα ανήκουν σε ποιές εκτυπώσεις,'
+  qbf-lang[28] = 'εξαγωγές,ετικέττες κοκ.'
+  qbf-lang[29] = 'Δώστε την πλήρη ονομασία του "path" του αρχείου ".qd" του χρήστη:'
+  qbf-lang[30] = 'Δεν βρέθηκε το αρχείο που δώσετε.'
+  qbf-lang[31] = 'Πρέπει να δώσετε και την προέκταση της ονομασίας ".qd".'
+  qbf-lang[32] = 'Ανάγνωση του καταλόγου...'.
+
+RETURN.

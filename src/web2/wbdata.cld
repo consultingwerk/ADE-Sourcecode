@@ -1,0 +1,19 @@
+/* Class Definition for wbdata - src\web2\wbdata.cld - 06/16/1999 
+   Class Type: Progress	
+   Class Name: wbdata
+   Class DeriveFrom: 
+   Class SourcePath: src/web2
+   Class RcodePath: web2
+   Class TemplatePath: src/web2/template   
+   Class Method: wbdata.i
+   Class Property: wbdaprop.i
+   Class Super: wbdata.p
+   Class Prototype: wbdaprto.i
+   Class Template: wbdata.w
+   Custom Method: wbdatacustom.i
+   Custom Property: wbdapropcustom.i
+   Custom Super: wbdatacustom.p
+   Custom Prototype: wbdaprtocustom.i
+   Custom Exclude: wbdataexclcustom.i
+   Custom Instance: wbdatadefscustom.i
+ */

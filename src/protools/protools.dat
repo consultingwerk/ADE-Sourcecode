@@ -1,0 +1,23 @@
+"Color Changer" "protools/_colorch.w" "adeicon/clrchnge" yes yes 10 no
+"Config info" "protools/_procfg.w" "adeicon/cnfginfo.bmp" yes yes 20 no
+"Control Hierarchy" "protools/_walker.w" "adeicon/cntrlhry" yes yes 30 no
+"DB List" "protools/_dblist.w" "adeicon/dblist" yes yes 40 no
+"OS Prompt" "protools/_osprmt.p" "adeicon/osprompt" no yes 50 no
+"Set Font 2" "protools/_edfont.p" "adeicon/setfont" no yes 60 no
+"Editor" "protools/_pwedit.p" "adeicon/editor" no yes 70 no
+"Procedures" "protools/_ppmgr.w" "adeicon/procedur" yes yes 80 no
+"Propath" "protools/_propath.w" "adeicon/propath" no yes 90 no
+"Run" "protools/_runfile.w" "adeicon/run" yes yes 100 no
+"Session" "protools/_session.w" "adeicon/session" no yes 110 no
+"Window Viewer" "protools/_winmgr.w" "adeicon/windview" no yes 120 no
+"Windows Info" "protools/_wabout.p" "adeicon/wininfo" no yes 130 no
+"Screen Capture" "protools/_scrcap.w" "adeicon/scrcap" yes yes 140 no
+"SmartObject Upgrade Utility" "protools/_v89conv.w" "adeicon/smoupgrd" yes yes 150 no
+"Screen Scaling Utility" "protools/_ppuscl.p" "adeicon/fntupgrd" no yes 160 no
+"Progress COM Object Viewer" "protools/_proobjv.p" "adeicon/proobjvw" no yes 170 no
+"Service Parameter Maintenance" "protools/waspartn.w" "adeicon/appsrvr" yes yes 180 no
+"ProtoGen" "protools/_protgen.w" "adeicon/protogen" yes yes 190 no
+"AppServer Information" "protools/_asinfo.w" "adeicon/asinfo" no yes 200 no
+"PRO*Spy for Version 9" "protools/_prospy9.w" "adeicon/prospy9.bmp" yes yes 210 no
+"WebClient Application Assembler" "protools/_prowcapped.p" "adeicon/prowcapped" no yes 220 no
+"XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 230 no

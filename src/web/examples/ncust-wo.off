@@ -1,0 +1,13 @@
+/* HTML offsets */
+htm-file= C:\1a\ncust-wo.htm
+version= 
+
+field[1]= "cust-prompt,INPUT,text,fill-in,9,5,9,60"
+field[2]= "matching-cust-names,SELECT,,selection-list,17,5,17,56"
+field[3]= "Name,INPUT,text,fill-in,23,7,23,43"
+field[4]= "Phone,INPUT,text,fill-in,27,7,27,44"
+field[5]= "Comments,TEXTAREA,,editor,31,7,31,59"
+field[6]= "Country,INPUT,radio,radio-set,35,7,35,49"
+field[7]= "Country,INPUT,radio,radio-set,36,7,36,51"
+field[8]= "HasOrders,INPUT,checkbox,toggle-box,40,7,40,44"
+ 

@@ -1,0 +1,17 @@
+/* HTML offsets */
+htm-file= D:\PROGRESS\WRK\w-custdir.htm
+version= 
+
+field[1]= "cusrowid,input,hidden,fill-in,11,2,11,39"
+field[2]= "AddMode,input,hidden,fill-in,11,40,11,76"
+field[3]= "SearchName,input,,fill-in,12,2,12,36"
+field[4]= "Name,input,,fill-in,14,9,14,37"
+field[5]= "Address,input,,fill-in,15,9,15,40"
+field[6]= "City,input,,fill-in,16,2,16,30"
+field[7]= "State,input,,fill-in,16,31,16,60"
+field[8]= "PostalCode,input,,fill-in,16,61,16,95"
+field[9]= "Phone,input,,fill-in,18,9,18,38"
+field[10]= "EmailAddress,input,,fill-in,19,9,19,45"
+field[11]= "Fax,input,,fill-in,20,9,20,36"
+field[12]= "SalesRep,input,,fill-in,22,11,22,42"
+ 

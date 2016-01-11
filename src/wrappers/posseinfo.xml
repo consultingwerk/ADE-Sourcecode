@@ -1,0 +1,172 @@
+<?xml version = "1.0" encoding = "UTF-8"?>
+<!-- ********************************************************************** -->
+<!-- * Copyright (C) 2001 by Progress Software Corporation ("PSC"),       * -->
+<!-- * 14 Oak Park, Bedford, MA 01730, and other contributors as listed   * -->
+<!-- * below.  All Rights Reserved.                                       * -->
+<!-- *                                                                    * -->
+<!-- * The Initial Developer of the Original Code is PSC.  The Original   * -->
+<!-- * Code is Progress IDE code released to open source December 1, 2000.* -->
+<!-- *                                                                    * -->
+<!-- * The contents of this file are subject to the Possenet Public       * -->
+<!-- * License Version 1.0 (the "License"); you may not use this file     * -->
+<!-- * except in compliance with the License.  A copy of the License is   * -->
+<!-- * available as of the date of this notice at                         * -->
+<!-- * http://www.possenet.org/license.html                               * -->
+<!-- *                                                                    * -->
+<!-- * Software distributed under the License is distributed on an "AS IS"* -->
+<!-- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. You* -->
+<!-- * should refer to the License for the specific language governing    * -->
+<!-- * rights and limitations under the License.                          * -->
+<!-- *                                                                    * -->
+<!-- * Contributors:                                                      * -->
+<!-- *                                                                    * -->
+<!-- ********************************************************************** -->
+<POSSE>
+	<Version> 1.1 </Version>
+	<PROJECTS>
+		<Project>
+                        <ProjectName> adebuild </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> TBD </OwnerName>      
+				<OwnerEMail> TBD </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+                       	<ProjectName> adecomp </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adedesk </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Gerry Seidl  </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adedict </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeedit </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo     </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeicon </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName>Gerry Seidl </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> aderes </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeshar </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Palazzo     </OwnerName>      
+				<OwnerEMail> jep@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adetran </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adeuib </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> TBD </OwnerName>      
+				<OwnerEMail> dev@adeuib.possenet.org </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> adm2 </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> John Sadd </OwnerName>      
+				<OwnerEMail> john@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> as4dict </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann  </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> docs </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Melissa Spurr </OwnerName>      
+				<OwnerEMail> spurr@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> prodict </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Donna McMann </OwnerName>      
+				<OwnerEMail> mcmann@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> prores </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Terry Jackson </OwnerName>      
+				<OwnerEMail> jackson@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> protools </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> Gerry Seidl </OwnerName>      
+				<OwnerEMail> gfs@progress.com </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+			<ProjectName> webspeed </ProjectName>
+			<ProjectVersion> TBD </ProjectVersion>
+			<ProjectOwner>
+				<OwnerName> TBD </OwnerName>      
+				<OwnerEMail> dev@webspeed.possenet.org </OwnerEMail>
+			</ProjectOwner>
+		</Project>
+		<Project>
+		        <ProjectName> webtools </ProjectName>
+		        <ProjectVersion> TBD </ProjectVersion>
+		        <ProjectOwner>
+		                <OwnerName> TBD </OwnerName>      
+		                <OwnerEMail> dev@webtools.possenet.org </OwnerEMail>
+		        </ProjectOwner>
+		</Project>
+	</PROJECTS>
+</POSSE>

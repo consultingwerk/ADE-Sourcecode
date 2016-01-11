@@ -1,0 +1,88 @@
+++ Old Name                        ++ New Name
+"UIB_v8r12 GUI"                    "AB_v9r12 GUI ADM2"
+"RUN initialize "                  "RUN initializeObject "
+"init-pages"                       "initPages"
+"init-object"                      "constructObject"
+"set-position"                     "repositionObject"
+"exit"                             "exitObject"
+"set-size"                         "resizeObject"
+"add-link"                         "addLink"
+"adjust-tab-order"                 "adjustTabOrder"
+"select-page"                      "selectPage"
+"SmartBrowser"                     "SmartDataBrowser"
+"SmartQuery"                       "SmartDataObject"
+"SmartViewer"                      "SmartDataViewer"
+"'Record':U"                       "'Data':U"
+"{src/adm/template/windowmn.i}"    "{src/adm2/windowmn.i}"
+"{src/adm/template/dialogmn.i}"    "{src/adm2/dialogmn.i}"
+" IN THIS-PROCEDURE"               ""
+" IN adm-broker-hdl"               ""
+++ Remove List
+"Keys-Accepted"                    Attribute
+"Keys-Supplied"                    Attribute
+"SortBy-Options"                   Attribute
+"key-value"                        Attribute
+"OPEN-QUERY-CASES"                 Procedure
+"ROW-AVAILABLE"                    Procedure
+"SEND-KEY"                         Procedure
+"SEND-RECORDS"                     Procedure
+"STATE-CHANGED"                    Procedure
+"Foreign Keys"                     Procedure
+"Find-Using-Key"                   Procedure
+"Advanced Query Options"           Procedure
+"_INCLUDED-LIB"                    Procedure
+++ Method List
+add-record                         addRecord        P " "
+apply-entry                        applyEntry       P " "
+apply-layout                       applyLayout      P " "
+cancel-record                      cancelRecord     P " "
+change-page                        changePage       P " "
+copy-record                        copyRecord       P " "
+delete-record                      deleteRecord     P " "
+destroy                            destroyObject    P " "
+disable                            disableObject    P " "
+disable-fields                     disableFields    P "pcFieldType|CHAR|I"
+display-fields                     displayFields    P "pcColValues|CHAR|I"
+enable                             enableObject     P " "
+enable-fields                      enableFields     P " "
+get-first                          fetchFirst       P " "
+get-last                           fetchLast        P " "
+get-next                           fetchNext        P " "
+get-prev                           fetchPrev        P " "
+hide                               hideObject       P " "
+initialize                         initializeObject P " "
+open-query                         openQuery        FL " "
+reset-record                       resetRecord      P " "
+row-changed                        rowChanged       P " "
+update-record                      updateRecord     P " "
+view                               viewObject       P " "
+++ Built-in Attribute List
+Version                            ObjectVersion
+Type                               ObjectType
+Container-Type                     ContainerType
+Query-Object                       QueryObject
+ADM-Object-Handle                  ContainerHandle
+ADM-attribute-list                 InstanceProperties
+Supported-Links                    SupportedLinks
+ADM-Parent                         ObjectParent
+Hidden                             ObjectHidden
+Initialized                        ObjectInitialized
+UIB-Mode                           UIBMode
+ADM-Translation-Attributes         TranslatableProperties
+Current-Page                       CurrentPage
+Layout                             ObjectLayout
+Hide-On-Init                       HideOnInit
+Disable-On-Init                    DisableOnInit
+Fields-Enabled                     FieldsEnabled
+ADM-new-record                     NewRecord
+Right-To-Left                      RightToLeft
+Enabled-Tables                     EnabledTables
+
+
+
+
+
+
+
+ 
+

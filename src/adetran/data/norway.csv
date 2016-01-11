@@ -1,0 +1,1718 @@
+English,English Hotkey,Localised,Localised Hotkey,Category,Type,Environment,Product Name,Comments
+| Footer,,Bunntekst for |,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+| Header,,Topptekst for |,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+| KB Free,,| kB ledig,,TXT,,WIN,Access,Ver 2.0.
+Abort,A,Avbryt,A,BUT,,WIN,Access,Ver 2.0. Button on Message Box
+About,,Om,,COM,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+About Microsoft Access...,A,Om Microsoft Access...,O,COM,,WIN,Access,Ver 2.0.
+Access Key,,Hurtigtast,,TXT,,WIN,Access,Ver 2.0. Property or event
+Access records,,Access-poster,,TXT,,WIN,Access,Ver 2.0.
+Activate a window,,Aktiverer et vindu,,COM,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Active Control,,AktivKontroll,,TXT,,WIN,Access,Ver 2.0. Property or event
+Active Form,,AktivtSkjema,,TXT,,WIN,Access,Ver 2.0. Property or event
+Active Report,,AktivRapport,,TXT,,WIN,Access,Ver 2.0. Property or event
+Add,A,Legg til,e,BUT,,WIN,Access,Ver 2.0.
+Add >>,A,Legg til >>,e,BUT,,WIN,Access,Ver 2.0.
+Add Colon,,LeggTilKolon,,TXT,,WIN,Access,Ver 2.0. Property or event
+Add Control...,A,Legg til kontroll...,L,BUT,,WIN,Access,Ver 2.0.
+Add Table,,Legg til tabell,,TDB,,WIN,Access,Ver 2.0.
+Add Table,,Legg til tabell,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Add Table...,A,Legg til tabell...,L,COM,,WIN,Access,Ver 2.0.
+Add Table...,,Legg til tabell...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Add-ins,,Tillegg,,TXT,,WIN,Access,Ver 2.0.
+Add-ins,-,Tillegg,i,COM,,WIN,Access,Ver 2.0.
+AddMenu,,LeggTilMeny,,MAC,,WIN,Access,Ver 2.0.
+Admin,,Administrator,,TXT,,WIN,Access,Ver 2.0. List box item in Permissions dialog
+Administer,s,Administrere,A,BUT,,WIN,Access,Ver 2.0.
+Admins,,Administratorer,,TXT,,WIN,Access,Ver 2.0. List box item in Permissions dialog
+After Del Confirm,,EtterSlettebekreftelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+After Insert,,EtterInnsetting,,TXT,,WIN,Access,Ver 2.0. Property or event
+After Update,,EtterOppdatering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Align,A,Juster,J,COM,,WIN,Access,Ver 2.0.
+Align,,Juster,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Align Controls Bottom,,Bunnjuster kontroller,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Align Controls Left,,Venstrejuster kontroller,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Align Controls Right,,Høyrejuster kontroller,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Align Controls Top,,Toppjuster kontroller,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Align To Grid,,Juster til rutenett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+All Files (*.*),,Alle filer (*.*),,TXT,,WIN,Access,Ver 2.0.
+All Files (*.*)|*.*|,,Alle filer (*.*)|*.*|,,TXT,,WIN,Access,Ver 2.0. List box item
+All Forms,,Alle skjemaer,,TXT,,WIN,Access,Ver 2.0.
+All Macros,,Alle makroer,,TXT,,WIN,Access,Ver 2.0.
+All Properties,,\@Alle egenskaper\@;255;\@Dataegenskaper\@;2;\@Designegenskaper\@;1;\@Hendelsesegenskaper\@;4;\@Andre egenskaper\@;8,,TXT,,WIN,Access,Ver 2.0. Listbox item
+All Queries,,Alle spørringer,,TXT,,WIN,Access,Ver 2.0.
+All Records,,Alle poster,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+All Reports,,Alle rapporter,,TXT,,WIN,Access,Ver 2.0.
+All Tables,,Alle tabeller,,TXT,,WIN,Access,Ver 2.0.
+Allow Editing,E,Tillat redigering,T,COM,,WIN,Access,Ver 2.0.
+Allow Editing,,Tillat redigering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Allow Filters,,TillatFilter,,TXT,,WIN,Access,Ver 2.0. Property or event
+Allow Updating,,TillatOppdatering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Allow Zero Length,,TillatNullengde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Analyze It with MS Excel,,Analyser data med MS Excel,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Another Database:,A,Annen database:,A,BUT,,WIN,Access,Ver 2.0.
+Any Part of Field,,Del av feltet,,TXT,,WIN,Access,Ver 2.0. List box item
+Append,,Føy til,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Append Data to Existing Table,A,Føy data til eksisterende tabell,F,BUT,,WIN,Access,Ver 2.0.
+Append Query,,Føy til-spørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Append Query: ,,Føy til-spørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Append To,,Føy til,,BUT,,WIN,Access,Ver 2.0.
+Append To:,,Føy til:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+Append...,p,Føy til...,i,COM,,WIN,Access,Ver 2.0.
+Application,,Program,,TXT,,WIN,Access,Ver 2.0. Property or event
+Apply,A,Bruk,B,BUT,,WIN,Access,Ver 2.0.
+Apply Default,D,Bruk standard,B,COM,,WIN,Access,Ver 2.0.
+Apply Default,,Bruk standard,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Apply Filter/Sort,y,Bruk filter/sortering,f,COM,,WIN,Access,Ver 2.0.
+Apply Filter/Sort,,Bruk filter/sortering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+ApplyFilter,,BrukFilter,,MAC,,WIN,Access,Ver 2.0.
+Arabic,,Arabisk,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Arithmetic,,Aritmetiske,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Arrange Icons,A,Ordne ikoner,O,COM,,WIN,Access,Ver 2.0.
+Arrange Icons,,Ordne ikoner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Arrays,,Matriser,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Arrow Key Behavior,,Piltaster,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+As:,A,Som:,S,DIA,,WIN,Access,Ver 2.0.
+Ascending,A,Stigende,S,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Ascending,,Stigende,,TXT,,WIN,Access,Ver 2.0. List box item
+Assign,A,Tilordne,T,BUT,,WIN,Access,Ver 2.0.
+Assign Permissions,,Tilordne tillatelser,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Auto,,Automatisk,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Auto Activate,,Autoaktivering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Center,,Automidtstill,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Expand,,Autoutvidelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Label,,Autoetikett,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Order,A,Autorekkefølge,A,BUT,,WIN,Access,Ver 2.0.
+Auto Repeat,,Autogjentagelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Resize,,Autostørrelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Auto Start,,Autostart,,ARG,,WIN,Access,Ver 2.0. Macro action argument
+Auto Tab,,AutoTab,,TXT,,WIN,Access,Ver 2.0. Property or event
+Autodialer,,Autooppringing,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+AutoForm,,Autoskjema,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+AutoKeys,,Autotaster,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+AutoReport,,Autorapport,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+AutoStart,A,AutoStart,A,BUT,,WIN,Access,Ver 2.0.
+Available Groups:,v,Tilgjengelige grupper:,T,DIA,,WIN,Access,Ver 2.0.
+Avg,,Gjennomsnitt,,FUN,,WIN,Access,Ver 2.0.
+Back Color,,Bakgrunnsfarge,,TXT,,WIN,Access,Ver 2.0. Property or event
+Back Style,,Bakgrunnsstil,,TXT,,WIN,Access,Ver 2.0. Property or event
+Barcode,,Strekkode,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Bcc,,Blindkopi til,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Beep,,Lydsignal,,MAC,,WIN,Access,Ver 2.0.
+Before Del Confirm,,FørSlettebekreftelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Before Insert,,FørInnsetting,,TXT,,WIN,Access,Ver 2.0. Property or event
+Before Update,,FørOppdatering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Binary,,Binær,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+Blank Form,,Tomt skjema,,BUT,,WIN,Access,Ver 2.0.
+Blank Report,,Tom rapport,,BUT,,WIN,Access,Ver 2.0.
+BOF,,FørstIFil,,TXT,,WIN,Access,Ver 2.0. Property or event
+Bold,,Fet,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Bookmark,,Bokmerke,,TXT,,WIN,Access,Ver 2.0. Property or event
+Bookmarkable,,KanHaBokmerke,,TXT,,WIN,Access,Ver 2.0. Property or event
+Both,B,Begge,B,BUT,,WIN,Access,Ver 2.0.
+Bottom,B,Bunn,B,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Bottom Margin,,Bunnmarg,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Bottom:,B,Bunn:,u,TXB,,WIN,Access,Ver 2.0.
+Bound Column,,BundetKolonne,,TXT,,WIN,Access,Ver 2.0. Property or event
+Bound Object Frame,,Bundet objektramme,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Box,,Boks,,TXT,,WIN,Access,Ver 2.0. Default name prefix for new box
+Break Level,,Avbruddsnivå,,TXT,,WIN,Access,Ver 2.0. Property or event
+Breakpoint,,Stoppunkt,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Bring To Front,,Plasser øverst,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+BringToFront,,Plasser øverst,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Browse...,B,Bla gjennom...,B,BUT,,WIN,Access,Ver 2.0.
+Build Event...,,Lag hendelse...,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Built-In Functions,,Innebygde funksjoner,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Built-In Toolbars Available,,Innebygde verktøylinjer,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Button,,Knapp,,TXT,,WIN,Access,Ver 2.0. Default name prefix for new button
+Buttons,,Knapper,,TXT,,WIN,Access,Ver 2.0.
+Calculating . . .,,Beregner . . .,,TXT,,WIN,Access,Ver 2.0.
+Calls,,Kall,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Calls...,C,Kall...,K,COM,,WIN,Access,Ver 2.0.
+Can Customize Toolbars,,Kan tilpasse verktøylinjer,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Can Grow,,KanForstørres,,TXT,,WIN,Access,Ver 2.0. Property or event
+Can Shrink,,KanForminskes,,TXT,,WIN,Access,Ver 2.0. Property or event
+"Can't Undo	Ctrl+Z",U,"Kan ikke angre	Ctrl+Z",a,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+Cancel,,Avbryt,,BUT,,WIN,Access,Ver 2.0.
+Cancel,,Avbryt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+CancelEvent,,AvbrytHendelse,,MAC,,WIN,Access,Ver 2.0.
+Cascade,C,Overlappet,l,COM,,WIN,Access,Ver 2.0.
+Cascade,,Overlappet,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Categories,,Kategorier,,TXT,,WIN,Access,Ver 2.0. The Property Categories control name
+Category,,Kategori,,TXT,,WIN,Access,Ver 2.0. Property or event
+Category:,C,Kategori:,K,DIA,,WIN,Access,Ver 2.0.
+Cc,,Kopi til,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Center text within control,,Midtstill tekst innenfor kontrollen,,GBN,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Center-Align Text,,Midtstill tekst,,GBN,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+centimeters,,centimeter,,TXT,,WIN,Access,Ver 2.0.
+Change Default,C,Endre standard,d,COM,,WIN,Access,Ver 2.0.
+Change Default,,Endre standard,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Change Icon...,I,Endre ikon...,i,BUT,,WIN,Access,Ver 2.0.
+Change Link,,Endre kobling,,TXT,,WIN,Access,Ver 2.0.
+Change Owner,,Bytt eier,,TDB,,WIN,Access,Ver 2.0.
+Change Owner,,Bytt eier,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Change Owner...,h,Bytt eier...,y,COM,,WIN,Access,Ver 2.0.
+Change Password,,Endre passord,,TDB,,WIN,Access,Ver 2.0.
+Change Password,,Endre passord,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Change Password...,C,Endre passord...,E,COM,,WIN,Access,Ver 2.0.
+Change to Picture,,Endre til bilde,,TXT,,WIN,Access,Ver 2.0. Status bar text
+ChangeDefault,,Endre standard,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+ChangePassword,,Endre passord,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Check Box,,Avkrysningsboks,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Choose a set of properties to be displayed,,Velg et sett med egenskaper som skal vises,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Class,,Klasse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Clear Password,l,Fjern passord,o,BUT,,WIN,Access,Ver 2.0.
+ClearAll,,Fjern alt,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Close,,Lukk,,MAC,,WIN,Access,Ver 2.0.
+Close,C,Lukk,L,COM,,WIN,Access,Ver 2.0.
+Close,,Lukk,,BUT,,WIN,Access,Ver 2.0.
+Close Database,C,Lukk database,L,COM,,WIN,Access,Ver 2.0.
+Close Window,,Lukk vindu,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+CloseDatabase,,Lukk database,,FUN,,WIN,Access,Ver 2.0. DDE function name
+Code,,Kode,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Code Builder,,Kodeverktøy,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+Code...,C,Kode...,o,COM,,WIN,Access,Ver 2.0.
+Collate Copies,i,Sorter kopier,r,BUT,,WIN,Access,Ver 2.0.
+Collate Copies,,Sorter kopier,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Color Buttons,o,Fargeknapper,F,BUT,,WIN,Access,Ver 2.0.
+Color Buttons on Toolbars,,Fargeknapper på verktøylinjen,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Color:,C,Farge:,F,DIA,,WIN,Access,Ver 2.0.
+Coltyp,,Kolonnetype,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column,,Kolonne,,TXT,,WIN,Access,Ver 2.0. Default name prefix for new column
+Column,,Kolonne,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Count,,AntallKolonner,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Heading,,Kolonneoverskrift,,TXT,,WIN,Access,Ver 2.0. List box item
+Column Headings,,Kolonneoverskrifter,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Heads,,Kolonneoverskrift,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Hidden,,SkjulKolonne,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Order,,Kolonnerekkefølge,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column Width,,Kolonnebredde,,TDB,,WIN,Access,Ver 2.0.
+Column Width,,Kolonnebredde,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Column Width...,C,Kolonnebredde...,K,COM,,WIN,Access,Ver 2.0.
+Column Width...,,Kolonnebredde...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Column Width:,C,Kolonnebredde:,K,TXB,,WIN,Access,Ver 2.0.
+Column Widths,,Kolonnebredder,,TXT,,WIN,Access,Ver 2.0. Property or event
+Column:,l,Kolonne,K,DIA,,WIN,Access,Ver 2.0.
+ColumnWidth,,Kolonnebredde,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Combo Box,,Kombinasjonsboks,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+comma separated values,,verdier skilt med komma,,TXT,,WIN,Access,Ver 2.0.
+Command,,Kommando,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Command Button,,Kommandoknapp,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Command Line,,Kommandolinje,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Comment,,Kommentar,,TXT,,WIN,Access,Ver 2.0.
+Common Expressions,,Vanlige uttrykk,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Compact,,Komprimer,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Compact Database...,C,Komprimer database...,m,COM,,WIN,Access,Ver 2.0.
+CompactDatabase,,Komprimer database,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Compacting,,Komprimerer,,TXT,,WIN,Access,Ver 2.0.
+Comparison,,Sammenligning,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+CompileLoadedModules,,Kompiler lastede moduler,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Condition,,Betingelse,,TXT,,WIN,Access,Ver 2.0.
+Conditions,C,Betingelser,B,COM,,WIN,Access,Ver 2.0.
+Conditions,,Betingelser,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Confirm Document Deletions,,Bekreft sletting av dokument,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Confirm Record Changes,,Bekreft postendringer,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Connect Control,,KobleTilKontroll,,TXT,,WIN,Access,Ver 2.0. Property or event
+Constants,,Konstanter,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Contents,C,Innhold,I,COM,,WIN,Access,Ver 2.0.
+Continue,,Fortsett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Continue\\tF5,C,Fortsett\\tF5,F,COM,,WIN,Access,Ver 2.0.
+Control Box,,Systemmenyboks,,TXT,,WIN,Access,Ver 2.0. Property or event
+Control Name,,Kontrollnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Control Source,,Kontrollkilde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Control Type:,T,Kontrolltype:,t,DIA,,WIN,Access,Ver 2.0.
+Control Wizards,W,Kontrollveivisere,s,COM,,WIN,Access,Ver 2.0.
+Control Wizards,,Kontrollveivisere,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+ControlWizards,,Kontrollveivisere,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Conversion,,Konvertering,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Convert Database,,Konverter database,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Convert Database...,t,Konverter database...,o,COM,,WIN,Access,Ver 2.0.
+ConvertDatabase,,Konverter database,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+ConvertErrors,,Konverteringsfeil,,TXT,,WIN,Access,Ver 2.0.
+Converting,,Konverterer,,TXT,,WIN,Access,Ver 2.0.
+Converting old form ,,Konverterer gammelt skjema ,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Converting old report ,,Konverterer gammel rapport ,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Converting old table properties ,,Konverterer gamle tabellegenskaper ,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Copies,,Kopier,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Copy,,Kopier,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Copy In Progress,,Kopierer,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Copy\\tCtrl+C,C,Kopier\\tCtrl+C,K,COM,,WIN,Access,Ver 2.0.
+CopyObject,,KopierObjekt,,MAC,,WIN,Access,Ver 2.0.
+Count,,Antall,,FUN,,WIN,Access,Ver 2.0.
+Counter,,Teller,,TXT,,WIN,Access,Ver 2.0. Data type
+Create a list of values,,Lag en liste over verdier,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Create a rectangle,,Lag et rektangel,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Create File as Type:,T,Lag fil som type:,t,DIA,,WIN,Access,Ver 2.0.
+Create New,N,Ny,N,BUT,,WIN,Access,Ver 2.0.
+Create Relationship,,Lag relasjon,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Create Relationship...,C,Lag relasjon...,s,COM,,WIN,Access,Ver 2.0.
+CreateRelationship,,Lag relasjon,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Creating relationship..,,Lage relasjoner...,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Creating System Table ... ,,Lager systemtabell ... ,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Criteria,,Vilkår,,TXT,,WIN,Access,Ver 2.0.
+Criteria:,,Vilkår:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+Crosstab,b,Krysstabell,r,COM,,WIN,Access,Ver 2.0.
+Crosstab,,Krysstabellspørring,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Crosstab Query,,Krysstabellspørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Crosstab Query: ,,Krysstabellspørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Crosstab:,,Krysstabell:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+Cue Cards,u,Hjelpekort,e,COM,,WIN,Access,Ver 2.0.
+Cue Cards,,Hjelpekort,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+CueCards,,Hjelpekort,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Currency,,Valuta,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+Current Database,C,Gjeldende database,G,BUT,,WIN,Access,Ver 2.0.
+Current Date,,Gjeldende dato,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Current Date/Time,,Gjeldende dato/kl.slett,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Current Module,M,Gjeldende modul,m,BUT,,WIN,Access,Ver 2.0.
+Current Procedure,P,Gjeldende prosedyre,r,BUT,,WIN,Access,Ver 2.0.
+Current Section Left,,GjeldendeInndVenstre,,TXT,,WIN,Access,Ver 2.0. Property or event
+Current Section Top,,GjeldendeInndØverst,,TXT,,WIN,Access,Ver 2.0. Property or event
+Current User,,Gjeldende bruker,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Current View,,GjeldendeVisning,,TXT,,WIN,Access,Ver 2.0. Property or event
+CurrentObjectName,,GjeldendeObjektnavn,,TXT,,WIN,Access,Ver 2.0. Property or event
+CurrentObjectType,,GjeldendeObjekttype,,TXT,,WIN,Access,Ver 2.0. Property or event
+CurrentX,,GjeldendeX,,TXT,,WIN,Access,Ver 2.0. Property or event
+CurrentY,,GjeldendeY,,TXT,,WIN,Access,Ver 2.0. Property or event
+Cursor Stops at First/Last Field,,Markøren stopper ved første/siste felt,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Custom Button,,Egendefinert knapp,,BUT,,WIN,Access,Ver 2.0.
+Custom Toolbar|,,Egendefinert verktøylinje|,,TXT,,WIN,Access,Ver 2.0.
+Customize,,Tilpass,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Customize...,C,Tilpass...,p,BUT,,WIN,Access,Ver 2.0.
+Customize...,,Tilpass...,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Cut,,Klipp ut,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Cut In Progress,,Klipper ut,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Cut\\tCtrl+X,t,Klipp ut\\tCtrl+X,u,COM,,WIN,Access,Ver 2.0.
+Dash-Dot,,Strek-prikk,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Dash-Dot-Dot,,Strek-prikk-prikk,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Dashes,,Stiplet,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Data Definition,D,Datadefinisjon,D,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Data Definition Language,t,DDL (datadefinisjonsspråk),D,COM,,WIN,Access,Ver 2.0.
+Data Definition Query: ,,Datadefinisjonsspørring: ,,TDB,,WIN,Access,Ver 2.0.
+Data Destination:,D,Til:,T,DIA,,WIN,Access,Ver 2.0.
+Data Destination:,D,Til:,T,DIA,,WIN,Access,Ver 2.0.
+Data Entry,D,Dataregistrering,D,COM,,WIN,Access,Ver 2.0.
+Data Entry,,Dataregistrering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Data Mode,,Dataregistreringsmodus,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Data Only,y,Bare data,d,BUT,,WIN,Access,Ver 2.0.
+Data Properties,,Dataegenskaper,,TXT,,WIN,Access,Ver 2.0. Listbox item
+Data Type,,Datatype,,TXT,,WIN,Access,Ver 2.0. Property or event
+Database Name,,Databasenavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Database to Compact From,,Database som skal komprimeres,,TDB,,WIN,Access,Ver 2.0.
+Database to Compact From,,Database som skal komprimeres,,TDB,,WIN,Access,Ver 2.0.
+Database to Compact Into,,Komprimer database som,,TDB,,WIN,Access,Ver 2.0.
+Database to Convert From,,Database som skal konverteres,,TDB,,WIN,Access,Ver 2.0.
+Database to Convert From,,Database som skal konverteres,,TDB,,WIN,Access,Ver 2.0.
+Database to Convert Into,,Konverter database som,,TDB,,WIN,Access,Ver 2.0.
+Database Type,,Databasetype,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Database Window,,Databasevindu,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Databases:,D,Databaser:,D,DIA,,WIN,Access,Ver 2.0.
+Datasheet,s,Dataark,D,COM,,WIN,Access,Ver 2.0.
+Datasheet,,Dataark,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Datasheet Font Height,,SkrifthøydeIDataark,,TXT,,WIN,Access,Ver 2.0. Property or event
+Datasheet Font Italic,,KursivskriftIDataark,,TXT,,WIN,Access,Ver 2.0. Property or event
+Datasheet Font Name,,SkriftIDataark,,TXT,,WIN,Access,Ver 2.0. Property or event
+Datasheet Font Underline,,UstrekIDataark,,TXT,,WIN,Access,Ver 2.0. Property or event
+Datasheet Font Weight,,SkrifttykkelseIDataark,,TXT,,WIN,Access,Ver 2.0. Property or event
+Datasheet View,,Dataarkvisning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Date Delimiter:,l,Datoskilletegn:,k,TXB,,WIN,Access,Ver 2.0.
+Date Grouping,,Datogrupper,,TXT,,WIN,Access,Ver 2.0. Property or event
+Date Order:,O,Datorekkefølge:,D,DIA,,WIN,Access,Ver 2.0.
+Date/Time,,Dato/klokkeslett,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+"Dates, Times, and Numbers",,"Dato, klokkeslett og tall",,BUT,,WIN,Access,Ver 2.0.
+DDE links,,DDE-koblinger,,TXT,,WIN,Access,Ver 2.0.
+DDL Query,,DDL-spørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Decimal Places,,AntallDesimaler,,TXT,,WIN,Access,Ver 2.0. Property or event
+Decimal Separator:,p,Desimaltegn:,m,TXB,,WIN,Access,Ver 2.0.
+Decrease,D,Reduser,R,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Decrease Horizontal Space,,Reduser vannrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Decrease Vertical Space,,Reduser loddrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Decrypt Database As,,Dekrypter database som,,TDB,,WIN,Access,Ver 2.0.
+Decrypting,,Dekrypterer,,TXT,,WIN,Access,Ver 2.0.
+Default |1,,Standard for |1,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Default Column Width,,Standard kolonnebredde,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Database Directory,,Standard databasekatalog,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Editing,,Standardredigering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Default Find/Replace Behavior,,Standardvirkemåte ved søk/erstatt,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Font Italic,,Standard kursivskrift,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Font Name,,Standardskrift,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Font Size,,Standard skriftstørrelse,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Font Underline,,Standard understreking,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Font Weight,,Standard skrifttykkelse,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Gridlines Behavior,,Standardvirkemåte for rutenett,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Open Mode for Databases,,Standard åpningsmodus for databaser,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Printer,D,Standardskriver,S,BUT,,WIN,Access,Ver 2.0.
+Default Record Locking,,Standard postlåsing,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Default Value,,Standardverdi,,TXT,,WIN,Access,Ver 2.0. Property or event
+Default View,,Standardvisning,,TXT,,WIN,Access,Ver 2.0. Property or event
+Delete,D,Slett,e,COM,,WIN,Access,Ver 2.0.
+Delete,e,Slett,e,BUT,,WIN,Access,Ver 2.0.
+Delete,,Slett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Delete Column,l,Slett kolonne,t,COM,,WIN,Access,Ver 2.0.
+Delete Column,,Slett kolonne,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Delete in Progress,,Sletter,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Delete Query,,Slettespørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Delete Query: ,,Slettespørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Delete Relationship...,,Slett relasjon...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Delete Row,D,Slett rad,S,COM,,WIN,Access,Ver 2.0.
+Delete Row,,Slett rad,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Delete selection and copy to the Clipboard,,Sletter det som er merket og kopierer det til utklippstavlen,,TXT,,WIN,Access,Ver 2.0.
+Delete:,,Slett:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+Delete\\tDel,e,Slett\\tDel,e,COM,,WIN,Access,Ver 2.0.
+DeleteAll,,Slett alt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+DeleteColumn,,Slett kolonne,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+DeleteObject,,SlettObjekt,,MAC,,WIN,Access,Ver 2.0. Status bar text for menu item
+DeleteRow,,Slett rad,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Deliver,,Hent,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Deliver Database,,Hent database,,TXT,,WIN,Access,Ver 2.0.
+Deliver Database As,,Hent database som,,TXT,,WIN,Access,Ver 2.0.
+Descending,D,Synkende,k,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Descending,,Synkende,,TXT,,WIN,Access,Ver 2.0. List box item
+Description,,Beskrivelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Description of field,,Feltbeskrivelse,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Description of object,,Beskrivelse av objektet,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Dest Connect Str,,Målkoblingsstreng,,TXT,,WIN,Access,Ver 2.0. Property or event
+Destination,,Mål,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Destination database connection string,,Koblingsstreng til måldatabasen,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Destination database name,,Måldatabase,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Destination DB,,Måldatabase,,TXT,,WIN,Access,Ver 2.0. Property or event
+Destination Table,,Måltabell,,TXT,,WIN,Access,Ver 2.0. Property or event
+Destination table name,,Måltabell,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Detail,D,Detalj,D,BUT,,WIN,Access,Ver 2.0.
+Detail,,Detalj,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+Direction,,Retning,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Directories:,D,Kataloger:,K,DIA,,WIN,Access,Ver 2.0.
+Dirty,,Endret,,TXT,,WIN,Access,Ver 2.0. Property or event
+Display As Icon,D,Vis som ikon,V,BUT,,WIN,Access,Ver 2.0.
+"Display the table, query, form, or report in Design view",,"Viser tabellen, spørringen, skjemaet eller rapporten i designvisning",,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Display Type,,Visningsmåte,,TXT,,WIN,Access,Ver 2.0. Property or event
+Display When,,VisNår,,TXT,,WIN,Access,Ver 2.0. Property or event
+Displayed name of object,,Objektnavnet som vises,,TXT,,WIN,Access,Ver 2.0. Status bar text
+DMY,,DMÅ,,TXT,,WIN,Access,Ver 2.0. List box item
+Do you wish to update manual links?,,Vil du oppdatere manuelle koblinger?,,TXT,,WIN,Access,Ver 2.0.
+Domain Aggregate,,Områdemengde,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+DoMenuItem,,UtførMenykommando,,MAC,,WIN,Access,Ver 2.0.
+DOS or OS/2 (PC-8),,DOS eller OS/2 (PC-8),,TXT,,WIN,Access,Ver 2.0. List box item
+Dots,,Prikker,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Drives:,v,Stasjoner:,S,DIA,,WIN,Access,Ver 2.0.
+Duplicate Control,,Lag kopi av kontrollen,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+DYM,,DÅM,,TXT,,WIN,Access,Ver 2.0. List box item
+Dynaset,,Utvalg,,TXT,,WIN,Access,Ver 2.0. Property or event
+Echo,,OppdaterSkjerm,,MAC,,WIN,Access,Ver 2.0.
+Echo On,,Oppdater skjerm,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Edit,E,Rediger,R,MNU,,WIN,Access,Ver 2.0.
+Edit,,Rediger,,TXT,,WIN,Access,Ver 2.0.
+Edit Filter/Sort,,Rediger filter/sortering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Edit Filter/Sort...,F,Rediger filter/sortering...,R,COM,,WIN,Access,Ver 2.0.
+Edit Filter/Sort...,,Rediger filter/sortering...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Edit Message,,Rediger melding,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Edit Mode,,Redigeringsmodus,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Edit Relationship,,Rediger relasjon,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Edit Relationship...,R,Rediger relasjon...,r,COM,,WIN,Access,Ver 2.0.
+Edit Relationship...,,Rediger relasjon...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Edit Specs...,E,Rediger,R,BUT,,WIN,Access,Ver 2.0.
+Edited Record,,Redigert post,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+EditFilter/Sort,,Rediger filter/sortering,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+EditingAllowed,,Redigering tillatt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+EditMode,,Redigeringsmodus,,TXT,,WIN,Access,Ver 2.0. Menu command name (only appears in error message boxes)
+EditRelationship,,Rediger relasjon,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Effects,,Effekter,,BUT,,WIN,Access,Ver 2.0.
+Embedded,,Innebygd,,TXT,,WIN,Access,Ver 2.0. Default name prefix for new embedded object
+Encrypt,,Krypter,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Encrypt Database As,,Krypter database som,,TDB,,WIN,Access,Ver 2.0.
+Encrypt/Decrypt Database,,Krypter/dekrypter database,,TDB,,WIN,Access,Ver 2.0.
+Encrypt/Decrypt Database...,E,Krypter/dekrypter database...,e,COM,,WIN,Access,Ver 2.0.
+Encrypting,,Krypterer,,TXT,,WIN,Access,Ver 2.0.
+Enlarge window to full size,,Forstørrer vinduet til full størrelse,,TXT,,WIN,Access,Ver 2.0. Status bar text for generic windows sizing menu item
+Enter a comment in this column.,,Skriv inn en kommentar i denne kolonnen.,,TXT,,WIN,Access,Ver 2.0.
+Enter a conditional expression in this column.,,Skriv et betingelsesuttrykk i denne kolonnen.,,TXT,,WIN,Access,Ver 2.0.
+Enter a macro name in this column.,,Skriv inn et makronavn i denne kolonnen.,,TXT,,WIN,Access,Ver 2.0.
+Enter an action in this column.,,Skriv inn en instruksjon i denne kolonnen.,,TXT,,WIN,Access,Ver 2.0.
+Enter Key Behavior,,EnterTastvirkemåte,,TXT,,WIN,Access,Ver 2.0. Property or event
+Enter New Value,,Skriv inn en ny verdi,,TXT,,WIN,Access,Ver 2.0.
+EOF,,SistIFil,,TXT,,WIN,Access,Ver 2.0. Property or event
+Equalize Horizontal Space,,Utjevn vannrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Equalize Vertical Space,,Utjevner loddrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Error,,Feil,,TXT,,WIN,Access,Ver 2.0.
+Error Handling,,Feilbehandling,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Event Module,,Hendelsesmodul,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Event Proc Prefix,,HendelsesprosPrefiks,,TXT,,WIN,Access,Ver 2.0. Property or event
+Event Properties,,Hendelsesegenskaper,,TXT,,WIN,Access,Ver 2.0. Listbox item
+Exclusive,x,Alene,l,BUT,,WIN,Access,Ver 2.0.
+Exclusive,,Alene,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Exit,x,Avslutt,A,COM,,WIN,Access,Ver 2.0.
+Exit,,Avslutt,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Export,,Eksporter,,TDB,,WIN,Access,Ver 2.0.
+Export,,Eksporter,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Export |1 to:,,Eksporter |1 til:,,TXT,,WIN,Access,Ver 2.0.
+Export Text Options - |1,,Alternativer for teksteksport - |1,,TDB,,WIN,Access,Ver 2.0.
+Export Text Options - ZZZYYYXX.TXT,,Alternativer for teksteksport - ZZZYYYXX.TXT,,TDB,,WIN,Access,Ver 2.0.
+Export to File,,Eksporter til fil,,TDB,,WIN,Access,Ver 2.0.
+Export Word Merge Options - |1,,Eksporter til Word (utskriftsfletting) - |1,,TDB,,WIN,Access,Ver 2.0.
+Export Word Merge Options - ZZZYYYXX.TXT,,Eksporter til Word (utskriftsfletting) - ZZZYYYXX.TXT,,TDB,,WIN,Access,Ver 2.0.
+Export...,E,Eksporter...,E,COM,,WIN,Access,Ver 2.0.
+Export...,,Eksporter...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Expr,,Uttr,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Expression,,Uttrykk,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Expression Builder,,Uttrykksverktøy,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+EXT,,UTV,,TXT,,WIN,Access,Ver 2.0. Extended selection indicator
+Extra Light,,Ekstra smal,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+F1 Help,,F1 Hjelp,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+F6 = Switch panes.  F1 = Help.,,F6 = Bytt rute. F1 = Hjelp.,,TXT,,WIN,Access,Ver 2.0.
+False,,USANN,,FUN,,WIN,Access,Ver 2.0.
+False,,USANN,,FUN,,WIN,Access,Ver 2.0. reserved keyword
+Fast Laser Printing,,HurtigLaserutskrift,,TXT,,WIN,Access,Ver 2.0. Property or event
+Fast Search,,Hurtigsøking,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Field,,Felt,,TXT,,WIN,Access,Ver 2.0.
+Field Information: (fixed width only),F,Feltinformasjon: (fast bredde),i,DIA,,WIN,Access,Ver 2.0.
+Field List,,Feltliste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Field List Properties,,Feltlisteegenskaper,,TXT,,WIN,Access,Ver 2.0. Text in query property sheet
+Field List...,L,Feltliste...,F,COM,,WIN,Access,Ver 2.0.
+Field Name,,Feltnavn,,TXT,,WIN,Access,Ver 2.0. Property or event
+Field Properties,,Feltegenskaper,,TXT,,WIN,Access,Ver 2.0.
+Field Separator:,S,Feltskilletegn (x):,x,DIA,,WIN,Access,Ver 2.0.
+Field Set Failure,,Kan ikke skrive i feltet,,TXT,,WIN,Access,Ver 2.0.
+Field Size,,Feltstørrelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Field Truncation,,Avkorting av feltet,,TXT,,WIN,Access,Ver 2.0.
+Field/Expression,,Felt/uttrykk,,TXT,,WIN,Access,Ver 2.0.
+Field:,,Felt:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+FieldList,,Feltliste,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+File,,Fil,,MNU,,WIN,Access,Ver 2.0.
+File,F,Fil,F,MNU,,WIN,Access,Ver 2.0.
+File Name,,Filnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+File Name:,N,Filnavn:,F,TXB,,WIN,Access,Ver 2.0.
+File Type:,i,Filtype:,t,DIA,,WIN,Access,Ver 2.0.
+File:,e,Fil:,l,TXB,,WIN,Access,Ver 2.0.
+Fill Fore Color,,Fyllforgrunnsfarge,,TXT,,WIN,Access,Ver 2.0. Property or event
+Fill Specification Grid From Table,,Sett inn spesifikasjoner fra tabell,,TDB,,WIN,Access,Ver 2.0.
+Fill Specification Grid from Table...,T,Sett inn spesifikasjoner fra tabell...,b,BUT,,WIN,Access,Ver 2.0.
+FillColor,,Fyllfarge,,TXT,,WIN,Access,Ver 2.0. Property or event
+FillStyle,,Fyllstil,,TXT,,WIN,Access,Ver 2.0. Property or event
+Filter Name,,Filternavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Filter/Sort,,Filter/sortering,,TXT,,WIN,Access,Ver 2.0.
+Financial,,Økonomiske,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Find,,Søk etter,,TDB,,WIN,Access,Ver 2.0.
+Find,,Søk,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Find First,,Søk etter første,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Find in field: '|',,Søk i feltet: \@|\@,,TDB,,WIN,Access,Ver 2.0. Context sensitive title of dialog box
+Find Next,,Søk etter neste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Find Next\\tF3,N,Søk etter neste\\tF3,n,COM,,WIN,Access,Ver 2.0.
+Find Previous,,Søk etter forrige,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Find Previous\\tShift+F3,v,Søk etter forrige\\tSkift+F3,f,COM,,WIN,Access,Ver 2.0.
+Find What,,Søk etter,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Find What:,F,Søk etter:,S,TXB,,WIN,Access,Ver 2.0.
+Find...,,Søk...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Find...\\tCtrl+F,F,Søk...\\tCtrl+F,S,COM,,WIN,Access,Ver 2.0.
+FindNext,,SøkEtterNeste,,MAC,,WIN,Access,Ver 2.0.
+FindPrevious,,Søk etter forrige,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+FindRecord,,SøkEtterPost,,MAC,,WIN,Access,Ver 2.0.
+First,F,Første,F,COM,,WIN,Access,Ver 2.0. Item in a submenu
+First,,Første,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+First 4-day week,,Første uke med 4 dager,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+First full week,,Første hele uke,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+First Record,,Første post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+First Week,,Første uke i året,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+First Weekday,,Første dag i uken,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Fixed,,Fast,,TXT,,WIN,Access,Ver 2.0. Listbox item : Number format
+Fixed column headings in crosstab,,Faste kolonneoverskrifter i krysstabell,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Font,,Skrift,,TDB,,WIN,Access,Ver 2.0.
+Font,,Skrift,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Font Bold,,Fet,,TXT,,WIN,Access,Ver 2.0. Property or event
+Font Italic,,Kursiv,,TXT,,WIN,Access,Ver 2.0. Property or event
+Font Name,,Skrift,,TXT,,WIN,Access,Ver 2.0. Property or event
+Font Size,,Skriftstørrelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Font Style:,y,Skriftstil:,k,DIA,,WIN,Access,Ver 2.0.
+Font Underline,,Understreking,,TXT,,WIN,Access,Ver 2.0. Property or event
+Font...,F,Skrift...,S,COM,,WIN,Access,Ver 2.0.
+Font...,,Skrift...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Font:,F,Skrift:,S,DIA,,WIN,Access,Ver 2.0.
+"For Help on dialog settings, press F1",,Trykk F1 hvis du vil ha hjelp til dialoginnstillinger,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Force New Page,,TvingSideskift,,TXT,,WIN,Access,Ver 2.0. Property or event
+Fore Color,,Forgrunnsfarge,,TXT,,WIN,Access,Ver 2.0. Property or event
+Form,F,Skjema,k,COM,,WIN,Access,Ver 2.0.
+Form,,Skjema,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Form  Report Design, ,Skjema- og rapportdesign,,TXT,,WIN,Access,Ver 2.0. Options Categories
+Form Datasheet,,Dataark for skjema,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Form Design,,Skjemadesign,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Form Footer,F,Bunntekst i skjema,B,BUT,,WIN,Access,Ver 2.0.
+Form Footer,,Bunntekst i skjema,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+Form Header,H,Topptekst i skjema,T,BUT,,WIN,Access,Ver 2.0.
+Form Header,,Topptekst i skjema,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+Form Header/Footer,H,Topptekst/bunntekst i skjema,T,COM,,WIN,Access,Ver 2.0.
+Form Header/Footer,,Topptekst/bunntekst i skjema,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Form is read-only.,,Skjemaet er skrivebeskyttet.,,TXT,,WIN,Access,Ver 2.0.
+Form Name,,Skjemanavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Form Name:,N,Skjemanavn:,n,TXB,,WIN,Access,Ver 2.0.
+Form Name:,N,Skjemanavn:,n,TXB,,WIN,Access,Ver 2.0.
+Form Template,,Skjemamal,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Form View,,Skjemavisning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Form.,,Skjema.,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Form: ,,Skjema: ,,TXT,,WIN,Access,Ver 2.0.
+Format Picture Text,,Bildetekstformat,,TXT,,WIN,Access,Ver 2.0. Property or event
+FormatCount,,AntallFormateringer,,TXT,,WIN,Access,Ver 2.0. Property or event
+"Formatting page, press Ctrl+Break to stop ...",,Formaterer siden. Trykk Ctrl+Break hvis du vil avbryte ...,,TXT,,WIN,Access,Ver 2.0.
+FormFooter,,Bunntekst i skjema,,TXT,,WIN,Access,Ver 2.0.
+FormHdr/Ftr,,Topptekst/bunntekst i skjema,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Forms,F,Skjemaer,k,COM,,WIN,Access,Ver 2.0.
+Forms,,Skjemaer,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Four Digit Years,Y,Fire sifre i årstall,å,BUT,,WIN,Access,Ver 2.0.
+Freeze Columns,z,Frys kolonner,y,COM,,WIN,Access,Ver 2.0.
+Freeze Columns,,Frys kolonner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+FreezeColumns,,Frys kolonner,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Friday,,Fredag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+From,,Fra,,TXT,,WIN,Access,Ver 2.0. List box item
+From:,F,Fra:,F,TXB,,WIN,Access,Ver 2.0.
+Fully Enclosed,,Helt omsluttet,,TXT,,WIN,Access,Ver 2.0.
+Function,F,Function,F,BUT,,WIN,Access,Ver 2.0.
+Function Name,,Funksjonsnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Functions,,Funksjoner,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+General,,Generelt,,TXT,,WIN,Access,Ver 2.0. Options Categories
+General Date,,Dato,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+General Number,,Tall,,TXT,,WIN,Access,Ver 2.0. Listbox item : Number format
+General Search,,Full søking,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+General-Align Text,,Standardjuster tekst,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Get context-sensitive help by pressing F1,,Trykk F1 for å få hjelp avhengig av sammenhengen,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Get Help,,Hjelp,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Go To,G,Gå til,å,COM,,WIN,Access,Ver 2.0.
+Go To Field,,Gå til felt,,TXT,,WIN,Access,Ver 2.0.
+GoToControl,,GåTilKontroll,,MAC,,WIN,Access,Ver 2.0.
+GoToPage,,GåTilSide,,MAC,,WIN,Access,Ver 2.0.
+GoToRecord,,GåTilPost,,MAC,,WIN,Access,Ver 2.0.
+Graph,,Diagram,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Grid,G,Rutenett,n,COM,,WIN,Access,Ver 2.0.
+Grid,,Rutenett,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Grid X,,RutenettX,,TXT,,WIN,Access,Ver 2.0. Property or event
+Grid Y,,RutenettY,,TXT,,WIN,Access,Ver 2.0. Property or event
+Gridlines,G,Rutenett,n,COM,,WIN,Access,Ver 2.0.
+Gridlines,,Rutenett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Group By,,Grupper etter,,TXT,,WIN,Access,Ver 2.0. List box item
+Group Footer,,BunntekstForGruppe,,TXT,,WIN,Access,Ver 2.0. Property or event
+Group Header,,TopptekstForGruppe,,TXT,,WIN,Access,Ver 2.0. Property or event
+Group Interval,,Grupperingsintervall,,TXT,,WIN,Access,Ver 2.0. Property or event
+Group Level,,Gruppenivå,,TXT,,WIN,Access,Ver 2.0. Property or event
+Group Membership,,Gruppemedlemsskap,,BUT,,WIN,Access,Ver 2.0.
+Group On,,GrupperEtter,,TXT,,WIN,Access,Ver 2.0. Property or event
+Group Properties,,Gruppeegenskaper,,TXT,,WIN,Access,Ver 2.0.
+GroupContinued,,NesteGruppe,,TXT,,WIN,Access,Ver 2.0. Property or event
+Groups,G,Grupper,G,BUT,,WIN,Access,Ver 2.0.
+Groups,,Grupper,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Groups...,G,Grupper...,G,COM,,WIN,Access,Ver 2.0.
+Guest,,Gjest,,TXT,,WIN,Access,Ver 2.0. List box item in Permissions dialog
+Guests,,Gjester,,TXT,,WIN,Access,Ver 2.0. List box item in Permissions dialog
+Hairline Border Width,,rammetykkelse som hårstrek,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Heavy,,Ultrafet,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Height,,Høyde,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Height:,e,Høyde:,ø,TXB,,WIN,Access,Ver 2.0.
+Help,H,Hjelp,H,MNU,,WIN,Access,Ver 2.0.
+Help,H,Hjelp,H,BUT,,WIN,Access,Ver 2.0.
+Help,,Hjelp,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+HelpOnInterface,,Direkte hjelp,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Hide,H,Skjul,S,COM,,WIN,Access,Ver 2.0.
+Hide,H,Skjul,S,BUT,,WIN,Access,Ver 2.0.
+Hide,,Skjul,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Hide Columns,H,Skjul kolonner,u,COM,,WIN,Access,Ver 2.0.
+Hide Columns,,Skjul kolonner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Hide Duplicates,,SkjulDubletter,,TXT,,WIN,Access,Ver 2.0. Property or event
+HideColumns,,Skjul kolonner,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Horizontal,H,Vannrett (x),x,BUT,,WIN,Access,Ver 2.0.
+Horizontal position of object,,Objektets vannrette posisjon,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Horizontal Spacing,z,Vannrett mellomrom,m,COM,,WIN,Access,Ver 2.0.
+Hourglass,,Timeglass,,MAC,,WIN,Access,Ver 2.0.
+Hourglass On,,Timeglass på,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Hwnd,,Windowshåndtak,,TXT,,WIN,Access,Ver 2.0. Property or event
+Ignore,I,Ignorer,I,BUT,,WIN,Access,Ver 2.0. Button on Message Box
+Ignore DDE Requests,,Ignorer DDE-forespørsler,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Ignore Nulls,,Ignorer Ugyldig,,TXT,,WIN,Access,Ver 2.0. Index object editor property
+Immediate Window,I,Øyeblikksvindu,Ø,COM,,WIN,Access,Ver 2.0.
+Immediate Window,,Øyeblikksvindu,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+ImmediateWindow,,Øyeblikksvindu,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Imp/Exp Setup...,S,Import-/eksportoppsett,s,COM,,WIN,Access,Ver 2.0.
+Imp/ExpSetup,,Import-/eksportoppsett,s,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Import,,Importer,,TDB,,WIN,Access,Ver 2.0.
+Import,,Importer,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Import Errors - |1,,Importfeil - |1,,TXT,,WIN,Access,Ver 2.0.
+Import Objects,,Importer objekter,,TDB,,WIN,Access,Ver 2.0.
+Import Results - |1,,Resultat av import - |1,,TXT,,WIN,Access,Ver 2.0.
+Import Spreadsheet Options - |1,,Alternativer for regnearkimport - |1,,TDB,,WIN,Access,Ver 2.0.
+Import Tables,,Importer tabeller,,TDB,,WIN,Access,Ver 2.0.
+Import Text Options - |1,,Alternativer for tekstimport - |1,,TDB,,WIN,Access,Ver 2.0.
+Import...,I,Importer...,m,COM,,WIN,Access,Ver 2.0.
+Import...,,Importer...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Import/Export Setup,,Import-/eksportoppsett,,TDB,,WIN,Access,Ver 2.0.
+Import/Export Setup,,Import-/eksportoppsett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+in,,tommer,,TXT,,WIN,Access,Ver 2.0.
+in |1,,i |1,,TXT,,WIN,Access,Ver 2.0.
+In Database Window,,I databasevinduet,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+in.,,tommer.,,TXT,,WIN,Access,Ver 2.0.
+inches,,tommer,,TXT,,WIN,Access,Ver 2.0.
+Increase,I,Øk,Ø,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Increase Horizontal Space,,Øk vannrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Increase Vertical Space,,Øk loddrett mellomrom,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Index Properties,,Indeksegenskaper,,TXT,,WIN,Access,Ver 2.0.
+Indexed,,Indeksert,,TXT,,WIN,Access,Ver 2.0. Property or event
+Indexes,,Indekser,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Indexes...,I,Indekser...,I,COM,,WIN,Access,Ver 2.0.
+Indexes...,,Indekser...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Indexes:,I,Indekser:,I,DIA,,WIN,Access,Ver 2.0.
+Input Mask,,Inndatamaske,,TXT,,WIN,Access,Ver 2.0. Property or event
+Input/Output,,Inndata/utdata,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+InSelection,,IUtvalg,,TXT,,WIN,Access,Ver 2.0. Property or event
+Insert Column,n,Sett inn kolonne,o,COM,,WIN,Access,Ver 2.0.
+Insert Column,,Sett inn kolonne,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Insert Control,C,Sett inn kontroll,k,BUT,,WIN,Access,Ver 2.0.
+Insert File,,Sett inn fil,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Insert Object,,Sett inn objekt,,TDB,,WIN,Access,Ver 2.0.
+Insert Object,,Sett inn objekt,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Insert Object from File,,Sett inn objekt fra fil,,TXT,,WIN,Access,Ver 2.0.
+Insert Object...,j,Sett inn objekt...,b,COM,,WIN,Access,Ver 2.0.
+Insert Object...,,Sett inn objekt...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Insert Row,I,Sett inn rad,i,COM,,WIN,Access,Ver 2.0.
+Insert Row,,Sett inn rad,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+InsertColumn,,Sett inn kolonne,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+InsertFile,,Setter inn fil,,TXT,,WIN,Access,Ver 2.0. Menu command name (only appears in error message boxes)
+InsertObject,,Sett inn objekt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+InsertRow,,Sett inn rad,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Inspection,,Inspeksjon,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Integer,,Heltall,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+InvokeBuilder,,Start verktøy,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+InvokeZoom,,Utfør zoom,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Is Visible,,ErSynlig,,TXT,,WIN,Access,Ver 2.0. Property or event
+Is...,,Er...,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Italic,,Kursiv,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Item,,Element,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Item Layout,,Elementoppsett,,BUT,,WIN,Access,Ver 2.0.
+Item Size,,Elementstørrelse,,BUT,,WIN,Access,Ver 2.0.
+Item Suffix,,Elementsuffiks,,TXT,,WIN,Access,Ver 2.0. Property or event
+ItemData,,Dataelement,,TXT,,WIN,Access,Ver 2.0. Property or event
+Items Across:,c,Elementer bortover:,E,TXB,,WIN,Access,Ver 2.0.
+Items:,I,Elementer:,E,DIA,,WIN,Access,Ver 2.0.
+Join Properties,,Koblingsegenskaper,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Join Properties...,J,Koblingsegenskaper...,K,COM,,WIN,Access,Ver 2.0.
+Join Tables,,Koble tabeller,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Join Tables...,J,Koble tabeller...,b,COM,,WIN,Access,Ver 2.0.
+JoinProperties,,Koblingsegenskaper,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+JoinTables,,Koble tabeller,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Keep Together,,HoldSamlet,,TXT,,WIN,Access,Ver 2.0. Property or event
+Key Assignment Macro,,Tastetilordningsmakro,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Key Violation,,Brudd på nøkkelregler,,TXT,,WIN,Access,Ver 2.0.
+Keyboard,,Tastatur,,TXT,,WIN,Access,Ver 2.0. Options Categories
+Keystrokes,,Tastetrykk,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Label,,Etikett,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Label Align,,Etikettjustering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Label X,,EtikettX,,TXT,,WIN,Access,Ver 2.0. Property or event
+Label Y,,EtikettY,,TXT,,WIN,Access,Ver 2.0. Property or event
+Landscape,L,Liggende,L,BUT,,WIN,Access,Ver 2.0.
+Large Buttons,L,Store knapper,k,BUT,,WIN,Access,Ver 2.0.
+Large Toolbar Buttons,,Store verktøylinjeknapper,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Last,L,Siste,S,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Last,,Siste,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Last Record,,Siste post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Layout for Print,,Skriverskrifter,,TXT,,WIN,Access,Ver 2.0. Property or event
+Layout Properties,,Designegenskaper,,TXT,,WIN,Access,Ver 2.0. Listbox item
+Leading Zeros in Dates,Z,Foranstilte nuller i datoer,u,BUT,,WIN,Access,Ver 2.0.
+Left,,Venstre,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Left,L,Venstre,V,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Left Margin,,Venstre marg,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Left-Align Text,,Venstrejuster tekst,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Left-align text and right-align numbers within control,,Venstrejuster tekst og høyrejuster tall innenfor kontrollen,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Left-align text within control,,Venstrejuster tekst innenfor kontrollen,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Left:,f,Venstre:,V,TXB,,WIN,Access,Ver 2.0.
+Limit To List,,BareFraListe,,TXT,,WIN,Access,Ver 2.0. Property or event
+Line,,Linje,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Line Slant,,Linjeretning,,TXT,,WIN,Access,Ver 2.0. Property or event
+Link Child Fields,,KobleUnderordnetFelt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Link Master Fields,,KobleOverordnetFelt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Links...,k,Koblinger...,g,COM,,WIN,Access,Ver 2.0.
+List Box,,Listeboks,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+List Rows,,AntallRader,,TXT,,WIN,Access,Ver 2.0. Property or event
+List Width,,Listebredde,,TXT,,WIN,Access,Ver 2.0. Property or event
+ListCount,,AntallLister,,TXT,,WIN,Access,Ver 2.0. Property or event
+ListIndex,,Listeindeks,,TXT,,WIN,Access,Ver 2.0. Property or event
+Load From Query...,,Hent fra spørring...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Load Text,,Last tekst,,TDB,,WIN,Access,Ver 2.0.
+Load Text,,Last tekst,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Load Text...,o,Last tekst...,e,COM,,WIN,Access,Ver 2.0.
+Loaded Forms,,Lastede skjemaer,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Loaded Modules,a,Lastede moduler,L,BUT,,WIN,Access,Ver 2.0.
+Loaded Reports,,Lastede rapporter,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+LoadText,,Last tekst,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Lock Edits,,LåsRedigering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Locked,,Låst,,TXT,,WIN,Access,Ver 2.0. Property or event
+Log Messages,,Loggmeldinger,,TXT,,WIN,Access,Ver 2.0. Property or event
+Long binary data,,Lange binærdata,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+Long binary or text value,,Lang binær- eller tekstverdi,,TXT,,WIN,Access,Ver 2.0.
+Long Date,,Lang dato,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+Long Integer,,Langt heltall,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+Long Time,,Langt klokkeslett,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+lpOleObject,,lpOle-objekt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Macro,M,Makro,M,MNU,,WIN,Access,Ver 2.0.
+Macro,,Makro,,TXT,,WIN,Access,Ver 2.0.
+Macro Builder,,Makroverktøy,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+Macro Design,,Makrodesign,,TXT,,WIN,Access,Ver 2.0. Options Categories
+Macro Name,,Makronavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Macro Name:,N,Makronavn:,n,TXB,,WIN,Access,Ver 2.0.
+Macro Name:,N,Makro:,M,DIA,,WIN,Access,Ver 2.0.
+Macro Names,M,Makronavn,M,COM,,WIN,Access,Ver 2.0.
+Macro: ,,Makro: ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+MacroNames,,Makronavn,,TXT,,WIN,Access,Ver 2.0. Menu command name (only appears in error message boxes)
+Macros,M,Makroer,M,COM,,WIN,Access,Ver 2.0.
+Macros,,Makroer,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Mail It,,Postlegg,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Make editing changes,,Rediger,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Make Equal,E,Gjør lik,l,COM,,WIN,Access,Ver 2.0.
+Make New Table,,Lag ny tabell,,DIA,,WIN,Access,Ver 2.0.
+Make New Table,,Lag ny tabell,,BUT,,WIN,Access,Ver 2.0.
+Make Table Query: ,,Lag tabell-spørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Make Table...,k,Lag tabell...,t,COM,,WIN,Access,Ver 2.0.
+Make-Table Query,,Lag tabell-spørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+MakeTable,,Lag tabell,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Margins,,Marger,,BUT,,WIN,Access,Ver 2.0.
+Mark the beginning of a new screen or page,,Merk begynnelsen av en ny skjerm eller en ny side,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Match Whole Field,,Hele feltet,,TXT,,WIN,Access,Ver 2.0. List box item
+Match Whole Word Only,W,Bare hele ord,h,BUT,,WIN,Access,Ver 2.0.
+Math,,Matematiske,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Max,,Maks,,FUN,,WIN,Access,Ver 2.0.
+Max Button,,Maksimeringsknapp,,TXT,,WIN,Access,Ver 2.0. Property or event
+Maximize,,Maksimer,,MAC,,WIN,Access,Ver 2.0.
+MDY,,MDÅ,,TXT,,WIN,Access,Ver 2.0. List box item
+Medium,,Middels,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Medium Date,,Middels dato,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+Medium Time,,Middels klokkeslett,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+Member Of:,M,Medlem i:,M,DIA,,WIN,Access,Ver 2.0.
+Memo,,Notat,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+Menu Bar,,Menylinje,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Menu Macro Name,,Menymakronavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Menu Name,,Menynavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Merge It,,Utskriftsfletting,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Message,,Melding,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Message Text,,Melding,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Messages,,Meldinger,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Microsoft Access,,Microsoft Access,,TDB,,WIN,Access,Ver 2.0.
+Microsoft Access 2.0 Database,,Microsoft Access 2.0-database,,TXT,,WIN,Access,Ver 2.0.
+Microsoft Access Database,,Microsoft Access-database,,TXT,,WIN,Access,Ver 2.0.
+Microsoft Access Version ,,Microsoft Access versjon ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Min Button,,Minimeringsknapp,,TXT,,WIN,Access,Ver 2.0. Property or event
+Minimize,,Minimer,,MAC,,WIN,Access,Ver 2.0.
+Modify Command$,,Endre Command$,,TDB,,WIN,Access,Ver 2.0.
+Modify Command$,,Endre Command$,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Modify Command$...,M,Endre Command$...,C,COM,,WIN,Access,Ver 2.0.
+Modify Design,M,Endre design,d,BUT,,WIN,Access,Ver 2.0.
+ModifyCommand$,,Endre Command$,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Module,d,Modul,d,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Module,,Modul,,TXT,,WIN,Access,Ver 2.0. Property or event
+Module Design,,Moduldesign,,TXT,,WIN,Access,Ver 2.0. Options Categories
+Module Name,,Modulnavn,,ARG,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Module Name:,N,Modulnavn:,n,TXB,,WIN,Access,Ver 2.0.
+Module: ,,Modul: ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Modules,d,Moduler,d,COM,,WIN,Access,Ver 2.0.
+Modules,,Moduler,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Modules:,M,Moduler:,M,DIA,,WIN,Access,Ver 2.0.
+Monday,,Mandag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+More >>,M,Mer >>,M,BUT,,WIN,Access,Ver 2.0.
+More Toolbars...,,Flere verktøylinjer...,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+More Windows,,Flere vinduer,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+More Windows...,M,Flere vinduer...,F,COM,,WIN,Access,Ver 2.0.
+MoreWindows,,Flere vinduer,,TXT,,WIN,Access,Ver 2.0. Menu command name (only appears in error message boxes)
+MOV,,FLY,,TXT,,WIN,Access,Ver 2.0. Move mode indicator
+Move,,Flytt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Move After Enter,,Linjeskift flytter til,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Move Enclosed Controls,,Flytt omsluttede kontroller,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+MoveSize,,FlyttEndreStr,,MAC,,WIN,Access,Ver 2.0.
+MS-DOS Text (*.txt),,MS-DOS-tekst (*.txt),,TXT,,WIN,Access,Ver 2.0.
+MsgBox,,Meldingsboks,,MAC,,WIN,Access,Ver 2.0.
+Multiple selection,,Sammensatt merking,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Multiuser/ODBC,,Flerbruker/ODBC,,TXT,,WIN,Access,Ver 2.0. Options Categories
+MYD,,MÅD,,TXT,,WIN,Access,Ver 2.0. List box item
+Name,,Navn,,TXT,,WIN,Access,Ver 2.0. Property or event
+Name:,N,Navn:,N,TXT,,WIN,Access,Ver 2.0.
+Name:,N,Navn:,N,TXB,,WIN,Access,Ver 2.0.
+Navigation Buttons,,Navigasjonsknapper,,TXT,,WIN,Access,Ver 2.0. Property or event
+New,N,Ny,y,BUT,,WIN,Access,Ver 2.0.
+New,w,Ny,N,BUT,,WIN,Access,Ver 2.0.
+New,w,Ny,N,COM,,WIN,Access,Ver 2.0. Item in a submenu
+New,,Ny,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Database,,Ny database,,TDB,,WIN,Access,Ver 2.0.
+New Database,,Ny database,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Database Sort Order,,Sorteringsrekkefølge i ny database,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+New Database...\\tCtrl+N,N,Ny database...\\tCtrl+N,b,COM,,WIN,Access,Ver 2.0.
+New Form,,Nytt skjema,,TDB,,WIN,Access,Ver 2.0.
+New Form,,Nytt skjema,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Macro,,Ny makro,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Module,,Ny modul,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Name,,Nytt navn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+New Owner:,N,Ny eier:,N,DIA,,WIN,Access,Ver 2.0.
+New Password:,N,Nytt passord:,N,TXB,,WIN,Access,Ver 2.0.
+New Procedure,,Ny prosedyre,,TDB,,WIN,Access,Ver 2.0.
+New Procedure,,Ny prosedyre,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Procedure...,w,Ny prosedyre...,y,COM,,WIN,Access,Ver 2.0.
+New Query,,Ny spørring,,TDB,,WIN,Access,Ver 2.0.
+New Query,,Ny spørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Report,,Ny rapport,,TDB,,WIN,Access,Ver 2.0.
+New Report,,Ny rapport,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Row Or Col,,NyRadEllerKolonne,,TXT,,WIN,Access,Ver 2.0. Property or event
+New Table,,Ny tabell,,TDB,,WIN,Access,Ver 2.0.
+New Table,,Ny tabell,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+New Toolbar,,Ny verktøylinje,,TDB,,WIN,Access,Ver 2.0.
+New User/Group,,Ny bruker/gruppe,,TDB,,WIN,Access,Ver 2.0.
+New...,N,Ny...,N,BUT,,WIN,Access,Ver 2.0.
+NewDatabase,,Ny database,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+NewForm,,Nytt skjema,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewMacro,,Ny makro,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewModule,,Ny modul,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewProcedure,,Ny prosedyre,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewQuery,,Ny spørring,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewReport,,Ny rapport,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NewTable,,Ny tabell,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Next,N,Neste,e,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Next,,Neste,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Next Character,,Neste tegn,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Next Field,,Neste felt,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Next Procedure,,Neste prosedyre,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Next Procedure\\tCtrl+Down,N,Neste prosedyre\\tCtrl+Pil ned,N,COM,,WIN,Access,Ver 2.0.
+Next Record,,Neste post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+NextProcedure,,Neste prosedyre,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+NextRecord,,NestePost,,TXT,,WIN,Access,Ver 2.0. Property or event
+No,N,Nei,N,BUT,,WIN,Access,Ver 2.0.
+No,N,Nei,N,BUT,,WIN,Access,Ver 2.0. Button on Message Box
+No,,Nei,,TXT,,WIN,Access,Ver 2.0. reserved keyword
+No Locks,,Ingen låser,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+No Match,,IkkeSamsvar,,TXT,,WIN,Access,Ver 2.0. Property or event
+None,,Ingen,,TXT,,WIN,Access,Ver 2.0.
+Normal Appearance,,Normalt utseende,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+NotUsed,,IkkeIBruk,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Now outputting,,Skriver ut,,TXT,,WIN,Access,Ver 2.0.
+Now outputting page |1 of,,Skriver ut side |1 av,,TXT,,WIN,Access,Ver 2.0.
+Now printing,,Skriver ut,,TXT,,WIN,Access,Ver 2.0.
+Now printing page |1 of,,Skriver ut side |1 av,,TXT,,WIN,Access,Ver 2.0.
+Null in Required Field,,Ugyldig i obligatorisk felt,,TXT,,WIN,Access,Ver 2.0.
+Number,,Tall,,TXT,,WIN,Access,Ver 2.0. Data type
+Number of Update Retries,,Antall oppdateringsforsøk,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Object,,Objekt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Object,O,Objekt,O,COM,,WIN,Access,Ver 2.0.
+Object,,Objekt,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Object Actions,,Objektinstruksjoner,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Object Frame,,Objektramme,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Object Name,,Objektnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Object Name:,O,Objektnavn:,k,DIA,,WIN,Access,Ver 2.0.
+Object Palette,,Objektpalett,,TXT,,WIN,Access,Ver 2.0. Property or event
+Object Type,,Objekttype,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Object Type:,y,Objekttype:,j,DIA,,WIN,Access,Ver 2.0.
+Object Verbs,,VerblisteForObjekt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Object Verbs Count,,AntallObjektverb,,TXT,,WIN,Access,Ver 2.0. Property or event
+Object:,O,Objekt:,O,DIA,,WIN,Access,Ver 2.0.
+Objects,O,Objekter,O,TXT,,WIN,Access,Ver 2.0.
+Objects in |1:,O,Objekter i |1:,O,DIA,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Objects in LOCTEST:,O,Objekter i LOCTEST:,O,DIA,,WIN,Access,Ver 2.0.
+ODBC Connect Str,,ODBC-koblingsstreng,,TXT,,WIN,Access,Ver 2.0. Property or event
+ODBC Refresh Interval (sec),,Oppdateringsintervall for ODBC (sek.),,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+ODBC Timeout,,TidsavbruddForODBC,,TXT,,WIN,Access,Ver 2.0. Property or event
+OEM text,,OEM-tekst,,TXT,,WIN,Access,Ver 2.0.
+Of,,Av,,TXT,,WIN,Access,Ver 2.0.
+Off,,Av,,TXT,,WIN,Access,Ver 2.0. reserved keyword
+OK,,OK,,BUT,,WIN,Access,Ver 2.0.
+Old Name,,Gammelt navn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Old Password:,O,Gammelt passord:,G,TXB,,WIN,Access,Ver 2.0.
+Old Value,,GammelVerdi,,TXT,,WIN,Access,Ver 2.0. Property or event
+OLE 2.0 Link,,OLE 2.0-kobling,,TXT,,WIN,Access,Ver 2.0.
+OLE Class,,OLE-klasse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Ole Data,,Ole-data,,TXT,,WIN,Access,Ver 2.0. Property or event
+OLE links,,OLE-koblinger,,TXT,,WIN,Access,Ver 2.0.
+OLE links in records ,,OLE-koblinger i poster ,,TXT,,WIN,Access,Ver 2.0.
+OLE Object,,OLE-objekt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+OLE Object(s),,OLE-objekt(er),,TXT,,WIN,Access,Ver 2.0.
+OLE Type,,OLEType,,TXT,,WIN,Access,Ver 2.0. Property or event
+OLE Type Allowed,,OLETypeTillatt,,TXT,,WIN,Access,Ver 2.0. Property or event
+OLE/DDE Timeout (sec),,Tidsavbrudd for OLE/DDE (sek.),,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+On,,På,,TXT,,WIN,Access,Ver 2.0. reserved keyword
+On Activate,,VedAktivering,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Change,,VedEndring,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Click,,VedKlikk,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Close,,VedLukking,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Current,,VedGjeldende,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Dbl Click,,VedDobbeltklikk,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Deactivate,,VedDeaktivering,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Delete,,VedSletting,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Enter,,VedGåInn,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Error,,VedFeil,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Exit,,VedGåUt,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Format,,VedFormatering,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Got Focus,,VedFikkFokus,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Insert,,VedInnsetting,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Key Down,,VedTastNed,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Key Press,,VedTastetrykk,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Key Up,,VedTastOpp,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Load,,VedLasting,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Lost Focus,,VedMistetFokus,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Menu,,VedMeny,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Mouse Down,,VedMuseknappNed,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Mouse Move,,VedMusebevegelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Mouse Up,,VedMuseknappOpp,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Not in List,,VedIkkePåListen,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Open,,VedÅpning,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Print,,VedUtskrift,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Push,,VedTrykk,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Resize,,VedEndretStørrelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Retreat,,VedGjenopptagelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Timer,,VedTidsmåler,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Unload,,VedUtlasting,,TXT,,WIN,Access,Ver 2.0. Property or event
+On Updated,,VedOppdatert,,TXT,,WIN,Access,Ver 2.0. Property or event
+On/Off,,På/Av,,TXT,,WIN,Access,Ver 2.0.
+Open,O,Åpne,p,BUT,,WIN,Access,Ver 2.0.
+Open Database,,Åpne database,,TDB,,WIN,Access,Ver 2.0.
+Open Database,,Åpne database,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Open Database...\\tCtrl+O,O,Åpne database...\\tCtrl+O,p,COM,,WIN,Access,Ver 2.0.
+Open Exclusive,x,Åpne alene,n,CHX,,WIN,Access,Ver 2.0. Dynamic checkbox in permissions dialog
+Open form '|',,Åpne skjemaet \@|\@,,TXT,,WIN,Access,Ver 2.0.
+Open table '|',,Åpne tabellen \@|\@,,TXT,,WIN,Access,Ver 2.0.
+Open/Run,p,Åpne/kjøre,Å,BUT,,WIN,Access,Ver 2.0.
+OpenDatabase,,Åpne database,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+OpenForm,,ÅpneSkjema,,MAC,,WIN,Access,Ver 2.0.
+OpenModule,,ÅpneModul,,MAC,,WIN,Access,Ver 2.0. Status bar text for menu item
+OpenQuery,,ÅpneSpørring,,MAC,,WIN,Access,Ver 2.0.
+OpenReport,,ÅpneRapport,,MAC,,WIN,Access,Ver 2.0.
+OpenTable,,ÅpneTabell,,MAC,,WIN,Access,Ver 2.0.
+Operators,,Operatorer,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Option Button,,Alternativknapp,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Option Group,,Alternativgruppe,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Option Value,,Alternativverdi,,TXT,,WIN,Access,Ver 2.0. Property or event
+Options,,Alternativer,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Options >>,O,Alternativer >>,A,BUT,,WIN,Access,Ver 2.0.
+Options...,O,Alternativer...,A,COM,,WIN,Access,Ver 2.0.
+Options...,O,Alternativer...,A,BUT,,WIN,Access,Ver 2.0.
+or:,,eller:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+Orientation,,Retning,,BUT,,WIN,Access,Ver 2.0.
+Other Properties,,Andre egenskaper,,TXT,,WIN,Access,Ver 2.0. Listbox item
+Output,,Utdata,,BUT,,WIN,Access,Ver 2.0.
+Output All Fields,,Lagre alle felt,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Output File,,Utdatafil,,ARG,,WIN,Access,Ver 2.0. Macro action argument
+Output Format,,Utdataformat,,ARG,,WIN,Access,Ver 2.0. Macro action argument
+Output To,,Utdata til,,TDB,,WIN,Access,Ver 2.0.
+Output to,,Utdata til,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Output To Notepad,,Utdata til Notisblokk,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Output To RTF,,Utdata til RTF-format,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Output To Text,,Utdata til tekst,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Output To...,T,Utdata til...,t,COM,,WIN,Access,Ver 2.0.
+Output To...,,Utdata til...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Outputting,,Sender utdata,,TXT,,WIN,Access,Ver 2.0.
+Outputting object,,Sender objektet som utdata,,TXT,,WIN,Access,Ver 2.0. Progress indication
+OutputTo,,Utdata,,MAC,,WIN,Access,Ver 2.0.
+Overlap Flags,,Overlappingsflagg,,TXT,,WIN,Access,Ver 2.0. Property or event
+Owner's,,Eierens,,TXT,,WIN,Access,Ver 2.0.
+Page,,Side,,TXT,,WIN,Access,Ver 2.0. Property or event
+Page |1,,Side |1,,TXT,,WIN,Access,Ver 2.0.
+Page Break,,Sideskift,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Page Footer,,BunntekstPåSide,,TXT,,WIN,Access,Ver 2.0. Property or event
+Page From,,Fra side,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Page Header,,TopptekstPåSide,,TXT,,WIN,Access,Ver 2.0. Property or event
+Page Header/Footer,P,Topptekst/bunntekst på side,s,COM,,WIN,Access,Ver 2.0.
+Page Header/Footer,,Topptekst/bunntekst på side,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Page N of M,,Side N av M,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Page Number,,Sidetall,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Page To,,Til side,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Page:,,Side:,,TXT,,WIN,Access,Ver 2.0.
+PageHdr/Ftr,,Topptekst/bunntekst på side,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+PageHeader,,Topptekst på side,,TXT,,WIN,Access,Ver 2.0.
+Pages,P,Sider,S,BUT,,WIN,Access,Ver 2.0.
+Pages,,Sider,,TXT,,WIN,Access,Ver 2.0. Property or event
+Paint Palette,,Fargepalett,,TXT,,WIN,Access,Ver 2.0. Property or event
+Palette,a,Palett,P,COM,,WIN,Access,Ver 2.0.
+Palette,,Palett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Palette Button,,Palettknapp,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Palette Source,,Palett,,TXT,,WIN,Access,Ver 2.0. Property or event
+Paper,,Papir,,BUT,,WIN,Access,Ver 2.0.
+Parameter Query,,Parameterspørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Parameters,,Parametere,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Parameters...,m,Parametere...,m,COM,,WIN,Access,Ver 2.0.
+Parameters...,,Parametere...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Parent,,Overordnet,,TXT,,WIN,Access,Ver 2.0. Property or event
+Partially Enclosed,,Delvis omsluttet,,TXT,,WIN,Access,Ver 2.0.
+Pass-Through,P,Direkte,i,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Password,,Passord,,TXT,,WIN,Access,Ver 2.0.
+Password for |1:,,Passord for |1:,,TXT,,WIN,Access,Ver 2.0.
+Paste,P,Lim inn,L,BUT,,WIN,Access,Ver 2.0.
+Paste,,Lim inn,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Paste Append,d,Lim inn føy til,f,COM,,WIN,Access,Ver 2.0.
+Paste Append,,Lim inn føy til,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Paste As,,Lim inn som,,TDB,,WIN,Access,Ver 2.0.
+Paste Errors,,Innlimingsfeil,,TXT,,WIN,Access,Ver 2.0. Table name which holds records that failed to paste in a paster operation
+Paste in Progress,,Limer inn,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Paste Link,L,Lim inn kobling,k,BUT,,WIN,Access,Ver 2.0.
+Paste Link,,Lim inn kobling,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Paste Link...,L,Lim inn kobling...,k,COM,,WIN,Access,Ver 2.0.
+Paste Special,,Lim inn utvalg,,TDB,,WIN,Access,Ver 2.0.
+Paste Special,,Lim inn utvalg,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Paste Special...,S,Lim inn utvalg...,t,COM,,WIN,Access,Ver 2.0.
+Paste Table As,,Lim inn tabell som,,TDB,,WIN,Access,Ver 2.0.
+Paste\\tCtrl+V,P,Lim inn\\tCtrl+V,L,COM,,WIN,Access,Ver 2.0.
+PasteAppend,,Lim inn føy til,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+PasteLink,,Lim inn kobling,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+PasteSpecial,,Lim inn utvalg,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Percent,,Prosent,,TXT,,WIN,Access,Ver 2.0. Listbox item : Number format
+Permissions,,Tillatelser,,TDB,,WIN,Access,Ver 2.0.
+Permissions,,Tillatelser,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Permissions...,P,Tillatelser...,T,COM,,WIN,Access,Ver 2.0.
+Personal ID:,P,Personlig ID:,P,TXB,,WIN,Access,Ver 2.0.
+Pick a new appearance for this button,,Velg et annet utseende på denne knappen,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Picture,,Bilde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Place holder,,Plassholder,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Pop Up,,Popup,,TXT,,WIN,Access,Ver 2.0. Property or event
+Portrait,r,Stående,å,BUT,,WIN,Access,Ver 2.0.
+Preview,P,Forhåndsvisning,o,BUT,,WIN,Access,Ver 2.0.
+Preview report '|',,Forhåndsvis rapporten \@|\@,,TXT,,WIN,Access,Ver 2.0.
+Previous,P,Forrige,r,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Previous,,Forrige,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Previous Control,,ForrigeKontroll,,TXT,,WIN,Access,Ver 2.0. Property or event
+Previous Procedure,,Forrige prosedyre,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Previous Procedure\\tCtrl+Up,e,Forrige prosedyre\\tCtrl+Pil opp,r,COM,,WIN,Access,Ver 2.0.
+Previous Record,,Forrige post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+PreviousProcedure,,Forrige prosedyre,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Primary,,Primær,,TXT,,WIN,Access,Ver 2.0. Index object editor property
+Print,,SkrivUt,,MAC,,WIN,Access,Ver 2.0.
+Print,,Skriv ut,,TDB,,WIN,Access,Ver 2.0.
+Print Definition,,Skriv ut definisjon,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Print Definition...,f,Skriv ut definisjon...,f,COM,,WIN,Access,Ver 2.0.
+Print Definition...,,Skriv ut definisjon...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Print Preview,v,Forhåndsvisning,v,COM,,WIN,Access,Ver 2.0.
+Print Preview,,Forhåndsvisning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Print Quality,,Utskriftskvalitet,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Print Quality:,Q,Utskriftskvalitet,U,DIA,,WIN,Access,Ver 2.0.
+Print Range,,Utskriftsområde,,BUT,,WIN,Access,Ver 2.0.
+Print Range,,Utskriftsområde,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Print Security,,Skriv ut sikkerhet,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Print Security,,Skriv ut sikkerhet,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Print Security...,r,Skriv ut sikkerhet...,u,COM,,WIN,Access,Ver 2.0.
+Print Setup,,Skriveroppsett,,TDB,,WIN,Access,Ver 2.0.
+Print Setup,,Skriveroppsett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Print Setup...,r,Skriveroppsett...,o,COM,,WIN,Access,Ver 2.0.
+Print to File,l,Skriv til fil,v,BUT,,WIN,Access,Ver 2.0.
+Print...,,Skriv ut...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Print...\\tCtrl+P,P,Skriv ut...\\tCtrl+P,u,COM,,WIN,Access,Ver 2.0.
+PrintArea,,SkrivUtOmråde,,TXT,,WIN,Access,Ver 2.0.
+PrintCount,,AntallUtskrifter,,TXT,,WIN,Access,Ver 2.0. Property or event
+Printer,,Skriver,,BUT,,WIN,Access,Ver 2.0.
+Printing,,Utskrift,,TXT,,WIN,Access,Ver 2.0. Options Categories
+PrintPreview,,Forhåndsvisning,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+PrintSection,,SkrivUtInndeling,,TXT,,WIN,Access,Ver 2.0. Property or event
+PrintSetup,,Utskriftsformat,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+PrintTitles,,SkrivUtTitler,,TXT,,WIN,Access,Ver 2.0.
+Procedure Name,,Prosedyrenavn,,ARG,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Procedures,,Prosedyrer,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Procedures...\\tF2,r,Prosedyrer...\\tF2,P,COM,,WIN,Access,Ver 2.0.
+Procedures:,P,Prosedyrer:,r,DIA,,WIN,Access,Ver 2.0.
+ProcedureStep,,Prosedyresteg,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Program Flow,,Programflyt,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Properties,,Egenskaper,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Properties...,P,Egenskaper...,E,COM,,WIN,Access,Ver 2.0.
+Properties...,,Egenskaper...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Property,,Egenskap,,TXT,,WIN,Access,Ver 2.0.
+Pts,,Pkt,,TXT,,WIN,Access,Ver 2.0.
+Publish It with MS Word,,Utgi data med MS Word,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Queries,Q,Spørringer,S,COM,,WIN,Access,Ver 2.0.
+Queries,Q,Spørringer,S,BUT,,WIN,Access,Ver 2.0.
+Queries,,Spørringer,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Query,Q,Spørring,S,MNU,,WIN,Access,Ver 2.0.
+Query,,Spørring,,TXT,,WIN,Access,Ver 2.0.
+Query Builder,,Spørreverktøy,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+Query Builder: ,,Spørreverktøy: ,,TDB,,WIN,Access,Ver 2.0.
+Query Datasheet,,Dataark for spørring,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Query Design,D,Spørredesign,g,COM,,WIN,Access,Ver 2.0.
+Query Design,,Spørredesign,,TXT,,WIN,Access,Ver 2.0. Options Categories
+Query Name,,Navn på spørring,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Query Name:,N,Navn på spørring:,s,TXB,,WIN,Access,Ver 2.0.
+Query Name:,N,Navn på spørring:,s,TXB,,WIN,Access,Ver 2.0.
+Query Parameters,,Spørreparametere,,TDB,,WIN,Access,Ver 2.0.
+Query Properties,,Spørreegenskaper,,TDB,,WIN,Access,Ver 2.0.
+Query Properties,,Spørreegenskaper,,TXT,,WIN,Access,Ver 2.0. Text in query property sheet
+Query: ,,Spørring: ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+QueryDesign,,Spørredesign,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+QueryProperties,,Spørreegenskaper,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Quick Sort,Q,Hurtigsortering,H,COM,,WIN,Access,Ver 2.0.
+Quick Sort Ascending,,Hurtigsortering stigende,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Quick Sort Descending,,Hurtigsortering synkende,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Quit,,Avslutt,,MAC,,WIN,Access,Ver 2.0.
+Raised Appearance,,Hevet utseende,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Range,,Område,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Read Data,e,Lese data,e,BUT,,WIN,Access,Ver 2.0.
+Read Design,R,Lese design,n,BUT,,WIN,Access,Ver 2.0.
+Read Design,R,Lese design,n,CHX,,WIN,Access,Ver 2.0. Dynamic checkbox in permissions dialog
+Read Only,R,Skrivebeskyttet,v,BUT,,WIN,Access,Ver 2.0.
+Ready,,Klar,,TXT,,WIN,Access,Ver 2.0.
+Record Count,,AntallPoster,,TXT,,WIN,Access,Ver 2.0. Property or event
+Record Locks,,Postlåsing,,TXT,,WIN,Access,Ver 2.0. Property or event
+Record Selectors,,Postvelgere,,TXT,,WIN,Access,Ver 2.0. Property or event
+Record Source,,Postkilde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Records,R,Poster,P,MNU,,WIN,Access,Ver 2.0.
+Records,,Poster,,TXT,,WIN,Access,Ver 2.0.
+RecordsetClone,,Postsettkopi,,TXT,,WIN,Access,Ver 2.0. Property or event
+Rectangle,,Rektangel,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Refresh,R,Oppdater,O,COM,,WIN,Access,Ver 2.0.
+Refresh,,Oppdater,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Refresh Interval (sec),,Oppdateringsintervall (sek.),,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Relationships,R,Relasjoner,s,MNU,,WIN,Access,Ver 2.0.
+Relationships,,Relasjoner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Relationships...,R,Relasjoner...,s,COM,,WIN,Access,Ver 2.0.
+Relationships...,,Relasjoner...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Remove Table,e,Fjern tabell,F,COM,,WIN,Access,Ver 2.0.
+Remove Table,,Fjern tabell,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+RemoveTable,,Fjern tabell,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Rename,,GiNyttNavn,,MAC,,WIN,Access,Ver 2.0.
+Rename |,,Gi | nytt navn,,TDB,,WIN,Access,Ver 2.0.
+Rename tblConstants_To_Menus,,Gi tblConstants_To_Menus nytt navn,,TDB,,WIN,Access,Ver 2.0.
+Rename Toolbar,,Endre navn på verktøylinje,,TDB,,WIN,Access,Ver 2.0.
+Rename...,m,Gi nytt navn...,G,COM,,WIN,Access,Ver 2.0.
+Rename...,m,Gi nytt navn...,y,BUT,,WIN,Access,Ver 2.0.
+Rename...,,Gi nytt navn...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+RepaintObject,,OppdaterObjekt,,MAC,,WIN,Access,Ver 2.0.
+Repair,,Reparerer,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Repair Database,,Reparer database,,TDB,,WIN,Access,Ver 2.0.
+Repair Database...,R,Reparer database...,R,COM,,WIN,Access,Ver 2.0.
+RepairDatabase,,Reparer database,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Repeat Count,,Antall kjøringer,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Replace,R,Erstatt,E,BUT,,WIN,Access,Ver 2.0.
+Replace,,Erstatt,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Replace All,l,Erstatt alle,a,BUT,,WIN,Access,Ver 2.0.
+Replace in field: '|',,Erstatt i feltet: \@|\@,,TDB,,WIN,Access,Ver 2.0. Context sensitive title of dialog box
+Replace succeeded,,Erstatt ferdig,,TXT,,WIN,Access,Ver 2.0.
+Replace With:,R,Erstatt med:,E,TXB,,WIN,Access,Ver 2.0.
+Replace...\\tCtrl+H,R,Erstatt...\\tCtrl+H,r,COM,,WIN,Access,Ver 2.0.
+Replaced  |1 occurrence(s) of '|2',,Byttet ut |1 forekomst(er) av \@|2\@,,TXT,,WIN,Access,Ver 2.0.
+Report,R,Rapport,R,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Report,,Rapport,,TXT,,WIN,Access,Ver 2.0. Property or event
+Report Design,,Rapportdesign,,TXT,,WIN,Access,Ver 2.0.
+Report Footer,,Bunntekst i rapport,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+Report Header,,Topptekst i rapport,,TXT,,WIN,Access,Ver 2.0. Section label in form or report design
+Report Header/Footer,H,Topptekst/bunntekst i rapport,T,COM,,WIN,Access,Ver 2.0.
+Report Header/Footer,,Topptekst/bunntekst i rapport,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Report Name,,Rapportnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Report Name:,N,Rapportnavn:,n,TXB,,WIN,Access,Ver 2.0.
+Report Name:,N,Rapportnavn:,n,TXB,,WIN,Access,Ver 2.0.
+Report Template,,Rapportmal,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Report.,,Rapport.,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Report: ,,Rapport: ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+ReportFooter,,Bunntekst i rapport,,TXT,,WIN,Access,Ver 2.0.
+ReportHdr/Ftr,,Topptekst/bunntekst i rapport,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+ReportHeader,,Topptekst i rapport,,TXT,,WIN,Access,Ver 2.0.
+Reports,R,Rapporter,R,COM,,WIN,Access,Ver 2.0.
+Reports,,Rapporter,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Requery,,SpørPåNytt,,MAC,,WIN,Access,Ver 2.0.
+Required,,Obligatorisk,,TXT,,WIN,Access,Ver 2.0. Property or event
+Reset,R,Tilbakestill,T,COM,,WIN,Access,Ver 2.0.
+Reset,R,Tilbakestill,T,BUT,,WIN,Access,Ver 2.0.
+Reset,,Tilbakestill,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Reset Button Face,,Gjenopprett knapp,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+ResetButtonFace,,Gjenopprett knapp,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Restore,,Gjenopprett,,MAC,,WIN,Access,Ver 2.0.
+Result,,Resultat,,BUT,,WIN,Access,Ver 2.0.
+Retry,R,Prøv igjen,P,BUT,,WIN,Access,Ver 2.0. Button on Message Box
+Returns Records,,ReturnerPoster,,TXT,,WIN,Access,Ver 2.0. Property or event
+Right,R,Høyre,H,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Right Margin,,Høyre marg,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Right-Align Text,,Høyrejuster tekst,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Right-align text within control,,Høyrejuster tekst innenfor kontrollen,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Right:,g,Høyre:,H,TXB,,WIN,Access,Ver 2.0.
+Row,,Rad,,TXT,,WIN,Access,Ver 2.0.
+Row Heading,,Radoverskrift,,TXT,,WIN,Access,Ver 2.0. List box item
+Row Height,,Radhøyde,,TDB,,WIN,Access,Ver 2.0.
+Row Height,,Radhøyde,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Row Height...,R,Radhøyde...,R,COM,,WIN,Access,Ver 2.0.
+Row Height...,,Radhøyde...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Row Height:,R,Radhøyde:,R,TXB,,WIN,Access,Ver 2.0.
+Row Properties,,Radegenskaper,,TXT,,WIN,Access,Ver 2.0.
+Row Source,,Radkilde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Row Source Type,,Radkildetype,,TXT,,WIN,Access,Ver 2.0. Property or event
+Row Source Type Int,,RadkildetypeHeltall,,TXT,,WIN,Access,Ver 2.0. Property or event
+Row Spacing:,w,Radavstand:,n,TXB,,WIN,Access,Ver 2.0.
+Row too long,,Raden er for lang,,TXT,,WIN,Access,Ver 2.0.
+RowHeight,,Radhøyde,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Ruler,R,Linjal,i,COM,,WIN,Access,Ver 2.0.
+Ruler,,Linjal,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Run,R,Kjør,K,COM,,WIN,Access,Ver 2.0.
+Run,,Kjør,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Run Macro,,Kjør makro,,TDB,,WIN,Access,Ver 2.0.
+Run Macro,,Kjør makro,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Run macro '|',,Kjør makroen \@|\@,,TXT,,WIN,Access,Ver 2.0.
+Run Macro...,u,Kjør makro...,K,COM,,WIN,Access,Ver 2.0.
+Run Permissions,,Kjør tillatelser,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Run query '|',,Kjør spørringen \@|\@,,TXT,,WIN,Access,Ver 2.0.
+RunApp,,KjørProgram,,MAC,,WIN,Access,Ver 2.0.
+RunCode,,KjørBasicKode,,MAC,,WIN,Access,Ver 2.0.
+RunMacro,,KjørMakro,,MAC,,WIN,Access,Ver 2.0.
+Running query,,Kjører spørring,,TXT,,WIN,Access,Ver 2.0.
+Running Sum,,LøpendeTotal,,TXT,,WIN,Access,Ver 2.0. Property or event
+"Runs the specified SQL statement for an action query (INSERT INTO, DELETE, UPDATE, SELECT...INTO).  You can use the statement to modify data in the current  database or in another database (using the IN clause).  Press F1 for help on this action.",,"Kjører den angitte SQL-setningen for en redigeringsspørring (INSERT INTO, DELETE, UPDATE, SELECT...INTO). Du kan bruke setningen til å endre data i den gjeldende databasen eller i en annen database (ved hjelp av en IN-setningsdel). Trykk F1 hvis du vil ha",,TXT,,WIN,Access,Ver 2.0. Hint text for macro action
+RunSQL,,KjørSQL,,MAC,,WIN,Access,Ver 2.0.
+Same as Detail,a,Samme som detalj,j,BUT,,WIN,Access,Ver 2.0.
+Sample,,Eksempel,,BUT,,WIN,Access,Ver 2.0.
+Sample Preview,m,Hurtigvisning,H,COM,,WIN,Access,Ver 2.0.
+Sample Preview,,Hurtigvisning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SamplePreview,,Hurtigvisning,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Saturday,,Lørdag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Save,,Lagre,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save As,,Lagre som,,TDB,,WIN,Access,Ver 2.0.
+Save As,,Lagre som,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save as Query,,Lagre som spørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save As Query...,A,Lagre som spørring...,s,COM,,WIN,Access,Ver 2.0.
+Save As Query...,,Lagre som spørring...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Save As Report,,Lagre som rapport,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save As Report...,o,Lagre som rapport...,m,COM,,WIN,Access,Ver 2.0.
+Save As...,A,Lagre som...,s,COM,,WIN,Access,Ver 2.0.
+Save As...,v,Lagre som...,s,BUT,,WIN,Access,Ver 2.0.
+Save Form As Report,,Lagre skjema som rapport,,TDB,,WIN,Access,Ver 2.0.
+Save Form As Report,,Lagre skjema som rapport,,TDB,,WIN,Access,Ver 2.0. For Save As Report dialog
+Save Form As...,A,Lagre skjema som...,s,COM,,WIN,Access,Ver 2.0.
+Save Form\\tCtrl+S,S,Lagre skjema\\tCtrl+S,g,COM,,WIN,Access,Ver 2.0.
+Save Layout,S,Lagre oppsett,g,COM,,WIN,Access,Ver 2.0.
+Save layout,,Lagre oppsett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save Query As...,A,Lagre spørring som...,s,COM,,WIN,Access,Ver 2.0.
+Save Query\\tCtrl+S,S,Lagre spørring\\tCtrl+S,g,COM,,WIN,Access,Ver 2.0.
+Save Record,,Lagre post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save Record\\tShift+Enter,o,Lagre post\\tSkift+Enter,p,COM,,WIN,Access,Ver 2.0.
+Save Specification As,,Lagre spesifikasjon som,,TXT,,WIN,Access,Ver 2.0.
+Save Specification As,,Lagre spesifikasjon som,,TDB,,WIN,Access,Ver 2.0.
+Save Table,,Lagre tabell,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save Table\\tCtrl+S,S,Lagre tabell\\tCtrl+S,g,COM,,WIN,Access,Ver 2.0.
+Save Text,,Lagre tekst,,TDB,,WIN,Access,Ver 2.0.
+Save Text,,Lagre tekst,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Save Text...,T,Lagre tekst...,t,COM,,WIN,Access,Ver 2.0.
+Save\\tCtrl+S,S,Lagre\\tCtrl+S,g,COM,,WIN,Access,Ver 2.0.
+SaveAs,,Lagre som,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SaveAsQuery,,Lagre som spørring,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SaveAsReport,,Lagre som rapport,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+SaveLayout,,Lagre oppsett,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+SaveRecord,,Lagre post,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SaveText,,Lagre tekst,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Scaling,,Skalering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Scientific,,Vitenskapelig,,TXT,,WIN,Access,Ver 2.0. Listbox item : Number format
+Screen,,Skjerm,,TXT,,WIN,Access,Ver 2.0. Property or event
+Scroll Bars,,Rullefelt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Search,,Søk,,BUT,,WIN,Access,Ver 2.0.
+Search,,Søk,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Search As Formatted,,Søk med visningsformat,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Search Help,,Søk i Hjelp,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Search In,,Søk i,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Search succeeded,,Vellykket søk,,TXT,,WIN,Access,Ver 2.0.
+Search...,S,Søk...,S,COM,,WIN,Access,Ver 2.0.
+Searching...  Press Ctrl+Break to stop,,Søker... Trykk Ctrl+Break for å avbryte,,TXT,,WIN,Access,Ver 2.0.
+Section,,Inndeling,,BUT,,WIN,Access,Ver 2.0.
+Section,,Inndeling,,TXT,,WIN,Access,Ver 2.0. Property or event
+SectionContinued,,NesteInndeling,,TXT,,WIN,Access,Ver 2.0. Property or event
+Security,S,Sikkerhet,S,MNU,,WIN,Access,Ver 2.0.
+Select |1 Connection,,Velg |1-kobling,,DIA,,WIN,Access,Ver 2.0.
+Select |9 Database,,Velg |9-database,,TDB,,WIN,Access,Ver 2.0. |9 is a placeholder that is replaced by by a type of database
+Select |9 Object,,Velg |9-objekt,,TDB,,WIN,Access,Ver 2.0.
+Select A Table/Query:,T,Velg tabell/spørring:,b,DIA,,WIN,Access,Ver 2.0.
+Select All,,Merk alt,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Select All Records,,Merk alle poster,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Select All Records\\tCtrl+A,A,Merk alle poster\\tCtrl+A,M,COM,,WIN,Access,Ver 2.0.
+Select All\\tCtrl+A,A,Merk alt\\tCtrl+A,M,COM,,WIN,Access,Ver 2.0.
+Select Current Field to search only in the current field in each record.  Select All Fields to search all fields in each record.  The Current Field search is faster.  Press F1  for help on this argument.,,Velg Gjeldende felt hvis du bare vil søke i det gjeldende feltet i hver post. Velg Alle felt hvis du vil søke i alle felt i hver post. Søking i gjeldende felt er raskere enn søking i alle felt. Trykk F1 hvis du vil ha hjelp.,,TXT,,WIN,Access,Ver 2.0. Macro argument hint text
+Select Database,,Velg database,,TDB,,WIN,Access,Ver 2.0. Title for Import/Attach dialog
+Select Down to search forward through the records.  Select Up to search backward through the records.  Press F1 for help on this argument.,,Velg Ned for å søke nedover gjennom postene. Velg Opp for å søke oppover gjennom postene. Trykk F1 hvis du vil ha hjelp.,,TXT,,WIN,Access,Ver 2.0. Macro argument hint text
+Select File,,Velg fil,,TDB,,WIN,Access,Ver 2.0.
+Select File,,Velg fil,,TDB,,WIN,Access,Ver 2.0.
+Select Form,r,Merk skjema,s,COM,,WIN,Access,Ver 2.0.
+Select Form,,Merk skjema,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Select Format:,F,Velg format:,f,DIA,,WIN,Access,Ver 2.0.
+Select Format:,F,Velg format:,f,DIA,,WIN,Access,Ver 2.0.
+Select Menu Item or Click to receive help.,,Velg fra menyen eller klikk for å få hjelp.,,TXT,,WIN,Access,Ver 2.0.
+Select Microsoft Access Object,,Velg Microsoft Access-objekt,,TDB,,WIN,Access,Ver 2.0.
+Select objects,,Merk objekter,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Select Query,,Utvalgsspørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Select Query: ,,Utvalgsspørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Select Record,l,Merk post,p,COM,,WIN,Access,Ver 2.0.
+Select Record,,Merk post,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Select Report,R,Merk rapport,r,COM,,WIN,Access,Ver 2.0.
+Select Unique Record Identifier,,Velg en entydig postidentifikator,,TXT,,WIN,Access,Ver 2.0.
+SelectAll,,Merk alt,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SelectAllRecords,,Merk alle poster,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SelectForm,,Merk skjema,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Selection,S,Merket,M,BUT,,WIN,Access,Ver 2.0.
+Selection Behavior,,Virkemåte for merking,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+SelectObject,,MerkObjekt,,MAC,,WIN,Access,Ver 2.0.
+SelectRecord,,Merk Post,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SelLength,,MerketLengde,,TXT,,WIN,Access,Ver 2.0. Property or event
+SelStart,,MerketStartpunkt,,TXT,,WIN,Access,Ver 2.0. Property or event
+SelText,,MerketTekst,,TXT,,WIN,Access,Ver 2.0. Property or event
+Semi-bold,,Halvfet,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Send Database,,Send database,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Send the current database by mail,,Send den gjeldende databasen som brev,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Send to Back,B,Plasser nederst,P,COM,,WIN,Access,Ver 2.0.
+Send To Back,,Plasser nederst,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SendKeys,,SendTastetrykk,,MAC,,WIN,Access,Ver 2.0.
+SendObject,,SendObjekt,,MAC,,WIN,Access,Ver 2.0.
+SendToBack,,Plasser nederst,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Server processing...,,Serveren jobber...,,TXT,,WIN,Access,Ver 2.0.
+Set Next Statement,N,Angi neste setning,n,COM,,WIN,Access,Ver 2.0.
+Set Next Statement,,Angi neste setning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Set Primary Key,S,Angi primærnøkkel,p,COM,,WIN,Access,Ver 2.0.
+Set Primary Key,,Angi primærnøkkel,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SetNextStatement,,Angi neste setning,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+SetPrimaryKey,,Angi primærnøkkel,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Setup...,S,Oppsett...,e,BUT,,WIN,Access,Ver 2.0.
+SetValue,,SettVerdi,,MAC,,WIN,Access,Ver 2.0.
+SetWarnings,,VisAdvarsler,,MAC,,WIN,Access,Ver 2.0.
+Shared,,Delt,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Short Dashes,,Kort stiplet,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Short Date,,Kort dato,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+Short Time,,Kort klokkeslett,,TXT,,WIN,Access,Ver 2.0. Listbox item : Date/time format
+Shortcut Menu,,Hurtigmeny,,TXT,,WIN,Access,Ver 2.0. Property or event
+Show,S,Vis,V,BUT,,WIN,Access,Ver 2.0.
+Show,S,Vis,V,BUT,,WIN,Access,Ver 2.0. Button in toolbar dialog
+Show,,Vis,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Show All,l,Vis alle,a,COM,,WIN,Access,Ver 2.0.
+Show All Records,S,Vis alle poster,V,COM,,WIN,Access,Ver 2.0.
+Show All Records,,Vis alle poster,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show All Relationships,,Vis alle relasjoner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show Columns,,Vis kolonner,,TDB,,WIN,Access,Ver 2.0.
+Show Columns...,S,Vis kolonner...,V,COM,,WIN,Access,Ver 2.0.
+Show Columns...,,Vis kolonner...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Show Conditions Column,,Vis betingelseskolonne,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show Direct,D,Vis direkte,d,COM,,WIN,Access,Ver 2.0.
+Show Direct Relationships,,Vis direkte relasjoner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show Grid,,Vis rutenett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show Hidden Columns,,Vis skjulte kolonner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show Macro Names Column,,Vis makronavnkolonne,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show Next Statement,h,Vis neste setning,i,COM,,WIN,Access,Ver 2.0.
+Show Next Statement,,Vis neste setning,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Show Ruler,,Vis linjal,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show Sort/Group Box,,Vis boksen Sortering og gruppering,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show Status Bar,,Vis statuslinje,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show System Objects,,Vis systemobjekter,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show Table Names,,Vis tabellnavn,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show ToolTips,w,Vis Verktøytips,i,BUT,,WIN,Access,Ver 2.0.
+Show ToolTips,,Vis Verktøytips,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Show/hide a particular toolbar,,Vis/skjul en bestemt verktøylinje,,TXT,,WIN,Access,Ver 2.0.
+Show:,,Vis:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+ShowAll,,Vis alt,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+ShowAllRecords,,VisAllePoster,,MAC,,WIN,Access,Ver 2.0.
+ShowColumns,,Vis kolonner,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+ShowDirect,,Vis direkte,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+ShowNextStatement,,Vis neste setning,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+ShowToolbar,,VisVerktøylinje,,MAC,,WIN,Access,Ver 2.0.
+Single Step,S,Enkeltsteg,E,COM,,WIN,Access,Ver 2.0.
+Single Step,,Enkeltsteg,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SingleStep,,Enkeltsteg,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Size,S,Størrelse,r,COM,,WIN,Access,Ver 2.0.
+Size Mode,,Størrelse,,TXT,,WIN,Access,Ver 2.0. Property or event
+Size To Fit,,Tilpass størrelse,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size to Fit Form,z,Tilpass størrelse til skjema,p,COM,,WIN,Access,Ver 2.0.
+Size To Fit Form,,Tilpass størrelse til skjema,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size To Grid,,Tilpass størrelse til rutenett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size To Narrowest,,Endre størrelse til smaleste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size To Shortest,,Endre størrelse til korteste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size To Tallest,,Endre størrelse til høyeste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size To Widest,,Endre størrelse til bredeste,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Size:,z,Størrelse:,r,DIA,,WIN,Access,Ver 2.0.
+Snap to Grid,G,Fest til rutenett,n,COM,,WIN,Access,Ver 2.0.
+Snap To Grid,,Fest til rutenett,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SnapToGrid,,Fest til rutenett,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Solid;Dashes;Short Dashes;Dots;Sparse Dots;Dash Dot;Dash Dot Dot,,Heltrukket;Stiplet;Kort stiplet;Prikker;Spredte prikker;Strek-prikk;Strek-prikk-prikk,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Sort,,Sorter,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Sort Ascending,A,Stigende,t,COM,,WIN,Access,Ver 2.0.
+Sort Ascending,,Stigende sortering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Sort Descending,c,Synkende,y,COM,,WIN,Access,Ver 2.0.
+Sort Descending,,Synkende sortering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Sort Order,,Sorteringsrekkefølge,,TXT,,WIN,Access,Ver 2.0. Property or event
+Sort:,,Sorter:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+SortDown,,Synkende,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Sorting and Grouping,,Sortering og gruppering,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Sorting and Grouping...,S,Sortering og gruppering...,t,COM,,WIN,Access,Ver 2.0.
+Sorting and Grouping...,,Sortering og gruppering...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+SortingAndGrouping,,Sortering og gruppering,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+SortUp,,Stigende,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Source,,Kilde,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Source Connect Str,,Kildekoblingsstreng,,TXT,,WIN,Access,Ver 2.0. Property or event
+Source Database,,Kildedatabase,,TXT,,WIN,Access,Ver 2.0. Property or event
+Source Doc,,Kildedokument,,TXT,,WIN,Access,Ver 2.0. Property or event
+Source Item,,Kildeelement,,TXT,,WIN,Access,Ver 2.0. Property or event
+Source Object,,Kildeobjekt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Source Object Name,,Kildeobjektnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Source Object Type,,Kildeobjekttype,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Source:,S,Kilde:,K,DIA,,WIN,Access,Ver 2.0.
+Sparse Dots,,Spredte prikker,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Special Effect,,Utseende,,TXT,,WIN,Access,Ver 2.0. Property or event
+Specific Printer:,P,Valgt skriver:,i,BUT,,WIN,Access,Ver 2.0.
+Specification '|' saved.,,Spesifikasjonen \@|\@ er lagret.,,TXT,,WIN,Access,Ver 2.0.
+Specification Name,,Spesifikasjonsnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Specification Name:,N,Spesifikasjonsnavn:,n,DIA,,WIN,Access,Ver 2.0.
+Specify columns to show or hide,,Angi kolonner som skal vises eller skjules,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Specify how to group date fields on a report,,Angi hvordan du vil gruppere datafelt i en rapport,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Specify the filter and sort criteria,,Angi vilkår for filter og sortering,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Specify the timer interval in milliseconds,,Angi tidsmålerintervallet i millisekunder,,TXT,,WIN,Access,Ver 2.0. Status bar text
+Specify the type of query and run query,,Angi spørretype og kjør en spørring,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item
+Split Window,W,Del vindu,v,COM,,WIN,Access,Ver 2.0.
+Split Window,,Del vindu,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+SplitWindow,,Del vindu,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Spreadsheet Type,,Regnearktype,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+SQL Aggregate,,SQL-mengde,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+SQL Pass-Through Query: ,,SQL-direktespørring: ,,TDB,,WIN,Access,Ver 2.0.
+SQL Specific,Q,SQL,Q,COM,,WIN,Access,Ver 2.0.
+SQL Statement,,SQL-setning,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+SQL View,,SQL,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Standard Height,S,Standardhøyde,S,BUT,,WIN,Access,Ver 2.0.
+Standard Mode,,Standardmodus,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Standard Width,S,Standardbredde,S,BUT,,WIN,Access,Ver 2.0.
+Start of Field,,Begynnelsen av feltet,,TXT,,WIN,Access,Ver 2.0. List box item
+Start of Field Search,,Begynnelsen av felt,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Starts on Jan 1,,Begynner 1. januar,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Status Bar,,Statuslinje,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Status Bar Text,,Statuslinjetekst,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+StDev,,StdAvvik,,FUN,,WIN,Access,Ver 2.0.
+Step Into,,Steg inn i,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Step Into\\tF8,S,Steg inn i\\tF8,S,COM,,WIN,Access,Ver 2.0.
+Step Over,,Steg over,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Step Over\\tShift+F8,p,Steg over\\tSkift+F8,g,COM,,WIN,Access,Ver 2.0.
+StopAllMacros,,StoppAlleMakroer,,MAC,,WIN,Access,Ver 2.0.
+StopMacro,,StoppMakro,,MAC,,WIN,Access,Ver 2.0.
+Store Field Names in First Row,F,Lagre feltnavn i første rad,L,BUT,,WIN,Access,Ver 2.0.
+Strikeout,k,Gjennomstreking,G,BUT,,WIN,Access,Ver 2.0.
+String Returned by Command$ Function:,S,Streng returnert av Command$-funksjon:,S,TXB,,WIN,Access,Ver 2.0.
+Structure and Data,D,Struktur og data,S,BUT,,WIN,Access,Ver 2.0.
+Structure Only,S,Bare struktur,B,BUT,,WIN,Access,Ver 2.0.
+Structure Only,,Bare struktur,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Sub,S,Sub,S,BUT,,WIN,Access,Ver 2.0.
+Subcommand,,Underkommando,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Subform,,Delskjema,,TXT,,WIN,Access,Ver 2.0. Default name prefix for new subform
+Subform Datasheet,u,Dataark for delskjema,r,COM,,WIN,Access,Ver 2.0.
+Subform Datasheet,,Delskjema,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Subform/Subreport,,Delskjema/delrapport,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+SubformDatasheet,,Delskjema,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Subject,,Emne,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Sum,,Summer,,FUN,,WIN,Access,Ver 2.0.
+Sunday,,Søndag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Sunken Appearance,,Senket utseende,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Switch To Microsoft Excel,,Bytt til Microsoft Excel,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To Microsoft Mail,,Bytt til Microsoft Mail,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To Microsoft PowerPoint,,Bytt til Microsoft PowerPoint,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To Microsoft Project,,Bytt til Microsoft Project,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To Microsoft Schedule+,,Bytt til Microsoft Schedule+,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To Microsoft Word,,Bytt til Microsoft Word,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS Excel,,Bytt til MS Excel,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS FoxPro,,Bytt til MS FoxPro,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS Mail,,Bytt til MS Mail,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS PowerPoint,,Bytt til MS PowerPoint,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS Project,,Bytt til MS Project,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS Schedule+,,Bytt til MS Schedule+,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Switch To MS Word,,Bytt til MS Word,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Syntax Checking,,Syntakskontroll,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Syntax Checking On,S,Syntakskontroll,n,BUT,,WIN,Access,Ver 2.0.
+System Relationships,,Systemrelasjoner,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Tab Index,,Tabulatorindeks,,TXT,,WIN,Access,Ver 2.0. Property or event
+Tab Order,,Tabulatorrekkefølge,,TDB,,WIN,Access,Ver 2.0.
+Tab Order,,Tabulatorrekkefølge,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Tab Order...,b,Tabulatorrekkefølge...,ø,COM,,WIN,Access,Ver 2.0.
+Tab Order...,,Tabulatorrekkefølge...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Tab Stop,,Tabulatorstopp,,TXT,,WIN,Access,Ver 2.0. Property or event
+Tab Stop Width,,Tabulatorstopp,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Table,,Tabell,,TXT,,WIN,Access,Ver 2.0.
+Table,T,Tabell,T,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Table Datasheet,,Dataark for tabell,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Table Design,,Tabelldesign,,TXT,,WIN,Access,Ver 2.0. Menu Bar Item Names
+Table Name,,Tabellnavn,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Table Name:,N,Tabellnavn:,n,TXB,,WIN,Access,Ver 2.0.
+Table Names,N,Tabellnavn,n,COM,,WIN,Access,Ver 2.0.
+Table Names,,Tabellnavn,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Table Properties,,Tabellegenskaper,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Table Properties...,P,Tabellegenskaper...,e,COM,,WIN,Access,Ver 2.0.
+Table Properties...,,Tabellegenskaper...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Table/Query,,Tabell/spørring,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Table/Query:,T,Tabell/spørring:,T,DIA,,WIN,Access,Ver 2.0.
+Table: ,,Tabell: ,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+TableDesign,,Tabelldesign,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+TableNames,,Tabellnavn,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+TableProperties,,Tabellegenskaper,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Tables,T,Tabeller,T,COM,,WIN,Access,Ver 2.0.
+Tables,l,Tabeller,a,BUT,,WIN,Access,Ver 2.0.
+Tables,,Tabeller,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Tables in <SQL Database>:,T,Tabeller i <SQL-database>:,T,DIA,,WIN,Access,Ver 2.0.
+Tables in |1:,T,Tabeller i |1:,T,DIA,,WIN,Access,Ver 2.0.
+TabOrder,,Tabulatorrekkefølge,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Tag,,Etikett,,TXT,,WIN,Access,Ver 2.0. Property or event
+Technical Support,T,Kundestøtte,K,COM,,WIN,Access,Ver 2.0.
+Technical Support,,Kundestøtte,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Test Validation Rules,,Test valideringsregler,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+TestValidationRules,,Test valideringsregler,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Text,,Tekst,,TXT,,WIN,Access,Ver 2.0. Property or event
+Text (Delimited),,Tekst (med skilletegn),,TXT,,WIN,Access,Ver 2.0. List box item
+Text (Fixed Width),,Tekst (fast bredde),,TXT,,WIN,Access,Ver 2.0. List box item
+Text Align,,Tekstjustering,,TXT,,WIN,Access,Ver 2.0. Property or event
+Text Align General,,TekstjusteringGenerelt,,TXT,,WIN,Access,Ver 2.0. Property or event
+Text Box,,Tekstboks,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Text Delimiter:,D,Tekstskilletegn:,g,DIA,,WIN,Access,Ver 2.0.
+Thin,,Tynn,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Thursday,,Torsdag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Tile,T,Side ved side,v,COM,,WIN,Access,Ver 2.0.
+Tile,,Side ved side,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Time Delimiter:,m,Klokkeslettskilletegn:,o,TXB,,WIN,Access,Ver 2.0.
+Timer Interval,,Tidsmålerintervall,,TXT,,WIN,Access,Ver 2.0. Property or event
+Title,,Tittel,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+To,,Til,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+to Fit,F,Tilpass størrelse,r,COM,,WIN,Access,Ver 2.0. Item in a submenu
+To Grid,G,Til rutenett,n,COM,,WIN,Access,Ver 2.0. Item in a submenu
+to Narrowest,N,Til smaleste,a,COM,,WIN,Access,Ver 2.0. Item in a submenu
+to Shortest,S,Til minste,m,COM,,WIN,Access,Ver 2.0. Item in a submenu
+to Tallest,T,Til største,s,COM,,WIN,Access,Ver 2.0. Item in a submenu
+to Widest,W,Til bredeste,b,COM,,WIN,Access,Ver 2.0. Item in a submenu
+To:,T,Til:,T,TXB,,WIN,Access,Ver 2.0.
+Toggle Button,,Veksleknapp,,TDB,,WIN,Access,Ver 2.0. Title of Property Box
+Tool Lock,,Verktøylås,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Toolbar Name,,Navn på verktøylinje,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Toolbar name:,T,Navn på verktøylinje:,v,TXB,,WIN,Access,Ver 2.0.
+Toolbars,,Verktøylinjer,,TDB,,WIN,Access,Ver 2.0.
+Toolbars,,Verktøylinjer,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Toolbars...,b,Verktøylinjer...,l,COM,,WIN,Access,Ver 2.0.
+Toolbars...,T,Verktøylinjer...,e,COM,,WIN,Access,Ver 2.0.
+Toolbars...,,Verktøylinjer...,,COM,,WIN,Access,Ver 2.0. Popup menu item (no hotkey)
+Toolbars:,T,Verktøylinjer:,e,DIA,,WIN,Access,Ver 2.0.
+Toolbox,T,Verktøykasse,V,COM,,WIN,Access,Ver 2.0.
+Toolbox,,Verktøykasse,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Top,,Topp,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Top,T,Topp,T,COM,,WIN,Access,Ver 2.0. Item in a submenu
+Top Margin,,Toppmarg,,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Top Values,,HøyesteVerdier,,TXT,,WIN,Access,Ver 2.0. Property or event
+Top:,T,Topp:,T,TXB,,WIN,Access,Ver 2.0.
+Total Pages,,Antall sider,,TXT,,WIN,Access,Ver 2.0. Strings found in Expression Builder
+Totals,T,Totaler,T,COM,,WIN,Access,Ver 2.0.
+Totals,,Totaler,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Transactions,,Transaksjoner,,TXT,,WIN,Access,Ver 2.0. Property or event
+Transfer Type,,Overføringstype,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+TransferDatabase,,OverførDatabase,,MAC,,WIN,Access,Ver 2.0.
+TransferSpreadsheet,,OverførRegnearkdata,,MAC,,WIN,Access,Ver 2.0.
+TransferText,,OverførTekst,,MAC,,WIN,Access,Ver 2.0.
+Transparent,,Gjennomsiktig,,TXT,,WIN,Access,Ver 2.0. Property or event
+Transparent Background,,Gjennomsiktig bakgrunn,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+True,,SANN,,FUN,,WIN,Access,Ver 2.0.
+True,,SANN,,FUN,,WIN,Access,Ver 2.0. reserved keyword
+True/False,,Sann/Usann,,TXT,,WIN,Access,Ver 2.0.
+Tuesday,,Tirsdag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+twips,,twip,,TXT,,WIN,Access,Ver 2.0.
+Type,,Type,,BUT,,WIN,Access,Ver 2.0.
+Type Conversion Failure,,Typekonverteringsfeil,,TXT,,WIN,Access,Ver 2.0.
+Unavailable,,Ikke tilgjengelig,,TXT,,WIN,Access,Ver 2.0.
+Unbound,,Ubundet,,TXT,,WIN,Access,Ver 2.0.
+Unconvertible Value,,Verdien kan ikke konverteres,,TXT,,WIN,Access,Ver 2.0.
+Underline,U,Understreking,U,BUT,,WIN,Access,Ver 2.0.
+Underline,,Understreking,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Underline text in the selected control,,Gjør teksten i den merkede kontrollen understreket,,TXT,,WIN,Access,Ver 2.0. Tool tip text and status bar text
+Undo,U,Angre,A,COM,,WIN,Access,Ver 2.0.
+Undo,n,Angre,A,COM,,WIN,Access,Ver 2.0. Menu command for undoing data changes in datasheet and form
+Undo,,Angre,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+"Undo	Ctrl+Z",U,"Angre	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Align	Ctrl+Z",U,"Angre Juster	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+Undo All,o,Angre alt,g,COM,,WIN,Access,Ver 2.0.
+Undo All,,Angre alt,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+Undo all changes to SQL text,,Angre alle endringer i SQL-tekst,,TXT,,WIN,Access,Ver 2.0. Status bar text for menu item or toolbar button
+"Undo Cell Edit	Ctrl+Z",U,"Angre celleredigering	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Column Width	Ctrl+Z",U,"Angre Kolonnebredde	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Create	Ctrl+Z",U,"Angre oppretting	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Current Field	Esc",n,"Angre gjeldende felt	Esc",n,COM,,WIN,Access,Ver 2.0. Menu command for undoing data changes in datasheet and form
+"Undo Current Record	Esc",n,"Angre gjeldende post	Esc",n,COM,,WIN,Access,Ver 2.0. Menu command for undoing data changes in datasheet and form
+"Undo Cut	Ctrl+Z",U,"Angre Klipp ut	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Delete	Ctrl+Z",U,"Angre Slett	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Duplicate	Ctrl+Z",U,"Angre Dupliser	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Field Builder	Ctrl+Z",U,"Angre feltverktøy	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Insert	Ctrl+Z",U,"Angre Sett inn	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Insert Object	Alt+BkSp",U,"Angre Sett inn objekt	Alt+BkSp",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Move	Ctrl+Z",U,"Angre flytting	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Paste	Ctrl+Z",U,"Angre Lim inn	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Primary Key	Ctrl+Z",U,"Angre Primærnøkkel	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Property Setting	Ctrl+Z",U,"Angre innstillinger	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Rename	Ctrl+Z",U,"Angre Gi nytt navn	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Replace	Ctrl+Z",U,"Angre Erstatt	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Row Height	Ctrl+Z",U,"Angre Radhøyde	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Saved Record	Ctrl+Z",U,"Angre lagret post	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Sizing	Ctrl+Z",U,"Angre skalering	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Spacing	Ctrl+Z",U,"Angre avstandsendring	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+"Undo Typing	Ctrl+Z",U,"Angre skriving	Ctrl+Z",A,COM,,WIN,Access,Ver 2.0. Context sensitive UNDO menu command
+Undo\\tAlt+BkSp,U,Angre\\tAlt+Tilbake,A,COM,,WIN,Access,Ver 2.0.
+Undo\\tAlt+BkSp*,U,Angre\\tAlt+Tilbake*,A,COM,,WIN,Access,Ver 2.0.
+Undo\\tCtrl+Z,U,Angre\\tCtrl+Z,A,COM,,WIN,Access,Ver 2.0.
+UndoCurrentRecord,,Angre gjeldende post,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Unfreeze All Columns,U,Frigi alle kolonner,F,COM,,WIN,Access,Ver 2.0.
+Unfreeze All Columns,,Frigi alle kolonner,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+UnfreezeAllColumns,,Frigi alle kolonner,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Unhide,,Ta frem,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Unhide Window,,Ta frem vindu,,COM,,WIN,Access,Ver 2.0.
+Unhide Window,,Ta frem vindu,,TDB,,WIN,Access,Ver 2.0.
+Unhide...,h,Ta frem...,T,COM,,WIN,Access,Ver 2.0.
+Unhide...,U,Ta frem...,T,COM,,WIN,Access,Ver 2.0.
+Union Query,,Union,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Union Query: ,,Unionsspørring: ,,TDB,,WIN,Access,Ver 2.0.
+Unique,,Entydig,,TXT,,WIN,Access,Ver 2.0. Index object editor property
+Unique Records,,EntydigePoster,,TXT,,WIN,Access,Ver 2.0. Property or event
+Unique Values,,EntydigeVerdier,,TXT,,WIN,Access,Ver 2.0. Property or event
+Unknown Error,,Ukjent feil,,TXT,,WIN,Access,Ver 2.0.
+Unnamed Object,,Objekt uten navn,,TXT,,WIN,Access,Ver 2.0.
+Unparsable Record,,Kan ikke dele posten,,TXT,,WIN,Access,Ver 2.0.
+Unused,,Brukes ikke,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+Up;Down,,Opp;Ned,,TXT,,WIN,Access,Ver 2.0. Macro argument value in listbox
+Updatable,,KanOppdateres,,TXT,,WIN,Access,Ver 2.0. Property or event
+Update,U,Oppdater,O,COM,,WIN,Access,Ver 2.0.
+Update,,Oppdater,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)
+Update Method,,Oppdateringsmetode,,TXT,,WIN,Access,Ver 2.0. Property or event
+Update Options,,Oppdateringsalternativer,,TXT,,WIN,Access,Ver 2.0. Property or event
+Update Query,,Oppdateringsspørring,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Update Query: ,,Oppdateringsspørring: ,,TDB,,WIN,Access,Ver 2.0. Type of query being designed
+Update Retry Interval (msec),,Intervall mellom oppdateringsforsøk (msek.),,TXT,,WIN,Access,Ver 2.0. Options Preference Items
+Update To:,,Endre til:,,TXT,,WIN,Access,Ver 2.0. Text in QBE grid
+UpdateNow,,Oppdaterer,,TXT,,WIN,Access,Ver 2.0. Menu command name (only appears in error message boxes)
+Updating System Table ... ,,Oppdaterer systemtabell ... ,,TXT,,WIN,Access,Ver 2.0. Progress indication
+Use Pattern Matching,U,Bruk mønstergjenkjenning,B,BUT,,WIN,Access,Ver 2.0.
+User,,Bruker,,BUT,,WIN,Access,Ver 2.0.
+User's,,Brukerens,,TXT,,WIN,Access,Ver 2.0.
+User-defined Builder,,Brukerdefinert verktøy,,TXT,,WIN,Access,Ver 2.0. List box item: type of builder that user can call
+User/Group Name:,N,Bruker-/gruppenavn:,r,DIA,,WIN,Access,Ver 2.0.
+Users,U,Brukere,B,BUT,,WIN,Access,Ver 2.0.
+Users,,Brukere,,GBN,,WIN,Access,Ver 2.0. Tooltip text
+Users...,U,Brukere...,B,COM,,WIN,Access,Ver 2.0.
+Utility 1,,Tillegg 1,,TXT,,WIN,Access,Ver 2.0.
+Utility 2,,Tillegg 2,,TXT,,WIN,Access,Ver 2.0.
+Validation Rule,,Valideringsregel,,TXT,,WIN,Access,Ver 2.0. Property or event
+Validation Rule Failure,,Valideringsregelen mislyktes,,TXT,,WIN,Access,Ver 2.0.
+Validation Text,,Valideringstekst,,TXT,,WIN,Access,Ver 2.0. Property or event
+Value,,Verdi,,TXT,,WIN,Access,Ver 2.0. Property or event
+Value List,,Verdiliste,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Var,,Varians,,FUN,,WIN,Access,Ver 2.0.
+Verify,V,Bekreft,B,BUT,,WIN,Access,Ver 2.0.
+Verify:,V,Bekreft:,B,TXB,,WIN,Access,Ver 2.0.
+Verifying system objects,,Bekrefter systemobjekter,,TXT,,WIN,Access,Ver 2.0.
+Version,,Versjon,,TXT,,WIN,Access,Ver 2.0.
+Vertical,V,Loddrett (y),y,BUT,,WIN,Access,Ver 2.0.
+Vertical Spacing,V,Loddrett mellomrom,L,COM,,WIN,Access,Ver 2.0.
+View,V,Vis,V,MNU,,WIN,Access,Ver 2.0.
+View,,Vis,,BUT,,WIN,Access,Ver 2.0.
+View,,Visningsmåte,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+View Conditions,,Vis betingelser,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+View Design,,Vis design,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+View Macro Names,,Vis makronavn,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+View Procedures,,Vis prosedyrer,,TDB,,WIN,Access,Ver 2.0.
+View SQL,,Vis SQL,,COM,,WIN,Access,Ver 2.0. Could be used as popup menu item (no hotkey) or tooltip text
+Views Allowed,,TillattVisning,,TXT,,WIN,Access,Ver 2.0. Property or event
+Visible,,Synlig,,TXT,,WIN,Access,Ver 2.0. Property or event
+Wait,,Vent,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Warning: This computer program is protected by copyright law and international treaties. ,,Advarsel: Dette dataprogrammet er beskyttet ifølge lover om opphavsrett og internasjonale konvensjoner. ,,TXT,,WIN,Access,Ver 2.0. About box text
+Warnings On,,Vis advarsler,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Wednesday,,Onsdag,,TXT,,WIN,Access,Ver 2.0. Dropdown value in listbox
+Where,,Hvor,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Where Condition,,Where-betingelse,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Width,,Bredde,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Width:,i,Bredde:,B,TXB,,WIN,Access,Ver 2.0.
+Window,W,Vindu,n,MNU,,WIN,Access,Ver 2.0.
+Window,,Vindu,,MNU,,WIN,Access,Ver 2.0.
+Window  Help, ,Vindu og hjelp,,TXT,,WIN,Access,Ver 2.0.
+Window Height,,Vindushøyde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Window Mode,,Vindu,,ARG,,WIN,Access,Ver 2.0. Macro Argument name
+Window Width,,Vindusbredde,,TXT,,WIN,Access,Ver 2.0. Property or event
+Window:,W,Vindu:,V,DIA,,WIN,Access,Ver 2.0.
+Word for Windows Merge,,Word for Windows (utskriftsfletting),,TXT,,WIN,Access,Ver 2.0. List box item
+WordMailMerge,,Word - utskriftsfletting,,TXT,,WIN,Access,Ver 2.0. Menu/toolbar button command name (only appears in error messageboxes when command cannot complete)
+YDM,,ÅDM,,TXT,,WIN,Access,Ver 2.0. List box item
+Year;2,,År;2,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Yes,Y,Ja,J,BUT,,WIN,Access,Ver 2.0.
+Yes,Y,Ja,J,BUT,,WIN,Access,Ver 2.0. Button on Message Box
+Yes,,Ja,,TXT,,WIN,Access,Ver 2.0. reserved keyword
+Yes/No,,Ja/Nei,,TXT,,WIN,Access,Ver 2.0. List box item (data type)
+Yes;-1;No;0,,Ja;-1;Nei;0,,TXT,,WIN,Access,Ver 2.0. Dropdown values in listbox
+Yes;No,,Ja;Nei,,TXT,,WIN,Access,Ver 2.0.
+YMD,,ÅMD,,TXT,,WIN,Access,Ver 2.0. List box item
+yyyy,,åååå,,TXT,,WIN,Access,Ver 2.0. Date/time formatting characters
+Zoom in or out,,Zoom inn eller ut,,TXT,,WIN,Access,Ver 2.0. Menu item command (only appears in error messageboxes)

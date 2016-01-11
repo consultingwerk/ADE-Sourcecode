@@ -1,0 +1,266 @@
+UPDATE DATABASE "?"
+
+ADD TABLE "abAttribute"
+  AREA "Schema Area"
+  DUMP-NAME "abAttr"
+
+ADD FIELD "name" OF "abAttribute" AS character 
+  FORMAT "X(20)"
+  INITIAL ""
+  POSITION 2
+  SQL-WIDTH 40
+  COLUMN-LABEL "Attribute Name"
+  ORDER 20
+
+ADD FIELD "multiLayout" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Multi-Layout"
+  POSITION 3
+  SQL-WIDTH 1
+  COLUMN-LABEL "Multi!Layout!Element"
+  ORDER 30
+
+ADD FIELD "sq" OF "abAttribute" AS integer 
+  FORMAT ">>9"
+  INITIAL ?
+  POSITION 4
+  SQL-WIDTH 4
+  ORDER 10
+
+ADD FIELD "class" OF "abAttribute" AS integer 
+  FORMAT "9"
+  INITIAL "1"
+  POSITION 5
+  SQL-WIDTH 4
+  VIEW-AS "VIEW-AS RADIO-SET
+  RADIO-BUTTONS ""Toggle"",1,""Fill In"",2,""Fill in:ATTR"",3,
+                ""Combo Box"",4,""Dialog"",5,""Files..."",6,
+                ""Editor"",7,""List-Items"",8,""Adv-Toggle"",9,
+                ""Unknown"", ? VERTICAL
+  SIZE 18 BY 6"
+  HELP "1-Tog 2-Fill 3-Fill-ATTR 4-Combo 5-Dial 6-Files 7-Ed 8-List-It"
+  ORDER 40
+
+ADD FIELD "dataType" OF "abAttribute" AS character 
+  FORMAT "!"
+  INITIAL ""
+  LABEL "DT"
+  POSITION 6
+  SQL-WIDTH 2
+  VIEW-AS "VIEW-AS RADIO-SET
+  RADIO-BUTTONS ""L"",""L"",""I"",""I"",""D"",""D"",""C"",""C"",""R"",""R""
+                VERTICAL SIZE 8 BY 6"
+  ORDER 50
+
+ADD FIELD "chrData" OF "abAttribute" AS character 
+  FORMAT "X(65)"
+  INITIAL ""
+  POSITION 7
+  SQL-WIDTH 130
+  ORDER 60
+
+ADD FIELD "displaySeq" OF "abAttribute" AS integer 
+  FORMAT ">>9"
+  INITIAL ?
+  POSITION 8
+  SQL-WIDTH 4
+  ORDER 260
+
+ADD FIELD "wind" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 9
+  SQL-WIDTH 1
+  ORDER 70
+
+ADD FIELD "frm" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 10
+  SQL-WIDTH 1
+  ORDER 80
+
+ADD FIELD "brow" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 11
+  SQL-WIDTH 1
+  ORDER 90
+
+ADD FIELD "dial" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 12
+  SQL-WIDTH 1
+  ORDER 100
+
+ADD FIELD "butt" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 13
+  SQL-WIDTH 1
+  ORDER 110
+
+ADD FIELD "comb" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 14
+  SQL-WIDTH 1
+  ORDER 120
+
+ADD FIELD "edit" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 15
+  SQL-WIDTH 1
+  ORDER 130
+
+ADD FIELD "fil" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 16
+  SQL-WIDTH 1
+  ORDER 140
+
+ADD FIELD "imag" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 17
+  SQL-WIDTH 1
+  ORDER 150
+
+ADD FIELD "radi" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 18
+  SQL-WIDTH 1
+  ORDER 160
+
+ADD FIELD "rec" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 19
+  SQL-WIDTH 1
+  ORDER 170
+
+ADD FIELD "sele" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 20
+  SQL-WIDTH 1
+  ORDER 180
+
+ADD FIELD "slid" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 21
+  SQL-WIDTH 1
+  ORDER 190
+
+ADD FIELD "txt" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 22
+  SQL-WIDTH 1
+  ORDER 200
+
+ADD FIELD "togg" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 23
+  SQL-WIDTH 1
+  ORDER 210
+
+ADD FIELD "Adv" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 24
+  SQL-WIDTH 1
+  ORDER 230
+
+ADD FIELD "geom" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 25
+  SQL-WIDTH 1
+  ORDER 240
+
+ADD FIELD "descrip" OF "abAttribute" AS character 
+  FORMAT "X(25)"
+  INITIAL ""
+  LABEL "Description"
+  POSITION 26
+  SQL-WIDTH 50
+  ORDER 250
+
+ADD FIELD "widgSize" OF "abAttribute" AS character 
+  DESCRIPTION "Expression of display size. (ie. WIDTH = 30)"
+  FORMAT "X(40)"
+  INITIAL ?
+  POSITION 27
+  SQL-WIDTH 80
+  ORDER 270
+
+ADD FIELD "trigCode" OF "abAttribute" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  POSITION 28
+  SQL-WIDTH 16
+  VIEW-AS "VIEW-AS EDITOR SIZE 70 BY 4 SCROLLBAR-HORIZONTAL SCROLLBAR-VERTICAL                NO-WORD-WRAP
+"
+  ORDER 280
+
+ADD FIELD "custom" OF "abAttribute" AS logical 
+  DESCRIPTION "Can set this Property via the ""Custom Widget"" interface"
+  FORMAT "yes/no"
+  INITIAL "yes"
+  LABEL "Can-Set for Custom Widgets"
+  POSITION 29
+  SQL-WIDTH 1
+  ORDER 290
+
+ADD FIELD "attr2UCode" OF "abAttribute" AS character 
+  DESCRIPTION "Code needed to map from a Custom Property to Universal Widget Record.  This is used to generate the custprop.i file."
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Attribute-to-U Code"
+  POSITION 30
+  SQL-WIDTH 16
+  ORDER 300
+
+ADD FIELD "proc" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 31
+  SQL-WIDTH 1
+  ORDER 220
+
+ADD FIELD "ocx" OF "abAttribute" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  POSITION 32
+  SQL-WIDTH 1
+  ORDER 225
+
+ADD INDEX "attrSeq" ON "abAttribute" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "sq" ASCENDING 
+
+ADD INDEX "m-l-name" ON "abAttribute" 
+  AREA "Schema Area"
+  UNIQUE
+  INDEX-FIELD "multiLayout" DESCENDING 
+  INDEX-FIELD "name" DESCENDING 
+
+ADD INDEX "name" ON "abAttribute" 
+  AREA "Schema Area"
+  INDEX-FIELD "name" ASCENDING 
+
+.
+PSC
+cpstream=iso8859-1
+.
+0000005464

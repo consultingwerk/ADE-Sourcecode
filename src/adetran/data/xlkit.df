@@ -1,0 +1,532 @@
+UPDATE DATABASE "?"
+
+ADD TABLE "XL_Project"
+  DESCRIPTION "A single record which contains all this summary information about this project."
+  FROZEN
+  DUMP-NAME "xl_proj"
+
+ADD FIELD "ProjectName" OF "XL_Project" AS character 
+  DESCRIPTION "Name of the project database that this kit was made from."
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Project Name"
+  COLUMN-LABEL "Project!Name"
+  LENGTH 0
+  ORDER 10
+
+ADD FIELD "ProjectDesc" OF "XL_Project" AS character 
+  DESCRIPTION "Description of the project (a comment field.)"
+  FORMAT "X(80)"
+  INITIAL ""
+  LABEL "Project Description"
+  COLUMN-LABEL "Project!Description"
+  LENGTH 0
+  ORDER 20
+
+ADD FIELD "ProjectRevision" OF "XL_Project" AS character 
+  DESCRIPTION "A project revision number (for the project manager's use only)."
+  FORMAT "X(4)"
+  INITIAL ""
+  LABEL "Revison"
+  COLUMN-LABEL "Project!Revision"
+  LENGTH 0
+  ORDER 30
+
+ADD FIELD "CodePage" OF "XL_Project" AS character 
+  DESCRIPTION "Not used in V8.0B"
+  FORMAT "X(12)"
+  INITIAL ""
+  LABEL "Code Page"
+  COLUMN-LABEL "Code!Page"
+  LENGTH 0
+  ORDER 40
+
+ADD FIELD "CreateDate" OF "XL_Project" AS date 
+  DESCRIPTION "Date of KIT creation (not the project)."
+  FORMAT "99/99/99"
+  INITIAL ?
+  LABEL "Date Created"
+  COLUMN-LABEL "Date!Created"
+  ORDER 50
+
+ADD FIELD "UpdateDate" OF "XL_Project" AS date 
+  DESCRIPTION "Date of last update to the KIT (not the project.)"
+  FORMAT "99/99/99"
+  INITIAL ?
+  LABEL "Date Updated"
+  COLUMN-LABEL "Date!Updated"
+  ORDER 60
+
+ADD FIELD "DisplayType" OF "XL_Project" AS character 
+  DESCRIPTION "Either ""G"" for graphical or ""C"" for character."
+  FORMAT "X(1)"
+  INITIAL ""
+  LABEL "Display Type"
+  COLUMN-LABEL "Display!Type"
+  LENGTH 0
+  ORDER 70
+
+ADD FIELD "RootDirectory" OF "XL_Project" AS character 
+  DESCRIPTION "The ""working directory"" of the entire project.  All filenames and explicitly named directories are relative to the rootdirectory."
+  FORMAT "X(80)"
+  INITIAL ""
+  LABEL "Root Directory"
+  COLUMN-LABEL "Root!Directory"
+  LENGTH 0
+  ORDER 80
+
+ADD FIELD "SettingsFile" OF "XL_Project" AS character 
+  DESCRIPTION "The .ini file to be used for both the creation of the .rc fiels and for their renditioning."
+  FORMAT "X(80)"
+  INITIAL ""
+  LABEL "SettingsFile"
+  COLUMN-LABEL "Settings!File"
+  LENGTH 0
+  ORDER 90
+
+ADD FIELD "UseImages" OF "XL_Project" AS logical 
+  DESCRIPTION "Attempt to render bitmaps with the vistual translator."
+  FORMAT "yes/no"
+  INITIAL "yes"
+  LABEL "Use Images?"
+  COLUMN-LABEL "Use!Images?"
+  ORDER 100
+
+ADD FIELD "ResourcesGenerated" OF "XL_Project" AS logical 
+  DESCRIPTION "True if some resource files have been generated."
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Resources Generated?"
+  COLUMN-LABEL "Resources!Generated?"
+  ORDER 110
+
+ADD FIELD "NumberOfProcedures" OF "XL_Project" AS integer 
+  DESCRIPTION "The number of procedures for the project."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Number of Procedures"
+  COLUMN-LABEL "#!Procedures"
+  ORDER 120
+
+ADD FIELD "NumberOfPhrases" OF "XL_Project" AS integer 
+  DESCRIPTION "Total number of strings instances for the project."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Number of Strings"
+  COLUMN-LABEL "#!Strings"
+  ORDER 130
+
+ADD FIELD "NumberOfWords" OF "XL_Project" AS integer 
+  DESCRIPTION "Total number of words in the project.  (Each instance of a word is counted.)"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Number of Words"
+  COLUMN-LABEL "#!Words"
+  ORDER 140
+
+ADD FIELD "NumberOfUniquePhrases" OF "XL_Project" AS integer 
+  DESCRIPTION "Number of unique strings in the project."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Number Of Unique Strings"
+  COLUMN-LABEL "# Unique!Strings"
+  ORDER 150
+
+ADD FIELD "NumberOfUniqueWords" OF "XL_Project" AS integer 
+  DESCRIPTION "The number of unique words in the project."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Number Of Unique Words"
+  COLUMN-LABEL "# Unique!Words"
+  ORDER 160
+
+ADD FIELD "DeleteTranslations" OF "XL_Project" AS logical 
+  DESCRIPTION "Remove all of the custom translations from the kit."
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Delete Unused Translations"
+  COLUMN-LABEL "Delete Translations?"
+  ORDER 170
+
+ADD FIELD "MustUseGlossary" OF "XL_Project" AS logical 
+  DESCRIPTION "If yes, then only the glossaries can be used for translations."
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Must Use Glossary"
+  COLUMN-LABEL "Must Use Glossary?"
+  ORDER 180
+
+ADD FIELD "SupersedeGlossary" OF "XL_Project" AS logical 
+  DESCRIPTION "Yes if the translator can overide the glossaries suggested translations."
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Supersede Glossary"
+  COLUMN-LABEL "Supersede?"
+  ORDER 190
+
+ADD FIELD "GlossaryCount" OF "XL_Project" AS integer 
+  DESCRIPTION "The number of entries in a glossary."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Glossary Count"
+  COLUMN-LABEL "Glossary!Count"
+  ORDER 200
+
+ADD FIELD "TranslationCount" OF "XL_Project" AS integer 
+  DESCRIPTION "The number of glossary entries with translations."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Translation Count"
+  COLUMN-LABEL "Translation!Count"
+  ORDER 210
+
+ADD FIELD "NeedsExtract" OF "XL_Project" AS logical 
+  DESCRIPTION "Not used in V8.0B"
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Needs Extract"
+  COLUMN-LABEL "Needs!Extract?"
+  ORDER 220
+
+ADD INDEX "NameRevision" ON "XL_Project" 
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "ProjectName" ASCENDING 
+  INDEX-FIELD "ProjectRevision" ASCENDING 
+
+ADD TABLE "XL_GlossEntry"
+  DESCRIPTION "Main glossary table for this project"
+  FROZEN
+  DUMP-NAME "xl_gloss"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGCGLS.P" CRC "?" 
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGDGLS.P" CRC "?" 
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGWGLS.P" CRC "?" 
+
+ADD FIELD "SourcePhrase" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "Source string: string to be translated"
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Source Phrase"
+  COLUMN-LABEL "Source!Phrase"
+  LENGTH 0
+  ORDER 10
+
+ADD FIELD "TargetPhrase" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "Translation of the source string."
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Target Phrase"
+  COLUMN-LABEL "Target!Phrase"
+  LENGTH 0
+  ORDER 20
+
+ADD FIELD "DialectPhrase" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "Not used in version 8.0B"
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Dialect Phrase"
+  COLUMN-LABEL "Dialect!Phrase"
+  LENGTH 0
+  ORDER 30
+
+ADD FIELD "GlossaryType" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "D=Default C=Custom"
+  FORMAT "X(1)"
+  INITIAL ""
+  LABEL "Type"
+  COLUMN-LABEL "!Type"
+  ORDER 40
+
+ADD FIELD "ModifiedByTranslator" OF "XL_GlossEntry" AS logical 
+  DESCRIPTION "False if from the glossary, True if Translator has entered this translation into the glossary."
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Modified By Translator"
+  COLUMN-LABEL "!Modified"
+  ORDER 50
+
+ADD FIELD "ShortSrc" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "The first 63 bytes of the source string used for indexing"
+  FORMAT "X(63)"
+  INITIAL ""
+  LABEL "Short Source"
+  LENGTH 0
+  ORDER 60
+
+ADD FIELD "ShortTarg" OF "XL_GlossEntry" AS character 
+  DESCRIPTION "The first 63 bytes of the target phrase used for indexing."
+  FORMAT "X(63)"
+  INITIAL ""
+  LABEL "Short Target"
+  LENGTH 0
+  ORDER 70
+
+ADD INDEX "SrcTarg" ON "XL_GlossEntry" 
+  PRIMARY
+  DESCRIPTION "Index based on short src and target string"
+  INDEX-FIELD "ShortSrc" ASCENDING 
+  INDEX-FIELD "ShortTarg" ASCENDING 
+
+ADD INDEX "SourceIdx" ON "XL_GlossEntry" 
+  WORD
+  INDEX-FIELD "SourcePhrase" ASCENDING 
+
+ADD TABLE "XL_Invalid"
+  FROZEN
+  DUMP-NAME "xl_inval"
+
+ADD FIELD "TargetPhrase" OF "XL_Invalid" AS character 
+  DESCRIPTION "Illegal translation."
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Target Phrase"
+  COLUMN-LABEL "Target!Phrase"
+  LENGTH 0
+  ORDER 10
+
+ADD INDEX "Target" ON "XL_Invalid" 
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "TargetPhrase" ASCENDING 
+
+ADD TABLE "XL_Procedure"
+  DESCRIPTION "A list of all the procedures that are included in this translation effort"
+  FROZEN
+  DUMP-NAME "xl_proc"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGCPRC.P" CRC "?" 
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGDPRC.P" CRC "?" 
+
+ADD FIELD "Directory" OF "XL_Procedure" AS character 
+  DESCRIPTION "The path for the procedure file."
+  FORMAT "X(80)"
+  INITIAL ""
+  LABEL "Directory"
+  COLUMN-LABEL "Directory"
+  LENGTH 0
+  ORDER 10
+
+ADD FIELD "FileName" OF "XL_Procedure" AS character 
+  DESCRIPTION "The basic filename of the procedure (excluding the path but including the extention.)"
+  FORMAT "X(80)"
+  INITIAL ""
+  LABEL "File Name"
+  COLUMN-LABEL "File!Name"
+  LENGTH 0
+  ORDER 20
+
+ADD FIELD "UpdateDateTime" OF "XL_Procedure" AS character 
+  DESCRIPTION "STRING(ModDate) + ""  "":U + ModTime of the procedure."
+  FORMAT "X(19)"
+  INITIAL ""
+  LABEL "Last Updated"
+  COLUMN-LABEL "Last!Updated"
+  LENGTH 0
+  ORDER 60
+
+ADD FIELD "Comments" OF "XL_Procedure" AS character 
+  DESCRIPTION "A comment about the procedure."
+  FORMAT "x(80)"
+  INITIAL ""
+  LABEL "Comments"
+  COLUMN-LABEL "Comments"
+  LENGTH 0
+  ORDER 30
+
+ADD FIELD "FileSize" OF "XL_Procedure" AS integer 
+  DESCRIPTION "The size of the procedure in bytes."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "File Size"
+  COLUMN-LABEL "Size"
+  ORDER 40
+
+ADD FIELD "CurrentStatus" OF "XL_Procedure" AS character 
+  DESCRIPTION "A procedures current status can be: Untranslated, Translated or x/n (x of n strings translated.)"
+  FORMAT "x(12)"
+  INITIAL ""
+  LABEL "Current Status"
+  COLUMN-LABEL "Status"
+  LENGTH 0
+  ORDER 50
+
+ADD FIELD "ResourceFileGenerated" OF "XL_Procedure" AS logical 
+  DESCRIPTION "Have the resource files for this procedure been generated (yes/no)"
+  FORMAT "yes/no"
+  INITIAL ?
+  LABEL "Resource File Generated?"
+  COLUMN-LABEL "Generated?"
+  ORDER 70
+
+ADD FIELD "Modified" OF "XL_Procedure" AS logical 
+  DESCRIPTION "True if any string as been translated (or retranslated) since last statistics compilation."
+  FORMAT "yes/no"
+  INITIAL "no"
+  ORDER 80
+
+ADD INDEX "DirFile" ON "XL_Procedure" 
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "Directory" ASCENDING 
+  INDEX-FIELD "FileName" ASCENDING 
+
+ADD INDEX "Modified" ON "XL_Procedure" 
+  DESCRIPTION "Needed to quick locate procedures that need to have their statistics updated."
+  INDEX-FIELD "Modified" ASCENDING 
+
+ADD INDEX "Procedure" ON "XL_Procedure" 
+  INDEX-FIELD "FileName" ASCENDING 
+
+ADD TABLE "XL_Instance"
+  FROZEN
+  DUMP-NAME "xl_inst"
+  TABLE-TRIGGER "CREATE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGCINS.P" CRC "?" 
+  TABLE-TRIGGER "DELETE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGDINS.P" CRC "?" 
+  TABLE-TRIGGER "WRITE" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGWINS.P" CRC "?" 
+
+ADD FIELD "SequenceNumber" OF "XL_Instance" AS integer 
+  DESCRIPTION "All identical strings have the same sequence number, but each instance of the string has a different instance number."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  LABEL "Sequence Number"
+  COLUMN-LABEL "Sequence!Number"
+  ORDER 10
+
+ADD FIELD "InstanceNumber" OF "XL_Instance" AS integer 
+  DESCRIPTION "All identical strings have the same sequence number, but each instance of the string has a different instance number."
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  ORDER 20
+
+ADD FIELD "SourcePhrase" OF "XL_Instance" AS character 
+  DESCRIPTION "The actual string to be translated."
+  FORMAT "x(80)"
+  INITIAL ""
+  LENGTH 0
+  ORDER 30
+
+ADD FIELD "ProcedureName" OF "XL_Instance" AS character 
+  DESCRIPTION "The name of the procedure that this string instance was extracted from."
+  FORMAT "x(80)"
+  INITIAL ""
+  LENGTH 0
+  ORDER 40
+
+ADD FIELD "LineNumber" OF "XL_Instance" AS integer 
+  DESCRIPTION "The line number of the procedure where this string instance was found."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  ORDER 50
+
+ADD FIELD "NumberOfOccurs" OF "XL_Instance" AS integer 
+  DESCRIPTION "The number of occurances of a particular string within a particular procedure."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  ORDER 60
+
+ADD FIELD "MaxLength" OF "XL_Instance" AS integer 
+  DESCRIPTION "The maximum translation (in characters) of an instance of a string."
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  ORDER 70
+
+ADD FIELD "Justification" OF "XL_Instance" AS integer 
+  DESCRIPTION "Justification: 1=Left, 2=Right, 3=Center, 4=Trim"
+  FORMAT "9"
+  INITIAL "0"
+  ORDER 80
+
+ADD FIELD "UpdateDate" OF "XL_Instance" AS date 
+  DESCRIPTION "Date of the last translation of this string."
+  FORMAT "99/99/99"
+  INITIAL ?
+  ORDER 90
+
+ADD FIELD "Last_Change" OF "XL_Instance" AS decimal 
+  DESCRIPTION "Timestamp of the last update."
+  FORMAT ">>>>>>>9.99999"
+  INITIAL "0"
+  LABEL "Last Updated"
+  COLUMN-LABEL "Last!Updated"
+  DECIMALS 5
+  ORDER 100
+
+ADD FIELD "TargetPhrase" OF "XL_Instance" AS character 
+  DESCRIPTION "Translation of this string instance."
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Target Phrase"
+  COLUMN-LABEL "Target!Phrase"
+  LENGTH 0
+  ORDER 110
+  FIELD-TRIGGER "ASSIGN" NO-OVERRIDE PROCEDURE "ADETRAN/VT/_TRGAINS.P" CRC "?" 
+
+ADD FIELD "DialectPhrase" OF "XL_Instance" AS character 
+  DESCRIPTION "Not used in V8.0B"
+  FORMAT "X(90)"
+  INITIAL ""
+  LABEL "Dialect Phrase"
+  COLUMN-LABEL "Dialect!Phrase"
+  LENGTH 0
+  ORDER 120
+
+ADD FIELD "Statement" OF "XL_Instance" AS character 
+  DESCRIPTION "The progress statement type. (i.e. MESSAGE, DISPLAY, ASSIGN, etc.)"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Statement"
+  COLUMN-LABEL "!Statement"
+  LENGTH 0
+  ORDER 130
+
+ADD FIELD "Item" OF "XL_Instance" AS character 
+  DESCRIPTION "Progress item-type: (Expr, FORMAT, COL-LABEL, ect.)"
+  FORMAT "X(15)"
+  INITIAL ""
+  LABEL "Item"
+  COLUMN-LABEL "!Item"
+  LENGTH 0
+  ORDER 140
+
+ADD FIELD "ObjectName" OF "XL_Instance" AS character 
+  DESCRIPTION "Name of the associated widget - if any. (Usually unknown (?))"
+  FORMAT "X(30)"
+  INITIAL ""
+  LABEL "Object Name"
+  COLUMN-LABEL "Object!Name"
+  LENGTH 0
+  ORDER 150
+
+ADD FIELD "StringKey" OF "XL_Instance" AS character 
+  DESCRIPTION "First 50 characters of the Source Phrase, Needed for Indexing"
+  FORMAT "X(50)"
+  INITIAL ""
+  LENGTH 0
+  ORDER 160
+
+ADD FIELD "ShortTarg" OF "XL_Instance" AS character 
+  DESCRIPTION "The first 63 bytes of the target phrase used for indexing."
+  FORMAT "X(63)"
+  INITIAL ""
+  LABEL "Short Target"
+  LENGTH 0
+  ORDER 170
+
+ADD INDEX "SrcProc" ON "XL_Instance" 
+  PRIMARY
+  INDEX-FIELD "StringKey" ASCENDING 
+  INDEX-FIELD "ProcedureName" ASCENDING 
+
+ADD INDEX "datekey" ON "XL_Instance" 
+  INDEX-FIELD "UpdateDate" ASCENDING 
+
+ADD INDEX "Procedure" ON "XL_Instance" 
+  INDEX-FIELD "ProcedureName" ASCENDING 
+
+ADD INDEX "Target" ON "XL_Instance" 
+  INDEX-FIELD "ShortTarg" ASCENDING 
+
+.
+PSC
+codepage=undefined
+.
+0000015177

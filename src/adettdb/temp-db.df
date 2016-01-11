@@ -1,0 +1,252 @@
+UPDATE DATABASE "?"
+
+ADD TABLE "ttAppSrv-TT"
+  AREA "Schema Area"
+  DUMP-NAME "ttappsrv"
+
+ADD FIELD "Partition" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(25)"
+  INITIAL ""
+  POSITION 2
+  SQL-WIDTH 50
+  ORDER 10
+
+ADD FIELD "Host" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(15)"
+  INITIAL ""
+  POSITION 3
+  SQL-WIDTH 30
+  ORDER 20
+
+ADD FIELD "Service" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(15)"
+  INITIAL ""
+  POSITION 4
+  SQL-WIDTH 30
+  ORDER 30
+
+ADD FIELD "Configuration" OF "ttAppSrv-TT" AS logical 
+  FORMAT "Remote/Local"
+  INITIAL "Remote"
+  LABEL "Configuration"
+  POSITION 5
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS RADIO-SET
+  RADIO-BUTTONS 
+    ""Remote"", YES,
+    ""Local"", NO
+"
+  ORDER 40
+
+ADD FIELD "Security" OF "ttAppSrv-TT" AS logical 
+  FORMAT "Prompt/No"
+  INITIAL "Prompt"
+  LABEL "Prompt for userid and password"
+  POSITION 6
+  SQL-WIDTH 1
+  VIEW-AS "VIEW-AS TOGGLE-BOX
+"
+  ORDER 50
+
+ADD FIELD "Info" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(255)"
+  INITIAL ""
+  LABEL "AppServer Information"
+  POSITION 7
+  SQL-WIDTH 510
+  VIEW-AS "VIEW-AS EDITOR
+  SIZE-CHARS 35 BY 5
+  SCROLLBAR-HORIZONTAL
+  SCROLLBAR-VERTICAL
+  MAX-CHARS 255
+  NO-WORD-WRAP
+
+"
+  ORDER 60
+
+ADD FIELD "App-Service" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(255)"
+  INITIAL ""
+  LABEL "Application Service"
+  POSITION 8
+  SQL-WIDTH 510
+  ORDER 80
+
+ADD FIELD "PartitionType" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(10)"
+  INITIAL ""
+  LABEL "Partition Type"
+  POSITION 9
+  SQL-WIDTH 2
+  VIEW-AS "VIEW-AS COMBO-BOX
+  LIST-ITEM-PAIRS 
+   ""AppServer"",""A"",
+   ""JMS Message Server"",""J"",
+   ""Report Server - (Actuate)"",""R""
+  SIZE-CHARS 20 BY 1
+   "
+  ORDER 100
+
+ADD FIELD "ServerURL" OF "ttAppSrv-TT" AS character 
+  FORMAT "X(255)"
+  INITIAL ""
+  LABEL "URL"
+  POSITION 10
+  SQL-WIDTH 510
+  ORDER 110
+
+ADD FIELD "PtnTblRecid" OF "ttAppSrv-TT" AS recid 
+  FORMAT ">>>>>>9"
+  INITIAL ?
+  LABEL "Partition Table Recid"
+  POSITION 11
+  SQL-WIDTH 4
+  ORDER 120
+
+ADD INDEX "Partition" ON "ttAppSrv-TT" 
+  AREA "Schema Area"
+  UNIQUE
+  PRIMARY
+  INDEX-FIELD "Partition" ASCENDING 
+
+ADD INDEX "PtnType" ON "ttAppSrv-TT" 
+  AREA "Schema Area"
+  INDEX-FIELD "PartitionType" ASCENDING 
+
+ADD TABLE "destination"
+  AREA "Schema Area"
+  DUMP-NAME "destinat"
+
+ADD FIELD "destination" OF "destination" AS character 
+  FORMAT "X(30)"
+  INITIAL ""
+  LABEL "Destination"
+  POSITION 2
+  SQL-WIDTH 60
+  ORDER 10
+
+ADD FIELD "subscription" OF "destination" AS character 
+  FORMAT "X(20)"
+  INITIAL ""
+  LABEL "Subscription Name"
+  POSITION 3
+  SQL-WIDTH 40
+  ORDER 20
+
+ADD FIELD "selector" OF "destination" AS character 
+  FORMAT "X(25)"
+  INITIAL ""
+  LABEL "Message Selector"
+  POSITION 4
+  SQL-WIDTH 50
+  ORDER 30
+
+ADD FIELD "durable" OF "destination" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Durable Subscription"
+  POSITION 6
+  SQL-WIDTH 1
+  ORDER 40
+
+ADD FIELD "unsubscribeClose" OF "destination" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Unsubscribe on session close"
+  POSITION 7
+  SQL-WIDTH 1
+  ORDER 50
+
+ADD TABLE "routerRef"
+  AREA "Schema Area"
+  DUMP-NAME "router"
+
+ADD FIELD "externalref" OF "routerRef" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "External Reference"
+  POSITION 2
+  SQL-WIDTH 16
+  ORDER 10
+
+ADD FIELD "internalref" OF "routerRef" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Internal Reference"
+  POSITION 3
+  SQL-WIDTH 16
+  ORDER 20
+
+ADD TABLE "mapping"
+  AREA "Schema Area"
+  DUMP-NAME "mapping"
+
+ADD FIELD "direction" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL "Producer"
+  LABEL "Direction"
+  POSITION 2
+  SQL-WIDTH 16
+  ORDER 10
+
+ADD FIELD "name" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Name"
+  POSITION 3
+  SQL-WIDTH 16
+  ORDER 20
+
+ADD FIELD "xmlschema" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "XML Schema"
+  POSITION 4
+  SQL-WIDTH 16
+  ORDER 30
+
+ADD FIELD "dtdPublicId" OF "mapping" AS character 
+  FORMAT "X(60)"
+  INITIAL ""
+  LABEL "Public Id (DTD)"
+  POSITION 5
+  SQL-WIDTH 16
+  ORDER 40
+
+ADD FIELD "destination" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Destination"
+  POSITION 6
+  SQL-WIDTH 16
+  ORDER 50
+
+ADD FIELD "replyreq" OF "mapping" AS logical 
+  FORMAT "yes/no"
+  INITIAL "no"
+  LABEL "Reply Required"
+  POSITION 7
+  SQL-WIDTH 1
+  ORDER 60
+
+ADD FIELD "replysel" OF "mapping" AS character 
+  FORMAT "X(8)"
+  INITIAL ""
+  LABEL "Reply Selector"
+  POSITION 8
+  SQL-WIDTH 16
+  ORDER 70
+
+ADD FIELD "dtdSystemId" OF "mapping" AS character 
+  FORMAT "X(60)"
+  INITIAL ""
+  LABEL "System Id (DTD)"
+  POSITION 9
+  SQL-WIDTH 120
+  ORDER 80
+
+.
+PSC
+cpstream=ISO8859-1
+.
+0000004829
