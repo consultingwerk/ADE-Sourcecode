@@ -93,13 +93,32 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
         @param Cookie The cookie to remove. */
     method public void RemoveCookie(input poCookie as Cookie).    
 
+    /** Removes coolies from this message for a given name
+    
+        @param character The name of the cookie(s) to remove. */
+    method public void RemoveCookie(input pcName as character ).    
+
     /** Indicates whether a cookie exists for this message
         
         @param Cookie The cookie to check 
         @return logical True if this message contains the cookie */
     method public logical HasCookie(input poCookie as Cookie).
     
+    /** Indicates whether a cookie exists for this message
+        
+        @param character The cookie's name to check 
+        @return logical TRUE if this message contains the cookie */
+    method public logical HasCookie(input pcName as character).
+    
+    /** Returns a cookie by name from this message. Typically
+        returns the first cookie it finds by name, oif more than
+        one exist 
+        
+        @param character The cookie's name to check 
+        @return Cookie The (first) cookie found by name */
+    method public Cookie GetCookie(input pcName as character).
+    
     /** Removes all cookies from this message */ 
     method public void ClearCookies().
-
+    
 end interface.

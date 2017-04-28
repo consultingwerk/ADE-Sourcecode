@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Standard interface for PASOE/Web requests
@@ -10,6 +10,8 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
    Notes       : 
    @since      : 11.6    
  ----------------------------------------------------------------------*/
+
+using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.IHttpRequest.
 
 interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
@@ -79,5 +81,23 @@ interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
        @param character The name context property name   
        @return longchar The content property value */
     method public longchar GetContextValue(pcName as character).
+
+    /** Indicates whether a cookie exists for this message
+        
+        @param character The cookie's name to check 
+        @return logical TRUE if this message contains the cookie */
+    method public logical HasCookie(input pcName as character).
     
+    /** Returns a cookie by name from this message. Typically
+        returns the first cookie it finds by name, oif more than
+        one exist 
+        
+        @param character The cookie's name to check 
+        @return Cookie The (first) cookie found by name */
+    method public Cookie GetCookie(input pcName as character).    
+    
+    /** Removes cookies from this message for a given name
+    
+        @param character The name of the cookie(s) to remove. */
+    method public void RemoveCookie(input pcName as character).
 end interface.

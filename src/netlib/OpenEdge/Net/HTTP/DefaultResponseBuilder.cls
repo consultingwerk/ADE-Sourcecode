@@ -67,6 +67,10 @@ class OpenEdge.Net.HTTP.DefaultResponseBuilder inherits ResponseBuilder:
         
         oResponse = dynamic-new string(oDecoratorType:TypeName) (input poDecoratedResponse).
 
+        /* version */
+        if HasOption('version':u) then
+            assign oResponse:Version = GetOptionStringValue('version':u).
+
         if type-of(oResponse, ISupportInitialize) then
             cast(oResponse, ISupportInitialize):Initialize().
         

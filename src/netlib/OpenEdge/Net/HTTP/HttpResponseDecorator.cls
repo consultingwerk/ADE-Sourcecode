@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpResponseDecorator
@@ -152,6 +152,18 @@ class OpenEdge.Net.HTTP.HttpResponseDecorator implements IHttpResponse:
 
     method public void ClearCookies():
         DecoratedHttpResponse:ClearCookies().
+    end method.
+
+    method public void RemoveCookie( input pcName as character ):
+        DecoratedHttpResponse:RemoveCookie(pcName).
+    end method.
+
+    method public logical HasCookie( input pcName as character ):
+        return DecoratedHttpResponse:HasCookie(pcName).
+    end method.
+
+    method public Cookie GetCookie( input pcName as character ):
+        return DecoratedHttpResponse:GetCookie(pcName).
     end method.
     
 end class.

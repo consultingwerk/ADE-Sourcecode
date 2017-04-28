@@ -262,7 +262,9 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     
         @param OpenEdge.Core.Memptr The Memptr instance containing the data. */
     method public void PutBytes(input poData as class Memptr):
-        PutBytes(poData:GetPointerValue(), poData:Size).
+        Assert:NotNull(poData, 'Data').
+        if poData:Size gt 0 then
+            PutBytes(poData:GetPointerValue(), poData:Size).
     end method.
 
     /** Copies all of the bytes from a ByteBucket instance into this bucket. The

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpRequestDecorator
@@ -108,7 +108,7 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
         Assert:NotNull(poHttpRequest, 'HttpRequest').
         assign DecoratedHttpRequest = poHttpRequest.
     end constructor.       
-	
+    
     method public void SetHeader( input poHeader as HttpHeader ):
         DecoratedHttpRequest:SetHeader(poHeader).
     end method.
@@ -151,6 +151,18 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
 
     method public void ClearCookies():
         DecoratedHttpRequest:ClearCookies().
+    end method.
+
+    method public void RemoveCookie( input pcName as character ):
+        DecoratedHttpRequest:RemoveCookie(pcName).
+    end method.
+
+    method public logical HasCookie( input pcName as character ):
+        return DecoratedHttpRequest:HasCookie(pcName).
+    end method.
+
+    method public Cookie GetCookie( input pcName as character ):
+        return DecoratedHttpRequest:GetCookie(pcName).
     end method.
     
 end class.

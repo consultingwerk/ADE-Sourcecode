@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2007,2011,2016 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -2971,8 +2971,8 @@ ELSE IF class = "f" THEN DO FOR _File:
      Otherwise, it is already set to file list.
   */
   IF is-all THEN FOR EACH _File
-    WHERE _File._File-number <> 0
-      AND (IF NOT fHidden THEN NOT _File._Hidden ELSE _File._File-Number <> 0)
+    WHERE _File._File-number > 0
+      AND (IF NOT fHidden THEN NOT _File._Hidden ELSE _File._File-Number > 0)
       AND _File._Tbl-Type <> "V"
       AND _File._Db-recid = drec_db
       AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" )

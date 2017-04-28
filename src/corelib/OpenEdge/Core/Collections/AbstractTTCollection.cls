@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : AbstractTTCollection
@@ -17,13 +17,11 @@ Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 ------------------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Collections.AbstractTTCollection.
 using OpenEdge.Core.Collections.ICollection.
-using OpenEdge.Core.Collections.IIterable.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.Iterator.
- 
 using Progress.Lang.Object.
+ 
  
 class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable 
         implements ICollection: 
@@ -67,7 +65,7 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
             mhField         = hField.
     end constructor.
      
-     method public logical Add( newObject as Object):
+    method public logical Add( newObject as Object):
         if valid-object(newObject) then
         do:
             mhDefaultBuffer:buffer-create().
@@ -127,8 +125,9 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
         lContains = poCollection:IsEmpty() and this-object:IsEmpty().
         
         /* if the passed in collection is larger than this collection,
-           this cannot be true. */        
-        lContains = poCollection:size le this-object:size.
+           this cannot be true. */
+        if poCollection:size lt this-object:size then
+            return false.
         
         /* one or both collections has data */
         if not lContains then

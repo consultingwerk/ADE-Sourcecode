@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : XmlBodyWriter
@@ -28,8 +28,20 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
     define public property Encoding as character no-undo get. set. 
 
     constructor public XmlBodyWriter():
-        super(get-class(ByteBucket )).
+        super(get-class(ByteBucket)).
     end constructor.
+    
+    method override public void Open():
+        assign this-object:Entity = ByteBucket:Instance().
+        
+        super:Open().
+    end method.
+    
+    method override public int64 Write(input pmData as memptr):
+        cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(pmData), get-size(pmData)).
+        
+        return get-size(pmData).        
+    end method.
     
     method override public int64 Write(input poData as Object):
         define variable hDocument as handle no-undo.

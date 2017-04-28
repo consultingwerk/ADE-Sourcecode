@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
+  /* Copyright (c) 2011,2016 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -192,6 +192,26 @@ class OpenEdge.DataAdmin.DataSource.AdministratorSource:
            ASSIGN DICTDB._File._Can-create = mass
                   DICTDB._File._Can-write  = mass
                   DICTDB._File._Can-delete = mass.
+                  
+        /* _sec-role  */
+        FIND DICTDB._File  "_sec-role" NO-ERROR.
+		IF AVAIL(DICTDB._File) THEN
+           ASSIGN DICTDB._File._Can-create = mass
+                  DICTDB._File._Can-write  = mass
+                  DICTDB._File._Can-delete = mass.
+        /* _sec-granted-role  */
+        FIND DICTDB._File  "_sec-granted-role" NO-ERROR.
+		IF AVAIL(DICTDB._File) THEN
+           ASSIGN DICTDB._File._Can-create = mass
+                  DICTDB._File._Can-write  = mass
+                  DICTDB._File._Can-delete = mass.
+        /* _sec-granted-role-condition  */
+        FIND DICTDB._File  "_sec-granted-role-condition" NO-ERROR.
+		IF AVAIL(DICTDB._File) THEN
+           ASSIGN DICTDB._File._Can-create = mass
+                  DICTDB._File._Can-write  = mass
+                  DICTDB._File._Can-delete = mass.
+                  
         /* thrown above - rethrow */
         catch e as AppError  :
             undo, throw  e.		

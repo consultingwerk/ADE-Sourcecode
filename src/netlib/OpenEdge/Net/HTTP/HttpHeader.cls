@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpHeader
@@ -25,30 +25,16 @@ class OpenEdge.Net.HTTP.HttpHeader:
     /** (mandatory) The name of the header */
     define public property Name as character no-undo get. private set.
     
+    /* Private Value holder so that we can customise the accessor and mutator */
+    define private variable mValue as character no-undo.
+    
     /** A header value */
     define public property Value as character no-undo
-        get.
+        get():
+            return this-object:GetValue().
+        end get.
         set(input pcValue as character):
-            define variable iLength as integer no-undo.
-            
-            this-object:Validate(pcValue). 
-            
-            if this-object:ParamDelimiter ne '':u then
-            do:
-                assign this-object:Value = pcValue.
-                ExtractParameters().
-            end.
-            else
-            do:
-                assign iLength = length(pcValue, 'raw':u).
-                
-                /* strip off any quotation marks */
-                if substring(pcValue, 1,       1) eq '~"' and
-                   substring(pcValue, iLength, 1) eq '~"' then
-                    assign pcValue = substring(pcValue, 2, iLength - 2, 'raw':u).
-                
-                assign this-object:Value = pcValue.
-            end.
+            this-object:SetValue(pcValue).
         end set.
     
     /** (optional) delimiter for header parameters */
@@ -204,6 +190,39 @@ class OpenEdge.Net.HTTP.HttpHeader:
         return '':u.
     end method.
     
+    /* Overridable mutator method 
+       
+       @param character The header value */
+    method protected void SetValue(input pcValue as character):
+        define variable iLength as integer no-undo.
+        
+        this-object:Validate(pcValue). 
+        
+        if this-object:ParamDelimiter ne '':u then
+        do:
+            assign mValue = pcValue.
+            ExtractParameters().
+        end.
+        else
+        do:
+            assign iLength = length(pcValue, 'raw':u).
+            
+            /* strip off any quotation marks */
+            if substring(pcValue, 1,       1) eq '~"':u and
+               substring(pcValue, iLength, 1) eq '~"':u then
+                assign pcValue = substring(pcValue, 2, iLength - 2, 'raw':u).
+            
+            assign mValue = pcValue.
+        end.
+    end method.
+    
+    /* Overridable accessor method
+    
+       @return character The Value */
+    method protected character GetValue():
+        return mValue.
+    end method.
+    
     /** Returns the unparameterised value for this header.
         
         @return character The value. */
@@ -224,21 +243,21 @@ class OpenEdge.Net.HTTP.HttpHeader:
         define variable iLoop as integer no-undo.
         define variable cChar as character no-undo.
         define variable lQuote as logical no-undo.
+        define variable cDelim as character no-undo.
         define buffer HeaderParameter for HeaderParameter.
         
         /* blank delimiter means no parameters */        
         if this-object:ParamDelimiter eq '':u then
             return cParameters.
         
+        if this-object:Value ne '':u then
+            assign cDelim = this-object:ParamDelimiter.
+        
         for each HeaderParameter where HeaderParameter.ParentHeader eq integer(this-object):
             assign iLength = length(HeaderParameter.ParamValue, 'raw':u)
-                   lQuote  = false.
-            
-            /* quoted already? */
-            if substring(HeaderParameter.ParamValue, 1,       1) eq '~"' and
-               substring(HeaderParameter.ParamValue, iLength, 1) eq '~"' then
-                assign lQuote = false.
-            else
+                   /* quoted already? */
+                   lQuote  = not OpenEdge.Core.String:IsQuoted(HeaderParameter.ParamValue, '~"':u)
+                   .
             if not lQuote then
             do iLoop = 1 to iLength while not lQuote:
                 assign cChar  = substring(HeaderParameter.ParamValue, iLoop, 1, 'raw':u)
@@ -252,12 +271,36 @@ class OpenEdge.Net.HTTP.HttpHeader:
             
             assign cParameters = substitute('&1&2 &3=&4':u, 
                                    cParameters,
-                                   this-object:ParamDelimiter,
+                                   cDelim,
                                    HeaderParameter.ParamName,
-                                   cValue ).
+                                   cValue )
+                   cDelim = this-object:ParamDelimiter
+                   .
         end.
         
         return cParameters.
+    end method.
+    
+    /* Removes all parameters in this header with a name
+       
+       @param character the parameter name
+       @return logical TRUE if at least one parameter was removed. */
+    method public logical RemoveParameters(input pcParamName as character):
+        define variable lExisting as logical no-undo.
+        define buffer HeaderParameter for HeaderParameter.
+         
+        Assert:NotNullOrEmpty(pcParamName, 'Param name').
+        
+        assign lExisting = false.
+        
+        for each HeaderParameter where
+                 HeaderParameter.ParentHeader eq integer(this-object) and
+                 HeaderParameter.ParamName eq pcParamName:
+            delete HeaderParameter. 
+            assign lExisting = true.
+        end.
+        
+        return lExisting.
     end method.
     
     /* Validates a header value. Should throw an error if the value

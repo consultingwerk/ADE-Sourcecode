@@ -1462,7 +1462,7 @@ DO ON STOP UNDO, LEAVE
        then recreate. */
       IF l and DICTDB._Field._Fld-case <> DICTDB2._Field._Fld-case THEN 
       DO:                                                               
-          FIND FIRST DICTDB2._Index-Field WHERE DICTDB2._Index-Field._Field-recid = RECID(DICTDB2._Field) NO-LOCK .
+          FIND FIRST DICTDB2._Index-Field WHERE DICTDB2._Index-Field._Field-recid = RECID(DICTDB2._Field) NO-LOCK NO-ERROR.
           IF AVAIL(DICTDB2._Index-Field) THEN
           DO:
               FIND FIRST DICTDB2._Index WHERE RECID(DICTDB2._Index) = DICTDB2._Index-Field._Index-recid NO-LOCK .

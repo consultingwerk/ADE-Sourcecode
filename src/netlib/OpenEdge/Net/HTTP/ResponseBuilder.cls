@@ -20,8 +20,9 @@ using OpenEdge.Net.HTTP.DefaultResponseBuilder.
 using OpenEdge.Net.HTTP.HttpResponse.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
+using OpenEdge.Core.Util.ConfigBuilder.
 
-class OpenEdge.Net.HTTP.ResponseBuilder abstract 
+class OpenEdge.Net.HTTP.ResponseBuilder abstract inherits ConfigBuilder
         implements ISupportInitialize:
     
     /** Registry for mapping build types to their implementations */
@@ -81,10 +82,23 @@ class OpenEdge.Net.HTTP.ResponseBuilder abstract
     
     /* Initializer/Startup */
     method public void Initialize():
+        HttpVersion('HTTP/1.1':u).
     end method.
     
     /* Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
+    end method.
+    
+    /** Sets the HTTP version of the request   
+    
+        @param character A version
+        @return ResponseBuilder The response builder being constructed. */
+    method public ResponseBuilder HttpVersion(input pcVersion as character):
+        Assert:NotNullOrEmpty(pcVersion, 'HTTP version').
+        
+        SetOption('version':u, pcVersion).
+        
+        return this-object.
     end method.
     
 end class.

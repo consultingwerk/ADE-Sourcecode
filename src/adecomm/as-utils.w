@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2016 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -265,6 +265,8 @@ conn-hdl = ?.
    use that handle                                                        */
 FIND FIRST xAppSrv-TT WHERE xAppSrv-TT.App-Service = AppSrv-TT.App-Service AND
                             xAppSrv-TT.Partition  NE AppSrv-TT.Partition AND
+                            xAppSrv-TT.Host        = AppSrv-TT.Host AND
+                            xAppSrv-TT.Service     = AppSrv-TT.Service AND
                             VALID-HANDLE(xAppSrv-TT.AS-HANDLE) NO-ERROR.
 IF AVAILABLE xAppSrv-TT THEN DO:
   conn-hdl = xAppSrv-TT.AS-Handle.

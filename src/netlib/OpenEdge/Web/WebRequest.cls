@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    Purpose     : An HttpRequest that adds request context information
@@ -14,22 +14,24 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert from propath.
-using OpenEdge.Core.Memptr. 
+using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Core.Collections.IStringStringMap from propath.
+using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Core.Collections.StringStringMap from propath.
 using OpenEdge.Core.WidgetHandle from propath.
+using OpenEdge.Core.Memptr.
 using OpenEdge.Net.HTTP.Cookie from propath.
 using OpenEdge.Net.HTTP.HttpHeader from propath.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.URI from propath.
 using OpenEdge.Web.IWebRequest from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
 using Progress.Lang.AppError from propath.
 using Progress.Lang.Object from propath.
-using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 
 class OpenEdge.Web.WebRequest implements IWebRequest: 
     define private variable mUri as URI no-undo.
-    define private variable mCookies as Cookie extent  no-undo.
+    define private variable mCookies as IStringKeyedMap no-undo.
    
     define private variable BaseReadOnlyMessage as character no-undo 
         init "&1.&2 property is read-only". 
@@ -85,20 +87,17 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         the formatted, strongly-typed version */
     define public property Entity as Object no-undo 
         get():
-            define variable parser as ObjectModelParser no-undo.
             if web-context:is-xml then
-            do:
                 return new WidgetHandle(web-context:x-document).
-            end.    
-            else if web-context:is-json then
-            do:
-                parser = new ObjectModelParser().
-                return parser:parse(web-context).        
-            end.  
-            else do:
-                 /* ideally this should use one of the content-type writers to get a real type */
+            else 
+            if web-context:is-json then
+                return new ObjectModelParser():Parse(web-context).        
+            else
+            if get-size(web-context:form-long-input) ne ? then
+                /* ideally this should use one of the content-type writers to get a real type */
                 return new Memptr(web-context:form-long-input).
-            end.
+            else
+                return new Memptr(0).
         end. 
         set(prop as Object):
             undo, throw new AppError(GetReadOnlyMessage(),?).
@@ -320,19 +319,31 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable cProp as character no-undo.
         define variable cQuery as character no-undo.
         define variable cValue as character no-undo.
-        stringMap = new StringStringMap().
-        cQueryString = web-context:get-cgi-value("ENV":U, "QUERY_STRING":U).
+        define variable iPos as integer no-undo.
+        
+        assign stringMap = new StringStringMap()
+               cQueryString = web-context:get-cgi-value("ENV":U, "QUERY_STRING":U).
+         
         do i = 1 to num-entries(cQueryString,"&":U):           
             cQuery = entry(i,cQueryString,"&":U).  
-            cProp = OpenEdge.Net.URI:Decode(entry(1,cQuery,"=":U)).
-            if num-entries(cQuery,"=":U) > 1 then
-            do:  
-                cValue = OpenEdge.Net.URI:Decode(entry(2,cQuery,"=":U)).
+            assign iPos  = index(cQuery, '=':u).
+            if iPos eq 0 then
+                assign iPos = index(cQuery, ';':u).
+                
+            if iPos eq 0 then
+                assign cProp  = cQuery
+                       cValue = '':u.
+            else
+            do:
+                assign cProp = substring(cQuery, 1, iPos - 1)
+                       cValue = substring(cQuery, iPos + 1)
+                       no-error.
+                if cValue eq ? then
+                    assign cValue = '':u.
             end.
-            else do: 
-                cValue = "":U.
-            end.
-            stringMap:Put(cProp,cValue).
+                        
+            stringMap:Put(OpenEdge.Net.URI:Decode(cProp),
+                          OpenEdge.Net.URI:Decode(cValue)).
         end. 
         return stringMap. 
     end.
@@ -407,41 +418,12 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         @param Cookie[] An array of cookies 
         @return integer The number of cookies returned */
     method public integer GetCookies(output poCookies as Cookie extent):
-        define variable cCookie    as character no-undo.
-        define variable i          as integer no-undo.
-        define variable cAttribute as character no-undo.
-        define variable cName      as character no-undo.
-        define variable cValue     as character no-undo.
-        define variable iExt as integer no-undo.
-        define variable defaultDomain as character no-undo.
-        define variable defaultPath   as character no-undo.
+        if not valid-object(mCookies) then
+            LoadCookies().
+          
+        assign poCookies = cast(mCookies:Values:ToArray(), Cookie).
         
-        assign defaultDomain = this-object:DefaultCookieDomain.
-        if defaultDomain = ?  then 
-           assign defaultDomain = "":u.
-        
-        assign defaultPath =  this-object:DefaultCookiePath.
-        if defaultPath = ? or defaultPath = "":u then
-           assign defaultPath = this-object:WebAppPath.
-            
-        if extent(mCookies) = ? then
-        do:
-            /* alternative:  cCookie = GetHeader("Cookie"):Value() */ 
-            cCookie = web-context:get-cgi-value( "ENV":U,"HTTP_COOKIE":U).
-            if cCookie > "":u then 
-            do:
-                iExt = num-entries(cCookie,";":U).
-                extent(mCookies) = iExt.
-                do i = 1 to iExt:
-                    assign cAttribute = entry(1, cCookie, ';':u)
-                           cName = entry(1, cAttribute, '=':u)
-                           cValue = entry(2, cAttribute, '=':u)
-                           mCookies[i] = new Cookie(cName,defaultDomain,defaultPath,cValue). 
-                end.
-            end.
-        end.
-        poCookies = mCookies.
-        return if extent(poCookies) = ? then 0 else extent(poCookies).
+        return mCookies:Size.
     end method.
     
     /** Indicates whether a cookie exists for this message
@@ -449,17 +431,40 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         @param Cookie The cookie to check 
         @return logical True if this message contains the cookie */
     method public logical HasCookie(poCookie as Cookie):
-        define variable oCookies     as Cookie extent no-undo.
-        define variable iNumCookies as integer no-undo.
-        define variable i           as integer no-undo.
-    
         Assert:NotNull(poCookie, 'Cookie').
-        iNumCookies = GetCookies(output oCookies).
-        do i = 1 to iNumCookies:
-            if oCookies[i]:Equals(poCookie) then
-                return true. 
-        end.    
-        return false.
+        return HasCookie(poCookie:Name).
+    end method.
+ 
+     /** Indicates whether a cookie exists for this message
+        
+        @param character The cookie's name to check 
+        @return logical TRUE if this message contains the cookie */
+    method public logical HasCookie(input pcName as character):
+        Assert:NotNullOrEmpty(pcName, 'Cookie name').
+        if not valid-object(mCookies) then
+            LoadCookies().
+        
+        return mCookies:ContainsKey(pcName).
+    end method.
+    
+    /** Returns a cookie by name from this message. Typically
+        returns the first cookie it finds by name, oif more than
+        one exist 
+        
+        @param character The cookie's name to check 
+        @return Cookie The (first) cookie found by name */
+    method public Cookie GetCookie(input pcName as character):
+        if not valid-object(mCookies) then
+            LoadCookies().
+        
+        return cast(mCookies:Get(pcName), Cookie).            
+    end method.
+    
+    /** Removes cookies from this message for a given name
+    
+        @param character The name of the cookie(s) to remove. */
+    method public void RemoveCookie(input pcName as character ):
+        undo, throw new AppError(GetMethodNotImplementedMessage(),?).        
     end method.
     
     /** get the named path value from the URI (see IWebRequest) */
@@ -512,6 +517,38 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         cClass = entry(2,cMethod," ":U).
         cMethod = entry(1,cMethod," ":U). 
         return substitute(BaseNotImplementedMessage,cClass,cMethod,"method").
+    end method.
+    
+    /* Private method */
+    method private void LoadCookies():
+        define variable cCookie as character no-undo.
+        define variable iMax as integer no-undo.
+        define variable iLoop as integer no-undo.
+        define variable defaultDomain as character no-undo.
+        define variable defaultPath as character no-undo.
+        define variable cAttribute as character no-undo.
+        define variable cName as character no-undo.
+        define variable cValue as character no-undo.
+        
+        assign defaultDomain = this-object:DefaultCookieDomain.
+        if defaultDomain eq ?  then 
+           assign defaultDomain = "":u.
+        
+        assign defaultPath = this-object:DefaultCookiePath.
+        if defaultPath eq ? or defaultPath eq "":u then
+           assign defaultPath = this-object:WebAppPath.
+        
+        assign mCookies = new StringKeyedMap()
+               cCookie  = web-context:get-cgi-value( "ENV":U,"HTTP_COOKIE":U)
+               iMax     = num-entries(cCookie,";":u).
+        if iMax ne ? then
+            
+        do iLoop = 1 to iMax:
+            assign cAttribute = entry(1, cCookie, ';':u)
+                   cName = entry(1, cAttribute, '=':u)
+                   cValue = entry(2, cAttribute, '=':u).
+            mCookies:Put(cName,  new Cookie(cName,defaultDomain,defaultPath,cValue)).                  
+        end.
     end method.        
    
 end class.

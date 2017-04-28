@@ -76,7 +76,6 @@ class OpenEdge.Core.XML.SaxReader:
     define private variable mhParserProc as handle no-undo.
     
     constructor public SaxReader():
-        run OpenEdge/Core/XML/saxreaderfacade.p persistent set mhParserProc (this-object).        
     end constructor.
     
     destructor public SaxReader():
@@ -84,13 +83,26 @@ class OpenEdge.Core.XML.SaxReader:
     end destructor.
     
     method public void ParseDocument(input pcXML as longchar):
+        /* run the facade.p for each  document run, since we set up a circular dependency
+           and GC cannot clean it up */
+        run OpenEdge/Core/XML/saxreaderfacade.p persistent set mhParserProc (this-object).        
+        
         run ParseDocument in mhParserProc (pcXML).
+        
+        finally:
+            delete object mhParserProc no-error.
+        end finally.
     end method.
 
     method public void ParseDocument(input pmXML as memptr):
+        /* run the facade.p for each  document run, since we set up a circular dependency
+           and GC cannot clean it up */
+        run OpenEdge/Core/XML/saxreaderfacade.p persistent set mhParserProc (this-object).
+                
         run ParseMemptr in mhParserProc (pmXML).
         finally:
             set-size(pmXML) = 0.
+            delete object mhParserProc no-error.
         end finally.
     end method.
 

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpMessage
@@ -13,9 +13,10 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Collections.IStringKeyedMap.
+using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Cookie.
-using OpenEdge.Net.HTTP.CookieCollection.
 using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
@@ -32,8 +33,8 @@ class OpenEdge.Net.HTTP.HttpMessage
     /** Holds headers for this message */
     define protected property Headers as HttpHeaderCollection no-undo get. private set.
     
-    /** The cookies only relevant to only this message (request or response) */
-    define protected property Cookies as CookieCollection no-undo get. private set.
+    /** Only cookies relevant to only this message (request or response) */
+    define protected property Cookies as IStringKeyedMap no-undo get. private set.
     
     /** The HTTP version supported. Typically HTTP/1.1  */
     define public property Version as character no-undo
@@ -108,10 +109,17 @@ class OpenEdge.Net.HTTP.HttpMessage
     define public property ContentLength as integer no-undo
         get():
             define variable iLength as integer no-undo.
-            
+            define variable cLength as character no-undo.
+                        
             /* Content-Length */
             if HasHeader('Content-Length':u) then
-                assign iLength = integer(GetHeader('Content-Length':u):Value).
+            do:
+                assign cLength = GetHeader('Content-Length':u):Value.
+                Assert:IsInteger(cLength, 'Content-Length').
+                
+                assign iLength = integer(cLength).
+                Assert:IsZeroOrPositive(iLength, 'Content-Length').
+            end.
             else
                 assign iLength = 0.
             
@@ -161,7 +169,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     
     method public void Initialize():
         assign this-object:TransferEncoding = string(TransferEncodingEnum:None)
-               this-object:Cookies          = new CookieCollection()
+               this-object:Cookies          = new StringKeyedMap()
                this-object:Headers          = new HttpHeaderCollection().
     end method.
  
@@ -229,6 +237,7 @@ class OpenEdge.Net.HTTP.HttpMessage
         
         @param character The name of the header to remove */    
     method public void RemoveHeader(input pcName as character):
+        Assert:NotNull(pcName, 'Header name').
         this-object:Headers:Remove(pcName).
     end method.
     
@@ -238,8 +247,15 @@ class OpenEdge.Net.HTTP.HttpMessage
         @param Cookie The cookie to remove. */
     method public void RemoveCookie(input poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
-        
-        this-object:Cookies:Remove(poCookie).
+        this-object:RemoveCookie(poCookie:Name).
+    end method.
+    
+    /** Removes cookies from this message for a given name
+    
+        @param character The name of the cookie(s) to remove. */
+    method public void RemoveCookie(input pcName as character):
+        Assert:NotNullOrEmpty(pcName, 'Cookie name').
+        this-object:Cookies:Remove(pcName).
     end method.
     
     /** Indicates whether a cookie exists for this message
@@ -248,8 +264,7 @@ class OpenEdge.Net.HTTP.HttpMessage
         @return logical True if this message contains the cookie */
     method public logical HasCookie(input poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
-        
-        return this-object:Cookies:Contains(poCookie).
+        return this-object:HasCookie(poCookie:Name).
     end method.
     
     /** Returns all the cookies for this message
@@ -257,17 +272,37 @@ class OpenEdge.Net.HTTP.HttpMessage
         @param Cookie[] An array of cookies 
         @return integer The number of cookies returned */
     method public integer GetCookies(output poCookies as Cookie extent):
-        assign poCookies = cast(this-object:Cookies:ToArray(), Cookie).
+        assign poCookies = cast(this-object:Cookies:Values:ToArray(), Cookie).
         
         return this-object:Cookies:Size.
     end method.
     
+    /** Indicates whether a cookie exists for this message
+        
+        @param character The cookie's name to check 
+        @return logical TRUE if this message contains the cookie */
+    method public logical HasCookie(input pcName as character):    
+        Assert:NotNullOrEmpty(pcName, 'Cookie name').
+        return this-object:Cookies:ContainsKey(pcName).
+    end method.
+    
+    /** Returns a cookie by name from this message. Typically
+        returns the first cookie it finds by name, oif more than
+        one exist 
+        
+        @param character The cookie's name to check 
+        @return Cookie The (first) cookie found by name */
+    method public Cookie GetCookie(input pcName as character):
+        Assert:NotNullOrEmpty(pcName, 'Cookie name').
+        return cast(this-object:Cookies:Get(pcName), Cookie).
+    end method.
+        
     /** Adds a cookie to this request 
     
         @param Cookie The cookie to add. */
     method public void SetCookie(input poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
-        this-object:Cookies:Add(poCookie).
+        this-object:Cookies:Put(poCookie:Name, poCookie).
     end method.
     
     /** Removes all cookies from this message */ 
@@ -277,7 +312,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     
     /** Removes all headers from this message */ 
     method public void ClearHeaders().
-        this-object:Headers:Clear().
+        this-object:Headers:Clear().    
     end method.
     
 end class.

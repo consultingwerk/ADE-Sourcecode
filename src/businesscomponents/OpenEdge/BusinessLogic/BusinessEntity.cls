@@ -172,15 +172,26 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/  
     METHOD PROTECTED VOID CreateData(INPUT-OUTPUT DATASET-HANDLE hDataSet):             
-                
+         define variable hPDS as handle no-undo.
+         
+         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+            we will have a different dataset than the one in the property. We want to work
+            on the one was sent, not the one that's there :) */
+         if this-object:ProDataSet ne hDataSet then
+            assign hPDS                   = this-object:ProDataSet
+                   this-object:ProDataSet = hDataSet:handle. 
+         
         THIS-OBJECT:AttachDataSources().
         
-        THIS-OBJECT:CommitData(ROW-CREATED).   
+        THIS-OBJECT:CommitData(ROW-CREATED, TRUE).   
                                  
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
-        END FINALLY.      
         
+             /* reset if we used a different PDS */
+             if valid-handle(hPDS) then
+                assign this-object:ProDataSet = hPDS.
+        END FINALLY.      
     END METHOD. 
     
     /*------------------------------------------------------------------------------
@@ -188,15 +199,26 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/ 
     METHOD PROTECTED VOID UpdateData(INPUT-OUTPUT DATASET-HANDLE hDataSet):            
+         define variable hPDS as handle no-undo.
+         
+         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+            we will have a different dataset than the one in the property. We want to work
+            on the one was sent, not the one that's there :) */
+         if this-object:ProDataSet ne hDataSet then
+            assign hPDS                   = this-object:ProDataSet
+                   this-object:ProDataSet = hDataSet:handle. 
          
          THIS-OBJECT:AttachDataSources().
          
-         THIS-OBJECT:CommitData(ROW-MODIFIED).  
+         THIS-OBJECT:CommitData(ROW-MODIFIED, TRUE).  
                                  
          FINALLY: 
             THIS-OBJECT:DetachDataSources().
+        
+             /* reset if we used a different PDS */
+             if valid-handle(hPDS) then
+                assign this-object:ProDataSet = hPDS.
         END FINALLY.  
-                  
     END METHOD.
     
     
@@ -205,15 +227,26 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
     METHOD PROTECTED VOID DeleteData(INPUT-OUTPUT DATASET-HANDLE hDataSet):                   
-       
+         define variable hPDS as handle no-undo.
+         
+         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+            we will have a different dataset than the one in the property. We want to work
+            on the one was sent, not the one that's there :) */
+         if this-object:ProDataSet ne hDataSet then
+            assign hPDS                   = this-object:ProDataSet
+                   this-object:ProDataSet = hDataSet:handle. 
+         
         THIS-OBJECT:AttachDataSources().
          
-        THIS-OBJECT:CommitData(ROW-DELETED).   
+        THIS-OBJECT:CommitData(ROW-DELETED, TRUE).   
                                  
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
+        
+             /* reset if we used a different PDS */
+             if valid-handle(hPDS) then
+                assign this-object:ProDataSet = hPDS.
         END FINALLY.  
-         
     END METHOD.
     
     /*------------------------------------------------------------------------------
@@ -221,25 +254,37 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:                                                                        
     ------------------------------------------------------------------------------*/ 
     METHOD PROTECTED VOID Submit(INPUT-OUTPUT DATASET-HANDLE hDataSet):           
-       
+         define variable hPDS as handle no-undo.
+         
+         /* if the Create-, Update- or DeleteData operation was called BY-REFERENCE
+            we will have a different dataset than the one in the property. We want to work
+            on the one was sent, not the one that's there :) */
+         if this-object:ProDataSet ne hDataSet then
+            assign hPDS                   = this-object:ProDataSet
+                   this-object:ProDataSet = hDataSet:handle. 
+         
        THIS-OBJECT:AttachDataSources().
        
        /* Do deletes first, next creates, and finally modifies */
-       THIS-OBJECT:CommitData(ROW-DELETED). 
-       THIS-OBJECT:CommitData(ROW-CREATED).
-       THIS-OBJECT:CommitData(ROW-MODIFIED). 
+       THIS-OBJECT:CommitData(ROW-DELETED, FALSE). 
+       THIS-OBJECT:CommitData(ROW-CREATED, FALSE).
+       THIS-OBJECT:CommitData(ROW-MODIFIED, FALSE). 
           
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
+        
+             /* reset if we used a different PDS */
+             if valid-handle(hPDS) then
+                assign this-object:ProDataSet = hPDS.
         END FINALLY.  
-          
     END METHOD.
     
     /*---------------------------------------------------------------------------------------
             Purpose:  Generic routine to save or commit data for a dataset.                                                              
             Notes:                                                                        
      ----------------------------------------------------------------------------------------*/
-    METHOD PROTECTED VOID CommitData(INPUT iRowState AS INTEGER):
+    METHOD PROTECTED VOID CommitData(INPUT iRowState AS INTEGER,
+                                     INPUT lAllowCreateBeforeRows AS LOGICAL):
                                            
         DEFINE VAR iIndex AS INTEGER NO-UNDO.  
         DEFINE VAR iTopBufferCnt AS INTEGER NO-UNDO.
@@ -256,15 +301,15 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                         /* Commit creates for parent. First get index into entire list of buffers */
                         cSkip = GetSkipListEntry(GetBufferIndex(hBuffer)). 
                        
-                        CommitRows(hBuffer, cSkip, iRowState).
+                        CommitRows(hBuffer, cSkip, iRowState, lAllowCreateBeforeRows).
                         /* Now commit creates for any child buffer */
-                        CommitChildBuffers(iIndex, iRowState).
+                        CommitChildBuffers(iIndex, iRowState, lAllowCreateBeforeRows).
                     END.
                     WHEN ROW-MODIFIED OR WHEN ROW-DELETED THEN DO:
                         /* First  modify or delete child records, then modify parent records */
-                        CommitChildBuffers(iIndex, iRowState).
+                        CommitChildBuffers(iIndex, iRowState, lAllowCreateBeforeRows).
                         /* Now modify or delete parent records */
-                        CommitRows(hBuffer, "", iRowState).
+                        CommitRows(hBuffer, "", iRowState, lAllowCreateBeforeRows).
                     END.
                 END CASE.
             
@@ -387,11 +432,12 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     
     /*------------------------------------------------------------------------------------------
             Purpose:  Walks through specifed dataset's data-relations to find child tables for
-                      specified parent table. For each child table, it then calls commitRows().                                                         
+                      specified parent table. For each child table, it then calls CommitRows().                                                         
             Notes:                                                                        
     ---------------------------------------------------------------------------------------------*/
     METHOD PRIVATE VOID CommitChildBuffers(INPUT iParentBufferIndex AS INTEGER,
-                                           INPUT iRowState AS INTEGER):
+                                           INPUT iRowState AS INTEGER,
+                                           INPUT lAllowCreateBeforeRows AS LOGICAL):
                                                
         DEFINE VAR iIndex AS INTEGER NO-UNDO.
         DEFINE VAR iRelationCnt AS INTEGER NO-UNDO.
@@ -413,7 +459,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 ELSE
                     cSkip = "".
 
-                commitRows(hRelation:CHILD-BUFFER, cSkip, iRowState).
+                CommitRows(hRelation:CHILD-BUFFER, cSkip, iRowState, lAllowCreateBeforeRows).
             END.
         END.
     
@@ -448,7 +494,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     ---------------------------------------------------------------------------------------------*/
     METHOD PRIVATE VOID CommitRows(INPUT hBuffer AS HANDLE,
                                    INPUT cSkip AS CHAR,
-                                   INPUT iRowState AS INTEGER):
+                                   INPUT iRowState AS INTEGER,
+                                   INPUT lAllowCreateBeforeRows AS LOGICAL):
                                        
         DEFINE VARIABLE hBeforeBuffer AS HANDLE NO-UNDO.
         DEFINE VARIABLE hBeforeQuery AS HANDLE NO-UNDO.
@@ -476,8 +523,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         lReturnValue = hBeforeQuery:QUERY-OPEN().
         lAvailable = hBeforeQuery:GET-FIRST().
         
-        /* If before-table has no rows, call MARK-ROW-STATE() to create them. */
-        IF lAvailable EQ FALSE THEN DO:
+        /* If the before-table has no rows with specified iRowState, call MARK-ROW-STATE() to create them. 
+         * But only do this if lAllowCreateBeforeRows = true.
+         * This is the case where Submit has been called. Submit will force a call to CommitRows for each ROW-STATE, which can have 0 or more rows for each row-state.
+         * But the submit operation requires before-image data, so if there is no before-image data for specified row-state, no action needs to be done for this row-state */
+        IF lAllowCreateBeforeRows AND lAvailable EQ FALSE THEN DO:
             lCreatedBeforeRows = TRUE.
             CREATE QUERY hAfterQuery.
             hAfterQuery:SET-BUFFERS(hBuffer).
@@ -491,8 +541,13 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             END.
             
             /* Now that the before-table rows have been created, reopen and set to first row in before-table */
-            lReturnValue = hBeforeQuery:QUERY-OPEN().
-            lAvailable = hBeforeQuery:GET-FIRST().         
+            IF hBeforeQuery:QUERY-OPEN() THEN
+                lAvailable = hBeforeQuery:GET-FIRST().
+            ELSE
+                lAvailable = FALSE.
+            
+            IF NOT lAvailable THEN
+                UNDO, THROW NEW Progress.Lang.AppError('Unable to call SAVE-ROW-CHANGES(). Failed to create query for BEFORE-TABLE.', 0).
         END.
         
         /* Once we get here, we have have before-table rows, with first row in before-buffer */
@@ -503,9 +558,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 IF ERROR-STATUS:NUM-MESSAGES >= 1 THEN DO:
                     hBeforeBuffer:ERROR-STRING = ERROR-STATUS:GET-MESSAGE(1).
                 END.
-                
+               
                 /* Check to see if RETURN-VALUE is set. This is possible if error was returned from DB trigger */
-                IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
+                 IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
                      hBeforeBuffer:ERROR-STRING = RETURN-VALUE.
                      
                 /* If there is no Before-Image data, then throw the error */
@@ -518,6 +573,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         END.
         
     END METHOD.
+    
+
 
 /*--------------------------------------------------------------------------------------------------
             Purpose:                                                            

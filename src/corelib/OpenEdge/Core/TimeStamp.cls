@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
@@ -14,24 +14,17 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
+using Ccs.Common.Support.IDateTimeTzHolder.
 using OpenEdge.Core.TimeStamp.
 using Progress.Lang.Object.
-using Progress.Lang.Class.
 
-class OpenEdge.Core.TimeStamp serializable:
+class OpenEdge.Core.TimeStamp serializable : 
     define public property Format as character no-undo get. private set.
     
     define private variable mtDate as date no-undo.
     define private variable miTime as integer no-undo.
     define private variable miTZOffset as integer no-undo.
     
-    constructor public TimeStamp(piTimeStamp as integer):
-        super().
-        
-        assign miTime = piTimeStamp
-               this-object:Format = 'Integer'.
-    end constructor.
-
     constructor public TimeStamp(ptTimeStamp as date):
         super().
         

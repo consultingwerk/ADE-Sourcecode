@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
@@ -105,17 +105,18 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
         define variable iTimeout as integer no-undo.
         define variable iNumRetries as integer no-undo.
         define variable rRequestHash as raw extent 2 no-undo.
+        define variable oReqError as HttpRequestError no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response'). 
         
-        assign iTimeout = this-object:Options:RequestTimeout.
-        
+        assign iTimeout  = this-object:Options:RequestTimeout
+               /* Create the error instance now becuase of PSC00347977 */
+               oReqError = new HttpRequestError(string(integer(StatusCodeEnum:RequestTimeOut)),
+                                         poRequest:Method,
+                                         poRequest:URI:ToString()).
         /* Use looping instead of recursion to avoid deeping the call stack */
-        repeat on stop undo, return error new HttpRequestError(
-                                                    string(integer(StatusCodeEnum:RequestTimeOut)),
-                                                    poRequest:Method,
-                                                    poRequest:URI:ToString())
+        repeat on stop undo, return error oReqError
                stop-after iTimeout:
             
             if rRequestHash[1] eq rRequestHash[2] then

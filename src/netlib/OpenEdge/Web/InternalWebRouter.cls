@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    Purpose     : Keep a list of customer specified handlers and invoke 
@@ -15,6 +15,7 @@ block-level on error undo, throw.
 using Progress.Web.AbstractWebRouter.
 using Progress.Web.IWebHandler.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.ISupportInitialize.
 
 class OpenEdge.Web.InternalWebRouter
     inherits AbstractWebRouter
@@ -55,6 +56,9 @@ class OpenEdge.Web.InternalWebRouter
             this-object:Release(pcHandlerName).
             /* always use a new  handler instance */
             oWebHandler = dynamic-new pcHandlerName ().
+
+            if type-of(oWebHandler, ISupportInitialize) then
+                cast(oWebHandler, ISupportInitialize):Initialize().
         end.
         else
         do:
@@ -69,9 +73,14 @@ class OpenEdge.Web.InternalWebRouter
             end.
             
             /* Create an instance of the handler if necessary */
-            if not valid-object(lbHandler.WebHandler) then 
+            if not valid-object(lbHandler.WebHandler) then
+            do: 
                 lbHandler.WebHandler = dynamic-new lbHandler.WebHandlerName ().
-            
+                
+                if type-of(lbHandler.WebHandler, ISupportInitialize) then
+                    cast(lbHandler.WebHandler, ISupportInitialize):Initialize().
+            end.
+                
             assign oWebHandler = cast(lbHandler.WebHandler,IWebHandler).
         end.
         

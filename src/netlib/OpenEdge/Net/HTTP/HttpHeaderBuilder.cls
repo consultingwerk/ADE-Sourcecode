@@ -15,12 +15,13 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.BuilderRegistry.
+using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Net.HTTP.ContentDispositionHeaderBuilder.
+using OpenEdge.Net.HTTP.ContentTypeHeaderBuilder.
 using OpenEdge.Net.HTTP.DefaultHeaderBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
-using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.SemicolonParamHeaderBuilder.
-using OpenEdge.Net.HTTP.ContentTypeHeaderBuilder.
 
 class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder 
             abstract: 
@@ -49,7 +50,7 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         poRegistry:Put('Content-Type':u, get-class(ContentTypeHeaderBuilder)).
-        poRegistry:Put('Content-Disposition':u, get-class(SemicolonParamHeaderBuilder)).
+        poRegistry:Put('Content-Disposition':u, get-class(ContentDispositionHeaderBuilder)).
         poRegistry:Put('Cookie':u, get-class(SemicolonParamHeaderBuilder)).
         
         /* default builder */

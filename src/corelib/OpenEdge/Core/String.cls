@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013- 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -17,15 +17,16 @@ Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-using OpenEdge.Core.Collections.Array.
+using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.Assert.
-using Progress.Lang.Class.
+using OpenEdge.Core.Collections.Array.
 using Progress.Lang.Object.
 
 /* Don't have a USING for this class, so that we can avoid conflicts with the STRING() ABL keyword/function
 using OpenEdge.Core.String.*/
 
-class OpenEdge.Core.String serializable:
+class OpenEdge.Core.String serializable
+        implements ILongcharHolder:
     define static private variable moEmptyString as OpenEdge.Core.String no-undo.
     
     /** Contains the actual string value */
@@ -178,13 +179,76 @@ class OpenEdge.Core.String serializable:
 
         return cValue.
     end method.
-    
+        
+    /* Adds the input string to the end of the current string.
+       No validation (for unknowns in particular) is done on either 
+       string value.
+       
+       @param longchar A value to append */
     method public void Append(input pcValue as longchar):
         assign this-object:Value = this-object:Value + pcValue. 
     end method.
 
+    /* Adds the input string to the end of the current string.
+       No validation (for unknowns in particular) is done on either 
+       string value.
+       
+       @param OpenEdge.Core.String A value to append */
     method public void Append(input poValue as OpenEdge.Core.String):
         assign this-object:Value = this-object:Value + poValue:Value. 
+    end method.
+
+    /* Adds the input string to the beginning of the current string.
+       No validation (for unknowns in particular) is done on either 
+       string value.
+       
+       @param longchar A value to prepend */
+    method public void Prepend(input pcValue as longchar):
+        assign this-object:Value = pcValue + this-object:Value. 
+    end method.
+
+    /* Adds the input string to the beginning of the current string.
+       No validation (for unknowns in particular) is done on either 
+       string value.
+       
+       @param OpenEdge.Core.String A value to prepend */
+    method public void Prepend(input poValue as OpenEdge.Core.String):
+        assign this-object:Value = poValue:Value + this-object:Value. 
+    end method.
+    
+    /* Indicates whether the string is quoted with either double (") or single (') quotes.
+       The first AND last characters must be the same and must either the quote character
+       
+       @param longchar  A string to check
+       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */    
+    method static public logical IsQuoted(input pcValue as longchar):
+        if IsQuoted(pcValue, '~"':u) then
+            return true.
+        
+        return IsQuoted(pcValue, "~'":u).
+    end method.
+    
+    /* Indicates whether the string is quoted with the quote character ,
+       The first AND last characters must be the same and be the quote character
+       
+       @param longchar  A string to check
+       @param character The quote character
+       @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */    
+    method static public logical IsQuoted(input pcValue as longchar,
+                                          input pcQuote as character):
+        define variable cFirst as character no-undo.
+        define variable cLast as character no-undo.
+        define variable iLength as int64 no-undo.
+        
+        if pcValue eq ? then
+            return false.
+        Assert:NotNullOrEmpty(pcQuote, 'Quote character').
+                    
+        assign iLength = length(pcValue, 'raw':u)
+               cFirst  = substring(pcValue, 1, 1)
+               cLast   = substring(pcValue, iLength, 1)
+               .
+        return (cFirst eq cLast) and (cFirst eq pcQuote).
     end method.
     
 end class.

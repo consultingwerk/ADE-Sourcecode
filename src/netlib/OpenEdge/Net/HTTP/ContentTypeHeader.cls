@@ -1,3 +1,6 @@
+/* *************************************************************************************************************************
+Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ContentTypeHeader
     Purpose     : 
@@ -45,8 +48,9 @@ class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
         
         super:Validate(input pcValue).
         
-        Assert:NotNullOrEmpty(pcValue).
-        
+        if pcValue eq '':u then
+            return.
+            
         assign iNumParts = num-entries(pcValue, '/':u).
         if iNumParts lt 2 then
             undo, throw new AppError(substitute('Header value must have at least 2 "/"-delimited parts: &1', pcValue), 0).

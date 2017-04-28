@@ -151,7 +151,7 @@ class OpenEdge.Security.Principal :
         create client-principal hCP.
         hCP:import-principal (prCP).
         
-        return new Principal(hCP).        
+        return new Principal(hCP, true).        
     end method.
 
     /* Creates a new Principal from BASE64 data

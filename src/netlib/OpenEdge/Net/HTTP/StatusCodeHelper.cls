@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
     File        : StatusCodeHelper
@@ -20,11 +20,24 @@ class OpenEdge.Net.HTTP.StatusCodeHelper:
     
     /* Returns the default status message for a status code.
          
+       @param integer The status code to convert.
+       @return character The (default) status code text. */
+    method public static character GetMessage(input piStatusCode as integer):
+        define variable oStatusCode as StatusCodeEnum no-undo.
+        
+        assign oStatusCode = StatusCodeEnum:GetEnum(piStatusCode) no-error.
+        
+        return GetMessage(oStatusCode).
+    end method.
+        
+    /* Returns the default status message for a status code.
+         
        @param StatusCodeEnum The status code to convert.
        @return character The (default) status code text. */
     method public static character GetMessage(input poStatusCode as StatusCodeEnum):
-        Assert:NotNull(poStatusCode, 'Status code').
-        
+        if not valid-object(poStatusCode) then
+            return StatusCodeEnum:Unknown:ToString().
+        else
         case poStatusCode:
             /* 1xx */
             when StatusCodeEnum:SwitchingProtocols then return 'Switching Protocols':u.

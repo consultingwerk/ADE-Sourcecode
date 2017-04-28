@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : URI
@@ -196,10 +196,12 @@ class OpenEdge.Net.URI:
         define variable cQuery as character no-undo.
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
+        define variable iPos as integer no-undo.
         define variable cUser as character no-undo .
         define variable cPassword as character no-undo.
         define variable cDelimiter as character no-undo.
         define variable cQueryPart as character no-undo.
+        define variable cValue as character no-undo.
         
         Assert:NotNullOrEmpty(pcURI, 'URI string').
         
@@ -214,7 +216,7 @@ class OpenEdge.Net.URI:
         Assert:NotNullOrEmpty(cScheme, 'URI scheme').
         
         /* entry 2 is the 'space' between the double slashes */
-        assign cHost = entry(3, pcURI, '/':u).
+        assign cHost = URI:Decode(entry(3, pcURI, '/':u)).
         
         /* get username/password out of real host */
         if index(cHost, '@':u) eq 0 then
@@ -267,11 +269,22 @@ class OpenEdge.Net.URI:
         
         assign iMax = num-entries(cQuery, '&':u).
         do iLoop = 1 to iMax:
-            assign cQueryPart = entry(iLoop, cQuery, '&':u).
-            if index(cQueryPart, '=':u) eq 1 then
+            assign cQueryPart = entry(iLoop, cQuery, '&':u)
+                   iPos       = index(cQueryPart, '=':u)
+                   .
+            if iPos eq 0 then
+                assign iPos = index(cQueryPart, ';':u).
+                
+            if iPos eq 0 then
                 oURI:AddQuery(cQueryPart).
             else
-                oURI:AddQuery(entry(1, cQueryPart, '=':u), entry(2, cQueryPart, '=':u)).
+            do:
+                assign cValue = URI:Decode(substring(cQueryPart, iPos + 1))
+                       no-error.
+                if cValue eq ? then
+                    assign cValue = '':u.
+                oURI:AddQuery(URI:Decode(substring(cQueryPart, 1, iPos - 1)), cValue).
+            end.
         end.
         
         return oURI.
@@ -282,19 +295,22 @@ class OpenEdge.Net.URI:
     
         @param character The QueryMap name */
     method public void AddQuery(input pcName as character):
-        AddQuery(pcName, ?).
+        AddQuery(pcName, '':u).
     end method.
     
     /** Adds a query argument
         @param character The query name 
         @param character The query value */
     method public void AddQuery (input pcName as character, input pcValue as character):
+        define variable lcValue as longchar no-undo.
+        
         Assert:NotNullOrEmpty(pcName, 'Query name').
         
         /* flag URI as changed */
-        assign mcUri = ?.
+        assign mcUri   = ?
+               lcValue = pcValue.
         
-        this-object:QueryMap:Put(pcName, pcValue).
+        this-object:QueryMap:Put(pcName, lcValue).
     end method.
 
     /** Get a char query value from the query 
@@ -502,7 +518,7 @@ class OpenEdge.Net.URI:
         define variable rDecoded as raw no-undo.
         define variable cAscChar as character no-undo.
         
-        Assert:NotNullOrEmpty(pcURI, 'URI').
+        Assert:NotNull(pcURI, 'URI').
         
         assign iStart = 1
                iPos   = index(pcURI, '%':u, iStart).

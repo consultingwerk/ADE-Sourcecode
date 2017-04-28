@@ -339,6 +339,20 @@ class OpenEdge.Core.Assert:
     method public static void NotNullOrEmpty(input pcArgument as character extent):
         NotNullOrEmpty(pcArgument, "argument").
     end method.
+
+    method public static void NotNull(input pcArgument as character extent, pcName as character):
+        define variable cLongCharArg as longchar no-undo.
+
+        if extent(pcArgument) eq ? then
+            undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
+        
+        cLongCharArg = pcArgument[1].
+        Assert:NotNull(cLongCharArg, pcName).
+    end method.
+
+    method public static void NotNull(input pcArgument as character extent):
+        NotNull(pcArgument, "argument").
+    end method.
     
     method public static void NotEmpty(pcArgument as longchar, pcName as character):
         define variable iRawLength as int64 no-undo.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : List
@@ -15,11 +15,11 @@ block-level on error undo, throw.
 using OpenEdge.Core.Collections.AbstractTTCollection.
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.Iterator.
-using OpenEdge.Core.Collections.IListIterator.
-using OpenEdge.Core.Collections.ListIterator.
 using OpenEdge.Core.Collections.IList.
+using OpenEdge.Core.Collections.IListIterator.
+using OpenEdge.Core.Collections.Iterator.
 using OpenEdge.Core.Collections.List.
+using OpenEdge.Core.Collections.ListIterator.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
@@ -56,6 +56,7 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         super (input phtt, input hField).
     end constructor.
     
+
     method protected override void FindBufferUseObject (findObject as Object):
         define variable lFoundRecord as logical no-undo.
         lFoundRecord = false.
@@ -81,6 +82,7 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
                 btList.sequence = btList.sequence + 1. 
             end.
             
+            FindBufferUseObject(obj).
             ttList.Sequence = seq.
             return true.
         end.
@@ -95,12 +97,14 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
             findBufferUseObject(obj).
             
             ttList.Sequence = Size.
+            
             return true.
         end.
         return false.
     end method.
     
     method public logical AddAll(seq as int,c as ICollection):
+        define variable oItem as Progress.Lang.Object no-undo.
         define buffer btList for ttList.
         define variable iterator as IIterator no-undo.
         for each btList where btList.sequence >= seq by btList.sequence desc:
@@ -108,7 +112,10 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         end.
         iterator = c:Iterator(). 
         do while iterator:HasNext():
-            super:Add(iterator:Next()).
+            oItem = iterator:Next().
+            super:Add(oItem).
+            
+            FindBufferUseObject(oItem).
             ttList.Sequence = Seq.
             seq = seq + 1.
         end.                                     
@@ -129,6 +136,8 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         
         do iLoop = 1 to iMax:
             super:Add(obj[iLoop]).
+            
+            FindBufferUseObject(obj[iLoop]).
             ttList.Sequence = Seq.
             seq = seq + 1.
         end.
@@ -265,5 +274,7 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
            end.     
         end.
         return list.
-    end method. 
+    end method.
+    
+     
 end class.

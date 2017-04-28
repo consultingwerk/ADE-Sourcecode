@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : IOModeEnum
@@ -16,28 +16,28 @@ Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 enum OpenEdge.Core.IOModeEnum:
-
-    define enum       Default                                 
-                      Input                     
-                      Output                    
-                      
-                      Output-Append              
-                      OutputAppend = Output-Append
-                      
-                      Input-Output
-                      InputOutput = Input-Output                              
-                      
-                      Table-Handle               
-                      TableHandle = Table-Handle
-                                     
-                      Table-Handle-By-Reference    
-                      TableHandleByReference = Table-Handle-By-Reference
-                          
-                      Dataset-Handle             
-                      DatasetHandle = Dataset-Handle
-                      
-                      Dataset-Handle-By-Reference
-                      DatasetHandleByReference = Dataset-Handle-By-Reference
-                        
-                      Return.                    
+    define enum Input                     
+                Output                    
+                
+                Output-Append              
+                OutputAppend = Output-Append
+                
+                Input-Output
+                InputOutput = Input-Output                              
+                
+                Table-Handle               
+                TableHandle = Table-Handle
+                               
+                Table-Handle-By-Reference    
+                TableHandleByReference = Table-Handle-By-Reference
+                    
+                Dataset-Handle             
+                DatasetHandle = Dataset-Handle
+                
+                Dataset-Handle-By-Reference
+                DatasetHandleByReference = Dataset-Handle-By-Reference
+                  
+                Return
+                
+                Default = Input.                                 
 end enum.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpRequest
@@ -91,15 +91,14 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
         RemoveHeader('Cookie':u).
     end method.
     
-    /** Removes a cookie from this request 
+    /** Removes cookies from this message for a given name
     
-        @param Cookie The cookie to remove. */
-    method override public void RemoveCookie(input poCookie as Cookie):
+        @param character The name of the cookie(s) to remove. */
+    method override public void RemoveCookie( input pcName as character ):
         define variable oHeader as HttpHeader no-undo.
-        define variable oCookie as Cookie no-undo.
-        define variable oIterator as IIterator no-undo.
+        define variable lExists as logical no-undo.
         
-        super:RemoveCookie(input poCookie).
+        super:RemoveCookie(pcName).
 
         if this-object:Cookies:Size eq 0 then
             RemoveHeader('Cookie':u).
@@ -107,21 +106,13 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
             assign oHeader = GetHeader('Cookie':u).
         if valid-object(oHeader) then
         do:
-            /* clear values */
-            assign oHeader:Value = '':u
-                   oIterator     = this-object:Cookies:Iterator()
-                   /* get first one */
-                   oCookie = cast(oIterator:Next(), Cookie).
-            if valid-object(oCookie) then
-                assign oHeader:Value = substitute('&1=&2':u, oCookie:Name, oCookie:Value).
-            
-            do while oIterator:HasNext():
-                assign oCookie = cast(oIterator:Next(), Cookie).
-                oHeader:SetParameterValue(oCookie:Name, oCookie:Value).
-            end.
+            assign lExists = oHeader:RemoveParameters(pcName).
+            /* this cookie may be the first cookie in the list, so remove it */
+            if not lExists and oHeader:Value begins pcName then
+                assign oHeader:Value = '':u.
         end.
     end method.
-
+    
     /** Adds a cookie to this request 
     
         @param Cookie The cookie to add. */

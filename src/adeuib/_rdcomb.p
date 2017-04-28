@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2005-2006,2016 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -176,7 +176,7 @@ IF {&ACB_list-item-pairs} = "y":U THEN DO:
   ASSIGN tmpstr = REPLACE(_inp_line[1], '?', '"?"')
          _U._HANDLE:DELIMITER = ",":U /* PAIRS must be comma separated */
          _F._LIST-ITEM-PAIRS  = ""
-         tmpstr = RIGHT-TRIM(TRIM(TRIM(REPLACE(tmpstr,""" """,CHR(10))), "~""))
+         tmpstr = REPLACE(RIGHT-TRIM(TRIM(TRIM(REPLACE(tmpstr,""" """,CHR(10))), "~"")),'"?"', '?')
          listPairs            = TRUE.
   /* We need to skip the string attributes in the analyzer output - for now, until the 
      AppBuilder has support for adding string attributes to combo-box list item pairs */
@@ -200,7 +200,7 @@ ELSE DO:
   /* We need to replace ? with "?" for list items that do not have string attributes so
      that they are handled properly below */
   ASSIGN tmpstr    = REPLACE(_inp_line[1], '?', '"?"')
-         tmpstr    = TRIM(TRIM(REPLACE(tmpstr,""" """,CHR(10))), "~"")
+  		 tmpstr    = REPLACE(TRIM(TRIM(REPLACE(tmpstr,""" """,CHR(10))), "~""),'"?"', '?')
          listPairs = FALSE.
   /* We need to skip the string attributes in the analyzer output - for now, until the 
      AppBuilder has support for adding string attributes to combo-box list items */

@@ -781,9 +781,9 @@ DO:
   /* Autosize has been turned off so resize the frame here so resizeObject 
      will resize it to minimum size  */
   {get ToolbarAutoSize lOldAutoSize p_hSMO}.
+  {get ContainerHandle hFrame p_hSMO}.
   IF lOldAutoSize AND NOT lAutosize THEN
   DO:
-    {get ContainerHandle hFrame p_hSMO}.
     hFrame:HIDDEN = TRUE. 
     IF cDrawDirection BEGINS 'v':U THEN
       hFrame:HEIGHT = 1.
@@ -818,12 +818,15 @@ DO:
            since it no longer makes sense) */ 
       {set NavigationTargetName '':U p_hSMO}.
 
-  IF gcEditSingleInstance <> "YES" THEN
+  IF gcEditSingleInstance <> "YES" THEN DO:
     RUN InitializeObject IN p_hSMO.
+     /* Notify AppBuilder if size has changed. */
+    APPLY "END-RESIZE" TO hFrame.
+  END.
+    
 
   /* These next two lines fix IZ 847 (Deleting another object in the AppBuilder
      design static smart window caused the toolbar to be deleted also.) */
-  {get ContainerHandle hFrame p_hSMO}.
   hFrame:SELECTED = YES.
 
 END.

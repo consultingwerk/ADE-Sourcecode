@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Cookie
@@ -13,10 +13,11 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.URI.
-using OpenEdge.Core.DateTimeAddIntervalEnum.
+using OpenEdge.Net.UriEncodingTypeEnum.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Cookie:
@@ -151,15 +152,28 @@ class OpenEdge.Net.HTTP.Cookie:
     
     method override public character ToString():
         define variable cCookie as character no-undo.
+        /*
+        cookie-value      = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+        cookie-octet      = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+                       ; US-ASCII characters excluding CTLs,
+                       ; whitespace DQUOTE, comma, semicolon,
+                       ; and backslash
+        */
+        assign cCookie = substitute('&1=&2':u, this-object:Name, this-object:Value).
         
-        assign cCookie = substitute('&1=&2', this-object:Name, this-object:Value).
+        /*  domain-av         = "Domain=" domain-value
+            domain-value      = <subdomain>             */
         if this-object:Domain ne '':u then
-            assign cCookie = substitute('&1; Domain="&2"':u,
+            assign cCookie = substitute('&1; Domain=&2':u,
                                 cCookie, this-object:Domain).
+        
+        /* path-av           = "Path=" path-value
+           path-value        = <any CHAR except CTLs or ";">    */
         if this-object:Path ne ? then
-            assign cCookie = substitute('&1; Path="&2"':u,
-                                cCookie, this-object:Path).
-                                
+            assign cCookie = substitute('&1; Path=&2':u, 
+                                            cCookie, 
+                                            URI:Encode(this-object:Path, UriEncodingTypeEnum:Cookie)).
+
         if this-object:ExpiresAt ne ? then
             assign cCookie = substitute('&1; Expires=&2':u,
                                 cCookie, Timestamp:ToHttpDateFromABL(this-object:ExpiresAt)).

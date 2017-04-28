@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : CookieJar
@@ -169,7 +169,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             end case.
         end.
         
-        assign poCookies = cast(oCookies:ToArray(), Cookie).
+        assign poCookies = oCookies:ToCookieArray(). 
         return oCookies:Size.
     end method.
     

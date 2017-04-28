@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    File        : SendExceptionError
@@ -24,19 +24,8 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
     define public property StatusCode as StatusCodeEnum no-undo get. private set.
         
     /* A status message text. */        
-    define public property StatusMessage as character no-undo
-        get.
-        set(input pcMessage as character):
-            Assert:NotNullOrEmpty(pcMessage, 'Status message').
-            
-            assign this-object:StatusMessage = pcMessage.
-            
-            /* make sure our stack is ok. */
-            if this-object:NumMessages ge 1 then
-                RemoveMessage(1).
-            AddMessage(this-object:StatusMessage, integer(this-object:StatusCode)).
-        end set.
-    
+    define public property StatusMessage as character no-undo get. private set.
+
     constructor static SendExceptionError ():
         ApplicationError:AddError(
             get-class(SendExceptionError),
@@ -62,6 +51,17 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
                                           input pcStatusMessage  as character):
         this-object(poStatusCode, pcStatusMessage, ?).
     end constructor.
+
+    /* Constructor.
+    
+       @param StatusCodeEnum The error status being raised 
+       @param Progress.Lang.Error The error that caused this status error to be raised. */    
+    constructor public SendExceptionError(input poStatusCode as StatusCodeEnum,
+                                          input poInnerError as Error):
+        this-object(poStatusCode,
+                    StatusCodeHelper:GetMessage(poStatusCode),
+                    poInnerError).
+    end constructor.
     
     /* Constructor.
     
@@ -81,4 +81,4 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
         
         AddMessage(this-object:StatusMessage, integer(poStatusCode)).
     end.
-end.    
+end.

@@ -14,7 +14,6 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
@@ -32,7 +31,7 @@ using Progress.Lang.AppError.
 using Progress.Lang.Error.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary 
-        implements IHttpClientLibrary, ISupportInitialize:
+        implements IHttpClientLibrary:
     
     /* Error numbers for errors returned in this class. Private since this class
        alone will use them and read only to avoid anyone messing with them.
@@ -81,19 +80,10 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     end constructor.
     
     destructor public ABLSocketLibrary():
-        Destroy().
         assign moSocketLib = ?
                moSocketConnectionParam = ?.
     end destructor.    
     
-	method public void Initialize():
-        moSocketLib:DataReceived:Subscribe(DataReceivedHandler).
-    end method.
-    
-    method public void Destroy():
-        moSocketLib:DataReceived:Unsubscribe(DataReceivedHandler).
-    end method.
-
     /** Event handler for dealing with data received from the ClientSocket
         
         @param ClientSocket The socket object receiving the response 
@@ -142,6 +132,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable oMessageBody as ByteBucket no-undo.
         define variable iTimeout as integer no-undo.
         define variable cUserAgent as character no-undo.
+        define variable oExecError as Progress.Lang.AppError no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response'). 
@@ -179,16 +170,18 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end.
         
         /* Steady! */
-        do on stop undo, return error new AppError(substitute('Connection timeout for server &1 on port &2 ',
+       if type-of(poRequest, ISupportProxy) then
+            assign moSocketConnectionParam:URI = cast(poRequest, ISupportProxy):ProxyURI.
+        else
+            assign moSocketConnectionParam:URI = poRequest:URI.
+        
+        /* Create the error instance now because of PSC00347977 */
+        assign oExecError = new AppError(substitute('Connection timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port), miErrorNo_ConnectionTimeout)
+                                    moSocketConnectionParam:URI:Port), miErrorNo_ConnectionTimeout).
+        
+        do on stop undo, return error oExecError
            stop-after iTimeout:
-           
-           if type-of(poRequest, ISupportProxy) then
-                assign moSocketConnectionParam:URI = cast(poRequest, ISupportProxy):ProxyURI.
-            else
-                assign moSocketConnectionParam:URI = poRequest:URI.
-            
             moSocketLib:Connect(moSocketConnectionParam).
         end.
         
@@ -201,9 +194,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                 miErrorNo_ConnectionFailure).
         
         /* GO! */
-        do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
+        /* Create the error instance now becuase of PSC00347977 */
+        assign oExecError = new AppError(substitute('Request write timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
+                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout).
+        do on stop undo, return error oExecError
            stop-after iTimeout: 
             moSocketLib:WriteData(oMessageBody:GetBytes()).
         end.
@@ -217,11 +212,23 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         /* the socket object works on callbacks. these will
            populate the HttpResponse object */
-        do on stop undo, return error new AppError(substitute('Request read timeout for server &1 on port &2 ',
+        /* Create the error instance now becuase of PSC00347977 */
+        assign oExecError = new AppError(substitute('Request read timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestReadTimeout)
-           stop-after iTimeout:
+                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestReadTimeout).
+        do on stop undo, return error oExecError
+           stop-after iTimeout
+           
+           on error undo, throw :
+            /* for cases where we re-use the socket object, we need to handle subscriptions, and not
+               as previously in Initialize()/Destroy() */
+            moSocketLib:DataReceived:Subscribe(DataReceivedHandler).
+            
             moSocketLib:WaitForResponse(0).
+            
+            finally:
+                moSocketLib:DataReceived:Unsubscribe(DataReceivedHandler).
+            end finally.
         end.
         
         moResponseWriter:Close().
@@ -232,7 +239,8 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         finally:
             moResponseWriter = ?.
-            moSocketLib:Disconnect().
+            if valid-object(moSocketLib) then
+                moSocketLib:Disconnect().
         end finally.
     end method.
     
@@ -285,8 +293,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         catch oError as Error:
             LogMessage(substitute('EXTRACT ENTITY: ERROR = &1':u, oError:ToString()), 1).
             LogMessage('EXTRACT ENTITY: Response entity contains raw message body':u, 1).
+            LogMessage(substitute('EXTRACT ENTITY: Response Content-Type changed from &1 to application/octet-stream':u,
+                                poResponse:ContentType), 1).
             
             assign poResponse:Entity        = poMessageBody:GetBytes()
+                   poResponse:ContentType   = 'application/octet-stream':u
                    poResponse:ContentLength = poMessageBody:Size.
         end catch.
     end method.
@@ -303,5 +314,5 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if log-manager:logging-level ge piLogLevel then
             log-manager:write-message(pcMessage, 'HTTPCLIB':u).
     end method.
-    
+
 end class.

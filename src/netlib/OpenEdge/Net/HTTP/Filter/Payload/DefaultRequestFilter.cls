@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultRequestFilter
@@ -155,7 +155,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
             assign cRequestURI = '/':u.
         
         cast(this-object:Entity, ByteBucket):PutString(substitute('&1 &2 &3':u,
-                                poRequest:Method,
+                                caps(poRequest:Method),
                                 cRequestURI,
                                 poRequest:Version ) + CRLF).
     end method.

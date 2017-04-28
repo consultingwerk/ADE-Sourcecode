@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005,2007,2016 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -15,6 +15,7 @@ History:
                            & fixed problem with usage of BUFFER-VALUE in LENGTH
                            function for INTEGER elements of arrays 20031121-042.
    10/26/07   fernando     Make sure recommended length is not > 31995 - OE00098662
+   08/03/16   Rohit K      proper handling of decimal data with negative values
 
 ----------------------------------------------------------------------------*/
 
@@ -237,14 +238,14 @@ ELSE
             /* Get the number of significant decimal places for this decimal value. */ 
             IF lFieldHndl:EXTENT > 0 THEN  
               lNumDecimals = 
-                LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx)) - 
+                LENGTH(STRING(ABSOLUTE(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx)) - 
                               TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE(iIdx)),
-                                       0))) NO-ERROR.
+                                       0)))) NO-ERROR.
             ELSE
               lNumDecimals = 
-                LENGTH(STRING(DECIMAL(lFieldHndl:BUFFER-VALUE) - 
+                LENGTH(STRING(ABSOLUTE(DECIMAL(lFieldHndl:BUFFER-VALUE) - 
                               TRUNCATE(DECIMAL(lFieldHndl:BUFFER-VALUE),
-                                       0))) NO-ERROR.
+                                       0)))) NO-ERROR.
 
             /* Subtract 1 to remove the counting of the decimal place. */ 
             lNumDecimals = lNumDecimals - 1. 

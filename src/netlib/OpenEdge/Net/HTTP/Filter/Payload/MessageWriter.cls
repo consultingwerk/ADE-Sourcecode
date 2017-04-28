@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriter
@@ -76,7 +76,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
     /** Write data to/from the entity
 
         @param handle Data to write */
-    method public int64 Write(input phData as handle):
+    method override public int64 Write(input phData as handle):
         LogMessage('Write(handle) is a no-op', 5).
     end method.
 

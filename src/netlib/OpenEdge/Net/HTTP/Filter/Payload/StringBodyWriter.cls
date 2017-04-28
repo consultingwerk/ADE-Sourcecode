@@ -24,6 +24,13 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
         super(get-class(ByteBucket)).
     end constructor.
     
+    method override public void Open():    
+        if not valid-object(this-object:Entity) then
+            assign this-object:Entity = ByteBucket:Instance().
+        
+        super:Open().
+    end method.
+    
     method override public int64 Write(input poData as Object):
         define variable iBytesBefore as int64 no-undo.
                 

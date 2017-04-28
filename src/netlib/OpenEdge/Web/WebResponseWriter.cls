@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : 
@@ -13,7 +13,10 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.ByteBucket.
 using OpenEdge.Net.HTTP.Cookie from propath.
+using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader from propath.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpMessage from propath.
@@ -24,7 +27,8 @@ using Progress.IO.OutputStream from propath.
 class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     
     define private stream web_stream.
-    define private variable written as logical no-undo.
+    define private variable preamble_written as logical no-undo.
+    define private variable body_written as logical no-undo.
     
     define private property CRLF as character initial '~r~n':u no-undo get.
     
@@ -34,7 +38,7 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
             return stream web_stream:handle.
         end.
     
-    /* */
+    /* The response being written */
     define protected property Response as IHttpResponse no-undo 
         get.
         set(input poResponse as IHttpResponse):
@@ -63,6 +67,8 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     
     /* Opens the web stream */
     method public void Open(  ):
+        assign this-object:preamble_written = false
+               this-object:body_written     = false.
         /* allow for reopens */
         output stream web_stream close.
         output stream web_stream TO "WEB":u.
@@ -76,8 +82,12 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     
     /* Flushes the contents to the web stream */
     method public override void Flush(  ):
-        if this-object:written = false then
+        if this-object:preamble_written = false then
             WriteHttpPreamble().
+        
+        /* write the body out, unless we have written anything else via the Write() methods */
+        if not this-object:body_written then
+            WriteBody().
     end method.
     
     /*  Writes some bytes from a memptr to the web stream 
@@ -89,6 +99,8 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     method public override int64 Write( pmData as memptr, offset as int64 , len as int64  ):
         define variable tmpmemptr as memptr.
         define variable lenmemptr as integer.
+        
+        assign this-object:body_written = true.
         
         this-object:Flush().
 
@@ -122,6 +134,8 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         @param longchar The data to write to the web stream 
         @return int64 The number of bytes written */
     method public override int64 Write( lcData as longchar ):
+        assign this-object:body_written = true.
+        
         this-object:Flush().
         
         export stream-handle WebStream lcData.      
@@ -129,10 +143,12 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     end method.
 
     /*  Writes character data to the web stream 
-     
+         
         @param character The data to write to the web stream 
         @return int64 The number of bytes written */
     method public override int64 Write(pcData as character).
+        assign this-object:body_written = true.
+        
         this-object:Flush().
         put stream-handle WebStream unformatted pcData.
         return length(pcData).
@@ -140,7 +156,10 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     
     /* Writes out the HTTP status line & headers */
     method protected void WriteHttpPreamble():
-        this-object:written = true.
+        if this-object:preamble_written then
+            return.
+        
+        assign this-object:preamble_written = true.
         
         /* TRANSFER ENCODING */
         if not Response:TransferEncoding eq string(TransferEncodingEnum:None) then
@@ -190,7 +209,7 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
             WriteHeader( 'Set-Cookie':u, oCookies[iLoop]:ToString() ).
         end.
     end method.
-        
+    
     /* Writes some character data to the stream
        @param character Data to write */
     method private void WriteToStream( input pcData as character ):
@@ -204,4 +223,47 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         this-object:WriteToStream( substitute('&1: &2':u, trim(pcName), pcValue) + CRLF ).
     end method.
 
+    /* Dumps a complete response to the output stream. Does not allow for
+       incremental Write() calls. */ 
+    method protected void WriteBody():
+        define variable oCTWriter as MessageWriter no-undo.
+        define variable oBytes as ByteBucket no-undo.
+        define variable mEntity as memptr no-undo. 
+                  
+        if this-object:body_written then
+            return.
+        
+        /* don't do it again */
+        assign this-object:body_written = true.
+        /* Convert from an body to bytes */
+        if valid-object(this-object:Response:Entity) then
+        do on error undo, throw:
+            if this-object:preamble_written = false then
+                WriteHttpPreamble().
+        
+            /* turn the 'real' data into bytes */     
+            assign oCTWriter = BodyWriterBuilder:Build(this-object:Response)
+                                    :Writer.
+            if not valid-object(oCTWriter) then
+                return.
+             
+            oCTWriter:Open().
+            oCTWriter:Write(this-object:Response:Entity).
+            oCTWriter:Close().
+            
+            /* write the bytes to the stream */
+            assign oBytes  = cast(oCTWriter:Entity, ByteBucket)
+                   mEntity = oBytes:GetBytes():Value
+                   
+                   /* may not be written to the stream */
+                   this-object:Response:ContentLength = get-size(mEntity).
+            
+            // write the bytes out             
+            export stream-handle WebStream mEntity.
+            finally:
+                set-size(mEntity) = 0.
+            end finally.
+        end.
+    end method.
+         
 end class.

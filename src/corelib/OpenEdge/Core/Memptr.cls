@@ -13,12 +13,14 @@ Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.Memptr.
 using Progress.Lang.AppError.
 
-class OpenEdge.Core.Memptr:
+class OpenEdge.Core.Memptr implements IMemptrHolder:
+    
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
     
@@ -86,7 +88,8 @@ class OpenEdge.Core.Memptr:
     constructor public Memptr(input pmValue as memptr):
         this-object(get-size(pmValue)).
         
-        put-bytes(mmValue, 1) = pmValue.
+        if get-size(pmValue) gt 0 then 
+            put-bytes(mmValue, 1) = pmValue.
     end constructor.
     
     destructor public Memptr():

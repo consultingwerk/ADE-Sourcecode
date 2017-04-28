@@ -20,7 +20,8 @@ class OpenEdge.Web.WebResponse
         super().
         this-object:Initialize().
         this-object:StatusCode = 200.
-        this-object:StatusReason = "OK".
+        this-object:StatusReason = "OK":u.
+        this-object:Version = 'HTTP/1.1':u.
     end constructor.    
 
     /** Adds header info to this message's collection of headers.
