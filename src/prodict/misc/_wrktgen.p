@@ -810,6 +810,8 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
   ELSE IF DICTDB._File._fil-misc2[1] <> ? THEN DO:
     IF R-INDEX (_fil-misc2[1], ".") > 0 THEN
       n1 = SUBSTR (_fil-misc2[1], R-INDEX (_fil-misc2[1], ".") + 1).
+      ELSE if n1 EQ "" THEN
+      n1 = DICTDB._File._File-name.
     ELSE
       n1 = DICTDB._File._fil-misc2[1].
   END. 
@@ -3827,15 +3829,14 @@ PROCEDURE setMSSOptions:
                 seqt_prefix = "_SEQT_REV_"
                 seqp_prefix = "_SEQP_REV_".
        END.
-     IF numEntries > 3 THEN DO:
+
        IF ENTRY(4,user_env[25]) BEGINS "Y" THEN
         ASSIGN lnativeSeq = TRUE.
 
        lcachesize =  (IF (NUM-ENTRIES(user_env[25]) >= 5) THEN 
                         ENTRY(5,user_env[25])
                       ELSE ?
-                     ).
-     END.
+		     ). 
    END.
 
    ASSIGN lUniExpand = (user_env[35] = "y").

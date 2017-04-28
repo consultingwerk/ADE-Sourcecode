@@ -11,16 +11,16 @@
 
 catch poError as Progress.Lang.Error :
     PutMessage(substitute('Caught Progress.Lang.Error: &1', poError:GetClass():TypeName),   
-               OpenEdge.Core.LogLevelEnum:ERROR).
+               OpenEdge.Logging.LogLevelEnum:ERROR).
     PutMessage(substitute('Caught Progress.Lang.Error: &1', poError:GetMessage(1)),
-               OpenEdge.Core.LogLevelEnum:ERROR).
+               OpenEdge.Logging.LogLevelEnum:ERROR).
     if session:error-stack-trace then               
         PutMessage(substitute('Caught Progress.Lang.Error: &1', poError:CallStack) + '~n':u,
-                   OpenEdge.Core.LogLevelEnum:ERROR).
+                   OpenEdge.Logging.LogLevelEnum:ERROR).
 end catch.
 finally:
     PutMessage('OPERATION COMPLETE', 
-               OpenEdge.Core.LogLevelEnum:INFO).
+               OpenEdge.Logging.LogLevelEnum:INFO).
     /* quit so we don't end up in the proc editor */
     quit.
 end finally.

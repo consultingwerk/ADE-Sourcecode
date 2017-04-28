@@ -1,9 +1,9 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    File        : ProcedureAnnotationInfo
-   Purpose     : Stores the information related to the BeforeProcedure,Before, Test, After, AfterProcedure annotations in
+   Purpose     : Stores the information related to the Before, Setup, Test, TearDown, After annotations in
                  the test procedure. Contains methods to run specific annotated procedures.
    Syntax      : 
    Description : 
@@ -20,6 +20,7 @@ USING OpenEdge.ABLUnit.Results.TestTestResult.
 USING OpenEdge.ABLUnit.Results.TestTypeResult.
 USING OpenEdge.Core.Collections.Array.
 USING OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo.
+USING OpenEdge.ABLUnit.Reflection.AnnotationUtil FROM PROPATH.
 
 CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo: 
     
@@ -88,7 +89,7 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
     END METHOD.
     
     /*------------------------------------------------------------------------------
-    Runs @BeforeProcedure annotated procedure
+    Runs @Before annotated procedure
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestTypeResult RunBeforeProcedure(INPUT procHandle AS HANDLE, INPUT testProcResult AS TestTypeResult):
         IF NOT beforeProcMethod = ? AND NOT testList:Size = 0 THEN
@@ -97,13 +98,14 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             beforeProc = beforeProcMethod:getTestName().
             RUN value (beforeProc) IN procHandle NO-ERROR.
             IF (ERROR-STATUS:ERROR) THEN
-                RETURN ERROR "Exception in @BeforeProcedure".
+                RETURN ERROR "Exception in @Before".
         END.
         RETURN testProcResult.
-    END METHOD.    
+    END METHOD.
 
     /*------------------------------------------------------------------------------
     Runs @Before annotated procedure
+    This procedure will be run before each test procedure runs.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestTestResult RunBefore(INPUT procHandle AS HANDLE, INPUT testProcResult AS TestTestResult):
         IF NOT beforeMethod = ? THEN 
@@ -112,10 +114,10 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             before = beforeMethod:getTestName().
             RUN value (before) IN procHandle NO-ERROR.
             IF (ERROR-STATUS:ERROR) THEN
-                RETURN ERROR "Exception in @Before procedure".
+                RETURN ERROR "Exception in @Setup procedure".
         END.
         RETURN testProcResult.
-    END METHOD.    
+    END METHOD.
     
     /*------------------------------------------------------------------------------
     Runs a particular @Test annotated procedure
@@ -134,16 +136,23 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestTestResult RunSelectedTestProc(INPUT procHandle AS HANDLE, INPUT testProc AS TestInfo):
         DEFINE VARIABLE expectedException AS CHARACTER NO-UNDO.
-        DEFINE VARIABLE annotations AS Array NO-UNDO. 
-        DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-        annotations = testProc:annotations.
-        /** considering only the 1st annotation for now**/
-        annotation = CAST(annotations:GetValue(1), AnnotationInfo ).
-        
-        expectedException = annotation:getAttributeValue().
+        DEFINE VARIABLE ignoreTest AS LOGICAL NO-UNDO.
         testInProcResult = NEW TestTestResult().
+
+        // Check whether the test proc is ignored
+        ignoreTest = AnnotationUtil:HasIgnoreAnnotation(testProc:annotations).
+        IF ignoreTest THEN DO:
+            testInProcResult:TestResult = TestTestResult:StatusIgnored.
+            testInProcResult:TestName = testProc:getTestName().
+            RETURN testInProcResult.
+        END.
+        
+        // Expected exception
+        expectedException = AnnotationUtil:GetExpectedExceptionName(testProc:annotations).
+                
         RunBefore(procHandle, testInProcResult).
         RunTestProc(procHandle, testProc, testInProcResult).
+        
         /*Ensure that the execution proceeds normally and there are no expected exceptions*/
         IF expectedException = "" THEN DO:
             testInProcResult:TestResult = TestTestResult:StatusPassed.
@@ -189,7 +198,8 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             END.
         END CATCH.
         FINALLY:
-            RunAfter(procHandle).
+            IF NOT ignoreTest THEN
+                RunAfter(procHandle).
             CATCH e AS Progress.Lang.Error :
                 testInProcResult:TestResult = TestTestResult:StatusError.
                 updateTestResult(testInProcResult, e, testProc).
@@ -199,7 +209,7 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             END FINALLY.
         END FINALLY.
     END METHOD.
-    
+        
     METHOD PUBLIC VOID updateTestResult(INPUT testResult AS TestTestResult,INPUT err AS Progress.Lang.Error,  INPUT testProc AS TestInfo):
             testResult:TestName = testProc:getTestName().
             testResult:IsIncomplete = TRUE.
@@ -207,7 +217,8 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
         END METHOD.
     
     /*------------------------------------------------------------------------------
-    Runs @After annotated procedure
+    Runs @TearDown annotated procedure
+    This procedure will be run after each test procedure runs.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC VOID RunAfter(INPUT procHandle AS HANDLE):
         IF NOT afterMethod = ? THEN
@@ -216,12 +227,12 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             after = afterMethod:getTestName().
             RUN value (after) IN procHandle NO-ERROR.
             IF (ERROR-STATUS:ERROR) THEN 
-                RETURN ERROR "Exception in @After procedure".
+                RETURN ERROR "Exception in @TearDown procedure".
         END.
     END METHOD.    
     
     /*------------------------------------------------------------------------------
-    Runs @AfterProcedure annotated procedure
+    Runs @After annotated procedure.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestTypeResult RunAfterProcedure(INPUT procHandle AS HANDLE):
         IF NOT afterProcMethod = ? AND NOT testList:size = 0 THEN
@@ -230,7 +241,7 @@ CLASS OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo:
             afterProc = afterProcMethod:getTestName().
             RUN value (afterProc) IN procHandle NO-ERROR.
             IF (ERROR-STATUS:ERROR) THEN
-                RETURN ERROR "Exception in @AfterProcedure".
+                RETURN ERROR "Exception in @After".
         END.
     END METHOD.
 

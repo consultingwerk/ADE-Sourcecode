@@ -28,7 +28,7 @@ DEFINE VARIABLE pobjects             AS CHARACTER NO-UNDO.
 DEFINE VARIABLE sobjects             AS CHARACTER NO-UNDO.
 /* dictionary version format changed to ###.##, (same as dataserver client / server format) */
 /* default dictionary version, continues to be "2.000.0000" ONLY */
-DEFINE VARIABLE odbc-dict-ver        AS CHARACTER NO-UNDO INIT "2.000.000".
+DEFINE VARIABLE odbc-dict-ver        AS CHARACTER NO-UNDO INIT "4.000.000".
 /* New dictionary version is "103.00", this will be set when new features are used */
 /* For 10.2B in MSSDS, if PROGRESS_RECID uses computed column then New dictionary version is set*/
 /* in $RDLRH/dtcomm.h, #define DATA_SRVR_VERS105  10300 */

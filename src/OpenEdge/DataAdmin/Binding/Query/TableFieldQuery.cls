@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -40,6 +40,12 @@ class OpenEdge.DataAdmin.Binding.Query.TableFieldQuery inherits FilteredContext:
         TableName = pcTable.  
         QueryHandle:query-prepare (LocalFilter).
 	end constructor.
+	
+	   constructor public TableFieldQuery ( pdatacontext as FieldContext, pcTable as character extent, pReq as IRequestInfo):
+        super (pdatacontext,"tables", pcTable, pReq).
+        TableName = pcTable[1].  
+        QueryHandle:query-prepare (LocalFilter).
+    end constructor.
 	
     method public override logical CanFind(pName as char): 
         if FieldContext:Find(TableName,pName) then 

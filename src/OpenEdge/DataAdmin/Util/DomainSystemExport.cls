@@ -18,7 +18,6 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertFile.
-using OpenEdge.Core.LogLevelEnum.
 using OpenEdge.DataAdmin.Core.PasswordPolicy.
 using OpenEdge.DataAdmin.DataAdminService.
 using OpenEdge.DataAdmin.IAuthenticationSystem.
@@ -31,6 +30,7 @@ using OpenEdge.DataAdmin.Util.StsDomain.
 using OpenEdge.DataAdmin.Util.StsDomainActionEnum.
 using OpenEdge.DataAdmin.Util.StsDomainConfig.
 using OpenEdge.DataAdmin.Util.StsProvider.
+using OpenEdge.Logging.LogLevelEnum.
 using Progress.IO.FileOutputStream.
 using Progress.IO.OutputStream.
 using Progress.Json.ObjectModel.JsonObject.
@@ -415,6 +415,19 @@ class OpenEdge.DataAdmin.Util.DomainSystemExport:
             assign mLogFileWriter = ?
                    mLogLevel = ?.
         end.
+    end method.
+
+    /* Initialises logging at a particular level.
+    
+       This is a public, previously-published API and we need to 
+       support a map back to the OE.Core enums 
+       
+       @param character The log file into which to log
+       @param OpenEdge.Core.LogLevelEnum The level of the events to log - for backwards compat */
+    method public void InitializeLogging(input pcLogFile as character,
+                                         input poLogLevel as OpenEdge.Core.LogLevelEnum):
+        
+        InitializeLogging(pcLogFile, LogLevelEnum:GetEnum(integer(poLogLevel))).                                             
     end method.
     
     /* Initialises logging at a particular level.

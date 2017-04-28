@@ -295,9 +295,7 @@ ASSIGN user_dbname  = mss_dbname
        user_env[24] = "15"
        /* first y is for sequence support.
           second entry is for new sequence generator 
-          third entry is for use newer datatime types
-          fourth entry is for native sequence generator
-          fifth entry is for cache size of native sequence generator
+          third entry is for use newer datatime types 
        */
        user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
                       (IF mapMSSDatetime THEN ',n' ELSE ',y') + 

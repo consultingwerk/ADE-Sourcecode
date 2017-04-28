@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2017 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -100,13 +100,13 @@ FORM
    user that something's happening on startup so we can delay viewing
    of window till the last minute and avoid flashing.
 */
-Define image dict_icon FILE "adeicon/dict%".
+Define image dict_icon FILE "adeicon/dict.bmp" CONVERT-3D-COLORS.
 Define var loading as char NO-UNDO init "Loading..." format "x(10)".
 FORM
    SKIP({&TFM_WID})
    SPACE(10) dict_icon SPACE({&HM_WIDG}) loading SPACE(9)
    SKIP({&TFM_WID})
-   with frame logo no-labels.
+   WITH FRAME logo NO-LABELS THREE-D.
    
 
 /*================= Triggers (and Related Internal Procedures)===============*/

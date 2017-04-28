@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -48,5 +48,8 @@ class OpenEdge.DataAdmin.Rest.PageRequest inherits RequestInfo implements IPageR
     /** context info/key for where to start appending page begin or end */
 /*    define property PageContext as char no-undo get. set.*/
     define public property Start as int no-undo get. set.
+    
+    /* used in CDC implementation */
+    define public property TableList as logical no-undo get. set.
 
 end class.

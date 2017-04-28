@@ -32,10 +32,12 @@ using Ccs.Common.Support.IMemptrArrayHolder.
 using Ccs.Common.Support.IMemptrHolder.
 using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.ObjectArrayHolder.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.OperationParameter.
 using OpenEdge.Web.IWebRequest.
+using Progress.Lang.AppError.
 
 class OpenEdge.Web.DataObject.OperationArgument:
     /* (mandatory) request context */
@@ -55,14 +57,7 @@ class OpenEdge.Web.DataObject.OperationArgument:
     
     /* argument value and its type */
     define public property ArgumentValue as Progress.Lang.Object no-undo get. set.
-    define public property ArgumentType  as class Progress.Lang.Class no-undo
-        get.
-        set(input poType as class Progress.Lang.Class):
-            Assert:NotNull(poType, 'Argument type').
-            if this-object:IsPrimitive then
-                Assert:IsType(poType, get-class(IPrimitiveHolder)).
-            assign this-object:ArgumentType = poType.
-        end set.
+    define public property ArgumentType  as class Progress.Lang.Class no-undo get. private set.
     
     /* (optional) Schema for this argument. May be a single table handle or an
        array of them; may be a JSON or XML schema too. The schema may be a ProDataSet
@@ -88,85 +83,112 @@ class OpenEdge.Web.DataObject.OperationArgument:
                this-object:Parameter = poParam
                this-object:Request   = poReq
                this-object:Response  = poResp
-               
-               this-object:IsArray     = (entry(num-entries(poParam:ABLType, ' ':u), poParam:ABLType, ' ':u) eq 'extent':u)
-               this-object:IsPrimitive = (not poParam:ABLType begins 'class':u)
-               this-object:DataType    = trim(entry(1, poParam:ABLType, ' ':u))
-               this-object:IoMode      = poParam:IOMode:ToString()
-               this-object:HasSchema   = false  //default value
+               this-object:IoMode    = poParam:IOMode:ToString()
+               this-object:HasSchema = false  //default value
+               .
+        SetArgumentType(poParam:ABLType).
+    end constructor.
+    
+    /* Sets this argument's type-based properties based on the character representation
+       
+       @param character The ABL type per the */
+    method public void SetArgumentType(input pcABLType as character):
+        Assert:NotNullOrEmpty(pcABLType, 'ABL type').
+        
+        assign this-object:IsArray     = (entry(num-entries(pcABLType, ' ':u), pcABLType, ' ':u) eq 'extent':u)
+               this-object:IsPrimitive = true
+               this-object:DataType    = trim(entry(1, pcABLType, ' ':u))
                .
         /* defaults */
-        if this-object:IsPrimitive then
-        do:
-            if this-object:IsArray then
-            case this-object:DataType:
-                when 'character':u or
-                when 'longchar':u or
-                when 'rowid':u then
-                    assign this-object:ArgumentType = get-class(ILongcharArrayHolder).
-                when 'recid':u or
-                when 'integer':u or
-                when 'int64':u then
-                    assign this-object:ArgumentType = get-class(IInt64ArrayHolder).
-                when 'decimal':u then
-                    assign this-object:ArgumentType = get-class(IDecimalArrayHolder).
-                when 'logical':u then
-                    assign this-object:ArgumentType = get-class(ILogicalArrayHolder).
-                when 'date':u then
-                    assign this-object:ArgumentType = get-class(IDateArrayHolder).
-                when 'datetime':u then
-                    assign this-object:ArgumentType = get-class(IDateTimeArrayHolder).
-                when 'datetime-tz':u then
-                    assign this-object:ArgumentType = get-class(IDateTimeTzArrayHolder).
-                when 'raw':u or
-                when 'memptr':u then
-                    assign this-object:ArgumentType = get-class(IMemptrArrayHolder).
-                when 'handle':u then
-                    assign this-object:ArgumentType = get-class(IHandleArrayHolder).
-                when 'table':u or
-                when 'dataset':u then
-                    assign this-object:ArgumentType = get-class(IHandleArrayHolder)
-                           this-object:HasSchema    = true.
-            end case.
-            else
-            case poParam:ABLType:
-                when 'character':u or
-                when 'longchar':u then
-                    assign this-object:ArgumentType = get-class(ILongcharHolder).
-                when 'integer':u or
-                when 'int64':u then
-                    assign this-object:ArgumentType = get-class(IInt64Holder).
-                when 'decimal':u then
-                    assign this-object:ArgumentType = get-class(IDecimalHolder).
-                when 'logical':u then
-                    assign this-object:ArgumentType = get-class(ILogicalHolder).
-                when 'rowid':u then
-                    assign this-object:ArgumentType = get-class(ILongcharHolder).
-                when 'recid':u then
-                    assign this-object:ArgumentType = get-class(IInt64Holder). 
-                when 'date':u then
-                    assign this-object:ArgumentType = get-class(IDateHolder).
-                when 'datetime':u then
-                    assign this-object:ArgumentType = get-class(IDateTimeHolder).
-                when 'datetime-tz':u then
-                    assign this-object:ArgumentType = get-class(IDateTimeTzHolder).
-                when 'raw':u or
-                when 'memptr':u then
-                    assign this-object:ArgumentType = get-class(IMemptrHolder).
-                when 'handle':u then
-                    assign this-object:ArgumentType = get-class(IHandleHolder).
-                when 'table' or
-                when 'dataset':u then
-                    /* special treatment for datasets & temp-tables. always BY-REFERENCE and always use dataset handles */
-                    assign this-object:ArgumentType = get-class(IHandleHolder)
-                           this-object:DataType     = substitute('&1-handle':u, poParam:ABLType) 
-                           this-object:IoMode       = substitute('&1 by-reference':u, poParam:IOMode:ToString()) 
-                           this-object:HasSchema    = true.
-            end case.
-        end.
+        if this-object:IsArray then
+        case this-object:DataType:
+            when 'character':u or
+            when 'longchar':u or
+            when 'rowid':u then
+                assign this-object:ArgumentType = get-class(ILongcharArrayHolder).
+            when 'recid':u or
+            when 'integer':u or
+            when 'int64':u then
+                assign this-object:ArgumentType = get-class(IInt64ArrayHolder).
+            when 'decimal':u then
+                assign this-object:ArgumentType = get-class(IDecimalArrayHolder).
+            when 'logical':u then
+                assign this-object:ArgumentType = get-class(ILogicalArrayHolder).
+            when 'date':u then
+                assign this-object:ArgumentType = get-class(IDateArrayHolder).
+            when 'datetime':u then
+                assign this-object:ArgumentType = get-class(IDateTimeArrayHolder).
+            when 'datetime-tz':u then
+                assign this-object:ArgumentType = get-class(IDateTimeTzArrayHolder).
+            when 'raw':u or
+            when 'memptr':u then
+                assign this-object:ArgumentType = get-class(IMemptrArrayHolder).
+            when 'handle':u then
+                assign this-object:ArgumentType = get-class(IHandleArrayHolder).
+            when 'table':u or
+            when 'dataset':u then
+                assign this-object:ArgumentType = get-class(IHandleArrayHolder)
+                       this-object:HasSchema    = true.
+            otherwise 
+                if pcABLType begins 'class':u then
+                    assign this-object:IsPrimitive  = false
+                           this-object:ArgumentType = get-class(ObjectArrayHolder)
+                           .                           
+                else
+                    undo, throw new AppError(substitute('Invalid ABL type &1 for operation &2',
+                                                pcABLType,
+                                                string(this-object:Operation)),
+                                             0).
+        end case.
         else
-            assign this-object:ArgumentType = Progress.Lang.Class:GetClass(entry(2, poParam:ABLType, ' ':u)).
+        case this-object:DataType:
+            when 'character':u or
+            when 'longchar':u then
+                assign this-object:ArgumentType = get-class(ILongcharHolder).
+            when 'integer':u or
+            when 'int64':u then
+                assign this-object:ArgumentType = get-class(IInt64Holder).
+            when 'decimal':u then
+                assign this-object:ArgumentType = get-class(IDecimalHolder).
+            when 'logical':u then
+                assign this-object:ArgumentType = get-class(ILogicalHolder).
+            when 'rowid':u then
+                assign this-object:ArgumentType = get-class(ILongcharHolder).
+            when 'recid':u then
+                assign this-object:ArgumentType = get-class(IInt64Holder). 
+            when 'date':u then
+                assign this-object:ArgumentType = get-class(IDateHolder).
+            when 'datetime':u then
+                assign this-object:ArgumentType = get-class(IDateTimeHolder).
+            when 'datetime-tz':u then
+                assign this-object:ArgumentType = get-class(IDateTimeTzHolder).
+            when 'raw':u or
+            when 'memptr':u then
+                assign this-object:ArgumentType = get-class(IMemptrHolder).
+            when 'handle':u then
+                assign this-object:ArgumentType = get-class(IHandleHolder).
+            when 'table' or
+            when 'dataset':u then
+                /* special treatment for datasets & temp-tables. Always use dataset handles */
+                assign this-object:ArgumentType = get-class(IHandleHolder)
+                       this-object:DataType     = substitute('&1-handle':u, pcABLType) 
+                       this-object:HasSchema    = true.
+            otherwise 
+                if pcABLType begins 'class':u then
+                    assign this-object:IsPrimitive  = false
+                           this-object:ArgumentType = Progress.Lang.Class:GetClass(entry(2, pcABLType, ' ':u))
+                           .
+                else
+                    undo, throw new AppError(substitute('Invalid ABL type &1 for operation &2',
+                                                pcABLType,
+                                                string(this-object:Operation)),
+                                             0).
+        end case.
         
-    end constructor.
+        // Validate         
+        Assert:NotNull(this-object:ArgumentType, 'Argument type').
+        if this-object:IsPrimitive then
+            Assert:IsType(this-object:ArgumentType, get-class(IPrimitiveHolder)).
+    end method. 
     
 end class.

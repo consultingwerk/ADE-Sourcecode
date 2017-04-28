@@ -5,8 +5,8 @@
 &Scoped-define WINDOW-NAME wWin
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS wWin 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2016 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -789,11 +789,25 @@ DO:
         SUB-MENU  m_Format:SENSITIVE = /* TRUE IF... */
                         ( NOT lReadOnly ) AND ( lTextSelected )
         
+        /* You can always do a cut in the source editor. It will cut
+        ** the selection if text is selected. Otherwise it cuts the
+        ** line the cursor is on.
+        */
         MENU-ITEM m_Cut:SENSITIVE IN MENU MENU-BAR-wWin = /* TRUE IF... */
-                        ( NOT lReadOnly ) AND ( lTextSelected )
+                        IF hEditor:SOURCE-EDITOR THEN
+                            ( NOT lReadOnly )
+                        ELSE
+                            ( NOT lReadOnly ) AND ( lTextSelected )
 
+        /* You can always do a copy in the source editor. It will copy
+        ** the selection if text is selected. Otherwise it copies the
+        ** line the cursor is on.
+        */
         MENU-ITEM m_Copy:SENSITIVE IN MENU  MENU-BAR-wWin = /* TRUE IF...*/
-                        ( lTextSelected  )
+                        IF hEditor:SOURCE-EDITOR THEN
+                            TRUE
+                        ELSE
+                            ( lTextSelected  )
                             
         MENU-ITEM m_Paste:SENSITIVE IN MENU  MENU-BAR-wWin = /* TRUE IF... */
                         ( hEditor:EDIT-CAN-PASTE ) AND ( NOT lReadOnly )

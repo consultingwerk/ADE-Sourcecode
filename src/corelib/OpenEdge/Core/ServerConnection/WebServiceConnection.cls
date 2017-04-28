@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : WebServiceConnection
@@ -24,7 +24,7 @@ using Progress.Lang.Object.
 class OpenEdge.Core.ServerConnection.WebServiceConnection use-widget-pool 
         implements IServerConnection: 
     /** A reference to the actual server. The type of this property depends on the server type 
-        (since AppServers have HANDLEs, BPMServers have IBizLogicAPI and databases none.The Object 
+        (since AppServers have HANDLEs, BPMServers have IBizLogicAPI and databases none. The Object 
         acts as a wrapper for handle-based servers */
     define public property Server as Object no-undo get. private set.
 
@@ -65,7 +65,7 @@ class OpenEdge.Core.ServerConnection.WebServiceConnection use-widget-pool
     
     define public property Operation as character no-undo
         get():
-            if this-object:Operation eq '' then
+            if this-object:Operation eq '':u then
                 this-object:Operation = cast(ConnectionParameters, WebServiceConnectionParameters):Operation.
             return this-object:Operation.                 
         end get. 
@@ -105,8 +105,7 @@ class OpenEdge.Core.ServerConnection.WebServiceConnection use-widget-pool
         define variable hServer as handle no-undo.
         
         create server hServer.
-        
-        this-object:Server = new WidgetHandle(hServer).
+        assign this-object:Server = new WidgetHandle(hServer, true /*autodestroy*/ ).
     end method.
 
     /** Destroys the server object (ie this-object:Server). This is separated
@@ -120,11 +119,7 @@ class OpenEdge.Core.ServerConnection.WebServiceConnection use-widget-pool
 
         if not valid-object(this-object:Server) then
             return.
-        
-        hServer = cast(this-object:Server, WidgetHandle):Value.
-        
-        delete object hServer no-error.
-        this-object:Server = ?.
+        assign this-object:Server = ?.
     end method.    
     
 end class.

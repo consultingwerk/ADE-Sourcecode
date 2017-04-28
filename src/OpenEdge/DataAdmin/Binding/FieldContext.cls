@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010,2013 by progress Software Corporation   */
+/* Copyright (c) 2010-2016 by progress Software Corporation   */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -88,6 +88,16 @@ class OpenEdge.DataAdmin.Binding.FieldContext inherits DataAdminContext :
         AddChild(pScope:PartitionContext).
         SchemaScope = pscope.
     end constructor.
+    
+    constructor protected FieldContext (pname as char):
+        super (pname).
+    end constructor.
+   
+    constructor protected FieldContext (pname as char,pScope as ISchemaScope):      
+        super (pname,pscope).
+        AddChild(pScope:PartitionContext).
+        SchemaScope = pscope.
+   end constructor.
             
     /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():
@@ -204,7 +214,9 @@ class OpenEdge.DataAdmin.Binding.FieldContext inherits DataAdminContext :
              end.    
              when "tables" then
              do:              
-                 return new TableFieldQuery(this-object,pParentRow:KeyValue,pReq).
+                 if this-object:name eq "AllField" then
+                     return new TableFieldQuery(this-object,pParentRow:KeyValues,pReq).
+                 else return new TableFieldQuery(this-object,pParentRow:KeyValue,pReq).
              end.  
              when "indexes" then
              do:              

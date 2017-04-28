@@ -20,6 +20,7 @@ Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IHttpRequest.
@@ -27,7 +28,7 @@ using OpenEdge.Net.URI.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.HttpRequestDecorator 
-            implements IHttpRequest: 
+            implements IHttpRequest, IAdaptable: 
     
     /* the decorated Request. this can be a decoration or an actual http Request */
     define protected property DecoratedHttpRequest as IHttpRequest no-undo get. private set.
@@ -163,6 +164,23 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
 
     method public Cookie GetCookie( input pcName as character ):
         return DecoratedHttpRequest:GetCookie(pcName).
+    end method.
+    
+    /* Returns an adapter for this message 
+       
+       @param P.L.Class The type we want to adapt this message to
+       @return P.L.Object The adapter. Will typically be of the type specified by the input argument */
+    method public Progress.Lang.Object GetAdapter(input poAdaptTo as class Progress.Lang.Class):
+        Assert:NotNull(poAdaptTo, 'Adapter').
+        
+        if this-object:GetClass():IsA(poAdaptTo) then
+            return this-object.
+        
+        if valid-object(DecoratedHttpRequest) and
+           type-of(DecoratedHttpRequest, IAdaptable) then
+            return cast(DecoratedHttpRequest, IAdaptable):GetAdapter(poAdaptTo).
+        
+        return ?.            
     end method.
     
 end class.

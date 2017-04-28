@@ -1,4 +1,4 @@
- /* Copyright (c) 2011 by progress Software Corporation       */
+ /* Copyright (c) 2011-2016 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -490,6 +490,9 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
         define variable hFld as handle no-undo. 
         define variable i as integer no-undo.
         define variable cValues as char extent no-undo.
+        define variable tbl as char no-undo.
+        define variable policy as char no-undo.
+        define variable fld as char no-undo.
         
         /* the assumption is that only single key objects will need this without 
            context */
@@ -498,12 +501,29 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
             extent(cValues) = 1.
             cValues[1] = GetKeyValue().
         end.        
-        else do:   
+        else do:
             extent(cValues) = num-entries(Context:KeyFields).
-            
-            do i = 1 to num-entries(Context:KeyFields):
-                hFld = mBuffer:buffer-field (entry(i,Context:KeyFields)).
-                cValues[i] = string(hfld:buffer-value).
+            /* Required to have seperate implementation for CDC field policy.               
+            TODO@ make this as common implemention to achieve bulk policy creation with same field names for different tables
+                  (need to find a better solution)
+            */  
+            if context:name eq "CdcFieldPolicy" then do:
+                hFld = mBuffer:buffer-field ("TableName").                
+                tbl = string(hfld:buffer-value).
+                hFld = mBuffer:buffer-field ("CdcTablePolicyName").
+                policy = string(hfld:buffer-value).
+                hFld = mBuffer:buffer-field ("FieldName").
+                if num-entries (string(hfld:buffer-value),"@") > 1 then
+                    fld = entry(1,string(hfld:buffer-value)).  
+                if tbl > "" and policy > "" then
+                    cValues[1] = policy + "." + tbl + "." + if fld > "" then fld else string(hfld:buffer-value).
+                else cValues[1] = "" + "." + "." + string(hfld:buffer-value).                
+            end. 
+            else do:                
+                do i = 1 to num-entries(Context:KeyFields):
+                    hFld = mBuffer:buffer-field (entry(i,Context:KeyFields)).
+                    cValues[i] = string(hfld:buffer-value).
+                end.
             end.    
         end. 
         return cValues.

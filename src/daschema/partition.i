@@ -40,6 +40,10 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
          field PartitionPolicyDetailName as character serialize-name "partitionPolicyDetailName" format "x(32)" label "PolicyDetail"  init ? 
          field PartitionPolicyDetailId   as integer  init ? serialize-hidden   
          field PartitionPolicyDetailUrl  as character serialize-name "partitionPolicyDetail_url" format "x(20)" label "partitionPolicyDetail url"  
+         
+         //field CdcTablePolicyName as character serialize-name "cdcTablePolicyName" format "x(32)" label "TablePolicy"  init ? 
+         //field CdcPolicyId   as integer  init ? serialize-hidden   
+         //field CdcFieldPolicyUrl  as character serialize-name "cdcFieldPolicy_Url" format "x(20)" label "CdcFieldPolicy Url"  
           
          field TenantGroupName as character serialize-name "tenantGroupName" format "x(20)" label "TenantGroup" init ?
          field TenantGroupId   as integer   init ? serialize-hidden    
@@ -74,6 +78,7 @@ define  temp-table ttPartition no-undo  serialize-name "partitions" {1} before-t
          index idxTenantId   TenantId
          index idxTenantGroupId   TenantGroupId
          index idxPartitionPolicyDetailId   PartitionPolicyDetailId
+         //index idxCdcPolicyId   CdcPolicyId
          .
           
         

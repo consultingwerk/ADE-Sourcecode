@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2014 by progress Software Corporation. */
+/* Copyright (c) 2011-2016 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -22,6 +22,7 @@ using OpenEdge.DataAdmin.Core.DataAdminWriter from propath.
 using OpenEdge.DataAdmin.Core.IDataAdminWriter from propath.
 using Progress.Lang.* from propath.
 using Progress.Lang.Object from propath.
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 
 routine-level on error undo, throw.
 
@@ -31,10 +32,12 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
     define private variable mfile as character no-undo.
     define private variable mCannotSetImmediate as logical no-undo.
     define variable mreadonly as character no-undo init 
-"ttPartitionPolicy.Type,ttPartitionPolicy.HasComposite,ttPartitionPolicy.IsCompositeReadOnly,ttPartitionPolicyDetail.IsComposite,ttpartitionPolicyDetail.IsDataEnabled,ttPartitionPolicyDetail.DefaultAllocation".    
+"ttPartitionPolicy.Type,ttPartitionPolicy.HasComposite,ttPartitionPolicy.IsCompositeReadOnly,ttPartitionPolicyDetail.IsComposite,ttpartitionPolicyDetail.IsDataEnabled,ttPartitionPolicyDetail.DefaultAllocation,
+ttCdcTablePolicy.CdcPolicyId,ttCdcTablePolicy.Instance,ttCdcTablePolicy.State,ttCdcTablePolicy.Level,ttCdcTablePolicy.SourceTableOwner,ttCdcTablePolicy.TableName,ttCdcTablePolicy.LastModified,ttCdcTablePolicy.ChangeTable,
+ttCdcFieldPolicy.CdcPolicyId,ttCdcFieldPolicy.CdcTablePolicyName,ttCdcFieldPolicy.TableName,ttCdcFieldPolicy.FieldPosition,ttCdcFieldPolicy.FieldName,ttCdcFieldPolicy.FieldRecId,ttCdcFieldPolicy.IdentifyingField".    
    define variable mNOVariable as character no-undo init "ttLocalIndex,ttPartitionPolicyField".    
 
-   define variable mAddEarly as character no-undo init "ttPartitionPolicyDetail".    
+   define variable mAddEarly as character no-undo init "ttPartitionPolicyDetail".   
    
     define protected property ContextTree as IContextTree no-undo get. private set.
     
@@ -181,6 +184,25 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
         end finally.
     end method.
     
+    method private void WriteCdcFieldPolicies(pquery as handle):
+        define variable hBuffer as handle no-undo.
+        define variable hPartBuffer as handle no-undo.
+        define variable hPartQuery  as handle no-undo.
+        define variable lWritealloc as logical no-undo.
+        define variable hParent as handle no-undo.
+        pQuery:query-open () .
+        pquery:get-first ( ).
+        hBuffer = pQuery:get-buffer-handle(1).
+        do while hbuffer:avail:
+            WriteBuffer(hbuffer).
+            //hbuffer::FieldName   
+            pQuery:get-next. 
+        end.
+        finally:
+            delete object hPartquery no-error.      
+        end finally.
+    end method.
+    
 	    
     method private void WriteLocalIndexBuffer(hparent as handle,pquery as handle):
         define variable hBuffer as handle no-undo.
@@ -206,6 +228,16 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
     end method.
     
     method public void WriteToFile(serializable as IDataAdminSerializable,pcFile as char,pcMode as char):
+        define variable h as handle no-undo.
+        define variable tree as IContextTree no-undo.
+        tree = this-object:Write(serializable,pcMode).
+        h = tree:GetWriteHandle().
+        mfile = pcfile.
+        WriteCode(h).
+        delete object h no-error.
+    end method.
+    
+    method public void WriteToFile(serializable as IDataAdminSerializable,pcFile as char,pcMode as char,pageReq as IPageRequest):
         define variable h as handle no-undo.
         define variable tree as IContextTree no-undo.
         tree = this-object:Write(serializable,pcMode).
@@ -285,8 +317,9 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
             cPurpose =  "Create tenant".
         else if valid-handle(hds:get-buffer-handle ("ttTenantGroup")) then
             cPurpose =  "Create partition group".
-        else    
-            cPurpose =  "Create partition policy".
+        else if valid-handle(hds:get-buffer-handle ("ttCdcTablePolicy")) then
+            cPurpose =  "Create Change Data Capture Policy".   
+        else cPurpose =  "Create partition policy".
              
         put stream script unformatted 
            GetComment(hDs,mfile,cPurpose) skip(1).
@@ -299,6 +332,11 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
             hbuf = hDs:get-buffer-handle (i).
             if lookup(hbuf:name,mNOVariable) = 0 then
                 put stream script unformatted "using OpenEdge.DataAdmin." + GetEntityInterface(hbuf:name) + " from propath."  skip.     
+        end.
+        /* CDC Policy creation has ENUM properties, we need to import them */
+        if valid-handle(hds:get-buffer-handle ("ttCdcTablePolicy")) then do:
+            put stream script unformatted "using OpenEdge.DataAdmin.CdcTablePolicyStateEnum from propath."  skip.
+            put stream script unformatted "using OpenEdge.DataAdmin.CdcTablePolicyLevelEnum from propath."  skip.
         end.
         put stream script unformatted skip(1).
     end method.    
@@ -415,11 +453,21 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
         define variable htbl as handle no-undo.
         define variable iChild as integer no-undo.
         define variable hRel as handle no-undo.
+        define variable tableOwner as character no-undo.
+        define variable tableName as character no-undo.
+        define variable pBuffer as handle no-undo.
         
         put stream script unformatted  skip(1)
            "/* Instantiate a new "  GetEntityInterface(hbuffer:name)    " */" skip.
-        put stream script unformatted 
-           GetEntityInstance(hbuffer:name) " = service:New"  GetEntityClass(hbuffer:name)  "(" + quoter(hBuffer::name) ")." skip.
+        /* Case where CDC Field Policy New method wont have a method parameter */
+        if hbuffer:name eq "ttCdcFieldPolicy" then do:
+            put stream script unformatted 
+           GetEntityInstance(hbuffer:name) " = service:New"  GetEntityClass(hbuffer:name)  "(" ")." skip.
+        end. 
+        else do:    
+            put stream script unformatted 
+            GetEntityInstance(hbuffer:name) " = service:New"  GetEntityClass(hbuffer:name)  "(" + quoter(hBuffer::name) ")." skip.
+        end.
        
         if valid-handle(hbuffer:parent-relation) then
         do: 
@@ -448,9 +496,44 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
             if cStatementFields > "" and lookup(hFld:name,cStatementFields) > 0 then 
                 next.
             if cAssignedFields > "" and lookup(hFld:name,cAssignedFields) > 0 then 
-                next.    
+                next.
+                    
+            /* need to capture SourceTableOwner and TableName which are required to form GetTable() method with table name and owner as parameters */
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcTablePolicy.SourceTableOwner") > 0 then
+                tableOwner = hFld:buffer-value.
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcTablePolicy.TableName") > 0 then
+                tableName = hFld:buffer-value.
+                
+            /* State and Level Properties for CDC Table policy are ENUMS */
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcTablePolicy.State") > 0 then
+                WriteCdcState(hFld).
+                
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcTablePolicy.Level") > 0 then
+                WriteCdcLevel(hFld).
+                
+            /* FieldName in CDC Field Policy has Table policy name attached, split them */
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcFieldPolicy.FieldName") > 0 then do:
+                if valid-handle(hbuffer:parent-relation) then
+                do:
+                    pBuffer = hbuffer:parent-relation:parent-buffer.
+                    WriteCdcField(hFld,pBuffer).                    
+                end.
+            end.
+            
+            /* IdentifyingField property in CDC Field Policy can have unknown(?) value */
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcFieldPolicy.IdentifyingField") > 0 then
+                WriteCdcIdentifyingField(hFld). 
+                
+            /* ChangeTable property in CDC Table Policy can have blank value */
+            if lookup(hbuffer:name + "." + hFld:name,"ttCdcTablePolicy.ChangeTable") > 0 then
+                WriteCdcChangeTable(hFld). 
+                
             if lookup(hbuffer:name + "." + hFld:name,mreadonly) = 0 then
                  WriteField(hFld).
+                 
+            /* generate GetTable() method code for CDC Policy  */   
+            if i = hbuffer:num-fields and hbuffer:name eq "ttCdcTablePolicy" then
+                WriteCdcTable(tableOwner,tableName,hbuffer:name).
         end.
         put stream script unformatted "    ." skip.
         if  cStatementFields > ""  then 
@@ -664,7 +747,108 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
                 else if hfield:name = "AccessCode" then "cAccessCode"
                 else if hfield:data-type = "character" then quoter(hField:buffer-value ())
                 else hField:buffer-value ()) skip.
-    end method.    
+    end method.
+    
+    /* The CDC implementation requires owner name as well since the CDC ABL API supports PUB and non-PUB tables */
+    method private void WriteCdcTable(tOwner as char,tName as char, bufferName as char): 
+        if tOwner > "" and tName > "" then do:
+            put stream script unformatted 
+                 GetEntityInstance(bufferName) at 5 ":"  
+                 "Table" 
+                 " = " 
+                 "service:GetTable(" + quoter(tName) + "," + quoter(tOwner) + ")" skip.
+        end.        
+    end method. 
+    
+    method private void WriteCdcState(hField as handle): 
+        if hField:buffer-value > "" then
+            do:   
+                put stream script unformatted 
+                 GetEntityInstance(hfield:Table) at 5 ":"  
+                 replace(hfield:name,"name","") 
+                 " = " 
+                 "CdcTablePolicyStateEnum:" if hField:buffer-value eq 0 then "Active" else "Inactive" skip.
+            end.       
+    end method.
+    
+    method private void WriteCdcLevel(hField as handle): 
+        define variable levelValue as char no-undo.
+        if hField:buffer-value > "" then
+            do:   
+                if hField:buffer-value eq 0 then levelValue = "Minimal". 
+                else if hField:buffer-value eq 1 then levelValue = "MinimalWithBitMap". 
+                else if hField:buffer-value eq 2 then levelValue = "Medium".
+                else if hField:buffer-value eq 3 then levelValue = "Maximum".
+                put stream script unformatted 
+                 GetEntityInstance(hfield:Table) at 5 ":"  
+                 replace(hfield:name,"name","") 
+                 " = " 
+                 "CdcTablePolicyLevelEnum:" levelValue skip.
+            end.       
+    end method.
+    
+    method private void WriteCdcIdentifyingField(hField as handle):        
+        put stream script unformatted 
+            GetEntityInstance(hfield:Table) at 5 ":"  
+            replace(hfield:name,"name","") 
+            " = " 
+            hField:buffer-value skip.                
+    end method.
+    
+    method private void WriteCdcChangeTable(hField as handle):        
+        put stream script unformatted 
+            GetEntityInstance(hfield:Table) at 5 ":"  
+            replace(hfield:name,"name","") 
+            " = " 
+            if hField:buffer-value eq ? then quoter("") else quoter(hField:buffer-value) skip.                
+    end method.
+    
+    method private void WriteCdcField(hField as handle,hParent as handle):         
+        define variable fldValue as char no-undo.
+        
+        if hField:buffer-value > "" then
+            do:   
+                if num-entries(hField:buffer-value,"@") > 1 then
+                    fldValue = entry(1,hField:buffer-value,"@").
+                else fldValue = hField:buffer-value.
+                
+                put stream script unformatted 
+                 GetEntityInstance(hfield:Table) at 5 ":"  
+                 replace(hfield:name,"name","") 
+                 " = " 
+                 GetEntityInstance(hParent:name) + ":Table:Fields:Find(" +  quoter(fldValue) ")" skip.
+            end.
+            
+        /*    
+        if num-entries(hBuffer::FieldName,"@") > 1 then
+            fldValue = entry(1,hBuffer::FieldName,"@").
+        else fldValue = hBuffer::FieldName.
+        
+        put stream script unformatted 
+                 GetEntityInstance(hfield:Table) at 5 ":"  
+                 replace(hfield:name,"name","") 
+                 " = " 
+                 GetEntityInstance(hParent:name) + ":Table:Fields:Find(" +  quoter(hBuffer::FieldName) ")" skip.
+        
+        put stream script unformatted  
+               GetEntityInstance(hParent:name) 
+               ":Fields:Add(" + GetEntityInstance(hParent:name) + ":Table:Fields:Find(" +  quoter(hBuffer::FieldName) ")). "  skip .    
+        put stream script unformatted skip .
+        
+        
+        if hField:buffer-value > "" then
+            do:   
+                if num-entries(hField:buffer-value,"@") > 1 then
+                    fldValue = entry(1,hField:buffer-value,"@").
+                else fldValue = hField:buffer-value.
+                
+                put stream script unformatted 
+                 GetEntityInstance(hfield:Table) at 5 ":"  
+                 replace(hfield:name,"name","") 
+                 " = " 
+                 GetEntityInstance(hParent:name) + ":Table:Fields:Find(" +  quoter(hBuffer::FieldName) ")" skip.
+            end.  */     
+    end method.
     
     method private char GetEntityInterface(pcBuffername as char): 
         return "I" + GetEntityClass(pcBuffername). 
@@ -703,6 +887,8 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
     method private char GetCollectionName(pcBuffername as char): 
         if pcBuffername = "ttPartitionPolicyDetail" then 
              return "Details".
+        if pcBuffername = "ttCdcFieldPolicy" then 
+             return "FieldPolicies".
         return  caps(substr(pcBufferName,3,1))
                + substr(pcBufferName,4)
                + "s". 
@@ -892,7 +1078,11 @@ class OpenEdge.DataAdmin.Core.CodeWriter inherits DataAdminWriter  implements ID
         else if hbuff:name = "ttPartitionPolicyDetail" then
         do:
              WritePartitionPolicyDetails(pQuery).
-        end.     
+        end.
+        else if hbuff:name = "ttCdcFieldPolicy" then
+        do:
+             WriteCdcFieldPolicies(pQuery).
+        end.          
         else if hbuff:name = "ttLocalIndex" then
         do:
             WriteLocalIndexBuffer(hBuff:parent-relation:parent-buffer, pQuery).

@@ -14,6 +14,8 @@ Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Net.HTTP.NullHeader.
 
 class OpenEdge.Net.HTTP.HttpHeader:
     define static private temp-table HeaderParameter no-undo
@@ -22,8 +24,18 @@ class OpenEdge.Net.HTTP.HttpHeader:
         field ParamValue as character
         index idx1 as primary ParentHeader. 
     
+    /* A null header allows chaining of GetHeader() calls even if
+       there is no header defined. */
+    define static public property NullHeader as HttpHeader no-undo
+        get():
+            if not valid-object(HttpHeader:NullHeader) then
+                assign HttpHeader:NullHeader = new NullHeader().
+            return HttpHeader:NullHeader.
+        end get.
+        set.
+    
     /** (mandatory) The name of the header */
-    define public property Name as character no-undo get. private set.
+    define public property Name as character no-undo get. protected set.
     
     /* Private Value holder so that we can customise the accessor and mutator */
     define private variable mValue as character no-undo.
@@ -54,6 +66,9 @@ class OpenEdge.Net.HTTP.HttpHeader:
         this-object(pcName).
         
         assign this-object:Value = pcValue.
+    end constructor.
+    
+    constructor private HttpHeader():
     end constructor.
     
     /** Constructor

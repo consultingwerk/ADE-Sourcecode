@@ -1314,6 +1314,14 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11850">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11851">
+      <_Event-level>1</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="11901">
       <_Event-level>2</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -1464,4 +1472,4 @@
     </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=4DWyWX1V7bYOFN4p8P1/BA;hg53cJfIj+wj+tbD3K1Qvg== -->
+<!-- SealID=pVIlZ3ocrqAUCTHOlTr/AA;g/r0iw3jf+q564T0hrK2YA== -->

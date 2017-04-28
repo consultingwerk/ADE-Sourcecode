@@ -3,7 +3,7 @@
 Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
-    File        : paramlist_setargvalues.i
+    File        : doh_execute_setargvalues.i
     Purpose     : 
     Author(s)   : pjudge 
     Created     : 2016-05-27
@@ -58,7 +58,7 @@ when '{&SWITCH-VALUE}':u then
         when 20 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_30).
         when 31 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_31).
         when 32 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_32).
-        otherwise undo, throw new ArgumentError('Too many values specified', {&OPER-ARG}:Parameter:ABLType).
+        otherwise undo, throw new OpenEdge.Core.System.ArgumentError('Too many values specified', {&OPER-ARG}:Parameter:ABLType).
     end case.   /* ArgumentIndex */
     else
         {&VALUE-WRITER}:Write(arg_scalar_{&DATA-TYPE}[{&OPER-ARG}:ArgumentIndex]).

@@ -1,19 +1,19 @@
  
  
-/**************************************************************************************************************
-*    Copyright (C) 2014-2016 by Progress Software Corporation. All rights reserved.                           *
-*    Prior versions of this work may contain portions contributed by participants of Possenet.                *
-*                                                                                                             *
-***************************************************************************************************************/
+/**********************************************************************************************
+*    Copyright (C) 2014-2017 by Progress Software Corporation. All rights reserved.                  *
+*    Prior versions of this work may contain portions contributed by participants of Possenet.        *
+***********************************************************************************************/
 
 
-/*-------------------------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------------
     File        : BusinessEntity.cls
     Syntax      : 
     Author(s)   : Maura Regan
     Created     : Tues Mar 04 11:50:26 EST 2014
-    Notes       : Abstract class that contains generic methods performing CRUD operations for Busines Entities
-  -------------------------------------------------------------------------------------------------------------*/
+    Notes       : Abstract class that contains generic methods performing CRUD operations 
+                  for Busines Entities
+  --------------------------------------------------------------------------------------------*/
  
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
@@ -183,7 +183,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          
         THIS-OBJECT:AttachDataSources().
         
-        THIS-OBJECT:CommitData(ROW-CREATED, TRUE).   
+        THIS-OBJECT:CommitData(ROW-CREATED).   
                                  
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
@@ -210,7 +210,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          
          THIS-OBJECT:AttachDataSources().
          
-         THIS-OBJECT:CommitData(ROW-MODIFIED, TRUE).  
+         THIS-OBJECT:CommitData(ROW-MODIFIED).  
                                  
          FINALLY: 
             THIS-OBJECT:DetachDataSources().
@@ -237,8 +237,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                    this-object:ProDataSet = hDataSet:handle. 
          
         THIS-OBJECT:AttachDataSources().
-         
-        THIS-OBJECT:CommitData(ROW-DELETED, TRUE).   
+        
+        THIS-OBJECT:CommitData(ROW-DELETED).   
                                  
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
@@ -266,9 +266,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
        THIS-OBJECT:AttachDataSources().
        
        /* Do deletes first, next creates, and finally modifies */
-       THIS-OBJECT:CommitData(ROW-DELETED, FALSE). 
-       THIS-OBJECT:CommitData(ROW-CREATED, FALSE).
-       THIS-OBJECT:CommitData(ROW-MODIFIED, FALSE). 
+       THIS-OBJECT:CommitData(ROW-DELETED). 
+       THIS-OBJECT:CommitData(ROW-CREATED).
+       THIS-OBJECT:CommitData(ROW-MODIFIED). 
           
         FINALLY: 
             THIS-OBJECT:DetachDataSources().
@@ -283,8 +283,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Purpose:  Generic routine to save or commit data for a dataset.                                                              
             Notes:                                                                        
      ----------------------------------------------------------------------------------------*/
-    METHOD PROTECTED VOID CommitData(INPUT iRowState AS INTEGER,
-                                     INPUT lAllowCreateBeforeRows AS LOGICAL):
+    METHOD PROTECTED VOID CommitData(INPUT iRowState AS INTEGER):
                                            
         DEFINE VAR iIndex AS INTEGER NO-UNDO.  
         DEFINE VAR iTopBufferCnt AS INTEGER NO-UNDO.
@@ -301,15 +300,15 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                         /* Commit creates for parent. First get index into entire list of buffers */
                         cSkip = GetSkipListEntry(GetBufferIndex(hBuffer)). 
                        
-                        CommitRows(hBuffer, cSkip, iRowState, lAllowCreateBeforeRows).
+                        CommitRows(hBuffer, cSkip, iRowState).
                         /* Now commit creates for any child buffer */
-                        CommitChildBuffers(iIndex, iRowState, lAllowCreateBeforeRows).
+                        CommitChildBuffers(iIndex, iRowState).
                     END.
                     WHEN ROW-MODIFIED OR WHEN ROW-DELETED THEN DO:
                         /* First  modify or delete child records, then modify parent records */
-                        CommitChildBuffers(iIndex, iRowState, lAllowCreateBeforeRows).
+                        CommitChildBuffers(iIndex, iRowState).
                         /* Now modify or delete parent records */
-                        CommitRows(hBuffer, "", iRowState, lAllowCreateBeforeRows).
+                        CommitRows(hBuffer, "", iRowState).
                     END.
                 END CASE.
             
@@ -432,12 +431,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     
     /*------------------------------------------------------------------------------------------
             Purpose:  Walks through specifed dataset's data-relations to find child tables for
-                      specified parent table. For each child table, it then calls CommitRows().                                                         
+                      specified parent table. For each child table, it then calls commitRows().                                                         
             Notes:                                                                        
     ---------------------------------------------------------------------------------------------*/
     METHOD PRIVATE VOID CommitChildBuffers(INPUT iParentBufferIndex AS INTEGER,
-                                           INPUT iRowState AS INTEGER,
-                                           INPUT lAllowCreateBeforeRows AS LOGICAL):
+                                           INPUT iRowState AS INTEGER):
                                                
         DEFINE VAR iIndex AS INTEGER NO-UNDO.
         DEFINE VAR iRelationCnt AS INTEGER NO-UNDO.
@@ -459,7 +457,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 ELSE
                     cSkip = "".
 
-                CommitRows(hRelation:CHILD-BUFFER, cSkip, iRowState, lAllowCreateBeforeRows).
+                commitRows(hRelation:CHILD-BUFFER, cSkip, iRowState).
             END.
         END.
     
@@ -494,8 +492,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     ---------------------------------------------------------------------------------------------*/
     METHOD PRIVATE VOID CommitRows(INPUT hBuffer AS HANDLE,
                                    INPUT cSkip AS CHAR,
-                                   INPUT iRowState AS INTEGER,
-                                   INPUT lAllowCreateBeforeRows AS LOGICAL):
+                                   INPUT iRowState AS INTEGER):
                                        
         DEFINE VARIABLE hBeforeBuffer AS HANDLE NO-UNDO.
         DEFINE VARIABLE hBeforeQuery AS HANDLE NO-UNDO.
@@ -523,11 +520,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         lReturnValue = hBeforeQuery:QUERY-OPEN().
         lAvailable = hBeforeQuery:GET-FIRST().
         
-        /* If the before-table has no rows with specified iRowState, call MARK-ROW-STATE() to create them. 
-         * But only do this if lAllowCreateBeforeRows = true.
-         * This is the case where Submit has been called. Submit will force a call to CommitRows for each ROW-STATE, which can have 0 or more rows for each row-state.
-         * But the submit operation requires before-image data, so if there is no before-image data for specified row-state, no action needs to be done for this row-state */
-        IF lAllowCreateBeforeRows AND lAvailable EQ FALSE THEN DO:
+        /* If before-table has no rows, call MARK-ROW-STATE() to create them. */
+        IF lAvailable EQ FALSE THEN DO:
             lCreatedBeforeRows = TRUE.
             CREATE QUERY hAfterQuery.
             hAfterQuery:SET-BUFFERS(hBuffer).
@@ -536,45 +530,71 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             lAvailable = hAfterQuery:GET-FIRST().
             
             DO WHILE lAvailable:
-                hBuffer:MARK-ROW-STATE(iRowState).
+                /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
+                lReturnValue = hBuffer:MARK-ROW-STATE(iRowState).
+                
+                IF NOT lReturnValue THEN 
+                    UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + 
+                        GetRowState(iRowState) + 
+                        ' record. Cannot create corresponding row in BEFORE-TABLE.', 0).
                 lAvailable = hAfterQuery:GET-NEXT().
             END.
             
-            /* Now that the before-table rows have been created, reopen and set to first row in before-table */
-            IF hBeforeQuery:QUERY-OPEN() THEN
-                lAvailable = hBeforeQuery:GET-FIRST().
-            ELSE
-                lAvailable = FALSE.
-            
-            IF NOT lAvailable THEN
-                UNDO, THROW NEW Progress.Lang.AppError('Unable to call SAVE-ROW-CHANGES(). Failed to create query for BEFORE-TABLE.', 0).
+            /* Now that the before-table rows have been created, reopen and set to 
+             * first row in before-table */
+            lReturnValue = hBeforeQuery:QUERY-OPEN().
+            lAvailable = hBeforeQuery:GET-FIRST().         
         END.
         
-        /* Once we get here, we have have before-table rows, with first row in before-buffer */
+        /* Once here, we have before-table rows, with first row in before-buffer */
         DO WHILE lAvailable:
+            
             hBeforeBuffer:SAVE-ROW-CHANGES(1, cSkip) NO-ERROR .
                    
             IF hBeforeBuffer:ERROR THEN DO:
                 IF ERROR-STATUS:NUM-MESSAGES >= 1 THEN DO:
                     hBeforeBuffer:ERROR-STRING = ERROR-STATUS:GET-MESSAGE(1).
                 END.
-               
-                /* Check to see if RETURN-VALUE is set. This is possible if error was returned from DB trigger */
-                 IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
+                
+                /* Check to see if RETURN-VALUE is set. This is possible if error was 
+                 * returned from DB trigger */
+                IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
                      hBeforeBuffer:ERROR-STRING = RETURN-VALUE.
                      
                 /* If there is no Before-Image data, then throw the error */
                 IF lCreatedBeforeRows THEN
                     UNDO, THROW NEW Progress.Lang.AppError(hBeforeBuffer:ERROR-STRING, 0).
-
             END.
            
            lAvailable = hBeforeQuery:GET-NEXT().
         END.
         
     END METHOD.
-    
 
+
+/*--------------------------------------------------------------------------------------------------
+           Purpose:                                                            
+            Notes:                                                                   
+  -------------------------------------------------------------------------------------------------*/
+    METHOD PRIVATE CHARACTER GetRowState(INPUT iRowState AS INTEGER):
+         DEFINE VARIABLE cRowState AS CHARACTER NO-UNDO.
+         
+         CASE iRowState:
+             WHEN ROW-DELETED THEN
+                 cRowState = "Delete".
+             WHEN ROW-CREATED THEN
+                 cRowState = "Create".
+             WHEN ROW-MODIFIED THEN
+                 cRowState = "Update".
+             /* This should never happen... */
+             OTHERWISE
+                 cRowState = "Unexpected-RowState".
+           
+         END CASE.
+         
+         RETURN cRowState .
+    END METHOD.   
+    
 
 /*--------------------------------------------------------------------------------------------------
             Purpose:                                                            
@@ -647,3 +667,4 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     
           
 END CLASS.
+

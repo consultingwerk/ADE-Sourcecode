@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2012 by Progress Software Corporation.      */
+/* Copyright (c) 2012-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -122,6 +122,15 @@ interface OpenEdge.DataAdmin.Binding.ITableDataMonitor:
     method public void AddTableError(pname as character,e as Error).
     /** called with any error logger may store all or just keep track of any  */
     method public void AddTableError(pname as character,msg as char).
+    
+    /* these methods are used for cdc dump/load utility */
+    method public void AddPolicyError(fname as character,pname as character,e as Error).    
+    method public void AddPolicyError(fname as character,pname as character,msg as char).
+    method public void EndPolicy(fname as character,pname as character).  
+    method public void EndPolicy(fname as character,pname as character,numrows as int64).
+    method public logical SetPolicyBailed(fname as character,pname as character).
+    method public void AddCDCPolicies(pcPath as char, table-handle htbl).
+    method public logical CountCDCRow(fname as character,pname as character). 
     
     /** set expected num rows   */
     method public void SetTableExpectedNumRows(pname as character,pinum as int64 ).

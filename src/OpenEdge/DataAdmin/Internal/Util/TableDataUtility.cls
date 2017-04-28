@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -57,11 +57,13 @@ class OpenEdge.DataAdmin.Internal.Util.TableDataUtility abstract inherits DataUt
     define public property UseGroupSelection    as logical   no-undo 
         get. 
         set.
-    
+    define public property CDCPolicySelection   as char init "all" no-undo get. set. 
     define public property SkipGroups           as logical   no-undo get. set.   
     
      /** Set to yes to skip secured tables  */
     define public property SkipSecuredTables    as logical   no-undo get. set.   
+    
+    define public property isCDC    as logical   init no no-undo get. set.
     
     define private property TenantGroupDataContext as IDataAdminModel  no-undo       
         get():
@@ -147,6 +149,7 @@ class OpenEdge.DataAdmin.Internal.Util.TableDataUtility abstract inherits DataUt
             contextTree:SetHandle("Tables",temp-table ttTableData:default-buffer-handle).
             contextTree:SetHandle("Tenants",temp-table ttTenantData:default-buffer-handle).
             contextTree:SetHandle("Groups",temp-table ttGroupData:default-buffer-handle).
+            contextTree:SetHandle("CdcPolicies",temp-table ttCDCPolicyData:default-buffer-handle).
             DataFileContext:AddTableTo(contextTree).
             return contextTree:GetReadHandle().
         end.
@@ -184,6 +187,7 @@ class OpenEdge.DataAdmin.Internal.Util.TableDataUtility abstract inherits DataUt
             ttUtilityOptions.UseGroupSelection  = this-object:UseGroupSelection  
             ttUtilityOptions.SkipGroups         = this-object:SkipGroups  
             ttUtilityOptions.SkipSecuredTables  = this-object:SkipSecuredTables  
+            ttUtilityOptions.CDCPolicySelection = this-object:CDCPolicySelection
             .
     end.     
     
@@ -201,6 +205,8 @@ class OpenEdge.DataAdmin.Internal.Util.TableDataUtility abstract inherits DataUt
             this-object:UseGroupSelection  = ttUtilityOptions.UseGroupSelection 
             this-object:SkipGroups         = ttUtilityOptions.SkipGroups 
             this-object:SkipSecuredTables  = ttUtilityOptions.SkipSecuredTables 
+            this-object:isCDC              = ttUtilityOptions.isCDC 
+            this-object:CDCPolicySelection = ttUtilityOptions.CDCPolicySelection 
             .
     end.     
     

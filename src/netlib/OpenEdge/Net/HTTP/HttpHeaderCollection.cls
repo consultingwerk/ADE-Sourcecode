@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderCollection
@@ -14,12 +14,14 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Net.HTTP.HttpHeaderCollection.
+using OpenEdge.Net.HTTP.NullHeader.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.HttpHeaderCollection:
     /* Stores header name/value pairs */
     define static protected temp-table Headers no-undo
-        field ParentClass as integer
+        field ParentClass as int64
         field HeaderName  as character
         field HttpHeader  as Object
         index idx1 as primary unique ParentClass HeaderName. 
@@ -30,17 +32,48 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     destructor HttpHeaderCollection():
         this-object:Clear().
     end destructor.
-    
-    /** Adds header info to this message's collection of headers.
+
+    /** Adds a set of headers to this collection. Overwrites any existing
+        headers that appear in this (the target) collection.
         
-        @param character The header name
-        @param character The complete header value  */
+        @param HttpHeaderCollection The header collection  */
+    method public void Put(input poHeaders as HttpHeaderCollection):
+        define buffer lbHeader for Headers.
+         
+        Assert:NotNull(poHeaders, 'Header collection').
+        
+        for each lbHeader where lbHeader.ParentClass eq int64(poHeaders):
+            UpdateHeaderRecord(cast(lbHeader.HttpHeader, HttpHeader)).
+        end.
+    end method.
+    
+    /** Adds a set of headers to this collection. Overwrites any existing
+        headers that appear in this (the target) collection.
+        
+        @param HttpHeader[] The headers   */
+    method public void Put(input poHeaders as HttpHeader extent):
+        define variable iLoop as integer no-undo.
+        define variable iMax as integer no-undo.
+        
+        assign iMax = extent(poHeaders).
+        do iLoop = 1 to iMax:
+            this-object:Put(poHeaders[iLoop]).
+        end.
+    end method.
+    
+    /** Adds a header to this collection.
+        
+        @param HttpHeader The header   */
     method public void Put(input poHeader as HttpHeader):
         Assert:NotNull(poHeader, 'Http Header').
         
+        // We don't want to store NullHeaders
+        if type-of(poHeader, NullHeader) then
+            return.
+        
         UpdateHeaderRecord(poHeader).
     end method.
-    
+
     /** Internal helper method to perform the find. 
     
         @param handle    The buffer handle of the Headers table.
@@ -49,9 +82,8 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     method private logical FindHeaderRecord(input phBuffer as handle, input pcName as character):
         phBuffer:find-unique(substitute('where &1.ParentClass eq &2 and &1.HeaderName eq &3',
                                phBuffer:name,
-                               integer(this-object),
+                               int64(this-object),
                                quoter(pcName))) no-error.
-        
         return phBuffer:available.
     end method.
 
@@ -65,24 +97,27 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     
     /** Private method for updating the value of a header record
         
-        @param character The header name
-        @param character the header value. */
+        @param HttpHeader The header  */
     method private void UpdateHeaderRecord(input poHeader as HttpHeader):
         define buffer lbHeader for Headers.
         
+        // Ignore NullHeader instances
+        if valid-object(poHeader) and type-of(poHeader, NullHeader) then
+            return.
+        
         find lbHeader where
-             lbHeader.ParentClass eq integer(this-object) and
+             lbHeader.ParentClass eq int64(this-object) and
              lbHeader.HeaderName eq poHeader:Name
              no-error.
         if not available lbHeader then
         do:
             create lbHeader.
-            assign lbHeader.ParentClass = integer(this-object)
-                   lbHeader.HeaderName = poHeader:Name.
+            assign lbHeader.ParentClass = int64(this-object)
+                   lbHeader.HeaderName  = poHeader:Name.
         end.
         assign lbHeader.HttpHeader = poHeader.
     end method.
-
+    
     /** Private method for removing a header record
         
         @param character The header name  */
@@ -96,7 +131,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     /** Returns a named header
 
         @param  character The name of the header to retrieve
-        @return HttpHeader The header object. Null if not exists. */
+        @return HttpHeader The header object. Returns a NullHeader if none exists. */
     method public HttpHeader Get(input pcName as character).
         define buffer lbHeader for Headers.
         
@@ -105,7 +140,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
         if FindHeaderRecord(buffer lbHeader:handle, pcName) then
             return cast(lbHeader.HttpHeader, HttpHeader).
         else
-            return ?.
+            return OpenEdge.Net.HTTP.HttpHeader:NullHeader.
     end method.
     
     /** Returns all the headers (Names and values)
@@ -118,7 +153,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
         
         define query qryHeader for lbHeader.
         open query qryHeader preselect each lbHeader where 
-                                            lbHeader.ParentClass eq integer(this-object).
+                                            lbHeader.ParentClass eq int64(this-object).
         
         assign iCount = query qryHeader:num-results.
         if iCount ne 0 then
@@ -165,7 +200,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     method public void Clear().
         define buffer lbHeader for Headers.
         
-        for each lbHeader where lbHeader.ParentClass eq integer(this-object):
+        for each lbHeader where lbHeader.ParentClass eq int64(this-object):
             delete lbHeader.
         end.
     end method.

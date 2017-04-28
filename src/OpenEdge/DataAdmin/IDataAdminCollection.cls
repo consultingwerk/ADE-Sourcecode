@@ -18,6 +18,7 @@ using OpenEdge.DataAdmin.* from propath.
 using OpenEdge.DataAdmin.Binding.* from propath.
 using OpenEdge.DataAdmin.Lang.Collections.IIterator from propath.
 using OpenEdge.DataAdmin.Lang.Collections.ICollection from propath.
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
  
 interface OpenEdge.DataAdmin.IDataAdminCollection inherits IDataAdminSerializable, ICollection:  
     /* temporary while waiting for interface inheritance */
@@ -51,6 +52,7 @@ interface OpenEdge.DataAdmin.IDataAdminCollection inherits IDataAdminSerializabl
     method public void Reset().
             
     method public void ExportTree(cFile as char).  
+    method public void ExportTree(cFile as char,pageReq as IPageRequest).
     method public void ExportTree(cFile as char,pcCollections as char).  
      
     method public void Export(). 

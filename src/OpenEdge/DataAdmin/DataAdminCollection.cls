@@ -30,6 +30,7 @@ using OpenEdge.DataAdmin.Lang.Collections.ICollection.
 using OpenEdge.DataAdmin.Lang.Collections.IIterator.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminCollection,IDataAdminSerializable,ICollection: 
     
     define stream exportstream.
@@ -304,7 +305,13 @@ class OpenEdge.DataAdmin.DataAdminCollection abstract implements IDataAdminColle
         define variable writer as IDataAdminExporter no-undo.
         writer = GetExporter(pcfile).
         writer:WriteToFile(this-object,pcfile,"ALL").
-    end method.     
+    end method.
+    
+    method public void ExportTree(pcfile as char,pageReq as IPageRequest):
+        define variable writer as IDataAdminExporter no-undo.
+        writer = GetExporter(pcfile).
+        writer:WriteToFile(this-object,pcfile,"ALL",pageReq).
+    end method.      
     
     method public void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.

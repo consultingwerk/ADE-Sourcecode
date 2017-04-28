@@ -25,7 +25,7 @@
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.LogLevelEnum.
+using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.DataAdmin.DataAdminService.
 using OpenEdge.DataAdmin.DatabaseOptionTypeEnum.
 using OpenEdge.DataAdmin.IDataAdminService.

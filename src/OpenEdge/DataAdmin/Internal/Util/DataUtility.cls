@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -7,8 +7,8 @@
  /*************************************************************/ 
  /*------------------------------------------------------------------------
     File        : DataUtility
-    Purpose     : Client side common wrapper for data admin dump/load of sequences 
-                  and tables
+    Purpose     : Client side common wrapper for data admin dump/load of sequences, 
+                  tables and CDC policies
     Syntax      : 
     Description : 
     Author(s)   : hdaniels
@@ -40,8 +40,9 @@ class OpenEdge.DataAdmin.Internal.Util.DataUtility abstract implements IDataUtil
     {daschema/tenantdata.i}
     {daschema/tabledata.i}
     {daschema/groupdata.i}
+    {daschema/cdcpolicydata.i}
         
-    define protected dataset dsoption serialize-name "root" for ttUtilityOptions, ttTenantData, ttTableData, ttGroupData .
+    define protected dataset dsoption serialize-name "root" for ttUtilityOptions, ttTenantData, ttTableData, ttGroupData, ttCDCPolicyData .
 
     /** IDataAdminUtility */
     define public property Name           as char   no-undo get. set.

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2012 by progress Software Corporation  */
+/* Copyright (c) 2011-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -51,6 +51,8 @@ define protected temp-table ttUtilityOptions no-undo serialize-name "utilityOpti
     field ValidateOnly              as logical   serialize-hidden  
     field StatusFileName            as character serialize-hidden   
     field StatusInterval            as integer   serialize-hidden init 3000 
+    field isCDC                     as logical   serialize-hidden init false
+    field CDCPolicySelection        as character serialize-name "cdcPolicySelection" init "all"
 /*    {daschema/entity.i}*/
     index idxtask as primary unique Name  . 
  

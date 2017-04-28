@@ -186,7 +186,11 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
      
     method public logical Refresh(bufferHandle as handle).
         undo, throw new UnsupportedOperationError("Refresh for " + GetClass():TypeName).
-    end method.       
+    end method.
+    
+    method public logical Refreshbuffers(bufferHandle as handle).
+        undo, throw new UnsupportedOperationError("Refresh for " + GetClass():TypeName).
+    end method.          
      
     /* override to set url dependent props/vars*/
     method protected void AfterSetUrl():

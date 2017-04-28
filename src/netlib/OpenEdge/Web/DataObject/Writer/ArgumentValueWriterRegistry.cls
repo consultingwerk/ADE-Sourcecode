@@ -20,6 +20,7 @@ using Ccs.Common.Support.IDateTimeTzArrayHolder.
 using Ccs.Common.Support.IDateTimeTzHolder.
 using Ccs.Common.Support.IDecimalArrayHolder.
 using Ccs.Common.Support.IDecimalHolder.
+using Ccs.Common.Support.IHandleArrayHolder.
 using Ccs.Common.Support.IHandleHolder.
 using Ccs.Common.Support.IInt64ArrayHolder.
 using Ccs.Common.Support.IInt64Holder.
@@ -29,8 +30,10 @@ using Ccs.Common.Support.ILogicalArrayHolder.
 using Ccs.Common.Support.ILogicalHolder.
 using Ccs.Common.Support.ILongcharArrayHolder.
 using Ccs.Common.Support.ILongcharHolder.
+using Ccs.Common.Support.IMemptrArrayHolder.
 using Ccs.Common.Support.IMemptrHolder.
 using Ccs.Common.Support.IRowidArrayHolder.
+using OpenEdge.Core.ObjectArrayHolder.
 using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry.
@@ -42,20 +45,19 @@ using OpenEdge.Web.DataObject.Writer.DateTimeValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateValueWriter.
 using OpenEdge.Web.DataObject.Writer.DecimalArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.DecimalValueWriter.
+using OpenEdge.Web.DataObject.Writer.HandleArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.HandleValueWriter.
 using OpenEdge.Web.DataObject.Writer.IntegerArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.IntegerValueWriter.
 using OpenEdge.Web.DataObject.Writer.LogicalArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.LogicalValueWriter.
 using OpenEdge.Web.DataObject.Writer.LongcharArrayValueWriter.
+using OpenEdge.Web.DataObject.Writer.MemptrArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.MemptrValueWriter.
+using OpenEdge.Web.DataObject.Writer.ObjectValueWriter.
 using OpenEdge.Web.DataObject.Writer.RowidArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.StringValueWriter.
-using OpenEdge.Web.DataObject.Writer.MemptrArrayValueWriter.
-using Ccs.Common.Support.IHandleArrayHolder.
-using Ccs.Common.Support.IMemptrArrayHolder.
-using OpenEdge.Web.DataObject.Writer.HandleArrayValueWriter.
-using OpenEdge.Core.ObjectArrayHolder.
+using OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter.
 
 class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry inherits BuilderRegistry:
 
@@ -103,16 +105,10 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry inherits Builde
         poRegistry:Put(get-class(IMemptrArrayHolder):TypeName,      get-class(MemptrArrayValueWriter)).
         poRegistry:Put(get-class(IHandleArrayHolder):TypeName,      get-class(HandleArrayValueWriter)).
         
-        /* object scalars (filter patterns etc) */
-        //poRegistry:Put(get-class(JsonObject):TypeName,       get-class(JsonValueWriter)).
-        //poRegistry:Put(get-class(JsonArray):TypeName,        get-class(JsonValueWriter)).
-        //poRegistry:Put(get-class(JsonConstruct):TypeName,       get-class(JsonValueWriter)).
+        /* objects */
+        poRegistry:Put(get-class(Progress.Lang.Object):TypeName,    get-class(ObjectValueWriter)).
+        poRegistry:Put(get-class(ObjectArrayHolder):TypeName,       get-class(ObjectArrayValueWriter)).
         
-        /* default/if all else fails */
-        poRegistry:Put(get-class(Progress.Lang.Object):TypeName,    get-class(MemptrValueWriter)).
-        poRegistry:Put(get-class(ObjectArrayHolder):TypeName,       get-class(MemptrValueWriter)).
-
-        /* object arrays */
     end method.
 
 end class.

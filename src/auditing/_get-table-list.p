@@ -126,10 +126,11 @@ DEFINE VARIABLE hBufferTT                   AS HANDLE       NO-UNDO.
     
     /* only add tables (don't add views) and don't add virtual system tables either,
       which are the tables where file-Number is <= -16385
+      Also ignore CDC Change tables
     */
     hQuery:QUERY-PREPARE('FOR EACH ' + cTable + ' FIELDS(_File-number _File-name _Owner _Tbl-type _Hidden)
                           NO-LOCK WHERE (_file._tbl-type = "T" OR 
-                         _file._tbl-type = "S") AND _file._file-number > -16385').
+                         _file._tbl-type = "S") AND _file._file-number > -16385 and _file._file-attributes[6] NE true').
     hQuery:QUERY-OPEN.
 
     REPEAT:

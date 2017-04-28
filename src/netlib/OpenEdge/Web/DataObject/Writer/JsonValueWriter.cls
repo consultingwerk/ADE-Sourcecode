@@ -70,7 +70,7 @@ class OpenEdge.Web.DataObject.Writer.JsonValueWriter inherits ArgumentValueWrite
 
             when type-of(poData, WidgetHandle) then
             do:
-                this-object:WriteHandle(cast(poData, WidgetHandle):Value).
+                this-object:Write(cast(poData, WidgetHandle):Value).
                 return.
             end.
             
@@ -115,6 +115,13 @@ class OpenEdge.Web.DataObject.Writer.JsonValueWriter inherits ArgumentValueWrite
 
         @param handle Data to write */
     method public void WriteHandle(input phData as handle):
+        this-object:Write(phData).
+    end method.
+    
+    /** Write data to/from the message
+
+        @param handle Data to write */
+    method override public void Write(input phData as handle):
         define variable lOk as logical no-undo.
         define variable oData as JsonObject no-undo.
         

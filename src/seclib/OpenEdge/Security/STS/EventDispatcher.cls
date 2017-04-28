@@ -14,20 +14,31 @@ Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Assertion.AssertObject.
-using OpenEdge.Core.LogLevelEnum.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Net.URI.
 using OpenEdge.Security.Principal.
 using OpenEdge.Security.STS.ClientValidator.
+using OpenEdge.Security.STS.IErrorProvider.
 using OpenEdge.Security.STS.IEventProvider.
 using OpenEdge.Security.STS.IPolicyProvider.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.AppError.
 using OpenEdge.Security.STS.EventDispatcher.
-using OpenEdge.Security.STS.IErrorProvider.
-using OpenEdge.Net.URI.
+using OpenEdge.Logging.LoggerBuilder.
 
-class OpenEdge.Security.STS.EventDispatcher:
+class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(EventDispatcher)).
+            return this-object:Logger.
+        end get.
+        set.
+    
     /* use to handle the validation of a STS's credentials */
     define private variable moValidator as ClientValidator no-undo.
     
@@ -73,7 +84,7 @@ class OpenEdge.Security.STS.EventDispatcher:
             assign cMessage = substitute('Provider &1 does not implement event API: &2',
                                             quoter(pcEventProvider),
                                             get-class(IEventProvider):TypeName).
-            LogMessage(cMessage, LogLevelEnum:ERROR).
+            Logger:Error(cMessage).
             
             undo, throw new AppError(cMessage, 0).
         end.
@@ -124,7 +135,7 @@ class OpenEdge.Security.STS.EventDispatcher:
             assign cMessage = substitute('Provider &1 does not implement policy API: &2',
                                             quoter(pcPolicyProvider),
                                             get-class(IPolicyProvider):TypeName).
-            LogMessage(cMessage, LogLevelEnum:ERROR).
+            Logger:Error(cMessage).
             
             undo, throw new AppError(cMessage, 0).
         end.
@@ -186,10 +197,9 @@ class OpenEdge.Security.STS.EventDispatcher:
         /* the specified type may not provide the error policy */
         if not Progress.Lang.Class:GetClass(pcErrorProvider):IsA(get-class(IErrorProvider)) then
         do:
-            LogMessage(substitute('Provider &1 does not implement error API: &2',
+            Logger:Warn(substitute('Provider &1 does not implement error API: &2',
                             quoter(pcErrorProvider),
-                            get-class(IErrorProvider):TypeName), 
-                       LogLevelEnum:WARN).
+                            get-class(IErrorProvider):TypeName)).
             return false.
         end.
         
@@ -256,22 +266,6 @@ class OpenEdge.Security.STS.EventDispatcher:
         assign rcode-info:file-name = replace(pcProviderType, '.':u, '/':u).
         if rcode-info:md5-value ne pcProviderHash then
             return error new AppError(substitute('Provider error: invalid provider &1', pcProviderType), 0).
-    end method.
-    
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge integer(poLogLevel) then
-            log-manager:write-message(substitute('[&1] &2',
-                                        string(poLogLevel),
-                                        pcMessage), 
-                                      'EVNTDISP':u).
     end method.
     
 end class.

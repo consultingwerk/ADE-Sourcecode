@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -47,7 +47,9 @@ Description,_desc,~
 Hidden,_hidden,~
 IsMultiTenant,_File-attributes[1],~
 IsPartitioned,_File-attributes[3],~
-KeepDefaultArea,_File-attributes[2]"
+KeepDefaultArea,_File-attributes[2],~
+IsCDCEnabled,_File-attributes[5],~
+IsChangeTable,_File-attributes[6]"
 /*Description,_Desc,~  */
 /*DumpName,_Dump-name,~*/
 /*DisplayName,_File-label"*/
@@ -381,6 +383,12 @@ ValidationMessage,_Valmsg"  no-undo.
                 end.
                 if dictdb._File._File-attributes[3] <> phBuffer::IsPartitioned then
                     dictdb._File._File-attributes[3] = phBuffer::IsPartitioned.
+                    
+                if dictdb._File._File-attributes[5] <> phBuffer::IsCDCEnabled then
+                    dictdb._File._File-attributes[5] = phBuffer::IsCDCEnabled.
+                    
+                if dictdb._File._File-attributes[6] <> phBuffer::IsChangeTable then
+                    dictdb._File._File-attributes[6] = phBuffer::IsChangeTable.
                 
                 if phBuffer::Description <> hBeforeBuff::Description then
                 do:

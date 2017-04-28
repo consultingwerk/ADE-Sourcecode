@@ -18,6 +18,7 @@
 using Progress.Lang.*.
 using Progress.Json.ObjectModel.JsonObject.
 using OpenEdge.DataAdmin.Binding.IJsonRowListener.
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 
 interface OpenEdge.DataAdmin.Binding.IDataTree:  
     define public property Write       as logical no-undo get. set. 
@@ -35,5 +36,6 @@ interface OpenEdge.DataAdmin.Binding.IDataTree:
  
     method public handle GetWriteHandle().
     method public JsonObject GetJSON().
+    method public JsonObject GetJSON(pageReq as IPageRequest).
    
 end interface.

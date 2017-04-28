@@ -1,4 +1,7 @@
- /*------------------------------------------------------------------------
+/************************************************
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
+/*------------------------------------------------------------------------
     File        : ProxyHttpRequest
     Purpose     : 
     Syntax      : 
@@ -23,28 +26,10 @@ class OpenEdge.Net.HTTP.ProxyHttpRequest inherits HttpRequestDecorator
         get.
         set(input poProxyServer as URI):
             assign this-object:ProxyURI = poProxyServer.
-            SetHost().
         end set.
         
     constructor public ProxyHttpRequest(input poHttpRequest as IHttpRequest):
         super(poHttpRequest).
     end constructor.
-    
-    method private void SetHost():
-        define variable cHost as character no-undo.
-        define variable oHostURI as URI no-undo.
-        
-        if valid-object(ProxyURI) then
-            assign oHostURI = ProxyURI.
-        else
-            assign oHostURI = URI.
-        
-        assign cHost = oHostURI:Host
-                     + (if oHostURI:Port eq ? then '':u
-                        else
-                        ':':u + string(oHostURI:Port)).
-        
-        SetHeader(HttpHeaderBuilder:Build('Host':u):Value(cHost):Header).
-    end method.
     
 end class.

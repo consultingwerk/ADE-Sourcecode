@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ProxyHttpClient
@@ -13,12 +13,13 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Net.HTTP.HttpClientDecorator.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
-using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.URI.
 
 class OpenEdge.Net.HTTP.ProxyHttpClient inherits HttpClientDecorator
@@ -41,11 +42,21 @@ class OpenEdge.Net.HTTP.ProxyHttpClient inherits HttpClientDecorator
     
     method override public void Execute(input poRequest as IHttpRequest,
                                         input poResponse as IHttpResponse):
-        /* We need to be able to proxy the request. */
-        assign poRequest = RequestBuilder:DecorateRequest(get-class(ISupportProxy), poRequest).
-        Assert:IsType(poRequest, get-class(ISupportProxy)).
+        define variable oProxyRequest as ISupportProxy no-undo.
         
-        assign cast(poRequest, ISupportProxy):ProxyURI = this-object:ProxyURI.
+        if type-of(poRequest, IAdaptable) then
+            assign oProxyRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ISupportProxy)), ISupportProxy).
+        else
+        if type-of(poRequest, ISupportProxy) then
+            assign oProxyRequest = cast(poRequest, ISupportProxy).
+            
+        if not valid-object(oProxyRequest) then
+            assign poRequest = RequestBuilder:DecorateRequest(get-class(ISupportProxy), poRequest)
+                   oProxyRequest = cast(poRequest, ISupportProxy).
+        
+        /* We need to be able to proxy the request. */
+        Assert:IsType(poRequest, get-class(ISupportProxy)).
+        assign oProxyRequest:ProxyURI = this-object:ProxyURI.
         
         super:Execute(poRequest, poResponse).
     end method.

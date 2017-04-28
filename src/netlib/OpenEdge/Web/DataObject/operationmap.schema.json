@@ -139,6 +139,7 @@
                         "statusReason",
                         "body",
                         "request",
+                        "httpMethod",
                         "constant"
                     ]
                 },
@@ -188,10 +189,7 @@
                         "name": {"type": "string"},
                         "type": {
                             "type": "string",
-                            "enum": [
-                                "cls",
-                                "proc"
-                            ]
+                            "enum": ["cls", "proc" ]
                         },
                         "function": {"type": "string"},
                         "arg": {
@@ -293,24 +291,7 @@
                         "type": "string",
                         "format": "^[0-9]+(.[0-9]+)+$"
                     },
-                    "options":{
-                        "type":"object",
-                        "properties": {
-                            "logFile": {"type":"string"},
-                            "logLevel": {
-                                "type":"string",
-                                "enum": [
-                                    "OFF",
-                                    "FATAL",
-                                    "ERROR",
-                                    "WARN",
-                                    "INFO",
-                                    "DEBUG",
-                                    "TRACE"
-                                ]
-                            },
-                        }
-                    },
+                    "options":{"type":"object" },
                     "operations": {
                         "type": "object",
                         "patternProperties": {

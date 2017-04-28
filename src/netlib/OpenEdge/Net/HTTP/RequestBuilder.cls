@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RequestBuilder
@@ -18,6 +18,7 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.StringStringMap.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.String.
 using OpenEdge.Core.WidgetHandle.
@@ -823,16 +824,26 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         define variable oDecorator as IHttpRequest no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oRequest as IHttpRequest no-undo.
+        define variable oAdapter as Progress.Lang.Object no-undo.
+        
+        Assert:NotNull(poDecoratedRequest, 'Request').
+        Assert:NotNull(poDecorationType, 'Decoration type').
         
         /* if this is already decorated, carry on */
         if poDecoratedRequest:GetClass():IsA(poDecorationType) then
+            return poDecoratedRequest.
+        
+        if type-of(poDecoratedRequest, IAdaptable) then
+            assign oAdapter = cast(poDecoratedRequest, IAdaptable):GetAdapter(poDecorationType).
+        
+        if valid-object(oAdapter) and oAdapter:GetClass():IsA(poDecorationType) then
             return poDecoratedRequest.
         
         assign oDecoratorType = RequestBuilder:Registry:Get(poDecorationType:TypeName).
         if not valid-object(oDecoratorType) then
             return poDecoratedRequest.
         
-        /* got to be able to decorate ... */            
+        /* got to be able to decorate ... */
         Assert:IsType(oDecoratorType, get-class(HttpRequestDecorator)).
         
         oRequest = dynamic-new string(oDecoratorType:TypeName) (input poDecoratedRequest).
@@ -841,6 +852,6 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
             cast(oRequest, ISupportInitialize):Initialize().
         
         return oRequest.
-    end method.    
+    end method.
     
 end class.

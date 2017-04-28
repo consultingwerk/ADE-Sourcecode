@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File       : AuthorizationStatusFilter
@@ -15,6 +15,7 @@ Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
@@ -49,15 +50,23 @@ class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
     end destructor.     
 
     method public void Initialize():
-        assign moAuthRequest       = cast(RequestBuilder:DecorateRequest(get-class(IAuthenticatedRequest),
-                                                                         cast(this-object:Message, IHttpRequest))
-                                          , IAuthenticatedRequest)
-               this-object:Message = moAuthRequest.
+        if type-of(this-object:Message, IAdaptable) then
+            assign moAuthRequest = cast(cast(this-object:Message, IAdaptable):GetAdapter(get-class(IAuthenticatedRequest)), 
+                                        IAuthenticatedRequest). 
+        else
+        if type-of(this-object:Message, IAuthenticatedRequest) then
+            assign moAuthRequest = cast(this-object:Message, IAuthenticatedRequest).
+        
+        /* If this is not yet some form of authenticated request, make it so */
+        if not valid-object(moAuthRequest) then
+            assign moAuthRequest        = cast(RequestBuilder:DecorateRequest(get-class(IAuthenticatedRequest), cast(this-object:Message, IHttpRequest)),
+                                              IAuthenticatedRequest)
+                   this-object:Message = moAuthRequest.
     end method.
     
     method public void Destroy():
     end method.
-
+    
     method public void Close():
         Flush().
     end method.
@@ -87,10 +96,8 @@ class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
         
         /* The Request takes care of creating the correct value for the 
            header, based off the string we pass in. It knows how to translate
-           'Basic' or 'Digest' into something useful */
-        cast(this-object:Message, IAuthenticatedRequest):SetChallenge(
-                cAuthMethod,
-                mcChallenge).
+           'Basic' or 'Digest' into something useful */           
+        moAuthRequest:SetChallenge(cAuthMethod, mcChallenge).
     end method.
 
     method public void Open():

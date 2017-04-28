@@ -32,6 +32,7 @@ IN:
                 "o"   = dump database options
                 "h"   = dump security authentication records
                 "m"   = dump security permissions
+		"p"   = dump CDC Policies
             
 OUT:
   user_env[1] = same as IN
@@ -1794,14 +1795,30 @@ DO:
   DEFINE VAR prefix   AS CHAR NO-UNDO.
 
   fil = user_env[2]:SCREEN-VALUE IN FRAME write-def-file.
+    
   /* check file name entered */
   FILE-INFO:FILE-NAME = fil.
+  
+  IF FILE-INFO:FILE-NAME = "" or FILE-INFO:FILE-NAME = "?" THEN DO:
+    MESSAGE "File Name cannot be blank" VIEW-AS ALERT-BOX ERROR.
+    APPLY "ENTRY" TO user_env[2].
+    RETURN NO-APPLY.
+  END.
   IF INDEX(FILE-INFO:FILE-TYPE,"D") > 0 OR
     SUBSTRING(fil,LENGTH(fil),1,"CHARACTER":U) = "{&SLASH}" THEN DO:
     MESSAGE "The file name entered is invalid." VIEW-AS ALERT-BOX ERROR.
     APPLY "ENTRY" TO user_env[2].
     RETURN NO-APPLY.
   END.
+    
+   
+  IF NOT FILE-INFO:FILE-NAME MATCHES "*~~.cd" AND user_env[9] = "p" THEN
+  DO:
+	 MESSAGE "You must Provide a valid .cd file!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+     APPLY "ENTRY" TO user_env[2].
+     RETURN NO-APPLY.
+  END. 
 
   RUN prodict/misc/osprefix.p
     ( INPUT  fil,
@@ -2387,6 +2404,12 @@ on WINDOW-CLOSE of frame write-dump-dir-cdpg
 ON END-ERROR OF FRAME write-dump-dir-cdpg
    ASSIGN user_env[1] = ?
           user_longchar = (IF isCpUndefined THEN user_longchar ELSE ?).
+ON CHOOSE OF btn_cancel IN FRAME write-def-file /* for CDC, class = "p" */
+   user_env[1] = ?.
+ON WINDOW-CLOSE OF FRAME write-def-file
+   APPLY "END-ERROR" TO FRAME write-def-file.
+ON END-ERROR OF FRAME write-def-file
+   user_env[1] = ?.   
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[2] IN FRAME write-output-file
@@ -2882,7 +2905,7 @@ END.
 IF user_env[1] <> "" AND 
    NOT is-all  AND 
    NOT is-some AND
-   NOT CAN-DO("y,t,x",user_env[9]) THEN DO FOR _File:
+   NOT CAN-DO("y,t,x,p",user_env[9]) THEN DO FOR _File:
   FIND _File WHERE _Db-recid = drec_db AND _File-name = user_env[1]
                AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN" ).
   dump-as = (IF _File._Dump-name = ?
@@ -3242,7 +3265,15 @@ ELSE IF class = "y" THEN DO FOR _File:
   IF user_dbtype <> "PROGRESS" THEN msg-num = 1.
   io-title    = "Dump Audit Data".
 END.
-
+/*---------------------------------------*/ /* DUMP CDC POLICIES */
+ELSE IF class = "p" THEN DO FOR _File:
+  FIND _File "_Db".
+  IF NOT CAN-DO(_Can-Read,USERID("DICTDB")) THEN msg-num = 3.
+  IF user_dbtype <> "PROGRESS" THEN msg-num = 1.
+    
+  user_env[2] = prefix + LDBNAME("dictdb") + ".cd".
+  io-title    = "Dump Change Data Capture Policies".  
+END.
 /*------------------------------------------*/ /* DUMP COLLATION stuff */
 ELSE IF class = "c" THEN DO FOR _File:
   FIND _File "_Db".
@@ -3397,8 +3428,7 @@ ELSE IF class = "y" THEN DO:
   }
   ASSIGN io-title    = "Dump Audit Data"
          inclob      = FALSE.
-END.
-
+END. /* class = "y"*/
 ELSE IF class = "i" THEN DO:
   {adecomm/okrun.i  
      &FRAME  = "FRAME write-dump-file-nobl" 
@@ -3440,7 +3470,8 @@ END.
 else 
 if class = "5"  /* version 5 .df */
 or class = "k"  /* sequence def's */
-or class = "s"  /* sequence-values */ THEN 
+or class = "s" 
+or class = "p" /* sequence-values */ THEN 
 DO:
     /* moved with update since there are addtionl logic to decide Mt or not
     (ALL of these should really be moved where they are used) */
@@ -3538,7 +3569,8 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   else 
   if class = "5"  /* version 5 .df */
   or class = "k"  /* sequence def's */
-  or class = "s"   /* sequence-values */ THEN
+  or class = "s" /* sequence-values */
+  or class = "P"  THEN
   do: 
      {adecomm/okrun.i  
        &FRAME  = "FRAME write-def-file" 

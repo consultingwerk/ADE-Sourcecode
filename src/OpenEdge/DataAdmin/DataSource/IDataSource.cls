@@ -60,6 +60,9 @@ interface OpenEdge.DataAdmin.DataSource.IDataSource inherits IQueryMap:
     /** refresh row-state 0 data */
     method public logical Refresh(bufferHandle as handle).
     
+    /** this method refresh the CDC create input buffer  */
+    method public logical Refreshbuffers(bufferHandle as handle).
+    
     method public logical Attach(bufferHandle as handle).
     
     method public logical Fill().

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2016 by Progress Software Corporation 
+Copyright (c) 2013-2017 by Progress Software Corporation 
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -13,14 +13,14 @@ and/or one of its subsidiaries or affiliates. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.Assertion.AssertArray.
+using OpenEdge.Core.Assertion.AssertObject.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.DataTypeEnum.
-using OpenEdge.Core.Assert.
-using Progress.Lang.Class.
 using Progress.Lang.Object.
-using OpenEdge.Core.AssertionFailedError.
-using OpenEdge.Core.Assertion.AssertObject.
 
 class OpenEdge.Core.Assert:
     
@@ -32,7 +32,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -41,7 +41,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -50,7 +50,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -59,7 +59,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -68,7 +68,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -77,7 +77,7 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.        
     end method.
@@ -86,19 +86,46 @@ class OpenEdge.Core.Assert:
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.
-                
     end method.
 
     method public static void Equals(input a as character, input b as character):
         define variable failMessage as character no-undo.
         if not a = b then
         do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
+            failMessage = substitute("Expected: &1 but was: &2", a, b).
             return error new AssertionFailedError(failMessage, 0).
         end.
+    end method.
+
+    method public static void Equals(input a as date, input b as date):
+        if not a eq b then
+            return error new AssertionFailedError(
+                            substitute("Expected: &1 but was: &2", a, b), 
+                                0).
+    end method.
+
+    method public static void Equals(input a as datetime, input b as datetime):
+        if not a eq b then
+            return error new AssertionFailedError(
+                            substitute("Expected: &1 but was: &2", a, b), 
+                                0).
+    end method.
+
+    method public static void Equals(input a as datetime-tz, input b as datetime-tz):
+        if not a eq b then
+            return error new AssertionFailedError(
+                            substitute("Expected: &1 but was: &2", a, b), 
+                                0).
+    end method.
+    
+    method public static void Equals(input a as logical, input b as logical):
+        if not a eq b then
+            return error new AssertionFailedError(
+                            substitute("Expected: &1 but was: &2", a, b), 
+                                0).
     end method.
     
     method public static void NotEqual(input a as character, input b as character):
@@ -405,7 +432,7 @@ class OpenEdge.Core.Assert:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
 
-        Assert:HasDeterminateExtent(piArgument, pcName).
+        AssertArray:HasDeterminateExtent(piArgument, pcName).
         iMax = extent(piArgument).
         do iLoop = 1 to iMax:
             Assert:NonZero(piArgument[iLoop], substitute('Extent &2 of &1', pcName, iLoop)).
@@ -420,7 +447,7 @@ class OpenEdge.Core.Assert:
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
 
-        Assert:HasDeterminateExtent(piArgument, pcName).
+        AssertArray:HasDeterminateExtent(piArgument, pcName).
         iMax = extent(piArgument).
         do iLoop = 1 to iMax:
             Assert:NonZero(piArgument[iLoop], substitute('Extent &2 of &1', pcName, iLoop)).
@@ -532,76 +559,70 @@ class OpenEdge.Core.Assert:
     
     method public static void HasDeterminateExtent(input pcArgument as character extent,
                                                            input pcName as character):
-        if extent(pcArgument) eq ? then
-            undo, throw new AssertionFailedError(substitute('&1 array cannot be indeterminate', pcName), 0).
+        AssertArray:HasDeterminateExtent(pcArgument, pcName).
     end method.
     
     method public static void HasDeterminateExtent(input pcArgument as character extent):
-        HasDeterminateExtent(pcArgument, "argument").
+        AssertArray:HasDeterminateExtent(pcArgument, "argument").
     end method.
     
     method public static void IsIndeterminateArray(input pcArgument as character extent,
                                                            input pcName as character):
-        if extent(pcArgument) ne ? then
-            undo, throw new AssertionFailedError(substitute('&1 array must be indeterminate', pcName), 0).
+        AssertArray:IsIndeterminateArray(pcArgument, pcName).
     end method.
     
     method public static void IsIndeterminateArray(input pcArgument as character extent):
-        IsIndeterminateArray(pcArgument, "argument").
+        AssertArray:IsIndeterminateArray(pcArgument, "argument").
     end method.
 
     method public static void IsIndeterminateArray(input poArgument as Object extent,
                                                            input pcName as character):
-        AssertObject:IsIndeterminateArray(poArgument, pcName).
+        AssertArray:IsIndeterminateArray(poArgument, pcName).
     end method.
     
     method public static void HasDeterminateExtent(input poArgument as Object extent,
                                                            input pcName as character):
-        AssertObject:HasDeterminateExtent(poArgument, pcName).
+        AssertArray:HasDeterminateExtent(poArgument, pcName).
     end method.
     
     method public static void HasDeterminateExtent(input piArgument as integer extent,
                                                            input pcName as character):
-        if extent(piArgument) eq ? then
-            undo, throw new AssertionFailedError(substitute('&1 array cannot be indeterminate', pcName), 0).
+        AssertArray:HasDeterminateExtent(piArgument, pcName).
     end method.
 
     method public static void HasDeterminateExtent(input piArgument as integer extent):
-        HasDeterminateExtent(piArgument, "argument").
+        AssertArray:HasDeterminateExtent(piArgument, "argument").
     end method.
     
     method public static void IsIndeterminateArray(input piArgument as integer extent,
                                                            input pcName as character):
-        if extent(piArgument) ne ? then
-            undo, throw new AssertionFailedError(substitute('&1 array must be indeterminate', pcName), 0).
+        AssertArray:IsIndeterminateArray(piArgument, pcName).
     end method.
 
     method public static void IsIndeterminateArray(input piArgument as integer extent):
-        IsIndeterminateArray(piArgument, "argument").
+        AssertArray:IsIndeterminateArray(piArgument, "argument").
     end method.
     
     method public static void HasDeterminateExtent(input piArgument as int64 extent,
                                                            input pcName as character):
-        if extent(piArgument) eq ? then
-            undo, throw new AssertionFailedError(substitute('&1 array cannot be indeterminate', pcName), 0).
+        AssertArray:HasDeterminateExtent(piArgument, pcName).
     end method.
 
     method public static void HasDeterminateExtent(input piArgument as int64 extent):
-        HasDeterminateExtent(piArgument, "argument").
+        AssertArray:HasDeterminateExtent(piArgument, "argument").
     end method.
     
     method public static void IsIndeterminateArray(input piArgument as int64 extent,
                                                            input pcName as character):
-        if extent(piArgument) ne ? then 
-            undo, throw new AssertionFailedError(substitute('&1 array must be indeterminate', pcName), 0).
+        AssertArray:IsIndeterminateArray(piArgument, pcName).
     end method.
 
     method public static void IsIndeterminateArray(input piArgument as int64 extent):
-        IsIndeterminateArray(piArgument, "argument").
+        AssertArray:IsIndeterminateArray(piArgument, "argument").
     end method.
     
     method public static void IsAvailable(input phArgument as handle,
-                                                  input pcName as character):
+                                          input pcName as character):
         Assert:NotNull(phArgument, pcName).
         
         if not phArgument:available then
@@ -613,7 +634,7 @@ class OpenEdge.Core.Assert:
     end method.
        
     method public static void NotAvailable(input phArgument as handle,
-                                                   input pcName as character):
+                                           input pcName as character):
         Assert:NotNull(phArgument, pcName).
 
         if phArgument:available then
@@ -625,7 +646,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsInteger(input pcArgument as character,
-                                                input pcName as character):
+                                        input pcName as character):
         define variable iCheckVal as integer no-undo.
 
         iCheckVal = int(pcArgument) no-error.
@@ -638,7 +659,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsDecimal(input pcArgument as character,
-                                                input pcName as character):
+                                        input pcName as character):
         define variable iCheckVal as integer no-undo.
 
         iCheckVal = decimal(pcArgument) no-error.
@@ -651,7 +672,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsInt64(input pcArgument as character,
-                                                input pcName as character):
+                                      input pcName as character):
         define variable iCheckVal as integer no-undo.
 
         iCheckVal = int64 (pcArgument) no-error.
@@ -664,21 +685,21 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsTrue(input plArgument as logical,
-                                             input pcName as character):
+                                     input pcName as character):
         /* deliberate not true */
         if not (plArgument eq true) then
             undo, throw new AssertionFailedError(substitute('&1 is not true', pcName), 0).
     end method.
 
     method public static void IsFalse(input plArgument as logical,
-                                              input pcName as character):
+                                      input pcName as character):
         /* deliberate not false */
         if not (plArgument eq false) then
             undo, throw new AssertionFailedError(substitute('&1 is not false', pcName), 0).
     end method.
    
     method public static void IsUnknown(input plArgument as logical,
-                                                input pcName as character):
+                                        input pcName as character):
         /* deliberate not ? */
         if not (plArgument eq ?) then
             undo, throw new AssertionFailedError(substitute('&1 is unknown', pcName), 0).
@@ -689,7 +710,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotTrue(input plArgument as logical,
-                                              input pcName as character):
+                                      input pcName as character):
         if plArgument eq true then
             undo, throw new AssertionFailedError(substitute('&1 is true', pcName), 0).
     end method.

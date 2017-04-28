@@ -88,6 +88,17 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
             return isPartitionEnabled.           
         end.
         private set.
+        
+    define public property IsCDCEnabled as logical init ? no-undo 
+        get():
+            if IsCDCEnabled = ? then 
+            do:
+                find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Change Data Capture" no-lock no-error.
+                isCDCEnabled = avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled = "1".
+            end. 
+            return isCDCEnabled.           
+        end.
+        private set.
     
     define public property IsUserSuperTenant as logical no-undo 
         get():
@@ -126,9 +137,15 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
          
  	define public property FileExpression as character no-undo 
     	get:
-	        return FileDBExpression + " and  _file._owner = 'PUB' and _file._hidden = 'false'".
+	        return FileDBExpression + " and  _file._owner = 'PUB' and _file._hidden = 'false' and _file._File-Attributes[6] = 'false'".
 	    end.
 	
+	/* Introduced this to acheive retrieval of non-PUB table/fields */    
+	define public property FileExpression2 as character no-undo 
+        get:
+            return FileDBExpression + " and _file._hidden = 'false'".
+        end.
+    
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  
 			Notes:  																	  

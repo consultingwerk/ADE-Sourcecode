@@ -68,9 +68,16 @@ class OpenEdge.Web.DataObject.MappedOperation:
         Assert:NotNullOrEmpty(pcServiceName, 'Service name').
         Assert:NotNullOrEmpty(pcServiceURI, 'Service URI').
         Assert:NotNull(poMethod, 'Operation method').
-        Assert:NotNullOrEmpty(pcContentType, 'Content type').
+        Assert:NotNull(pcContentType, 'Content type').
         Assert:NotNull(poTargetType, 'Target type').
-        Assert:NotNullOrEmpty(pcTargetName, 'Target name').
+        Assert:NotNull(pcTargetName, 'Target name').
+        // VOID targets are allowed empty names (by definition, really)
+        if poTargetType ne TargetTypeEnum:void then
+        do:
+            Assert:NotEmpty(pcTargetName, 'Target name').
+            Assert:NotEmpty(pcContentType, 'Content type').
+        end.
+        
         Assert:NotNull(pcTargetFunction, 'Target function').
         Assert:NotNull(poParams, 'Operation parameters').
         Assert:IsPositive(piStatusCode, 'Status code').

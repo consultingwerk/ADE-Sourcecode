@@ -3,8 +3,8 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS sObject 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2016 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -607,11 +607,25 @@ PROCEDURE EdPopupDrop :
         SUB-MENU  m_Format:SENSITIVE = /* TRUE IF... */
                         ( NOT Read_Only ) AND ( Text_Is_Selected )
         
+        /* You can always do a cut in the source editor. It will cut
+        ** the selection if text is selected. Otherwise it cuts the
+        ** line the cursor is on.
+        */
         MENU-ITEM m_Cut:SENSITIVE IN MENU mnu_EdPopup  = /* TRUE IF... */
-                        ( NOT Read_Only ) AND ( Text_Is_Selected )
+                        IF EdSource:SOURCE-EDITOR THEN
+                            ( NOT Read_Only )
+                        ELSE
+                            ( NOT Read_Only ) AND ( Text_Is_Selected )
 
+        /* You can always do a copy in the source editor. It will copy
+        ** the selection if text is selected. Otherwise it copies the
+        ** line the cursor is on.
+        */
         MENU-ITEM m_Copy:SENSITIVE IN MENU mnu_EdPopup = /* TRUE IF...*/
-                        ( Text_Is_Selected  )
+                        IF EdSource:SOURCE-EDITOR THEN
+                            TRUE
+                        ELSE
+                            ( Text_Is_Selected  )
                             
         MENU-ITEM m_Paste:SENSITIVE IN MENU mnu_EdPopup = /* TRUE IF... */
                         ( EdSource:EDIT-CAN-PASTE ) AND ( NOT Read_Only )

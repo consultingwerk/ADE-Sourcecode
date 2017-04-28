@@ -37,6 +37,7 @@ DEFINE OUTPUT PARAMETER p_large_seq AS LOGICAL.
 DEFINE OUTPUT PARAMETER p_large_keys AS LOGICAL.
 DEFINE OUTPUT PARAMETER p_multitenant AS LOGICAL.
 DEFINE OUTPUT PARAMETER p_partitioned AS LOGICAL.
+DEFINE OUTPUT PARAMETER p_cdcenabled AS LOGICAL.
 /*------------------------------------------------------------------*/
 
 if p_currdbt = "PROGRESS"
@@ -87,6 +88,17 @@ if available DICTDB._Db
       p_multitenant = true.
    ELSE
       p_multitenant = false.
+
+   FIND DICTDB._Database-feature WHERE _DBFeature_Name = "Change Data Capture" NO-LOCK NO-ERROR.
+   IF AVAILABLE DICTDB._Database-feature THEN DO:
+     IF DICTDB._Database-feature._DBFeature_Enabled = "1" THEN
+          p_cdcenabled = true.
+     ELSE
+          p_cdcenabled = false.
+   END.
+   ELSE 
+        ASSIGN p_cdcenabled = ?.
+
 
   END.
   else assign 

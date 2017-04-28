@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultHttpClientBuilder
@@ -13,17 +13,15 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Assertion.AssertJson.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.JsonDataTypeEnum.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Net.HTTP.ClientBuilder.
-using OpenEdge.Net.HTTP.HttpClientDecorator.
+using OpenEdge.Net.HTTP.ICookieJar.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.ISupportCookies.
-using OpenEdge.Net.HTTP.ICookieJar.
 using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.URI.
-using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
              implements ISupportInitialize:
@@ -43,7 +41,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
     end destructor.  
 
     method public void Initialize():
-        Named('OpenEdge-HttpClient':u, '0.3.0':u).
+        Named('OpenEdge-HttpClient':u, '0.4.0':u).
     end method.
     
     method public void Destroy():
@@ -67,7 +65,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
         
         oClient = dynamic-new string(oClientType:TypeName) (GetOptionStringValue(PROP_CLIENT_NAME),
                                                             GetOptionStringValue(PROP_CLIENT_VERSION),
-                                                            BuildLibrary()).
+                                                            BuildLibrary() ).
         
         /* SET OPTIONS */
         if HasOption('numRetries':u) then
@@ -76,6 +74,11 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
             oClient:Options:PauseBetweenRetry = GetOptionNumericValue('pauseBetweenRetry':u).
         if HasOption('requestTimeout':u) then
             oClient:Options:RequestTimeout = GetOptionNumericValue('requestTimeout':u).
+        
+        // Add logging if it's been passed in 
+        if HasOption(get-class(ILogWriter):TypeName) 
+           and type-of(oClient, ISupportLogging) then
+            assign cast(oClient, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
         
         /* INIT if needed  */
         if type-of(oClient, ISupportInitialize) then

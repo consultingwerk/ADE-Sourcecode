@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2016 by progress Software Corporation  */
+/* Copyright (c) 2011-2017 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -44,6 +44,10 @@ using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
+using OpenEdge.DataAdmin.ICdcFieldPolicy from propath.
+using OpenEdge.DataAdmin.ICdcFieldPolicySet from propath.
+using OpenEdge.DataAdmin.ICdcTablePolicy from propath.
+using OpenEdge.DataAdmin.ICdcTablePolicySet from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminService from propath.
@@ -253,6 +257,13 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
        return CreateCollection(policies,ContextFactory:PartitionPolicyContext).
     end method. 
     
+    method public logical CreateCdcTablePolicy(policy as ICdcTablePolicy):
+        return CreateElement(policy,ContextFactory:CdcTablePolicyContext). 
+    end method.    
+   
+    method public logical CreateCdcTablePolicies(policies as ICdcTablePolicySet).
+       return CreateCollection(policies,ContextFactory:CdcTablePolicyContext).
+    end method. 
       
     method public logical CreateTenantGroups(groups as ITenantGroupSet):
         return CreateCollection(groups,ContextFactory:TenantGroupContext). 
@@ -400,6 +411,16 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return DeleteElement(policyName,inst,ContextFactory:PartitionPolicyContext). 
     end method.
     
+    method public logical DeleteCdcTablePolicy(policyName as char).
+        define variable response as ISaveRequest no-undo.       
+        define variable inst as ICdcTablePolicy no-undo.       
+        inst = GetCdcTablePolicy(policyName).
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("CdcTablePolicy " + quoter(policyName) + " not found").  
+              
+        return DeleteElement(policyName,inst,ContextFactory:CdcTablePolicyContext). 
+    end method.
+       
     method public logical DeleteTenant(tenantName as char):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ITenant no-undo.       
@@ -735,6 +756,27 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
     end method.
     
+    /* This method is introduced to support retrieval of PUB and non-PUB tables as part of CDC feature */
+    method public ITable GetTable(tableName as char,owner as char):
+        define variable tabSet as ITableSet no-undo.
+        define variable nonPUBTbl as ITable no-undo.        
+        define variable iter     as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
+        
+        if owner ne "PUB" and owner ne "" then do:
+            /* find the table based on given schema and table name */               
+            tabSet = cast(ContextFactory:AllTableContext:GetCollection("SchemaName eq " + quoter(owner) + " and Name eq " + quoter(tableName)),ITableset).
+            iter = tabset:Iterator(). 
+            do while iter:HasNext(): 
+                nonPUBTbl = cast(iter:Next(), ITable). 
+                leave.  //the collection filter will fetch only one table, hence leave the block.
+            end.            
+            if valid-object(nonPUBTbl) then 
+                return nonPUBTbl.
+            else undo, throw new IllegalArgumentError("GetTable method without corresponding Table and Owner Name").
+        end.
+        else return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
+    end method.
+    
     method public ITable GetTable(pRequestInfo as IRequestInfo):
         return cast(ContextFactory:TableContext:GetEntity(pRequestInfo),ITable). 
     end method.
@@ -842,6 +884,53 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pFilter),IPartitionPolicyDetailSet).
     end method.
     
+    method public ICdcTablePolicy GetCdcTablePolicy(pname as char).
+        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pname),ICdcTablePolicy). 
+    end method. 
+     
+    method public ICdcTablePolicy GetCdcTablePolicy(pRequestInfo as IRequestInfo).
+        AssertNotRequested("fields",pRequestInfo).
+        return cast(ContextFactory:CdcTablePolicyContext:GetEntity(pRequestInfo),ICdcTablePolicy). 
+    end method.
+    
+     /** Get a collection of allpartition policies  in the database   
+        @param  name char of PartitionPolicy*/ 
+    method public ICdcTablePolicySet GetCdcTablePolicies().
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(),ICdcTablePolicySet).
+    end method.
+    
+    /** Get a collection of partition policies 
+        @param  request IRequestInfo*/ 
+    method public ICdcTablePolicySet GetCdcTablePolicies(pRequestInfo as IRequestInfo):
+        AssertNotRequested("fields",pRequestInfo).
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pRequestInfo),ICdcTablePolicySet).
+    end method.
+    
+    /** Get a collection of partition policies 
+         @param  filter  */ 
+    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as char):
+        return cast(ContextFactory:CdcTablePolicyContext:GetCollection(pFilter),ICdcTablePolicySet).
+    end method.
+  
+     /** Get a collection of all partition policies details in the database   */
+    method public ICdcFieldPolicySet GetCdcFieldPolicies().
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(),ICdcFieldPolicySet).
+    end method.
+   
+    /** Get a collection of  partition policies details   
+         @param  request IRequestInfo*/ 
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pRequestInfo as IRequestInfo).
+/*     ??    AssertNotRequested("values",pRequestInfo).*/
+   
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pRequestInfo),ICdcFieldPolicySet).
+    end method.
+   
+    /** Get a collection of  partition policies details   
+       @param  filter  */ 
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as char).
+        return cast(ContextFactory:CdcFieldPolicyContext:GetCollection(pFilter),ICdcFieldPolicySet).
+    end method.
+   
     method public IUserTablePermissionSet GetPermissions(pccollections as char):
         return cast(ContextFactory:PermissionContext:GetCollection(pcCollections),IUserTablePermissionSet).
     end method.
@@ -914,6 +1003,19 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(NewEntity("PartitionPolicyDetail",pname),IPartitionPolicyDetail). 
     end method.  
     
+    method public ICdcTablePolicy NewCdcTablePolicy(pname as char).
+        return cast(NewEntity("CdcTablePolicy",pname),ICdcTablePolicy). 
+    end method. 
+    
+    method public ICdcTablePolicySet NewCdcTablePolicies().
+        return cast(NewCollection("CdcTablePolicy"),ICdcTablePolicySet). 
+        
+    end method. 
+             
+    method public ICdcFieldPolicy NewCdcFieldPolicy().
+        return cast(NewEntity("CdcFieldPolicy","cdcField"),ICdcFieldPolicy).
+    end method. 
+   
     method public ITenantGroupMember NewTenantGroupMember():
         return new TenantGroupMember().
         /*  this does work but we do not need context before added to service or collection   
@@ -1233,6 +1335,14 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         @param policies IPartitionPolicySet with policies to be updated */
     method public logical UpdatePartitionPolicies(policy as IPartitionPolicySet).
         return UpdateCollection(policy,ContextFactory:PartitionPolicyContext).
+    end method.
+    
+     method public logical UpdateCdcTablePolicy(policy as ICdcTablePolicy).
+        return UpdateElement(policy,ContextFactory:CdcTablePolicyContext).
+    end method.
+        
+    method public logical UpdateCdcTablePolicies(policy as ICdcTablePolicySet).
+        return UpdateCollection(policy,ContextFactory:CdcTablePolicyContext).
     end method.
     
     method public logical UpdateSequence(seq as ISequence):

@@ -1,5 +1,5 @@
-/************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+ /************************************************
+Copyright (c) 2013,2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : SaxReader
@@ -82,6 +82,9 @@ class OpenEdge.Core.XML.SaxReader:
         delete procedure mhParserProc no-error.
     end destructor.
     
+    /* Parses the XML contained in the input longchar
+       
+       @param longchar The XML data to parse. */
     method public void ParseDocument(input pcXML as longchar):
         /* run the facade.p for each  document run, since we set up a circular dependency
            and GC cannot clean it up */
@@ -93,7 +96,10 @@ class OpenEdge.Core.XML.SaxReader:
             delete object mhParserProc no-error.
         end finally.
     end method.
-
+    
+    /* Parses the XML contained in the input memptr
+       
+       @param memptr The XML data to parse. */
     method public void ParseDocument(input pmXML as memptr):
         /* run the facade.p for each  document run, since we set up a circular dependency
            and GC cannot clean it up */
@@ -106,6 +112,20 @@ class OpenEdge.Core.XML.SaxReader:
         end finally.
     end method.
 
+    /* Parses the XML contained in the input file
+       
+       @param character The name of the file to parse. */
+    method public void ParseFile(input pcFilename as character):
+        /* run the facade.p for each  document run, since we set up a circular dependency
+           and GC cannot clean it up */
+        run OpenEdge/Core/XML/saxreaderfacade.p persistent set mhParserProc (this-object).
+                
+        run ParseFile in mhParserProc (pcFilename).
+        finally:
+            delete object mhParserProc no-error.
+        end finally.
+    end method.
+    
     /* Tell the parser where to find an external entity. */
     method public void ResolveEntity (input pcPublicID as character,
                                       input pcSystemID as character,

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RedirectStatusFilter
@@ -15,7 +15,12 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
@@ -24,7 +29,9 @@ using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
 using Progress.Lang.Object.
 
-class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessageWriter:
+class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessageWriter, ISupportLogging:
+     
+    define public property Logger as ILogWriter no-undo get. set.
      
     /** (mandatory) The message that's being written to. The values passed in to the Write() methods
         will be parsed/processed and writted to this message. */  
@@ -36,7 +43,9 @@ class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessa
     constructor public RedirectStatusFilter(input poMessage as IHttpRequest):
         Assert:NotNull(poMessage, 'Http request').
         
-        assign this-object:Message = poMessage.
+        assign this-object:Message = poMessage
+               this-object:Logger  = LoggerBuilder:GetLogger(get-class(RedirectStatusFilter))
+               .
     end constructor.
 
     method public void Close():
@@ -57,11 +66,11 @@ class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessa
         if not valid-object(oScheme) then
             assign mcData = cast(this-object:Message, IHttpRequest):URI:BaseUri + mcData.
 
-        LogMessage(substitute('From URL &1':u, cast(this-object:Message, IHttpRequest):URI:ToString()), 5).
+        Logger:Debug(substitute('From URL &1':u, cast(this-object:Message, IHttpRequest):URI:ToString())).
         
         cast(this-object:Message, IHttpRequest):URI = URI:Parse(string(mcData)).
         
-        LogMessage(substitute('To URL &1':u, cast(this-object:Message, IHttpRequest):URI:ToString()), 5).
+        Logger:Debug(substitute('To URL &1':u, cast(this-object:Message, IHttpRequest):URI:ToString())).
         
         /* Add the response cookies to the new request */
         do iLoop = extent(moCookies) to 1 by -1:
@@ -108,22 +117,10 @@ class OpenEdge.Net.HTTP.Filter.Status.RedirectStatusFilter implements IHttpMessa
         if cast(poData, IHttpResponse):HasHeader('Location':u) then
             assign mcData = cast(poData, IHttpResponse):GetHeader('Location':u):Value.
             
-        LogMessage(substitute('HTTP status &1':u, cast(poData, IHttpResponse):StatusCode), 5).
+        Logger:Debug(substitute('HTTP status &1':u, cast(poData, IHttpResponse):StatusCode)).
         
         /* we also need to 'carry over' Cookies */
         cast(poData, IHttpResponse):GetCookies(output moCookies).
     end method.
-
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method protected void LogMessage(input pcMessage as character,
-                                     input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'FLTR-3XX':u).
-    end method.
+    
 end class.

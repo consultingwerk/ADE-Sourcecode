@@ -22,8 +22,6 @@ class OpenEdge.Web.DataObject.Writer.ObjectValueWriter inherits ArgumentValueWri
     end constructor. 
     
     method override public void Write(input pData as Progress.Lang.Object):
-        Assert:NotNull(pData, 'Input data').
-        
         assign this-object:Value = pData.
     end method.
     

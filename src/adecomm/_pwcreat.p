@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2016 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -145,6 +145,7 @@ ASSIGN
   FGCOLOR     = std_ed4gl_fgcolor   /* From adestds.i */
   BGCOLOR     = std_ed4gl_bgcolor   /* From adestds.i */
   AUTO-INDENT = TRUE
+  RETURN-INSERTED = TRUE
   LARGE       = TRUE
   PROGRESS-SOURCE = YES  /* No-Op on GUI, but ok to have. */
   FRAME       = h_frame

@@ -1,0 +1,22 @@
+{
+  "DEFAULT_LOGGER": "OpenEdge",
+  "logger": {
+    "OpenEdge": {
+      "logLevel": "OFF",
+      "filters": ["VOID_WRITER"]
+    },
+    "OpenEdge.Web.DataObject.DataObjectHandler": {
+      "logLevel": "WARN",
+      "filters": [
+        "ABL_SUBSTITITE_FORMAT",
+        "ERROR_FORMAT",
+        "LOG_MANAGER_FORMAT",
+        {
+          "filterName": "LOG_MANAGER_WRITER",
+          "fileName": "",
+          "appendTo": true
+        }
+      ]
+    }
+  }
+}

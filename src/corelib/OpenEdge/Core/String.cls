@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013- 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -20,14 +20,27 @@ block-level on error undo, throw.
 using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.Array.
+using OpenEdge.Core.ISupportEncoding.
 using Progress.Lang.Object.
 
 /* Don't have a USING for this class, so that we can avoid conflicts with the STRING() ABL keyword/function
 using OpenEdge.Core.String.*/
 
 class OpenEdge.Core.String serializable
-        implements ILongcharHolder:
+        implements ILongcharHolder, ISupportEncoding:
+    
+    // Helper/holder for an empty String instance  
     define static private variable moEmptyString as OpenEdge.Core.String no-undo.
+    
+    /* Content encoding (eg utf-8) of this string. Defaults to CPINTERNAL if not specified */ 
+    define public property Encoding as character no-undo initial ?
+        get():
+            if this-object:Encoding eq ? then
+                return session:cpinternal.
+            
+            return this-object:Encoding.
+        end get.
+        set.
     
     /** Contains the actual string value */
     define public property Value as longchar no-undo get. private set.
@@ -38,15 +51,24 @@ class OpenEdge.Core.String serializable
             return length(this-object:Value, 'raw':u).
         end get.
     
+    /* Default constructor */
     constructor public String():
         super().        
     end constructor.
-
+    
+    /* Constructor 
+       
+       @param longchar A string value */
     constructor public String(pcString as longchar):
         super().
-        assign this-object:Value = pcString.
+        
+        assign this-object:Value    = pcString
+               this-object:Encoding = get-codepage (pcString).
     end constructor.
     
+    /* Constructor 
+       
+       @param longchar A string value */
     constructor public String(pcString as char):
         super().
         assign this-object:Value = pcString.
@@ -236,19 +258,43 @@ class OpenEdge.Core.String serializable
        @return logical TRUE if the string is non-null and has matching leading and trailing quotes. */    
     method static public logical IsQuoted(input pcValue as longchar,
                                           input pcQuote as character):
-        define variable cFirst as character no-undo.
-        define variable cLast as character no-undo.
-        define variable iLength as int64 no-undo.
+        // left- and right-trim since this class has a Trim() method and we cannot disambiguate
+        if pcValue eq ? or length(right-trim(left-trim(pcValue)), 'character':u) lt 2 then
+            return false.
+    
+        Assert:NotNullOrEmpty(pcQuote, 'Quote character').
+        
+        return (index(pcValue, pcQuote)   eq 1 and 
+                r-index(pcValue, pcQuote) eq length(pcValue, 'character':u)). 
+    end method.
+    
+    method public logical IsNullOrEmpty():
+        return OpenEdge.Core.String:IsNullOrEmpty(this-object:Value).
+    end method.
+    
+    /* Indicates whether a string is null or empty: empty having no
+       non-whitespace characters
+       
+       @param longchar The value being checked
+       @return logical TRUE if the string is null or empty */
+    method static public logical IsNullOrEmpty(input pcValue as longchar):
+        define variable iRawLength as integer no-undo.
         
         if pcValue eq ? then
-            return false.
-        Assert:NotNullOrEmpty(pcQuote, 'Quote character').
-                    
-        assign iLength = length(pcValue, 'raw':u)
-               cFirst  = substring(pcValue, 1, 1)
-               cLast   = substring(pcValue, iLength, 1)
-               .
-        return (cFirst eq cLast) and (cFirst eq pcQuote).
+            return true.
+            
+        assign iRawLength = length(pcValue, 'raw':u).
+        
+           /* no characters is pretty empty */
+        if iRawLength eq 0 or
+           /* TRIM converts everything to cpinternal, which may not be able to 'see' all the characters
+              that are in the argument. So, if the lengths differ, then there's something that's not a space
+              (strong assumption) and we're OK, Jack.
+              If the lengths match, we are ok to convert and we try to trim. */
+           (iRawLength eq length(pcValue) and right-trim(left-trim(pcValue)) eq '':u) then
+            return true.
+            
+        return false.            
     end method.
     
 end class.

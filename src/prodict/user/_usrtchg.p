@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000-2011,2013 by Progress Software Corporation. All  *
-* rights reserved.  Prior versions of this work may contain portions  *
+* Copyright (C) 2000-2011,2013,2016 by Progress Software Corporation. *
+* All rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -78,6 +78,7 @@ DEFINE VARIABLE fldeditor       AS LOGICAL               NO-UNDO.
 DEFINE VARIABLE odbtyp          AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearea        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearealog     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE CDCenabled      AS LOGICAL   INITIAL NO  NO-UNDO.
 
 DEFINE VARIABLE arealist                   AS CHARACTER INITIAL ?   NO-UNDO.
 DEFINE VARIABLE areaname                   AS CHARACTER             NO-UNDO.
@@ -151,7 +152,7 @@ IF (DICTDB._Db._DB-type = "ORACLE" OR DICTDB._DB._Db-type = "AS400" OR
       view-as ALERT-BOX ERROR buttons OK.
   ASSIGN user_path = "".
   RETURN.
-END.  
+END. 
   
 FIND DICTDB._File OF DICTDB._Db WHERE
   DICTDB._File._File-name = user_filename 
@@ -280,6 +281,7 @@ romode =  0 - can read/write
 */
 
 FIND DICTDB._File "_File".
+   
 romode = (IF wfil._Frozen THEN 1 ELSE IF dict_rog THEN 2 ELSE IF wfil._Db-lang > 1 THEN 4 ELSE 0).
 IF adding AND NOT CAN-DO(DICTDB._File._Can-write,USERID("DICTDB"))
   THEN romode = 3.
@@ -298,6 +300,11 @@ IF adding AND NOT capabs[1] THEN romode = -3.
 /*-2: You do not have permission to see file definitions.                 */
 /*-3: You may not add a file definition here for this database type.      */
 
+if not adding then do:
+FIND FIRST DICTDB._File where DICTDB._File._File-name eq user_filename.
+   ASSIGN CDCenabled = _File._File-Attributes[6].
+end.
+
 HIDE MESSAGE NO-PAUSE.
 IF romode < 0 THEN DO:
   MESSAGE (IF romode = -1
@@ -313,8 +320,9 @@ stdmsg =
   (IF romode = 0
   THEN IF adding THEN "" 
        ELSE "Use the [" + KBLABEL("GET") + "] key to switch tables quickly."
-  ELSE IF romode = 1
-  THEN "This table definition has been FROZEN and cannot be altered here."
+  ELSE IF romode = 1 
+  THEN IF NOT CDCenabled THEN "This table definition has been FROZEN and cannot be altered here."
+       ELSE "Use the [" + KBLABEL("GET") + "] key to switch tables quickly."
   ELSE IF romode = 2
   THEN "The dictionary is in read-only mode, so alterations are not allowed."
   ELSE IF romode = 4 THEN
@@ -492,7 +500,7 @@ if adding then do:
     button-v button-f button-s
     button-d         WHEN can-do(odbtyp + ",ORACLE", user_dbtype)
                             and not adding
-    btn_OK           WHEN romode = 0
+    btn_OK           WHEN romode = 0 OR (romode = 1 and CDCenabled) 
     btn_Cancel 
     btn_flds         WHEN NOT adding AND fldeditor
     WITH FRAME frame-d.
@@ -518,7 +526,7 @@ if not adding then do:
     button-v button-f button-s
     button-d         WHEN can-do(odbtyp + ",ORACLE", user_dbtype)
                             and not adding
-    btn_OK           WHEN romode = 0
+    btn_OK           WHEN romode = 0 OR (romode = 1 and CDCenabled) 
     btn_Cancel 
     btn_flds         WHEN NOT adding AND fldeditor
     WITH FRAME frame-d.
@@ -594,9 +602,9 @@ end.
       wfil._For-Type = "BUFFER"
       wfil._For-Name = "NONAME".
         
-  IF romode = 0 THEN DO:
+  IF romode = 0 OR (romode = 1 and CDCenabled)  THEN DO:
     ierror = 0.
-    IF NOT adding AND wfil._File-name <> user_filename THEN DO:
+    IF NOT adding AND wfil._File-name <> user_filename THEN DO:	
       ASSIGN
         irename         = wfil._File-name
         wfil._File-name = user_filename
@@ -604,7 +612,7 @@ end.
       RUN "prodict/dump/_lod_fil.p".
       wfil._File-name = irename.
     END.
-      
+		     
     IF ierror > 0 THEN UNDO, RETRY.
 
     ASSIGN
@@ -634,9 +642,9 @@ end.
         wfil._Fil-misc2[3] = DICTDB._File._Fil-misc2[3].
       /*--------------------------------------------------------------------*/
     end.
-      
+		      
     RUN "prodict/dump/_lod_fil.p".
-    
+		    
     IF ierror > 0 THEN UNDO, RETRY.
     DISPLAY user_filename WITH FRAME user_ftr.
   END.

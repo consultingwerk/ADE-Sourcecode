@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2016 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -106,7 +106,7 @@ PROCEDURE dispatch :
   DEFINE VARIABLE caller-name             AS CHARACTER NO-UNDO.
 
   IF p-method-name BEGINS "adm-":U THEN /* Remove any adm prefix. */ 
-    p-method-name = SUBSTR(p-method-name,5,-1,"CHARACTER":U).
+    p-method-name = SUBSTRING(p-method-name,5,-1,"CHARACTER":U).
   ASSIGN caller-name = ENTRY(1, program-name(2), " ":U).
 
   IF (caller-name NE "local-":U + p-method-name) 
@@ -225,9 +225,9 @@ PROCEDURE set-attribute-list :
         VIEW-AS ALERT-BOX WARNING.
       NEXT.
     END.
-    attr-name = TRIM(SUBSTR(attr-entry, 1, INDEX(attr-entry, "=":U) - 1,
+    attr-name = TRIM(SUBSTRING(attr-entry, 1, INDEX(attr-entry, "=":U) - 1,
         "CHARACTER":U)).
-    attr-value = TRIM(SUBSTR(attr-entry, INDEX(attr-entry, "=":U) + 1,
+    attr-value = TRIM(SUBSTRING(attr-entry, INDEX(attr-entry, "=":U) + 1,
         -1, "CHARACTER":U)).
 
     CASE attr-name:

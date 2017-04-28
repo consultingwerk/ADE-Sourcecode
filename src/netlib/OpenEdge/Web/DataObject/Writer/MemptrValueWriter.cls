@@ -20,6 +20,7 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Lang.AppError.
+using Progress.Json.ObjectModel.JsonConstruct.
 
 class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWriter:
     
@@ -59,6 +60,7 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
     method override public void Write(input pData as integer ):
         define variable mTemp as memptr no-undo.
         
+        set-size(mTemp) = 4.
         put-long(mTemp, 1) = pData.
         mHolder:PutBytes(mTemp).
         
@@ -78,6 +80,7 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
     method override public void Write(input pData as decimal):
         define variable mTemp as memptr no-undo.
         
+        set-size(mTemp) = 8.
         put-double(mTemp, 1) = pData.
         mHolder:PutBytes(mTemp).
         
@@ -89,6 +92,7 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
     method override public void Write(input pData as int64):
         define variable mTemp as memptr no-undo.
         
+        set-size(mTemp) = 8.
         put-int64(mTemp, 1) = pData.
         mHolder:PutBytes(mTemp).
         
@@ -98,9 +102,12 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
     end method.
         
     method override public void Write(input pData as Progress.Lang.Object):
-        Assert:NotNull(pData, 'Input data'). 
+        define variable mData as memptr no-undo.
         
         case true:
+            when not valid-object(pData) then
+                .   /* no-op */
+                
             when type-of(pData, ILongcharHolder) then
                this-object:Write(cast(pData, ILongcharHolder):Value).
 
@@ -118,11 +125,24 @@ class OpenEdge.Web.DataObject.Writer.MemptrValueWriter inherits ArgumentValueWri
                     this-object:Write(cast(pData, IMemptrHolder):Value).
             end.
             
+            when type-of(pData, JsonConstruct) then
+            do:
+                cast(pData, JsonConstruct):Write(mData, session:debug-alert).
+                mHolder:PutBytes(mData).
+            end.
+            
+            when type-of(pData, Progress.Lang.Enum) then
+               this-object:Write(int64(cast(pData, Progress.Lang.Enum))).
+            
             otherwise 
                 return error new AppError(
                             substitute('Unsupported object type: &1', pData:GetClass():TypeName)
                             , 0).
         end case.
+        
+        finally:
+            set-size(mData) = 0.
+        end finally.
     end method.
 
 end class.

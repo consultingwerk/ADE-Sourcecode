@@ -297,9 +297,9 @@ DEFINE VARIABLE cWhere   AS CHARACTER NO-UNDO.
 
     IF toggleHidden:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "NO" THEN 
         ASSIGN cWhere = cWhere + " AND _Hidden = NO ":U.
-    
+
     hQuery:QUERY-PREPARE ("FOR EACH ":U + hQuery:GET-BUFFER-HANDLE(1):NAME + cWhere).
-    
+   
     hQuery:QUERY-OPEN.
 
 END PROCEDURE.
@@ -630,9 +630,8 @@ DEFINE VARIABLE cDbInfo  AS CHARACTER NO-UNDO.
 
     IF toggleHidden:SCREEN-VALUE IN FRAME {&FRAME-NAME}= "NO":U THEN 
         ASSIGN cWhere = cwhere + " and _Hidden = NO":U.
-    
+
     hQuery:QUERY-PREPARE ("FOR EACH ":U + hQuery:GET-BUFFER-HANDLE(1):NAME + cWhere).
-    
     hQuery:QUERY-OPEN.
   
 

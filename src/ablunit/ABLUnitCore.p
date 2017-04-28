@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLUnitCore
@@ -59,6 +59,9 @@ DEFINE VARIABLE quitOnEnd AS LOGICAL NO-UNDO INIT FALSE.
 
 /* ***************************  Main Block  *************************** */
 commandParams = SESSION:PARAM.
+
+commandParams = TRIM(commandParams, "~"").
+
 numParams = NUM-ENTRIES(commandParams, " ").
 IF commandParams BEGINS "CFG=" THEN 
     DO:

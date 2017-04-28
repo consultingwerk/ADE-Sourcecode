@@ -77,6 +77,12 @@ DO:
     else
             s_Db_Partition_Enabled = "not enabled".
 
+    find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Change Data Capture" no-lock no-error.
+    if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+            s_Db_CDC_Enabled = "enabled".
+    else
+            s_Db_CDC_Enabled = "not enabled".
+
     /* For large key support, we look at the _Database-feature table.
        For large sequence - if 'Large Keys' is not a valid feature, than this
        is a pre-10.1B db in which case large sequences is not
@@ -106,6 +112,7 @@ END.
 ELSE
     ASSIGN s_Db_Multi_Tenancy = "n/a"
            s_Db_Partition_Enabled = "n/a"
+           s_Db_CDC_Enabled = "n/a"
            s_Db_Large_Sequence = "n/a"
            s_Db_Large_Keys = "n/a".
 
@@ -150,6 +157,7 @@ display s_CurrDb
     s_Db_Cp
     s_Db_Partition_Enabled
     s_Db_Multi_tenancy
+    s_Db_CDC_Enabled
     s_Db_Large_Sequence
     s_Db_Large_Keys
     s_db_description

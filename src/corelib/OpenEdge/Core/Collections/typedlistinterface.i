@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : OpenEdge/Core/Collections/typedlistinterface.i
@@ -37,6 +37,7 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
             &scoped-define FullType {&Package}.{&CollectionType}
         &endif
     &endif                
+&endif
 
 &if defined(ParentCollectionType) eq 0 &then
     &scoped-define ParentCollectionType OpenEdge.Core.Collections.IList

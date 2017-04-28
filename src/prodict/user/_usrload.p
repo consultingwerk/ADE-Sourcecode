@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2005-2009,2014 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2005-2009,2014,2016 by Progress Software Corporation.*
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -36,6 +36,7 @@ Input:
                 "m" = load security permissions
                 "i" = load Database Identification Properties
                 "o" = load Database Options
+				"p" = load CDC Policies
                 
 Output:
   user_env[1] = same as IN
@@ -461,6 +462,21 @@ FORM SKIP({&TFM_WID})
   AT 2  SKIP({&VM_WIDG})
   {prodict/user/userbtns.i}
   WITH FRAME read-d-file-nobl
+  SIDE-LABELS NO-ATTR-SPACE CENTERED 
+  DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
+  VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
+  
+FORM SKIP({&TFM_WID})
+  user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
+              AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+              LABEL "&Input File"
+  btn_File SKIP ({&VM_WIDG})
+  {&DFILE-SPEECH}
+  err% {&STDPH_FILL} FORMAT ">>9" LABEL "&Acceptable Error Percentage" AT 2                   
+     VALIDATE(err% >= 0 AND err% <= 100,
+     "Percentage must be between 0 and 100 inclusive.") SKIP({&VM_WIDG})
+  {prodict/user/userbtns.i}
+  WITH FRAME read-input-cdc
   SIDE-LABELS NO-ATTR-SPACE CENTERED 
   DEFAULT-BUTTON btn_OK CANCEL-BUTTON btn_Cancel
   VIEW-AS DIALOG-BOX TITLE " " + io-title + " ".
@@ -1315,6 +1331,11 @@ ON HELP   OF FRAME read-d-file-nobl OR
                              INPUT ? ).
 END.
 
+on HELP of frame read-input-cdc or CHOOSE of btn_Help in frame read-input-cdc
+   RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
+                             INPUT {&Load_Stuff_Dlg_Box},
+                             INPUT ?).
+
 ON HELP OF FRAME read-xml-file OR 
    CHOOSE OF btn_Help IN FRAME read-xml-file
   RUN "adecomm/_adehelp.p" ( INPUT "admn", 
@@ -1509,6 +1530,26 @@ DO:
   run verify-cp.
 END.
 
+ON GO OF FRAME read-input-cdc
+DO:
+  IF io-file AND SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-input-cdc) = ? THEN DO:
+    MESSAGE msg VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    APPLY "ENTRY" TO user_env[2] IN FRAME read-input-cdc.
+    RETURN NO-APPLY.
+  END.
+  ASSIGN user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-input-cdc.
+     
+  IF NOT user_env[2] MATCHES "*~~.cd" THEN
+  DO:
+	 MESSAGE "You must Provide a valid .cd file!"
+        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+     APPLY "ENTRY" TO user_env[2].
+     RETURN NO-APPLY.
+  END. 
+  
+  run verify-cp.
+END.
+
 ON GO OF FRAME read-xml-file
 DO:
   IF SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-xml-file) = ? 
@@ -1660,6 +1701,12 @@ IF user_env[9] = "t" THEN DO:
     APPLY "WINDOW-CLOSE" TO FRAME read-dir-text.
 END.
       
+IF user_env[9] = "p" THEN DO:
+  ON CHOOSE OF btn_Cancel IN FRAME read-input-cdc
+    APPLY "WINDOW-CLOSE" TO FRAME read-input-cdc.
+END.
+	  
+	  
 /*----- ON WINDOW-CLOSE -----*/
 on WINDOW-CLOSE of frame read-input
    apply "END-ERROR" to frame read-input.
@@ -1686,6 +1733,8 @@ on WINDOW-CLOSE of frame read-d-file-mt
 
 on WINDOW-CLOSE of frame read-d-file-nobl
    apply "END-ERROR" to frame read-d-file-nobl.
+on WINDOW-CLOSE of frame read-input-cdc
+   apply "END-ERROR" to frame read-input-cdc.
 on WINDOW-CLOSE of frame read-xml-file
    apply "END-ERROR" to frame read-xml-file.
 on END-ERROR of frame read-xml-file
@@ -1694,6 +1743,8 @@ on WINDOW-CLOSE of frame read-d-dir
    apply "END-ERROR" to frame read-d-dir.
 on WINDOW-CLOSE of frame read-d-dir-mt
    apply "END-ERROR" to frame read-d-dir-mt.
+on END-ERROR of frame read-input-cdc
+  user_env[2] = ?.
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[2] in frame read-input
@@ -1717,6 +1768,9 @@ ON LEAVE OF user_env[2] in frame read-d-file
 ON LEAVE OF user_env[2] in frame read-d-file-nobl
    user_env[2]:screen-value in frame read-d-file-nobl = 
         TRIM(user_env[2]:screen-value in frame read-d-file-nobl).
+ON LEAVE OF user_env[2] in frame read-input-cdc
+   user_env[2]:screen-value in frame read-input-cdc = 
+        TRIM(user_env[2]:screen-value in frame read-input-cdc).
 ON LEAVE OF user_env[2] in frame read-xml-file
    user_env[2]:screen-value in frame read-xml-file = 
         TRIM(user_env[2]:screen-value in frame read-xml-file).
@@ -1918,6 +1972,13 @@ END.
 ON CHOOSE OF btn_File in frame read-d-file-nobl DO:
    RUN "prodict/misc/_filebtn.p"
        (INPUT user_env[2]:handle in frame read-d-file-nobl /*Fillin*/,
+        INPUT "Find Input File"  /*Title*/,
+        INPUT ""                 /*Filter*/,
+        INPUT yes                /*Must exist*/).
+END.
+ON CHOOSE OF btn_File in frame read-input-cdc DO:
+   RUN "prodict/misc/_filebtn.p"
+       (INPUT user_env[2]:handle in frame read-input-cdc /*Fillin*/,
         INPUT "Find Input File"  /*Title*/,
         INPUT ""                 /*Filter*/,
         INPUT yes                /*Must exist*/).
@@ -2974,6 +3035,31 @@ ELSE DO:
       canned = FALSE.
     END.
   END.
+    ELSE IF class = "p" THEN DO:
+     {adecomm/okrun.i  
+      &FRAME  = "FRAME read-input-cdc" 
+      &BOX    = "rect_Btns"
+      &OK     = "btn_OK" 
+      {&CAN_BTN}
+      {&HLP_BTN}
+    }
+    DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-input-cdc:
+
+      io-title = "Load Change Data Capture Policies".
+     
+      UPDATE user_env[2]
+             btn_File 
+			 err% 
+	         btn_OK 
+	         btn_Cancel 
+	         {&HLP_BTN_NAME}. 
+			 			      
+      ASSIGN user_env[4] = STRING(err%). 	
+
+      { prodict/dictnext.i trash }
+      canned = FALSE.     
+    END.
+  END.          
   ELSE IF class = "x" THEN DO:
     {adecomm/okrun.i  
       &FRAME  = "FRAME read-xml-file" 
@@ -3133,6 +3219,7 @@ HIDE FRAME read-input NO-PAUSE.
 HIDE FRAME read-df    NO-PAUSE.
 HIDE FRAME read-d-file NO-PAUSE.
 HIDE FRAME read-d-file-nobl NO-PAUSE.
+HIDE FRAME read-input-cdc  NO-PAUSE.
 HIDE FRAME read-xml-file NO-PAUSE.
 HIDE FRAME read-d-dir NO-PAUSE.
 HIDE FRAME read-input-dir NO-PAUSE.

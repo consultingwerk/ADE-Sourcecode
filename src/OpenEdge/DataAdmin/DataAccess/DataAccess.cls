@@ -174,6 +174,12 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
         do transaction on error undo, throw:
             SaveBuffers(DatasetHandle). 
         end.
+        //Above transaction is a fix-up level for the _Cdc-Table-Policy record.
+        //Properties like changeTableName, Instance will be assigned with values at the fix-up level.
+        //We need to refresh the input buffer to have the updated values for these properties.        
+        if DatasetHandle:get-top-buffer:name eq "ttCdcTablePolicy" then do:            
+            refreshBuffer(DatasetHandle).
+        end.
         return pSaveReq.
         catch e as Progress.Lang.Error :
         	undo, throw ClientTransactionError(e).	
@@ -182,6 +188,28 @@ class OpenEdge.DataAdmin.DataAccess.DataAccess abstract implements IDataAccess:
             DestroySources().
         end finally.
     end method.     
+    
+    method private void refreshBuffer(pds as handle):
+        define variable hQuery     as handle no-undo.
+        define variable hBuffer    as handle no-undo. 
+        define variable datasource as IDataSource no-undo.        
+       
+        hbuffer = pds:get-buffer-handle ("ttCdcTablePolicy"). 
+        create query hQuery.        
+        hquery:add-buffer (hbuffer).
+        hQuery:query-prepare ("for each ttCdcTablePolicy").
+        hquery:query-open().
+        hquery:get-first.
+        loop:
+        do while hbuffer:avail:            
+            if hbuffer:row-state = row-created or hbuffer:row-state = row-modified then
+            do:                
+                datasource = GetSaveSource(hBuffer:name).
+                datasource:refreshbuffers(hbuffer).                
+            end.    
+            hQuery:get-next.
+        end.        
+    end method.
     
     method protected Error ClientTransactionError(e as Error):
         return e.

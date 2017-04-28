@@ -60,9 +60,12 @@ interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
     /* Return the server software   */
     define public property ServerSoftware as character no-undo get.
     
+    /* Returns the URI template used to find the handler for this request. May be empty */ 
+    define public property UriTemplate as character no-undo get.
+    
     /* Returns a comma-delimited list of path parameter names, for URI mappings */ 
     define public property PathParameterNames as character no-undo get.
-    
+
     /* Get the parameter value that corresponds to the defined URI mapping 
         that invoked the handler for this request
          

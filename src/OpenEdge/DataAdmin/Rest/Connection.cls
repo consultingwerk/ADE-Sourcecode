@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012,2015 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -34,6 +34,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
     define public property IsSecurityAdministrator   as logical no-undo get. private set.
     define public property isHorizontalPartitionEnabled   as logical  no-undo get. private set.
     define public property isReadOnlyPartitionsEnabled    as logical  no-undo get. private set.
+    define public property isCDCEnabled    as logical  no-undo get. private set.
  
  
     define public property Name            as char no-undo get. private set.
@@ -41,7 +42,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
     define public property ProgressVersion as char no-undo get. private set. 
     define public property DatabaseVersion as char no-undo get. private set. 
     define public property Version         as int  no-undo 
-       init 5 /* from 11.6 */
+       init 6 /* from 11.7 */
        get. 
     
     define variable ans as logical no-undo.
@@ -76,6 +77,10 @@ class OpenEdge.DataAdmin.Rest.Connection:
         find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Read-only Partitions" no-lock no-error.
         if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
             isReadOnlyPartitionsEnabled = true.
+            
+        find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Change Data Capture" no-lock no-error.
+        if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+            isCDCEnabled = true.
                                   
         RUN prodict/_dctadmn.p (DatabaseUser,OUTPUT ans).
         
@@ -91,6 +96,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
         AddProp("creategroupscript","scripts/CreateGroupScript").
         AddProp("createtenantscript","scripts/CreateTenantScript").
         AddProp("createpolicyscript","scripts/CreatePolicyScript").
+        AddProp("createcdcscript","scripts/CreateCDCScript").
   
         AddProp("datasecurity").
         AddProp("definitions").
@@ -101,6 +107,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
         
         AddProp("permissions").
         AddProp("partitionpolicies").
+        AddProp("cdctablepolicies").
         AddProp("sequences").
         AddProp("schemas").
         AddProp("securitysummary").
@@ -160,6 +167,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
         json:Add("isMultiTenancyEnabled",IsMultiTenancyEnabled).    
         json:Add("isHorizontalPartitionEnabled",isHorizontalPartitionEnabled).
         json:Add("isReadOnlyPartitionsEnabled",isReadOnlyPartitionsEnabled).
+        json:Add("isCDCEnabled",isCDCEnabled).
         json:Add("tenantName",TenantName).  
         json:Add("tenantType",TenantType).  
         json:Add("domainName",DomainName).

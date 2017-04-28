@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010,2013 by progress Software Corporation  */
+/* Copyright (c) 2010-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -95,7 +95,9 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext :
         super (pname,pScope).
         mPartitions = pScope:PartitionContext.
         AddChild(pScope:IndexContext).
-        AddChild(pScope:FieldContext).
+        if pname eq "AllTable" then 
+            AddChild(pScope:AllFieldContext).
+        else AddChild(pScope:FieldContext).
    end constructor.
         
  	constructor public TableContext ( pScope as ISchemaScope): 
@@ -374,6 +376,24 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext :
             FireContextRefreshed().
             finally:
                 temp-table ttTable:tracking-changes	= lTrack.	
+            end finally.        
+        end.
+    end. 
+    
+    /** update policy info if record avail */
+    method public logical UpdateCdcPolicyName(name as character,pcPolicyName as char):
+        define variable lTrack  as logical no-undo.
+        find ttTable where ttTable.name = name no-error.
+        if avail ttTable then
+        do on error undo,throw:
+            lTrack = temp-table ttTable:tracking-changes.
+            temp-table ttTable:tracking-changes = false. 
+            assign
+                ttTable.CdcTablePolicyName = pcPolicyName.
+                //ttTable.IsPartitioned = true.
+            FireContextRefreshed().
+            finally:
+                temp-table ttTable:tracking-changes = lTrack.   
             end finally.        
         end.
     end.     

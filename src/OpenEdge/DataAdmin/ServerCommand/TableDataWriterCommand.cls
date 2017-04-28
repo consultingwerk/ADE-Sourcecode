@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2012 by progress Software Corporation.      */
+  /* Copyright (c) 2012-2016 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -37,7 +37,10 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataWriterCommand inherits TableData
     method override protected handle StartProcedure(): 
         define variable hProc as handle no-undo.
         /* initially set "All", this will be reset based on tableselection later */
-        run prodict/dump_d.p persistent set hProc
+        if ttUtilityOptions.isCDC then 
+            run prodict/dump_cdc.p persistent set hProc
+                 ("ALL", ttUtilityOptions.Directory, ttUtilityOptions.codePage).
+         else run prodict/dump_d.p persistent set hProc
                  ("ALL", ttUtilityOptions.Directory, ttUtilityOptions.codePage).
         return hProc.         
     end method.    

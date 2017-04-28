@@ -25,6 +25,10 @@ using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IAreaSet from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
+using OpenEdge.DataAdmin.ICdcFieldPolicy from propath.
+using OpenEdge.DataAdmin.ICdcFieldPolicySet from propath.
+using OpenEdge.DataAdmin.ICdcTablePolicy from propath.
+using OpenEdge.DataAdmin.ICdcTablePolicySet from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDatabaseOption.
 using OpenEdge.DataAdmin.IDatabaseOptionSet.
@@ -148,6 +152,14 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param policies IPartitionPolicySet with policies to be created */
     method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
     
+    /** Create a new cdc table policy 
+        @param policy ICdcTablePolicy to be created */
+    method public logical CreateCdcTablePolicy(policy as ICdcTablePolicy).
+   
+   /** Create a new cdc table policy  
+        @param policies ICdcTablePolicySet with policies to be created */
+    method public logical CreateCdcTablePolicies(policies as ICdcTablePolicySet).
+  
     /** Create a new group  
         @param group ITenantGroup to be created */
     method public logical CreateTenantGroup(newgroup as ITenantGroup).
@@ -232,6 +244,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @throws NotFoundError if policy does not exist. */
     method public logical DeletePartitionPolicy(tenantName as char).
     
+    /** Delete CdcTablePolicy 
+        @param cdc table policyName name of policy to delete. 
+        @throws NotFoundError if policy does not exist. */
+    method public logical DeleteCdcTablePolicy(cdctablepolicyName as char).
+   
     /** Delete tenant 
         @param tenantName name of tenant to delete. 
         @throws NotFoundError if tenant does not exist. */
@@ -473,6 +490,11 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Get a table 
         @param tableName name of sequence  */
     method public ITable GetTable(tableName as char).
+
+    /** Get a table 
+        @param tableName name of table  
+        @param owner name of the table owner*/    
+    method public ITable GetTable(tableName as char,owner as char).
     
     /** Get a table 
         @param IRequestinfo that defines an expression that uniqely identifies a tenant group 
@@ -567,6 +589,36 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param collections a comma separated list of collections known by the service */ 
     method public IUserTablePermissionSet GetPermissions(pccollections as char).
     
+    /** Get a CdcTablePolicy  
+        @param  name char of CdcTablePolicy*/ 
+    method public ICdcTablePolicy GetCdcTablePolicy(pname as char).
+    
+    /** Get a CdcTablePolicy  
+         @param  request IRequestInfo*/ 
+    method public ICdcTablePolicy GetCdcTablePolicy(pRequestInfo as IRequestInfo).
+    
+    /** Get a collection of all CdcTable policies  in the database   */ 
+    method public ICdcTablePolicySet GetCdcTablePolicies().
+   
+    /** Get a collection of CdcTable policies 
+        @param  request IRequestInfo*/ 
+    method public ICdcTablePolicySet GetCdcTablePolicies(pRequestInfo as IRequestInfo).
+   
+    /** Get a collection of CdcField policies 
+        @param  filter  */ 
+    method public ICdcTablePolicySet GetCdcTablePolicies(pFilter as char).
+   
+   /** Get a collection of all CdcField policies in the database   */
+    method public ICdcFieldPolicySet GetCdcFieldPolicies().
+   
+    /** Get a collection of  CdcField policies    
+         @param  request IRequestInfo*/ 
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pRequestInfo as IRequestInfo).
+    
+    /** Get a collection of  CdcField policies    
+       @param  filter  */ 
+    method public ICdcFieldPolicySet GetCdcFieldPolicies(pFilter as char).
+   
    /** Get a user permission 
         @param userid user id of user in the form <name>@<domain> 
                the user id does not need to exist */  
@@ -640,6 +692,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param character The Role name
         @return IGrantedRole The new grant role */
     method public IGrantedRole NewGrantedRole().
+//    method public IGrantedRole NewGrantedRole(input pcRoleName as character).
     
     /** Get a new granted role
         
@@ -686,6 +739,17 @@ interface OpenEdge.DataAdmin.IDataAdminService :
      /*        using the service's UpdateTable() or UpdateTables() methods.*/
     method public IPartitionPolicyDetail NewPartitionPolicyDetail(pname as char).
     
+    /** Get an empty cdc table policy   */ 
+    method public ICdcTablePolicy NewCdcTablePolicy(pname as char).
+   
+     /** Get an empty cdc table policy collection  */ 
+    method public ICdcTablePolicySet NewCdcTablePolicies().
+    
+         /** Get an empty cdc field policy */ 
+     /*  Expected to be added to ICdcTablePolicy:FieldPolicies collection to be submitted to the database*/
+     /*        using the service's UpdateTable() or UpdateTables() methods.*/
+    method public ICdcFieldPolicy NewCdcFieldPolicy().
+      
     /** Get a new tenant
         Expected to be passed to CreateTenant() to be created in the database or added to a new 
         or existing ITenantSet collection to be submitted to the database with the collection. 
@@ -813,6 +877,14 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    /** Update the database with partition policies with changes   
         @param policies IPartitionPolicySet with policies to be updated */
     method public logical UpdatePartitionPolicies(policy as IPartitionPolicySet).
+    
+    /** Update the database with cdc table policy changes  
+       @param policy ICdcTablePolicy to be created */
+    method public logical UpdateCdcTablePolicy(policy as ICdcTablePolicy).
+   
+   /** Update the database with cdc table policies with changes   
+        @param policies ICdcTablePolicySet with policies to be updated */
+    method public logical UpdateCdcTablePolicies(policy as ICdcTablePolicySet).
     
     /** Update the database with sequence changes  
         @param sequence ISequence */ 

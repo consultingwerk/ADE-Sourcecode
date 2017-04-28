@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006-2013 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2006-2013,2016 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -159,9 +159,9 @@ Define var Gray_Table as char extent 32 NO-UNDO init /*###*/
    /*&Schema   */ "FCXQR-,FCX---,FCX---,FCXQR-,FCX---,FCX---,FCXQR-,FCXQR-,FCXQR",         
   &ENDIF
    /*Admin     */ "FCX---,FCX---B,FCX----",
-   /*Dump      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,FCX---,FCX---,FCX---,F-----,FCXQR-Z,FCXQR-B,------,FCXQR-A,------,FCX---",
+   /*Dump      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,FCX---,FCX---,FCX---,F-----,FCXQR-Z,FCXQR-B,------,FCXQR-A,------,FCX---,------,FCXQR-D",
    /*Audit Policies*/ "FCXQR-A,FCXQR-A,-------,FCXQR-A",
-   /*Load      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,F-----,FCX---,FCXQR-Z,FCXQR-B,------,FCXQR-A",   
+   /*Load      */ "FCX---,F-----,FCX---,------,FCX---,FCXQR-Y,FCXQR-Y,------,F-----,FCX---,FCXQR-Z,FCXQR-B,------,FCXQR-A,------,FCXQR-D",   
    /*Audit Policies*/ "FCXQR-A,FCXQR-A,-------,FCXQR-A",
    /*DB Identification*/ "FCX---Z,FCX---Z",
    /*Security  */ "FCXQ--,FCXQ--,FCXQ--,FCXQ--A,FCXQ--,FCXQ--,FCXQ--,------,------",
@@ -174,8 +174,6 @@ Define var Gray_Table as char extent 32 NO-UNDO init /*###*/
    /*MSSQL Util*/ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
    /*OE00195067 MSSQL Server Attributes */ "FCX---,FCX---,FCX---,FCX---",  
    /*MSSQL Tool*/ "FCX---,FCX---,FCX---",    
-   /*Odb Util  */ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
-   /*Odb Tools */ "FCX---,FCX---",
    /*ORA Util  */ "FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,FCX---,------,FCX---",
    /*OE00195067 ORACLE Server Attributes */ "FCX---,FCX---,FCX---",
    /*ORA Tools */ "FCX---,FCX---,FCX---,FCX---",
@@ -311,6 +309,8 @@ Define sub-menu mnu_Dump
    MENU-ITEM mi_Dump_Aud_Data LABEL "&Audit Data..."
    RULE
    menu-item mi_Dump_IncrDF   label "Create &Incremental .df File..."
+   RULE
+   MENU-ITEM mi_Dump_CDC      LABEL "C&hange Data Capture Policies (.cd file)..." 
    .
 
 DEFINE SUB-MENU mnu_Load_Aud_Pol
@@ -318,7 +318,7 @@ DEFINE SUB-MENU mnu_Load_Aud_Pol
    MENU-ITEM mi_Load_Txt      LABEL "Load &Text (.ad file)..."
    RULE
    MENU-ITEM mi_Load_Evt      LABEL "Application Audit &Events...".
-      
+           
 Define sub-menu mnu_Load
    menu-item mi_Load_Defs     label "&Data Definitions (.df file)..."
    menu-item mi_Load_Contents label "&Table Contents (.d file)..."
@@ -335,7 +335,9 @@ Define sub-menu mnu_Load
    RULE
    SUB-MENU  mnu_Load_Aud_Pol LABEL "Audit &Policies"
    MENU-ITEM mi_Load_Aud_Data LABEL "Aud&it Data..."
-   .
+   RULE
+   MENU-ITEM mi_Load_CDC      LABEL "C&hange Data Capture Policies (.cd file)..." 
+.
 
 DEFINE SUB-MENU mnu_dbid
    MENU-ITEM mi_db_id_maint LABEL "Database Identification &Maintenance..."
@@ -475,7 +477,7 @@ Define sub-menu mnu_ORACLE
 /*== DataServers Main Menu ==*/     /*###*/ /*###*/
 Define sub-menu mnu_Gateway
    sub-menu mnu_MSSQL         label "MS S&QL Server Utilities"  
-   sub-menu mnu_Odbc          label "O&DBC Utilities"
+/*    sub-menu mnu_Odbc          label "O&DBC Utilities" */
    sub-menu mnu_ORACLE        label "&ORACLE Utilities"
    .
 
@@ -590,12 +592,13 @@ Procedure Do_Menu_Item_Initial:
                gray = INDEX(code, "R").
      end.
 
-   IF NUM-DBS > 0 AND
+  IF NUM-DBS > 0 AND
       (INDEX(code,"Y") > 0 OR
        INDEX(code,"Z") > 0 OR
        INDEX(code,"B") > 0 OR
        INDEX(code,"A") > 0 OR 
        INDEX(code,"M") > 0 OR
+	   INDEX(code,"D") > 0 OR 
        INDEX(code,"E") > 0) THEN DO:
      CREATE BUFFER hBuffer FOR TABLE "DICTDB._file".
      
@@ -625,7 +628,16 @@ Procedure Do_Menu_Item_Initial:
     
        IF NOT hBuffer:AVAILABLE THEN gray = 0.
      END. /* INDEX(code,"A") > 0 */
-
+	 
+	 IF INDEX(code,"D") > 0 THEN DO:
+       /* Check to see whether this menu item requires any of the CDC 
+          tables to be in the database */
+ 
+       hBuffer:FIND-FIRST("WHERE _file._file-name BEGINS ~'_Cdc~'",
+                          NO-LOCK) NO-ERROR.
+       IF NOT hBuffer:AVAILABLE THEN gray = 0.
+     END. /* INDEX(code,"D") > 0 */
+ 
      IF INDEX(code,"E") > 0 THEN DO:
        /* Check to see whether this menu item requires encryption to be enabled */
        CREATE BUFFER hBuffer2 FOR TABLE "DICTDB._database-feature" NO-ERROR.
@@ -749,6 +761,7 @@ Procedure Menu_Walk:
    Define INPUT  parameter p_Func     as char          NO-UNDO.
    Define OUTPUT parameter p_sm-alive as logical       NO-UNDO init no.
 
+    
    /* Submenu index that this recursive level is processing */
    Define var loc_sub_ix as integer NO-UNDO.  
    Define var item_ix    as integer NO-UNDO init 0.  /* index within submenu */
@@ -1302,6 +1315,7 @@ on choose of menu-item mi_Dump_Views    in menu mnu_Dump
 on choose of menu-item mi_Dump_User     in menu mnu_Dump 
    run Perform_Func ("!PROGRESS,9=u,_usrdump,_dmpuser").
 
+
 /*----- DUMP SECURITY AUTHENTICATION RECORDS -----*/
 ON CHOOSE OF MENU-ITEM mi_Dump_Sec_Auth IN MENU mnu_Dump DO:
   IF NOT dbAdmin(USERID("DICTDB")) THEN DO:
@@ -1521,6 +1535,39 @@ END.
 on choose of menu-item mi_Dump_IncrDF   in menu mnu_Dump
    run Perform_Func ("_usrincr,*N,_dmpincr").
 
+/*----- DUMP CDC Policies -----*/
+on choose of menu-item mi_Dump_CDC     in menu mnu_Dump 
+DO:
+  DEFINE VARIABLE lRetry  AS LOGICAL     NO-UNDO INITIAL TRUE.
+                                             
+  RUN Perform_Func ("9=p,_cdc-pol,35=persistent").
+
+  IF user_env[1] = ? OR
+     user_env[1] = "" THEN DO:
+    user_env = "".
+    RETURN NO-APPLY.
+  END.
+   
+  DO WHILE lRetry:
+   /* RUN Perform_Func ("9=p,35=persistent,_usrdump"). */
+	RUN Perform_Func ("!PROGRESS,9=p,_usrdump").
+    
+    IF user_env[1] EQ ? THEN LEAVE.        
+
+    DEF VAR h AS HANDLE NO-UNDO.
+    RUN prodict/dump_cdc.p PERSISTENT SET h 
+       (INPUT user_env[1], INPUT user_env[2], INPUT user_env[5]).
+    RUN setSilent in h (?).
+    RUN doDump IN h.
+    DELETE PROCEDURE h.
+			     			    
+    lRetry = (RETURN-VALUE = "Retry").
+  END.
+  
+  user_env = "".
+END.
+
+
 /*----------------------------Admin/Load menu---------------------------*/
 
 /*----- LOAD DEFS -----*/
@@ -1688,6 +1735,49 @@ ON CHOOSE OF MENU-ITEM mi_Load_Txt   IN MENU mnu_Load_Aud_Pol DO:
 
   user_env = "".
 END.
+
+
+/*----- LOAD CDC Data -----*/
+on choose of menu-item mi_Load_CDC in menu mnu_Load DO:
+   DEFINE VARIABLE lRetry AS LOGICAL     NO-UNDO INITIAL TRUE.
+   DEFINE VARIABLE v-path AS CHARACTER   NO-UNDO.
+   DEFINE VARIABLE v-file AS CHARACTER   NO-UNDO.
+   DEFINE VARIABLE vSlash AS CHARACTER   NO-UNDO. 
+
+  &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
+     vSlash = "/".
+  &ELSE 
+     vSlash = "~\".
+  &ENDIF
+
+  DO WHILE lRetry:
+  
+    RUN Perform_Func ( "35=persistent,9=p,_usrload").
+
+    IF user_env[2] = ? THEN LEAVE. 
+    
+    ASSIGN v-path = SUBSTRING(user_env[2],1,R-INDEX(user_env[2],vSlash))
+           v-file = SUBSTRING(user_env[2],R-INDEX(user_env[2],vSlash) + 1,(INDEX(user_env[2],".") - R-INDEX(user_env[2],vSlash) - 1)).
+    
+    DEF VAR h AS HANDLE NO-UNDO.
+	RUN prodict/load_cdc.p PERSISTENT SET h 
+    (INPUT v-file, INPUT v-path).
+	RUN SetAcceptableErrorPercentage in h (user_env[4]).
+	RUN doLoad IN h.
+	DELETE PROCEDURE h.
+	
+    /*RUN prodict/load_cdc.p (INPUT v-file,
+                            INPUT v-path).                               */
+
+    lRetry = (RETURN-VALUE EQ "Retry").
+  END.
+  /*IF (user_commit = TRUE) AND 
+     RETURN-VALUE = "" THEN
+    AUDIT-POLICY:REFRESH-AUDIT-POLICY("DICTDB").*/
+
+  user_env = "".
+END.
+
 
 /*----- LOAD AUDIT EVENTS -----*/
 ON CHOOSE OF MENU-ITEM mi_Load_Evt   IN MENU mnu_Load_Aud_Pol DO:
@@ -2002,28 +2092,28 @@ END.
 
 
 
-/*----------------------------DataServer/Odbc-----------------------------*/
+/*----------------------------DataServer/Odbc-----------------------------*
  
-/*----- Create Schema -----*/
+*----- Create Schema -----*
 on choose of menu-item mi_Odb_Create    in menu mnu_Odbc
    run Perform_Func
       ("?ODBC,1=add,3=ODBC,_usrschg,_gat_ini,*C,_gat_drv,*C,_gat_con,_odb_get,25=add,_odb_pul,_gat_cro").
  
-/*----- Update File Def -----*/
+*----- Update File Def -----*
 on choose of menu-item mi_Odb_UpdFile   in menu mnu_Odbc
    run Perform_Func 
      ("!ODBC,1=upd,_gat_ini,*C,_gat_con,_odb_get,25=upd,_odb_pul,_gat_cro").
  
-/*----- Verify File Def -----*/
+*----- Verify File Def -----*
 on choose of menu-item mi_Odb_VerFile   in menu mnu_Odbc
    run Perform_Func
      ("!ODBC,1=,_gat_ini,*C,_gat_con,25=compare,_odb_get,_odb_pul,_gat_cmp,_gat_cro").
  
-/*----- Edit Connect Info -----*/
+*----- Edit Connect Info -----*
 on choose of menu-item mi_Odb_ConnInfo  in menu mnu_Odbc
    run Perform_Func ("!ODBC,1=chg,3=ODBC,_usrschg").
  
-/*----- Change Code Page -----*/
+*----- Change Code Page -----*
 on choose of menu-item mi_Odb_ChgCP     in menu mnu_Odbc
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("!ODBC,_gat_cp,_gat_cp1").
@@ -2031,7 +2121,7 @@ on choose of menu-item mi_Odb_ChgCP     in menu mnu_Odbc
    run Perform_Func ("!ODBC,_gat_cp,_gat_cp1").
    &ENDIF
 
-/*----- Delete Schema -----*/
+*----- Delete Schema -----*
 on choose of menu-item mi_Odb_Delete    in menu mnu_Odbc
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("!ODBC,_usrsdel,*N,1=sys,_usrsget").
@@ -2039,14 +2129,15 @@ on choose of menu-item mi_Odb_Delete    in menu mnu_Odbc
    run Perform_Func ("!ODBC,_usrsdel,*N,1=sys,_guisget").
    &ENDIF   
 
-/*----- "Schema Migration Tools" pop-up menu: ProtoODBC -----*/
+*----- "Schema Migration Tools" pop-up menu: ProtoODBC -----*
 on choose of menu-item mi_odb_DBtoODB in menu mnu_odb_tools
    run Perform_Func ("?ODBC,odb/protoodb").
  
-/*----- "Schema Migration Tools" pop-up menu: Adjust Schema -----*/
+*----- "Schema Migration Tools" pop-up menu: Adjust Schema -----*
 on choose of menu-item mi_odb_AdjstSI in menu mnu_odb_tools
    run Perform_Func ("!ODBC,22=odbc,odb/_beauty").
  
+*-----------------End of ODBC DataServer code -------------------*/
    
 /*----------------------------DataServer/ORACLE---------------------------*/
 
@@ -2231,32 +2322,44 @@ on choose of menu-item mi_SQL_DumpTable in menu mnu_SQL
 /*--------------------------Reports menu----------------------------------*/
 
 /*----- DETAILED TABLE REPORT -----*/
-on choose of menu-item mi_Rpt_DetTbl    in menu mnu_Reports 
+on choose of menu-item mi_Rpt_DetTbl    in menu mnu_Reports DO:
+
+   assign user_env[42] =  "true".
+
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("1=a,_usrtget,9=,_rptflds").
    &ELSE
    run Perform_Func ("1=a,_guitget,9=,_rptflds").
    &ENDIF
+end.
 
 /*----- TABLE REPORT -----*/
 on choose of menu-item mi_Rpt_Table     in menu mnu_Reports 
    run Perform_Func ("_rpttqik").
 
 /*----- FIELD REPORT -----*/
-on choose of menu-item mi_Rpt_Field     in menu mnu_Reports 
+on choose of menu-item mi_Rpt_Field     in menu mnu_Reports do:
+
+   assign user_env[42] =  "true".
+
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("1=a,_usrtget,19=o,_rptfqik").
    &ELSE
    run Perform_Func ("1=a,_guitget,19=o,_rptfqik").
    &ENDIF
+end.
 
 /*----- INDEX REPORT -----*/
-on choose of menu-item mi_Rpt_Index     in menu mnu_Reports 
+on choose of menu-item mi_Rpt_Index     in menu mnu_Reports do:
+ 
+   assign user_env[42] =  "true".
+
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("1=a,_usrtget,_rptiqik").
    &ELSE
    run Perform_Func ("1=a,_guitget,_rptiqik").
    &ENDIF
+end.
 
 /*----- VIEW REPORT -----*/
 on choose of menu-item mi_Rpt_View      in menu mnu_Reports 
@@ -2279,24 +2382,32 @@ on choose of menu-item mi_Rpt_User      in menu mnu_Reports
    run Perform_Func ("_rptuqik").
 
 /*----- TABLE RELATIONS REPORT -----*/
-on choose of menu-item mi_Rpt_TblRel    in menu mnu_Reports 
+on choose of menu-item mi_Rpt_TblRel    in menu mnu_Reports do:
+
+   assign user_env[42] =  "true".
+
    &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("1=a,_usrtget,_rptrels").
    &ELSE
    run Perform_Func ("1=a,_guitget,_rptrels").
    &ENDIF
+end.
 
 /*----- AREA REPORT -----*/
 on choose of menu-item mi_Rpt_Area      in menu mnu_Reports 
    run Perform_Func ("_rptaqik").
 
 /*------WIDTH REPORT ----*/
-ON CHOOSE OF MENU-ITEM mi_Rpt_Width IN MENU mnu_reports
+ON CHOOSE OF MENU-ITEM mi_Rpt_Width IN MENU mnu_reports do:
+
+   assign user_env[42] =  "true".
+
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
    run Perform_Func ("!PROGRESS,1=a,_usrtget,_rptwdth").
    &ELSE
    run Perform_Func ("!PROGRESS,1=a,_guitget,_rptwdth").
    &ENDIF
+end.
 
 /*------ ALTERNATE BUFFER POOL WIDTH REPORT ----*/
 ON CHOOSE OF MENU-ITEM mi_Rpt_AltBufPool IN MENU mnu_reports

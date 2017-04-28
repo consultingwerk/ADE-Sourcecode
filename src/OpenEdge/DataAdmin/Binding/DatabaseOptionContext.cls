@@ -140,7 +140,7 @@ class OpenEdge.DataAdmin.Binding.DatabaseOptionContext inherits DataAdminContext
 	
 	method private character GetCreateError(input poDbOption as IDatabaseOption):
         return this-object:GetCreateError(cast(poDbOption,IDataAdminElement), poDbOption:Code). 
-    end method. 
+    end method.
     
 	method override protected logical Remove():
         undo, throw new UnsupportedOperationError('database option delete').

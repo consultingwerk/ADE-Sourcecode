@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriter
@@ -15,15 +15,27 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertObject.
-using OpenEdge.DataAdmin.Entity.
-using OpenEdge.Net.HTTP.IHttpMessage.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using Progress.IO.OutputStream.
 using Progress.Lang.Object.
+using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using OpenEdge.Logging.LogLevelEnum.
 
-class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
-        inherits OutputStream
-        abstract: 
-    
+class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStream
+            implements ISupportLogging:
+
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo 
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(MessageWriter)).
+
+            return this-object:Logger.
+        end get.
+        set.
+	
     /** (mandatory) The type that the entity this writer can write to. */
     define public property EntityType as class Progress.Lang.Class no-undo get. private set.
     
@@ -52,6 +64,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
 
     /** Default constructor. */
     constructor protected MessageWriter (input poType as class Progress.Lang.Class):
+            
         Assert:NotNull(poType, 'Entity type').
         assign EntityType = poType.
     end constructor.
@@ -77,12 +90,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
 
         @param handle Data to write */
     method override public int64 Write(input phData as handle):
-        LogMessage('Write(handle) is a no-op', 5).
+        Logger:Warn('Write(handle) is a no-op').
     end method.
 
     method override public int64 Write( input p0 as memptr, input p1 as int64, input p2 as int64 ):
         /* no-op */        
-        LogMessage('Write(memptr,int64,int64) is a no-op', 5).
+        Logger:Warn('Write(memptr,int64,int64) is a no-op').
     end method.
     
     method override public int64 Write( input p0 as memptr ):
@@ -91,12 +104,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
     
     method override public int64 Write( input p0 as longchar ):
         /* no-op */
-        LogMessage('Write(longchar) is a no-op', 5).
+        Logger:Warn('Write(longchar) is a no-op').
     end method.
     
     method override public int64 Write( input p0 as character ):
         /* no-op */        
-        LogMessage('Write(character) is a no-op', 5).
+        Logger:Warn('Write(character) is a no-op').
     end method.
     
     /** Logs a message 
@@ -105,12 +118,25 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter
         @param character The message to log
         @param integer  The level this message should be logged at */
     method protected void LogMessage(input pcMessage as character,
+                                     input poLogLevel as LogLevelEnum):
+        if valid-object(poLogLevel) then
+            LogMessage(pcMessage, integer(poLogLevel)).
+        else
+            Logger:Warn(pcMessage).
+    end method.
+    
+    method protected void LogMessage(input pcMessage as character,
                                      input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'MSGWRITE':u).
+        case piLogLevel:
+            when integer(LogLevelEnum:FATAL) then Logger:Fatal(pcMessage).
+            when integer(LogLevelEnum:ERROR) then Logger:Error(pcMessage).
+            when integer(LogLevelEnum:WARN ) then Logger:Warn(pcMessage).
+            when integer(LogLevelEnum:INFO ) then Logger:Info(pcMessage).
+            when integer(LogLevelEnum:DEBUG) then Logger:Debug(pcMessage).
+            when integer(LogLevelEnum:TRACE) then Logger:Trace(pcMessage).
+            otherwise 
+                Logger:Warn(pcMessage).
+        end case.
     end method.
     
 end class.

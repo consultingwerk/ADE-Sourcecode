@@ -39,14 +39,27 @@
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.LogLevelEnum.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Security.Principal.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
+using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Security.STS.ClientValidator.
 
-class OpenEdge.Security.STS.ClientValidator:
+class OpenEdge.Security.STS.ClientValidator implements ISupportLogging:
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(ClientValidator)).
+            return this-object:Logger.
+        end get.
+        set.
+    
     /* Security config for this provider */
     define private variable moConfig as JsonObject no-undo.
     
@@ -92,7 +105,7 @@ class OpenEdge.Security.STS.ClientValidator:
         
         if not valid-object(moConfig) then
         do:
-            LogMessage('No config available', LogLevelEnum:WARN).
+            Logger:Warn('No config available').
             return true.
         end.
         
@@ -101,15 +114,13 @@ class OpenEdge.Security.STS.ClientValidator:
             assign oGroupConfig = moConfig:GetJsonObject(pcGroup). 
         else
         do:
-            LogMessage(substitute('Config available but has incorrect format: &1', moConfig:GetType(pcGroup)),
-                       LogLevelEnum:WARN).
+            Logger:Warn(substitute('Config available but has incorrect format: &1', moConfig:GetType(pcGroup))).
             return true.
         end.
         
         if not oGroupConfig:GetLogical('validateClient':u) then
         do:
-            LogMessage('Client validation disabled',
-                       LogLevelEnum:DEBUG).
+            Logger:Debug('Client validation disabled').
             return true.
         end.
         
@@ -133,8 +144,7 @@ class OpenEdge.Security.STS.ClientValidator:
                 do:
                     Assert:NotNullOrEmpty(pcOperation, 'Authorisation operation').
                     if oGroupConfig:IsNull('requiredRoles':u) then
-                        LogMessage(substitute('Undefined roles for operation &1', pcOperation),
-                                   LogLevelEnum:WARN).
+                        Logger:Warn(substitute('Undefined roles for operation &1', pcOperation)).
                     else
                     do:
                         assign oRoleParent = oGroupConfig:GetJsonObject('requiredRoles':u).
@@ -147,38 +157,22 @@ class OpenEdge.Security.STS.ClientValidator:
                                 assign extent(cRoles) = 1
                                        cRoles[1] = oRoleParent:GetCharacter(pcOperation).
                             otherwise
-                                LogMessage(substitute('Unsupported Undefined roles for operation &1', pcOperation),
-                                           LogLevelEnum:WARN).
+                                Logger:Warn(substitute('Unsupported Undefined roles for operation &1', pcOperation)).
                         end case.
                     end.
                 end.    //OBJECT
                 otherwise
                     /* includes NULL values */
-                    LogMessage(substitute('Undefined roles for operation &1', pcOperation),
-                               LogLevelEnum:WARN).
+                    Logger:Warn(substitute('Undefined roles for operation &1', pcOperation)).
             end case.
             
             if extent(cRoles) ne ? then          
                 assign lOK = oPrincipal:Authorize(cRoles).
         end.
         
-        LogMessage(substitute('Validation result for operation &1: &2', pcOperation, lOK),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Validation result for operation &1: &2', pcOperation, lOK)).
         
         return lOK.
-    end method.
-    
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge integer(poLogLevel) then
-            log-manager:write-message(pcMessage, 'CLNTVTOR':u).
     end method.
     
 end class.

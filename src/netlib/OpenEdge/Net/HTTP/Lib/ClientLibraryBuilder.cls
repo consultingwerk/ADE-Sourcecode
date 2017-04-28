@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientLibraryBuilder
@@ -14,8 +14,9 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Net.HTTP.BuilderRegistry.
+using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder.
@@ -201,7 +202,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, pdValue).
-
+        
         return this-object.
     end method.                                                     
 
@@ -217,5 +218,29 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         SetOption(pcName, plValue).
 
         return this-object.
-    end method.      
+    end method.
+    
+    /** Sets the value of the RequestTimeout option.
+    
+        @param Decimal A zero or positive value
+        @return ClientLibraryBuilder This builder object. */
+    method public ClientLibraryBuilder SetRequestTimeout(input pdValue as decimal):
+        Assert:IsZeroOrPositive(pdValue, 'Request Timeout').
+        SetOption('requestTimeout':u, pdValue).
+        
+        return this-object.
+    end method.
+    
+    /** Override the default log writer to be used with this http client
+    
+        @param ILogWriter The log writer to be used
+        @return ClientLibraryBuilder This builder instance */
+    method public ClientLibraryBuilder UsingLogger(input poLogger as ILogWriter):
+        Assert:NotNull(poLogger, 'Log writer').
+        
+        SetOption(get-class(ILogWriter):TypeName, poLogger).
+        
+        return this-object.
+    end method.
+    
 end class.

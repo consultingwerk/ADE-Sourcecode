@@ -15,6 +15,7 @@
   --------------------------------------------------------------------- */
  
 using OpenEdge.DataAdmin.IDataAdminSerializable from propath.
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 
 interface OpenEdge.DataAdmin.IDataAdminExporter:  
         
@@ -28,6 +29,8 @@ interface OpenEdge.DataAdmin.IDataAdminExporter:
         @param Mode All, Object - Unsupported,  List - Unsupported 
                     collection names */ 
     method public void WriteToFile(serializable as IDataAdminSerializable,pcFile as char,pcMode as char):
+        
+    method public void WriteToFile(serializable as IDataAdminSerializable,pcFile as char,pcMode as char,pageReq as IPageRequest):
     
     /** WriteToLongchar 
         @returns longchar with exported data  

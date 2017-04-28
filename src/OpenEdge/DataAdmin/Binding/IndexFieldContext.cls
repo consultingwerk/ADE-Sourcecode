@@ -223,10 +223,10 @@ class OpenEdge.DataAdmin.Binding.IndexFieldContext inherits DataAdminContext imp
         Count = Count + 1.
          
         create ttIndexField.
-        assign ttIndexField.TableName = tablename
+        assign ttIndexField.Number = Count
+        	   ttIndexField.TableName = tablename
                ttIndexField.IndexName = indexName  
-               ttIndexField.FieldName = fieldname   
-               ttIndexField.Number = Count   
+               ttIndexField.FieldName = fieldname      
                
                ttIndexField.Entity = idxfld .
         

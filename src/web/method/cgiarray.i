@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000,2009 by Progress Software Corporation. All rights  *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2009,2016 by Progress Software Corporation. All *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -48,10 +48,10 @@ DEFINE NEW GLOBAL SHARED VARIABLE CgiVar            AS LONGCHAR
     EXTENT {&MAX-CGI}    NO-UNDO.
 
 /* List of fields in form */
-DEFINE NEW GLOBAL SHARED VARIABLE FieldList         AS CHAR FORMAT "x(70)":U 
+DEFINE NEW GLOBAL SHARED VARIABLE FieldList         AS CHARACTER FORMAT "x(70)":U 
     NO-UNDO.
 /* Array of field values corresponding to FieldList (arbitrary limit) */
-DEFINE NEW GLOBAL SHARED VARIABLE FieldVar          AS CHAR 
+DEFINE NEW GLOBAL SHARED VARIABLE FieldVar          AS CHARACTER 
     EXTENT {&MAX-FIELDS} NO-UNDO.
 
 /* holds list of form and query fields */
@@ -64,7 +64,7 @@ DEFINE NEW GLOBAL SHARED TEMP-TABLE ttWebFieldList NO-UNDO
 DEFINE NEW GLOBAL SHARED VARIABLE usetttWebFieldList AS LOGICAL NO-UNDO.
 
 /* List of local fields */
-DEFINE NEW GLOBAL SHARED VARIABLE UserFieldList    AS CHAR FORMAT "x(70)":U 
+DEFINE NEW GLOBAL SHARED VARIABLE UserFieldList    AS CHARACTER FORMAT "x(70)":U 
     NO-UNDO.
 /* Array of values corresponding to UserFieldList (arbitrary limit) */
 DEFINE NEW GLOBAL SHARED VARIABLE UserFieldVar     AS CHAR
@@ -73,7 +73,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE UserFieldVar     AS CHAR
 
 /* List of all CGI variables (from cgidefs.i).  Used for dumping out all
    values in debugging mode such as with printval.p. */
-DEFINE NEW GLOBAL SHARED VARIABLE CgiVarList        AS char NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE CgiVarList        AS character NO-UNDO.
 IF CgiVarList = "":U THEN
   ASSIGN CgiVarList = "GATEWAY_INTERFACE,SERVER_SOFTWARE,SERVER_PROTOCOL,":U +
     "SERVER_NAME,SERVER_PORT,REQUEST_METHOD,SCRIPT_NAME,PATH_INFO,":U +

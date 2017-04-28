@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013,2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : SaxReaderfacade.p
@@ -34,11 +34,12 @@ procedure ParseMemptr:
     define variable hSaxAttributes as handle no-undo.
     
     create sax-reader hSaxReader.
-    hSaxReader:handler = this-procedure.
-    
+    assign hSaxReader:handler      = this-procedure
+           hSaxReader:private-data = poSaxReader:ToString()
+           . 
     create sax-attributes hSaxAttributes.
     
-    hSaxReader:set-input-source('memptr', pmXML).
+    hSaxReader:set-input-source('memptr':u, pmXML).
     hSaxReader:sax-parse().
     
     finally:
@@ -55,11 +56,35 @@ procedure ParseDocument:
     define variable hSaxAttributes as handle no-undo.
     
     create sax-reader hSaxReader.
-    hSaxReader:handler = this-procedure.
-    
+    assign hSaxReader:handler      = this-procedure
+           hSaxReader:private-data = poSaxReader:ToString()
+           .
     create sax-attributes hSaxAttributes.
     
-    hSaxReader:set-input-source('longchar', pcXML).
+    hSaxReader:set-input-source('longchar':u, pcXML).
+    hSaxReader:sax-parse().
+    
+    finally:
+        delete object hSaxAttributes no-error.
+        delete object hSaxReader no-error.
+    end finally.
+end procedure.
+
+procedure ParseFile:
+    define input parameter pcFileName as character no-undo.
+    
+    define variable hSaxReader as handle no-undo.
+    define variable hSaxAttributes as handle no-undo.
+    
+    assign file-info:file-name = pcFileName.
+    
+    create sax-reader hSaxReader.
+    assign hSaxReader:handler      = this-procedure
+           hSaxReader:private-data = poSaxReader:ToString()
+           .
+    create sax-attributes hSaxAttributes.
+    
+    hSaxReader:set-input-source('file':u, file-info:full-pathname).
     hSaxReader:sax-parse().
     
     finally:

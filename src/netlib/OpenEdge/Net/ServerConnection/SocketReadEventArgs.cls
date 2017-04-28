@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2015 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : SocketReadEventArgs
@@ -16,15 +16,29 @@ using OpenEdge.Core.Memptr.
 class OpenEdge.Net.ServerConnection.SocketReadEventArgs:
     /** Is the current read complete? */
     define public property ReadComplete as logical no-undo get. set.
+
+    /** Did the read timeout? ? */
+    define public property ReadTimeout as logical no-undo get. set.
+
+    /** Did the read terminate? ? */
+    define public property ReadTerminated as logical no-undo get. set.
+
     
     /** Memptr containing the read data */
     define public property Data as class Memptr no-undo get. set.
     
     /** Timeout for this read request */
     define public property TimeoutEnd as datetime-tz no-undo get. private set.
-    
+
     /** How many bytes are in the Data property (may be < Size) */
     define public property BytesRead as int64 no-undo get. set.
+    
+    /** Constructor.
+        @param decimal The timeout value for this read event. */
+    constructor public SocketReadEventArgs(input pdTimeoutOffset as decimal):
+        // INT() functions rounds which is a good-enough guess 
+        this-object(integer(pdTimeoutOffset)).
+    end constructor.
     
     /** Constructor.
         
@@ -51,8 +65,10 @@ class OpenEdge.Net.ServerConnection.SocketReadEventArgs:
     
     /** Default constructor */
     constructor public SocketReadEventArgs():
-        assign this-object:ReadComplete = false
-               this-object:TimeoutEnd = ?.
+        assign this-object:ReadComplete   = false
+               this-object:ReadTerminated = false
+               this-object:ReadTimeout    = false
+               this-object:TimeoutEnd     = ?.
     end constructor.
     
 end class.

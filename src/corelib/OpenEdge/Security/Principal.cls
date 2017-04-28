@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -46,7 +46,7 @@ class OpenEdge.Security.Principal :
        @param logical Determines whether the contained token will be destroyed 
                       when this wrapper is destroyed. Typically TRUE for Imports */ 
     constructor public Principal(input phClientPrincipal as handle,
-                                  input plAutoDestroy as logical):
+                                 input plAutoDestroy as logical):
         Assert:IsType(phClientPrincipal, DataTypeEnum:ClientPrincipal, 'Token').
         Assert:NotUnknown(plAutoDestroy, 'Auto-destroy flag').
         
@@ -55,7 +55,8 @@ class OpenEdge.Security.Principal :
     end constructor.
         
     destructor Principal():
-        if mlAutoDestroy then
+        if     mlAutoDestroy 
+           and valid-object(this-object:Token ) then
             delete object this-object:Token no-error.
         
         assign this-object:Token = ?.

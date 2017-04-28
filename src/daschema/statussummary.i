@@ -34,5 +34,7 @@ define protected temp-table ttStatusSummary no-undo serialize-name "summary" {1}
     field AnyError            as logical      serialize-name "anyError"
     field ErrorMessage        as character    serialize-name "errorMessage"
     field IsComplete          as logical      serialize-name "isComplete"
+    field NumProcessedCDCPolicies    as integer   serialize-name "numProcessedCDCPolicies"
+    field NumCDCPolicies      as integer   serialize-name "numCDCPolicies"
     
     index idxtask as primary unique TaskName. 

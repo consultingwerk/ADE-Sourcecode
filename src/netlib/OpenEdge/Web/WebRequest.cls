@@ -279,6 +279,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         end get.
         private set.
 
+    /* Returns the URI template used to find the handler for this request. May be empty */ 
+    define public property UriTemplate as character no-undo initial ?
+        get():
+            if this-object:UriTemplate eq ? then
+                assign this-object:UriTemplate = web-context:get-cgi-value('ENV':u, 'URI_TEMPLATE':u).
+            
+            return this-object:UriTemplate.
+        end get.
+        private set.
+
     /** Returns all the headers
         Note: As of current this is not cached 
               The assumption is that you will not call this multiple times per request
@@ -383,7 +393,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         if(headerValue > "":U) then
             return HttpHeaderBuilder:Build(pcName):Value(headerValue):Header.
         else
-            return ?.    
+            return OpenEdge.Net.HTTP.HttpHeader:NullHeader.    
     end method.
     
     /* get the heder value as string - used by GetHeader and HasHeader */
@@ -471,7 +481,8 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     method public character GetPathParameter(pcName as character):
         define variable cgiName     as character no-undo.
         define variable paramValue       as character no-undo.
-        cgiName = "URI_":U + caps( pcName ).
+        cgiName = replace( pcName, "-":U, "_":U ).
+        cgiName = "URI_":U + caps( cgiName ).
         paramValue = web-context:get-cgi-value( "ENV":U, cgiName ).
         return paramValue.
     end.    

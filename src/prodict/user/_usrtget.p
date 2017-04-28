@@ -156,6 +156,9 @@ FORM SKIP(1)
 IF SESSION:SCHEMA-CHANGE = "New objects" THEN
     ASSIGN cache_dirty = true.
 
+if user_env[42] = "" or user_env[42] = "true" then 
+assign cache_dirty = true.
+
 IF cache_dirty THEN RUN "prodict/_dctcach.p" (inc-hid).
 
 i = 0.

@@ -4,7 +4,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2015 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2017 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -1343,6 +1343,8 @@ FUNCTION get-config RETURNS CHARACTER
               return get-cgi("SERVLET_DEFAULT_COOKIE_DOMAIN":U).
           when "srvrDebug":U then
               return get-cgi("SERVLET_SRVR_DEBUG":U).
+          when "fileUploadDirectory":U then
+	      return web-context:get-config-value(pVarName).
           when "workdir":U then
               return os-getenv("CATALINA_BASE":U) . /* TODO */
         

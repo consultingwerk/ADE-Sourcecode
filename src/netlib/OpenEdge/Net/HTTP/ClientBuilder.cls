@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientBuilder
@@ -14,23 +14,23 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.String.
+using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.ClientBuilder.
+using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Net.HTTP.CookieJarBuilder.
+using OpenEdge.Net.HTTP.DefaultHttpClientBuilder.
 using OpenEdge.Net.HTTP.HttpClient.
 using OpenEdge.Net.HTTP.HttpClientDecorator.
-using OpenEdge.Net.HTTP.DefaultHttpClientBuilder.
 using OpenEdge.Net.HTTP.ICookieJar.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.ISupportCookies.
 using OpenEdge.Net.HTTP.ISupportProxy.
-using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder.
 using OpenEdge.Net.HTTP.ProxyHttpClient.
 using OpenEdge.Net.HTTP.StatefulHttpClient.
 using OpenEdge.Net.URI.
-using OpenEdge.Net.HTTP.CookieJarBuilder.
 
 class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
     
@@ -193,15 +193,40 @@ class OpenEdge.Net.HTTP.ClientBuilder abstract inherits ConfigBuilder:
         
         return this-object.
     end method.    
+
+    /** Override the default log writer to be used with this http client
+    
+        @param ILogWriter The log writer to be used
+        @return ClientBuilder This builder instance */
+    method public ClientBuilder UsingLogger(input poLogger as ILogWriter):
+        Assert:NotNull(poLogger, 'Log writer').
+        
+        SetOption(get-class(ILogWriter):TypeName, poLogger).
+        
+        return this-object.
+    end method.    
     
     /**  Helper method to build a http client library */
     method protected IHttpClientLibrary BuildLibrary():
+        define variable oLibBuilder as ClientLibraryBuilder no-undo.
+        
         If HasOption(get-class(IHttpClientLibrary):TypeName) then
             return cast(GetOptionObjectValue(get-class(IHttpClientLibrary):TypeName), IHttpClientLibrary).
-        else  
-            return ClientLibraryBuilder:Build():Library.
+        else
+        do:
+            /* Build the client, 'passing down' any default values we have */
+            assign oLibBuilder = ClientLibraryBuilder:Build().
+            
+            if HasOption('requestTimeout':u) then
+                oLibBuilder:SetRequestTimeout(GetOptionNumericValue('requestTimeout':u)).
+            
+            if HasOption(get-class(ILogWriter):TypeName) then
+                oLibBuilder:UsingLogger(cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter)).
+            
+            return oLibBuilder:Library.
+        end.
     end method.
-        
+    
     /** Decorate the client with additional behaviour
             
         @param  Class The type of decorator to use

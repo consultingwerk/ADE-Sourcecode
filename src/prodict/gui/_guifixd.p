@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2016 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,11 +27,11 @@
 
 /*input:*/
 DEFINE SHARED VARIABLE pik_count AS INTEGER               NO-UNDO.
-DEFINE SHARED VARIABLE pik_list  AS CHARACTER EXTENT 2000 NO-UNDO.
+DEFINE SHARED VARIABLE pik_list  AS CHARACTER EXTENT 4000 NO-UNDO.
 
 /*output:*/
-DEFINE SHARED VARIABLE pik_lower AS INTEGER   EXTENT 2000 NO-UNDO.
-DEFINE SHARED VARIABLE pik_upper AS INTEGER   EXTENT 2000 NO-UNDO.
+DEFINE SHARED VARIABLE pik_lower AS INTEGER   EXTENT 4000 NO-UNDO.
+DEFINE SHARED VARIABLE pik_upper AS INTEGER   EXTENT 4000 NO-UNDO.
 
 &global-define NUM1_COL        34
 &global-define NUM2_COL 41

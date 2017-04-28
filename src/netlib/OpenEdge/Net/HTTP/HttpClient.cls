@@ -13,14 +13,16 @@ Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.String.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Net.HTTP.ClientBuilder.
 using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder.
 using OpenEdge.Net.HTTP.HttpClient.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
-using OpenEdge.Net.HTTP.HttpRequestError.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
@@ -28,9 +30,9 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
-using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Logging.LoggerBuilder.
 
-class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
+class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, ISupportLogging:
     /** (mandatory) A free-text name for this http client. Used for the USER-AGENT
         string. */
     define public property ClientName as character no-undo get. private set.
@@ -41,6 +43,16 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
     
     /** Miscellanous options (like timeouts) for this client */
     define public property Options as ClientOptions no-undo get. private set.
+    
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(HttpClient)). 
+                
+            return this-object:Logger.
+        end get.
+        set.
     
     /* Reference to the library that does the actual work. */
     define private variable moWwwLib as IHttpClientLibrary no-undo.
@@ -62,14 +74,14 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
         @param IHttpClientLibrary The library performing the actual work */
     constructor public HttpClient(input pcClientName    as character,
                                   input pcClientVersion as character,                                  
-                                  input poLibrary as IHttpClientLibrary ):
+                                  input poLibrary as IHttpClientLibrary):
         Assert:NotNullOrEmpty(pcClientName, 'Client name').
         Assert:NotNullOrEmpty(pcClientVersion, 'Client version').
         Assert:NotNull(poLibrary, 'Http library').
         
-        assign this-object:ClientName = pcClientName
+        assign this-object:ClientName    = pcClientName
                this-object:ClientVersion = pcClientVersion
-               this-object:Options = new ClientOptions()
+               this-object:Options       = new ClientOptions()
                
                moWwwLib = poLibrary
                .
@@ -102,41 +114,43 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
         @param IHttpResponse Includes status and payload*/
     method public void Execute(input poRequest  as IHttpRequest,
                                input poResponse as IHttpResponse):
-        define variable iTimeout as integer no-undo.
         define variable iNumRetries as integer no-undo.
         define variable rRequestHash as raw extent 2 no-undo.
-        define variable oReqError as HttpRequestError no-undo.
+        define variable oAuthRequest as IAuthenticatedRequest no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response'). 
         
-        assign iTimeout  = this-object:Options:RequestTimeout
-               /* Create the error instance now becuase of PSC00347977 */
-               oReqError = new HttpRequestError(string(integer(StatusCodeEnum:RequestTimeOut)),
-                                         poRequest:Method,
-                                         poRequest:URI:ToString()).
         /* Use looping instead of recursion to avoid deeping the call stack */
-        repeat on stop undo, return error oReqError
-               stop-after iTimeout:
-            
+        repeat:
             if rRequestHash[1] eq rRequestHash[2] then
-            do:
                 assign iNumRetries = iNumRetries + 1.
-                if this-object:Options:PauseBetweenRetry gt 0 then
-                    pause this-object:Options:PauseBetweenRetry no-message.
-            end.
             else
                 assign iNumRetries = 0.
             
             /* Update the request as needed */
             AddUserAgent(poRequest).
             
+            if type-of(poRequest, IAdaptable) then
+                assign oAuthRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(IAuthenticatedRequest)),
+                                           IAuthenticatedRequest).
+            else
             if type-of(poRequest, IAuthenticatedRequest) then
-                cast(poRequest, IAuthenticatedRequest):AddAuthentication().
+                assign oAuthRequest = cast(poRequest, IAuthenticatedRequest).
+            else
+                assign oAuthRequest = ?.
+            
+            if valid-object(oAuthRequest) then
+            do:
+                Logger:Debug(substitute('Authenticated request: method = &1', oAuthRequest:AuthenticationMethod)).
+                Logger:Debug(substitute('Authenticated request: challenge = &1', oAuthRequest:AuthenticationChallenge)).
+                oAuthRequest:AddAuthentication().
+            end.
             
             assign rRequestHash[2] = rRequestHash[1].
             
-            /* make the request */
+            /* make the request.
+               request timeouts must be handled by the client library */
             moWwwLib:Execute(poRequest, poResponse).
             
             assign rRequestHash[1] = poRequest:ContentMD5.
@@ -145,9 +159,13 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize:
             if ProcessStatusAction(poRequest, poResponse) then
                 leave.
             
-            if this-object:Options:NumRetries gt 0 and
-               iNumRetries gt this-object:Options:NumRetries then
-                leave.
+            if this-object:Options:NumRetries gt 0 then
+            do:
+                if iNumRetries gt this-object:Options:NumRetries then
+                    leave.
+                if this-object:Options:PauseBetweenRetry gt 0 then
+                    pause this-object:Options:PauseBetweenRetry no-message.
+            end.
         end.
     end method.
     

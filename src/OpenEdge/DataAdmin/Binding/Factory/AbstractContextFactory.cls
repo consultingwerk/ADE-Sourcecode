@@ -16,9 +16,12 @@
 
 block-level on error undo, throw.
 
+using OpenEdge.DataAdmin.Binding.AllFieldContext.
 using OpenEdge.DataAdmin.Binding.AllTableContext.
 using OpenEdge.DataAdmin.Binding.AreaContext.
 using OpenEdge.DataAdmin.Binding.AuthenticationSystemContext.
+using OpenEdge.DataAdmin.Binding.CdcFieldPolicyContext.
+using OpenEdge.DataAdmin.Binding.CdcTablePolicyContext.
 using OpenEdge.DataAdmin.Binding.CreateContext.
 using OpenEdge.DataAdmin.Binding.DatabaseOptionContext.
 using OpenEdge.DataAdmin.Binding.DomainContext.
@@ -170,6 +173,16 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         end. 
         set.       
         
+     define public property AllFieldContext as AllFieldContext no-undo 
+        get():
+            if not valid-object(AllFieldContext) then 
+            do:
+                AllFieldContext = new AllFieldContext(this-object).       
+            end.
+            return AllFieldContext.   
+        end. 
+        set.
+        
     define public property SequenceContext as SequenceContext no-undo 
         get():
             if not valid-object(SequenceContext) then 
@@ -230,6 +243,35 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         end. 
         set.
         
+    define public property CdcTablePolicyContext as CdcTablePolicyContext no-undo 
+        get():
+            if not valid-object(CdcTablePolicyContext) then 
+            do:
+                CdcTablePolicyContext = new CdcTablePolicyContext(this-object).       
+            end.
+            return CdcTablePolicyContext.   
+        end. 
+        set.
+        
+    define public property CdcFieldPolicyContext as CdcFieldPolicyContext no-undo 
+        get():
+            if not valid-object(CdcFieldPolicyContext) then 
+            do:
+                CdcFieldPolicyContext = new CdcFieldPolicyContext(this-object).       
+            end.
+            return CdcFieldPolicyContext.   
+        end. 
+        set.
+    /*    
+    define public property CdcTablePolicyFieldContext as CdcTablePolicyFieldContext no-undo 
+        get():
+            if not valid-object(CdcTablePolicyFieldContext) then 
+            do:
+                CdcTablePolicyFieldContext = new CdcTablePolicyFieldContext(this-object).       
+            end.
+            return CdcTablePolicyFieldContext.   
+        end. 
+        set.*/
     
     define public property PartitionPolicyFieldContext as PartitionPolicyFieldContext no-undo 
         get():
@@ -358,8 +400,12 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return "Partition".
             when "_Partition-Policy" then
                 return "PartitionPolicy".
+            when "_Cdc-Table-Policy" then
+                return "CdcTablePolicy".
             when "_Partition-Policy-Detail" then
                 return "PartitionPolicyDetail".
+            when "_Cdc-Field-Policy" then
+                return "CdcFieldPolicy".
             when "_Partition-Set" then
                 return "TenantGroup".
             when "_Partition-Set-Detail" then
@@ -414,6 +460,12 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return PartitionPolicyDetailContext.
             when "PartitionPolicyField" then
                 return PartitionPolicyFieldContext.
+            when "CdcTablePolicy" then
+                return CdcTablePolicyContext.
+            when "CdcFieldPolicy" then
+                return CdcFieldPolicyContext.
+            /*when "CdcTablePolicyField" then
+                return CdcTablePolicyFieldContext.*/
             when "TenantGroup" then
                 return TenantGroupContext.
             when "TenantGroupMember" then

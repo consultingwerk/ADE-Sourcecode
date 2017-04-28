@@ -16,8 +16,8 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.Util.BuilderRegistry.
-using OpenEdge.Core.Util.ILogWriter.
-using OpenEdge.Core.Util.ISupportLogging.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry.
@@ -56,10 +56,8 @@ class OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder inherits 
                    oWriter:Value= oArgValue.
         
         /* hook up logging */
-        if HasOption(get-class(ILogWriter):TypeName) and
-           type-of(oWriter, ISupportLogging) then
-            cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter)
-                    :SubscribeTo(cast(oWriter, ISupportLogging)).
+        if HasOption(get-class(ILogWriter):TypeName) and type-of(oWriter, ISupportLogging) then
+            assign cast(oWriter, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
    
         if type-of(oWriter, ISupportInitialize) then
             cast(oWriter, ISupportInitialize):Initialize().

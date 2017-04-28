@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2016 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -755,11 +755,25 @@ DO ON STOP UNDO, LEAVE WITH FRAME f_edit:
                                 se_section) )
            h_Menu_Item           = h_Menu_Item:NEXT-SIBLING  /* Rule  */
            h_Menu_Item           = h_Menu_Item:NEXT-SIBLING  /* Cut   */
+           /* You can always do a cut in the source editor. It will cut
+           ** the selection if text is selected. Otherwise it cuts the
+           ** line the cursor is on.
+           */
            h_Menu_Item:SENSITIVE = /* TRUE IF... */
-                ( NOT txt:READ-ONLY ) AND ( txt:TEXT-SELECTED )
+                IF txt:SOURCE-EDITOR THEN
+                    ( NOT txt:READ-ONLY )
+                ELSE
+                    ( NOT txt:READ-ONLY ) AND ( txt:TEXT-SELECTED )
            h_Menu_Item           = h_Menu_Item:NEXT-SIBLING  /* Copy  */
+           /* You can always do a copy in the source editor. It will copy
+           ** the selection if text is selected. Otherwise it copies the
+           ** line the cursor is on.
+           */
            h_Menu_Item:SENSITIVE = /* TRUE IF... */
-                ( txt:TEXT-SELECTED )
+                IF txt:SOURCE-EDITOR THEN
+                    TRUE
+                ELSE
+                    ( txt:TEXT-SELECTED )
            h_Menu_Item           = h_Menu_Item:NEXT-SIBLING  /* Paste */
            h_Menu_Item:SENSITIVE = /* TRUE IF... */
                 ( txt:EDIT-CAN-PASTE ) AND ( NOT txt:READ-ONLY )

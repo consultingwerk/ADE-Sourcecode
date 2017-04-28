@@ -23,7 +23,11 @@ define protected temp-table ttFileStatus no-undo  serialize-name "files" {1}
     field TableSequence      as integer   serialize-hidden
     field FileName           as character format "x(32)" serialize-name "fileName"
     field TableName          as character format "x(32)" serialize-name "tableName"
+    field SchemaName         as character format "x(32)" serialize-name "schemaName"    
     field TableUrl           as character serialize-name "table_url"
+    field CDCPolicyName      as character format "x(32)" serialize-name "cdcPolicyName"
+    field CDCPolicyUrl       as character serialize-name "cdcPolicy_url"
+    field ChangeTableName    as character format "x(32)" serialize-name "changeTableName"
     field Type               as character serialize-name "type"
     field TenantName         as character serialize-name "tenantName"  
     field TenantUrl          as character serialize-name "tenant_url"  
@@ -42,7 +46,7 @@ define protected temp-table ttFileStatus no-undo  serialize-name "files" {1}
     field Bailed             as logical   serialize-hidden
       {daschema/entity.i}
     index idxtask as primary unique TableSequence
-    index idxtask2 as  unique TableName type TenantName TenantGroupName
+    index idxtask2 as  unique TableName type TenantName TenantGroupName CDCPolicyName
     index idxtask3  TableName type TenantGroupName
     index idxtask4  IsAvailable  
     index idxtask5  CanExport   

@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2006-2011,2014 by Progress Software Corporation. All *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2006-2011,2014,2016 by Progress Software Corporation.*
+* All contributed by participants of Possenet.                       *
 *                                                                    *
 **********************F***********************************************/
 /*------------------------------------------------------------------------
@@ -655,6 +655,8 @@ procedure showLoadError:
     if user_env[6] = "b" or user_env[6] = "f" then
     do:   
       OUTPUT TO VALUE (dbload-e) APPEND.
+      
+      IF NOT do-commit THEN 
       PUT UNFORMATTED TODAY " " STRING(TIME,"HH:MM") " : "
       "Load of " user_env[2] " into database " 
       LDBNAME("DICTDB") " was unsuccessful." SKIP 

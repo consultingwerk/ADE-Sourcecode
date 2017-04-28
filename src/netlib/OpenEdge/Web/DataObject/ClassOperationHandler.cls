@@ -14,32 +14,26 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.IOModeEnum.
-using OpenEdge.Core.LogLevelEnum.
-using OpenEdge.Core.System.ArgumentError.
-using OpenEdge.Core.Util.ILogWriter.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Web.DataObject.ClassOperationHandler.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.OperationArgument.
 using OpenEdge.Web.DataObject.OperationHandler.
-using OpenEdge.Web.DataObject.OperationParameter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using Progress.Lang.AppError.
 using Progress.Lang.ParameterList.
-using Progress.Reflect.DataType.
+using Progress.Reflect.DataType. 
 using Progress.Reflect.Flags.
 
 class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
     
     constructor public ClassOperationHandler():
         super().
-    end constructor.
-    
-    constructor public ClassOperationHandler(input poLogger as ILogWriter):
-        super(poLogger).
     end constructor.
     
     /* Executes the operation.
@@ -61,9 +55,6 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                            input poResponse as IHttpResponse,
                                            input poOperation as MappedOperation,
                                            input poEntity as Progress.Lang.Object):
-        define variable iMax as integer no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iArgIdx as integer no-undo.
         define variable iStartTime as integer no-undo.
         define variable iEndTime as integer no-undo.
         define variable oParamList as Progress.Lang.ParameterList no-undo.
@@ -96,77 +87,23 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(poOperation, 'Mapped operation').
         Assert:NotNull(poEntity, 'Entity').
-
-        ClearArguments().
         
-        /* CREATE PARAMETER LIST FROM OPERATION */
-        if valid-object(poOperation:ReturnValue) then
-        do:
-            create lbArg.
-            assign lbArg.ParentCOH  = int64(this-object)
-                   lbArg.ParamIndex = 0
-                   oOperArg = new OperationArgument(poOperation, 
-                                                    poOperation:ReturnValue, 
-                                                    poRequest, 
-                                                    poResponse)
-                   lbArg.Arg = oOperArg
-                   .
-        end.
+        BuildArguments(poRequest, poMessageBody, poResponse, poOperation).
         
-        /* create ParameterList from operation params (IN, IN-OUT, OUT ) */
-        assign iMax       = poOperation:Parameters:Size
-               oParamList = new ParameterList(iMax).
-        PARAM-LOOP:
-        do iLoop = 1 to iMax:
-            assign oOperArg = new OperationArgument(poOperation, 
-                                                    cast(poOperation:Parameters:Get(iLoop), OperationParameter), 
-                                                    poRequest, 
-                                                    poResponse).
-            case oOperArg:Parameter:IOMode:
-                when IOModeEnum:Input  or
-                when IOModeEnum:Input-Output or
-                when IOModeEnum:Output then
-                do:
-                    /* hold and store args for later processing  */
-                    create lbArg.
-                    assign lbArg.ParentCOH  = int64(this-object)
-                           lbArg.Arg        = oOperArg
-                           iArgIdx          = iArgIdx + 1
-                           lbArg.ParamIndex = iArgIdx. 
-                end.
-
-                otherwise
-                do:
-                    LogMessage(substitute('IoMode &1 not supported for operation target &2',
-                                    string(oOperArg:Parameter:IOMode),
-                                    string(poOperation:TargetType)),
-                               LogLevelEnum:INFO).
-                    next PARAM-LOOP.
-                end.    /* unsupported */
-            end case.
-            
-            /* always create the schema if we can for input modes (IN and IN-OUT), so that we are not
-               trying to infer schema. OUT and RETURN do the right thing */
-            if oOperArg:Parameter:IOMode ne IOModeEnum:Output then
-                InitDataStructure(oOperArg).
-            
-            /* sets the primtive or object value on the operation argument */
-            GetInputValue(oOperArg, poMessageBody).
-            
-            /* Sets the value to true if required. Only do this AFTER we've loaded data
-               from the HTTP message since things like READ-JSON do a CREATE tt. under the 
-               covers which messes with the ROW-STATE */
-            if oOperArg:HasSchema then
-                SetTrackingChanges(oOperArg, true).
-            
-            LogMessage(substitute('&4: SetParameter(&1 [&6], &2, &3) &5',
-                         lbArg.ParamIndex,
-                         oOperArg:DataType,
-                         oOperArg:IoMode,
-                         poOperation:TargetFunction,
-                         string(oOperArg:ArgumentValue),
-                         oOperArg:Parameter:ABLName),
-                       LogLevelEnum:TRACE).
+         /* create ParameterList from operation params (IN, IN-OUT, OUT ) */
+        assign oParamList = new ParameterList(poOperation:Parameters:Size).
+        
+        for each lbArg where
+                 lbArg.ParentCOH eq int64(this-object) and
+                 lbArg.ParamIndex ge 1:
+            assign oOperArg = cast(lbArg.Arg, OperationArgument).
+            Logger:Trace(substitute('&4: SetParameter(&1 [&6], &2, &3) &5', 
+                                lbArg.ParamIndex,
+                                oOperArg:DataType,
+                                oOperArg:IoMode,
+                                poOperation:TargetFunction,
+                                string(oOperArg:ArgumentValue),
+                                oOperArg:Parameter:ABLName)).
             
             if oOperArg:IsArray then
             case oOperArg:DataType:
@@ -184,10 +121,9 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                 {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=datetime-tz &ARG-VALUE-TYPE=Ccs.Common.Support.IDateTimeTzArrayHolder }
                 {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=memptr      &ARG-VALUE-TYPE=Ccs.Common.Support.IMemptrArrayHolder }
                 {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=handle      &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleArrayHolder }
-                /* data structures & objects */               
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=pds         &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleArrayHolder   &SWITCH-VALUE=dataset-handle }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=tt          &ARG-VALUE-TYPE=Ccs.Common.Support.IHandleArrayHolder   &SWITCH-VALUE=table-handle   }
-                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=plo         &ARG-VALUE-TYPE=OpenEdge.Core.ObjectArrayHolder         &SWITCH-VALUE=class          }
+                
+                /* objects */               
+                {OpenEdge/Web/DataObject/doh_execute_setparam_array.i &ARG-TYPE=plo         &ARG-VALUE-TYPE=OpenEdge.Core.ObjectArrayHolder         &SWITCH-VALUE=class }
             end case.   /* arrays */
             else
             case oOperArg:DataType:
@@ -225,10 +161,8 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
                                                     string(poOperation)),
                                                     0)).
         
-        LogMessage(substitute('Using method &1 for operation &2',
-                        oMethod:ToString(),
-                        poOperation:ToString()),
-                   LogLevelEnum:TRACE).                                   
+        
+        Logger:Trace(substitute('Using method &1 for operation &2', oMethod:ToString(), poOperation:ToString())).
                                            
         /* INVOKE & HANDLE RETURN-VALUE */
         find lbArg where lbArg.ParentCOH eq int64(this-object) and
@@ -291,11 +225,8 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             assign iEndTime = mtime.
         end.
         
-        LogMessage(substitute('Execution time for &1:&2 = &3 (ms)',
-                    poOperation:TargetName,
-                    poOperation:TargetFunction,
-                    iEndTime - iStartTime),
-                   LogLevelEnum:TRACE).
+        Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)', 
+                                poOperation:TargetName, poOperation:TargetFunction, iEndTime - iStartTime)).
         
         /* HANDLE OUTPUT args */
         OUTPUT-ARGS-LOOP:
@@ -387,14 +318,6 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             do iCleanLoop = extent(arg_arr_memptr_31) to 1 by -1: set-size(arg_arr_memptr_31[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_32) to 1 by -1: set-size(arg_arr_memptr_32[iCleanLoop]) = 0. end.
         end finally.
-    end method.
-    
-    /** Logs a message 
-        
-        @param character The message to log */ 
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        OnLogMessage(pcMessage, poLogLevel, 'DOH-CLS':u).
     end method.
 
 end class.

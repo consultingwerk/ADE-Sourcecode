@@ -907,9 +907,9 @@ for each gate-work
     * Do not pull if its independent pull because it will not have
     * crossponding index.
     */
-   FOR EACH ds_cons WHERE ds_cons.OBJ# = onum:
-     IF opstype = "IP" AND ds_cons.enabled = ? THEN NEXT. 
-     FIND FIRST ds_constraint WHERE ds_constraint.CON# = ds_cons.CON# no-lock no-error. 
+   FOR EACH ds_cons WHERE ds_cons.OBJ# = onum: 
+      IF opstype = "IP" AND ds_cons.enabled = ? THEN NEXT.
+      FIND FIRST ds_constraint WHERE ds_constraint.CON# = ds_cons.CON# no-lock no-error. 
     
      FOR EACH ds_cons-fld WHERE ds_cons-fld.CON# = ds_cons.CON#:
       

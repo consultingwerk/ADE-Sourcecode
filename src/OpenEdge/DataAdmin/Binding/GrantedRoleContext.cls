@@ -72,12 +72,6 @@ class OpenEdge.DataAdmin.Binding.GrantedRoleContext inherits DataAdminContext :
         return dataset dsGrantedRole:handle. 
     end method.
 
-    /** default find expression assumes there is a name field 
-       override in context with different key name or more complex logic */
-    method override protected character FindExpression(c as char):
-        return substitute('&1.&2 eq &3', TableHandle:name, this-object:KeyFields, quoter(c)).
-    end method.    
-    
 	method public override character GetJoinFields(parentid as char):
         case parentid:
             when "roles":u then return "Name,RoleName":u.
@@ -100,6 +94,12 @@ class OpenEdge.DataAdmin.Binding.GrantedRoleContext inherits DataAdminContext :
                 undo, throw new IllegalArgumentError("GrantedRoleContext:CopyTableForParent called with IRow " + quoter(prow:SerializeName)).        
         end.
         Loaded = false.
+    end method.    
+    
+    /** default find expression assumes there is a name field 
+       override in context with different key name or more complex logic */
+    method override protected character FindExpression(c as char):
+        return substitute('&1.&2 eq &3', TableHandle:name, this-object:KeyFields, quoter(c)).
     end method.    
     
     method protected override void CopyTable(cntxt as IDataAdminModel):

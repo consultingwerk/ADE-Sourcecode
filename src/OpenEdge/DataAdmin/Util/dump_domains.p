@@ -15,7 +15,7 @@
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.LogLevelEnum.
+using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.DataAdmin.Util.DomainSystemExport.
 
 define variable oDSE as DomainSystemExport no-undo.

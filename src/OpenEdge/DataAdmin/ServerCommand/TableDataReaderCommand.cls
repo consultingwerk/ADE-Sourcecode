@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2012 by progress Software Corporation.      */
+  /* Copyright (c) 2012-2016 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -36,7 +36,10 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataReaderCommand inherits TableData
     method override protected handle StartProcedure(): 
         define variable hProc as handle no-undo.
         /* initially set "All", this will be reset based on tableselection later */
-        run prodict/load_d.p persistent set hProc
+        if ttUtilityOptions.isCDC then
+            run prodict/load_cdc.p persistent set hProc
+                 (ttUtilityOptions.FileName, ttUtilityOptions.Directory).
+        else run prodict/load_d.p persistent set hProc
                  ("ALL", ttUtilityOptions.Directory).
         return hProc.         
     end method.    

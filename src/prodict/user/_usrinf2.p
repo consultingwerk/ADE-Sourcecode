@@ -46,10 +46,12 @@ DEFINE VARIABLE Large_Sequence AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Large_Keys     AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Is_Partitioned AS CHARACTER NO-UNDO.
 DEFINE VARIABLE Is_Multitenant     AS CHARACTER NO-UNDO.
+DEFINE VARIABLE Is_CDCEnabled      AS CHARACTER NO-UNDO.
 DEFINE VARIABLE l_seq          AS LOGICAL   /*UNDO*/.
 DEFINE VARIABLE l_keys         AS LOGICAL   /*UNDO*/.
 DEFINE VARIABLE IsPartitioned  AS LOGICAL /*UNDO*/.
 DEFINE VARIABLE IsMultitenant  AS LOGICAL /*UNDO*/.
+DEFINE VARIABLE IsCDCEnabled   AS LOGICAL /*UNDO*/.
 
 DEFINE SHARED STREAM rpt.
 
@@ -69,21 +71,22 @@ FORM
    TITLE " Currently Selected Database ".
 
 FORM
-   num      FORMAT ">>9"    LABEL "Connected DBs"       COLON 19 SKIP
-   conn     FORMAT "yes/no" LABEL "Connected"           COLON 19 SKIP
-   pname    FORMAT "x(50)"  LABEL "Physical name"       COLON 19 SKIP
-   lname    FORMAT "x(50)"  LABEL "Logical name"        COLON 19 SKIP
-   sname    FORMAT "x(50)"  LABEL "Schema holder"       COLON 19 SKIP
-   dtype    FORMAT "x(50)"  LABEL "Database type"       COLON 19 SKIP
-   dvers    FORMAT "x(50)"  LABEL "Database version"    COLON 19 SKIP
-   drest    FORMAT "x(50)"  LABEL "Restrictions"        COLON 19 SKIP
-   uid      FORMAT "x(50)"  LABEL "Database user id"    COLON 19 SKIP
-   codepage FORMAT "x(50)"  LABEL "Database code page"  COLON 19 SKIP
-   collname FORMAT "x(50)"  LABEL "Database collation"  COLON 19 SKIP
-   Large_Sequence FORMAT "x(20)"  LABEL "64-bit Sequences" COLON 19 SKIP
-   Large_Keys     FORMAT "x(20)"  LABEL "Large key entries"  COLON 19 SKIP
-   is_Multitenant FORMAT "x(20)"  LABEL "Multi-tenancy" COLON 19 SKIP
-   is_Partitioned FORMAT "x(20)"  LABEL "Table Partitioning" COLON 19 SKIP
+   num      FORMAT ">>9"    LABEL "Connected DBs"       COLON 20 SKIP
+   conn     FORMAT "yes/no" LABEL "Connected"           COLON 20 SKIP
+   pname    FORMAT "x(50)"  LABEL "Physical name"       COLON 20 SKIP
+   lname    FORMAT "x(50)"  LABEL "Logical name"        COLON 20 SKIP
+   sname    FORMAT "x(50)"  LABEL "Schema holder"       COLON 20 SKIP
+   dtype    FORMAT "x(50)"  LABEL "Database type"       COLON 20 SKIP
+   dvers    FORMAT "x(50)"  LABEL "Database version"    COLON 20 SKIP
+   drest    FORMAT "x(50)"  LABEL "Restrictions"        COLON 20 SKIP
+   uid      FORMAT "x(50)"  LABEL "Database user id"    COLON 20 SKIP
+   codepage FORMAT "x(50)"  LABEL "Database code page"  COLON 20 SKIP
+   collname FORMAT "x(50)"  LABEL "Database collation"  COLON 20 SKIP
+   Large_Sequence FORMAT "x(20)"  LABEL "64-bit Sequences" COLON 20 SKIP
+   Large_Keys     FORMAT "x(20)"  LABEL "Large key entries"  COLON 20 SKIP
+   is_Multitenant FORMAT "x(20)"  LABEL "Multi-tenancy" COLON 20 SKIP
+   is_Partitioned FORMAT "x(20)"  LABEL "Table Partitioning" COLON 20 SKIP
+   is_CDCEnabled  FORMAT "x(20)"  LABEL "Change Data Capture" COLON 20 SKIP
    WITH FRAME dbs-2 SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
    TITLE " Currently Selected Database ".
 
@@ -135,7 +138,8 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
        OUTPUT l_seq,
        OUTPUT l_keys,
        OUTPUT isMultitenant,
-       OUTPUT isPartitioned).
+       OUTPUT isPartitioned,
+       OUTPUT isCDCEnabled).
 
     /* 20060209-012
        Make sure we omit the password, after the '/' character, in case
@@ -184,6 +188,9 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
 	    (IF isPartitioned = ? THEN "n/a" ELSE 
                     IF isPartitioned THEN "enabled" 
                         ELSE "not enabled") @ is_Partitioned 
+	    (IF isCDCEnabled = ? THEN "n/a" ELSE 
+                    IF isCDCEnabled THEN "enabled" 
+                        ELSE "not enabled") @ is_CDCEnabled 
             (IF l_seq = ? THEN "n/a" ELSE 
                     IF l_seq THEN "enabled" 
                         ELSE "not enabled") @ Large_Sequence

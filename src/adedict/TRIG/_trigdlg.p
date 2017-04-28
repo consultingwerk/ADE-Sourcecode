@@ -68,6 +68,7 @@ Define var trig_txt as char NO-UNDO
 	 VIEW-AS EDITOR /*LARGE*/ SCROLLBAR-VERTICAL SCROLLBAR-HORIZONTAL 
 	 SIZE 74 BY 10. 
 
+
 /* Defines common buttons etc, used here and by UIB */
 {adecomm/trigdlg.i 
    &Insert_Lbl = "&Insert File..." 
@@ -613,6 +614,7 @@ end.
 /*---- VALUE-CHANGED of EVENT-----*/
 on value-changed of trig_event in frame trigedit
 do:
+
    Define var success as logical NO-UNDO init yes.
 
    /* NOTE: trig_event is the value before it just got
@@ -624,7 +626,7 @@ do:
    if success then
    do:
       /* Save new current event in underlying variable */
-      trig_event = trig_event:screen-value in frame trigedit.
+      trig_event = trig_event:screen-value in frame trigedit.     
    
       /* Get the trigger associated with the new event chosen. */
       Run Get_Trigger (true).
@@ -637,6 +639,43 @@ do:
 	 trig_event:screen-value in frame trigedit = trig_event.
       return NO-APPLY.
    end.
+
+   FIND FIRST _file where _file-name eq p_Name:screen-value.
+   IF AVAIL _file THEN
+   DO:
+      IF trig_event = "DELETE" and _File._File-attributes[6] EQ TRUE THEN
+         ENABLE 
+	     trig_event 
+      	     trig_proc   btn_File  
+	     trig_crc    trig_override 
+	     trig_txt 
+	     btn_cut     btn_copy      btn_paste
+	     btn_find    btn_prev      btn_next
+	     btn_replace btn_insert
+	     btn_delete  btn_revert
+	     btn_now     tgl_syntax
+	     s_btn_OK    s_btn_Save
+	     btn_Close   s_btn_Help
+	     with frame trigedit.
+      ELSE IF _File._File-attributes[6] EQ FALSE and _file._frozen = false THEN
+         ENABLE
+	     trig_event 
+	     trig_proc   btn_File  
+	     trig_crc    trig_override 
+	     trig_txt 
+	     btn_cut     btn_copy      btn_paste
+	     btn_find    btn_prev      btn_next
+	     btn_replace btn_insert
+	     btn_revert
+	     btn_now     tgl_syntax
+	     s_btn_OK    s_btn_Save
+	     btn_Close   s_btn_Help
+	     with frame trigedit.
+      ELSE
+         DISABLE all except trig_event 
+	         btn_Close  s_btn_Help
+	         with frame trigedit.
+   END.
 END.
 
 
@@ -846,10 +885,13 @@ do:
    return.
 end.
 
-if p_Obj = {&OBJ_TBL} then
+
+if p_Obj = {&OBJ_TBL} then do:
    can_update = NOT s_Tbl_ReadOnly.
+end.
 else
    can_update = NOT s_Fld_ReadOnly.
+
 
 if ( NOT can-do(_File._Can-write, USERID("DICTDB")) OR
      NOT can-do(_File._Can-create, USERID("DICTDB")) OR

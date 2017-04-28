@@ -62,8 +62,16 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                     or name = "PartitionPolicyField"   
                     or name = "LocalIndex"  then
                 da = new PartitionPolicyData().
+            else if name = "CdcTablePolicy" 
+                    or name = "CdcFieldPolicy"   
+                    //or name = "CdcTablePolicyField"   
+                    //or name = "Index" 
+                     then
+                da = new CdcTablePolicyData().    
             else if name = "AllTable" then
                 da = new AllFileData().
+            else if name = "AllField" then
+                da = new AllFieldData().              
             else if name = "Schema" 
                  or name = "Table" 
                  or name = "Index" 

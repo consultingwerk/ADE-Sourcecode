@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -33,7 +33,7 @@ class OpenEdge.DataAdmin.FieldImpl final  inherits AbstractSchemaElement  implem
         get():
             if not valid-object(this-object:Table) and valid-handle(mBuffer) and valid-object(Service) then
             do:
-                 this-object:Table = service:GetTable(mBuffer::Tablename). 
+                 this-object:Table = service:GetTable(mBuffer::Tablename,mbuffer::TableOwner).                 
             end.
             return this-object:Table.
         end.

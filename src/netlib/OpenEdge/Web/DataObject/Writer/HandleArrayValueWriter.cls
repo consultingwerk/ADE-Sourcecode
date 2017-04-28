@@ -32,60 +32,7 @@ class OpenEdge.Web.DataObject.Writer.HandleArrayValueWriter inherits ArgumentVal
     end constructor.
             
     method override public void Write(input pData as handle extent):
-        define variable hData as handle extent no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-/****
-        /* If we have handles already, use them */
-        if valid-object(this-object:Value) then
-        do:
-            assign hData = cast(this-object:Value, IHandleArrayHolder):Value
-                   iMax = extent(hData).
-
-            do iLoop = 1 to iMax:
-                moHandleWriter:Open().
-                
-                if valid-handle(hData[iLoop]) then
-                    moHandleWriter:Write(hData[iLoop]).
-                
-                if valid-handle(hData[iLoop]) then
-                    moHandleWriter:Write(pData[iLoop]).
-
-                moHandleWriter:Close().
-            end.
-        end.
-                   
-                   
-                   
-            
-            /* if the input array matches the stored array, and we're working with 
-               PDS and TT then use that handle as a base schema */                   
-            if extent(pData) eq iMax then
-            do iLoop = 1 to iMax:
-                /* If we're working on the same handle, then it's a no-op */
-                if hData[iLoop] eq pData[iLoop] then
-                    next.
-                
-                if valid-handle(hData[iLoop]) then
-                case hData[iLoop]:type:
-                    when DataTypeHelper:GetMask(DataTypeEnum:TempTable) then
-                        hData[iLoop]:copy-temp-table(pData[iLoop]).
-                    when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
-                        hData[iLoop]:copy-dataset(pData[iLoop]).
-                    otherwise
-                    do:
-                        assign extent(hData) = ?.
-                        leave.
-                    end.
-                end case.
-            end.
-        end.    /* have data */
-        
-        if extent(hData) eq 0 then
-            assign this-object:Value = new HandleArrayHolder(pData).
-            
-       moHandleWriter:Close().
-***/       
+        assign this-object:Value = new HandleArrayHolder(pData).
     end method.
     
     method override public void Write(input pData as Progress.Lang.Object extent):
@@ -104,11 +51,10 @@ class OpenEdge.Web.DataObject.Writer.HandleArrayValueWriter inherits ArgumentVal
     
     method override public void Write(input pData as Progress.Lang.Object):
         define variable oArray as JsonArray no-undo.
-        define variable mArray as handle extent no-undo.
         
         case true:
             when not valid-object(pData) then
-                assign this-object:Value = new HandleArrayHolder(mArray).
+                assign this-object:Value = new HandleArrayHolder().
             
             when type-of(pData, IHandleArrayHolder) then
                this-object:Write(cast(pData, IHandleArrayHolder):Value).

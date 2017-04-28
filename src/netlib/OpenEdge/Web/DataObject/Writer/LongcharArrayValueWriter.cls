@@ -34,17 +34,13 @@ class OpenEdge.Web.DataObject.Writer.LongcharArrayValueWriter inherits ArgumentV
     end method.
 
     method override public void Write(input pData as Progress.Lang.Object):
-        define variable oArray as JsonArray no-undo.
-        
+
         case true:
             when not valid-object(pData) then
                 assign this-object:Value = new LongcharArrayHolder().
             
             when type-of(pData, JsonArray) then
-            do:
-                assign oArray = cast(pData, JsonArray). 
-                this-object:Write(oArray:GetInt64(1, oArray:Length)).
-            end.
+                this-object:Write(cast(pData, JsonArray):GetLongchar(1, cast(pData, JsonArray):Length)).
                       
             when type-of(pData, ILongcharArrayHolder) then
                this-object:Write(cast(pData, ILongcharArrayHolder):Value).

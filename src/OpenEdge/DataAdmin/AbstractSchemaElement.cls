@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
+  /* Copyright (c) 2011-2016 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -33,10 +33,18 @@ class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract impleme
     define public property Schema as ISchema no-undo 
         get():
             if valid-handle(mBuffer) and valid-object(Service) 
-            and mBuffer::SchemaName = "PUB" then 
-                return Service:GetSchema().       
+            and mBuffer::SchemaName = "PUB" then                   
+                return Service:GetSchema().                 
             return ?.          
-        end.    
+        end. 
+        
+    define public property NonPUBSchemaName as char no-undo 
+        get():
+            if valid-handle(mBuffer) and valid-object(Service) 
+            and mBuffer::SchemaName ne "PUB" then               
+                return mBuffer::SchemaName.               
+            return ?.          
+        end.   
         
     define public property Area as IArea no-undo 
         get():

@@ -15,7 +15,7 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.Util.BuilderRegistry.
-using OpenEdge.Core.Util.ILogWriter.
+using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Web.DataObject.OperationArgument.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.

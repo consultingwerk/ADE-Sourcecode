@@ -98,12 +98,14 @@ PROCEDURE Tbl_Triggers:
 
   VIEW FRAME frame-f.
 
+
+
   ASSIGN
     pname = ""
     override = no
     crc = committed  /* if trig won't compile no else yes */
     old_crc_val = ?.
-
+    
   DO i = 1 TO 7:
     FIND FIRST wfit WHERE wfit._Event = events[i] NO-ERROR.
     IF AVAILABLE wfit THEN 
@@ -117,7 +119,24 @@ PROCEDURE Tbl_Triggers:
   END.
      
   IF romode = 0 THEN
-    HIDE MESSAGE NO-PAUSE.
+     HIDE MESSAGE NO-PAUSE.
+     
+  IF romode = 1 and events[2] = "Delete" THEN
+  DO:
+     HIDE MESSAGE NO-PAUSE. 
+  
+     DISPLAY
+        pname[2] override[2] crc[2] 
+        do-get WHEN romode = 1 and events[2] = "Delete"
+        WITH FRAME frame-f.
+
+     UPDATE    
+        pname[2]    WHEN romode = 1 and events[2] = "Delete" 
+        override[2] WHEN romode = 1 and events[2] = "Delete"
+        crc[2]      WHEN romode = 1 and events[2] = "Delete"    
+        btn_OK btn_Cancel
+        WITH FRAME frame-f.
+  END.
 
   DISPLAY
     pname[1] override[1] crc[1]

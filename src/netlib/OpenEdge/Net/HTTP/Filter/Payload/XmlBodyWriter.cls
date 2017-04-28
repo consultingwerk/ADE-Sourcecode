@@ -32,7 +32,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
     end constructor.
     
     method override public void Open():
-        assign this-object:Entity = ByteBucket:Instance().
+        /* If nothing's passed in, use a bucket of our own. 
+           Don't do this in the constructor as a micro-optimisation (yes, I know) */
+        if not valid-object(this-object:Entity) then
+            assign this-object:Entity = ByteBucket:Instance().
         
         super:Open().
     end method.

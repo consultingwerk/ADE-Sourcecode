@@ -33,6 +33,7 @@ Define var answer       as logical           NO-UNDO.
 Define var l_CurrDB     as character         NO-UNDO.
 Define var isMultitenant       as logical           NO-UNDO.
 Define var isPartitioned       as logical           NO-UNDO.
+Define var isCDCEnabled        as logical           NO-UNDO.
 
 /* Parameters for getting datatype info for gateway. */
 Define var io1        as integer NO-UNDO.
@@ -113,7 +114,8 @@ do:
        OUTPUT s_Large_Seq,
        OUTPUT answer,
        OUTPUT isMultitenant,
-       OUTPUT isPartitioned).
+       OUTPUT isPartitioned,
+       OUTPUT isCDCEnabled).
       
   /* if large_keys is not known by db, answer will be ? */
   IF answer NE ? THEN

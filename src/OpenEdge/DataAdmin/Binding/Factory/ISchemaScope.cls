@@ -19,6 +19,7 @@ using OpenEdge.DataAdmin.Binding.* from propath.
 using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 interface OpenEdge.DataAdmin.Binding.Factory.ISchemaScope inherits IContextScope: 
     define public property AllTableContext as AllTableContext no-undo get.    
+    define public property AllFieldContext as AllFieldContext no-undo get.
     define public property FieldContext as FieldContext no-undo get.  
     define public property IndexContext as IndexContext no-undo get.  
     define public property IndexFieldContext as IndexFieldContext no-undo get.  
@@ -29,6 +30,10 @@ interface OpenEdge.DataAdmin.Binding.Factory.ISchemaScope inherits IContextScope
     define public property PartitionPolicyFieldContext as PartitionPolicyFieldContext no-undo get.  
     define public property PartitionPolicyDetailContext as PartitionPolicyDetailContext no-undo get.
     
+    define public property CdcTablePolicyContext as CdcTablePolicyContext no-undo get.  
+    //define public property CdcTablePolicyFieldContext as CdcTablePolicyFieldContext no-undo get.  
+    define public property CdcFieldPolicyContext as CdcFieldPolicyContext no-undo get.
+ 
     define public property TableContext as TableContext no-undo get.  
     define public property SequenceContext as SequenceContext no-undo get.  
     define public property SequenceValueContext as SequenceValueContext no-undo get.  

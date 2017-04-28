@@ -14,18 +14,24 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertObject.
-using OpenEdge.Core.LogLevelEnum.
-using OpenEdge.Core.Util.ISupportLogging.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using Progress.Lang.Object.
+using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 
-class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract
-        implements ISupportLogging :
+class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISupportLogging:
     
-    define public event LogMessage signature void (input poSender as Progress.Lang.Object, 
-                                                   input pcMessageGroup as character, 
-                                                   input pcMessage as character, 
-                                                   input poLogLevel as LogLevelEnum).                
-
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo 
+        get(): 
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(ArgumentValueWriter)).
+            
+            return this-object:Logger.
+        end get.
+        set.    
+    
     /** (mandatory) The type that the entity this writer can write to. */
     define public property ArgumentType as class Progress.Lang.Class no-undo get. private set.
     
@@ -81,160 +87,151 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract
     
         @param Object[] Data to write */
     method public void Write(input poData as Object extent):
-        LogMessage('Write(handle) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (Object[])'). 
     end method.
 
     /** Write data to/from the entity
 
         @param handle Data to write */
     method public void Write(input phData as handle):
-        LogMessage('Write(handle) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (handle)').
     end method.
 
     method public void Write(input phData as handle extent):
-        LogMessage('Write(handle[]) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (handle[])').
     end method.
 
     method public void Write(input p0 as memptr ):
         /* no-op */
-        LogMessage('Write(memptr) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (memptr)').
     end method.
 
     method public void Write(input p0 as memptr extent):
-        LogMessage('Write(memptr[]) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (memptr[])').
     end method.
     
     method public void Write(input p0 as longchar ):
         /* no-op */
-        LogMessage('Write(longchar) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (longchar)'). 
     end method.
 
     method public void Write(input p0 as longchar extent):
         /* no-op */
-        LogMessage('Write(longchar[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (longchar[])'). 
     end method.
     
     method public void Write(input p0 as character ):
-        /* no-op */        
-        LogMessage('Write(character) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (character'). 
     end method.
 
     method public void Write(input p0 as character extent):
-        /* no-op */        
-        LogMessage('Write(character[]) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (character[])'). 
     end method.
 
     method public void Write(input p0 as raw):
-        /* no-op */        
-        LogMessage('Write(raw) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (raw)'). 
     end method.
 
     method public void Write(input p0 as raw extent):
-        /* no-op */        
-        LogMessage('Write(raw[]) is a no-op', LogLevelEnum:WARN).
+        /* no-op */
+        Logger:Warn('Write (raw[])'). 
     end method.
 
     method public void Write(input p0 as int64):
         /* no-op */
-        LogMessage('Write(int64) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (int64[])'). 
     end method.
 
     method public void Write(input p0 as int64 extent):
         /* no-op */
-        LogMessage('Write(int64[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (int64[])'). 
     end method.
 
     method public void Write(input p0 as integer):
         /* no-op */
-        LogMessage('Write(integer) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (int[])'). 
     end method.
 
     method public void Write(input p0 as integer extent):
         /* no-op */
-        LogMessage('Write(integer[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (int[])'). 
     end method.
 
     method public void Write(input p0 as logical):
         /* no-op */
-        LogMessage('Write(logical) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (logical)'). 
     end method.
 
     method public void Write(input p0 as logical extent):
         /* no-op */
-        LogMessage('Write(logical[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (logical[])'). 
     end method.
     
     method public void Write(input p0 as decimal):
         /* no-op */
-        LogMessage('Write(decimal) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (decimal)'). 
     end method.
 
     method public void Write(input p0 as decimal extent):
         /* no-op */
-        LogMessage('Write(decimal[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (decimal[])'). 
     end method.
 
     method public void Write(input p0 as date):
         /* no-op */
-        LogMessage('Write(date) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (date)'). 
     end method.
 
     method public void Write(input p0 as date extent):
         /* no-op */
-        LogMessage('Write(date[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (date[])'). 
     end method.
 
     method public void Write(input p0 as datetime):
         /* no-op */
-        LogMessage('Write(datetime) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (datetime)'). 
     end method.
 
     method public void Write(input p0 as datetime extent):
         /* no-op */
-        LogMessage('Write(datetime[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (datetime[])'). 
     end method.
 
     method public void Write(input p0 as datetime-tz):
         /* no-op */
-        LogMessage('Write(datetime-tz) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (datetime-tz)'). 
     end method.
     
     method public void Write(input p0 as datetime-tz extent):
         /* no-op */
-        LogMessage('Write(datetime-tz[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (datetime-tz[])'). 
     end method.
 
     method public void Write(input p0 as rowid):
         /* no-op */
-        LogMessage('Write(rowid) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (rowid)'). 
     end method.
 
     method public void Write(input p0 as rowid extent):
         /* no-op */
-        LogMessage('Write(rowid[]) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (rowid[])'). 
     end method.
 
     method public void Write(input p0 as recid):
         /* no-op */
-        LogMessage('Write(recid) is a no-op', LogLevelEnum:WARN).
+        Logger:Warn('Write (recid)'). 
     end method.
     
     method public void Write(input p0 as recid extent):
         /* no-op */
-        LogMessage('Write(recid[]) is a no-op', LogLevelEnum:WARN).
-    end method.
-    
-    /** Logs a message 
-        
-        @param character The message to log
-        @param LogLevelEnum  The level this message should be logged at */
-    method protected void LogMessage(input pcMessage as character,
-                                     input poLogLevel as LogLevelEnum):
-        this-object:LogMessage:Publish(this-object, 'COH-AVW':u,
-                                       substitute('[&1] &2',
-                                            this-object:GetClass():TypeName, 
-                                            pcMessage),
-                                       poLogLevel).
+        Logger:Warn('Write (recid[])'). 
     end method.
     
 end class.

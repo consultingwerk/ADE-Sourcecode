@@ -29,7 +29,6 @@ DEFINE VARIABLE nam  AS CHARACTER NO-UNDO.
 DEFINE VARIABLE pass AS INTEGER   NO-UNDO.
 
 define variable lForceSharedSchema   as logical no-undo.
-
 define variable dictLoader as OpenEdge.DataAdmin.Binding.IDataDefinitionLoader no-undo.
 
 
@@ -55,8 +54,8 @@ IF imod <> "a" THEN DO:
   ELSE
     FIND DICTDB._File WHERE DICTDB._File._db-recid  = drec_db
                         AND DICTDB._File._File-name = wfil._File-name.
-                   
-  IF DICTDB._File._Frozen THEN ierror = 16. /* "Cannot &1 frozen file &3" */
+											                   
+  IF DICTDB._File._Frozen and NOT DICTDB._File._file-attributes[6] THEN ierror = 16. /* "Cannot &1 frozen file &3" */
 
 END.
  
@@ -85,7 +84,7 @@ IF imod = "a" THEN DO: /*---------------------------------------------------*/
  
   IF CAN-FIND(FIRST DICTDB._View WHERE DICTDB._View._View-name = wfil._File-name) THEN
     ierror = 19. /* VIEW exists with name &3" */
-  
+		  
   IF ierror > 0 THEN RETURN.
 
 /* tmp-change: check for duplicate dump-names <hutegger> 94/05 */
@@ -178,7 +177,7 @@ IF imod = "m" THEN DO: /*---------------------------------------------------*/
       dictLoader:AddTable(iMod,buffer wfil:handle,?).
       return.
   end.
-  
+      
   ierror = 23. /* default error to general table attr error */
   IF DICTDB._File._Db-lang = 0 THEN DO:
     IF COMPARE(DICTDB._File._Can-create,"NE", wfil._Can-create,"RAW") THEN
@@ -344,6 +343,7 @@ END. /*---------------------------------------------------------------------*/
 
 /* update triggers */
 IF imod = "a" OR imod = "m" THEN DO:
+
   scrap = "".
   trig_loop:
   FOR EACH wfit:
@@ -362,7 +362,7 @@ IF imod = "a" OR imod = "m" THEN DO:
       AND DICTDB._File-trig._Trig-CRC  = wfit._Trig-CRC THEN NEXT trig_loop.
     
     END.
-
+		
     /* Progress doesn't let you modify a trigger record, so delete and
        recreate. */
     IF AVAILABLE DICTDB._File-trig THEN DELETE DICTDB._File-trig.
@@ -373,16 +373,16 @@ IF imod = "a" OR imod = "m" THEN DO:
       DICTDB._File-trig._Override   = wfit._Override
       DICTDB._File-trig._Proc-Name  = wfit._Proc-Name
       DICTDB._File-trig._Trig-CRC   = wfit._Trig-CRC.
-      
+	  	        
     /* Update DICTDB._File._File-name.  Force timestamp change.   *
      * Refer to bug# 99-02-09-002                          */
-    IF AVAIL DICTDB._File THEN
-    DO:
-       ASSIGN DICTDB._File._File-name = wfil._File-name.    
-    END.
-    
+    IF AVAIL DICTDB._File and DICTDB._File._file-attributes[6] NE true THEN
+    DO:	  
+       ASSIGN DICTDB._File._File-name = wfil._File-name.       
+    END.		    
   END.
-  FOR EACH DICTDB._File-trig OF DICTDB._File WHERE NOT CAN-DO(scrap,DICTDB._File-trig._Event):
+      
+  FOR EACH DICTDB._File-trig OF DICTDB._File WHERE NOT CAN-DO(scrap,DICTDB._File-trig._Event): 
     DELETE DICTDB._File-trig.
   END.
 END.

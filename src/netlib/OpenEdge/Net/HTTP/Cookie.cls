@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Cookie
@@ -79,7 +79,7 @@ class OpenEdge.Net.HTTP.Cookie:
         assign lEquals = super:Equals(input p0).
         
         assign lEquals = p0:GetClass() ne get-class(Cookie).
-        if lEquals then    
+        if lEquals then
            assign lEquals = (cast(p0, Cookie):Name eq this-object:Name).
         
         return lEquals.           
@@ -159,7 +159,9 @@ class OpenEdge.Net.HTTP.Cookie:
                        ; whitespace DQUOTE, comma, semicolon,
                        ; and backslash
         */
-        assign cCookie = substitute('&1=&2':u, this-object:Name, this-object:Value).
+        assign cCookie = substitute('&1=&2':u, 
+                            this-object:Name, 
+                            URI:EncodeCookie(this-object:Value)). 
         
         /*  domain-av         = "Domain=" domain-value
             domain-value      = <subdomain>             */
@@ -172,7 +174,7 @@ class OpenEdge.Net.HTTP.Cookie:
         if this-object:Path ne ? then
             assign cCookie = substitute('&1; Path=&2':u, 
                                             cCookie, 
-                                            URI:Encode(this-object:Path, UriEncodingTypeEnum:Cookie)).
+                                            URI:EncodeCookie(this-object:Path)).
 
         if this-object:ExpiresAt ne ? then
             assign cCookie = substitute('&1; Expires=&2':u,

@@ -1,5 +1,5 @@
  /* ************************************************************/
- /* Copyright (c) 2010 - 2013 by Progress Software Corporation */
+ /* Copyright (c) 2010 - 2016 by Progress Software Corporation */
  /*                                                            */
  /* All rights reserved.  No part of this program or document  */
  /* may be  reproduced in  any form  or by  any means without  */
@@ -326,17 +326,37 @@ class OpenEdge.DataAdmin.Binding.ContextTree inherits AbstractDataTree implement
                 end.
                 else if btable.joinfields > "" then 
                 do:
+                    if index(btable.joinfields,"CdcTablePolicyName") eq 0 then
                     jsonarray = GetJsonArrayFromChildBuffer(hbuffer,btable.name,phParent,btable.joinfields,btable.filter).
                 end.    
-                else do:    
+                else do:
                     jsonarray = GetJsonArrayFromBuffer(hbuffer,btable.name,btable.filter ).
+                    if btable.name = "cdcTablePolicies" then do:
+                        if pjson:Has("total") then
+                            pjson:set("total",Total).
+                        else pjson:add("total",Total).
+                    end.
                 end.     
             end.    
             else do:
-                jsonarray = GetJsonArrayFromQuery(btable.QueryHandle,btable.name,btable.ViewBuffers,"").
+                if btable.name = "cdcTablePolicies" then do:
+                    /* Simple JSON will be generated when TableList is set to 'YES' and a formatted JSON will be generated when TableList is set to 'NO' */                      
+                    if TableList then 
+                        jsonarray = GetJsonArrayFromQuery(btable.QueryHandle,btable.name,btable.ViewBuffers,"").  
+                    else jsonarray = GetCdcJsonArrayFromQuery(btable.QueryHandle,btable.DataHandle,btable.name,btable.ViewBuffers,"",btable.filter).                                      
+                    //Sometimes total property comes as unknown(?), so total json object might not be added to the json.
+                    //We need to find total jsonObject and then set it or else add it. 
+                    if pjson:Has("total") then
+                        pjson:set("total",Total).
+                    else pjson:add("total",Total).
+                end.                                 
+                else do:
+                    jsonarray = GetJsonArrayFromQuery(btable.QueryHandle,btable.name,btable.ViewBuffers,"").
+                 end.   
             end.    
-            if valid-object (jsonarray)  then
-                pjson:Add(btable.name,jsonarray).  
+            if valid-object (jsonarray)  then                 
+                pjson:Add(btable.name,jsonarray).
+                 
         end.
     end method.
     
@@ -360,12 +380,16 @@ class OpenEdge.DataAdmin.Binding.ContextTree inherits AbstractDataTree implement
         define variable jsonArray as JsonArray no-undo.
         define variable hBuffer as handle no-undo.
         define variable hQuery as handle no-undo.
+        define variable fil as char no-undo.
         create buffer hBuffer for table pBuffer.
         create query hQuery.
+        fil = pfilter.
         hQuery:add-buffer(hBuffer).
         if pfilter = "" or pfilter = ? then 
            pfilter = "for each " + pBuffer:name.
         hQuery:query-prepare (pFilter).
+        if pBuffer:name eq "ttCdcTablePolicy" and not TableList then 
+            return GetCdcJsonArrayFromQuery(hQuery,pBuffer,pcname,hBuffer:name,"",fil). 
         return GetJsonArrayFromQuery(hQuery,pcname,hBuffer:name,"").
         finally: 
             delete object hQuery no-error.

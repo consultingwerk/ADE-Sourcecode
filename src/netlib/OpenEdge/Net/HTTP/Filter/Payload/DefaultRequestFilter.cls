@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultRequestFilter
@@ -16,27 +16,22 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assertion.AssertObject.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.HashAlgorithmEnum.
-using OpenEdge.DataAdmin.Entity.
-using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Core.IAdaptable.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
-using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using OpenEdge.Net.ISupportEncoding.
 using OpenEdge.Net.ISupportMultipartEntity.
 using OpenEdge.Net.ISupportTransferEncoding.
-using OpenEdge.Net.UriEncodingTypeEnum.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWriter:
-    
-    /* private and immutable constant value */
-    define protected property CRLF as character initial '~r~n':u no-undo get.
-    
+    /* Default constructor */
     constructor public DefaultRequestFilter():
         super(get-class(ByteBucket)).
     end constructor.    
@@ -75,7 +70,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
         WriteHeaders(poRequest).
         
         /* ALWAYS add a trailing CRLF to indicate end of headers. */
-        cast(this-object:Entity, ByteBucket):PutString(CRLF).
+        cast(this-object:Entity, ByteBucket):PutString(StringConstant:CRLF).
         
         /* Add Body to the end of the payload */
         if poRequest:ContentLength gt 0 then
@@ -133,31 +128,26 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
         @param ByteBucket The target for the write operation */
     method protected void WriteRequestLine(input poRequest as IHttpRequest):
         define variable cRequestURI as character no-undo.
+        define variable oProxyRequest as ISupportProxy no-undo.
         
-        /* encode unless already encoded (via check for % in the URL) */
-        if type-of(poRequest, ISupportProxy) then
-        do:
-            /* for proxies, we want http://example.com/some/data */
-            assign cRequestURI = poRequest:URI:ToString().
-            if index(cRequestURI, '%':u) eq 0 then
-                assign cRequestURI = poRequest:URI:Encode().
-        end.
+        if type-of(poRequest, IAdaptable) then
+            assign oProxyRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ISupportProxy)), ISupportProxy).
         else
-        do:
-            /* for normal request, we want /some/data */
-            assign cRequestURI = poRequest:URI:RelativeURI.
-            if index(cRequestURI, '%':u) eq 0 then
-                assign cRequestURI = OpenEdge.Net.URI:Encode(cRequestURI, UriEncodingTypeEnum:Default).
-        end.
+        if type-of(poRequest, ISupportProxy) then
+            assign oProxyRequest = cast(poRequest, ISupportProxy).
         
-        /* We always need some path in the request line */
-        if cRequestURI eq '':u then
-            assign cRequestURI = '/':u.
+        if valid-object(oProxyRequest) and
+           valid-object(oProxyRequest:ProxyURI) then
+            /* for proxies, we want http://example.com/some/data?query=true */
+            assign cRequestURI = poRequest:URI:Encode().
+        else
+            /* for normal request, we want /some/data?query=true */
+            assign cRequestURI = poRequest:URI:Path + poRequest:URI:EncodeQuery().
         
         cast(this-object:Entity, ByteBucket):PutString(substitute('&1 &2 &3':u,
                                 caps(poRequest:Method),
                                 cRequestURI,
-                                poRequest:Version ) + CRLF).
+                                poRequest:Version ) + StringConstant:CRLF).
     end method.
     
     /** Writes the HTTP headers into the bucket 
@@ -170,19 +160,19 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
         do iLoop = poRequest:GetHeaders(output oHeader) to 1 by -1:
             cast(Entity, ByteBucket):PutString(substitute('&1&2':u,
                                     oHeader[iLoop]:ToString(),
-                                    CRLF)).
+                                    StringConstant:CRLF)).
         end.    /* header */
         
         /* ACCEPT */
         if not poRequest:HasHeader('Accept':u) then
             /* Default to all. */
-            cast(Entity, ByteBucket):PutString('Accept: */*':u + CRLF).
+            cast(Entity, ByteBucket):PutString('Accept: */*':u + StringConstant:CRLF).
         
         /* TRANSFER ENCODING */
         if not poRequest:TransferEncoding eq string(TransferEncodingEnum:None) then
             cast(Entity, ByteBucket):PutString(substitute('Accept-Encoding: &1&2':u,
                                             lc(poRequest:TransferEncoding),
-                                            CRLF)).
+                                            StringConstant:CRLF)).
     end method.
     
 end class.

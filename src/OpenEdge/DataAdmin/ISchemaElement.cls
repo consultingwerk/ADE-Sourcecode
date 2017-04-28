@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -24,6 +24,9 @@ using OpenEdge.DataAdmin.Binding.* from propath.
 interface OpenEdge.DataAdmin.ISchemaElement inherits IDataAdminElement:  
     
     define public property Schema as ISchema no-undo get. 
+    
+    /* This property is required to handle non-PUB tables */
+    define public property NonPUBSchemaName as char no-undo get. 
      
     /** Name of the element (tablename, indexname or fieldname) */ 
     define public property Name        as char      no-undo get.

@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2012 by Progress Software Corporation.      */
+ /* Copyright (c) 2012-2017 by Progress Software Corporation. */
  /*                                                           */
  /* All rights reserved.  No part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -82,6 +82,11 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
         get():
             return ttStatusSummary.NumProcessedSharedTables.
         end. 
+        
+    define public property NumProcessedCDCPolicies as integer no-undo 
+        get():
+            return ttStatusSummary.NumProcessedCDCPolicies.
+        end.
      
     define public property NumProcessedTenantTables as integer no-undo 
         get():
@@ -226,7 +231,76 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
         AddTables(pcPath, TENANT_TABLES, pcTenant, table-handle phTempTable).
     end method.
     
-    /**  */
+    method public void AddCDCPolicies(pcPath as char, table-handle phTempTable):
+        AddCDCPolicy(CheckPath(pcPath), SHARED_TABLES, "", table-handle phTempTable).
+    end method.
+    
+    /**adding CDC policy informtion  */
+    method protected void AddCDCPolicy(pcPath as char, pcType as char, pcTenantorSubdir as char, table-handle phTempTable):
+        define variable hQ as handle no-undo.
+        define variable hBuffer as handle no-undo.
+        define variable h as handle no-undo.
+        define variable cSlash as character no-undo init "/".
+        define variable cfile as character no-undo.
+         
+        pcPath = CheckPath(pcPath).
+        if index(pcPath,"~\") > 0 then 
+            cSlash = "~\".    
+                    
+        create query hq.
+        hBuffer = phTempTable:default-buffer-handle.
+        hq:add-buffer(hBuffer).
+        hq:query-prepare("for each " + phTempTable:name
+                          + " by " + phTempTable:name + ".databasename " 
+                          + " by " + phTempTable:name + ".name "). 
+        hq:query-open().
+        hq:get-first ().
+        
+        do while hBuffer:avail:
+            create ttFileStatus.
+            assign 
+                ttFileStatus.CDCPolicyUrl   = ConnectionUrl + "/cdcTablePolicies/" + WebUtil:UrlEncode(ttFileStatus.CDCPolicyName)       
+                ttFileStatus.TableUrl   = ConnectionUrl + "/schemas/" + hBuffer::schemaName + "/tables/" + WebUtil:UrlEncode(ttFileStatus.TableName)                 
+                ttFileStatus.CDCPolicyName  = hBuffer::name
+                ttFilestatus.Type       = pcType         
+                ttFileStatus.FileName = pcPath + hBuffer::dumpName  + ".cd"
+                ttFileStatus.TableName = hBuffer::tableName
+                ttFileStatus.SchemaName = hBuffer::SchemaName
+                ttFileStatus.ChangeTableName = hBuffer::ChangeTableName
+                ttFileStatus.TableSequence = Rowcount + 1
+                Rowcount = Rowcount + 1
+                ttStatusSummary.NumCDCPolicies = ttStatusSummary.NumCDCPolicies + 1 
+                        when pctype = SHARED_TABLES
+                .
+                                
+            if IsLoad then
+            do on error undo, throw:
+                DataFileInfo:ReadTrailer(ttFileStatus.FileName).
+                ttFileStatus.ExpectedNumRows = DataFileInfo:NumRecords.
+                ttFileStatus.IsAvailable = true.
+                catch e as Progress.Lang.Error:
+                    if e:GetMessageNum(1) = 293 then
+                        ttFileStatus.IsAvailable = false.
+                end catch.
+            end.
+            else if CheckFiles then
+            do:
+                ttFileStatus.IsAvailable = search(ttFileStatus.FileName) <> ?.
+            end.                         
+            hq:get-next.
+        end.
+        catch e as Progress.Lang.Error :
+        	undo, throw new IllegalArgumentError("Parameters Path: " + quoter(pcPath) 
+        	                                    + " Type: " + quoter(pcType) 
+        	                                    + " passed to AddCDCPolicy caused error: ~n" 
+        	                                    + e:GetMessage(1),e).	
+        end catch.  
+        finally:
+            delete object Hq.    		
+        end finally.
+    end.
+    
+        /**  */
     method protected void AddTables(pcPath as char, pcType as char, pcTenantorSubdir as char, table-handle phTempTable):
         define variable hQ as handle no-undo.
         define variable hBuffer as handle no-undo.
@@ -260,15 +334,17 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
             assign 
                 ttFileStatus.TableName  = hBuffer::name
                 ttFileStatus.CanExport  = hBuffer::CanExport 
-                ttFileStatus.CanImport  = hBuffer::CanImport
+                ttFileStatus.CanImport  = hBuffer::CanImport.
+            assign    
                 ttFileStatus.TableUrl   = ConnectionUrl + "/schemas/" + hBuffer::schemaname + "/tables/" + WebUtil:UrlEncode(ttFileStatus.TableName)       
                 ttFilestatus.Type       = pcType
                 ttFileStatus.TenantName = pcTenantOrSubdir 
                         when pctype = TENANT_TABLES        
-                ttFileStatus.TenantUrl  = ConnectionUrl + "/tenants/" + WebUtil:UrlEncode(ttFileStatus.TenantName) 
-                        when pctype = TENANT_TABLES        
                 ttFileStatus.TenantGroupName = hBuffer::tenantgroupname 
-                        when pctype = GROUP_TABLES        
+                        when pctype = GROUP_TABLES.       
+            assign 
+                ttFileStatus.TenantUrl  = ConnectionUrl + "/tenants/" + WebUtil:UrlEncode(ttFileStatus.TenantName) 
+                        when pctype = TENANT_TABLES         
                 ttFileStatus.TenantGroupUrl = ConnectionUrl + "/tenantgroups/" + WebUtil:UrlEncode(ttFileStatus.TenantGroupName) 
                         when pctype = GROUP_TABLES       
                 ttFileStatus.FileName = pcPath
@@ -283,7 +359,7 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
                 ttStatusSummary.NumTenantTables = ttStatusSummary.NumTenantTables + 1 
                         when pctype = TENANT_TABLES
                 .
-            
+
             if IsLoad then
             do on error undo, throw:
                 DataFileInfo:ReadTrailer(ttFileStatus.FileName).
@@ -301,16 +377,16 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
             hq:get-next.
         end.
         catch e as Progress.Lang.Error :
-        	undo, throw new IllegalArgumentError("Parameters Path: " + quoter(pcPath) 
-        	                                    + " Type: " + quoter(pcType) 
-        	                                    + " TenantOrSubdir: " + quoter(pcTenantorSubdir)
-        	                                    + " passed to AddTable caused error: ~n" 
-        	                                    + e:GetMessage(1),e).	
+            undo, throw new IllegalArgumentError("Parameters Path: " + quoter(pcPath) 
+                                                + " Type: " + quoter(pcType) 
+                                                + " TenantOrSubdir: " + quoter(pcTenantorSubdir)
+                                                + " passed to AddTable caused error: ~n" 
+                                                + e:GetMessage(1),e).   
         end catch.  
         finally:
-            delete object Hq.    		
+            delete object Hq.           
         end finally.
-    end.       
+    end.          
      
     method public void Export():
         lastDump = now.    
@@ -338,6 +414,10 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
             when SHARED_TABLES then
                find ttFileStatus where ttFileStatus.tablename = ptable
                                    and ttFileStatus.Type   = ptype
+                                   .
+            when "cdcPolicies" then
+               find ttFileStatus where ttFileStatus.CDCPolicyName = ptable
+                                   and ttFileStatus.Type   = "shared"
                                      .
             otherwise 
                 undo, throw new IllegalArgumentError("type " + quoter(ptype) + " passed to StartTable()").   
@@ -399,6 +479,44 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
      
     end method.
     
+    method public void EndPolicy(fname as character,pname as character):
+        EndPolicy(fname,pname,?).
+    end.
+    
+    method public void EndPolicy(fname as character,pname as character,pinumrows as int64):
+        if not avail ttFileStatus
+        or (ttFileStatus.filename <> fName and ttFileStatus.CDCPolicyName <> pname) then 
+        do:
+            find ttFileStatus where ttFileStatus.filename = fname and ttFileStatus.CDCPolicyName = pname.
+        end.      
+        ttFileStatus.endTime = now.
+        if piNumrows = ? then 
+            ttFileStatus.isComplete =  not ttFileStatus.anyerror.
+        else if ttFileStatus.ExpectedNumRows <> ? then
+        do:                          
+            if piNumrows = ttFileStatus.ExpectedNumRows then 
+                ttFileStatus.isComplete = true.
+            else if piNumrows lt ttFileStatus.ExpectedNumRows then 
+                 ttFileStatus.isComplete = not ttFileStatus.Bailed.
+            else ttFileStatus.isComplete = ?.   
+        end.
+        else ttFileStatus.isComplete = not ttFileStatus.Bailed.
+        
+        if pinumrows <> ? then
+            ttFileStatus.ProcessedNumRows = pinumrows.
+        case ttFileStatus.Type:
+            when SHARED_TABLES then
+               ttStatusSummary.NumProcessedCDCPolicies = ttStatusSummary.NumProcessedCDCPolicies + 1. 
+        end.     
+        if now - lastdump > Interval then 
+           this-object:Export().
+        
+        catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("EndTable for " + quoter(pname) + " caused error: " + e:GetMessage(1),e).   
+        end catch.
+     
+    end method.
+    
     /** set expected num rows   */
     method public void SetTableExpectedNumRows(pname as character,pinum as int64).
         if not avail ttFileStatus
@@ -428,6 +546,21 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
             undo, throw new IllegalArgumentError("CountRow does not understand " + quoter(pname),e).   
         end catch.
         
+    end.
+    
+    method public logical CountCDCRow(fname as character,pname as character): 
+        if not avail ttFileStatus
+        or (ttFileStatus.filename <> fName and ttFileStatus.CDCPolicyName <> pname) then 
+        do:
+            find ttFileStatus where ttFileStatus.filename = fname and ttFileStatus.CDCPolicyName = pname.
+        end.      
+        ttFileStatus.ProcessedNumRows = ttFileStatus.ProcessedNumRows + 1.
+        if now - lastdump > Interval then 
+           this-object:Export().
+        catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("CountRow does not understand " + quoter(pname),e).   
+        end catch.
+        
     end.     
     
     method public logical SetTableBailed(pname as character): 
@@ -444,6 +577,21 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
         end catch.
         
     end.     
+    
+    method public logical SetPolicyBailed(fname as character,pname as character): 
+        if not avail ttFileStatus
+        or (ttFileStatus.filename <> fName and ttFileStatus.CDCPolicyName <> pname) then 
+        do:
+            find ttFileStatus where ttFileStatus.filename = fname and ttFileStatus.CDCPolicyName = pname.
+        end.      
+        ttFileStatus.Bailed = true.
+        if now - lastdump > Interval then 
+           this-object:Export().
+        catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("CountRow does not understand " + quoter(pname),e).   
+        end catch.
+        
+    end.
     
     /** called with any error, currently only use to keep track of any  */
     method public void AddTableError(pname as character,e as Error).
@@ -464,6 +612,28 @@ class OpenEdge.DataAdmin.Binding.TableDataMonitor implements ITableDataMonitor :
            this-object:Export().
         catch e as Progress.Lang.Error :
             undo, throw new IllegalArgumentError("AddTableError does not understand " + quoter(pname),e).   
+        end catch.
+    end.
+    
+    /** called with any error, currently only use to keep track of any  */
+    method public void AddPolicyError(fname as character,pname as character,e as Error).
+        AddPolicyError(fname,pname,e:GetMessage(1)). 
+    end.
+    
+     /** called with any error, currently only use to keep track of any  */
+    method public void AddPolicyError(fname as character,pname as character,msg as char).
+        if not avail ttFileStatus
+        or (ttFileStatus.filename <> fName and ttFileStatus.CDCPolicyName <> pname) then 
+        do:
+            find ttFileStatus where ttFileStatus.filename = fname and ttFileStatus.CDCPolicyName = pname.
+        end.      
+        ttFileStatus.AnyError = true. 
+        ttStatusSummary.AnyError = true.
+        ttFileStatus.ErrorMessage = msg.
+        if now - lastdump > Interval then 
+           this-object:Export().
+        catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("AddPolicyError does not understand " + quoter(pname),e).   
         end catch.
     end.
     

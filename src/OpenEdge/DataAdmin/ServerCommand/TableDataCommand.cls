@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2012 by Progress Software Corporation.      */
+/* Copyright (c) 2012-2017 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -29,6 +29,9 @@ using OpenEdge.DataAdmin.Binding.TableDataMonitor from propath.
 using OpenEdge.DataAdmin.Binding.ITableDataMonitor from propath.
 using OpenEdge.DataAdmin.Core.FileUtil from propath.
 using OpenEdge.DataAdmin.DataSource.DatabaseInfo from propath. 
+using OpenEdge.DataAdmin.DataAdminService from propath.
+using OpenEdge.DataAdmin.ICdcTablePolicy from propath.  
+using OpenEdge.DataAdmin.ICdcTablePolicySet from propath.
 
 routine-level on error undo, throw.
 
@@ -41,6 +44,7 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
     {daschema/tabledata.i REFERENCE-ONLY}
     {daschema/tenantdata.i REFERENCE-ONLY}
     {daschema/groupdata.i REFERENCE-ONLY}
+    {daschema/cdcpolicydata.i REFERENCE-ONLY}
     
     define private property GROUP_TABLES     as char init "group"  no-undo get. 
     define private property TENANT_TABLES    as char init "tenant" no-undo get. 
@@ -49,6 +53,9 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
     define private property ALL_SELECTION    as char init "all"    no-undo get. 
     define private property TENANT_SELECTION as char init "tenant" no-undo get. 
     define private property SHARED_SELECTION as char init "shared" no-undo get. 
+    define private property CDCPOLICY_SELECTION as char init "all" no-undo get.
+    
+    define stream loadfile.
   
     
     /** the following temp-tables are all passed to Dump_d and load_d SetTable, 
@@ -88,6 +95,16 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
     define temp-table ttProcessedGroup no-undo
         field name as char   
         index idxname as primary unique name.
+        
+    define temp-table ttCDCPolicy no-undo
+        field databasename as char  
+        field name as char
+        field dumpName as char
+        field tableName as char
+        field schemaName as char
+        field changetableName as char
+        field policySequence as integer        
+        index idxname as primary unique databasename name.
     
     define protected abstract property IsLoad as logical no-undo get.  
     
@@ -344,6 +361,10 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
             do:
                 DoCommand(SHARED_TABLES,"",table ttNonMTTable by-reference).    
             end.
+            else if temp-table ttCDCPolicy:has-records then
+            do:
+                DoCommand(CDCPOLICY_SELECTION,"",table ttCDCPolicy by-reference).    
+            end. 
             
             if not SharedOnly then
             do:
@@ -375,6 +396,8 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
                         Monitor:AddGroupTables(ttUtilityOptions.Directory,ttUtilityOptions.GroupDirectory,table-handle phTbl by-reference).
                     when SHARED_TABLES then
                         Monitor:AddSharedTables(ttUtilityOptions.Directory,table-handle phTbl by-reference).
+                    when CDCPOLICY_SELECTION then
+                        Monitor:AddCDCPolicies(ttUtilityOptions.Directory,table-handle phTbl by-reference).    
                     otherwise 
                         undo, throw new IllegalArgumentError("Type " + quoter(pctype) + " passed to DoCommand"). 
                 end.
@@ -397,10 +420,12 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
         define variable hTable    as handle no-undo.
         define variable hTenant   as handle no-undo.
         define variable hGroup    as handle no-undo.
+        define variable hCdc    as handle no-undo.
         hutil   = pDataHandle:get-buffer-handle("ttUtilityOptions").
         hTable  = pDataHandle:get-buffer-handle("ttTableData").
         hTenant = pDataHandle:get-buffer-handle("ttTenantData").
         hGroup  = pDataHandle:get-buffer-handle("ttGroupData").
+        hCdc    = pDataHandle:get-buffer-handle("ttCDCPolicyData").
         
         if valid-handle(hutil) then
         do:
@@ -425,12 +450,20 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
             hGroup = hGroup:table-handle.
             BindGroup(table-handle hGroup bind).
         end.
+        if valid-handle(hCdc) then
+        do:
+            hCdc = hCdc:table-handle.
+            BindCdc(table-handle hCdc bind).
+        end.
     end method.
        
     method private void BindUtility(table ttUtilityOptions bind):
     end method.
     
     method private void BindTable(table ttTableData bind):
+    end method.
+    
+    method private void BindCdc(table ttCDCPolicyData bind):
     end method. 
 
     method private void BindTenant(table ttTenantData bind):
@@ -675,8 +708,141 @@ class OpenEdge.DataAdmin.ServerCommand.TableDataCommand abstract  implements ISe
         creates or keeps TableData that represents all selected tables 
         creates ttNonMTTable for all of these that are shared tables  */ 
     method private void PrepareTableList():
+        define variable cDir            as character                                     no-undo.
+        define variable pName           as character                                     no-undo.
+        define variable tableName       as character                                     no-undo.
+        define variable schemaName      as character                                     no-undo.
+        define variable ChangeTableName as character                                     no-undo.
+        define variable fCnt            as integer                                       no-undo.
+        define variable loadHandle      as handle                                        no-undo.
+        define variable iCtr            as integer                                       no-undo.
+        define variable service         as DataAdminService                              no-undo.
+        define variable policy          as ICdcTablePolicy                               no-undo.
+        define variable policySet       as ICdcTablePolicySet                            no-undo.
+        define variable polIter         as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
+        define variable polStr          as longchar                                      no-undo.
+        define variable tbl             as OpenEdge.DataAdmin.ITable                     no-undo.
+        define variable RowCount        as integer                                       no-undo.
+        define variable fName           as character                                     no-undo.
+        define variable polEntry        as integer        no-undo.
+        define variable i               as integer        no-undo.
+        define variable polQuery        as character            no-undo.
+
         empty temp-table ttNonMTTable.
-        find first DICTDB._Db where DICTDB._db._db-local = true no-lock.  
+        find first DICTDB._Db where DICTDB._db._db-local = true no-lock. 
+        if ttUtilityOptions.isCDC then do:
+            //empty temp-table ttCDCPolicyData.
+            if IsLoad then do:
+                empty temp-table ttCDCPolicyData.
+                cDir = FileUtil:GetValidDirectory(ttUtilityOptions.Directory,yes).
+                if ttUtilityOptions.FileName matches "*" + ".cd" then
+                     fName = ttUtilityOptions.FileName.
+                else fName = ttUtilityOptions.FileName + ".cd".
+                     
+                FileUtil:IsValidFile(cDir + fName).
+                input stream loadfile from value(cDir + fName) no-echo no-map.                
+                loadHandle = STREAM loadfile:handle.
+                repeat on endkey undo, leave: 
+                        //readkey pause 0.
+                        if lastkey eq ASC(".") then 
+                        leave.
+                        import stream-handle loadHandle
+                        ^ pName ^ ^ ^ tableName schemaName ^ ^ ^ ^ ChangeTableName ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ fCnt
+                        .                    
+                        if fCnt > 0 then
+                        do:
+                            do ictr = 1 to fCnt:
+                                import stream-handle loadHandle
+                                cDir.                        
+                            end. 
+                        end.   
+                                              
+                        create ttCDCPolicyData.
+                        ttCDCPolicyData.Name = pName.
+                        create ttCDCPolicy.
+                        assign ttCDCPolicy.databasename = ldbname ("dictdb")                
+                               ttCDCPolicy.name = pName 
+                               ttCDCPolicy.dumpName = fName
+                               ttCDCPolicy.tableName = tableName
+                               ttCDCPolicy.schemaName = schemaName
+                               ttCDCPolicy.changetableName = changetableName
+                               RowCount = RowCount + 1
+                               ttCDCPolicy.policySequence = RowCount
+                               .                  
+                end.  
+                input stream loadfile close.              
+            end.
+            else
+            //for each dictdb._cdc-table-policy:
+            if ttUtilityOptions.CDCPolicySelection <> LIST_SELECTION then 
+            do: 
+                service = new OpenEdge.DataAdmin.DataAdminService (ldbname ("dictdb")).
+                policySet = service:GetCdcTablePolicies("Instance eq ~"0~" ").
+                polIter = policySet:Iterator().
+                do while polIter:HasNext():          
+                    policy = cast(polIter:Next(), ICdcTablePolicy).
+                    if valid-object(policy) then do: 
+                        tbl = policy:Table.
+                        if Tbl:NonPUBSchemaName <> ? then
+                                schemaName = Tbl:NonPUBSchemaName.
+                            else schemaName = "PUB".
+                                                               
+                        create ttCDCPolicyData.
+                            ttCDCPolicyData.Name = policy:Name.           
+                        create ttCDCPolicy.
+                        assign ttCDCPolicy.databasename = ldbname ("dictdb")                           
+                               ttCDCPolicy.name = policy:Name 
+                               ttCDCPolicy.dumpName = ttUtilityOptions.FileName
+                               ttCDCPolicy.tableName = Tbl:Name
+                               ttCDCPolicy.schemaName = schemaName
+                               ttCDCPolicy.changetableName = policy:ChangeTable
+                        . 
+                    end.                    
+                end.
+            end.
+            else 
+            do: 
+                /* for a better perfornamce, form a policy list query for API */               
+                for each ttCDCPolicyData :                    
+                    polStr = polStr + "," + ttCDCPolicyData.Name.
+                end.
+                polStr = trim(polStr, ",").
+                repeat polEntry = 1 to num-entries(polStr) by 50:
+                    do i = polEntry to polEntry + 49 :
+                        if i <= num-entries (polStr) then
+                            polQuery = polQuery + " or " + "name = " + quoter(entry(i,string(polStr))).
+                        else leave.
+                    end.
+                    polQuery = trim(polQuery, " or "). 
+                    service = new OpenEdge.DataAdmin.DataAdminService (ldbname ("dictdb")).
+                    policySet = service:GetCdcTablePolicies(string(polQuery)).
+                    polIter = policySet:Iterator().
+                    do while polIter:HasNext():          
+                        policy = cast(polIter:Next(), ICdcTablePolicy).
+                        if valid-object(policy) then 
+                        do: 
+                            Tbl = policy:Table.
+                            if Tbl:NonPUBSchemaName <> ? then
+                                schemaName = Tbl:NonPUBSchemaName.
+                            else schemaName = "PUB".
+                            create ttCDCPolicy.
+                            assign 
+                                ttCDCPolicy.databasename    = ldbname ("dictdb")                           
+                                ttCDCPolicy.name            = policy:Name 
+                                ttCDCPolicy.dumpName        = ttUtilityOptions.FileName
+                                ttCDCPolicy.tableName       = Tbl:Name
+                                ttCDCPolicy.schemaName      = schemaName
+                                ttCDCPolicy.changetableName = policy:ChangeTable
+                                . 
+                        end.                   
+                    end.
+                    if polQuery > "" then polQuery = "".
+                    delete object service no-error.
+                    delete object policy no-error. 
+                end.              
+            end.
+        end.
+        else
         if ttUtilityOptions.TableSelection <> LIST_SELECTION then 
         do:  
             /* should be empty - just in case*/

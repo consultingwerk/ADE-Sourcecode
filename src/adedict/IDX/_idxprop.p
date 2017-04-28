@@ -51,6 +51,7 @@ Define var name_mod  as logical NO-UNDO. /* name modifiable */
 DEFINE VAR idx_mod   as LOGICAL NO-UNDO INIT YES.
 DEFINE VAR canAudDeact   as LOGICAL NO-UNDO.
 define var CanLocIdx     as logical no-undo.
+DEFINE VAR canCDCDeact   as LOGICAL NO-UNDO.
 
 
 /*============================Mainline code==================================*/
@@ -163,6 +164,7 @@ END.
 find LAST dictdb._Index-Field of b_Index NO-ERROR.
 if AVAILABLE dictdb._Index-Field then /* the default index has no fields */
    s_Idx_Abbrev = dictdb._Index-Field._Abbreviate.
+  
 
 IF s_dbCache_type[s_dbCache_ix] <> "PROGRESS" THEN 
 DO: /* Foreign DB */
@@ -210,6 +212,11 @@ IF (NOT s_Idx_Primary) AND (dictdb._file._file-name BEGINS "_aud-audit-data") AN
    (b_Index._Index-Name NE "_audit-time") THEN
    ASSIGN canAudDeact = YES.
 
+IF (NOT s_Idx_Primary) AND (dictdb._file._file-name BEGINS "_Cdc-Change-Tracking") AND
+   (b_Index._Index-Name NE "_Sequence-Id") THEN
+   ASSIGN canCDCDeact = YES.
+
+
 /* Set status line */
 display "" @ s_Status s_msg ActRec with frame idxprops. /* clears from last time */
 
@@ -227,7 +234,7 @@ do:
    end.
    if dictdb._File._Frozen then
    do:
-       IF NOT canAudDeact THEN DO:
+       IF NOT canAudDeact and NOT canCDCDeact THEN DO:
           s_Status:screen-value in frame idxprops =
     	"Note: This file is frozen and cannot be modified.".
           s_Idx_ReadOnly = true.
@@ -288,8 +295,8 @@ display b_Index._Index-Name
         b-idx-list 
        
    with frame idxprops.
-
-if s_Idx_ReadOnly OR canAudDeact then
+   
+if s_Idx_ReadOnly OR canAudDeact OR canCDCDeact then
 do:
    disable all EXCEPT	
       b-idx-list
@@ -297,9 +304,25 @@ do:
 	  s_btn_Prev
 	  s_btn_Next
 	  s_btn_Help
-	  with frame idxprops.
+	  with frame idxprops.	  	 
 
-   ActRec:sensitive in frame idxprops = no.
+   IF (b_index._index-name = "_Identifying-Fields" OR
+      b_index._index-name = "_Time-Stamp-Seq"     OR
+      b_index._index-name = "_Part-Rec-Id" )  THEN
+   DO:     
+	  IF ActRec:screen-value = "yes" THEN	    
+         enable ActRec
+                s_btn_OK
+	            s_btn_Save
+                with frame idxprops.	 
+	  ELSE
+		disable ActRec
+                s_btn_OK
+	            s_btn_Save
+                with frame idxprops. 			
+   END.
+   else
+      ActRec:sensitive in frame idxprops = no.
 
    enable  
       b-idx-list
@@ -309,7 +332,7 @@ do:
 	  s_btn_Help
 	  with frame idxprops.
 
-   IF canAudDeact THEN DO:
+   IF canAudDeact OR canCDCDeact THEN DO:
       IF     
           &IF "{&WINDOW-SYSTEM}" begins "MS-WIN"
             &THEN ActRec:Label = "Ac&tive"

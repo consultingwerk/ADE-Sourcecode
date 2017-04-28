@@ -15,6 +15,7 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Core.Collections.StringKeyedMap.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.Filter.Writer.SetHeaderMessageWriterBuilder.
@@ -27,7 +28,7 @@ using OpenEdge.Net.HTTP.TransferEncodingEnum.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.HttpMessage 
-            implements IHttpMessage, ISupportInitialize
+            implements IHttpMessage, ISupportInitialize, IAdaptable
             abstract:
     
     /** Holds headers for this message */
@@ -313,6 +314,19 @@ class OpenEdge.Net.HTTP.HttpMessage
     /** Removes all headers from this message */ 
     method public void ClearHeaders().
         this-object:Headers:Clear().    
+    end method.
+    
+    /* Returns an adapter for this message 
+       
+       @param P.L.Class The type we want to adapt this message to
+       @return P.L.Object The adapter. Will typically be of the type specified by the input argument */
+    method public Progress.Lang.Object GetAdapter(input poAdaptTo as class Progress.Lang.Class).
+        Assert:NotNull(poAdaptTo, 'Adapter').
+        
+        if this-object:GetClass():IsA(poAdaptTo) then
+            return this-object.
+        
+        return ?.
     end method.
     
 end class.

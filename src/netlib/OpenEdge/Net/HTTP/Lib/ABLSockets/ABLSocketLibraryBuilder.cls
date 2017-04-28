@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLSocketLibraryBuilder
@@ -14,15 +14,20 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
+using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLibraryBuilder:
     /* constants. private and properties to make immutable */
     define private property LIB_NAME as character init 'Lib-ABLSockets':u no-undo get.
-    define private property LIB_VERSION as character init '0.3.0':u no-undo get.
+    define private property LIB_VERSION as character init '0.4.0':u no-undo get.
      
     define override public property Library as IHttpClientLibrary no-undo
         get():
@@ -42,6 +47,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
         else
         do:
             assign oSocket = new ClientSocket().
+            if     type-of(oSocket, ISupportLogging) 
+               and HasOption(get-class(ILogWriter):TypeName) then
+                    assign cast(oSocket, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
             
             /* assume a passed-in object is useable as-is. Only inititialize if new */
             if type-of(oSocket, ISupportInitialize) then
@@ -84,22 +92,33 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
     method private IHttpClientLibrary NewLib():
         define variable oLibrary as IHttpClientLibrary no-undo.
         define variable oLibType as Progress.Lang.Class no-undo.
+        define variable oSocket as ClientSocket no-undo.
+        define variable oParams as ClientSocketConnectionParameters no-undo.
+        define variable oOptions as ClientOptions no-undo.
         
         assign oLibType = ClientLibraryBuilder:Registry:Get(get-class(IHttpClientLibrary):TypeName).
         /* We know the signature to the default library's constructor - make sure that the type we
            get is of that type */
         Assert:IsType(oLibType, get-class(OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary)).
         
-        define variable oSocket as ClientSocket no-undo.
-        define variable oParams as ClientSocketConnectionParameters no-undo.
-        
-        oSocket = CreateClientSocket().
-        oParams = BuildSocketConnectionParams().
+        assign oSocket = CreateClientSocket()
+               oParams = BuildSocketConnectionParams()
+               oOptions = new ClientOptions() 
+               .
+        /* SET OPTIONS */
+        if HasOption('requestTimeout':u) then
+            oOptions:RequestTimeout = GetOptionNumericValue('requestTimeout':u).
         
         oLibrary = dynamic-new string(oLibType:TypeName) (this-object:LIB_NAME,
                                                           this-object:LIB_VERSION,
                                                           oSocket,
-                                                          oParams ).
+                                                          oParams,
+                                                          oOptions  ).
+        // Add logging
+        if     type-of(oLibrary, ISupportLogging) 
+           and HasOption(get-class(ILogWriter):TypeName) then
+                assign cast(oLibrary, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
+        
         if type-of(oLibrary, ISupportInitialize) then
             cast(oLibrary, ISupportInitialize):Initialize().
         

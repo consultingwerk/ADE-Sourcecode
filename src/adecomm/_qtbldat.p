@@ -60,7 +60,9 @@ FOR EACH dictdb._File WHERE dictdb._File._Db-recid = p_DbId AND NOT dictdb._File
    IF INTEGER(DBVERSION("DICTDB")) > 10 THEN DO:
       /* Note that a table can either be multi-tenant 'm' or partitioned 'p'. */
       flags = (IF dictdb._File._File-Attributes[1] THEN "m" ELSE "").
-      flags = (flags + IF dictdb._File._File-Attributes[3] THEN "p" ELSE "").   
+      flags = (flags + IF dictdb._File._File-Attributes[3] THEN "p" ELSE "").
+      flags = (flags + IF dictdb._File._File-Attributes[5] THEN "c" ELSE "").   
+      flags = (flags + IF dictdb._File._File-Attributes[6] THEN "ct" ELSE ""). 
    END.
    ASSIGN
       flags = (flags + IF dictdb._File._Db-lang > 0 THEN "s" ELSE "")

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientOptions
@@ -20,7 +20,7 @@ class OpenEdge.Net.HTTP.ClientOptions:
     define public property PauseBetweenRetry as decimal initial 0 no-undo get. set.
     
     /** Defines the maximum time a request must take */
-    define public property RequestTimeout as integer initial 0 no-undo get. set.
+    define public property RequestTimeout as decimal initial 0 no-undo get. set.
     
     /** Constructor. */
     constructor public ClientOptions():

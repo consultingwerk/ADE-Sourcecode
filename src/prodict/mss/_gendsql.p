@@ -3546,27 +3546,55 @@ DO ON STOP UNDO, LEAVE:
                in the schema.
             */
             FIND FIRST DICTDB._File WHERE DICTDB._File._file-name = tablename NO-ERROR.
+
             IF AVAILABLE DICTDB._File THEN DO:
-               FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname AND DICTDB._field._extent < 0 NO-ERROR.
-               IF AVAILABLE DICTDB._Field THEN DO:
-                   IF NOT batch_mode THEN DO:
-                &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
-                     MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+
+	       FIND FIRST DICTDB._Field OF DICTDB._File WHERE _Field-Name = fieldname NO-ERROR.
+               IF AVAILABLE DICTDB._Field  THEN DO:
+                   IF DICTDB._field._extent < 0 THEN DO :
+	               IF NOT batch_mode THEN DO:
+                          &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                               MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                               "and field already exists in the schema holder." SKIP
+                                "This process is being aborted."  SKIP (1).
+                          &ELSE
+                                MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                                "and field already exists in the schema holder." SKIP
+                                 "This process is being aborted."  SKIP (1)
+                                VIEW-AS ALERT-BOX ERROR.
+                          &ENDIF.
+                       END. 
+                       ELSE
+	                   PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
                            "and field already exists in the schema holder." SKIP
                            "This process is being aborted."  SKIP (1).
-               &ELSE
-                     MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
-                           "and field already exists in the schema holder." SKIP
-                           "This process is being aborted."  SKIP (1)
-                   VIEW-AS ALERT-BOX ERROR.
-               &ENDIF.
-               END. 
-               ELSE
-	             PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
-                           "and field already exists in the schema holder." SKIP
-                           "This process is being aborted."  SKIP (1).
-                   RETURN.
-               END.
+                       RETURN.
+                     END.
+	           ELSE DO:
+                        FIND drop-field WHERE 
+                              drop-field.f-name = fieldname NO-ERROR.
+			      
+                        IF NOT AVAILABLE drop-field THEN  DO:
+                            IF NOT batch_mode THEN DO:
+                                &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
+                                    MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                                    "and field already exists in the schema holder." SKIP
+                                    "This process is being aborted."  SKIP (1).
+                                 &ELSE
+                                      MESSAGE "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                                      "and field already exists in the schema holder." SKIP
+                                      "This process is being aborted."  SKIP (1)
+                                      VIEW-AS ALERT-BOX ERROR.
+                                 &ENDIF.
+                           END. 
+                           ELSE
+	                      PUT STREAM logfile UNFORMATTED "The Delta DF File contains ADD FIELD" ilin[3] "for table" tablename SKIP
+                              "and field already exists in the schema holder." SKIP
+                             "This process is being aborted."  SKIP (1).
+                              RETURN.
+                        END.
+                   END.
+	       END.
             END.
           END.
           

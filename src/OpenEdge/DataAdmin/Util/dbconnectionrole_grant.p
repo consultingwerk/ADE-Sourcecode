@@ -28,7 +28,7 @@
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.LogLevelEnum.
+using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.DataAdmin.DataAdminService.
 using OpenEdge.DataAdmin.IDatabaseOption .
 using OpenEdge.DataAdmin.IRole.
@@ -194,7 +194,7 @@ do iLoop = 1 to num-dbs:
                        LogLevelEnum:INFO).
         catch oError as Progress.Lang.Error:
             PutMessage(substitute('Caught Progress.Lang.Error: &1', oError:GetMessage(1)),
-                       OpenEdge.Core.LogLevelEnum:ERROR).
+                       OpenEdge.Logging.LogLevelEnum:ERROR).
             next.
         end catch.
     end.

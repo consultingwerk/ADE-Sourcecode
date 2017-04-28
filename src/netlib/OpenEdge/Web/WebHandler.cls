@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Abstract class to use as a basis for building WebSpeed for
@@ -18,17 +18,29 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using OpenEdge.Web.WebRequest.
 using Progress.Web.IWebHandler.
+using OpenEdge.Web.WebHandler.
 
 class OpenEdge.Web.WebHandler abstract
-            implements IWebHandler :
-        
+            implements IWebHandler, ISupportLogging :
+
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo get. set.
+    
+    /* Default constructor */
+    constructor public WebHandler():
+        assign this-object:Logger = LoggerBuilder:GetLogger(get-class(WebHandler)).
+    end constructor.
+    
     /* Handle request by calling the specific handler for the request method
        
        @return integer An HTTP status code. Zero means that the webhandler will take care of
@@ -54,8 +66,13 @@ class OpenEdge.Web.WebHandler abstract
             otherwise                    assign httpStatus = HandleNotImplemented(webRequest).
         end case.
         
-        Assert:NotNull(httpStatus, 'Status return code').
-
+        // Assume no malice here, just now knowing/forgetting to RETURN <int>.
+        if httpStatus eq ? then
+        do:
+            Logger:Debug(substitute('&1 method handler returned status code of ?; default to 0/zero', webRequest:Method)).
+            assign httpStatus = 0.
+        end.
+        
         /* good */
         return httpStatus.
         /* catch everything and deal with it */
@@ -66,8 +83,8 @@ class OpenEdge.Web.WebHandler abstract
             assign httpStatus = HandleException(oError, webRequest) no-error.
             if httpStatus eq ? then
             do:
-                LogMessage(substitute('EXCEPTION STATUS CODE UNKNOWN: &1 &2', webRequest:Method, webRequest:URI:Path), 4).
-                LogMessage('EXCEPTION STATUS CODE UNKNOWN: 0/ZERO RETURNED', 4).
+                Logger:Info(substitute('EXCEPTION STATUS CODE UNKNOWN: &1 &2', webRequest:Method, webRequest:URI:Path)).
+                Logger:Info('EXCEPTION STATUS CODE UNKNOWN: 0/ZERO RETURNED').
                 assign httpStatus = 0.
             end.
             return httpStatus.
@@ -88,22 +105,19 @@ class OpenEdge.Web.WebHandler abstract
         if not valid-object(poError) then
             assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
         else
-        /* bad: We know something went wrong, and we were told what */
-        if type-of(poError, SendExceptionError) then
         do:
-            LogMessage(substitute('SEND EXCEPTION ERROR: &1', cast(poError, SendExceptionError):StatusMessage), 4).
-            LogMessage(substitute('SEND EXCEPTION ERROR: &1', cast(poError, SendExceptionError):GetClass():TypeName), 4).
-            LogMessage(substitute('SEND EXCEPTION INNER ERROR: &1', cast(poError, SendExceptionError):InnerError), 4).
+            /* bad: We know something went wrong, and we were told what */
+            if type-of(poError, SendExceptionError) then
+                assign iReturnCode = integer(cast(poError, SendExceptionError):StatusCode).
+            else            
+                assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
             
-            assign iReturnCode = integer(cast(poError, SendExceptionError):StatusCode).
-        end.
-        else
-        /* ugly: we know something went wrong, but not what, exactly */
-        do:
-            LogMessage(substitute('INTERNAL ERROR: &1', poError:GetMessage(1)), 4).
-            LogMessage(substitute('INTERNAL ERROR: &1', poError:GetClass():TypeName), 4).
-            
-            assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
+            // Raise a Trace event to get the exception name and call stack 
+            Logger:Error(substitute('Request error for &1 &2: status code &3', 
+                                poRequest:Method,
+                                poRequest:URI:Path,
+                                iReturnCode), 
+                         poError).
         end.
         
         return iReturnCode.
@@ -199,13 +213,18 @@ class OpenEdge.Web.WebHandler abstract
         
         @param character The message to log
         @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'WEBHNDLR':u).
+    method protected void LogMessage(input pcMessage as character,
+                                     input piLogLevel as integer):
+        case piLogLevel:
+            when integer(LogLevelEnum:FATAL) then Logger:Fatal(pcMessage).
+            when integer(LogLevelEnum:ERROR) then Logger:Error(pcMessage).
+            when integer(LogLevelEnum:WARN ) then Logger:Warn(pcMessage).
+            when integer(LogLevelEnum:INFO ) then Logger:Info(pcMessage).
+            when integer(LogLevelEnum:DEBUG) then Logger:Debug(pcMessage).
+            when integer(LogLevelEnum:TRACE) then Logger:Trace(pcMessage).
+            otherwise 
+                Logger:Warn(pcMessage).
+        end case.
     end method.
     
 end class.

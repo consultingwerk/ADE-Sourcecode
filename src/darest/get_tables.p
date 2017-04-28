@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -42,11 +42,12 @@ procedure Execute:
     define variable errorHandler as DataAdminErrorHandler no-undo.
     define variable cAllTables as character no-undo.
     define variable lAllTables as logical no-undo.
+    define variable SchemaName as character no-undo.
     /* ***************************  Main Block  *************************** */
-    
     restRequest:Validate().
     
     cAllTables = restRequest:GetQueryValue("AllTables").
+    SchemaName = restRequest:GetQueryValue("SchemaName").
     if cAllTables > "" then
         lAllTables = logical(cAllTables).
     service = new RestService(restRequest:ConnectionName).
@@ -55,10 +56,13 @@ procedure Execute:
     
     if restRequest:KeyValue[1] > "" then 
     do:
-        if lAllTables then  
-             undo, throw new UnsupportedOperationError("URL with key for tables with all option.").
-             
-        tableimpl = service:GetTable(restRequest:KeyValue[1]).
+        if lAllTables then do:
+            if SchemaName > "" then            
+                tableimpl = service:GetTable(restRequest:KeyValue[1],SchemaName).            
+            else undo, throw new UnsupportedOperationError("URL with key for tables with all option.").
+        end.
+        if not valid-object(tableimpl) then 
+            tableimpl = service:GetTable(restRequest:KeyValue[1]).
         if not valid-object(tableimpl) then
             undo, throw new NotFoundError("Table '"  + restRequest:KeyValue[1]  + "' not found").
          

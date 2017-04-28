@@ -26,7 +26,8 @@ enum OpenEdge.Web.DataObject.ElementTypeEnum :
                 Reason      = StatusReason
                 Body
                 Request     // the whole request (IWebRequest)
-                
+                HttpMethod
+                verb        = HttpMethod 
                 Constant    // a constant value
                 .
 end enum.

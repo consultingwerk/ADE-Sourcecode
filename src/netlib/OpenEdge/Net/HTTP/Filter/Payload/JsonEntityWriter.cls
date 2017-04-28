@@ -56,6 +56,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
         define variable cRetVal as character no-undo.
         define variable iMax as integer no-undo.
         define variable oProp as Progress.Reflect.Property no-undo.
+        define variable oInner as Progress.Lang.Error no-undo.
 
         Assert:NotNull(poError, 'Error').
         
@@ -96,12 +97,29 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             end.
         end case.
         
+        if session:debug-alert then
+            oResponse:Add('_type':u, poError:GetClass():TypeName).
+            
+        if poError:CallStack ne ? then
+        do:
+            assign oErrorList = new JsonArray()
+                   iMax       = num-entries(poError:CallStack, '~n':u)
+                   .
+            oResponse:Add('_stack':u, oErrorList).
+            do iLoop = 1 to iMax:
+                oErrorList:Add(entry(iLoop, poError:CallStack, '~n':u)).
+            end.
+        end.
+        
         assign oProp = poError:GetClass():GetProperty('InnerError':u).
         if valid-object(oProp) and
            oProp:DataType eq DataType:Object and
            Progress.Lang.Class:GetClass(oProp:DataTypeName):IsA(get-class(Progress.Lang.Error)) then
-            this-object:WriteError(oProp:Get(poError)).
-                        
+        do:           
+            assign oInner = oProp:Get(poError).
+            if valid-object(oInner) then
+                this-object:WriteError(oInner).
+        end.
     end method.
 	
     method override public int64 Write(input poData as Object):

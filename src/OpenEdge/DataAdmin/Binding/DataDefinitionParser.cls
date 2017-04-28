@@ -162,11 +162,11 @@ class OpenEdge.DataAdmin.Binding.DataDefinitionParser inherits DataDefinitionLoa
             cArea = FetchAreaName(piArea).   
             create ttTable.
             assign
+               ttTable.AreaUrl   = mAreaUrl + WebUtil:URLEncode(cArea,"") 
                ttTable.SchemaName = h::_Owner
                ttTable.Name = h::_File-name
                ttTable.IsPartitioned = lPart
                ttTable.AreaName  = cArea
-               ttTable.AreaUrl   = mAreaUrl + WebUtil:URLEncode(cArea,"") 
                lMtChange = lMt.
         end.    
         else

@@ -834,7 +834,13 @@ end.
         end.  /* for each DICTDB._Index */
    
       for each DICTDB._Field OF DICTDB._File:     /*----- fields -----*/
-          ASSIGN fld-dif = FALSE.
+         ASSIGN fld-dif = FALSE.
+         IF NOT CAN-FIND(FIRST w_field where ( 
+	             w_field.ds_name = DICTDB._Field._For-name AND 
+                     w_field.ds_Type = DICTDB._Field._For-type) OR
+                     w_field.pro_Order = DICTDB._Field._Order
+                     )
+         THEN DO:
           CREATE w_field.
           assign
             w_field.ds_Name      = DICTDB._Field._For-name
@@ -855,7 +861,7 @@ end.
             w_field.pro_Valexp   = DICTDB._Field._Valexp
             w_field.pro_Valmsg   = DICTDB._Field._Valmsg
             w_field.pro_rpos     = DICTDB._Field._field-rpos.
-
+         END.
         RUN delete-field.
         end.   /* for each DICTDB._Field OF DICTDB._File */
       
@@ -1751,13 +1757,7 @@ if s_1st-error = true
  then do:   /* there are warnings or messages */
        
     if NOT batch_mode THEN DO:
-    
-        &IF "{&WINDOW-SYSTEM}" = "TTY" 
-         &THEN 
-          message err-msg[16]. 
-         &ELSE
-          message err-msg[16] view-as alert-box warning buttons ok.
-         &ENDIF         
+        message err-msg[16] view-as alert-box warning buttons ok.
     END.
     ELSE IF logfile_open THEN
         PUT STREAM logfile UNFORMATTED " " SKIP err-msg[16] SKIP(2).

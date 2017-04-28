@@ -13,7 +13,6 @@ Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
@@ -35,7 +34,8 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
             Assert:NotNull(poURI, 'URI').
             
             assign this-object:URI = poURI.
-            SetHost().
+            
+            SetHost(poURI).
         end set.
     
     /* temp vars for keeping values between ctor and init */
@@ -104,7 +104,7 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
             RemoveHeader('Cookie':u).
         else
             assign oHeader = GetHeader('Cookie':u).
-        if valid-object(oHeader) then
+        if valid-object(oHeader) and oHeader:Name eq 'Cookie':u then
         do:
             assign lExists = oHeader:RemoveParameters(pcName).
             /* this cookie may be the first cookie in the list, so remove it */
@@ -121,24 +121,24 @@ class OpenEdge.Net.HTTP.HttpRequest inherits HttpMessage
         
         super:SetCookie(input poCookie).
         
-        assign oHeader = GetHeader('Cookie':u).
-        if not valid-object(oHeader) then
+        if HasHeader('Cookie':u) then
+            GetHeader('Cookie':u):SetParameterValue(poCookie:Name, poCookie:Value).
+        else
             SetHeader(HttpHeaderBuilder
                           :Build('Cookie':u)
                           :Value(substitute('&1=&2':u, poCookie:Name, poCookie:Value))
                           :Header).
-        else
-            oHeader:SetParameterValue(poCookie:Name, poCookie:Value).
     end method.
     
     /** Sets the Host header based on the request's URI */    
-    method private void SetHost():
+    method protected void SetHost(input poUri as URI):
         define variable cHost as character no-undo.
         
-        assign cHost = this-object:URI:Host
-                     + (if this-object:URI:Port eq ? then '':u
-                        else
-                        ':':u + string(this-object:URI:Port)).
+        if valid-object(poUri) then
+            assign cHost = poUri:Host
+                         + (if poUri:Port eq ? then '':u
+                            else
+                            ':':u + string(poUri:Port)).
         
         SetHeader(HttpHeaderBuilder:Build('Host':u):Value(cHost):Header).
     end method.

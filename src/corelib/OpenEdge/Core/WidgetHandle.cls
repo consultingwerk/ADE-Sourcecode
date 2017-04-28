@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : WidgetHandle
@@ -8,10 +8,7 @@ Copyright (c)  2013, 2016 by Progress Software Corporation. All rights reserved.
     Description : 
     @author pjudge
     Created     : Tue Apr 19 09:47:07 EDT 2011
-    Notes       : * Initial requirement for collections; having a class for the
-                    primitive value means that we don't have to distinguish between
-                    primitives and types, which makes the code more readable.
-                  * This class based on the AutoEdge|TheFactory version
+    Notes       : * This class based on the AutoEdge|TheFactory version
                   * By default the handle will not be destroyed/deleted. Set 
                     the AutoDestroy property to TRUE to cleanup automatically.
   ----------------------------------------------------------------------*/
@@ -36,7 +33,8 @@ class OpenEdge.Core.WidgetHandle serializable
     end constructor.
 
     destructor public WidgetHandle():
-        if AutoDestroy then
+        if     AutoDestroy 
+           and valid-object(this-object:Value ) then
             delete object this-object:Value no-error.
     end destructor.
     

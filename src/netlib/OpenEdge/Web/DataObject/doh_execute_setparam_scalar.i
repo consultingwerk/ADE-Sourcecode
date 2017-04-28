@@ -37,6 +37,10 @@ do:
 &if '{&SWITCH-VALUE}' eq 'class' &then
     assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&OPER-ARG}:ArgumentValue.
     {&PARAM-LIST}:SetParameter({&PARAM-IDX}, substitute('class &1':u, {&OPER-ARG}:ArgumentType:TypeName), {&OPER-ARG}:IOMode, arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
+&elseif '{&SWITCH-VALUE}' eq 'dataset-handle' or '{&SWITCH-VALUE}' eq 'table-handle' &then
+    if valid-object({&OPER-ARG}:ArgumentValue) then
+        assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&COERCE-TYPE}(cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value).
+    {&PARAM-LIST}:SetParameter({&PARAM-IDX}, {&OPER-ARG}:DataType, substitute('&1 by-reference':u, {&OPER-ARG}:IOMode), arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
 &else
     if valid-object({&OPER-ARG}:ArgumentValue) then
         assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&COERCE-TYPE}(cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value).

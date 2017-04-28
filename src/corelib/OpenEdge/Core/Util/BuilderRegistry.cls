@@ -187,7 +187,10 @@ class OpenEdge.Core.Util.BuilderRegistry:
         define buffer lbRegistry for Registry.
         define query qryRegistry for lbRegistry.
         
-        open query qryRegistry preselect each lbRegistry. 
+        open query qryRegistry 
+            preselect each lbRegistry where
+                           lbRegistry.ParentRegistry eq int64(this-object).
+        
         extent(cKeys) = query qryRegistry:num-results.
         
         get first qryRegistry.

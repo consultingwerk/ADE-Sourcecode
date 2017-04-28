@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2014 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -2851,7 +2851,13 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         define variable iParent as integer no-undo.
         define variable hFld as handle no-undo.
         define variable lcreate as logical no-undo.
-        define variable cMsg  as character no-undo.
+        define variable cMsg  as character no-undo.        
+        define variable tbl as char no-undo.
+        define variable policy as char no-undo.
+        define variable fld as char no-undo.
+        define variable cdcKeyValue as char no-undo.
+        define variable cdcMode as char no-undo.
+        
         if pcKeyFields = "" or pcKeyFields = ? then 
             undo, throw new IllegalArgumentError("No KeyFields passed to FindOrCreateFromJson. Cannot load JSON file."). 
         
@@ -2880,25 +2886,61 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                 entry(iKey,cFieldList) = "".
             end.
         end.
-        
         /* remaining fields need to be read from JSON */  
         do i = 1 to extent(cKeyValues):
             cField = entry(i,cFieldList).
             if cField <> "" then
             do:
-               hFld = TableHandle:default-buffer-handle:buffer-field(cField).
-               /* case sensitive  */
-               if pjson:Has(hFld:serialize-name) then
-                   cKeyValues[i] = ReadJsonCharValue(cField,pjson).
-               else do:
-                   cKeyValues[i] = hFld:default-value.
+               if TableHandle:name eq "ttCdcFieldPolicy" then 
+               do:
+                   if num-entries (pcParentValues[1],".") > 1 then do:
+                      policy = entry(1,pcParentValues[1],".").
+                      tbl = entry(2,pcParentValues[1],".").
+                   end. 
+                   hFld = TableHandle:default-buffer-handle:buffer-field("FieldName").
+                   if pjson:Has(hFld:serialize-name) then do: 
+                       cKeyValues[i] = ReadJsonCharValue(cField,pjson) + "@" + policy.
+                   end.
+                   else do:
+                       cKeyValues[i] = hFld:default-value.
+                   end.
+               end. 
+               else 
+               do:
+                   hFld = TableHandle:default-buffer-handle:buffer-field(cField).
+                   /* case sensitive  */
+                   if pjson:Has(hFld:serialize-name) then
+                       cKeyValues[i] = ReadJsonCharValue(cField,pjson).
+                   else do:
+                       cKeyValues[i] = hFld:default-value.
+                   end.
                end.
             end.
         end.  
         
         if plcreateonly = false or plcreateonly = ? then
         do:
-            TableHandle:default-buffer-handle:find-unique("where " + GetKeyWhere(cKeyValues)) no-error.
+            if TableHandle:name eq "ttCdcFieldPolicy" then 
+            do: 
+                TableHandle:default-buffer-handle:find-unique("where " + GetKeyWhere(cKeyValues)) no-error.
+                if not TableHandle:default-buffer-handle:avail then do:
+                    cdcKeyValue = cKeyValues[1].
+                    if index(cKeyValues[1],"@") > 0 then 
+                        cKeyValues[1] = entry(1,cKeyValues[1],"@").
+                    TableHandle:default-buffer-handle:find-unique("where " + GetKeyWhere(cKeyValues)) no-error.
+                end.
+                cKeyValues[1] = cdcKeyValue.
+                
+                /* OEM UI expecting delete request to be send in PUT request.
+                JSON request will contain cdcMode name/value pair to identify delete request*/
+                if pjson:Has("cdcMode") then
+                    cdcMode = pjson:GetCharacter("cdcMode").
+                if cdcMode eq "delete" and TableHandle:default-buffer-handle:avail then do:                    
+                    TableHandle:default-buffer-handle:buffer-delete().
+                    return TableHandle:default-buffer-handle:avail.
+                end.
+            end.
+            else TableHandle:default-buffer-handle:find-unique("where " + GetKeyWhere(cKeyValues)) no-error.
         end.
         if plcreateonly or not TableHandle:default-buffer-handle:avail then
         do:
@@ -2933,7 +2975,12 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                 if extent(pcParentValues) lt iparent then 
                     undo, throw new IllegalArgumentError("The " + this-object:GetClass():TypeName + " join does not match the passed parent values. Cannot load JSON file."). 
                 hFld = TableHandle:default-buffer-handle:buffer-field(cField).
-                hfld:buffer-value = pcParentValues[iParent].
+                if TableHandle:Name eq "ttCdcFieldPolicy" then do:
+                    hfld:buffer-value = entry(1,pcParentValues[iParent],".").
+                    hFld = TableHandle:default-buffer-handle:buffer-field("TableName").
+                    hfld:buffer-value = entry(2,pcParentValues[iParent],".").
+                end.
+                else hfld:buffer-value = pcParentValues[iParent].
             end.
         end.
        
@@ -3260,9 +3307,17 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
    
         cJoinFields = GetClientJoinFields(pParentRow:SerializeName).
         extent(cJoinValues) = int(num-entries(cJoinFields) / 2).
-        do i = 1 to extent(cJoinValues):
-            cJoinValues[i] = pParentRow:FieldValue((entry((i * 2) - 1,cJoinFields))). 
-        end.            
+        if pParentRow:SerializeName eq "cdcTablePolicies" then do:
+            do i = 1 to extent(cJoinValues):
+                cJoinValues[i] = pParentRow:FieldValue("Name") + "." + pParentRow:FieldValue("TableName").  
+            end.            
+        end.
+        else 
+        do:
+            do i = 1 to extent(cJoinValues):
+                cJoinValues[i] = pParentRow:FieldValue((entry((i * 2) - 1,cJoinFields))). 
+            end.    
+        end.        
         /* transaction scope to ensure row is complete and visible when rowCreated is published  */ 
         do i = 1 to array:length transaction:        
             jsonRow = array:GetJsonObject(i).

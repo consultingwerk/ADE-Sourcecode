@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2012 by Progress Software Corporation.      */
+/* Copyright (c) 2012-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -39,6 +39,15 @@ class OpenEdge.DataAdmin.Core.FileUtil:
         end.
         return true.
     end method.  /* ValidDirectory */
+    
+    method public void IsValidFile (pFile as char):
+        if pFile <> "" then 
+        do:            
+            assign file-info:file-name = pFile. 
+            if substring(file-info:file-type,1,1) ne "F" then
+                undo, throw new AppError("File " + pFile + " does not exist",?).
+        end.
+    end method.  /* ValidFile */
     
     method public int CreateDirectoryIf ( pDirectory as char):
         define variable iStat as integer no-undo.

@@ -14,12 +14,9 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.LogLevelEnum.
 using OpenEdge.Core.Memptr.
-using OpenEdge.Core.Util.ILogWriter.
-using OpenEdge.Core.Util.ISupportLogging.
-using OpenEdge.Core.Util.LogManagerLogger.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
@@ -32,36 +29,20 @@ using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using Progress.Lang.AppError.
+using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Web.DataObject.FileOperationHandler.
 
-class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, ISupportInitialize, IOperationHandler:
-    define public event LogMessage  signature void (input poSender as Progress.Lang.Object, input pcMessageGroup as character, input pcMessage as character, input poLogLevel as LogLevelEnum).
-        
-    define private variable moLogger as ILogWriter no-undo.
+class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, IOperationHandler:
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo get. set.
+
     define private variable mcInstanceRoot as character no-undo.
     
     constructor public FileOperationHandler():
-        assign moLogger = new LogManagerLogger().
-    end constructor.
-    
-    constructor public FileOperationHandler(input poLogger as ILogWriter):
-        this-object().
-        
-        Assert:NotNull(poLogger, 'Logger').
-        assign moLogger = poLogger.
-    end constructor.
-
-    destructor public FileOperationHandler():
-        Destroy().
-    end destructor.
-    
-    method public void Initialize():
         assign mcInstanceRoot = replace(os-getenv ('CATALINA_BASE':u), '~\':u, '/':u).
-        moLogger:SubscribeTo(this-object).
-    end method.
-    
-    method public void Destroy():
-        moLogger:UnsubscribeFrom(this-object).
-    end method.
+               Logger         = LoggerBuilder:GetLogger(get-class(FileOperationHandler))
+               .
+    end constructor.
     
     /* Executes the operation.  
        
@@ -139,7 +120,7 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                         assign cValue = mcInstanceRoot.
                     when '$oepas-webapp':u then
                     do:
-                        assign cValue = poRequest:WebAppPath.
+                        assign cValue = left-trim(poRequest:WebAppPath, '/':u).
                         if cValue eq '':u then
                             assign cValue = 'ROOT':u.
                     end.
@@ -152,8 +133,7 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                 end case.
                 if cValue ne ? then
                 do:
-                    LogMessage(substitute('Token "&1" replaced by "&2" ', cEntry, cValue),
-                               LogLevelEnum:INFO).
+                    Logger:Info(substitute('Token "&1" replaced by "&2" ', cEntry, cValue)).
                     assign cEntry = cValue.
                 end.
             end.
@@ -192,18 +172,14 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                    poResponse:StatusReason = StatusCodeHelper:GetMessage(StatusCodeEnum:NotFound)
                    poResponse:ContentType  = '':u.
             
-            LogMessage(substitute('Unable to find file &1', file-info:file-name),
-                       LogLevelEnum:ERROR).
-            
+            Logger:Error(substitute('Unable to find file &1', file-info:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:NotFound,
                                                new AppError(substitute('Unable to find file &1', file-info:file-name), 0)).
         end.
         
-        LogMessage(substitute('Reading from file &1',
-                        file-info:full-pathname),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Reading from file &1', file-info:full-pathname)).
                    
-        VerifyReadAccess(file-info:handle, poRequest:WebAppPath).                            
+        VerifyReadAccess(file-info:handle, left-trim(poRequest:WebAppPath, '/':u)).                            
         
         /* Read the file off disk */
         copy-lob from file file-info:full-pathname to mFileContent.
@@ -221,16 +197,11 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
             assign oEntity = oEntityWriter:Entity.
             
             catch oError as Progress.Lang.Error:
-                LogMessage(substitute('READ FILE: &1':u, oError:GetMessage(1)), 
-                           LogLevelEnum:ERROR).
-                LogMessage(substitute('READ FILE: &1':u, oError:GetClass():TypeName), 
-                           LogLevelEnum:ERROR).
-                LogMessage('READ FILE: Response entity contains raw message body':u, 
-                           LogLevelEnum:ERROR).
-                LogMessage(substitute('READ FILE: Response Content-Type changed from &1 to application/octet-stream':u,
-                                    poResponse:ContentType), 
-                           LogLevelEnum:ERROR).
-                
+                Logger:Error('READ FILE':u, oError).
+                Logger:Error('READ FILE: Response entity contains raw message body':u). 
+                Logger:Error(substitute('READ FILE: Response Content-Type changed from &1 to application/octet-stream':u,
+                                       poResponse:ContentType)).
+                                       
                 assign oEntity                = new Memptr(mFileContent)
                        poResponse:ContentType = 'application/octet-stream':u
                        .
@@ -299,41 +270,33 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         /* must be a file */
         if index(phFile:file-type, 'F':u) eq 0 then
         do:
-            LogMessage(substitute('Filename "&1" does not represent a file', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('Filename "&1" does not represent a file', phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:BadRequest).
         end.
         
         /* Warn if the file is outside the instance and webapp */
         if not phFile:full-pathname begins mcInstanceRoot then
-            LogMessage(substitute('File "&1" is not located in current instance: &2', 
-                            phFile:file-name, mcInstanceRoot),
-                      LogLevelEnum:WARN).
+            Logger:Warn(substitute('File "&1" is not located in current instance: &2', 
+                            phFile:file-name, mcInstanceRoot)).
         else
         if not phFile:full-pathname begins substitute('&1/webapps/&2/':u,
                                                 mcInstanceRoot, pcWebAppPath) then
-            LogMessage(substitute('File "&1" is not located in current webapp: &2', 
-                            phFile:file-name, pcWebAppPath),
-                      LogLevelEnum:WARN).
+            Logger:Warn(substitute('File "&1" is not located in current webapp: &2', 
+                                phFile:file-name, pcWebAppPath)).
         
         /* no paths/relative paths allowed*/
         if phFile:file-name begins '.':u or
            phFile:file-name begins '/':u or
            phFile:file-name begins '~\':u then 
         do:
-            LogMessage(substitute('Filename "&1" cannot start with: . / \ ', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('Filename "&1" cannot start with: . / \ ', phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:BadRequest).
         end.
         
         /* just have write permission */
         if index(phFile:file-type, 'W':u) eq 0 then
         do:
-            LogMessage(substitute('Filename "&1" does not have write permissions', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('Filename "&1" does not have write permissions', phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
         end.
     end method. 
@@ -351,42 +314,35 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         /* must be a file */
         if index(phFile:file-type, 'F':u) eq 0 then
         do:
-            LogMessage(substitute('File "&1" does not represent a file', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('File "&1" does not represent a file', phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:BadRequest).
         end.
         
         assign cFullName = replace(phFile:full-pathname, '~\':u, '/':u).             
         /* Warn if the file is outside the instance and webapp */
         if not cFullName begins mcInstanceRoot then
-            LogMessage(substitute('File "&1" is not located in current instance: &2', 
-                            phFile:file-name, mcInstanceRoot),
-                      LogLevelEnum:WARN).
+            Logger:Warn(substitute('File "&1" is not located in current instance: &2', 
+                            phFile:file-name, mcInstanceRoot)).
         else
         if not cFullName begins substitute('&1/webapps/&2/':u,
                                                 mcInstanceRoot, pcWebAppPath) then
-            LogMessage(substitute('File "&1" is not located in current webapp: &2', 
-                            phFile:file-name, pcWebAppPath),
-                      LogLevelEnum:WARN).
+            Logger:Warn(substitute('File "&1" is not located in current webapp: &2', 
+                            phFile:file-name, pcWebAppPath)).
         
         /* no paths/relative paths allowed*/
         if phFile:file-name begins '.':u or
            phFile:file-name begins '/':u or
            phFile:file-name begins '~\':u then 
         do:
-            LogMessage(substitute('File "&1" cannot start with: . / \ ', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('File "&1" cannot start with: . / \ ', 
+                            phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:BadRequest).
         end.
         
         /* just have write permission */
         if index(phFile:file-type, 'R':u) eq 0 then
         do:
-            LogMessage(substitute('File "&1" does not have read permissions', 
-                            phFile:file-name),
-                      LogLevelEnum:ERROR).
+            Logger:Error(substitute('File "&1" does not have read permissions', phFile:file-name)).
             undo, throw new SendExceptionError(StatusCodeEnum:Forbidden).
         end.
     end method. 
@@ -418,16 +374,4 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
         return 0.
     end method.                                                     
     
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        this-object:LogMessage:Publish(this-object,
-                                       'DOH-FILE':u,
-                                       pcMessage,
-                                       poLogLevel).                                       
-    end method.
-
 end class.

@@ -61,6 +61,7 @@ DEFINE VARIABLE ctemp          AS CHARACTER            NO-UNDO.
 define variable multitenantdb as logical no-undo.
 DEFINE VARIABLE IsMultitenant  AS LOGICAL              NO-UNDO.
 DEFINE VARIABLE IsPartitioned  AS LOGICAL              NO-UNDO.
+Define variable IsCDCEnabled   as logical              NO-UNDO.
 
 /* Recid of sequence whose properties are showing (disp) and recid of
    the selected sequence in the list (rec). */
@@ -471,7 +472,8 @@ RUN prodict/user/_usrinf3.p
        OUTPUT large_seq,
        OUTPUT answer,
        OUTPUT isMultitenant,
-       OUTPUT isPartitioned).
+       OUTPUT isPartitioned,
+       OUTPUT IsCDCEnabled).
 
 /* dbs running with pre-10.01B servers will have no knowledge of 64-bit sequences,
    so don't need to display message (in which case large_seq = ?)

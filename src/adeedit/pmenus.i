@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2016 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -40,8 +40,24 @@ PROCEDURE EditMenuDrop.
       CASE hItem:NAME:
         WHEN '_Undo':U        THEN hItem:SENSITIVE = ( p_Editor:EDIT-CAN-UNDO ) AND ( p_Editor:MODIFIED ).
         WHEN '_Redo':U        THEN hItem:SENSITIVE = ( p_Editor:EDIT-CAN-REDO ) AND ( p_Editor:MODIFIED ).
-        WHEN '_Cut':U         THEN hItem:SENSITIVE = ( NOT Read_Only ) AND ( Text_Is_Selected ).
-        WHEN '_Copy':U        THEN hItem:SENSITIVE = ( Text_Is_Selected  ).
+        /* You can always do a cut in the source editor. It will cut
+        ** the selection if text is selected. Otherwise it cuts the
+        ** line the cursor is on.
+        */
+        WHEN '_Cut':U         THEN
+            IF p_Editor:SOURCE-EDITOR THEN
+                hItem:SENSITIVE = ( NOT Read_Only ).
+            ELSE
+                hItem:SENSITIVE = ( NOT Read_Only ) AND ( Text_Is_Selected  ).
+        /* You can always do a copy in the source editor. It will copy
+        ** the selection if text is selected. Otherwise it copies the
+        ** line the cursor is on.
+        */
+        WHEN '_Copy':U        THEN
+            IF p_Editor:SOURCE-EDITOR THEN
+                hItem:SENSITIVE = TRUE.
+            ELSE
+                hItem:SENSITIVE = ( Text_Is_Selected  ).
         WHEN '_Paste':U       THEN hItem:SENSITIVE = ( p_Editor:EDIT-CAN-PASTE ) AND ( NOT Read_Only ).
         WHEN '_Insert_File':U THEN hItem:SENSITIVE = ( NOT Read_Only ).
         WHEN '_Field_Selector':U THEN hItem:SENSITIVE = ( NOT Read_Only ).

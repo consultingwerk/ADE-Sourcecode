@@ -90,6 +90,7 @@ define variable cAreaMTText    as character               no-undo.
 define variable isTablePartitioned      as logical                 no-undo.
 define variable isMultitenant    as LOGICAL             no-undo.
 define variable isPartitioned    as LOGICAL             no-undo.
+define variable isCDCEnabled     as logical             no-undo.
 
 DEFINE BUFFER bfr_Index FOR DICTDB._Index.
 
@@ -443,7 +444,8 @@ DO:
            OUTPUT answer,
            OUTPUT large_idx,
 	   OUTPUT isMultitenant,
-           OUTPUT isPartitioned).
+           OUTPUT isPartitioned,
+           OUTPUT isCDCEnabled).
 
 END.
 Assign isTablePartitioned = _File._File-Attributes[3]. /* Check if table partitioned. */
@@ -1096,7 +1098,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
         /* we will allow some of the indexes on the _aud-audit-data tables to be
            deactivated. The primary index and the _audit-time index cannot be
            deactivated.
-         */
+         */  
+
         IF (_File._file-name BEGINS "_aud-audit-data") 
         AND (_Index._Index-Name NE "_audit-time") 
         AND (NOT (_File._Prime-Index = RECID(_Index))) THEN
@@ -1106,7 +1109,23 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
 
         IF _File._Frozen AND NOT canAudDeact THEN 
         DO:
-            MESSAGE new_lang[27]. /* table is frozen */
+	   IF _Index._Index-Name = "_Identifying-Fields" THEN
+	   DO:
+	      IF NOT _Index._Active THEN
+                 MESSAGE new_lang[20]. /* already off */
+	      ELSE
+	      DO:
+	         answer = FALSE. /* are you sure... make inactive? */
+                 RUN "prodict/user/_usrdbox.p"
+                   (INPUT-OUTPUT answer,?,?,new_lang[21] + ' "'
+                    + _Index._Index-name + '" ' + new_lang[22]).
+                 IF answer THEN 
+                    _Index._Active = FALSE.
+                 in_trans = in_trans OR answer. 
+               END.
+	   END.
+	   ELSE
+              MESSAGE new_lang[27]. /* table is frozen */
         END.
         ELSE IF _File._Db-lang > 1 THEN  
             MESSAGE new_lang[37].

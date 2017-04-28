@@ -185,7 +185,7 @@ Define {1} var drec_db     as recid    NO-UNDO.
       user_env[16] - the gateway type family - to indicate what data types
       	       	     can be modified to what other data types.
 */
-Define {1} var user_env        as char  extent 42 NO-UNDO.
+Define {1} var user_env        as char  extent 43 NO-UNDO.
 
 /* for bug fix 20050930-006 */
 DEFINE {1} VARIABLE user_longchar         AS LONGCHAR NO-UNDO.

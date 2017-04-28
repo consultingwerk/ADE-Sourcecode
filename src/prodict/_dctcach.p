@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009,2011 by Progress Software Corporation.*
+* Copyright (C) 2006,2008-2009,2011,2016 by Progress Software Corporation.*
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -18,6 +18,7 @@
            fernando  08/04/09 Put a limit on the size of the table array before
                               switching to the temp-table approach.
 
+           rkumar    04/13/16 CDC Support- Dont display CDC Change tables in D/L 
 */
 
 { prodict/dictvar.i }
@@ -57,6 +58,7 @@ PAUSE 0 BEFORE-HIDE.  /* Added BEFORE-HIDE to prevent prior messages from
    the table get program.
    In tty, the user must type in a schema table name.
 */
+
 IF p_hidden
  THEN FOR EACH DICTDB._File
     WHERE DICTDB._File._Db-recid = drec_db
@@ -70,6 +72,8 @@ IF p_hidden
        (user_env[9] = "f"  OR
         user_env[9] = "rw") THEN NEXT.
        
+ 
+    IF DICTDB._File._File-attributes[6] EQ TRUE and user_env[42] = "" THEN NEXT.
     /* Set the cache to dirty to force it to rebuild the list next time.
        This prevents an unauthorized tool from seeing these tables. */
     cache_dirty = TRUE.
@@ -77,15 +81,17 @@ IF p_hidden
     RUN addEntry(INPUT DICTDB._File._File-name).
 
     END.
- ELSE FOR EACH DICTDB._File
+ELSE FOR EACH DICTDB._File
     WHERE DICTDB._File._Db-recid = drec_db
       AND (DICTDB._File._Owner = "PUB" OR DICTDB._File._Owner = "_FOREIGN")
       AND NOT DICTDB._File._Hidden
+    /* and DICTDB._File._File-attributes[6] NE TRUE */
       BY DICTDB._File._File-name:
 
-         RUN addEntry(INPUT DICTDB._File._File-name).
-
-  END.
+     /* IF DICTDB._File._File-attributes[6] EQ TRUE and user_env[42] = "" then NEXT. */
+      
+      RUN addEntry(INPUT DICTDB._File._File-name).
+END.
 
 {prodict/user/userhdr.i c}  /* restore header line */
 

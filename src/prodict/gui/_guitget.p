@@ -519,6 +519,7 @@ IF SESSION:CPINTERNAL EQ "undefined":U THEN
 
 &ENDIF
  
+
 /* Check for read permissions */
 find DICTDB._File WHERE DICTDB._File._File-name = "_File"
                     AND DICTDB._File._Owner = "PUB".
@@ -540,6 +541,9 @@ if ismultitenant then
      assign issupertenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
 else
     issupertenant = no.
+
+if user_env[42] = "" or user_env[42] = "true" then 
+assign cache_dirty = true.
 
 if cache_dirty then do:
    /* if current table is schema table, then include them by default */

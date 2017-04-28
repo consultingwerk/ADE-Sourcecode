@@ -12,7 +12,7 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry.
 using OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder.
@@ -29,8 +29,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder:
     method static public MessageWriterBuilder Build(input poPart as MessagePart):
         define variable oHeader as HttpHeader no-undo.
         
+        if not poPart:Headers:Has('Content-Type':u) then
+            undo, throw new AssertionFailedError('Message part Content-Type header cannot be null', 0). 
+        
         assign oHeader = poPart:Headers:Get('Content-Type':u).
-        Assert:NotNull(oHeader, 'Message part Content-Type header').
         
         return EntityWriterBuilder:Build(poPart:ContentType)
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))
@@ -45,9 +47,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder:
     method static public MessageWriterBuilder Build(input poMessage as IHttpMessage):
         define variable oHeader as HttpHeader no-undo.
         
-        assign oHeader = poMessage:GetHeader('Content-Type':u).
-        if not valid-object(oHeader) then
+        if not poMessage:HasHeader('Content-Type':u) then
             return ?.
+        
+        assign oHeader = poMessage:GetHeader('Content-Type':u).
         
         return EntityWriterBuilder:Build(poMessage:ContentType)
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))

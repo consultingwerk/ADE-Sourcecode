@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Schema for OpenEdge.Logging.ConfigFileLoggerBuilder configuration, v. 1.0.0",
+  "definitions": {
+    "typeName": {
+      "type": "string",
+      "description": "An OOABL type name",
+      "pattern": "^[A-Za-z]+[A-Za-z$0-9-&#%.]+[A-Za-z$0-9-&#%]*$"
+    },
+    "typeProperty": {
+      "type": "object",
+      "properties": {
+        "type": {"$ref": "#/definitions/typeName"},
+        "hash": {
+          "type": "string",
+          "description": "A hash value to validate that the OOABL type is the expected version."
+        }
+      },
+      "required": ["type"]
+    },
+    "builderProperty": {
+      "oneOf": [
+        {"$ref": "#/definitions/typeProperty"},
+        {"$ref": "#/definitions/typeName"}
+      ]
+    }
+  },
+  "DEFAULT_LOGGER": {"type": "string"},
+  "logger": {
+    "type": "object",
+    "patternProperties": {
+      "^[A-Za-z]+[A-Za-z$0-9-&#%.]+[A-Za-z$0-9-&#%]*$": {
+        "type": "object",
+        "properties": {
+          "logLevel": {
+            "type": "string",
+            "enum": [
+              "OFF",
+              "FATAL",
+              "ERROR",
+              "WARN",
+              "INFO",
+              "DEBUG",
+              "TRACE",
+              "DEFAULT"
+            ]
+          },
+          "filters": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+                {"type": "string",
+                  "description": "A filterName reference to a in-the-box or registered filter, or an entry in the filters property in this config"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"}
+                  },
+                  "required": ["name"]
+                }
+              ]
+            }
+          },
+          "required": ["filters"]
+        }
+      }
+    }
+  },
+  "filter": {
+    "type": "object",
+    "patternProperties": {
+      "^[A-Za-z]+[A-Za-z$0-9-&#%.]+[A-Za-z$0-9-&#%]*$": {
+        "type": "object",
+        "properties": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/typeName",
+              "description": "The OOABL type name that implements this filter. Must implement OpenEdge.Logging.Filter.ILoggerFilter"
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/typeProperty",
+                  "description": "The OOABL type name that implements this filter. Must implement OpenEdge.Logging.Filter.ILoggerFilter"
+                },
+                {
+                  "properties": {
+                    "builder": {
+                      "$ref": "#/definitions/builderProperty",
+                      "description": "The OOABL type name that can build this filter. Must inherit from OpenEdge.Logging.Filter.LogFilterBuilder"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@ using OpenEdge.DataAdmin.* from propath.
 using OpenEdge.DataAdmin.Core.DataAdminWriter from propath. 
 using OpenEdge.DataAdmin.Core.DataAdminWriter from propath. 
 using OpenEdge.DataAdmin.Binding.IContextTree from propath. 
+using OpenEdge.DataAdmin.Rest.IPageRequest from propath.
 
 class OpenEdge.DataAdmin.Core.JSONWriter inherits DataAdminWriter implements IDataAdminExporter:  
 	 
@@ -61,6 +62,26 @@ class OpenEdge.DataAdmin.Core.JSONWriter inherits DataAdminWriter implements IDa
         end catch.        
     end method.
     
+    method public void WriteToFile(serializable as IDataAdminSerializable,pcFile as char,pccollection as char,pageReq as IPageRequest):
+        define variable h as handle no-undo.
+        define variable json as JsonObject no-undo.
+        define variable tree as IContextTree no-undo.
+        tree = this-object:Write(serializable,pccollection /*pcMode*/ ).
+        if tree:UseDataset then
+        do:
+            h =  tree:GetWriteHandle().
+            /* the json-write parameter is OmitRoot */
+            h:write-json ("File",pcFile,Formatted,"UTF-8",no,if tree:IncludeRoot = yes then no else yes). 
+            delete object h no-error.
+        end.
+        else do:
+            json = tree:GetJSON(pageReq). 
+            json:WriteFile(pcFile,yes).
+        end.
+        catch e as Progress.Lang.Error :
+            handleError(e). 
+        end catch.        
+    end method.
     /** WriteToLongchar 
         @returns longchar with exported data  
         @param Serializable IDataAdminSerializable is implemented by all entities and collections 

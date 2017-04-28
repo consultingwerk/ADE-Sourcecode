@@ -35,6 +35,10 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:stopAgent().
     end method.
     
+    method public logical InitiateDebugger(input connectstring as character):
+        return pasam:InitiateDebugger(connectstring).
+    end method.
+    
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

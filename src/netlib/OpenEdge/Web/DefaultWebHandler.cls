@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
     File        : DefaultWebHandler
@@ -16,7 +16,6 @@ using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.WebHandler.
 using OpenEdge.Web.WebRequest.
-using OpenEdge.Net.URI.
 
 class OpenEdge.Web.DefaultWebHandler inherits WebHandler: 
     
@@ -24,26 +23,18 @@ class OpenEdge.Web.DefaultWebHandler inherits WebHandler:
        or HandleNotImplemented */
       
     method public override integer HandleRequest( ):
-
         define variable webRequest as IWebRequest no-undo.
-        define variable msg as character no-undo.
         
+        webRequest = new WebRequest().
+            
+        Logger:Warn("DefaultWebHandler invoked - Method: " + webRequest:Method + " URL: " + webRequest:URI:ToString()).         
+        Logger:Info("   RemoteHost: " + webRequest:RemoteHost).
+        Logger:Info("   RemoteAddress: " + webRequest:RemoteAddress).
+        Logger:Info("   RemoteUser: " + webRequest:RemoteUser).
         
-        if log-manager:logging-level ge 2 then do:
-	        webRequest = new WebRequest().
-	        
-	        msg = "DefaultWebHandler invoked - Method: " + webRequest:Method + " URL: " + webRequest:URI:ToString().         
-			LogMessage(msg, 3).
-			msg = "   RemoteHost: " + webRequest:RemoteHost.
-			LogMessage(msg, 4).
-			msg = "   RemoteAddress: " + webRequest:RemoteAddress.
-			LogMessage(msg, 4).
-			msg = "   RemoteUser: " + webRequest:RemoteUser.
-			LogMessage(msg, 4).
-		end.
-		return super:HandleRequest().
+        return super:HandleRequest().
 
-	end method.	   
+    end method.       
     
     /* Default handler for unsupported methods
        
@@ -77,13 +68,4 @@ class OpenEdge.Web.DefaultWebHandler inherits WebHandler:
         return integer(StatusCodeEnum:NotImplemented).
     end method.
 
-    method private void LogMessage(input pcMessage as character,
-                                   input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'WEBHDLR':u).
-    end method.
-    
 end class.

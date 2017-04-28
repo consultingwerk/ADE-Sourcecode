@@ -17,10 +17,8 @@ using Ccs.Common.Support.IHandleHolder.
 using Ccs.Common.Support.IInt64Holder.
 using Ccs.Common.Support.ILongcharHolder.
 using Ccs.Common.Support.IPrimitiveHolder.
-using OpenEdge.Core.Assert.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
-using OpenEdge.Core.LogLevelEnum.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
@@ -90,11 +88,8 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
         define variable oReadError as AppError no-undo.
         
         if valid-object(pData) then
-            LogMessage(substitute('Writing &1 as handle; val=&2',
-                            pData:GetClass():TypeName,
-                            pData:ToString()),
-                       LogLevelEnum:TRACE).
-                
+            Logger:Trace(substitute('Writing &1 as handle; val=&2', pData:GetClass():TypeName, pData:ToString())).
+        
         case true:
             when not valid-object(pData) then
                 assign this-object:Value = new OpenEdge.Core.WidgetHandle(?).
@@ -110,10 +105,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                         when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
                         when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
                         when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
-                            LogMessage(substitute('Using existing &1 &2',
-                                            hData:type,
-                                            hData:name),
-                                       LogLevelEnum:DEBUG).
+                            Logger:Trace(substitute('Using existing &1 &2', hData:type, hData:name)).
                         otherwise
                             assign hData    = ?
                                    lDestroy = true.

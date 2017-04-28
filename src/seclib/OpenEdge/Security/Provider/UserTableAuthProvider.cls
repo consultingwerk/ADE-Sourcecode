@@ -14,19 +14,32 @@
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.LogLevelEnum.
 using OpenEdge.Core.System.UnsupportedOperationError.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Security.Provider.IAuthProvider.
 using OpenEdge.Security.Provider.IPasswordPolicyProvider.
-using OpenEdge.Security.Provider.UserTableAuthProvider.
+using OpenEdge.Security.Provider.UserTablePasswordProvider.
+using OpenEdge.Security.STS.ClientValidator.
+using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Reflect.Flags.
+using OpenEdge.Security.Provider.UserTableAuthProvider.
 using Progress.Json.ObjectModel.ObjectModelParser.
-using Progress.Json.ObjectModel.JsonObject.
-using OpenEdge.Security.STS.ClientValidator.
-using OpenEdge.Security.Provider.UserTablePasswordProvider.
 
-class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
+class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider, ISupportLogging:
+    
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(UserTableAuthProvider)).
+                
+            return this-object:Logger. 
+        end get.
+        set.
+
     /* use to handle the validation of a STS's credentials */
     define private variable moValidator as ClientValidator no-undo.
     
@@ -61,6 +74,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
 		super().
 		
 		assign moValidator = new ClientValidator().
+		       
 		LoadConfig().
 		
 		/* default values */
@@ -178,10 +192,9 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         define buffer lbUser  for STSDB._User.
         define buffer lbRoles for STSDB._sec-granted-role.
         
-        LogMessage(substitute('Attempting to get attribute &1 for user &2',
+        Logger:Debug(substitute('Attempting to get attribute &1 for user &2',
                                 pcAttributeName,
-                                pcUserId),
-                   LogLevelEnum:DEBUG).
+                                pcUserId)).
         
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'GetAttribute':u) then
@@ -236,21 +249,18 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
             when UserTableAuthProvider:REALM_ATTR_PROPERTIES or
             when UserTableAuthProvider:REALM_ATTR_PASSWD   then
             do:
-                LogMessage(substitute('Unsupported attribute &1', pcAttributeName), 
-                           LogLevelEnum:DEBUG).
+                Logger:Debug(substitute('Unsupported attribute &1', pcAttributeName)).
                 assign cAttrVal = ?.
             end.    //UNSUPPORTED
             
             otherwise
             do:
-                LogMessage(substitute('Unknown attribute &1', pcAttributeName), 
-                           LogLevelEnum:DEBUG).
+                Logger:Debug(substitute('Unknown attribute &1', pcAttributeName)).
                 assign cAttrVal = ?.
             end.    //OTHERWISE
         end case.
         
-        LogMessage(substitute('Returning &2 for attribute value', cAttrVal), 
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Returning &2 for attribute value', cAttrVal)).
         
         return cAttrVal.	
     end method.
@@ -266,9 +276,8 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         define variable oProps as class Progress.Reflect.Property extent no-undo.
         define variable iLoop as integer no-undo.
         
-        LogMessage(substitute('Attempting to get attribute names for user &1',
-                                pcUserId),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Attempting to get attribute names for user &1',
+                                pcUserId)).
         
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'GetAttributeNames':u) then
@@ -281,10 +290,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         
         do iLoop = extent(oProps) to 1 by -1:
             assign cNames[iLoop] = oProps[iLoop]:Get().
-            
-            LogMessage(substitute('Supported attribute name &1',
-                                    cNames[iLoop]),
-                       LogLevelEnum:DEBUG).
+            Logger:Debug(substitute('Supported attribute name &1', cNames[iLoop])).
         end.
         
         return cNames.        
@@ -301,9 +307,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
 
         define buffer lbUser for STSDB._User.
         
-        LogMessage(substitute('Attempting to validate clear-text password for user &1',
-                                pcUserId),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Attempting to validate clear-text password for user &1', pcUserId)).
         
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidatePassword':u) then
@@ -315,8 +319,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         assign lValid = lbUser._Password eq PasswordProvider:HashPassword(
                                                     pcPassword, 
                                                     PasswordProvider:GetUserSalt(buffer lbUser:handle)).
-        LogMessage(substitute('Is valid password: &1', lValid),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Is valid password: &1', lValid)).
         
         return lValid.
 	end method.
@@ -332,9 +335,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
                                            input pcDigest as character,
                                            input pcNonce as character,
                                            input pcTimestamp as character ):
-        LogMessage(substitute('Attempting to validate digest password for user &1',
-                                pcUserId),
-                   LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Attempting to validate digest password for user &1', pcUserId)).
         
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidatePassword':u) then
@@ -351,7 +352,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
 	method public character ValidateUser( input pcUserName as character ):
 	    define buffer lbUser for STSDB._User.
 	    
-        LogMessage(substitute('Validating user &1', pcUserName), LogLevelEnum:DEBUG).
+        Logger:Debug(substitute('Validating user &1', pcUserName)).
 
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'ValidateUser':u) then
@@ -374,10 +375,9 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         define variable lUpdated as logical no-undo.
         define buffer lbUser for STSDB._User.
         
-        LogMessage(substitute('Attempting to set attribute &1 for user &2',
+        Logger:Debug(substitute('Attempting to set attribute &1 for user &2',
                                 pcAttributeName,
-                                pcUserId),
-                   LogLevelEnum:DEBUG).
+                                pcUserId)).
         
         /* validate the client */
         if not moValidator:Validate(get-class(UserTableAuthProvider):TypeName, 'SetAttribute':u) then
@@ -402,10 +402,9 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
                            lUpdated = true.
                 otherwise 
                 do:
-                    LogMessage(substitute('Cannot set attribute &1 for user &2',
+                    Logger:Warn(substitute('Cannot set attribute &1 for user &2',
                                             pcAttributeName,
-                                            pcUserId), 
-                               LogLevelEnum:WARN).
+                                            pcUserId)).
                     assign lUpdated = false.
                 end.
             end case.
@@ -416,6 +415,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         
         return lUpdated.
     end method.	
+    
     /* Helper method for finding a _User record for READ 
        
        @param character The User@Domain user name/id
@@ -431,8 +431,7 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
              no-lock no-error.
         if not available pbUser then
         do:
-            LogMessage(substitute('Unknown user &1', pcUserName),
-                       LogLevelEnum:DEBUG).
+            Logger:Debug(substitute('Unknown user &1', pcUserName)).
             return error new AppError('User not found', 0).
         end.
 	end method. 
@@ -452,14 +451,12 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
              exclusive-lock no-wait no-error.
         if not available pbUser then
         do:
-            LogMessage(substitute('Unknown user &1', pcUserName),
-                       LogLevelEnum:DEBUG).
+            Logger:Debug(substitute('Unknown user &1', pcUserName)).
             return error new AppError('User not found', 0).
         end.
         if locked pbUser then
         do:
-            LogMessage(substitute('Unable to lock user &1 for update', pcUserName), 
-                       LogLevelEnum:WARN).
+            Logger:Warn(substitute('Unable to lock user &1 for update', pcUserName)).
             return error new AppError('Cannot update user', 0).
         end.
     end method. 
@@ -479,19 +476,6 @@ class OpenEdge.Security.Provider.UserTableAuthProvider implements IAuthProvider:
         Assert:NotNull(cSplitUser[2], 'User domain').
         
         return cSplitUser.
-    end method.
-    
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge integer(poLogLevel) then
-            log-manager:write-message(pcMessage, 'USRTBLAP':u).
     end method.
     
 end class.

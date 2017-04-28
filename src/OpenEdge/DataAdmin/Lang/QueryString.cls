@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2006-2012 by Progress Software Corporation.             * 
+* Copyright (C) 2006-2017 by Progress Software Corporation.             * 
 * All rights reserved.                                                  *
 *                                                                       *
 ************************************************************************/
@@ -63,8 +63,8 @@ class OpenEdge.DataAdmin.Lang.QueryString :
   define private variable mcTargetTable as character  no-undo extent 18.
   define private variable mcTargetQuery as character  no-undo extent 18.
   define private variable mcEvaluation  as character  no-undo extent 50 .
-  define private variable mcExpression  as character  no-undo extent 100.
-  define private variable mcExpTables   as character  no-undo extent 100.
+  define private variable mcExpression  as character  no-undo extent 1024.
+  define private variable mcExpTables   as character  no-undo extent 1024.
   define private variable miNumTables   as integer    no-undo.
   define private variable miParCount    as integer    no-undo.
   define private variable miExpCount    as integer    no-undo.

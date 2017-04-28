@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2013 by progress Software Corporation  */
+/* Copyright (c) 2010-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -37,7 +37,9 @@ procedure Execute :
     define variable groupinst    as ITenantGroup no-undo.
     define variable groupset     as ITenantGroupSet no-undo.
     define variable policy       as IPartitionPolicy no-undo.
-    define variable policySet    as IPartitionPolicySet no-undo.
+    define variable policySet    as IPartitionPolicySet no-undo.    
+    define variable cdcPolicy       as ICdcTablePolicy no-undo.
+    define variable cdcPolicySet    as ICdcTablePolicySet no-undo.
    
     define variable service      as DataAdminService no-undo.
     define variable errorHandler as DataAdminErrorHandler no-undo.
@@ -116,6 +118,26 @@ procedure Execute :
                 policySet:ExportAsProcedure(restRequest:DownloadFileName).    
             end. 
         end. /* when tenant */
+        when "CreateCDCScript" then
+        do:
+            cKey = restRequest:GetQueryValue("Name").
+            
+            /* if url has name  then find the existing tenant */
+            if cKey > "" then
+            do:
+               cdcPolicy = service:GetCdcTablePolicy(cKey).
+               if not valid-object(cdcPolicy) then
+                  undo, throw new NotFoundError("policy "  + quoter(cKey)  + " not found").
+               cdcPolicy:ExportAsProcedure(restRequest:DownloadFileName).  
+            end.
+            /* else import the json and export it */
+            else do:
+                /* use collection to import non existing  policy (don't know the name) */
+                cdcPolicySet = service:NewCdcTablePolicies().
+                cdcPolicySet:ImportTree(cFile).
+                cdcPolicySet:ExportAsProcedure(restRequest:DownloadFileName).    
+            end. 
+        end. /* when CDC */
         otherwise 
              undo, throw new IllegalArgumentError("Invalid script reference " + quoter(restRequest:KeyValue[1])).  
     

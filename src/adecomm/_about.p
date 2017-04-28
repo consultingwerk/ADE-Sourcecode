@@ -1,5 +1,5 @@
 /**************************************************************************
-*Copyright (C) 2005,2010-2013,2014,2015 by Progress Software Corporation. *
+*Copyright (C) 2005,2010-2013,2014,2015,2017 by Progress Software Corporation. *
 *All rights reserved.  Prior versions of this work may contain portions   *
 *contributed by participants of Possenet.                                 *
 **************************************************************************/
@@ -221,13 +221,13 @@ DO WITH FRAME {&FRAME-NAME}:
      THEN cCommercialVer + CHR(10) 
      ELSE ""
     ) +
-    cCopyright + " 1984-2015 Progress Software Corporation and/or one of its subsidiaries or affiliates. "
+    cCopyright + " 1984-2017 Progress Software Corporation and/or one of its subsidiaries or affiliates. "
     + "All rights reserved.".
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2015 Vol 1. " +  
-        cCopyright + " 2015 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2016 Vol 2. " +  
+        cCopyright + " 2016 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

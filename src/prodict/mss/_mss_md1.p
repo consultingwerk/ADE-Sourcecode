@@ -30,6 +30,7 @@ DEFINE VARIABLE i            AS INTEGER   NO-UNDO.
 DEFINE VARIABLE j            AS INTEGER   NO-UNDO.
 DEFINE VARIABLE l_debug      AS logical   NO-UNDO INIT FALSE.
 DEFINE VARIABLE md1_conparms AS CHARACTER NO-UNDO. 
+DEFINE VARIABLE md1_conparms1 AS CHARACTER NO-UNDO.
 DEFINE VARIABLE conp1        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE conp2        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE conp3        AS CHARACTER NO-UNDO. 
@@ -63,7 +64,7 @@ PROCEDURE connect-schdb:
     CONNECT  VALUE (mss_dbname)
       -dt VALUE (user_dbtype)
       -ld VALUE (mss_pdbname)
-          VALUE (connection_string) 
+          VALUE (connection_string)
       -P  VALUE (mss_password).
 
   CREATE ALIAS "DICTDBG" FOR DATABASE VALUE (mss_pdbname) NO-ERROR.
@@ -78,11 +79,13 @@ CREATE ALIAS "DICTDB" FOR DATABaSE VALUE (osh_dbname).
 
 RUN prodict/mss/_mss_md2.p.
 
+
 ASSIGN
  /* user_dbname = mss_pdbname */
   user_dbtype = "MSS".
 
 md1_conparms = mss_conparms.
+
 
 IF md1_conparms = "" OR md1_conparms = ? THEN
   md1_conparms = "-Dsrv PRGRS_PROC_TRAN,1".
@@ -99,6 +102,7 @@ ELSE DO:
   IF mss_username <> "" AND mss_username <> ? THEN
      connection_string = "-U " + mss_username.
 END.     
+
 
 /* Save the user_env variables we will need later.  _mss_pul.p
      reinitializes user_env 

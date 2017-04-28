@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2013 by progress Software Corporation. */
+/* Copyright (c) 2010-2016 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -47,8 +47,15 @@ IsMultiTenant,_File-attributes[1]"
     end constructor.
     
     constructor public FieldDataSource ( ):	    
-        super ("_File,_Field","dictdb._File,dictdb._Field", mMapping).	
-        BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _field of _file no-lock ".
+        this-object (no).
+    end constructor.
+    
+    constructor public FieldDataSource (allfield as log):     
+        super ("_File,_Field","dictdb._File,dictdb._Field", mMapping + ",TableOwner,_file._Owner"). 
+        if allfield then 
+            BaseQuery = "for each _file where " + DatabaseInfo:FileExpression2  +  " no-lock, each _field of _file no-lock ".
+        else BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _field of _file no-lock ".
+        
     end constructor.
     
 /*    constructor public FieldDataSource (fieldfirst as log ):                                                            */

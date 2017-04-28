@@ -13,53 +13,22 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
-using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Core.LogLevelEnum.
-using OpenEdge.Core.Memptr.
-using OpenEdge.Core.Util.ISupportLogging.
-using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
-using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
-using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Net.HTTP.IHttpResponse.
-using OpenEdge.Net.HTTP.MethodEnum.
-using OpenEdge.Net.HTTP.StatusCodeEnum.
-using OpenEdge.Core.Util.LogManagerLogger.
 using OpenEdge.Web.DataObject.IOperationHandler.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
-using OpenEdge.Web.SendExceptionError.
-using Progress.Lang.AppError.
-using OpenEdge.Core.Util.ILogWriter.
+using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Web.DataObject.VoidOperationHandler.
 
-class OpenEdge.Web.DataObject.VoidOperationHandler implements ISupportLogging, IOperationHandler, ISupportInitialize:
-    define public event LogMessage  signature void (input poSender as Progress.Lang.Object, input pcMessageGroup as character, input pcMessage as character, input poLogLevel as LogLevelEnum).
-        
-    define private variable moLogger as ILogWriter no-undo.
+class OpenEdge.Web.DataObject.VoidOperationHandler implements ISupportLogging, IOperationHandler:
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo get. set.
     
     constructor public VoidOperationHandler():
-        assign moLogger = new LogManagerLogger()
-               .
+        assign Logger = LoggerBuilder:GetLogger(get-class(VoidOperationHandler)).
     end constructor.
-    
-    constructor public VoidOperationHandler(input poLogger as ILogWriter):
-        this-object().
-        
-        Assert:NotNull(poLogger, 'Logger').
-        assign moLogger = poLogger.
-    end constructor.
-
-    destructor public VoidOperationHandler():
-        Destroy().
-    end destructor.  
-    
-    method public void Initialize():
-        moLogger:SubscribeTo(this-object).
-    end method.
-    
-    method public void Destroy():
-        moLogger:UnsubscribeFrom(this-object).
-    end method.
     
     /* Executes the operation.  
        
@@ -79,19 +48,10 @@ class OpenEdge.Web.DataObject.VoidOperationHandler implements ISupportLogging, I
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(poOperation, 'Mapped operation').
         
+        Logger:Trace(substitute('Void operation for &1 &2 ; service=&3',
+                        poOperation:Method:ToString(), poOperation:ServiceURI, poOperation:ServiceName)).
+        
         return poOperation:StatusCode.
     end method.
     
-    /** Logs a message 
-        
-        @param character The message to log
-        @param integer  The level this message should be logged at */
-    method private void LogMessage(input pcMessage as character,
-                                   input poLogLevel as LogLevelEnum):
-        this-object:LogMessage:Publish(this-object,
-                                       'DOH-VOID':u,
-                                       pcMessage,
-                                       poLogLevel).                                       
-    end method.
-
 end class.

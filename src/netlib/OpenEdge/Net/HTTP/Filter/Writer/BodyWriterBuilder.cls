@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BodyWriterBuilder
@@ -12,9 +12,9 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
-using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
+using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry.
 using OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IHttpMessage.
@@ -29,8 +29,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder:
     method static public MessageWriterBuilder Build(input poPart as MessagePart):
         define variable oHeader as HttpHeader no-undo.
         
+        if not poPart:Headers:Has('Content-Type':u) then
+            undo, throw new AssertionFailedError('Message Content-Type header cannot be null', 0). 
+            
         assign oHeader = poPart:Headers:Get('Content-Type':u).
-        Assert:NotNull(oHeader, 'Message part Content-Type header').
         
         return BodyWriterBuilder:Build(poPart:ContentType)
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))
@@ -44,8 +46,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder:
     method static public MessageWriterBuilder Build(input poMessage as IHttpMessage):
         define variable oHeader as HttpHeader no-undo.
         
+        if not poMessage:HasHeader('Content-Type':u) then
+            undo, throw new AssertionFailedError('Message Content-Type header cannot be null', 0). 
+            
         assign oHeader = poMessage:GetHeader('Content-Type':u).
-        Assert:NotNull(oHeader, 'Message Content-Type header').
         
         return BodyWriterBuilder:Build(poMessage:ContentType)
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))

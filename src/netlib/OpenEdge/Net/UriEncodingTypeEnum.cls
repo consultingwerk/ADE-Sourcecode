@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : UrlEncodingTypeEnum
@@ -13,7 +13,12 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 enum OpenEdge.Net.UriEncodingTypeEnum:
-    define enum       Default = 0
-                      Query
-                      Cookie.
+    define enum Default = 0
+                Scheme
+                Host
+                Path
+                Query
+                Fragment
+                Cookie
+                .
 end enum.

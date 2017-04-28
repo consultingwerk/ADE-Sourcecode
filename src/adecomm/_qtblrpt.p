@@ -34,6 +34,7 @@ DEFINE INPUT PARAMETER p_DbType  AS CHAR  NO-UNDO.
 
 DEFINE VAR header_str AS CHAR NO-UNDO.
 DEFINE VAR flags      AS CHAR NO-UNDO.
+DEFINE VAR cdc        AS LOGICAL INIT NO NO-UNDO.
 
 IF INTEGER(DBVERSION("DICTDB")) > 8 THEN DO:
   FIND dictdb._File WHERE dictdb._File._File-name = "_File"
@@ -71,13 +72,19 @@ END.
 
 header_str = "Database: " + p_PName + " (" + p_DbType + ")".
 
+FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Change Data Capture" NO-LOCK NO-ERROR.
+if dictdb._Database-feature._dbfeature_enabled EQ "1" then assign cdc = true.
+
 FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Table Partitioning" NO-LOCK NO-ERROR.
+
 IF dictdb._Database-feature._dbfeature_enabled EQ "1" AND CAN-FIND(FIRST dictdb._tenant) THEN
-    flags = "Flags: 'p'=partitioned, 'm'=multi-tenant, 'f'=frozen, 's'=a SQL table".
+    flags = "Flags: 'c'=cdc-enabled, 'p'=partitioned, 'm'=multi-tenant, 'f'=frozen, 's'=a SQL table".
 ELSE IF _File._file-attributes[1] THEN
-    flags = "Flags: 'm'=multi-tenant, 'f'=frozen, 's'=a SQL table".
+    flags = "Flags: 'c'=cdc-enabled, 'f'=frozen, 's'=a SQL table".
 ELSE IF _File._file-attributes[3] THEN
     flags = "Flags: 'p'=partitioned, 'f'=frozen, 's'=a SQL table".
+ELSE IF cdc THEN
+    flags = "Flags: 'c'=cdc-enabled, 'ct'=CDC change table, 'f'=frozen, 's'=a SQL table".
 ELSE
     flags = "Flags: 'f'=frozen, 's'=a SQL table".
 

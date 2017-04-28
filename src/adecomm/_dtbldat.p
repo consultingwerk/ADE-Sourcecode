@@ -458,10 +458,12 @@ FOR EACH bFile NO-LOCK
       {&SEP_TBLEND} @ line WITH FRAME rptline.
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
-   IF bFile._file-attributes[1] THEN
-       flags = " Table Flags: ""m""=multi-tenant, ""f""=frozen, ""s""=a SQL table".
-   ELSE IF bFile._file-attributes[3] THEN
-       flags = " Table Flags: ""p""=partitioned, ""f""=frozen, ""s""=a SQL table".
+   IF bFile._file-attributes[1] AND bFile._file-attributes[5] THEN
+       flags = " Table Flags: ""m""=multi-tenant, ""c""=cdc-enabled, ""ct""=CDC change table, ""f""=frozen, ""s""=a SQL table".
+   ELSE IF bFile._file-attributes[3] AND bFile._file-attributes[5] THEN
+       flags = " Table Flags: ""p""=partitioned, ""c""=cdc-enabled, ""ct""=CDC change table, ""f""=frozen, ""s""=a SQL table".
+   ELSE IF bFile._file-attributes[5] or bFile._file-attributes[6] THEN
+       flags = "Table Flags: ""c""=cdc-enabled, ""ct""=CDC change table, ""f""=frozen, ""s""=a SQL table".
    ELSE
        flags = " Table Flags: ""f""=frozen, ""s""=a SQL table".
    
@@ -469,9 +471,12 @@ FOR EACH bFile NO-LOCK
    DOWN STREAM rpt 2 WITH FRAME rptline.
 
    /* Table info */      
+
    ASSIGN
       flags = (if bFile._File-Attributes[1] then "m" else "")
       flags = (flags + IF bFile._File-Attributes[3] then "p" else "")
+      flags = (flags + IF bFile._File-Attributes[5] then "c" else "")
+      flags = (flags + IF bFile._File-Attributes[6] THEN "ct" ELSE "")
       flags = (flags + IF bFile._Db-lang > 0 THEN "s" ELSE "")
       flags = (flags + IF bFile._Frozen THEN "f" ELSE "").
    

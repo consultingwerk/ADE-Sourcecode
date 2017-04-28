@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -16,6 +16,7 @@
 define temp-table ttField no-undo serialize-name "fields" {1}
     field Name          as character serialize-name "name"
     field TableName     as character serialize-name "tableName"
+    field TableOwner    as character serialize-hidden
     field Description   as character serialize-name "description"
     field AreaName      as character serialize-name "areaName"
     field AreaUrl       as character serialize-name "area_url"

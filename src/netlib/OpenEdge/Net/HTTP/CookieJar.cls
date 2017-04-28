@@ -15,9 +15,12 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.CookieCollection.
-using OpenEdge.Net.HTTP.CookieJar.
 using OpenEdge.Net.HTTP.ICookieJar.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
@@ -25,9 +28,10 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.Object.
+using OpenEdge.Net.HTTP.CookieJar.
 
 class OpenEdge.Net.HTTP.CookieJar use-widget-pool 
-            implements ICookieJar, ISupportInitialize:
+            implements ICookieJar, ISupportInitialize, ISupportLogging:
     
     /* Top-level domains. 
         
@@ -36,6 +40,9 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         initial 'aero,asia,biz,cat,com,coop,edu,eu,gov,info,int,jobs,mil,mobi,museum,name,net,org,pro,tel,travel':u.
     define private variable mcGenericCountryTLDs as character no-undo
         initial 'ad,as,bz,cc,cd,co,dj,fm,io,la,me,ms,nu,sc,sr,su,tv,tk,ws':U.
+
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo get. set.
     
     /** The location in which the cookies are persisted */
     define public property CookieJarPath as character no-undo get. set.
@@ -64,7 +71,11 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
     /* static constructor */    
     constructor static CookieJar():
     end constructor.
-    
+
+    constructor public CookieJar():
+        assign this-object:Logger = LoggerBuilder:GetLogger(get-class(CookieJar)).
+    end constructor.
+
     destructor CookieJar():
         Destroy().
     end destructor.
@@ -354,8 +365,8 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             /* return silently */
             if num-entries(pcDomain, '.':u) lt iMinSlugs then
             do:
-                LogMessage(substitute('Bad domain &1 for cookie &2',
-                                pcDomain, poCookie:ToString()), 5).
+                Logger:Debug(substitute('Bad domain &1 for cookie &2',
+                                pcDomain, poCookie:ToString())).
                 return.
             end.
         end.
@@ -364,8 +375,8 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
            make sure it's matched. */
         if not pcDomain matches '*':u + left-trim(poCookie:Domain, '.':u) then
         do:
-            LogMessage(substitute('Bad domain &1 for cookie &2',
-                            pcDomain, poCookie:ToString()), 5).
+            Logger:Debug(substitute('Bad domain &1 for cookie &2',
+                            pcDomain, poCookie:ToString())).
             return.
         end.
         
@@ -429,7 +440,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         /* will write an empty file */
         CookieJar:PersistCookieJar(this-object:CookieJarPath).
         
-        LogMessage(substitute('Cleared persistent cookies: &1', iso-date(now)), 5).
+        Logger:Debug(substitute('Cleared persistent cookies: &1', iso-date(now))).
     end method. 
     
     /** Clears all session cookies */
@@ -438,16 +449,6 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         
         empty temp-table lbCookie.
         
-        LogMessage(substitute('Cleared session cookies: ', iso-date(now)), 5).
+        Logger:Debug(substitute('Cleared session cookies: ', iso-date(now))).
     end method.
-    
-    method private void LogMessage(input pcMessage as character,
-                                   input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'COOKIJAR':u).
-    end method.
-
 end class.

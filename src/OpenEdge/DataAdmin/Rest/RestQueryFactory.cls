@@ -41,6 +41,12 @@ class OpenEdge.DataAdmin.Rest.RestQueryFactory implements IRestQueryFactory:
                 cInfo[1] = "tables".
                 cInfo[2] = "IsPartitioned = 'true'".
             end.
+            when "tablesforcdc" then 
+            do: 
+                extent(cinfo) = 2.
+                cInfo[1] = "tables".
+                cInfo[2] = "hidden = 'false' and isChangeTable = 'false'".              
+            end.
         end.    
         return cInfo.
     end.

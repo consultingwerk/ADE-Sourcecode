@@ -1,47 +1,52 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
     Purpose     : An extensible bucket/container for byte-based data. The bucket
-                  consists of an array of Memptr objects, all set to a particular
-                  size. 
+                  consists of temp-table with a RAW field 
     Author(s)   : pjudge
     Created     : Wed May 14 16:26:38 EDT 2014
-    Notes       : * Bucket size is initially 3 x 16k memptrs, and will expand
+    Notes       : * Bucket size is initially 3 x 30k records, and will expand
                     to contain whatever's passed in.
-                  * ResizeArray() can be used to manually expand the size of the 
-                    bucket
-                  * The memptr default size can be specified on construction.
+                  * Resize can be used to grow and shrink the number of rows in
+                    the bucket. The number of rows cannot shrink below the number
+                    needed to contain the current data (ie :Size ).
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.Memptr.
-using OpenEdge.Core.Util.MathUtil.
-using OpenEdge.Core.String.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Core.Memptr.
+using OpenEdge.Core.String.
+using OpenEdge.Core.Util.MathUtil.
 
 class OpenEdge.Core.ByteBucket implements ISupportInitialize:
-    /** The backing collection of memptrs */
-    define private variable mmMemptrArray as memptr extent no-undo.
+    // about 30k of data in a DITEM
+    define static private property MAX_BYTES_PER_ROW as integer initial 0x7800  no-undo get.
     
-    /* Number of Memptrs under management here */    
-    define private variable miArraySize         as integer no-undo.
+    // the default number of initial rows 
+    define private variable mInitialNumRecs as integer initial 3 no-undo.
     
-    /* the current position in the memptr */
-    define private variable miMemptrPostion as int64 extent no-undo.
+    define static private temp-table MemptrData no-undo
+        field ParentBucket  as int64
+        field DataIndex     as int64
+        field Data          as raw
+        // the actual number of bytes written into this row. RAW may be up to 32-ish k in size, and we may re-use this row
+        field BytesWritten  as integer
+        index idx1 as primary unique ParentBucket DataIndex.
+    
+    // The current row index for this bucket. may correspond to the number of records in the TT 
+    define private variable miCurrentDataIndex as int64 no-undo.
     
     /** The current read position */
     define public property Position as int64 no-undo get. set.
     
-    define private variable miCurrentArrayIndex as integer no-undo.
-    
     /* global/stateful variable to avoid deep copies of memptrs being passed internally/this class */
     define private variable mmTempBytes as memptr no-undo.
-     
+    
     /** The initial size of the memptrs that are held in the Bucket's array. 
         Each memptr is the same size */
     define public property DefaultCapacity as int64 no-undo get. private set.
@@ -52,13 +57,14 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     /** Constructor for a ByteBucket. Defaults to 2 memptrs of 16k each */
     constructor public ByteBucket():
         /* initialise to 3 16k memptrs */
-        this-object(3, 0x4000 /* 16kb */).
+        this-object(mInitialNumRecs).
     end method.
     
     /** Constructor for a ByteBucket
         @param int64 The size of each memptr in the array */
+    @deprecated(since='11.7.0':u).
     constructor public ByteBucket(input piDefaultCapacity as int64):
-        this-object(3, piDefaultCapacity).
+        this-object(mInitialNumRecs).
     end constructor.
     
     destructor ByteBucket():
@@ -66,22 +72,28 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     end destructor.
     
     /** Constructor for a ByteBucket
+        
         @param integer  The initial size of the array (ie how many extents)
         @param int64 The size of each memptr in the array */
+    @deprecated(since='11.7.0':u).
     constructor public ByteBucket(input piInitialSize as integer, input piDefaultCapacity as int64):
-        Assert:IsPositive(piInitialSize, 'Initial size').
-        Assert:IsPositive(piDefaultCapacity, 'Initial capacity').
+        this-object(piInitialSize).
+    end constructor.
+    
+    /** Constructor for a ByteBucket
         
-        assign 
-            extent(mmMemptrArray)    = piInitialSize
-            miArraySize              = piInitialSize
-            extent(miMemptrPostion)  = miArraySize
-            miMemptrPostion          = 1
-            miCurrentArrayIndex      = 1
-            
-            this-object:Position     = 1
-            this-object:DefaultCapacity = piDefaultCapacity
-            .
+        @param integer The initial size of the bucket (ie how many 32k rows) */
+    constructor public ByteBucket(input piInitialSize as integer):
+        define variable loop as integer no-undo.
+        define buffer data for MemptrData.
+        
+        Assert:IsPositive(piInitialSize, 'Initial size').
+        
+        assign miCurrentDataIndex          = 1
+               this-object:Position        = 1
+               this-object:DefaultCapacity = MAX_BYTES_PER_ROW
+               mInitialNumRecs             = piInitialSize
+               .
     end constructor.
     
     /** Factory method for creating a ByteBucket.
@@ -91,7 +103,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public static ByteBucket Instance(input piInitialSize as integer, input piDefaultCapacity as int64):
         define variable oBB as ByteBucket no-undo.
         
-        oBB = new ByteBucket(piInitialSize, piDefaultCapacity).
+        assign oBB = new ByteBucket(piInitialSize, piDefaultCapacity).
         oBB:Initialize().
         
         return oBB. 
@@ -103,7 +115,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public static ByteBucket Instance(input piDefaultCapacity as int64):
         define variable oBB as ByteBucket no-undo.
         
-        oBB = new ByteBucket(piDefaultCapacity).
+        assign oBB = new ByteBucket(piDefaultCapacity).
         oBB:Initialize().
         
         return oBB. 
@@ -113,7 +125,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public static ByteBucket Instance():
         define variable oBB as ByteBucket no-undo.
         
-        oBB = new ByteBucket().
+        assign oBB = new ByteBucket().
         oBB:Initialize().
         
         return oBB. 
@@ -122,78 +134,86 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     /** Clears/resets the ByteBucket. Does not de-allocate the memory, just the
         various pointers/counters/cursors. */
     method public void Clear():
-        assign miMemptrPostion      = 1
-               this-object:Position = 1
+        define buffer data for MemptrData.
+        
+        assign this-object:Position = 1
                this-object:Size     = 0
-               miCurrentArrayIndex  = 1.
-        set-size(mmTempBytes) = 0.
+               miCurrentDataIndex   = 1
+               .
+        for each data where data.ParentBucket eq int64(this-object):
+            assign data.BytesWritten = 0.
+        end.
+        
+        if get-size(mmTempBytes) gt 0 then
+            set-size(mmTempBytes) = 0.
     end method.
     
-    /** Default object initialization */
+    /** Default object initialization
+        
+        Clears and resizes the bucket's internals to the initial size (num records) */
     method public void Initialize():
-        define variable iLoop as integer no-undo.
-        
         this-object:Clear().
-        
-        do iLoop = 1 to miArraySize:
-            set-size(mmMemptrArray[iLoop]) = 0.
-            set-size(mmMemptrArray[iLoop]) = this-object:DefaultCapacity.
-        end.
+        this-object:Resize(mInitialNumRecs).
     end method.
     
     /** Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
-        define variable iLoop as integer no-undo.
+        define buffer data for MemptrData.
         
-        do iLoop = 1 to miArraySize:
-            set-size(mmMemptrArray[iLoop]) = 0.
+        assign this-object:Position = 1
+               this-object:Size     = 0
+               miCurrentDataIndex   = 1
+               .
+        for each data where data.ParentBucket eq int64(this-object):
+            delete data.
         end.
         
-        set-size(mmTempBytes) = 0.
+        if get-size(mmTempBytes) gt 0 then
+            set-size(mmTempBytes) = 0.
     end method.
-    
-    /** Resizes the internal array. Note that arrays can only be enlarged.
+
+    /** Resizes the internal 'array' of records.
+        We can shrink down the number of rows, but not smaller than the 
+        bucket's size. 
         
         @param integer The new size (number of extents) for the array */
     method public void ResizeArray(input piSize as integer):
-        define variable mTempArray as memptr extent no-undo.
-        define variable iTempPosition as integer extent no-undo.
-        define variable iLoop as integer no-undo.
+        this-object:Resize(piSize).    
+    end method.
+                
+    /** Resizes the internal 'array' of records.
+        We can shrink down the number of rows, but not smaller than the 
+        bucket's size in bytes. 
         
-        Assert:IsZeroOrPositive(piSize - miArraySize, 'Difference between new and old size').
+        @param integer The new size (number of records) for the internal structure */
+    method public void Resize(input piSize as integer):
+        define variable loop as integer no-undo.
         
-        /* no-op */
-        if piSize - extent(mmMemptrArray) eq 0 then
-            return.                       
+        define buffer data for MemptrData.
         
-        assign mTempArray    = mmMemptrArray
-               iTempPosition = miMemptrPostion.
-        
-        /* clean out the memptrs */       
-        do iLoop = 1 to miArraySize:
-            set-size(mmMemptrArray[iLoop]) = 0.
+        if piSize gt miCurrentDataIndex then
+        do loop = (miCurrentDataIndex + 1) to piSize:
+            if can-find(data where data.ParentBucket eq int64(this-object) and
+                        data.DataIndex eq loop) then
+                next.
+            
+            create data.
+            assign data.ParentBucket = int64(this-object)
+                   data.DataIndex    = loop
+                   data.BytesWritten = 0
+                   .
+        end.
+        else
+        for each data where data.ParentBucket eq int64(this-object) and
+                 data.DataIndex gt MathUtil:Ceiling(piSize / DefaultCapacity) and
+                 data.BytesWritten eq 0:
+            delete data.
         end.
         
-        assign extent(mmMemptrArray) = ?
-               extent(mmMemptrArray) = piSize
-               
-               extent(miMemptrPostion) = ?
-               extent(miMemptrPostion) = piSize
-               
-               miMemptrPostion = 1.
+        // the 'array' is now the input size 
+        assign miCurrentDataIndex = piSize.
         
-        do iLoop = 1 to piSize:
-            if iLoop le miArraySize then
-            do:
-                assign mmMemptrArray[iLoop]   = mTempArray[iLoop]
-                       miMemptrPostion[iLoop] = iTempPosition[iLoop].
-                set-size(mTempArray[iLoop]) = 0.
-            end.
-            else
-                set-size(mmMemptrArray[iLoop]) =  this-object:DefaultCapacity.
-                /* position done above */
-        end.
-        assign miArraySize = piSize.
+        return.
     end method.
     
     /** Copies all of the bytes from a memptr into this bucket. The
@@ -219,7 +239,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
             /* First de-reference the mmTempBytes variable before
                calling SET-SIZE() = 0 on it. */
             set-pointer-value(mmTempBytes) = 0.
-            set-size(mmTempBytes) = 0.           
+            if get-size(mmTempBytes) gt 0 then
+                set-size(mmTempBytes) = 0.           
         end finally.
     end method.
     
@@ -227,33 +248,39 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
    
         @param String The longchar containing the source data. */
     method public void PutString(input poData as String):
-        define variable mData as memptr no-undo.
+        Assert:NotNull(poData, 'String data').
         
-        set-size(mData) = poData:Size + 1.
-        put-string(mData,1) = poData:Value.
-        
-        /* don't write the trailing null byte */
-        PutBytes(get-pointer-value(mData), get-size(mData) - 1).
-        
-        finally:
-            set-size(mData) = 0.
-        end finally.
+        PutString(poData:Value, poData:Encoding).
     end method.
     
     /** Copies all of the bytes from a longchar into this bucket. 
    
         @param longchar The longchar containing the source data */
     method public void PutString(input pcData as longchar):
+        PutString(pcData, 'utf-8':u).
+    end method.
+    
+    /** Copies all of the bytes from a longchar into this bucket.
+   
+        @param longchar The longchar containing the source data 
+        @param character The target codepage used to write data into the bucket. Defaults to UTF-8 */
+    method public void PutString(input pcData as longchar,
+                                 input pcTargetCodepage as longchar):
         define variable mData as memptr no-undo.
         
-        set-size(mData) = length(pcData, 'RAW') + 1.
-        put-string(mData,1) = pcData.
+        if    pcTargetCodepage eq '':u
+           or pcTargetCodepage eq ? then
+            assign pcTargetCodepage = 'UTF-8':u.
         
-        /* don't write the trailing null byte */
-        PutBytes(get-pointer-value(mData), get-size(mData) - 1).
+        copy-lob pcData to mData
+                 // the source codepage is taken from the longchar itself
+                 convert target codepage pcTargetCodepage.
+        
+        PutBytes(get-pointer-value(mData), get-size(mData)).
         
         finally:
-            set-size(mData) = 0.
+            if get-size(mData) gt 0 then
+                set-size(mData) = 0.
         end finally.
     end method.
 
@@ -290,35 +317,43 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iStartIndex as integer no-undo.
         define variable iBytesLeft as integer no-undo.
         define variable iStartPos as integer no-undo.
+        define variable mTemp as memptr no-undo.
         
-        assign iBytesLeft   = poSource:Size               
+        define buffer sourceData for MemptrData.
+        
+        assign iBytesLeft   = poSource:Size
                iPutAt       = 1
                iStartPos    = 1
                iStartIndex  = 1.
         
-        do iLoop = iStartIndex to poSource:miCurrentArrayIndex 
-                while iBytesLeft gt 0
-                on error undo, throw:
+        for each sourceData where sourceData.ParentBucket eq int64(poSource)
+                 while iBytesLeft gt 0:
+            
             /* read the number of bytes. if we need to read the whole
                memptr, then do so. otherwise just the number of remaining
                bytes. */
-            assign iNumBytes  = min(get-size(poSource:mmMemptrArray[iLoop]), iBytesLeft)
+            assign iNumBytes  = min(length(sourceData.Data, 'raw':u), iBytesLeft)
                    iBytesLeft = iBytesLeft - iNumBytes.
-            
+
             /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
-            set-size(poTarget:mmTempBytes) = 1.  /* allocate a new 1-byte memptr */
-            set-size(poTarget:mmTempBytes) = 0.  /* free this 1-byte memptr, which also clears the size */
-            set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
-            set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
+            set-size(poTarget:mmTempBytes)     = 1.  /* allocate a new 1-byte memptr */
+            set-size(poTarget:mmTempBytes)     = 0.  /* free this 1-byte memptr, which also clears the size */
+            set-size(poTarget:mmTempBytes)     = iNumBytes.
             
-            /* Start at the first byte of the input memptr */
-            poTarget:WriteBytes(1, iNumBytes).
+            if iNumBytes gt 0 then
+            do:
+                set-size(mTemp) = iNumBytes.
+                assign mTemp = get-bytes(sourceData.Data, 1, iNumBytes).
+                put-bytes(poTarget:mmTempBytes, 1) = mTemp.
+                set-size(mTemp) = 0.
+                
+                /* Start at the first byte of the input memptr */
+                poTarget:WriteBytes(1, iNumBytes).
+            end.
             
             finally:
-                /* First de-reference the mmTempBytes variable before
-                   calling SET-SIZE() = 0 on it. */
-                set-pointer-value(poTarget:mmTempBytes) = 0.
-                set-size(poTarget:mmTempBytes) = 0.
+                if get-size(poTarget:mmTempBytes) gt 0 then
+                    set-size(poTarget:mmTempBytes) = 0.
             end finally.
         end.
     end method.
@@ -344,44 +379,49 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iNumBytes as integer no-undo.
         define variable iByteLoop as integer no-undo.
         define variable iMaxBytes as integer no-undo.
+        define variable mTemp as memptr no-undo.
         
-        Assert:IsPositive(piStartPos, 'Start position').
+        define buffer data for MemptrData.
+        
+        Assert:IsPositive(piStartPos,  'Start position').
         Assert:IsPositive(piBytesLeft, 'Num bytes left').
         
-        do iArrayLoop = miCurrentArrayIndex to miArraySize
-                while piBytesLeft gt 0
-                on error undo, throw:
-            /* If this Memptr is full, go to next. Will typically happen when
-               we've extended the Bucket's size */
-            if get-size(mmMemptrArray[iArrayLoop]) eq miMemptrPostion[iArrayLoop] then
-                next.
+        do while piBytesLeft gt 0:
+            find data where data.ParentBucket eq int64(this-object) and
+                 data.DataIndex    eq miCurrentDataIndex
+                 no-error.
+            if not available data then
+            do:
+                create data.
+                assign data.ParentBucket = int64(this-object)
+                       data.DataIndex    = miCurrentDataIndex.
+            end.
             
-            assign iNumBytes = min(get-size(mmMemptrArray[iArrayLoop]) - miMemptrPostion[iArrayLoop] + 1, /* +1 'cos we're 1-based */ 
+            // we can only write so many bytes into this record set
+            assign iNumBytes = min(MAX_BYTES_PER_ROW - data.BytesWritten,
                                    piBytesLeft)
-                   piBytesLeft = piBytesLeft - iNumBytes.
-            
-            /* Only write into this memptr if we have space to do so. */
+                   piBytesLeft = piBytesLeft - iNumBytes
+                   .
             if iNumBytes gt 0 then
             do:
-                put-bytes(mmMemptrArray[iArrayLoop], miMemptrPostion[iArrayLoop]) =
-                    get-bytes(mmTempBytes, piStartPos, iNumBytes).
-            
+                // start writing at the end of the existing data
+                // Use a local var to avoid PSC00295004 
+                set-size(mTemp) = iNumBytes.
+                assign mTemp = get-bytes(mmTempBytes, piStartPos, iNumBytes).
+                
+                put-bytes(data.Data, data.BytesWritten + 1) = mTemp.
+                
                 /* Increment */
-                assign piStartPos             = piStartPos + iNumBytes
-                       miMemptrPostion[iArrayLoop] = min(miMemptrPostion[iArrayLoop] + iNumBytes, get-size(mmMemptrArray[iArrayLoop]))
-                       this-object:Position   = this-object:Position + iNumBytes
-                       this-object:Size       = this-object:Size + iNumBytes.
+                assign data.BytesWritten    = data.BytesWritten + iNumBytes
+                       piStartPos           = piStartPos + iNumBytes
+                       this-object:Position = this-object:Position + iNumBytes
+                       this-object:Size     = this-object:Size + iNumBytes.
+                
+                set-size(mTemp) = 0.
             end.
-            finally:
-                assign miCurrentArrayIndex = iArrayLoop.
-            end finally.
-        end.
-        
-        if piBytesLeft gt 0 then
-        do:
-            /* Add at least enough space for the remaining data */
-            ResizeArray(miArraySize + int(piBytesLeft / DefaultCapacity) + 1 ).
-            WriteBytes(piStartPos, piBytesLeft).
+            // this record is full, move along
+            if data.BytesWritten eq MAX_BYTES_PER_ROW then
+                assign  miCurrentDataIndex = miCurrentDataIndex + 1.
         end.
     end method.
     
@@ -408,18 +448,27 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iStartIndex as integer no-undo.
         define variable iGetFrom as integer no-undo.
         
+        define buffer data for MemptrData.
+        
         Assert:IsPositive(piStartPos, 'Start position').
                 
         assign iStartIndex  = MathUtil:Ceiling(piStartPos / DefaultCapacity)
-               /* Figure out where to start in the array entry */               
+               /* Figure out where to start in the array entry */
                iGetFrom     = piStartPos modulo DefaultCapacity.
         
         /* if get from is 0 then piStartPos is a multiple of DefaultCapacity (ie the last
            byte of a particular array). */
         if iGetFrom eq 0 then
             assign iGetFrom = DefaultCapacity.
+
+        find data where             
+             data.ParentBucket eq int64(this-object) and
+             data.DataIndex    eq iStartIndex
+             no-error.
+        if available data then
+            return get-byte(data.Data, iGetFrom).
         
-        return get-byte(mmMemptrArray[iStartIndex], iGetFrom).
+        return 0.
     end method.
     
     /** Returns a string/character representation a particular number of bytes,
@@ -458,66 +507,39 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                                      input piSliceSize as int64,
                                      input pcSourceCodepage as character,
                                      input pcTargetCodepage as character):
-        define variable lcData as longchar no-undo.
-        define variable lcTemp as longchar no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iNumBytes as integer no-undo.
-        define variable iPutAt as integer no-undo.
-        define variable iStartIndex as integer no-undo.
-        define variable iGetFrom as integer no-undo.
-        define variable iBytesLeft as integer no-undo.
+        define variable rawData as memptr no-undo.
+        define variable stringData as longchar no-undo.
         
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
-        Assert:NotNullOrEmpty(pcSourceCodepage, 'Source codepage').
-        Assert:NotNullOrEmpty(pcTargetCodepage, 'Target codepage').
         
-        fix-codepage(lcData) = pcTargetCodepage.
+        if    pcTargetCodepage eq '':u
+           or pcTargetCodepage eq ? then
+            assign pcTargetCodepage = 'utf-8':u.
         
-        /* return an empty Memptr */        
-        if this-object:Size eq 0 then
-            return lcData.
+        fix-codepage(stringData) = pcTargetCodepage.
         
-        assign iBytesLeft   = piSliceSize
-               iPutAt       = 1
-               
-               iStartIndex  = MathUtil:Ceiling(piStartPos / DefaultCapacity).
-               
-               /* Figure out where to start in the array entry */               
-               iGetFrom     = piStartPos modulo DefaultCapacity.
+        if    this-object:Size eq 0 
+           or piSliceSize eq 0 then
+            return stringData.
         
-        /* if get from is 0 then piStartPos is a multiple of DefaultCapacity (ie the last
-           byte of a particular array). */
-        if iGetFrom eq 0 then
-            assign iGetFrom = DefaultCapacity.
+        if    pcSourceCodepage eq '':u
+           or pcSourceCodepage eq ? then
+            assign pcSourceCodepage = 'utf-8':u.
         
-        fix-codepage(lcTemp) = pcTargetCodepage.
-        do iLoop = iStartIndex to miCurrentArrayIndex 
-                while iBytesLeft gt 0:
-            
-            /* read the number of bytes. if we need to read the whole
-               memptr, then do so. otherwise just the number of remaining
-               bytes. */
-            if iGetFrom eq DefaultCapacity then
-                iNumBytes = 1.
-            else
-                /* we may have a get-from value somewhere in the middle */
-                iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
-            
-            copy-lob from mmMemptrArray[iLoop] starting at iGetFrom for iNumBytes
-                     to lcTemp
-                     convert
-                        source codepage pcSourceCodepage 
-                        target codepage pcTargetCodepage.
-            
-            assign lcData      = lcData     + lcTemp
-                   iPutAt      = iPutAt     + iNumBytes
-                   iBytesLeft  = iBytesLeft - iNumBytes
-                   /* start from the beginning of the next chunk */
-                   iGetFrom    = 1.
-        end.
-            
-        return lcData.
+        set-size(rawData) = piSliceSize.
+        
+        ReadBytes(piStartPos, rawData).
+        
+        copy-lob from rawData to stringData
+                 convert source codepage pcSourceCodepage
+                         target codepage pcTargetCodepage.
+        
+        return stringData.
+        finally:
+            if get-size(rawData) gt 0 then
+                set-size(rawData) = 0.
+        end finally.
     end method.
 
     /** Returns a string/character representation a particular number of bytes,
@@ -528,14 +550,21 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public longchar GetString(input piSliceSize as int64):
         return GetString(this-object:Position, piSliceSize).
     end method.
-
+    
+    /** Returns a string/character representation of the entire set of bytes.
+        
+        @return longchar The character/string data requested     */
+    method public longchar GetString():
+        return GetString(1, this-object:Size).
+    end method.
+    
     /** Returns the entire contents of this bucket as a Memptr instance.
     
         @return Memptr The complete bucket data */
     method public class Memptr GetBytes():
         return GetBytes(1, this-object:Size).
     end method.
-
+    
     /** Returns a Memptr instance containing the specified number of bytes,
         starting at the current Position.
     
@@ -553,25 +582,48 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @return Memptr The complete bucket data */
     method public class Memptr GetBytes(input piStartPos as int64,
                                         input piSliceSize as int64):
-        define variable mTemp as memptr no-undo.
+        define variable data as memptr no-undo.
+        
+        /* return an empty Memptr */
+        if    this-object:Size eq 0 
+           or piSliceSize eq 0 then
+            return Memptr:Empty.
+        
+        set-size(data) = piSliceSize.
+        
+        ReadBytes(piStartPos, data).
+        
+        return new Memptr(data).
+        
+        finally:
+            if get-size(data) gt 0 then
+                set-size(data) = 0.
+        end finally.
+    end method.
+    
+    /* Reads data from the internal TT records into a memptr
+       for return by GetBytes() and GetString() and friends.
+       
+       - The caller is responsible for cleaning up the memptr.
+       - The memptr size is also the number of bytes to read  
+       
+       @param int64  The start position to read
+       @param memptr The memptr into which to read the data */
+    method private void ReadBytes(input piStartPos as int64,
+                                  input pData as memptr):
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
         define variable iPutAt as integer no-undo.
         define variable iStartIndex as integer no-undo.
         define variable iGetFrom as integer no-undo.
         define variable iBytesLeft as integer no-undo.
-        define variable mHolder as memptr no-undo.
-                
-        Assert:IsPositive(piStartPos, 'Start position').
-        Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
+        define variable mTemp as memptr no-undo.
         
-        /* return an empty Memptr */        
-        if this-object:Size eq 0 then
-            return new Memptr(0).
-                
-        set-size(mTemp) = piSliceSize.
-                         
-        assign iBytesLeft   = piSliceSize               
+        define buffer data for MemptrData.
+        
+        Assert:IsPositive(piStartPos, 'Start position').                         
+        
+        assign iBytesLeft   = get-size(pData)   //piSliceSize
                iPutAt       = 1
                
                iStartIndex  = MathUtil:Ceiling(piStartPos / DefaultCapacity).
@@ -584,42 +636,52 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         if iGetFrom eq 0 then
             assign iGetFrom = DefaultCapacity.
         
-        do iLoop = iStartIndex to miCurrentArrayIndex 
-                while iBytesLeft gt 0:
+        for each data where
+                 data.ParentBucket eq int64(this-object) and
+                 data.DataIndex    ge iStartIndex and
+                 data.DataIndex    le miCurrentDataIndex
+            while iBytesLeft gt 0:
             
             /* read the number of bytes. if we need to read the whole
                memptr, then do so. otherwise just the number of remaining
                bytes. */
             if iGetFrom eq DefaultCapacity then
-                iNumBytes = 1.
+                assign iNumBytes = 1.
             else
                 /* we may have a get-from value somewhere in the middle */
-                iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
+                assign iNumBytes = min(data.BytesWritten - iGetFrom + 1, iBytesLeft).
             
-            put-bytes(mTemp, iPutAt) = 
-                    get-bytes(mmMemptrArray[iLoop],
-                                    iGetFrom,
-                                    iNumBytes).
+            if iNumBytes gt 0 then
+            do:
+                // Use a local var to avoid PSC00295004 
+                set-size(mTemp) = iNumBytes.
+                assign mTemp = get-bytes(data.Data, iGetFrom, iNumBytes).
+                
+                put-bytes(pData, iPutAt) = mTemp.
+                
+                set-size(mTemp) = 0.
+            end.
             
             assign iPutAt      = iPutAt     + iNumBytes
                    iBytesLeft  = iBytesLeft - iNumBytes
                    /* start from the beginning of the next chunk */
                    iGetFrom    = 1.
         end.
-        
-        return new Memptr(mTemp).
-        finally:
-            set-size(mTemp) = 0.
-        end finally.
     end method.
-
+    
+    /* Debug method to dump out current RAW bytes into numbered files 
+       Files are named bytebucket-memptr-<number>.bin */
     method public void Debug():
-        define variable iLoop as integer no-undo.
-        define variable mData as memptr no-undo.
+        define variable mTemp as memptr no-undo.
+        define buffer data for MemptrData.
         
-        if log-manager:logging-level ge 5 then
-        do iLoop = 1 to miArraySize:
-            copy-lob from mmMemptrArray[iLoop] to file session:temp-dir + 'bytebucket-memptr-' + string(iLoop) + '.txt'.
+        for each data where data.ParentBucket eq int64(this-object):
+            set-size(mTemp) = MAX_BYTES_PER_ROW.
+            assign mTemp = data.Data.
+            copy-lob from mTemp to file session:temp-dir + 'bytebucket-memptr-':u + string(data.DataIndex) + '.bin':u.
+            finally:
+                set-size(mTemp) = 0.
+            end finally.
         end.
     end method.
     

@@ -1,7 +1,7 @@
 /**********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                            *                         *
+* Copyright (C) 2000,2006,2016 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                            *                      
 **********************************************************************/
 
 /* userpik.i - definitions for flexible 'pick' program _usrpick.p */
@@ -32,7 +32,7 @@ DEFINE {1} SHARED VARIABLE pik_count  AS INTEGER                NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_down   AS INTEGER                NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_hide   AS LOGICAL   INITIAL TRUE NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_init   AS CHARACTER INITIAL  ""	NO-UNDO.
-DEFINE {1} SHARED VARIABLE pik_list   AS CHARACTER EXTENT 2000	NO-UNDO.
+DEFINE {1} SHARED VARIABLE pik_list   AS CHARACTER EXTENT 4000	NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_multi  AS LOGICAL   INIT FALSE   NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_number AS LOGICAL		NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_row    AS INTEGER		NO-UNDO.
@@ -52,7 +52,7 @@ DEFINE {1} SHARED TEMP-TABLE ttpik
     INDEX i_number i_number.
 
 /*output:*/
-DEFINE {1} SHARED VARIABLE pik_chosen AS INTEGER   EXTENT 2000  NO-UNDO.
+DEFINE {1} SHARED VARIABLE pik_chosen AS INTEGER   EXTENT 4000  NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_first  AS CHARACTER              NO-UNDO.
 DEFINE {1} SHARED VARIABLE pik_return AS INTEGER   INITIAL 0    NO-UNDO.
 

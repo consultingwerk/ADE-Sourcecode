@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -15,8 +15,11 @@ using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.ServerConnection.IServerConnection.
-using OpenEdge.Core.String.
 using OpenEdge.Core.WidgetHandle.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
@@ -26,7 +29,16 @@ using Progress.Lang.Error.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.ServerConnection.ClientSocket
-        implements IServerConnection:
+        implements IServerConnection, ISupportLogging:
+    
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(ClientSocket)).
+            return this-object:Logger.
+        end get.
+        set.
     
     /* ease-of-use variable for the socket (as opposed to extracting from the Server property */
     define private variable mhSocket as handle no-undo.
@@ -105,9 +117,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     /**  Returns true if the server is valid and connected. False otherwise */
     define public property Connected as logical no-undo
         get():
-            return valid-handle(mhSocket) and mhSocket:connected().
+            return IsConnected().
         end get.
-    
+
     /** Constructor. 
     
         @param ClientSocketConnectionParameters A URI and other parameters that
@@ -157,15 +169,15 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         Assert:NotNull(this-object:ConnectionParameters, 'Connection parameters').
         
-        LogMessage(substitute('CONNECT: &1', this-object:ConnectionParameters:GetConnectionString()), 5).
+        Logger:Debug(substitute('Connect: &1':u, this-object:ConnectionParameters:GetConnectionString())).
         
         mhSocket = cast(this-object:Server, WidgetHandle):Value.
         
         mhSocket:sensitive = yes.
 
-         if this-object:Connected then
+        if this-object:Connected then
             return.
-
+        
         /* Run this on every socket 'session' to avoid circular references between 
            the .P and this object. */
         run OpenEdge/Net/ServerConnection/sockethelper.p persistent set mhHelperProc
@@ -178,7 +190,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         SetSocketOptions(mhSocket).
 
-        LogMessage('CONNECT: TIME(ms)=':u + string(mtime - iStartTime), 5).
+        Logger:Debug(substitute('Connect: TIME(ms)=&1':u, mtime - iStartTime)).
     end method.
     
     /** Disconnect from the server, if connected */    
@@ -187,7 +199,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             cast(Server, WidgetHandle):Value:disconnect().
             
         delete object mhHelperProc no-error.
-        assign mhHelperProc = ?. 
+        assign mhHelperProc = ? 
+               // reset the error-status:error flag
+               no-error. 
+        Logger:Debug(substitute('Disconnect: &1', this-object:ConnectionParameters:GetConnectionString())).
     end method.
 
     /** Creates a server object (ie this-object:Server). This is separated
@@ -203,11 +218,13 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         from the Connect/Disconnect pair of methods so that one server can 
         be connected and disconnected multiple time. */
     method public void DestroyServer():
-        if this-object:Connected then
+        if this-object:Connected then   
             this-object:Disconnect().
 
         delete object mhSocket no-error.
-        this-object:Server = ?.
+        assign this-object:Server = ?
+               // reset the error-status:error flag
+               no-error.
     end method.
     
     /** Waits for a response from a write event on the socket with a 
@@ -216,22 +233,119 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         WaitForResponse(this-object:DefaultReadTimeout).
     end method.
     
-    /** Waits for a response from a write event on the socket.
+    /** Waits for a response from a write event on the socket. Polls
+        (ie loops) for a response
         
-        @param integer A timeout value for read events in seconds. A zero
+        @param decimal A timeout value for read events in seconds. A zero
                        value means no timeout. */
-    method public void WaitForResponse(input piTimeout as integer):
+    method public void WaitForResponse(input pdTimeout as decimal):
+        define variable iStartTime as integer no-undo.
+        define variable socketTimeout as decimal no-undo.
+        define variable timeoutLeft as decimal no-undo.
+        
+        Assert:IsZeroOrPositive(pdTimeout, 'Timeout').
+        assign moReadHandlerError = ?
+               moReadEventArgs    = new SocketReadEventArgs(pdTimeout)
+               iStartTime         = mtime
+               mhSocket:sensitive = true
+               socketTimeout      = -1
+               timeoutLeft        = pdTimeout
+               .
+        if pdTimeout gt 0 then
+            assign socketTimeout = decimal(mhSocket:get-socket-option('SO-RCVTIMEO':u)).
+        if socketTimeout gt 0 then
+            assign timeoutLeft = min(pdTimeout, socketTimeout).
+        
+        Logger:Debug(substitute('WaitSync: timeout(s)=&1':u, pdTimeout)).
+        
+        WAIT-LOOP:
+        do while not moReadEventArgs:ReadComplete
+            on error undo, throw:
+            
+            if pdTimeout gt 0 then
+            do:
+                if moReadEventArgs:TimeoutEnd lt now then
+                do:
+                    assign moReadEventArgs:ReadTimeout = true.
+                    leave WAIT-LOOP.
+                end.
+                
+                assign timeoutLeft = decimal(interval(moReadEventArgs:TimeoutEnd,datetime-tz(now), 'milliseconds':u) / 1000).
+                mhSocket:set-socket-option('SO-RCVTIMEO':u, string(timeoutLeft)).
+                Logger:Trace(substitute('Socket timeout set to &1':u, timeoutLeft)).
+            end.
+            
+            // manunally call the handler instead of from a callback
+            ReadResponseHandler().
+        end.    //WAIT-LOOP
+        
+        Logger:Debug(substitute('WaitSync: total time(ms)=&1':u, (mtime - iStartTime ) / 1000)).
+        Logger:Debug(substitute('WaitSync: total size(b)=&1':u,  miTotalBytesRead)).
+        
+        // if we have all the data then we've not timed out 
+        //if not moReadEventArgs:ReadComplete then
+
+        if (pdTimeout gt 0 and moReadEventArgs:TimeoutEnd lt now) 
+           or moReadEventArgs:ReadTimeout then  
+        do:
+            Logger:Debug('WaitSync: socket timed out':u).
+            // we're done here 
+            assign moReadEventArgs:ReadComplete = true.
+            OnReadTimeout(moReadEventArgs).
+        end.
+        
+        /* 'catch' the errors from the handler after the wait-for.
+           issue PSC00322919 logged to avoid this. */
+        if valid-object(moReadHandlerError) then
+            return error moReadHandlerError.
+            
+        catch e as Progress.Lang.Error :
+            return error e.
+        end catch.
+        finally:
+            if pdTimeout gt 0 then
+            do:
+                // reset even it it's -1
+                Logger:Trace(substitute('WaitSync: socket timeout reset to &1':u, socketTimeout)).
+                mhSocket:set-socket-option('SO-RCVTIMEO':u, string(socketTimeout)).
+            end.
+        end finally.
+    end method.
+    
+    /** Waits for a response from a write event on the socket. Uses a WAIT-FOR loop
+        to emulate/provide async.
+        
+        @param decimal A timeout value for read events in seconds. A zero
+                       value means no timeout. */
+    method public void WaitForResponseAsync(input pdTimeout as decimal):
         define variable iStartTime as integer no-undo.
         
-        Assert:IsZeroOrPositive(piTimeout, 'Timeout').
+        Assert:IsZeroOrPositive(pdTimeout, 'Timeout').
         assign moReadHandlerError = ?
-               moReadEventArgs = new SocketReadEventArgs(piTimeout)
-               iStartTime = mtime
+               moReadEventArgs    = new SocketReadEventArgs(pdTimeout)
+               iStartTime         = mtime
                mhSocket:sensitive = true.
         
-        wait-for 'U2':u of mhSocket.
-        LogMessage('READ: TOTAL TIME(ms)=':u + string(mtime - iStartTime), 5).
-        LogMessage('READ: TOTAL SIZE(b)=':u + string(miTotalBytesRead), 5).
+        Logger:Debug(substitute('WaitAsync: Timeout(s)=&1':u, pdTimeout)).
+        
+        // PAUSE 0 means don't wait
+        if pdTimeout eq 0 then
+            wait-for 'U2':u of mhSocket.
+        else
+            wait-for 'U2':u of mhSocket pause pdTimeout.
+        
+        Logger:Debug(substitute('WaitAsync: total time(ms)=&1':u, mtime - iStartTime)).
+        Logger:Debug(substitute('WaitAsync: total size(b)=&1':u, miTotalBytesRead)).
+        
+        // if we have all the data then we've not timed out 
+        if not moReadEventArgs:ReadComplete or
+           moReadEventArgs:ReadTimeout then
+        do:
+            Logger:Debug('WaitAsync: socket timed out':u).
+            // we're done here 
+            assign moReadEventArgs:ReadComplete = true.
+            OnReadTimeout(moReadEventArgs).
+        end.
         
         /* 'catch' the errors from the handler after the wait-for.
            issue PSC00322919 logged to avoid this. */
@@ -247,6 +361,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         define variable iStartTime as integer no-undo.
         define variable iLoop as integer no-undo.
         define variable oError as AppError no-undo.
+        define variable lReadOk as logical no-undo.
         
         ERROR-CATCHER-BLOCK:
         do on error undo, leave:
@@ -255,28 +370,44 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                and experimentation it seems to be the "chicken soup" solution for sockets that
                READKEY PAUSE 0 is for other areas */
             assign mhSocket:sensitive = no
-                   /* store the available bytes in case there are none. */
-                   iBytesAvailable = mhSocket:get-bytes-available()
-                   iStartTime = mtime
+                   iStartTime         = mtime
                    /* don't want any residual errors. this line is why we love structured-error-handling */
-                   error-status:error = false.
-            LogMessage('READ: AVAIL(b)=':u + string(iBytesAvailable), 5).
-            
+                   error-status:error = false
+                   .
+            /* Read. If nothing, check and try read. */
             /* now set the proper size */
             set-size(mData) = this-object:ReadBufferSize.
             
             /* read all the available bytes */
-            if iBytesAvailable gt 0 then
+            assign lReadOk = mhSocket:read(mData, 1, this-object:ReadBufferSize, read-available)
+                   iBytesAvailable = mhSocket:bytes-read
+                   no-error.
+            Logger:Debug(substitute('ReadHandler: OK? &1':u, lReadOk)).
+            Logger:Debug(substitute('ReadHandler: time(ms)=&1':u, mtime - iStartTime)).
+            Logger:Debug(substitute('ReadHandler: size(b)=&1':u,  iBytesAvailable)).
+            
+            // maybe the READ just primed the pump. check and read again, if there are now bytes 
+            if iBytesAvailable eq 0 and not error-status:error then
             do:
-                assign miTotalBytesRead = miTotalBytesRead + iBytesAvailable.
-                mhSocket:read(mData, 1, this-object:ReadBufferSize, read-available) no-error.
-                LogMessage('READ: TIME(ms)=':u + string(mtime - iStartTime), 5).
-                LogMessage('READ: SIZE(b)=':u + string(mhSocket:bytes-read), 5).
+                assign iStartTime      = mtime
+                       iBytesAvailable = mhSocket:get-bytes-available()
+                       .
+                if iBytesAvailable gt 0 then
+                do:
+                    Logger:Debug(substitute('ReadHandler: AVAIL(b)=&1':u, iBytesAvailable)).
+                    
+                    assign lReadOk = mhSocket:read(mData, 1, this-object:ReadBufferSize, read-available)
+                           no-error.
+                    
+                    Logger:Debug(substitute('ReadHandler: OK? &1':u, lReadOk)).
+                    Logger:Debug(substitute('ReadHandler: time(ms)=&1':u, mtime - iStartTime)).
+                    Logger:Debug(substitute('ReadHandler: size(b)=&1':u,  iBytesAvailable)).
+                end.
             end.
             
             /* We can determine whether the socket disconnected thusly:
                 - Calling the READ( ) method on the socket object returns an error
-                – The value returned by a GET-BYTES-AVAILABLE( ) method invoked on the
+                                                       – The value returned by a GET-BYTES-AVAILABLE( ) method invoked on the
                   socket object is zero (0) */
             if error-status:error or
                iBytesAvailable eq 0 then
@@ -300,26 +431,56 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                            moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
                                                              get-size(mData)).
                                 
-                OnReadTerminated(moReadEventArgs).
-                
                 /* Read is terminated. We're done here.  */
-                assign moReadEventArgs:ReadComplete = true.
+                assign moReadEventArgs:ReadComplete   = true
+                       moReadEventArgs:ReadTerminated = true.
                 
                 /* throw 'em if you got 'em */
                 if valid-object(oError) then
+                do:
+                    Logger:Error('ReadHandler: ERROR':u, oError).
+                    
                     undo, throw oError.
+                end.
+
+                OnReadTerminated(moReadEventArgs).
             end.
             else
             do:
                 assign moReadEventArgs:BytesRead = mhSocket:bytes-read
-                       /* Add this data to the eventargs */
-                       moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
-                                                         get-size(mData)).
-                
-                /* tell any listeners that we have new data */
-                OnDataReceived(moReadEventArgs).
+                       /* store the available bytes in case there are none. */
+                       miTotalBytesRead = miTotalBytesRead + mhSocket:bytes-read
+                       no-error.
+                if (lReadOk and moReadEventArgs:BytesRead eq 0) then
+                    assign moReadEventArgs:ReadTimeout = true.
+                else
+                do:
+                    /* Add this data to the eventargs */
+                    moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
+                                                      get-size(mData)).
+                    /* tell any listeners that we have new data */
+                    OnDataReceived(moReadEventArgs).
+                end.    // got data
             end.
-                        
+            
+            /* if we're all out of time  and haven't timed out yet */
+            if  moReadEventArgs:ReadTimeout     or 
+               (moReadEventArgs:TimeoutEnd ne ? and
+                moReadEventArgs:TimeoutEnd le now) then
+            do on error undo, throw:
+                Logger:Debug('ReadHandler: read timeout':u).
+                
+                // for the 2nd condition above 
+                assign moReadEventArgs:ReadComplete = true
+                       moReadEventArgs:ReadTimeout  = true.
+                OnReadTimeout(moReadEventArgs).
+                /* Swallow any errors and use old-fashioned class-variables to
+                   pass the errors onwards & upwards :( */
+                catch eError as Error:
+                    assign moReadHandlerError = eError.
+                end catch.
+            end.
+            
             /* Swallow any errors and use old-fashioned class-variables to
                pass the errors onwards & upwards :( */
             catch eError as Error:
@@ -332,22 +493,21 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         end.    /* ERROR-CATCHER-BLOCK */
             
         /** ALL DONE **/
-        
-        /* if we're all out of time */
-        if (moReadEventArgs:TimeoutEnd ne ? and
-            moReadEventArgs:TimeoutEnd le now) then
-        do:
-            OnReadTimeout(moReadEventArgs).
-            assign moReadEventArgs:ReadComplete = true.
-        end.
-        
         /* stop listening if we've got all the data, or
            the read is otherwise done (diconnect/no data) */
         if valid-object(moReadHandlerError) or
            moReadEventArgs:ReadComplete then
         do:
-            LogMessage(substitute('READ: COMPLETE= &1':u, moReadEventArgs:ReadComplete), 5).
-            LogMessage(substitute('READ: ERROR= &1':u, string(moReadHandlerError)), 5).
+            Logger:Debug(substitute('ReadHandler: ReadComplete? &1':u,   moReadEventArgs:ReadComplete)).
+            Logger:Debug(substitute('ReadHandler: ReadTimeout? &1':u,    moReadEventArgs:ReadTimeout)).
+            Logger:Debug(substitute('ReadHandler: ReadTerminated? &1':u, moReadEventArgs:ReadTerminated)).
+            
+            if valid-object(moReadHandlerError) then
+                if Logger:LogLevel ge LogLevelEnum:DEBUG then
+                    Logger:Debug('ReadHandler: ERROR':u, moReadHandlerError).
+                else
+                    Logger:Error('ReadHandler: ERROR':u, moReadHandlerError).
+            
             apply "U2":u to mhSocket.
         end.
         
@@ -355,11 +515,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             assign moReadEventArgs:Data = ?
                    moReadEventArgs:BytesRead = 0
                    .
-            
             /* clear memory */
             set-size(mData) = 0.
         end finally.
-    end method.
+    end method.    
     
     /** Publishes the DataReceived event.
     
@@ -419,8 +578,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             
             mhSocket:write(mData, iStart, iSize).
             
-            LogMessage('WRITE: TIME(ms)=':u + string(mtime - iStartTime), 5).
-            LogMessage('WRITE: SIZE(b)=':u  + string(iSize), 5).
+            Logger:Debug(substitute('Write: time(ms)=&1':u, mtime - iStartTime)).
+            Logger:Debug(substitute('Write: size(b)=&1':u, iSize)).
             
             assign iStart = mhSocket:bytes-written. /* check to see how much got sent  */
             
@@ -428,7 +587,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             if iStart eq iSize then
                 leave.  
             
-                   /* calculate new starting position */
+            /* calculate new starting position */
             assign iStart = mhSocket:bytes-written + 1
                    /* calculate new size of data to send */
                    iSize  = iSize - iStart + 1.
@@ -444,17 +603,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                Make sure to FIRST unset the pointer, THEN set the size, else
                we bugger up the Memptr class */
             set-pointer-value(mData) = 0.
-            set-size(mData) = 0.
+            if get-size(mData) gt 0 then
+                set-size(mData) = 0.
         end.
-    end method.
-    
-    method private void LogMessage(input pcMessage as character,
-                                   input piLogLevel as integer):
-        if log-manager:logfile-name eq ? then
-            return.
-        
-        if log-manager:logging-level ge piLogLevel then
-            log-manager:write-message(pcMessage, 'SOCKET':u).
     end method.
     
     /* Sets the various socket options, per this object's properties.
@@ -467,37 +618,37 @@ class OpenEdge.Net.ServerConnection.ClientSocket
 
         if this-object:KeepAlive ne ? then
         do:
-            LogMessage(substitute('SO-KEEPALIVE: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            Logger:Debug(substitute('SO-KEEPALIVE: &1':u, this-object:KeepAlive)).
             phSocket:set-socket-option('SO-KEEPALIVE':u, trim(string(this-object:KeepAlive, 'true/false':u))).
         end.
         
         if this-object:NoDelay ne ? then
         do:
-            LogMessage(substitute('TCP-NODELAY: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            Logger:Debug(substitute('TCP-NODELAY: &1':u, this-object:NoDelay)).
             phSocket:set-socket-option("TCP-NODELAY":U, trim(string(this-object:NoDelay, 'true/false':u))).
         end.
         
         if this-object:ReuseAddress ne ? then
         do:
-            LogMessage(substitute('SO-REUSEADDR: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            Logger:Debug(substitute('SO-REUSEADDR: &1':u, this-object:ReuseAddress)).
             phSocket:set-socket-option("SO-REUSEADDR":U, trim(string(this-object:ReuseAddress, 'true/false':u))).
         end.
         
         if this-object:ReceiveBufferSize ne ? then
         do:
-            LogMessage(substitute('SO-RCVBUF: &1':u, this-object:ReceiveBufferSize), 5).
+            Logger:Debug(substitute('SO-RCVBUF: &1':u, this-object:ReceiveBufferSize)).
             phSocket:set-socket-option("SO-RCVBUF":U, string(this-object:ReceiveBufferSize)).
         end.
         
         if this-object:SendBufferSize ne ? then
         do:
-            LogMessage(substitute('SO-SNDBUF: &1':u, this-object:SendBufferSize), 5).
+            Logger:Debug(substitute('SO-SNDBUF: &1':u, this-object:SendBufferSize)).
             phSocket:set-socket-option("SO-SNDBUF":U, string(this-object:SendBufferSize)).
         end.
         
         if this-object:ReceiveTimeout ne ? then
         do:
-            LogMessage(substitute('SO-RCVTIMEO: &1':u, this-object:ReceiveTimeout), 5).
+            Logger:Debug(substitute('SO-RCVTIMEO: &1':u, this-object:ReceiveTimeout)).
             phSocket:set-socket-option("SO-RCVTIMEO":U, string(this-object:ReceiveTimeout)).
         end.
         
@@ -508,9 +659,16 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             else
                 assign cLinger =  'true,' + string(this-object:LingerTime). 
             
-            LogMessage(substitute('SO-LINGER: &1':u, cLinger), 5).            
+            Logger:Debug(substitute('SO-LINGER: &1':u, cLinger)).            
             phSocket:set-socket-option("SO-LINGER":U, cLinger).
         end.
     end method.
+    
+    /* Indicated whether we have a connection
+    
+       @return logical TRUE is the socket is connected; false otherwise */
+    method protected logical IsConnected():
+        return valid-handle(mhSocket) and mhSocket:connected().
+    end method.        
     
 end class.

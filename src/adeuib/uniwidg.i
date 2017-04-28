@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005,2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2015 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -154,7 +154,7 @@ DEFINE {1} SHARED TEMP-TABLE _C
    FIELD _CONTEXT-HELP            AS LOGICAL  INITIAL FALSE 
    FIELD _CONTEXT-HELP-FILE       AS CHARACTER INITIAL ""
    FIELD _CONTROL-BOX             AS LOGICAL  INITIAL TRUE
-   FIELD _CURRENT-ITERATION       AS INTEGER  INITIAL ?
+   FIELD _CURRENT-ITERATION       AS WIDGET
    FIELD _CUSTOM-SUPER-PROC       AS CHARACTER
    FIELD _CUSTOM-SUPER-PROC-PATH  AS CHAR     LABEL "Relative Path" INITIAL ?
    FIELD _CUSTOM-SUPER-PROC-PMOD  AS CHAR     LABEL "Product Module" INITIAL ?

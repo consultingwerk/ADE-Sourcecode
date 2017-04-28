@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultResponseBuilder
@@ -13,6 +13,7 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.HttpResponseDecorator.
 using OpenEdge.Net.HTTP.IHttpResponse.
@@ -53,10 +54,24 @@ class OpenEdge.Net.HTTP.DefaultResponseBuilder inherits ResponseBuilder:
         @param  IHttpResponse The Response/instance we're decorating
         @return IHttpResponse The new, decorating Response */
     method private IHttpResponse DecorateResponse(input poDecorationType as Progress.Lang.Class,
-                                                 input poDecoratedResponse as IHttpResponse):
+                                                  input poDecoratedResponse as IHttpResponse):
         define variable oDecorator as IHttpResponse no-undo.
         define variable oDecoratorType as Progress.Lang.Class no-undo.
         define variable oResponse as IHttpResponse no-undo.
+        define variable oAdapter as Progress.Lang.Object no-undo.
+        
+        Assert:NotNull(poDecoratedResponse, 'Response').
+        Assert:NotNull(poDecorationType, 'Decoration type').
+        
+        /* if this is already decorated, carry on */
+        if poDecoratedResponse:GetClass():IsA(poDecorationType) then
+            return poDecoratedResponse.
+        
+        if type-of(poDecoratedResponse, IAdaptable) then
+            assign oAdapter = cast(poDecoratedResponse, IAdaptable):GetAdapter(poDecorationType).
+        
+        if valid-object(oAdapter) and oAdapter:GetClass():IsA(poDecorationType) then
+            return poDecoratedResponse.
         
         assign oDecoratorType = ResponseBuilder:Registry:Get(poDecorationType:TypeName).
         if not valid-object(oDecoratorType) then

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -17,10 +17,10 @@ using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.HashAlgorithmEnum.
 using OpenEdge.Core.Memptr.
+using OpenEdge.Core.StringConstant.
 using Progress.Lang.AppError.
 
 class OpenEdge.Core.Memptr implements IMemptrHolder:
-    
     /**  the actual memptr under management here */
     define private variable mmValue as memptr no-undo.
     
@@ -92,6 +92,14 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
             put-bytes(mmValue, 1) = pmValue.
     end constructor.
     
+    /** Deep copy/clone of the input memptr. */
+    constructor public Memptr(input prValue as raw):
+        this-object(length(prValue)).
+        
+        if length(prValue) gt 0 then
+            put-bytes(mmValue, 1) = prValue.
+    end constructor.
+    
     destructor public Memptr():
         if this-object:AutoDestroy then
         do:
@@ -99,8 +107,8 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
                set size to zero */
             if this-object:ExternalAllocation then
                 set-pointer-value(mmValue) = 0.
-            
-            set-size(mmValue) = 0.
+            if get-size(mmValue) gt 0 then
+                set-size(mmValue) = 0.
         end.            
     end destructor.
     
@@ -119,9 +127,12 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
     method public void Clear():
         define variable iOldSize as integer no-undo.
         if not this-object:ExternalAllocation then
-            assign iOldSize = this-object:Size
-                   set-size(mmValue) = 0
-                   set-size(mmValue) = iOldSize.
+        do:
+            assign iOldSize = this-object:Size.
+            if get-size(mmValue) gt 0 then
+                set-size(mmValue) = 0.
+            set-size(mmValue) = iOldSize.
+        end.
     end method.
     
     /** Returns a hash of the current contents of the memptr. This can be used
@@ -242,19 +253,21 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         Assert:IsPositive(piSliceSize, 'Slice size').
         
         /* return an empty Memptr */
-        if this-object:Size eq 0 then
+        if    this-object:Size eq 0 
+           or piSliceSize eq 0 then
             oSlice = new Memptr(0).
         else
-        do:            
+        do:
             set-size(mSlice) = piSliceSize.
             
-            mSlice = get-bytes(mmValue, piStartPos, piSliceSize).
-            oSlice = new Memptr(mSlice).
+            assign mSlice = get-bytes(mmValue, piStartPos, piSliceSize)
+                   oSlice = new Memptr(mSlice).
         end.
-                
+        
         return oSlice.
         finally:
-            set-size(mSlice) = 0.
+            if get-size(mSlice) gt 0 then
+                set-size(mSlice) = 0.
         end finally.
     end method.
     
@@ -277,16 +290,17 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         if piSize gt this-object:Size then
             return error new AppError('Input memptr larger than available size', 0).
         
-    	set-size(mTemp) = 1. 
-    	set-size(mTemp) = 0. 
+        set-size(mTemp) = 1. 
+        set-size(mTemp) = 0. 
         set-pointer-value(mTemp) = piPointerValue.
         set-size(mTemp) = piSize.
         
-        put-bytes(mmValue, 1) = get-bytes(mTemp, 1, piSize).
+        put-bytes(mmValue, 1) = mTemp.
         
         finally:
             set-pointer-value(mTemp) = 0.
-            set-size(mTemp) = 0.
+            if get-size(mTemp) gt 0 then
+                set-size(mTemp) = 0.
         end finally.
     end method.
     
@@ -300,6 +314,23 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         PutBytes(get-pointer-value(pmData), get-size(pmData)).
     end method.
     
+    /** Copies all of the bytes from a raw into this memptr. 
+        
+        @param raw The raw variable containing the source data */
+    method public void PutBytes(input prData as raw):
+        define variable mData as memptr no-undo.
+        
+        set-size(mData) = length(prData).
+        put-bytes(mData,1) = prData.
+        
+        PutBytes(get-pointer-value(mData), get-size(mData)).
+        
+        finally:
+            if get-size(mData) gt 0 then
+                set-size(mData) = 0.
+        end finally.
+    end method.
+    
     /** Debug/dump of the contents of this object on a per-byte basic. COPY-LOB 
         can also be used for debug purposes (COPY-LOB objMemptr:Value TO FILE). */
     method public void _Debug ():
@@ -308,25 +339,19 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         define variable iByte as integer no-undo.
         define variable cDumpFile as character no-undo.
         
-        if log-manager:logfile-name eq ? or
-           log-manager:logging-level lt 6 then
-            return.
-        
-        assign iMax = get-size(mmValue)
+        assign iMax      = get-size(mmValue)
                cDumpFile = session:temp-directory + this-object:ToString() + '.bin':u.
-
-        log-manager:write-message('DEBUG FILE=':u + cDumpFile, 'MEMPTR':u).
         
         output to value(cDumpFile).
         do iLoop = 1 to iMax:
             assign iByte = get-byte(mmValue, iLoop).
             
             put unformatted 
-                iByte '~t':u .
+                iByte StringConstant:TAB.
                 
             if iByte <> 10 and iByte <> 13 then
                 put unformatted
-                 '~t~t':u chr(iByte).
+                    StringConstant:TAB StringConstant:TAB chr(iByte).
                   
              put unformatted skip. 
         end.
