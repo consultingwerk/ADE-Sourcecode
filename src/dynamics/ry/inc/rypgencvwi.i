@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006-2007 Progress Software Corporation.  
+/* Copyright © 2006-2007 Progress Software Corporation.  
    All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : rypgencvwi.i

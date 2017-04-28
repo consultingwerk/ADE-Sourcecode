@@ -44,7 +44,7 @@ Created: 05/14/96
 DEFINE NEW GLOBAL SHARED VARIABLE CgiList           AS LONGCHAR
     NO-UNDO.
 /* Array of CGI values corresponding to CgiList (arbitrary limit) */
-DEFINE NEW GLOBAL SHARED VARIABLE CgiVar            AS LONGCHAR
+DEFINE NEW GLOBAL SHARED VARIABLE CgiVar            AS LONGCHAR  
     EXTENT {&MAX-CGI}    NO-UNDO.
 
 /* List of fields in form */

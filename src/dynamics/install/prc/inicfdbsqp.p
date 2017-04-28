@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006 Progress Software Corporation.  All Rights Reserved. */
+/* Copyright © 2006 Progress Software Corporation.  All Rights Reserved. */
 /*------------------------------------------------------------------------
     File        : inicfdbsqp.p
     Purpose     : Updates the seq_<DBNAME>_DBVersion sequence for DICTDB

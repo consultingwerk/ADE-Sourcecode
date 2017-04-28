@@ -20,6 +20,7 @@ using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.SemicolonParamHeaderBuilder.
+using OpenEdge.Net.HTTP.ContentTypeHeaderBuilder.
 
 class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder 
             abstract: 
@@ -47,7 +48,7 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
         
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
-        poRegistry:Put('Content-Type':u, get-class(SemicolonParamHeaderBuilder)).
+        poRegistry:Put('Content-Type':u, get-class(ContentTypeHeaderBuilder)).
         poRegistry:Put('Content-Disposition':u, get-class(SemicolonParamHeaderBuilder)).
         poRegistry:Put('Cookie':u, get-class(SemicolonParamHeaderBuilder)).
         
@@ -106,5 +107,5 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
         
         return this-object.
     end method.
-     
+    
 end class.

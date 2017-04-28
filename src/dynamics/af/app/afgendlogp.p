@@ -255,7 +255,7 @@ FUNCTION buildWritePreTransValidate RETURNS CHARACTER
     END.    /* create the folder */
     ELSE
       RETURN ERROR {aferrortxt.i 'AF' '19' '?' '?' "''" "'folder does not exist: ' + pcRootFolder"}.
-  END.    /* folder doesn›t exist */
+  END.    /* folder doesnøt exist */
 
   /* Output the Data Logic Procedure */
   OUTPUT STREAM sFile TO VALUE(cFullyPathedProcedure).

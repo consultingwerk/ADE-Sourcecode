@@ -1,5 +1,5 @@
 /*************************************************************/
-/* ¸ 2011-2014 by progress Software Corporation.             */
+/* © 2011-2014 by progress Software Corporation.             */
 /*                                                           */
 /* All rights reserved. No part of this program or document  */
 /* may be reproduced in any form or by any means without     */

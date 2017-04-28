@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
@@ -122,7 +122,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                     'BYTES READ (':u poEventArgs:BytesRead ')':u skip
                     '================================':u skip.
                 output close.
-
+                
                 copy-lob poEventArgs:Data:Value to file cChunkFile append.
             end.
             
@@ -212,6 +212,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         assign moResponseWriter = new ClientSocketResponseWriter(poResponse, oMessageBody).
         moResponseWriter:Open().
         
+        /* set the request  for context */
+        moResponseWriter:Write(poRequest).
+        
         /* the socket object works on callbacks. these will
            populate the HttpResponse object */
         do on stop undo, return error new AppError(substitute('Request read timeout for server &1 on port &2 ',
@@ -271,6 +274,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         oEntityWriter:Open().
         assign iBytesWritten = oEntityWriter:Write(poMessageBody).
         oEntityWriter:Close().
+        
+        if iBytesWritten ne poResponse:ContentLength then
+            LogMessage(substitute('EXTRACT ENTITY: WARNING: ContentLength = &1 ; bytes written = &2':u, poResponse:ContentLength, iBytesWritten), 3).
         
         /* get the nicely-formatted/parsed body and add it to the response */
         assign poResponse:Entity        = oEntityWriter:Entity

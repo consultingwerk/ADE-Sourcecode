@@ -472,7 +472,7 @@ class OpenEdge.Net.URI:
                 put-byte(rChar, 1) = iAsc.
                 
                 /* Replace character with %hh hexidecimal triplet */
-                assign cChar = substitute('%&1', hex-encode(rChar)).
+                assign cChar = caps(substitute('%&1', hex-encode(rChar))).
             end.
             
             /* add/create a new string because replacing 1 character with 2 messes up our math */            

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Map
@@ -33,35 +33,48 @@ class OpenEdge.Core.Collections.Map serializable
       index validx ValueRef
       index keyidx as unique primary KeyRef.
     
+    /* The size of the Map, being the number of keys */
     define public property Size as integer no-undo 
     get.
     private set. 
     
+    /* A collection of only the values in the Map */
     define public property Values as ICollection no-undo 
     get():
-        if not valid-object(this-object:Values) then 
-            this-object:Values = new ValueCollection(this-object,temp-table ttMap:handle,"ValueRef").
-        return this-object:Values.   
+        /* Return a new ValueCollection on each request. This is somewhat
+           inefficient, but doing so prevents a circular reference from being created.
+           
+           This property is typically used in a transient fashion (ie for iteration
+           over the contents of the Map) and is expected to be scoped to a small block
+           like a single method. */
+        return new ValueCollection(this-object,temp-table ttMap:handle,"ValueRef").
     end.   
-    private set. 
    
+    /* An  ordered set of only the keys in the Map */
     define public property KeySet as ISet no-undo 
     get():
-        if not valid-object(this-object:KeySet) then 
-            this-object:KeySet = new KeySet(this-object,temp-table ttMap:handle,"KeyRef").
-        return this-object:KeySet.   
+        /* Return a new KeySet on each request. This is somewhat
+           inefficient, but doing so prevents a circular reference from being created.
+           
+           This property is typically used in a transient fashion (ie for iteration
+           over the contents of the Map) and is expected to be scoped to a small block
+           like a single method. */
+        return new KeySet(this-object,temp-table ttMap:handle,"KeyRef").
     end.   
-    private set.
-     
+         
+    /* An ordered set of key-value objects in the Map */
     define public property EntrySet as ISet no-undo 
     get():
-        if not valid-object(this-object:EntrySet) then
-            this-object:EntrySet = new EntrySet(this-object,temp-table ttMap:handle,"KeyRef").
-        
-        return this-object:EntrySet.
+        /* Return a new EntrySet on each request. This is somewhat
+           inefficient, but doing so prevents a circular reference from being created.
+           
+           This property is typically used in a transient fashion (ie for iteration
+           over the contents of the Map) and is expected to be scoped to a small block
+           like a single method. */
+        return new EntrySet(this-object,temp-table ttMap:handle,"KeyRef").
     end.   
-    private set.    
             
+    /* Empties the map's contents */
     method public void Clear():
         empty temp-table ttMap.
     end method.
@@ -91,18 +104,24 @@ class OpenEdge.Core.Collections.Map serializable
                        if btMap.ValueRef <> ? then
                            return false.
                     end.       
-                    
-                end.    
+                end.
                 return true.
             end.    
         end.
         return false.    
     end method.    
     
+    /* Indicates whether the map has any entries.
+       
+       @return logical TRUE if the map is empty (no entries) and false otherwise */
     method public logical IsEmpty(  ):
         return not can-find(first ttMap).
     end method.
 
+    /* Indicates whether the map contains a particular key
+       
+       @param Object A key value to search
+       @return Logical TRUE if the map contains the key value */
     method public logical ContainsKey(input poKey as Object):
         define variable lContainsKey as logical no-undo.
         define buffer lbMap for ttMap.
@@ -119,7 +138,10 @@ class OpenEdge.Core.Collections.Map serializable
         return lContainsKey.
     end method.
     
-    /* Returns true if this map maps one or more keys to the specified value.*/
+    /* Returns true if this map contains all of the keys passed in. 
+       
+       @param ICollection The collection of keys
+       @return logical TRUE if all of the keys in the input collection are in the map */
     method public logical ContainsAllKeys(input poKeys as ICollection):
         define variable lContains as logical no-undo.
         define variable oIterator as IIterator.
@@ -130,7 +152,8 @@ class OpenEdge.Core.Collections.Map serializable
         
         /* if the passed in collection is larger than this collection,
            this cannot be true. */        
-        lContains = poKeys:size le this-object:size.
+        if not lContains then
+            lContains = poKeys:size le this-object:size.
         
         /* one or both collections has data */
         if not lContains then
@@ -148,7 +171,10 @@ class OpenEdge.Core.Collections.Map serializable
         return lContains.
     end method.
     
-    /* Returns true if this map maps one or more keys to the specified value.*/
+    /* Returns true if this map contains all of the values passed in. 
+       
+       @param ICollection The collection of values 
+       @return logical TRUE if all of the values in the input collection are in the map */
     method public logical ContainsAllValues(input poValues as ICollection):
         define variable lContains as logical no-undo.
         define variable oIterator as IIterator.
@@ -177,6 +203,10 @@ class OpenEdge.Core.Collections.Map serializable
         return lContains.
     end method.
     
+    /* Returns true if this map contains the value passed in. 
+       
+       @param ICollection The value to check
+       @return logical TRUE if the value is in the map */
     method public logical ContainsValue(poValue as class Object):
         define variable lContainsValue as logical no-undo.
         define buffer lbMap for ttMap.
@@ -193,8 +223,10 @@ class OpenEdge.Core.Collections.Map serializable
         return lContainsValue.
     end method.
     
-        /* This must be the buffer handle passed to the constructor of the 2 sets of this Map 
-       (they all call back here for find of BufferHandle) */ 
+    /* Returns a value for a given key in the Map 
+       
+       @param  Object The key fopr which to return a value. NULL/unknown if the key is not in the map
+       @return Object The value represented by the key */ 
     method public Object Get(poKey as Object):
         define variable oValue as Object no-undo.
         define buffer lbMap for ttMap.
@@ -214,8 +246,12 @@ class OpenEdge.Core.Collections.Map serializable
         return oValue.
     end method.
     
-    /* add entry to the map, return old value of any. Note that return of unknown could 
-       also mean that the old mapped value was unknown... (check Size before and after) */   
+    /* Add entry to the map, return old value of any. Note that return of unknown could 
+       also mean that the old mapped value was unknown... (check Size before and after)
+       
+       @param Object The key for this mapping
+       @param Object The value for the mapping 
+       @return Object If a value is replaced, the previous value is returned, otherwise null */   
     method public Object Put(poKey as Object, poValue as class Object):
         define variable oOld as Object no-undo.
         define buffer lbMap for ttMap.
@@ -226,39 +262,45 @@ class OpenEdge.Core.Collections.Map serializable
           (not tested without, so not sure if it is really needed... )  */
         do transaction:
             /* try by-reference first */
-                find ttMap where ttMap.KeyRef = poKey no-error.
-                if not available ttMap then        
-                for each lbMap while not available ttMap:
-                    if lbMap.KeyRef:Equals(poKey) then
-                        find ttMap where rowid(ttMap) = rowid(lbMap) no-error.
-                end.
-                            
-                if not avail ttMap then
-                do:
-                    create ttMap.
-                    assign ttMap.KeyRef = poKey
-                           Size = Size + 1.
-                end.
-                else 
-                    oOld = ttMap.ValueRef.
-                
-                ttMap.ValueRef = poValue.
+            find ttMap where ttMap.KeyRef = poKey no-error.
+            if not available ttMap then        
+            for each lbMap while not available ttMap:
+                if lbMap.KeyRef:Equals(poKey) then
+                    find ttMap where rowid(ttMap) = rowid(lbMap) no-error.
             end.
-            return oOld.
-        end method.
+                        
+            if not avail ttMap then
+            do:
+                create ttMap.
+                assign ttMap.KeyRef = poKey
+                       Size = Size + 1.
+            end.
+            else 
+                oOld = ttMap.ValueRef.
+            
+            ttMap.ValueRef = poValue.
+        end.
+        return oOld.
+    end method.
     
-        method public void PutAll(poMap as IMap):
-            define variable oKey as Object no-undo.
-            define variable oIter as IIterator no-undo.    
-     
-            oIter = poMap:KeySet:Iterator(). 
-            do while oIter:hasNext():
-                oKey = oIter:Next().
-                this-object:Put(oKey,poMap:Get(oKey)).
-            end.
-        end method.
+    /* Adds all entries from another map to this one.
+       
+       @param IMap The input map */
+    method public void PutAll(poMap as IMap):
+        define variable oKey as Object no-undo.
+        define variable oIter as IIterator no-undo.    
+ 
+        oIter = poMap:KeySet:Iterator(). 
+        do while oIter:hasNext():
+            oKey = oIter:Next().
+            this-object:Put(oKey,poMap:Get(oKey)).
+        end.
+    end method.
         
-    /* return old value of any. Note that return of unknown could 
+    /* Removes an entry
+     
+       @param Object The key for the entry to remove
+       @param Object the value associated with that key. May be null.  Note that return of unknown could 
        also mean that the old mapped value was unknown. */ 
     method public Object Remove(input poKey as Object):
         define variable oOld as Object no-undo.
@@ -310,6 +352,9 @@ class OpenEdge.Core.Collections.Map serializable
         end.
     end method.
                     
+    /* Constructor. Creates a new map an populates with with a set of values.
+    
+       @param IMap Contains values to add to this map */
     constructor public Map (input poMap as IMap):
         super ().    
         if type-of(poMap, Map) then
@@ -321,13 +366,12 @@ class OpenEdge.Core.Collections.Map serializable
             PutAll(poMap).  
     end constructor.
     
+    /* Default constructor */
     constructor public Map (  ):
         super ().   
     end constructor.
 
     destructor public Map ( ):
-        this-object:Values = ?.
-        this-object:KeySet = ?.
         this-object:Clear().
     end destructor.
       

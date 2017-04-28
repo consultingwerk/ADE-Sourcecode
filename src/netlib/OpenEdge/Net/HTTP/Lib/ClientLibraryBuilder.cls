@@ -41,7 +41,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     
     define protected property PROP_SSL_PROTOCOLS  as character init 'sslprotocols':u no-undo get.
     define protected property PROP_SSL_CIPHERS    as character init 'sslciphers':u   no-undo get.
-    define protected property PROP_SSL_HOSTVERIFY as character init 'nohostverify':u no-undo get.
+    define protected property PROP_SSL_HOSTVERIFY as character init 'sslhostverify':u no-undo get.
     
     /** Each concrete builder will implement this differently */
     define abstract public property Library as IHttpClientLibrary no-undo get.
@@ -144,7 +144,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         @return ClientLibraryBuilder This builder object */
     method public ClientLibraryBuilder SslVerifyHost (input plVerify as logical):
         Assert:NotUnknown(plVerify, 'SSL host verification').
-
+        
         SetOption(PROP_SSL_HOSTVERIFY, plVerify).
         
         return this-object.

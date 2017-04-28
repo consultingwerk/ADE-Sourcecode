@@ -61,9 +61,13 @@ class OpenEdge.Core.Memptr:
         @param int64 The pointer to memory represented by a memptr (via get-pointer-value). 
         @param int64 The size of the memptr represented by the pointer value. */          
     constructor public Memptr(input piPtr as int64, input piSize as int64):
-        this-object(piSize).
+        /* this-object(piSize). - don't use this constructor, it calls set-size() */
+        this-object().
         
+        /* copy of code from this-object(size) constructor */
+        Assert:IsZeroOrPositive(piSize, 'Size').
         set-pointer-value(mmValue) = piPtr.
+        set-size(mmValue) = piSize.
         
         /* this is an externally-managed memptr. Caller is responsible for cleanup. */
         assign ExternalAllocation = true.
@@ -73,10 +77,9 @@ class OpenEdge.Core.Memptr:
     
         @param int64 The size of the memptr to be created. */          
     constructor public Memptr(input piSize as int64):
-        super().
+        this-object().
         
         Assert:IsZeroOrPositive(piSize, 'Size').
-        this-object:Size = piSize.
         set-size(mmValue) = piSize.
     end constructor.
     
@@ -255,14 +258,16 @@ class OpenEdge.Core.Memptr:
         if piSize gt this-object:Size then
             return error new AppError('Input memptr larger than available size', 0).
         
-        set-size(mTemp) = piSize.
+	set-size(mTemp) = 1. 
+	set-size(mTemp) = 0. 
         set-pointer-value(mTemp) = piPointerValue.
+        set-size(mTemp) = piSize.
         
         put-bytes(mmValue, 1) = get-bytes(mTemp, 1, piSize).
         
         finally:
-            set-pointer-value(mTemp) = piPointerValue.
-            set-size(mTemp) = piSize.
+            set-pointer-value(mTemp) = 0.
+            set-size(mTemp) = 0.
         end finally.
     end method.
     

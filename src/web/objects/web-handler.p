@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2015 by Progress Software Corporation. All rights*
+* Copyright (C) 2005-2016 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -44,7 +44,10 @@ procedure process-web-request :
     define variable iTest              as integer    no-undo.
         
     output {&WEBSTREAM} TO "WEB":U.
-  
+    
+    /* This MUST be the first thing written */
+    output-http-header("", "HTTP/1.1 200 OK":U).
+      
     /* Parse the request/CGI from the web server. */
     run init-cgi in web-utilities-hdl.
 
@@ -80,7 +83,7 @@ procedure process-web-request :
                  (if AppProgram = "reset":U then "webutil/reset.p":U else
                   AppProgram))).
   
-    output-http-header("", "HTTP/1.1 200 OK":U).
+    
     run run-web-object in web-utilities-hdl (AppProgram) no-error. 
 
     /* Run clean up and maintenance code */

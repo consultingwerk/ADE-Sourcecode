@@ -1,4 +1,4 @@
-/* Copyright ¸ 2006-2011 OE Hive and contributors. 
+/* Copyright © 2006-2011 OE Hive and contributors. 
    All project and contributed content is copyright by its respective owners. 
    All rights reserved.
 */

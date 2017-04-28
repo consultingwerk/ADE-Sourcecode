@@ -31,6 +31,8 @@ class OpenEdge.Net.HTTP.HttpHeader:
         set(input pcValue as character):
             define variable iLength as integer no-undo.
             
+            this-object:Validate(pcValue). 
+            
             if this-object:ParamDelimiter ne '':u then
             do:
                 assign this-object:Value = pcValue.
@@ -47,7 +49,6 @@ class OpenEdge.Net.HTTP.HttpHeader:
                 
                 assign this-object:Value = pcValue.
             end.
-            
         end set.
     
     /** (optional) delimiter for header parameters */
@@ -65,7 +66,6 @@ class OpenEdge.Net.HTTP.HttpHeader:
     constructor public HttpHeader(input pcName as character,
                                   input pcValue as character):
         this-object(pcName).
-        Assert:NotNull(pcValue, 'Header value').
         
         assign this-object:Value = pcValue.
     end constructor.
@@ -75,6 +75,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         @param character The header name */
     constructor public HttpHeader(input pcName as character):
         Assert:NotNullOrEmpty(pcName, 'Header name').
+        
         assign this-object:Name = pcName.
     end constructor.
     
@@ -91,6 +92,9 @@ class OpenEdge.Net.HTTP.HttpHeader:
         end.
     end method.
     
+    /* Returns a stringified version of this header object 
+       
+       @return character A stringified representation of this object */
     method override public character ToString():
         return substitute('&1: &2&3',
                            trim(this-object:Name),
@@ -254,6 +258,14 @@ class OpenEdge.Net.HTTP.HttpHeader:
         end.
         
         return cParameters.
+    end method.
+    
+    /* Validates a header value. Should throw an error if the value
+       is not valid.
+       
+       @param character The (prospective) header value */
+    method protected void Validate(input pcValue as character):
+        Assert:NotNull(pcValue, 'Header value').
     end method.
     
 end class.

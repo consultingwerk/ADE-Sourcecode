@@ -36,29 +36,33 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
         define variable mTemp as memptr no-undo.
         define variable oData as class Memptr no-undo.          
         
-        case poData:GetClass():
-            when get-class(String) then
-                return this-object:Write(cast(poData, String):Value).
-
-            when get-class(Memptr) or
-            when get-class(ByteBucket) then
-            do on error undo, throw:
-                assign oData = dynamic-invoke(poData, 'GetBytes').
-                set-size(mTemp) = oData:Size.
-                set-pointer-value(mTemp) = oData:GetPointerValue(). 
-                
-                return this-object:Write(input mTemp).
-                
-                finally:
-                    set-pointer-value(mTemp) = 0. 
-                    set-size(mTemp) = 0.
-                end finally.
-            end.
-            otherwise 
-                return error new AppError(
-                                substitute('Unsupported object type: &1', poData:GetClass():TypeName)
-                                , 0).
-        end case.
+        if type-of(poData, String) then
+            return this-object:Write(cast(poData, String):Value).
+        else
+        if type-of(poData, Memptr) then
+            assign oData = cast(poData, Memptr).
+        else
+        if type-of(poData, ByteBucket) then
+            assign oData = cast(poData, ByteBucket):GetBytes().
+        else        
+            return error new AppError(
+                            substitute('Unsupported object type: &1', poData:GetClass():TypeName)
+                            , 0).
+                            
+        if valid-object(oData) then
+        do on error undo, throw:
+            set-size(mTemp) = 1. /* allocate a new 1-byte memptr */
+            set-size(mTemp) = 0. /* free this 1-byte memptr, which also clears the size */
+            set-pointer-value(mTemp) = oData:GetPointerValue(). 
+            set-size(mTemp) = oData:Size.
+            
+            return this-object:Write(input mTemp).
+            
+            finally:
+                set-pointer-value(mTemp) = 0. 
+                set-size(mTemp) = 0.
+            end finally.
+        end.
     end method.
     
     method override public int64 Write(input pcData as longchar):

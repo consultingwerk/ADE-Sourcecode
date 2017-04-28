@@ -12,16 +12,19 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
                    HandleNotAllowedMethod methods so which are the baseline on 
                    we control the messages back (either created entirely in ABL or
                    served by PASOE).
+                 * Concrete child classes MAY implement HandleException if they want
+                   to control the way error states are handled. The default is to return 
+                   an integer status code. 
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using OpenEdge.Web.WebRequest.
 using Progress.Web.IWebHandler.
-using OpenEdge.Core.Assert.
 
 class OpenEdge.Web.WebHandler abstract
             implements IWebHandler :
@@ -30,7 +33,7 @@ class OpenEdge.Web.WebHandler abstract
        
        @return integer An HTTP status code. Zero means that the webhandler will take care of
                        any errors. A non-zero value means that the PASOE webapp's error handling 
-                       will return a standardm page for the error */
+                       will return a standard page for the error */
     method public integer HandleRequest( ):
         define variable webRequest as IWebRequest no-undo.
         define variable httpStatus as integer no-undo.
@@ -55,14 +58,55 @@ class OpenEdge.Web.WebHandler abstract
 
         /* good */
         return httpStatus.
-        /* bad: We know something went wrong, and we were told what */
-        catch oStatusError as SendExceptionError:
-            return integer(oStatusError:StatusCode).
-        end catch.
-        /* ugly: we know something went wrong, but not what, exactly */
+        /* catch everything and deal with it */
         catch oError as Progress.Lang.Error:
-            return integer(StatusCodeEnum:InternalServerError).             
+            /* run with no-error to suppress any further errors being thrown up.
+               if we have a unknown status, then we will return 0 since we can't
+               really throw errors here. */
+            assign httpStatus = HandleException(oError, webRequest) no-error.
+            if httpStatus eq ? then
+            do:
+                LogMessage(substitute('EXCEPTION STATUS CODE UNKNOWN: &1 &2', webRequest:Method, webRequest:URI:Path), 4).
+                LogMessage('EXCEPTION STATUS CODE UNKNOWN: 0/ZERO RETURNED', 4).
+                assign httpStatus = 0.
+            end.
+            return httpStatus.
         end catch.
+    end method.
+    
+    /* Handles an exception that has been raised while dealing with the request 
+    
+       @param Progress.Lang.Error The as-yet-unhandled exception
+       @param IWebRequest The request that resulting in the exception
+       @return integer A non-null status code use to deal with errors */
+    method protected integer HandleException(input poError as Progress.Lang.Error,
+                                             input poRequest as IWebRequest):
+        define variable iReturnCode as integer no-undo.
+        
+        assign iReturnCode = integer(StatusCodeEnum:None).
+        
+        if not valid-object(poError) then
+            assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
+        else
+        /* bad: We know something went wrong, and we were told what */
+        if type-of(poError, SendExceptionError) then
+        do:
+            LogMessage(substitute('SEND EXCEPTION ERROR: &1', cast(poError, SendExceptionError):StatusMessage), 4).
+            LogMessage(substitute('SEND EXCEPTION ERROR: &1', cast(poError, SendExceptionError):GetClass():TypeName), 4).
+            LogMessage(substitute('SEND EXCEPTION INNER ERROR: &1', cast(poError, SendExceptionError):InnerError), 4).
+            
+            assign iReturnCode = integer(cast(poError, SendExceptionError):StatusCode).
+        end.
+        else
+        /* ugly: we know something went wrong, but not what, exactly */
+        do:
+            LogMessage(substitute('INTERNAL ERROR: &1', poError:GetMessage(1)), 4).
+            LogMessage(substitute('INTERNAL ERROR: &1', poError:GetClass():TypeName), 4).
+            
+            assign iReturnCode = integer(StatusCodeEnum:InternalServerError).             
+        end.
+        
+        return iReturnCode.
     end method.
     
     /* Handler for unsupported methods
@@ -149,6 +193,19 @@ class OpenEdge.Web.WebHandler abstract
                               method will deal with all errors */
     method protected integer HandleTrace(input poRequest as IWebRequest):
         return HandleNotAllowedMethod(poRequest).    
+    end method.
+    
+    /** Logs a message 
+        
+        @param character The message to log
+        @param integer  The level this message should be logged at */
+    method private void LogMessage(input pcMessage as character,
+                                   input piLogLevel as integer):
+        if log-manager:logfile-name eq ? then
+            return.
+        
+        if log-manager:logging-level ge piLogLevel then
+            log-manager:write-message(pcMessage, 'WEBHNDLR':u).
     end method.
     
 end class.

@@ -47,13 +47,16 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
         
         Assert:NotNull(poData).
         
-        if not type-of(poData, Memptr) and 
-           not type-of(poData, ByteBucket) then
+        if type-of(poData, Memptr) then
+            assign oBody = cast(poData, Memptr).
+        else 
+        if type-of(poData, ByteBucket) then
+            assign oBody = cast(poData, ByteBucket):GetBytes().
+        else
             return error new AppError(
                             substitute('Unsupported object type: &1', poData:GetClass():TypeName)
                             , 0).
-        
-        assign oBody = dynamic-invoke(poData, 'GetBytes':u).
+                
         
         if oBody:Size eq 0 then
             assign this-object:Entity = new JsonObject().

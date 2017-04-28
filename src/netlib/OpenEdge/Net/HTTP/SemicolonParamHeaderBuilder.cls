@@ -16,9 +16,12 @@ using OpenEdge.Net.HTTP.DefaultHeaderBuilder.
 
 class OpenEdge.Net.HTTP.SemicolonParamHeaderBuilder inherits DefaultHeaderBuilder: 
 
-	constructor public SemicolonParamHeaderBuilder ( input pcHeaderName as character ):
-		super (input pcHeaderName).
-		
+    /* Constructor
+       
+       @param character The name of the header to which this builder applies */
+    constructor public SemicolonParamHeaderBuilder ( input pcHeaderName as character ):
+        super (input pcHeaderName).
+        
         SetOption('paramDelimiter':u, ';':u).
-	end constructor.
+    end constructor.
 end class.

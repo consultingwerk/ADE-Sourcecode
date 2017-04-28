@@ -48,6 +48,11 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         field Entity as Object  /* OpenEdge.Net.MessagePart */
         index idx1 as primary unique ParentEntity PartNum.
     
+    
+    constructor MultipartEntity():
+        this-object:Boundary = guid.
+    end constructor.
+        
     destructor MultipartEntity():
         ClearParts().
     end destructor.

@@ -32,7 +32,7 @@
   
   Description   : Reads info to use as input to the dialog from  .cst definitions.  
                    
-  Author: H†vard Danielsen 
+  Author: Håvard Danielsen 
 
   Created: 06/22/99
   

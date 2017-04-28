@@ -1,5 +1,5 @@
 /********************************************************************* *
-* Copyright (C) 2000,2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2015 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -34,14 +34,9 @@ IF {&all} THEN
     {&to}._File-Attributes[3] = {&from}._File-Attributes[3].
 
 
+    
 ASSIGN
   {&to}._File-Name     = {&from}._File-Name
-  {&to}._Can-Create    = {&from}._Can-Create
-  {&to}._Can-Delete    = {&from}._Can-Delete
-  {&to}._Can-Read      = {&from}._Can-Read
-  {&to}._Can-Write     = {&from}._Can-Write
-  {&to}._Can-Dump      = {&from}._Can-Dump
-  {&to}._Can-Load      = {&from}._Can-Load
   {&to}._Desc	       = {&from}._Desc
   {&to}._File-Label    = {&from}._File-Label
   {&to}._File-Label-SA = {&from}._File-Label-SA
@@ -79,5 +74,18 @@ ASSIGN
   {&to}._Fil-misc2[6]  = {&from}._Fil-misc2[6]
   {&to}._Fil-misc2[7]  = {&from}._Fil-misc2[7] 
   {&to}._Fil-misc2[8]  = {&from}._Fil-misc2[8].
+  
+IF COMPARE({&to}._Can-create,"NE", {&from}._Can-create,"RAW") THEN
+    {&to}._Can-Create    = {&from}._Can-Create.
+IF COMPARE({&to}._Can-delete,"NE",{&from}._Can-delete,"RAW") THEN
+    {&to}._Can-Delete    = {&from}._Can-Delete.
+IF COMPARE({&to}._Can-write,"NE",{&from}._Can-write,"RAW") THEN
+    {&to}._Can-Write     = {&from}._Can-Write.
+IF COMPARE({&to}._Can-read,"NE",{&from}._Can-read,"RAW") THEN
+    {&to}._Can-Read      = {&from}._Can-Read.
+IF COMPARE({&to}._Can-dump,"NE",{&from}._Can-dump,"RAW") THEN
+    {&to}._Can-Dump      = {&from}._Can-Dump.
+IF COMPARE({&to}._Can-load,"NE",{&from}._Can-load,"RAW") THEN
+    {&to}._Can-Load      = {&from}._Can-Load.
 
 /*-----------------------------------------------------------*/

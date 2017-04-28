@@ -200,7 +200,7 @@ DO WITH FRAME {&FRAME-NAME}:
   DEFINE VARIABLE cCommercialVer  AS CHAR NO-UNDO.                        
   
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
-     cCopyRight = "¸". /* According to Legal- 11.5 */
+     cCopyRight = "©". /* According to Legal- 11.5 */
   &ELSE
      cCopyRight = "Copyright". /* According to Legal 10/14/2009 */
   &ENDIF

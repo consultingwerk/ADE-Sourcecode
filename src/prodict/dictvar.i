@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2009,2011 by Progress Software Corporation.*
+* Copyright (C) 2006,2008-2009,2011,2015 by Progress Software Corporation.*
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -26,11 +26,11 @@ DEFINE {1} SHARED VARIABLE dict_dirty      AS LOGICAL               NO-UNDO.
 DEFINE {1} SHARED VARIABLE cache_dirty     AS LOGICAL  INITIAL TRUE NO-UNDO.
 
 DEFINE {1} SHARED VARIABLE cache_db#        AS INTEGER   INITIAL 0   NO-UNDO.
-DEFINE {1} SHARED VARIABLE cache_db_s       AS CHARACTER EXTENT 64   NO-UNDO.
-DEFINE {1} SHARED VARIABLE cache_db_l       AS CHARACTER EXTENT 64   NO-UNDO.
-DEFINE {1} SHARED VARIABLE cache_db_p       AS CHARACTER EXTENT 64   NO-UNDO.
-DEFINE {1} SHARED VARIABLE cache_db_t       AS CHARACTER EXTENT 64   NO-UNDO.
-DEFINE {1} SHARED VARIABLE cache_db_e       AS CHARACTER EXTENT 64   NO-UNDO.
+DEFINE {1} SHARED VARIABLE cache_db_s       AS CHARACTER EXTENT 480  NO-UNDO.
+DEFINE {1} SHARED VARIABLE cache_db_l       AS CHARACTER EXTENT 480  NO-UNDO.
+DEFINE {1} SHARED VARIABLE cache_db_p       AS CHARACTER EXTENT 480  NO-UNDO.
+DEFINE {1} SHARED VARIABLE cache_db_t       AS CHARACTER EXTENT 480  NO-UNDO.
+DEFINE {1} SHARED VARIABLE cache_db_e       AS CHARACTER EXTENT 480  NO-UNDO.
 /* s=schema_db, l=logical_db, p=physical_db, t=db_type(int), e=db_type(ext)*/
 
 DEFINE {1} SHARED VARIABLE cache_file#      AS INTEGER  INITIAL 0    NO-UNDO.

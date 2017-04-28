@@ -28,7 +28,7 @@ af/cod/aftemwizpw.w
 &ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright ¸ 1984-2007 by Progress Software Corporation.  All rights 
+/* Copyright © 1984-2007 by Progress Software Corporation.  All rights 
    reserved.  Prior versions of this work may contain portions 
    contributed by participants of Possenet.  */   
 /*---------------------------------------------------------------------------------
@@ -6384,7 +6384,7 @@ FUNCTION getCacheClassBuffer RETURNS HANDLE
 ACCESS_LEVEL=PUBLIC
   Purpose:  Returns the buffer handle of the table used to store the cached class 
             buffers.
-    Notes:  * If a non-blank and non-null cl‘as name is passed in, the ttClass
+    Notes:  * If a non-blank and non-null clæas name is passed in, the ttClass
               cache record will be repositioned to it.
             * This API will accept an asterisk '*'and will thus retrieve all classes;
               however, the record will not be correctly positioned after this 

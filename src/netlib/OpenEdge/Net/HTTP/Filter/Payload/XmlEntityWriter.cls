@@ -31,14 +31,16 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlEntityWriter inherits MessageWriter:
         define variable hDocument as handle no-undo.
         define variable oData as class Memptr no-undo.
         
-        if not type-of(poData, Memptr) and 
-           not type-of(poData, ByteBucket) then
+        if type-of(poData, Memptr) then
+            assign oData = cast(poData, Memptr).
+        else 
+        if type-of(poData, ByteBucket) then
+            assign oData = cast(poData, ByteBucket):GetBytes().
+        else
             return error new AppError(
                             substitute('Unsupported object type: &1', poData:GetClass():TypeName)
                             , 0).
                 
-        assign oData = dynamic-invoke(poData, 'GetBytes':u).
-        
         create x-document hDocument.
         assign hDocument:strict-entity-resolution = false.
         

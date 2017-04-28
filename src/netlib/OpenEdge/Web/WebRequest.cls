@@ -25,6 +25,7 @@ using OpenEdge.Web.IWebRequest from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
 using Progress.Lang.AppError from propath.
 using Progress.Lang.Object from propath.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 
 class OpenEdge.Web.WebRequest implements IWebRequest: 
     define private variable mUri as URI no-undo.
@@ -162,7 +163,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                     iPort = int(web-context:get-cgi-value("ENV":U, "SERVER_PORT":U))
                     cPath = web-context:get-cgi-value("ENV":U, "REQUEST_URI":U).         
             
-                mURI = new URI(cScheme,cHost,iPort,cPath,createQueryMapFromContext(),"":U).
+                mURI = new URI(cScheme,cHost,iPort,cPath,createQueryMapFromContext(),?).
             end.
             return mURI.
         end get.
@@ -362,14 +363,14 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         return headerValue > "":U.
     end method.
     
-     /** Returns a named header
+    /** Returns a named header
         @param  The name of the header to retrieve
         @return HttpHeader The header object. Null if not exists. */
     method public HttpHeader GetHeader(pcName as character):
         define variable headerValue as character no-undo.
         headerValue = GetHeaderValue(pcname).
         if(headerValue > "":U) then
-            return new HttpHeader( pcName, headerValue ).
+            return HttpHeaderBuilder:Build(pcName):Value(headerValue):Header.
         else
             return ?.    
     end method.

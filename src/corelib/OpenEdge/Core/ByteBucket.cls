@@ -136,6 +136,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         this-object:Clear().
         
         do iLoop = 1 to miArraySize:
+	    set-size(mmMemptrArray[iLoop]) = 0.
             set-size(mmMemptrArray[iLoop]) = this-object:DefaultCapacity.
         end.
     end method.
@@ -183,8 +184,11 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         do iLoop = 1 to piSize:
             if iLoop le miArraySize then
+	    do:
                 assign mmMemptrArray[iLoop]   = mTempArray[iLoop]
                        miMemptrPostion[iLoop] = iTempPosition[iLoop].
+		set-size(mTempArray[iLoop]) = 0.
+            end.
             else
                 set-size(mmMemptrArray[iLoop]) =  this-object:DefaultCapacity.
                 /* position done above */
@@ -203,8 +207,10 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         Assert:IsPositive(piSize, 'Memptr Size').
                                             
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
+        set-size(mmTempBytes) = 1. /* allocate a new 1-byte memptr */
+        set-size(mmTempBytes) = 0. /* free this 1-byte memptr, which also clears the size */
+	set-pointer-value(mmTempBytes) = piPointerValue.
         set-size(mmTempBytes) = piSize.
-        set-pointer-value(mmTempBytes) = piPointerValue.
         
         /* Start at the first byte of the input memptr */
         WriteBytes(1, piSize).
@@ -298,8 +304,10 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                    iBytesLeft = iBytesLeft - iNumBytes.
             
             /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
-            set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
-            set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
+            set-size(poTarget:mmTempBytes) = 1.  /* allocate a new 1-byte memptr */
+            set-size(poTarget:mmTempBytes) = 0.  /* free this 1-byte memptr, which also clears the size */
+	    set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
+	    set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
             
             /* Start at the first byte of the input memptr */
             poTarget:WriteBytes(1, iNumBytes).
@@ -334,7 +342,6 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iNumBytes as integer no-undo.
         define variable iByteLoop as integer no-undo.
         define variable iMaxBytes as integer no-undo.
-        define variable mLocalTemp as memptr no-undo.
         
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsPositive(piBytesLeft, 'Num bytes left').
@@ -523,7 +530,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @return Memptr The complete bucket data */
     method public class Memptr GetBytes(input piStartPos as int64,
                                         input piSliceSize as int64):
-        define variable oData as class Memptr no-undo.
+        define variable mTemp as memptr no-undo.
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
         define variable iPutAt as integer no-undo.
@@ -538,8 +545,9 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         if this-object:Size eq 0 then
             return new Memptr(0).
                 
-        assign oData        = new Memptr(piSliceSize)
-               iBytesLeft   = piSliceSize               
+        set-size(mTemp) = piSliceSize.
+                         
+        assign iBytesLeft   = piSliceSize               
                iPutAt       = 1
                
                iStartIndex  = MathUtil:Ceiling(piStartPos / DefaultCapacity).
@@ -564,7 +572,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                 /* we may have a get-from value somewhere in the middle */
                 iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
             
-            put-bytes(oData:Value, iPutAt) = 
+            put-bytes(mTemp, iPutAt) = 
                     get-bytes(mmMemptrArray[iLoop],
                                     iGetFrom,
                                     iNumBytes).
@@ -575,7 +583,10 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                    iGetFrom    = 1.
         end.
         
-        return oData.
+        return new Memptr(mTemp).
+        finally:
+            set-size(mTemp) = 0.
+        end finally.
     end method.
 
     method public void Debug():

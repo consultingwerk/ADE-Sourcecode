@@ -65,7 +65,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
 
             /* assume a passed-in object is useable as-is. These options only apply to defaults. */            
             if HasOption(PROP_SSL_HOSTVERIFY) then
-                oConnectionParams:VerifyHost = not GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
+                oConnectionParams:VerifyHost = GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
             
             if HasOption(PROP_SSL_PROTOCOLS) then
                 oConnectionParams:SslProtocols = GetOptionStringArrayValue(PROP_SSL_PROTOCOLS).

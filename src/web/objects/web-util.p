@@ -679,8 +679,8 @@ Description: Initializes PROGRESS variables from the environment
 Input:       Environment variables
 Output:      Sets global variables defined in src/web/method/cgidefs.i
 ----------------------------------------------------------------------------*/
-  DEFINE VARIABLE i-field AS LONGCHAR  NO-UNDO.
-  DEFINE VARIABLE i-pair  AS LONGCHAR  NO-UNDO.
+  DEFINE VARIABLE i-field AS LONGCHAR   NO-UNDO.
+  DEFINE VARIABLE i-pair  AS LONGCHAR   NO-UNDO.
   DEFINE VARIABLE asc-del AS CHARACTER  NO-UNDO
     INITIAL "~377":U.   /* delimiter character in octal = CHR(255) */
   DEFINE VARIABLE hex-del AS CHARACTER  NO-UNDO

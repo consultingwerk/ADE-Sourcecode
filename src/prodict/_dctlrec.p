@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2015 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -19,7 +19,7 @@ DEFINE VARIABLE d-lin	AS INTEGER   NO-UNDO.
 DEFINE VARIABLE d-txt	AS CHARACTER NO-UNDO.
 DEFINE VARIABLE e-cnt	AS INTEGER   NO-UNDO.
 DEFINE VARIABLE e-lin	AS INTEGER   NO-UNDO.
-DEFINE VARIABLE e-ofs	AS INTEGER   NO-UNDO.
+DEFINE VARIABLE e-ofs	AS INT64   NO-UNDO.
 DEFINE VARIABLE e-txt	AS CHARACTER NO-UNDO.
 DEFINE VARIABLE siz	AS INTEGER   NO-UNDO.
 DEFINE VARIABLE tmpfile AS CHARACTER NO-UNDO.
@@ -59,7 +59,7 @@ REPEAT:
     c     = SUBSTRING(e-txt,INDEX(e-txt,"#") + 1)
     e-lin = INTEGER(SUBSTRING(c,1,INDEX(c," ") - 1))
     c     = SUBSTRING(e-txt,INDEX(e-txt,"=") + 1)
-    e-ofs = INTEGER(SUBSTRING(c,1,INDEX(c,")") - 1))
+    e-ofs = INT64(SUBSTRING(c,1,INDEX(c,")") - 1))
     e-cnt = e-cnt + 1
     d-txt = "".
 

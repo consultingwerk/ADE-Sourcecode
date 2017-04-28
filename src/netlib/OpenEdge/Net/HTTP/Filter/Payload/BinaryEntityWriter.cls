@@ -46,20 +46,20 @@ class OpenEdge.Net.HTTP.Filter.Payload.BinaryEntityWriter inherits MessageWriter
     method override public int64 Write(input poData as Object):
         Assert:NotNull(poData).
         
-        case poData:GetClass():
-            when get-class(Memptr) then
-                cast(Entity, ByteBucket):PutBytes(
+        if type-of(poData, Memptr) then
+            cast(Entity, ByteBucket):PutBytes(
                                 cast(poData, Memptr):GetPointerValue(), 
                                 cast(poData, Memptr):Size ).
-            when get-class(ByteBucket) then
-                cast(Entity, ByteBucket):PutBytes(cast(poData, ByteBucket)).
-            when get-class(String) then
-                cast(Entity, ByteBucket):PutString(cast(poData, String)).            
-            otherwise                        
-                return error new AppError(
+        else
+        if type-of(poData, ByteBucket) then
+            cast(Entity, ByteBucket):PutBytes(cast(poData, ByteBucket)).
+        else
+        if type-of(poData, String) then
+            cast(Entity, ByteBucket):PutString(cast(poData, String)).            
+        else
+            return error new AppError(
                             substitute('Unsupported object type: &1', poData:GetClass():TypeName)
                             , 0).
-        end case.
         
         return dynamic-property(poData, 'Size':u).
     end method.

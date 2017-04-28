@@ -505,7 +505,7 @@ CASE dbtyp:
        IF LOGICAL(ENTRY(2,user_env[10])) THEN
           ASSIGN user_env[18] = "clob".
        ELSE /* if using Unicode data types, expand column to NCLOB */
-          ASSIGN user_env[18] = (IF user_env[18] = "NVARCHAR2" THEN "nclob" ELSE "long").
+          ASSIGN user_env[18] = "long".
     END.
     ELSE
        ASSIGN longwid = 2000

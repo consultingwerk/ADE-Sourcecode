@@ -1077,7 +1077,7 @@ PROCEDURE EntityProcess :
    IF NOT VALID-HANDLE(hRDM) THEN 
        ASSIGN cError = "AF^29^" + LC(PROGRAM-NAME(1)) + ":" + LC(PROGRAM-NAME(2)) + "^" 
                                                                + '"Repository Design Manager"' 
-                                                               + '"he handle to the Repository design Manager is invalid. Entity import failed"ï"'
+                                                               + '"he handle to the Repository design Manager is invalid. Entity import failed"´"'
                                                                +  CHR(4) + "?" + CHR(4) + "?" + CHR(4) + PROGRAM-NAME(1) 
                                                                + CHR(4) + PROGRAM-NAME(2).
 

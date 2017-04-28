@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : ABLRunner
@@ -151,10 +151,12 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             WriteTestResults(ablResultsFile, testEntity, testSummary).
         END.
         
-        updateFile(updateFile, "COMPLETE", FALSE).
-        SESSION:ERROR-STACK-TRACE = prevStackTraceProperty.
-        SESSION:SUPPRESS-WARNINGS-LIST = oldWarningsList.
-        RETURN.
+        FINALLY:
+      		/* COMPLETE event has to be updated anyway to complete the session. */
+          	updateFile(updateFile, "COMPLETE", FALSE).
+          	SESSION:ERROR-STACK-TRACE = prevStackTraceProperty.
+          	SESSION:SUPPRESS-WARNINGS-LIST = oldWarningsList.
+        END.
 
     END METHOD.
 

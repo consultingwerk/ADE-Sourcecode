@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StringBodyWriter
@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
+using OpenEdge.Core.String.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.Lang.Object.
 
@@ -30,7 +31,14 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
         
         assign iBytesBefore = cast(this-object:Entity, ByteBucket):Size. 
         
-        cast(this-object:Entity, ByteBucket):PutString(poData:ToString()).
+        case true:
+            /* The :Value property of a String object contains a LONGCHAR; ToString() simply returns a string,
+               which may be too small to contain all the data. */
+            when type-of(poData, String) then
+                cast(this-object:Entity, ByteBucket):PutString(cast(poData, String):Value).
+            otherwise
+                cast(this-object:Entity, ByteBucket):PutString(poData:ToString()).
+        end case.
         
         return (cast(this-object:Entity, ByteBucket):Size - iBytesBefore).
     end method.

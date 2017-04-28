@@ -26,6 +26,13 @@ enum OpenEdge.Mobile.PushNotificationFilterOperandEnum:
                       Near
                       NearSphere
                       Within
+                      Intersects
+                      /* array operator */
+                      All
+                      /* logical/join operands */
                       And
-                      Or.
+                      Or
+                      Not
+                      Nor
+                      .
 end enum.

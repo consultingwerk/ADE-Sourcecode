@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -11,6 +11,7 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.ServerConnection.IConnectionParameters.
 using OpenEdge.Core.ServerConnection.IServerConnection.
@@ -33,6 +34,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     define private variable mhHelperProc as handle no-undo.
     define private variable moReadEventArgs as SocketReadEventArgs no-undo.
     define private variable moReadHandlerError as Error no-undo.
+    /* debug only */
+    define private variable miTotalBytesRead as int64 no-undo.
         
     define public property Server as Object no-undo get. private set.
     define public property ConnectionParameters as IConnectionParameters no-undo get. private set.
@@ -63,112 +66,40 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     
     /** Sets the TCP socket option SO_KEEPALIVE.
         Set arguments to TRUE to turn this option on or to FALSE to turn it off. */
-    define public property KeepAlive as logical no-undo
-        get:
-            return valid-handle(mhSocket) and
-                         logical(mhSocket:get-socket-option("SO-KEEPALIVE":U)).
-        end get.
-        set(input plKeepAlive as logical):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("SO-KEEPALIVE":U, string(plKeepAlive, 'true/false':u)).
-        end set.
+    define public property KeepAlive as logical initial ? no-undo get. set.
     
     /** Sets the TCP socket option TCP-NODELAY */
-    define public property NoDelay as logical no-undo
-        get:
-            return valid-handle(mhSocket) and
-                         logical(mhSocket:get-socket-option("TCP-NODELAY":U)).
-        end get.
-        set(input plNoDelay as logical):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("TCP-NODELAY":U, string(plNoDelay, 'true/false':u)).
-        end set.
+    define public property NoDelay as logical initial ? no-undo get. set.
     
     /** Sets the TCP socket option SO-REUSEADDR */
-    define public property ReuseAddress as logical no-undo
-        get:
-            return valid-handle(mhSocket) and
-                         logical(mhSocket:get-socket-option("SO-REUSEADDR":U)).
-        end get.
-        set(input plReuseAddress as logical):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("SO-REUSEADDR":U, string(plReuseAddress, 'true/false':u)).
-        end set.
+    define public property ReuseAddress as logical initial ? no-undo get. set.
                 
     /** Sets the TCP socket option SO-RCVBUF.
         Set arguments to the desired size of the buffer */
-    define public property ReceiveBufferSize as integer no-undo
-        get:
-            if valid-handle(mhSocket) then
-                return integer(mhSocket:get-socket-option("SO-RCVBUF":U)).
-            else
-                return ?.
-        end get.
-        set(input piReceiveBufferSize as integer):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("SO-RCVBUF":U, string(piReceiveBufferSize)).
-        end set.
+    define public property ReceiveBufferSize as integer initial ? no-undo get. set.
     
     /** Sets the TCP socket option SO-SNDBUF.
         Set arguments to the desired size of the buffer */
-    define public property SendBufferSize as integer no-undo
-        get:
-            if valid-handle(mhSocket) then
-                return integer(mhSocket:get-socket-option("SO-SNDBUF":U)).
-            else
-                return ?.
-        end get.
-        set(input piSendBufferSize as integer):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("SO-SNDBUF":U, string(SendBufferSize)).
-        end set.
+    define public property SendBufferSize as integer initial ? no-undo get. set.
 
     /** Sets the TCP socket option SO-RCVTIMEO.
         Sets the timeout length—that is, the number of seconds the socket waits
         to receive data before timing out. */
-    define public property ReceiveTimeout as integer no-undo
-        get:
-            if valid-handle(mhSocket) then
-                return integer(mhSocket:get-socket-option("SO-RCVTIMEO":U)).
-            else
-                return ?.
-        end get.
-        set(input piReceiveTimeout as integer):
-            if valid-handle(mhSocket) then
-                mhSocket:set-socket-option("SO-RCVTIMEO":U, string(ReceiveTimeout)).
-        end set.
+    define public property ReceiveTimeout as integer initial ? no-undo get. set.
 
     /** Sets the TCP socket option SO-LINGER. 
         Returns ? if the SO-LINGER option is not enabled, or if the socket is not
         yet created.
         
         Setting this property to ? disables the SO-LINGER option. */  
-    define public property LingerTime as integer no-undo
-        get:
-            define variable iLingerTime as integer no-undo.
-            define variable cLinger as character no-undo.
+    define public property LingerTime as integer initial -1 no-undo
+        get.
+        set(input piTime as integer):
+            /* negative values indicate an 'unset' state */
+            if piTime ne ? and piTime lt 0 then
+                return error new AssertionFailedError('Linger time cannot be negative', 0).
             
-            assign iLingerTime = ?.
-            if valid-handle(mhSocket) then
-            do:
-                assign cLinger = mhSocket:get-socket-option("SO-LINGER":U).
-                if logical(entry(1, cLinger)) then
-                    assign iLingerTime = integer(entry(2, cLinger)).
-            end.
-
-            return iLingerTime.
-        end get.
-        set(input piLingerTime as integer):
-            define variable cLinger as character no-undo.
-            
-            if valid-handle(mhSocket) then
-            do:
-                if piLingerTime eq ? then
-                    assign cLinger = 'false':u.
-                else
-                    assign cLinger = 'true':u.                                    
-                mhSocket:set-socket-option("SO-LINGER":U, cLinger + ',' + string(piLingerTime)).
-            end.
+            assign this-object:LingerTime = piTime.
         end set.
     
     /**  Returns true if the server is valid and connected. False otherwise */
@@ -232,7 +163,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         mhSocket:sensitive = yes.
 
-        if this-object:Connected then
+         if this-object:Connected then
             return.
 
         /* Run this on every socket 'session' to avoid circular references between 
@@ -245,6 +176,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         assign iStartTime = mtime.
         mhSocket:connect(this-object:ConnectionParameters:GetConnectionString()).
         
+        SetSocketOptions(mhSocket).
+
         LogMessage('CONNECT: TIME(ms)=':u + string(mtime - iStartTime), 5).
     end method.
     
@@ -298,6 +231,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         wait-for 'U2':u of mhSocket.
         LogMessage('READ: TOTAL TIME(ms)=':u + string(mtime - iStartTime), 5).
+        LogMessage('READ: TOTAL SIZE(b)=':u + string(miTotalBytesRead), 5).
         
         /* 'catch' the errors from the handler after the wait-for.
            issue PSC00322919 logged to avoid this. */
@@ -334,6 +268,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             /* read all the available bytes */
             if iBytesAvailable gt 0 then
             do:
+                assign miTotalBytesRead = miTotalBytesRead + iBytesAvailable.
                 mhSocket:read(mData, 1, this-object:ReadBufferSize, read-available) no-error.
                 LogMessage('READ: TIME(ms)=':u + string(mtime - iStartTime), 5).
                 LogMessage('READ: SIZE(b)=':u + string(mhSocket:bytes-read), 5).
@@ -417,7 +352,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         end.
         
         finally:
-            assign moReadEventArgs:Data = ?.
+            assign moReadEventArgs:Data = ?
+                   moReadEventArgs:BytesRead = 0
+                   .
             
             /* clear memory */
             set-size(mData) = 0.
@@ -472,8 +409,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                iStart = 1.
         
         /* use a local memptr */
-        set-size(mData) = iSize.
+        set-size(mData) = 1. /* allocate a new 1-byte memptr */
+        set-size(mData) = 0. /* free this 1-byte memptr, which also clears the size */
         set-pointer-value(mData) = poData:GetPointerValue().
+        set-size(mData) = iSize.
         
         do while iSize gt 0 :
             assign iStartTime = mtime.
@@ -516,6 +455,62 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         if log-manager:logging-level ge piLogLevel then
             log-manager:write-message(pcMessage, 'SOCKET':u).
+    end method.
+    
+    /* Sets the various socket options, per this object's properties.
+       
+       @param handle The socket on which to set these options */
+    method private void SetSocketOptions(input phSocket as handle):
+        define variable cLinger as character no-undo.
+        
+        Assert:IsTrue(valid-handle(phSocket) and phSocket:connected(), 'Socket connected').
+
+        if this-object:KeepAlive ne ? then
+        do:
+            LogMessage(substitute('SO-KEEPALIVE: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            phSocket:set-socket-option('SO-KEEPALIVE':u, trim(string(this-object:KeepAlive, 'true/false':u))).
+        end.
+        
+        if this-object:NoDelay ne ? then
+        do:
+            LogMessage(substitute('TCP-NODELAY: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            phSocket:set-socket-option("TCP-NODELAY":U, trim(string(this-object:NoDelay, 'true/false':u))).
+        end.
+        
+        if this-object:ReuseAddress ne ? then
+        do:
+            LogMessage(substitute('SO-REUSEADDR: &1':u, string(this-object:KeepAlive, 'true/false':u)), 5).
+            phSocket:set-socket-option("SO-REUSEADDR":U, trim(string(this-object:ReuseAddress, 'true/false':u))).
+        end.
+        
+        if this-object:ReceiveBufferSize ne ? then
+        do:
+            LogMessage(substitute('SO-RCVBUF: &1':u, this-object:ReceiveBufferSize), 5).
+            phSocket:set-socket-option("SO-RCVBUF":U, string(this-object:ReceiveBufferSize)).
+        end.
+        
+        if this-object:SendBufferSize ne ? then
+        do:
+            LogMessage(substitute('SO-SNDBUF: &1':u, this-object:SendBufferSize), 5).
+            phSocket:set-socket-option("SO-SNDBUF":U, string(this-object:SendBufferSize)).
+        end.
+        
+        if this-object:ReceiveTimeout ne ? then
+        do:
+            LogMessage(substitute('SO-RCVTIMEO: &1':u, this-object:ReceiveTimeout), 5).
+            phSocket:set-socket-option("SO-RCVTIMEO":U, string(this-object:ReceiveTimeout)).
+        end.
+        
+        if this-object:LingerTime ne -1 then
+        do:
+            if this-object:LingerTime eq ? then
+                assign cLinger = 'false':u.
+            else
+                assign cLinger =  'true,' + string(this-object:LingerTime). 
+            
+            LogMessage(substitute('SO-LINGER: &1':u, cLinger), 5).            
+            phSocket:set-socket-option("SO-LINGER":U, cLinger).
+        end.
     end method.
     
 end class.

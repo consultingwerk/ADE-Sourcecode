@@ -12,6 +12,7 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Core.Assert.
@@ -28,14 +29,30 @@ class OpenEdge.Net.HTTP.DefaultHeaderBuilder inherits HttpHeaderBuilder:
         end get.
         private set.
     
-	constructor public DefaultHeaderBuilder(input pcHeaderName as character):
-		super(pcHeaderName).
-	end constructor.
-        
-    method private HttpHeader NewHeader():
+    /*  Constructor
+        @param character The header name */
+    constructor public DefaultHeaderBuilder(input pcHeaderName as character):
+        super(pcHeaderName).
+    end constructor.
+    
+    /* Creates a new instance of a HttpHeader based on the builder's options.
+       
+       @return HttpHeader A new HttpHeader instance */
+    method protected HttpHeader NewHeader():
         define variable oHeader as HttpHeader no-undo.
+        define variable oHeaderType as class Progress.Lang.Class no-undo.
         
-        assign oHeader = new HttpHeader(this-object:HeaderName).
+        if HasOption(get-class(HttpHeader):TypeName) then
+            assign oHeaderType = cast(GetOptionObjectValue(get-class(HttpHeader):TypeName), Progress.Lang.Class).
+        else
+            assign oHeaderType = get-class(HttpHeader). 
+        
+        Assert:IsType(oHeaderType, get-class(HttpHeader)).
+        
+        oHeader = dynamic-new string(oHeaderType:TypeName) (input this-object:HeaderName).
+        
+        if type-of(oHeader, ISupportInitialize) then
+            cast(oHeader, ISupportInitialize):Initialize().
         
         if HasOption('paramDelimiter':u) then
             assign oHeader:ParamDelimiter = GetOptionStringValue('paramDelimiter':u).
@@ -43,7 +60,7 @@ class OpenEdge.Net.HTTP.DefaultHeaderBuilder inherits HttpHeaderBuilder:
         if HasOption('hdrValue':u) then
             assign oHeader:Value = GetOptionStringValue('hdrValue':u).
         
-        return oHeader.
+        return oHeader.        
     end method.
     
 end class.

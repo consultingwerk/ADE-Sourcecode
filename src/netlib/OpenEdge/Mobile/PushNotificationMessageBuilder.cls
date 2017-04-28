@@ -41,10 +41,12 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
     /* List of operands that the message need. A property to keep it read-only.
        The index of this array matches the Value of the 
        PushNotificationFilterOperandEnum property in question. */
-    define protected property OperandValue as character extent 14
+    define protected property OperandValue as character extent 18
         initial ['$eq':u, '$ne':u, '$in':u,
-                 '$nin':u, '$elemMatch':u, '$gt':u, '$gte':u, '$lt':u, '$lte':u, '$near':u, 
-                 '$nearSphere':u, '$geoWithin':u, '$and':u, '$or':u]
+                 '$nin':u, '$elemMatch':u, '$gt':u, '$gte':u, '$lt':u, '$lte':u, 
+                 '$near':u, '$nearSphere':u, '$geoWithin':u, '$geoIntersects':u,
+                 '$all':u, 
+                 '$and':u, '$or':u, '$not':u, '$nor':u]
         no-undo get.
     
     /** Returns the newly-constructed payload. */
@@ -76,6 +78,8 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         
     /** Constructor.  */
     constructor protected PushNotificationMessageBuilder():
+        /* default join operand */
+        MatchAll().
     end constructor.
     
     /** Factory for this builder, for messages to send immediately.
@@ -113,7 +117,22 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
     method public PushNotificationMessageBuilder At(input ptSendAt as datetime-tz):
         Assert:IsPositive(interval(ptSendAt, now, string(DateTimeAddIntervalEnum:Seconds)), 'Send at delta').
 
+        SendNow(false).
         SetOption('schedule.time':u, ptSendAt).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the time at which to scheduled notification expire. No-op if this is a 
+        send-immediate message.
+    
+        @param datetime-tz A time in the future (at least the following minute)
+                           at which to expire the notification.
+        @return PushNotificationMessageBuilder  This builder */
+    method public PushNotificationMessageBuilder ExpiresAt(input ptExpireAt as datetime-tz):
+        Assert:IsPositive(interval(ptExpireAt, now, string(DateTimeAddIntervalEnum:Seconds)), 'Expire at delta').
+        
+        SetOption('schedule.expiration':u, ptExpireAt).
         
         return this-object.
     end method.
@@ -306,19 +325,39 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
     
         @param JsonArray An array of channels.  
         @return PushNotificationMessageBuilder This builder object */
-    method public PushNotificationMessageBuilder MatchChannels(input poChannels as JsonObject):
+    method public PushNotificationMessageBuilder MatchChannels(input poChannels as JsonArray):
         Assert:NotNull(poChannels, 'Channels').
         
-        SetOption('channels.':u + string(PushNotificationFilterOperandEnum:Includes), poChannels).
+        SetOption('channels.':u + string(PushNotificationFilterOperandEnum:Matches), poChannels).
         return this-object.
     end method.
     /** CHANNELS END **/
     
+    /* Sets the title of the notification message
+       
+       @param character The non-null title 
+       @return PushNotificationMessageBuilder This builder object */
     method public PushNotificationMessageBuilder Titled(input pcTitle as character):
         Assert:NotNull(pcTitle, 'Notification title').
         
         SetOption('message.title':u, pcTitle).
         
+        return this-object.
+    end method.
+    
+    /* Sets the filter match operand to "All". 
+       
+       @return PushNotificationMessageBuilder This builder object */
+    method public PushNotificationMessageBuilder MatchAll():
+        SetOption('match.operand':u, PushNotificationFilterOperandEnum:And).
+        return this-object.
+    end method.
+    
+    /* Sets the filter match operand to "Any". 
+       
+       @return PushNotificationMessageBuilder This builder object */
+    method public PushNotificationMessageBuilder MatchAny():
+        SetOption('match.operand':u, PushNotificationFilterOperandEnum:Or).
         return this-object.
     end method.
 
@@ -467,5 +506,4 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
     method abstract public PushNotificationMessageBuilder AddLogicalFilter(input pcFilterName as character,
                                                                            input plFilterValue as logical,
                                                                            input poOperand as PushNotificationFilterOperandEnum).
-        
 end class.

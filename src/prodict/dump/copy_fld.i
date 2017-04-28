@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2015 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,9 +28,12 @@ IF {&all} THEN
     {&to}._field-rpos    = {&from}._field-rpos
     {&to}._sys-field     = {&from}._sys-field.
     
+    IF COMPARE({&to}._Can-write,"NE",{&from}._Can-write,"RAW") THEN
+      {&to}._Can-write = {&from}._Can-write.
+    IF COMPARE({&to}._Can-read,"NE",{&from}._Can-read,"RAW") THEN
+      {&to}._Can-read = {&from}._Can-read.
+    
 ASSIGN
-  {&to}._Can-Read      = {&from}._Can-Read
-  {&to}._Can-Write     = {&from}._Can-Write
   {&to}._Col-label     = {&from}._Col-label
   {&to}._Col-label-SA  = {&from}._Col-label-SA
   {&to}._Decimals      = {&from}._Decimals
