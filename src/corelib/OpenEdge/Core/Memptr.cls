@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -63,7 +63,6 @@ class OpenEdge.Core.Memptr:
     constructor public Memptr(input piPtr as int64, input piSize as int64):
         /* this-object(piSize). - don't use this constructor, it calls set-size() */
         this-object().
-        
         /* copy of code from this-object(size) constructor */
         Assert:IsZeroOrPositive(piSize, 'Size').
         set-pointer-value(mmValue) = piPtr.
@@ -167,32 +166,49 @@ class OpenEdge.Core.Memptr:
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
-        return GetString(piStartPos, piSliceSize, 'UTF-8':u).
+        return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).
     end.
         
+    /** Returns a string/character representation a particular number of bytes,
+        from a given start position.
+        
+        @param  int64 The start potision
+        @param  int64 The size of the data (in bytes) to return 
+        @param  character The target codepage for the character data
+        @return longchar The character/string data requested     */
+    method public longchar GetString(input piStartPos as int64,
+                                     input piSliceSize as int64,
+                                     input pcTargetCodepage as character):
+        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).                                         
+    end method.
+    
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
     
         @param  int64 The start potision
         @param  int64 The size of the data (in bytes) to return 
-        @param  character The codepage for the character data
+        @param  character The source codepage for the character data
+        @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64,
-                                     input pcCodepage as character):
+                                     input pcSourceCodepage as character,
+                                     input pcTargetCodepage as character):
         define variable lcData as longchar no-undo.
 
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
-        Assert:NotNullOrEmpty(pcCodepage, 'Codepage').
+        Assert:NotNullOrEmpty(pcSourceCodepage, 'Source codepage').
+        Assert:NotNullOrEmpty(pcTargetCodepage, 'Target codepage').
         
-        fix-codepage(lcData) = pcCodepage.
+        fix-codepage(lcData) = pcTargetCodepage.
         
-        /* return an empty string */        
-        if this-object:Size eq 0 then
-            return '':u.
-        
-        assign lcData = get-string(mmValue, piStartPos, piSliceSize).
+        if this-object:Size gt 0 then
+            copy-lob from mmValue starting at piStartPos for piSliceSize
+                     to lcData
+                     convert
+                        source codepage pcSourceCodepage 
+                        target codepage pcTargetCodepage.
         
         return lcData.        
     end method.
@@ -258,8 +274,8 @@ class OpenEdge.Core.Memptr:
         if piSize gt this-object:Size then
             return error new AppError('Input memptr larger than available size', 0).
         
-	set-size(mTemp) = 1. 
-	set-size(mTemp) = 0. 
+    	set-size(mTemp) = 1. 
+    	set-size(mTemp) = 0. 
         set-pointer-value(mTemp) = piPointerValue.
         set-size(mTemp) = piSize.
         

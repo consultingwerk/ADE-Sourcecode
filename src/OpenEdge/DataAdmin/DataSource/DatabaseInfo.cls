@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2013 by progress Software Corporation. */
+/* Copyright (c) 2011-2016 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -27,6 +27,22 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
         get.
         private set.
     
+    /* TRUE if the Authentication Gateway feature is enabled. */
+    define public property AuthenticationGatewayEnabled as logical no-undo
+        init ?
+        get():
+            if this-object:AuthenticationGatewayEnabled eq ? then 
+            do:
+                find dictdb._Database-Feature where 
+                     dictdb._Database-Feature._DBFeature_Name eq 'Authentication Gateway':u 
+                     no-lock no-error.
+                assign this-object:AuthenticationGatewayEnabled = (available dictdb._Database-Feature and 
+                                                                   dictdb._Database-Feature._DBFeature_enabled eq '1':u).
+            end.
+            return this-object:AuthenticationGatewayEnabled.
+        end get.
+        private set.
+            
     define public property IsNetworkClient as logical no-undo init ? 
         get():
             define variable cParams as character no-undo.
@@ -112,7 +128,7 @@ class OpenEdge.DataAdmin.DataSource.DatabaseInfo:
     	get:
 	        return FileDBExpression + " and  _file._owner = 'PUB' and _file._hidden = 'false'".
 	    end.
-    
+	
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  
 			Notes:  																	  

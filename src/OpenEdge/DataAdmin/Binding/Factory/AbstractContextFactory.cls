@@ -1,5 +1,5 @@
  /*************************************************************/
-  /* Copyright (c) 2011 by progress Software Corporation.      */
+  /* Copyright (c) 2011-2016 by progress Software Corporation. */
   /*                                                           */
   /* all rights reserved.  no part of this program or document */
   /* may be  reproduced in  any form  or by  any means without */
@@ -14,16 +14,41 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using OpenEdge.DataAdmin.Binding.* from propath.
+block-level on error undo, throw.
+
+using OpenEdge.DataAdmin.Binding.AllTableContext.
+using OpenEdge.DataAdmin.Binding.AreaContext.
+using OpenEdge.DataAdmin.Binding.AuthenticationSystemContext.
+using OpenEdge.DataAdmin.Binding.CreateContext.
+using OpenEdge.DataAdmin.Binding.DatabaseOptionContext.
+using OpenEdge.DataAdmin.Binding.DomainContext.
+using OpenEdge.DataAdmin.Binding.ExtentContext.
 using OpenEdge.DataAdmin.Binding.Factory.IContextFactory from propath.
+using OpenEdge.DataAdmin.Binding.FieldContext.
+using OpenEdge.DataAdmin.Binding.GrantedRoleContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminContext.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel.
+using OpenEdge.DataAdmin.Binding.IndexContext.
+using OpenEdge.DataAdmin.Binding.IndexFieldContext.
 using OpenEdge.DataAdmin.Binding.LocalIndexContext from propath.
+using OpenEdge.DataAdmin.Binding.PartitionContext.
+using OpenEdge.DataAdmin.Binding.PartitionPolicyContext.
+using OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext.
+using OpenEdge.DataAdmin.Binding.PartitionPolicyFieldContext.
 using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Binding.RoleContext.
+using OpenEdge.DataAdmin.Binding.SchemaContext.
+using OpenEdge.DataAdmin.Binding.SequenceContext.
+using OpenEdge.DataAdmin.Binding.SequenceValueContext.
+using OpenEdge.DataAdmin.Binding.ServiceAdapter.
+using OpenEdge.DataAdmin.Binding.TableContext.
+using OpenEdge.DataAdmin.Binding.TenantContext.
+using OpenEdge.DataAdmin.Binding.TenantGroupContext.
+using OpenEdge.DataAdmin.Binding.TenantGroupMemberContext.
+using OpenEdge.DataAdmin.Binding.UserContext.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.IDataAdminService from propath.
-using Progress.Lang.* from propath.
-routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract implements IContextFactory: 
     define public property ServiceAdapter as ServiceAdapter no-undo get. private set. 
@@ -204,6 +229,7 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
             return PartitionPolicyContext.   
         end. 
         set.
+        
     
     define public property PartitionPolicyFieldContext as PartitionPolicyFieldContext no-undo 
         get():
@@ -235,6 +261,30 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
         end. 
         set.
     
+    define public property DatabaseOptionContext as DatabaseOptionContext no-undo 
+        get():
+            if not valid-object(DatabaseOptionContext) then 
+                assign this-object:DatabaseOptionContext = new DatabaseOptionContext(this-object) .       
+            return this-object:DatabaseOptionContext.   
+        end get. 
+        private set.
+
+    define public property RoleContext as RoleContext no-undo 
+        get():
+            if not valid-object(RoleContext) then 
+                assign this-object:RoleContext = new RoleContext(this-object) .       
+            return this-object:RoleContext.   
+        end get. 
+        set.
+
+    define public property GrantedRoleContext as GrantedRoleContext no-undo 
+        get():
+            if not valid-object(GrantedRoleContext) then 
+                assign this-object:GrantedRoleContext = new GrantedRoleContext(this-object) .       
+            return this-object:GrantedRoleContext.   
+        end get. 
+        set.
+        
    /*------------------------------------------------------------------------------
             Purpose:                                                                      
             Notes:                                                                        
@@ -330,6 +380,12 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return "Tenant".
             when "_user" then
                 return "User".
+            when '_db-option':u then
+                return 'DatabaseOption':u.                
+            when '_sec-role':u then
+                return 'Role':u.
+            when '_sec-granted-role':u then
+                return 'GrantedRole':u.
          end.
          return ""  .      
     end method.
@@ -353,7 +409,7 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
             when "Partition" then
                 return PartitionContext.
             when "PartitionPolicy" then
-                return PartitionPolicyContext.
+                return PartitionPolicyContext.             
             when "PartitionPolicyDetail" then
                 return PartitionPolicyDetailContext.
             when "PartitionPolicyField" then
@@ -378,6 +434,12 @@ class OpenEdge.DataAdmin.Binding.Factory.AbstractContextFactory abstract impleme
                 return TenantContext.
             when "User" then
                 return UserContext.
+            when 'DatabaseOption':u then
+                return DatabaseOptionContext.                           
+            when 'Role':u then
+                return RoleContext.                           
+            when 'GrantedRole':u then
+                return GrantedRoleContext.                           
         end.
         undo, throw new NotFoundError("Internal context " + quoter(pname) + " does not exist.").    
     end method.    

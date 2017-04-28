@@ -67,31 +67,102 @@ class {&FullType} {&serializable} inherits {&ParentCollectionType} {&Interfaces}
     
     /* Associates the specified value with the specified key in this map (optional operation).*/
     method public {&ValueType} Put(input poKey as {&KeyType}, input poValue as {&ValueType}):
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
+        OpenEdge.Core.Assert:IsType(poValue,  get-class({&ValueType})).
         return cast(super:Put(poKey, poValue), {&ValueType}).
+        &else
+        return super:Put(poKey, poValue).
+        &endif
+    end method.
+    
+    method override public Progress.Lang.Object Put(input poKey as Progress.Lang.Object, input poValue as Progress.Lang.Object):
+        OpenEdge.Core.Assert:IsType(poKey,  get-class({&KeyType})).
+        
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
+        OpenEdge.Core.Assert:IsType(poValue,  get-class({&ValueType})).
+        return cast(super:Put(poKey, poValue), {&ValueType}).
+        &else
+        return super:Put(poKey, poValue).
+        &endif
     end method.
     
     /* Removes the mapping for this key from this map if it is present (optional operation).*/
     method public {&ValueType} Remove(input poKey as {&KeyType}):
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
         return cast(super:Remove(poKey), {&ValueType}).
+        &else
+        return super:Remove(poKey).
+        &endif
+    end method.
+
+    /* Removes the mapping for this key from this map if it is present (optional operation).*/
+    method override public Progress.Lang.Object Remove(input poKey as Progress.Lang.Object):
+        OpenEdge.Core.Assert:IsType(poKey,  get-class({&KeyType})).
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
+        return cast(super:Remove(poKey), {&ValueType}).
+        &else
+        return super:Remove(poKey).
+        &endif
+    end method.
+    
+    &if '{&ParentCollectionType}' eq 'OpenEdge.Core.Collections.Map' and 
+        '{&KeyType}' ne 'Object' and '{&KeyType}' ne 'Progress.Lang.Object' &then
+    /* Returns true if this map contains a mapping for the specified key. */
+    method override public logical ContainsKey(input poKey as Progress.Lang.Object):
+        OpenEdge.Core.Assert:IsType(poKey,  get-class({&KeyType})).
+        return super:ContainsKey(poKey).
     end method.
     
     /* Returns true if this map contains a mapping for the specified key. */
     method public logical ContainsKey(input poKey as {&KeyType}):
         return super:ContainsKey(poKey).
     end method.
+    &endif
+    
+    &if '{&ParentCollectionType}' eq 'OpenEdge.Core.Collections.Map' and 
+        '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
+    /* Returns true if this map maps one or more keys to the specified value.*/
+    method override public logical ContainsValue(input poValue as Progress.Lang.Object):
+        OpenEdge.Core.Assert:IsType(poValue,  get-class({&ValueType})).
+        return super:ContainsValue(poValue).
+    end method.
     
     /* Returns true if this map maps one or more keys to the specified value.*/
     method public logical ContainsValue(input poValue as {&ValueType}):
         return super:ContainsValue(poValue).
     end method.
+    &endif
        
-        /* Returns the value to which this map maps the specified key.*/
-    method public {&ValueType} Get(input poKey as {&KeyType}):
+    &if '{&ParentCollectionType}' eq 'OpenEdge.Core.Collections.Map' and 
+        '{&KeyType}' ne 'Object' and '{&KeyType}' ne 'Progress.Lang.Object' &then
+    /* Returns the value to which this map maps the specified key.*/
+    method override public Progress.Lang.Object Get(input poKey as Progress.Lang.Object):
+        OpenEdge.Core.Assert:IsType(poKey,  get-class({&KeyType})).
+
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
         return cast(super:Get(poKey), {&ValueType}).
+        &else
+        return super:Get(poKey).
+        &endif
     end method.
     
+    /* Returns the value to which this map maps the specified key.*/
+    method public {&ValueType} Get(input poKey as {&KeyType}):
+        &if '{&ValueType}' ne 'Object' and '{&ValueType}' ne 'Progress.Lang.Object' &then
+        return cast(super:Get(poKey), {&ValueType}).
+        &else
+        return super:Get(poKey).
+        &endif
+    end method.
+    &endif 
+
     &if defined(Interfaces) gt 0 &then
     method public void PutAll(input poMap as {&ImplementsType}):
+        super:PutAll(poMap).
+    end method.
+    
+    method override public void PutAll(input poMap as OpenEdge.Core.Collections.IMap):
+        OpenEdge.Core.Assert:IsType(poMap, get-class({&ImplementsType})).
         super:PutAll(poMap).
     end method.
     &endif

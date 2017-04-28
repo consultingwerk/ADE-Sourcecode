@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
  /*------------------------------------------------------------------------
     File        : AssertObject
@@ -19,6 +19,8 @@ using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.DataTypeEnum.
+using OpenEdge.Core.DataTypeHelper.
+using OpenEdge.Core.Assertion.AssertObject.
 
 class OpenEdge.Core.Assertion.AssertObject: 
 
@@ -256,7 +258,7 @@ class OpenEdge.Core.Assertion.AssertObject:
             Assert:IsType(poArgument[iLoop], poType).
         end.
     end method.
-    
+
     /** Asserts that a object is valid and of a particular type
         
         @param poArgument The Object being checked.
@@ -319,7 +321,7 @@ class OpenEdge.Core.Assertion.AssertObject:
         Assert:NotNull(phArgument, pcName).
         Assert:NotNull(poCheckType, 'Check DataType').
         
-        cCheckType = poCheckType:ToString().
+        assign cCheckType = DataTypeHelper:GetMask(poCheckType).
         if phArgument:type ne cCheckType then
             undo, throw new AssertionFailedError(substitute('&1 is not of type &2', pcName, cCheckType), 0).        
     end method.
@@ -341,14 +343,14 @@ class OpenEdge.Core.Assertion.AssertObject:
         @param pcName the identifying name for the AssertionFailedError.
         @throws AssertionFailedError Error thrown if the handle is not valid or of a particular datatype*/
     method public static void NotType(input phArgument as handle,
-                                             input poCheckType as DataTypeEnum,
-                                             input pcName as character):
+                                      input poCheckType as DataTypeEnum,
+                                      input pcName as character):
         define variable cCheckType as character no-undo.
         
         Assert:NotNull(phArgument, pcName).
         Assert:NotNull(poCheckType, 'Check DataType').
         
-        cCheckType = poCheckType:ToString().
+        assign cCheckType = DataTypeHelper:GetMask(poCheckType).
         if phArgument:type eq cCheckType then
             undo, throw new AssertionFailedError(substitute('&1 cannot be of type &2', pcName, cCheckType), 0).
     end method.
@@ -400,4 +402,44 @@ class OpenEdge.Core.Assertion.AssertObject:
     method public static void HasDeterminateExtent(input poArgument as Object extent):
         HasDeterminateExtent(poArgument, "argument").
     end method.
+    
+    /* Asserts that the given object can be serialized.
+       
+       @param Obejct The object to check. */
+    method public static void IsSerializable(input poArgument as Object):
+        define variable oDerivedClass as Progress.Lang.Class no-undo.
+        
+        Assert:NotNull(poArgument, 'argument').
+        
+        if type-of(poArgument, Progress.Lang.Class) then 
+            oDerivedClass = cast(poArgument, Progress.Lang.Class).
+        else
+            oDerivedClass = poArgument:GetClass().
+        
+        if not oDerivedClass:IsSerializable() then
+            undo, throw new AssertionFailedError(
+                    substitute('Object &1 (of type &2) is not serializable',
+                        poArgument:ToString(),
+                        oDerivedClass:TypeName), 0).
+    end method.
+    
+    /* Asserts that the given object cannot be serialized.
+       
+       @param Obejct The object to check. */
+    method public static void NotSerializable(input poArgument as Object):
+        define variable oDerivedClass as Progress.Lang.Class no-undo.
+        
+        Assert:NotNull(poArgument, 'argument').
+        
+        if type-of(poArgument, Progress.Lang.Class) then 
+            oDerivedClass = cast(poArgument, Progress.Lang.Class).
+        else
+            oDerivedClass = poArgument:GetClass().
+        
+        if oDerivedClass:IsSerializable() then
+            undo, throw new AssertionFailedError(
+                    substitute('Object &1 (of type &2) is serializable',
+                        poArgument:ToString(),
+                        oDerivedClass:TypeName), 0).
+    end method.    
 end class.

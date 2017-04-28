@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : DataTypeHelper
@@ -60,6 +60,7 @@ class OpenEdge.Core.DataTypeHelper:
             when DataTypeEnum:Dataset            then return 'Dataset':u.
             when DataTypeEnum:Buffer             then return 'Buffer':u.
             when DataTypeEnum:TempTable          then return 'Temp-Table':u.
+            when DataTypeEnum:ClientPrincipal    then return 'Client-Principal':u.
             
             when DataTypeEnum:Enumeration        then return 'Enumeration':u.
             when DataTypeEnum:Stream             then return 'Stream':u.
@@ -103,23 +104,23 @@ class OpenEdge.Core.DataTypeHelper:
         define variable cXmlSchemaType as character no-undo.
         
         case poDataType:
-            when DataTypeEnum:BLOB      then assign cXmlSchemaType = 'base64Binary':u.
-            when DataTypeEnum:Character then assign cXmlSchemaType = 'string':u.
-            when DataTypeEnum:CLOB      then assign cXmlSchemaType = 'string':u.
-            when DataTypeEnum:ComHandle then assign cXmlSchemaType = 'long':u.
-            when DataTypeEnum:Date      then assign cXmlSchemaType = 'date':u.
-            when DataTypeEnum:DateTime  then assign cXmlSchemaType = 'dateTime':u.
+            when DataTypeEnum:BLOB       then assign cXmlSchemaType = 'base64Binary':u.
+            when DataTypeEnum:Character  then assign cXmlSchemaType = 'string':u.
+            when DataTypeEnum:CLOB       then assign cXmlSchemaType = 'string':u.
+            when DataTypeEnum:ComHandle  then assign cXmlSchemaType = 'long':u.
+            when DataTypeEnum:Date       then assign cXmlSchemaType = 'date':u.
+            when DataTypeEnum:DateTime   then assign cXmlSchemaType = 'dateTime':u.
             when DataTypeEnum:DatetimeTZ then assign cXmlSchemaType = 'dateTime':u.
-            when DataTypeEnum:Decimal   then assign cXmlSchemaType = 'decimal':u.
-            when DataTypeEnum:Int64     then assign cXmlSchemaType = 'long':u.
-            when DataTypeEnum:Integer   then assign cXmlSchemaType = 'int':u.
-            when DataTypeEnum:Logical   then assign cXmlSchemaType = 'boolean':u.
-            when DataTypeEnum:Raw       then assign cXmlSchemaType = 'base64Binary':u.
-            when DataTypeEnum:Recid     then assign cXmlSchemaType = 'long':u.
-            when DataTypeEnum:Rowid     then assign cXmlSchemaType = 'base64Binary':u.
-            when DataTypeEnum:Handle    then assign cXmlSchemaType = 'long':u.
+            when DataTypeEnum:Decimal    then assign cXmlSchemaType = 'decimal':u.
+            when DataTypeEnum:Int64      then assign cXmlSchemaType = 'long':u.
+            when DataTypeEnum:Integer    then assign cXmlSchemaType = 'int':u.
+            when DataTypeEnum:Logical    then assign cXmlSchemaType = 'boolean':u.
+            when DataTypeEnum:Raw        then assign cXmlSchemaType = 'base64Binary':u.
+            when DataTypeEnum:Recid      then assign cXmlSchemaType = 'long':u.
+            when DataTypeEnum:Rowid      then assign cXmlSchemaType = 'base64Binary':u.
+            when DataTypeEnum:Handle     then assign cXmlSchemaType = 'long':u.
             /*@todo(task="question", action="decent default?").*/
-            otherwise                        assign cXmlSchemaType = poDataType:ToString().
+            otherwise                         assign cXmlSchemaType = poDataType:ToString().
         end case.
         
         return cXmlSchemaType.

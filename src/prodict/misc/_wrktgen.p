@@ -1347,7 +1347,7 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
              ASSIGN c = "".
          END.
          IF DICTDB._Field._dtype = 3 THEN DO:
-            ASSIGN slash = INDEX("/", Dictdb._Field._Format).
+            ASSIGN slash = INDEX(Dictdb._Field._Format,"/").
             IF UPPER(c) = UPPER(SUBSTRING(Dictdb._Field._Format,1, (slash - 1))) OR
                UPPER(c) BEGINS "Y" OR UPPER(c) BEGINS "T" THEN
                   ASSIGN c = "1".

@@ -72,6 +72,9 @@ interface OpenEdge.DataAdmin.IDomain inherits IDataAdminElement:
         will tell the server side to avoid the encryption Assuming it is done by the user 
         before being assigned to this property */
     define public property AccessCode      as char      no-undo get. set.
+
+    /* Defines authentication actions (PAM actions ) applicable to the the domain */
+    define public property AuthenticationActions as character no-undo get. set.
     
     /** Defines SystemOptions (PAM options) applicable to the Authentication System */
     define public property SystemOptions  as char      no-undo get. set.

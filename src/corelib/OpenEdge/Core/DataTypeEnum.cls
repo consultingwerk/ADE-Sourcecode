@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : DataTypeEnum
@@ -53,7 +53,8 @@ enum OpenEdge.Core.DataTypeEnum:
                       /* Data structures */
                       Dataset            
                       Buffer             
-                      TempTable          
+                      TempTable   
+                      ClientPrincipal       
                     
                       /* User-defined types */
                       ProgressLangObject 

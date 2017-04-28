@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2014 by progress Software Corporation  */
+/* Copyright (c) 2011-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -31,6 +31,7 @@ using OpenEdge.DataAdmin.Binding.ServiceAdapter from propath.
 using OpenEdge.DataAdmin.Core.FileLogger from propath.
 using OpenEdge.DataAdmin.Core.IPasswordPolicy from propath.
 using OpenEdge.DataAdmin.Core.PasswordPolicy from propath.
+using OpenEdge.DataAdmin.Error.DataError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
 using OpenEdge.DataAdmin.Error.NotFoundError from propath.
@@ -46,16 +47,22 @@ using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
 using OpenEdge.DataAdmin.IDataAdminElement from propath.
 using OpenEdge.DataAdmin.IDataAdminService from propath.
+using OpenEdge.DataAdmin.IDatabaseOption.
+using OpenEdge.DataAdmin.IDatabaseOptionSet.
 using OpenEdge.DataAdmin.IDataSecurity from propath.
 using OpenEdge.DataAdmin.IDomain from propath.
 using OpenEdge.DataAdmin.IDomainSet from propath.
 using OpenEdge.DataAdmin.IExtent from propath.
+using OpenEdge.DataAdmin.IGrantedRole.
+using OpenEdge.DataAdmin.IGrantedRoleSet.
 using OpenEdge.DataAdmin.IIndex from propath.
 using OpenEdge.DataAdmin.IPartitionPolicy from propath.
 using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
 using OpenEdge.DataAdmin.IPartitionPolicyDetailSet from propath.
 using OpenEdge.DataAdmin.IPartitionPolicySet from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.IRole.
+using OpenEdge.DataAdmin.IRoleSet.
 using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISecurityOptions from propath.
 using OpenEdge.DataAdmin.ISequence from propath.
@@ -86,7 +93,6 @@ using OpenEdge.DataAdmin.Util.UtilityFactory from propath.
 using Progress.Lang.AppError from propath.
 using Progress.Lang.Error from propath.
 using Progress.Lang.Object from propath.
-using OpenEdge.DataAdmin.Error.DataError from propath.
 
 class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService: 
     
@@ -170,6 +176,48 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         CancelSchemaChanges().
     end method.*/
     
+    /** Create a new role  
+        @param IRole The role to be created */
+    method public logical CreateRole(role as IRole):
+        return CreateElement(role,ContextFactory:RoleContext).
+    end method.
+   
+    /** Create new roles  
+        @param IRoleSet A collection of roles to create */
+    method public logical CreateRoles(roles as IRoleSet):
+        return CreateCollection(roles,ContextFactory:RoleContext). 
+    end method.
+
+    /** Create a new role grant
+
+        @param IGrantRole The role to be created
+        @return logical TRUE if the grant was created */
+    method public logical CreateGrantedRole(input poGrant as IGrantedRole):
+        return CreateElement(poGrant, ContextFactory:GrantedRoleContext).
+    end method.
+   
+    /** Create new role grants  
+        
+        @param IGrantedRoleSet A collection of roles to create
+        @return logical TRUE if the grant was created */
+    method public logical CreateGrantedRoles(input poGrants as IGrantedRoleSet):
+        return CreateCollection(poGrants, ContextFactory:GrantedRoleContext).
+    end method.
+    
+    /** Delete granted role   
+        @param character The ID of the granted role to delete
+        @throws NotFoundError if role does not exist */
+    method public logical DeleteGrantedRole(input pcGrantId as character):
+        define variable response as ISaveRequest no-undo.       
+        define variable inst as IGrantedRole no-undo.    
+       
+        inst = GetGrantedRole(pcGrantId).
+        if not valid-object(inst) then 
+            undo, throw new NotFoundError("Granted Role " + quoter(pcGrantId) + " not found").  
+        
+        return DeleteElement(pcGrantId,inst,ContextFactory:GrantedRoleContext).    
+    end method.
+        
     method public logical CreateArea(area as IArea):
         return CreateElement(area,ContextFactory:AreaContext).
     end method.
@@ -204,6 +252,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
        return CreateCollection(policies,ContextFactory:PartitionPolicyContext).
     end method. 
+    
       
     method public logical CreateTenantGroups(groups as ITenantGroupSet):
         return CreateCollection(groups,ContextFactory:TenantGroupContext). 
@@ -350,7 +399,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
               
         return DeleteElement(policyName,inst,ContextFactory:PartitionPolicyContext). 
     end method.
-       
+    
     method public logical DeleteTenant(tenantName as char):
         define variable response as ISaveRequest no-undo.       
         define variable inst as ITenant no-undo.       
@@ -477,6 +526,72 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:DataSecurityContext:GetEntity(pcKey),IDataSecurity). 
     end method.
     
+    
+    /** Get a granted role
+          
+        @param character The id of the grant role to retrieve*/
+    method public IGrantedRole GetGrantedRole(input pcGrantId as character):
+        return cast(ContextFactory:GrantedRoleContext:GetEntity(pcGrantId), IGrantedRole).
+    end method.
+        
+        
+    /* Get a collection of all role grants in the database 
+       
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles():
+        return cast(ContextFactory:GrantedRoleContext:GetCollection(), IGrantedRoleSet).
+    end method.
+    
+    /* Get a collection of role grants in the database
+      
+       @param character A character query filter expression of grant properties
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles(input pcFilter as character):
+        return cast(ContextFactory:GrantedRoleContext:GetCollection(pcFilter), IGrantedRoleSet).
+    end method.
+    
+    /* Get a collection of granted roles 
+         
+       @param IRequestinfo with a QueryString that defines an expression of domain properties 
+               with optional request info children with QueryStrings for child collections 
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles(input poRequestInfo as IRequestInfo):
+        return cast(ContextFactory:GrantedRoleContext:GetCollection(poRequestInfo), IGrantedRoleSet).
+    end method.        
+    
+    /** Get a role
+          
+        @param IRequestinfo that defines an expression that uniqely identifies a domain  
+               with optional request info children with QueryStrings for child collections */
+    method public IRole GetRole(input poRequest as IRequestInfo):
+        return cast(ContextFactory:RoleContext:GetEntity(poRequest), IRole).
+    end method.
+    
+    /** Get a role
+          
+        @param character The name of the role to retrieve*/
+    method public IRole GetRole(input pcRoleName as character):
+        return cast(ContextFactory:RoleContext:GetEntity(pcRoleName), IRole).
+    end method.
+   
+    /** Get a collection of all security roles domains in the database */
+    method public IRoleSet GetRoles():
+        return cast(ContextFactory:RoleContext:GetCollection(), IRoleSet).
+    end method.
+   
+    /** Get a collection of roles in the database *
+        @param filter a character query expression of domain properties */
+    method public IRoleSet GetRoles(input pcFilter as character):
+        return cast(ContextFactory:RoleContext:GetCollection(pcFilter), IRoleSet).
+    end method.
+    
+    /** Get a collection of all domains in the database 
+        @param IRequestinfo with a QueryString that defines an expression of domain properties 
+               with optional request info children with QueryStrings for child collections */
+    method public IRoleSet GetRoles(input poRequestInfo as IRequestInfo):
+        return cast(ContextFactory:RoleContext:GetCollection(poRequestInfo), IRoleSet).
+    end method.
+        
     method public IDomain GetDomain(domainName as char):
         return cast(ContextFactory:DomainContext:GetEntity(domainName),IDomain). 
     end method.
@@ -726,7 +841,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method public IPartitionPolicyDetailSet GetPartitionPolicyDetails(pFilter as char).
         return cast(ContextFactory:PartitionPolicyDetailContext:GetCollection(pFilter),IPartitionPolicyDetailSet).
     end method.
-   
+    
     method public IUserTablePermissionSet GetPermissions(pccollections as char):
         return cast(ContextFactory:PermissionContext:GetCollection(pcCollections),IUserTablePermissionSet).
     end method.
@@ -798,13 +913,48 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     method public IPartitionPolicyDetail NewPartitionPolicyDetail(pName as char).
         return cast(NewEntity("PartitionPolicyDetail",pname),IPartitionPolicyDetail). 
     end method.  
-   
+    
     method public ITenantGroupMember NewTenantGroupMember():
         return new TenantGroupMember().
         /*  this does work but we do not need context before added to service or collection   
             return cast(ContextFactory:GetLocalContext("Extent"):CreateRootEntity(),IExtent).*/
     end method.
 
+    /** Get a new granted role
+        
+        @param character The Role name
+        @return IGrantedRole The new grant role */
+    //method public IGrantedRole NewGrantedRole(input pcRoleName as character):
+    method public IGrantedRole NewGrantedRole():
+        return cast(NewEntity("GrantedRole":u, guid), IGrantedRole).
+    end method.
+
+    /** Get a new granted role
+        
+        Expected to be added to an instance of IRole and submitted that way. 
+     
+        @return IGrantedRoleSet The new grant set */
+    method public IGrantedRoleSet NewGrantedRoles():
+        return cast(NewCollection("GrantedRole":u), IGrantedRoleSet).
+    end method.
+        
+    /** Get a new role
+        Expected to be passed to CreateDomain() to be created in the database or added to a new or 
+        existing IRoleSet collection, to be submitted to the database with the collection. 
+     
+        @param character The name of the new role
+        @return IRole The new role */
+    method public IRole NewRole(pcRoleName as character):
+        return cast(NewEntity("Role":u, pcRoleName), IRole).
+    end method.
+    
+    /** Get an empty role collection  
+        Add new roles to the collection and pass it to CreateRoles() to create the roles in the database. 
+        
+        @return IRoleSet A new empty colleciton of roles */ 
+    method public IRoleSet NewRoles():
+        return cast(NewCollection("Role":u), IRoleSet).
+    end method.    
     
     method public IDomain NewDomain(pname as char):
         return cast(NewEntity("Domain",pname),IDomain). 
@@ -1188,6 +1338,120 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     method public logical UpdateSchema(pschema as ISchema):
         return UpdateElement(pschema:name,pschema,ContextFactory:SchemaContext).
+    end method.
+    
+    /** Get a new, empty db option
+    
+        Expected to be passed to CreateDatabaseOption() to be created in the database or added to a new or 
+        existing IDatabaseOptionSet collection, to be submitted to the database with the collection. 
+        
+        @param character The name of the new option
+        @return IDatabaseOption The new dboption */
+    method public IDatabaseOption NewDatabaseOption(input pcOptionCode as character):
+        return cast(NewEntity('DatabaseOption':u, pcOptionCode), IDatabaseOption).
+    end method.
+    
+    /** Get an empty dboption collection
+      
+        Add new options to the collection and pass it to CreateDatabaseOptions() to create the 
+        options in the database. 
+        
+        @return IDatabaseOptionSet A new empty collection of dboptions */ 
+    method public IDatabaseOptionSet NewDatabaseOptions():
+        return cast(NewCollection('DatabaseOption':u), IDatabaseOptionSet).
+    end method.
+    
+    /** Create a new database option  
+    
+        @param IDatabaseOption The option to be created 
+        @return logical TRUE if the dboption was created */
+    method public logical CreateDatabaseOption(input poDbOption as IDatabaseOption):
+        return CreateElement(poDbOption, ContextFactory:DatabaseOptionContext).
+    end method.
+   
+    /** Create new database options
+          
+        @param IDatabaseOptionSet A collection of options to create 
+        @return logical TRUE if the dboptions were created */
+    method public logical CreateDatabaseOptions(input poDbOption as IDatabaseOptionSet):
+        return CreateCollection(poDbOption, ContextFactory:DatabaseOptionContext).
+    end method.    
+    
+    /** Update the database with a changed dboption
+        
+        @param IDatabaseOption The updated db option  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateDatabaseOption(input poDbOption as IDatabaseOption):
+        return UpdateElement(poDbOption:Code, poDbOption, ContextFactory:DatabaseOptionContext).
+    end method.
+    
+    /** Update the database with changes for many dboptions
+        
+        @param IDatabaseOptionSet A colleciton of db options 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateDatabaseOptions(input poDbOptions as IDatabaseOptionSet):
+        return UpdateCollection(poDbOptions, ContextFactory:DatabaseOptionContext).
+    end method.
+    
+    /* Get a collection of db options
+       
+       @return IDatabaseOptionSet A colletion of the dboptions */
+    method public IDatabaseOptionSet GetDatabaseOptions():
+        return cast(ContextFactory:DatabaseOptionContext:GetCollection(), IDatabaseOptionSet).
+    end method.
+
+    /* Get a db option record by code
+       
+       @param character The db option code
+       @return IDatabaseOption The database option */
+    method public IDatabaseOption GetDatabaseOption(input pcOptionCode as character):
+        return cast(ContextFactory:DatabaseOptionContext:GetEntity(pcOptionCode), IDatabaseOption).
+    end method.
+    
+    /** Get a collection of database options
+        
+        @param filter a character query expression of db options */
+    method public IDatabaseOptionSet GetDatabaseOptions(input pcFilter as character):
+        return cast(ContextFactory:DatabaseOptionContext:GetCollection(pcFilter), IDatabaseOptionSet).
+    end method.
+    
+    /** Get a collection of database options 
+        @param IRequestinfo with a QueryString that defines an expression of dboptionproperties 
+               with optional request info children with QueryStrings for child collections */
+    method public IDatabaseOptionSet GetDatabaseOptions(input poRequestInfo as IRequestInfo):
+        return cast(ContextFactory:DatabaseOptionContext:GetCollection(poRequestInfo), IDatabaseOptionSet).
+    end method.
+    
+    /** Update the database with a changed security role
+        
+        @param IRole The updated role  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateRole(input poRole as IRole):
+        return UpdateElement(poRole:Name, poRole, ContextFactory:RoleContext).
+    end method.
+    
+    /** Update the database with changes for many roles
+        
+        @param IRoleSet A collection of roles 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateRoles(input poRoles as IRoleSet):
+        return UpdateCollection(poRoles, ContextFactory:RoleContext).
+    end method.
+
+    /** Update the database with a changed role grant
+        
+        @param IGrantRole The updated grant  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateGrantedRole(input poGrant as IGrantedRole):
+        return UpdateElement(poGrant:Id, poGrant, ContextFactory:GrantedRoleContext).
+    end method.
+    
+    /** Update the database with changes for many granted roles
+        
+        @param IGrantedRoleSet A collection of granted roles 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateGrantedRoles(input poGrants as IGrantedRoleSet):
+        return UpdateCollection(poGrants, ContextFactory:GrantedRoleContext).
     end method.
     
     /*   

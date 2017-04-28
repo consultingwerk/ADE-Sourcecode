@@ -266,6 +266,7 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
                 ttDomain.AuditingContext = domain:AuditingContext
                 ttDomain.AccessCode      = domain:AccessCode
                 ttDomain.RuntimeOptions  = domain:RuntimeOptions
+                ttDomain.AuthenticationActions = domain:AuthenticationActions
                 .   
             OnRowCreated().      
             catch e as Error:  

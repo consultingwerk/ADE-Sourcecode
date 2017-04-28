@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation.      */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -22,7 +22,9 @@ interface OpenEdge.DataAdmin.Binding.Factory.IIdentityScope inherits IContextSco
     define public property UserContext as UserContext no-undo get.  
     define public property DomainContext as DomainContext no-undo get.  
     define public property AuthenticationSystemContext as AuthenticationSystemContext no-undo get.  
-    define public property TenantContext as TenantContext no-undo get.  
-   
+    define public property TenantContext as TenantContext no-undo get.
+    
+    define public property RoleContext as RoleContext no-undo get.
+    define public property GrantedRoleContext as GrantedRoleContext no-undo get.  
      
 end interface.

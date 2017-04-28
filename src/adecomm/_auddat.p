@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2006,2008-2010,2015 by Progress Software Corporation  */
+/* Copyright (c) 1984-2006,2008-2010,2015-2016 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -2117,6 +2117,12 @@ PROCEDURE audDataAfterRowFill:
             hADBuff::_user-id NE "" THEN "User " + hADBuff::_user-id + " s"
          ELSE "S") + "uccessfully disconnected from " +
         hADBuff::_event-context.
+    WHEN "10602" THEN
+        hADBuff::_formatted-event-context = 
+          (IF hADBuff::_user-id NE ? AND
+              hADBuff::_user-id NE "" THEN "User " + hADBuff::_user-id + " failed"
+           ELSE "Failure") + " to connect to " +
+          hADBuff::_event-context.
     WHEN "10610" THEN DO:
        IF hADBuff::_user-id NE ? AND hADBuff::_user-id NE "" THEN
           hADBuff::_formatted-event-context = "SQL User: " + 
@@ -2426,6 +2432,16 @@ PROCEDURE audDataAfterRowFill:
         cTemp1 = ENTRY(2, hADBuff::_event-context, CHR(6)).
         hADBuff::_formatted-event-context = "Database passphrase policy version " 
                                              + ENTRY(2, cTemp1, CHR(7)) + " deleted" + cUserId.
+    END.
+    WHEN "11901" THEN DO:
+        hADBuff::_formatted-event-context = "Enable Authentication Gateway utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
+    END.
+    WHEN "11902" THEN DO:
+        hADBuff::_formatted-event-context = "Disable Authentication Gateway utility executed for "
+                                             + TRIM(hADBuff::_event-context) /* db-name */
+                                             + cUserId.
     END.
     OTHERWISE 
       hADBuff::_formatted-event-context = hADBuff::_event-context.

@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2011 by progress Software Corporation.      */
+ /* Copyright (c) 2011-2016 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -28,10 +28,12 @@ interface OpenEdge.DataAdmin.Binding.Factory.ISchemaScope inherits IContextScope
     define public property PartitionPolicyContext as PartitionPolicyContext no-undo get.  
     define public property PartitionPolicyFieldContext as PartitionPolicyFieldContext no-undo get.  
     define public property PartitionPolicyDetailContext as PartitionPolicyDetailContext no-undo get.
- 
+    
     define public property TableContext as TableContext no-undo get.  
     define public property SequenceContext as SequenceContext no-undo get.  
     define public property SequenceValueContext as SequenceValueContext no-undo get.  
     define public property SchemaContext as SchemaContext no-undo get.  
+    
+    define public property DatabaseOptionContext as DatabaseOptionContext no-undo get.
 
 end interface.

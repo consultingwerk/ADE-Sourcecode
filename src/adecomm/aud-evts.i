@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005,2008 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2008,2016 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -35,7 +35,7 @@
 &GLOBAL-DEFINE SEC_PERM_MNT 510-517,10305
 &GLOBAL-DEFINE DBA_MAINT    210-212,400-422
 &GLOBAL-DEFINE AUTH_SYS     500-507
-&GLOBAL-DEFINE DB_ADMIN     10100-10212,10000-10001
+&GLOBAL-DEFINE DB_ADMIN     10100-10212,10000-10001,11901-11902
 &GLOBAL-DEFINE DB_ACCESS    10500-10611
 &GLOBAL-DEFINE ENC_POL_MNT  11400-11402,11500-11502,11600-11602
 &GLOBAL-DEFINE ENC_KEY_MNT  11100-11114,11200-11207

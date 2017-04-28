@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2014 by progress Software Corporation       */
+/* Copyright (c) 2014-2016 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -26,16 +26,22 @@ using OpenEdge.DataAdmin.IAreaSet from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystem from propath.
 using OpenEdge.DataAdmin.IAuthenticationSystemSet from propath.
 using OpenEdge.DataAdmin.IDataAdminCollection from propath.
+using OpenEdge.DataAdmin.IDatabaseOption.
+using OpenEdge.DataAdmin.IDatabaseOptionSet.
 using OpenEdge.DataAdmin.IDataSecurity from propath.
 using OpenEdge.DataAdmin.IDomain from propath.
 using OpenEdge.DataAdmin.IDomainSet from propath.
 using OpenEdge.DataAdmin.IExtent from propath.
+using OpenEdge.DataAdmin.IGrantedRole.
+using OpenEdge.DataAdmin.IGrantedRoleSet.
 using OpenEdge.DataAdmin.IIndex from propath.
 using OpenEdge.DataAdmin.IPartitionPolicy from propath.
 using OpenEdge.DataAdmin.IPartitionPolicyDetail from propath.
 using OpenEdge.DataAdmin.IPartitionPolicyDetailSet from propath.
 using OpenEdge.DataAdmin.IPartitionPolicySet from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
+using OpenEdge.DataAdmin.IRole.
+using OpenEdge.DataAdmin.IRoleSet.
 using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISequence from propath.
 using OpenEdge.DataAdmin.ISequenceSet from propath.
@@ -57,8 +63,6 @@ using OpenEdge.DataAdmin.Util.IDataAdminUtility from propath.
 using OpenEdge.DataAdmin.Util.IUtilityFactory from propath.
 using Progress.Lang.Error from propath.
  
-
-
 interface OpenEdge.DataAdmin.IDataAdminService : 
     
     /** published when the service is deleted - considered internal */
@@ -143,7 +147,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
    /** Create a new partition policy  
         @param policies IPartitionPolicySet with policies to be created */
     method public logical CreatePartitionPolicies(policies as IPartitionPolicySet).
-  
+    
     /** Create a new group  
         @param group ITenantGroup to be created */
     method public logical CreateTenantGroup(newgroup as ITenantGroup).
@@ -176,6 +180,43 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param users IUserSet with a collection of users to create */
     method public logical CreateUsers(users as IUserSet).
         
+    /** Create a new role  
+        @param IRole The role to be created */
+    method public logical CreateRole(role as IRole).
+   
+    /** Create new roles  
+        @param IRoleSet A collection of roles to create */
+    method public logical CreateRoles(roles as IRoleSet).
+
+    /** Create a new role grant
+
+        @param IGrantRole The role to be created
+        @return logical TRUE if the grant was created */
+    method public logical CreateGrantedRole(input poGrant as IGrantedRole).
+   
+    /** Create new role grants  
+        
+        @param IGrantedRoleSet A collection of roles to create
+        @return logical TRUE if the grant was created */
+    method public logical CreateGrantedRoles(input poGrants as IGrantedRoleSet).
+
+    /** Create a new database option  
+    
+        @param IDatabaseOption The role to be created 
+        @return logical TRUE if the dboption was created */
+    method public logical CreateDatabaseOption(input poDbOption as IDatabaseOption).
+   
+    /** Create new database options
+          
+        @param IDatabaseOptionSet A collection of roles to create 
+        @return logical TRUE if the dboptions were created */
+    method public logical CreateDatabaseOptions(input poDbOption as IDatabaseOptionSet).
+
+    /** Delete granted role   
+        @param character The ID of the granted role to delete
+        @throws NotFoundError if role does not exist */
+    method public logical DeleteGrantedRole(input pcGrantId as character).
+    
     /** Delete domain  
         @param domainName name of domain to delete 
         @throws NotFoundError if domain does not exist */
@@ -190,7 +231,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param policyName name of policy to delete. 
         @throws NotFoundError if policy does not exist. */
     method public logical DeletePartitionPolicy(tenantName as char).
-   
+    
     /** Delete tenant 
         @param tenantName name of tenant to delete. 
         @throws NotFoundError if tenant does not exist. */
@@ -247,6 +288,90 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param domainName name of data security */
     method public IDataSecurity GetDataSecurity(pcKey as char).
     
+    /** Get a role
+          
+        @param IRequestinfo that defines an expression that uniqely identifies a domain  
+               with optional request info children with QueryStrings for child collections */
+    method public IRole GetRole(input poreq as IRequestInfo).
+
+    /** Get a role
+          
+        @param character The name of the role to retrieve*/
+    method public IRole GetRole(input pcRoleName as character).
+    
+    /** Get a granted role
+          
+        @param character The id of the grant role to retrieve*/
+    method public IGrantedRole GetGrantedRole(input pcGrantId as character).
+
+    /* Get a collection of all role grants in the database 
+       
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles().
+    
+    /* Get a collection of role grants in the database
+      
+       @param character A character query filter expression of grant properties
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles(input pcFilter as character).
+    
+    /* Get a collection of granted roles 
+         
+       @param IRequestinfo with a QueryString that defines an expression of domain properties 
+               with optional request info children with QueryStrings for child collections 
+       @return IGrantedRoleSet A set of grants */
+    method public IGrantedRoleSet GetGrantedRoles(input poRequestInfo as IRequestInfo).
+    
+    /** Get a collection of all security roles domains in the database */
+    method public IRoleSet GetRoles().
+    
+    /** Get a collection of roles in the database
+        @param filter a character query expression of domain properties */
+    method public IRoleSet GetRoles(input pcFilter as character).
+    
+    /** Get a collection of all domains in the database 
+        @param IRequestinfo with a QueryString that defines an expression of domain properties 
+               with optional request info children with QueryStrings for child collections */
+    method public IRoleSet GetRoles(input poRequestInfo as IRequestInfo).
+        
+    /** Get a new, empty db option
+    
+        Expected to be passed to CreateDatabaseOption() to be created in the database or added to a new or 
+        existing IDatabaseOptionSet collection, to be submitted to the database with the collection. 
+        
+        @param character The name of the new option
+        @return IDatabaseOption The new dboption */
+    method public IDatabaseOption NewDatabaseOption(input pcOptionCode as character).
+    
+    /** Get an empty dboption collection
+      
+        Add new roles to the collection and pass it to CreateDatabaseOptions() to create the 
+        options in the database. 
+        
+        @return IDatabaseOptionSet A new empty collection of dboptions */ 
+    method public IDatabaseOptionSet NewDatabaseOptions().
+        
+    /* Get a collection of db options
+       
+       @return IDatabaseOptionSet A colletion of the dboptions */
+    method public IDatabaseOptionSet GetDatabaseOptions().
+
+    /* Get a db option record by code
+       
+       @param character The db option code
+       @return IDatabaseOption The database option */
+    method public IDatabaseOption GetDatabaseOption(input pcOptionCode as character).
+    
+    /** Get a collection of database options
+        
+        @param filter a character query expression of db options */
+    method public IDatabaseOptionSet GetDatabaseOptions(input pcFilter as character).
+    
+    /** Get a collection of database options 
+        @param IRequestinfo with a QueryString that defines an expression of dboptionproperties 
+               with optional request info children with QueryStrings for child collections */
+    method public IDatabaseOptionSet GetDatabaseOptions(input poRequestInfo as IRequestInfo).
+            
     /** Get a domain 
         @param domainName name of domain */
     method public IDomain GetDomain(domainName as char).
@@ -442,7 +567,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
         @param collections a comma separated list of collections known by the service */ 
     method public IUserTablePermissionSet GetPermissions(pccollections as char).
     
-    /** Get a user permission 
+   /** Get a user permission 
         @param userid user id of user in the form <name>@<domain> 
                the user id does not need to exist */  
     method public IUserPermission GetUserPermission(usrID as char).
@@ -509,7 +634,34 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Get an empty domain collection  
         Add new domains to the collection and pass it to CreateDomains() to create the domains in the database. */ 
     method public IDomainSet NewDomains().
+
+    /** Get a new granted role
         
+        @param character The Role name
+        @return IGrantedRole The new grant role */
+    method public IGrantedRole NewGrantedRole().
+    
+    /** Get a new granted role
+        
+        Expected to be added to an instance of IRole and submitted that way. 
+     
+        @return IGrantedRoleSet The new grant set */
+    method public IGrantedRoleSet NewGrantedRoles().
+        
+    /** Get a new role
+        Expected to be passed to CreateRole() to be created in the database or added to a new or 
+        existing IRoleSet collection, to be submitted to the database with the collection. 
+     
+        @param character The name of the new role
+        @return IRole The new role */
+    method public IRole NewRole(input pcRoleName as character).
+    
+    /** Get an empty role collection  
+        Add new roles to the collection and pass it to CreateRoles() to create the roles in the database. 
+        
+        @return IRoleSet A new empty colleciton of roles */ 
+    method public IRoleSet NewRoles().
+
     /** Get a new authentication system  
         Expected to be passed to CreateAuthenticationSystem() to be created in the database 
         or added to a new or existing IAuthenticationSystemSet collection to be submitted to the 
@@ -533,7 +685,7 @@ interface OpenEdge.DataAdmin.IDataAdminService :
      /*  Expected to be added to IPartitionPolicy:Details collection to be submitted to the database*/
      /*        using the service's UpdateTable() or UpdateTables() methods.*/
     method public IPartitionPolicyDetail NewPartitionPolicyDetail(pname as char).
-      
+    
     /** Get a new tenant
         Expected to be passed to CreateTenant() to be created in the database or added to a new 
         or existing ITenantSet collection to be submitted to the database with the collection. 
@@ -609,6 +761,42 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Update the database with changes for many domains 
         @param domains IDomainSet collection */ 
     method public logical UpdateDomains(domains as IDomainSet).
+    
+    /** Update the database with a changed dboption
+        
+        @param IDatabaseOption The updated db option  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateDatabaseOption(input poDbOption as IDatabaseOption).
+    
+    /** Update the database with changes for many dboptions
+        
+        @param IDatabaseOptionSet A colleciton of db options 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateDatabaseOptions(input poDbOptions as IDatabaseOptionSet).
+
+    /** Update the database with a changed security role
+        
+        @param IRole The updated role  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateRole(input poRole as IRole).
+    
+    /** Update the database with changes for many roles
+        
+        @param IRoleSet A collection of roles 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateRoles(input poRoles as IRoleSet).
+
+    /** Update the database with a changed role grant
+        
+        @param IGrantRole The updated grant  
+        @return logical TRUE if the option was updated */
+    method public logical UpdateGrantedRole(input poGrant as IGrantedRole).
+    
+    /** Update the database with changes for many granted roles
+        
+        @param IGrantedRoleSet A collection of granted roles 
+        @return logical TRUE if the options were updated */
+    method public logical UpdateGrantedRoles(input poGrants as IGrantedRoleSet).
         
     /** Update the database with authentication system changes  
         @param authenticationSystem IAuthenticationSystem */ 

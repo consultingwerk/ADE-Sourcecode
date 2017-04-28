@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : AssertFile
@@ -17,6 +17,17 @@ using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Assert.
 
 class OpenEdge.Core.Assertion.AssertFile: 
+
+    /** Asserts that a file has exists.
+        
+        @param character The name of the directory being checked
+        @throws AssertionFailedError Error thrown if the file does not exist */
+    method public static void DirectoryExists(input pcName as character):
+        Assert:NotNullOrEmpty(pcName).
+        assign file-info:file-name = pcName.
+        if file-info:file-type eq ? or (not file-info:file-type begins 'D':u) then
+            undo, throw new AssertionFailedError(substitute('Directory &1 must exist', pcName), 0).
+    end method.
 
     /** Asserts that a file has exists.
         

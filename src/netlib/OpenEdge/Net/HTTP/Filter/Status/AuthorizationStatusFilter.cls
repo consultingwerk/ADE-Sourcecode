@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File       : AuthorizationStatusFilter
@@ -16,6 +16,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
@@ -64,10 +65,24 @@ class OpenEdge.Net.HTTP.Filter.Status.AuthorizationStatusFilter
     method public void Flush():
         define variable cAuthMethod as character no-undo.
         
-        Assert:NotNullOrEmpty(mcChallenge, 'Challenge').
+        /* While the HTTP spec (http://tools.ietf.org/html/rfc2616#section-10.4.2 ) states that "401 Unauthorized
+            
+               The request requires user authentication. The response MUST include a
+               WWW-Authenticate header field (section 14.47) containing a challenge
+               applicable to the requested resource. "
+          
+          Not all web servers send it (lookin' at you PASOE). Default to 'none' to prevent weird failures. */
+        
+        if mcChallenge eq ? then
+            assign mcChallenge = '':u.
         
         /* The challenge type is the first SPACE-delimited entry */
         assign cAuthMethod = entry(1, mcChallenge, ' ':u).
+
+        /* Default to NONE if the server is not following the HTTP spec  */        
+        if cAuthMethod eq '':u then
+            assign cAuthMethod = string(AuthenticationMethodEnum:None).
+            
         Assert:NotNullOrEmpty(cAuthMethod, 'Authentication method').
         
         /* The Request takes care of creating the correct value for the 

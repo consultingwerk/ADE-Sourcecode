@@ -1,7 +1,7 @@
  
  
 /**************************************************************************************************************
-*    Copyright (C) 2014-2015 by Progress Software Corporation. All rights reserved.                           *
+*    Copyright (C) 2014-2016 by Progress Software Corporation. All rights reserved.                           *
 *    Prior versions of this work may contain portions contributed by participants of Possenet.                *
 *                                                                                                             *
 ***************************************************************************************************************/
@@ -29,7 +29,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             GET.
             SET (INPUT hDataSrc AS HANDLE, INPUT idx AS INTEGER):
                 IF  idx > ProDataSet:NUM-BUFFERS THEN
-                    UNDO, THROW NEW Progress.Lang.AppError("ProDataSource's EXTENT value must equal number of buffers in DataSet.").
+                    UNDO, THROW NEW Progress.Lang.AppError("ProDataSource's EXTENT value must equal number of buffers in DataSet.", 0).
                 ProDataSource[idx] = hDataSrc.         
             END SET.
             
@@ -39,7 +39,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             GET.
             SET (INPUT cSkip AS CHAR, INPUT idx AS INTEGER):
                 IF  idx > ProDataSet:NUM-BUFFERS THEN
-                    UNDO, THROW NEW Progress.Lang.AppError("SkipList's EXTENT value must equal number of buffers in DataSet.").
+                    UNDO, THROW NEW Progress.Lang.AppError("SkipList's EXTENT value must equal number of buffers in DataSet.", 0).
                 ELSE
                     SkipList[idx] = cSkip.
             END SET.
@@ -337,11 +337,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE iIndex AS INTEGER NO-UNDO.
         
         IF ProDataSet:NUM-BUFFERS NE EXTENT(ProDataSource) THEN
-            UNDO, THROW NEW Progress.Lang.AppError("ProDataSource's EXTENT value must equal number of buffers in DataSet.").
+            UNDO, THROW NEW Progress.Lang.AppError("ProDataSource's EXTENT value must equal number of buffers in DataSet.", 0).
            
         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:         
             IF NOT VALID-HANDLE(ProDataSource[iIndex]) THEN
-                UNDO, THROW NEW Progress.Lang.AppError("ProDataSource extent value must be a valid DataSource Handle.").            
+                UNDO, THROW NEW Progress.Lang.AppError("ProDataSource extent value must be a valid DataSource Handle.", 0).            
         END.
                                     
     END METHOD.
@@ -356,7 +356,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE iIndex AS INTEGER NO-UNDO.
         
         IF ProDataSet:NUM-BUFFERS NE EXTENT(cFieldList) THEN
-            UNDO, THROW NEW Progress.Lang.AppError("cFieldList's EXTENT value must equal number of buffers in DataSet.").
+            UNDO, THROW NEW Progress.Lang.AppError("cFieldList's EXTENT value must equal number of buffers in DataSet.", 0).
            
         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:         
             IF cFieldList[iIndex] EQ ? THEN
@@ -461,7 +461,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         
         IF hBeforeBuffer EQ ? THEN
             UNDO, THROW NEW 
-            Progress.Lang.AppError("In order to use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.").
+            Progress.Lang.AppError("In order to use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.", 0).
         
         /* First let's determine if the BEFORE-TABLE has any records. If not, then we need to call MARK-ROW-STATE() 
          * which will create the before-table records. Before-table records are required by SAVE-ROW-CHANGES().
@@ -510,7 +510,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                      
                 /* If there is no Before-Image data, then throw the error */
                 IF lCreatedBeforeRows THEN
-                    UNDO, THROW NEW Progress.Lang.AppError(hBeforeBuffer:ERROR-STRING).
+                    UNDO, THROW NEW Progress.Lang.AppError(hBeforeBuffer:ERROR-STRING, 0).
 
             END.
            

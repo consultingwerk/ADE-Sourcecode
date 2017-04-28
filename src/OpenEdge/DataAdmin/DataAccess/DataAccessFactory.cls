@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation       */
+ /* Copyright (c) 2010-2016 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -61,9 +61,9 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                     or name = "PartitionPolicyDetail"   
                     or name = "PartitionPolicyField"   
                     or name = "LocalIndex"  then
-                da = new PartitionPolicyData().    
+                da = new PartitionPolicyData().
             else if name = "AllTable" then
-                da = new AllFileData().              
+                da = new AllFileData().
             else if name = "Schema" 
                  or name = "Table" 
                  or name = "Index" 
@@ -85,7 +85,13 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                 da = new FileData().            
             else if name = "SequenceValue" then 
                 da = new SequenceValueData().            
-            else 
+            else if name eq 'DatabaseOption':u then
+                da = new DatabaseOptionData().
+            else if name eq 'Role':u then
+                da = new RoleData().
+            else if name eq 'GrantedRole':u then
+                da = new GrantedRoleData().
+            else
             do on error undo, throw:
                 name = caps(substr(name,1,1)) + lc(substr(name,2)).
                 da = dynamic-new "OpenEdge.DataAdmin.DataAccess." + name + "Data" (). 

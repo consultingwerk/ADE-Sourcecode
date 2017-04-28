@@ -1314,6 +1314,14 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11901">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11902">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
   </Policy>
   <Policy GUID="3X2aMPgFPqbiE/GFnD8GDA" Name="PSC-Table-partition">
     <policy-properties>
@@ -1438,6 +1446,10 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="10602">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
     <audit-event Event-id="10610">
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
@@ -1446,6 +1458,10 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="10612">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=jiQMll44gKQUAGuBTd69IA;oxIlqrZOO+nikr9ZudB7xQ== -->
+<!-- SealID=4DWyWX1V7bYOFN4p8P1/BA;hg53cJfIj+wj+tbD3K1Qvg== -->

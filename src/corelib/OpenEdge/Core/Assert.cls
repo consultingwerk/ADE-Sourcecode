@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2015 by Progress Software Corporation 
+Copyright (c)  2013-2016 by Progress Software Corporation 
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -145,7 +145,7 @@ class OpenEdge.Core.Assert:
             return error new AssertionFailedError(substitute('&1 and &2 are equal', a, b), 0).
     end method.
 
-    method public static void isTrue(input a as logical):
+    method public static void IsTrue(input a as logical):
         define variable failMessage as character no-undo.
         if not a then
         do:
@@ -155,7 +155,7 @@ class OpenEdge.Core.Assert:
 
     end method.
 
-    method public static void isFalse(input a as logical):
+    method public static void IsFalse(input a as logical):
         define variable failMessage as character no-undo.
         if a then
         do:
@@ -204,6 +204,24 @@ class OpenEdge.Core.Assert:
     method public static void NotNull(pcArgument as character):
         NotNull(pcArgument, "argument").
     end method.
+
+    method public static void NotNull(prArgument as raw, pcName as character):
+        if prArgument eq ? then 
+            undo, throw new AssertionFailedError(substitute('&1 cannot be unknown', pcName), 0).
+    end method.
+
+    method public static void NotNull(prArgument as raw):
+        NotNull(prArgument, 'argument').
+    end method.
+
+    method public static void IsNull(prArgument as raw, pcName as character):
+        if prArgument ne ? then 
+            undo, throw new AssertionFailedError(substitute('&1 must be unknown', pcName), 0).
+    end method.
+
+    method public static void IsNull(prArgument as raw):
+        IsNull(prArgument, 'argument').
+    end method.
     
     method public static void IsNull(input pcArgument as character, input pcName as character):
         if pcArgument ne ? then 
@@ -249,6 +267,35 @@ class OpenEdge.Core.Assert:
         Assert:IsAvailable(phArgument, pcName).
     end method.
 
+    /* Validates that the argument is empy (blank)
+       @param character The value to check
+       @throws AssertionFailedError */
+    method public static void IsEmpty(input pcArgument as character):
+        IsEmpty(pcArgument, "argument").
+    end method.
+    
+    /* Validates that the argument is empy (blank)
+       
+       @param character The value to check
+       @param character The name of the argument (for errors)
+       @throws AssertionFailedError */
+    method public static void IsEmpty(input pcArgument as longchar, input pcName as character):
+        define variable iRawLength as int64 no-undo.
+        
+        Assert:NotNull(pcArgument, pcName).
+        /* number of bytes in the argument */
+        assign iRawLength = length(pcArgument, 'raw':u).
+        
+           /* no characters is pretty empty */
+        if iRawLength gt 0 or
+           /* TRIM converts everything to cpinternal, which may not be able to 'see' all the characters
+              that are in the argument. So, if the lengths differ, then there's something that's not a space
+              (strong assumption) and we're OK, Jack.
+              If the lengths match, we are ok to convert and we try to trim. */
+           (iRawLength eq length(pcArgument) and trim(pcArgument) ne '':u) then
+            undo, throw new AssertionFailedError(substitute('&1 must be empty', pcName), 0).
+    end method.
+    
     method public static void NotEmpty(input phArgument as handle):
         NotEmpty(phArgument, "argument").
     end method.
@@ -283,8 +330,8 @@ class OpenEdge.Core.Assert:
         define variable cLongCharArg as longchar no-undo.
 
         if extent(pcArgument) eq ? then
-            undo, throw new AssertionFailedError('argument cannot be an indeterminate array', 0).
-
+            undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
+        
         cLongCharArg = pcArgument[1].
         Assert:NotNullOrEmpty(cLongCharArg, pcName).
     end method.
@@ -775,6 +822,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsNegative(piArgument as integer, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument ge 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be negative', pcName), 0).
     end method.
@@ -784,6 +832,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsPositive(piArgument as integer, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument le 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be positive', pcName), 0).
     end method.
@@ -793,6 +842,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsZeroOrNegative(piArgument as integer, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument gt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or negative', pcName), 0).
     end method.
@@ -802,6 +852,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsZeroOrPositive(piArgument as integer, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument lt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or positive', pcName), 0).
     end method.
@@ -820,6 +871,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsZero(piArgument as int64, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument ne 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero', pcName), 0).
     end method.
@@ -829,6 +881,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsNegative(piArgument as int64, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument ge 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be negative', pcName), 0).
     end method.
@@ -838,6 +891,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsPositive(piArgument as int64, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument le 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be positive', pcName), 0).
     end method.
@@ -847,6 +901,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsZeroOrNegative(piArgument as int64, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument gt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or negative', pcName), 0).
     end method.
@@ -856,6 +911,7 @@ class OpenEdge.Core.Assert:
     end method.
         
     method public static void IsZeroOrPositive(piArgument as int64, pcName as character):
+        NotNull(piArgument, pcName).
         if piArgument lt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or positive', pcName), 0).
     end method.    
@@ -874,6 +930,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsNegative(pdArgument as decimal, pcName as character):
+        NotNull(pdArgument, pcName).
         if pdArgument ge 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be negative', pcName), 0).
     end method.
@@ -883,6 +940,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsPositive(pdArgument as decimal, pcName as character):
+        NotNull(pdArgument, pcName).
         if pdArgument le 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be positive', pcName), 0).
     end method.
@@ -892,6 +950,7 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsZeroOrNegative(pdArgument as decimal, pcName as character):
+        NotNull(pdArgument, pcName).
         if pdArgument gt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or negative', pcName), 0).
     end method.
@@ -901,13 +960,63 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsZeroOrPositive(pdArgument as decimal, pcName as character):
+        NotNull(pdArgument, pcName).
         if pdArgument lt 0 then
             undo, throw new AssertionFailedError(substitute('&1 must be zero or positive', pcName), 0).
     end method.    
 
     method public static void IsZeroOrPositive(pdArgument as decimal):
         IsZeroOrPositive(pdArgument, "argument").
-    end method.    
+    end method.
+    
+    /* Asserts that the input value can be converted to a logical value 
+    
+       @param character A character expression to evaluate
+       @param character The format mask for the logical value 
+       @param character The name of the argument
+       @throws AssertionFailedError */
+    method public static void IsLogical(input pcValue as character, 
+                                        input pcMask as character,
+                                        input pcName as character):
+        define variable lValue as logical no-undo.
+        
+        NotNullOrEmpty(pcMask, 'Format mask').
+        
+        assign lValue = logical(pcValue, pcMask) no-error.
+        if error-status:error then
+            undo, throw new AssertionFailedError(
+                                    substitute('&1 does not evaluate to a logical value with mask &2',
+                                        pcName,
+                                        pcMask),
+                                    0).
+    end method.
+
+    /* Asserts that the input value can be converted to a logical value with the
+       default/built-in format mask (see doc) 
+    
+       @param character A character expression to evaluate
+       @throws AssertionFailedError */
+    method public static void IsLogical(input pcValue as character):
+        IsLogical(pcValue, 'arg').
+    end method.
+    
+    /* Asserts that the input value can be converted to a logical value with the
+       default/built-in format mask (see doc) 
+    
+       @param character A character expression to evaluate
+       @param character The name of the argument
+       @throws AssertionFailedError */
+    method public static void IsLogical(input pcValue as character, 
+                                        input pcName as character):
+        define variable lValue as logical no-undo.
+        
+        assign lValue = logical(pcValue) no-error.
+        if error-status:error then
+            undo, throw new AssertionFailedError(
+                                    substitute('&1 does not evaluate to a logical value',
+                                        pcName),
+                                    0).
+    end method.
     
     /** Raises an AssertionFailedError.
         

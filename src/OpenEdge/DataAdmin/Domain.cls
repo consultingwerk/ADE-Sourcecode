@@ -208,6 +208,23 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
             end.
             AuthenticationSystem = pType.
         end.  
+        
+    /* Defines authentication actions (PAM actions) applicable to the the domain */
+    define public property AuthenticationActions as character no-undo
+         get():
+            if valid-handle(mBuffer) then
+                return mBuffer::AuthenticationActions.
+            else
+                return AuthenticationActions. 
+        end.
+        set(pAuthenticationActions as character):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::AuthenticationActions = pAuthenticationActions.
+            end.
+            AuthenticationActions = pAuthenticationActions.
+        end. 
 	
 	constructor public Domain (cntxt as IDataAdminModel,preq as IRequestInfo):
         super (cntxt,preq).        

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
@@ -136,7 +136,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         this-object:Clear().
         
         do iLoop = 1 to miArraySize:
-	    set-size(mmMemptrArray[iLoop]) = 0.
+            set-size(mmMemptrArray[iLoop]) = 0.
             set-size(mmMemptrArray[iLoop]) = this-object:DefaultCapacity.
         end.
     end method.
@@ -184,10 +184,10 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         do iLoop = 1 to piSize:
             if iLoop le miArraySize then
-	    do:
+            do:
                 assign mmMemptrArray[iLoop]   = mTempArray[iLoop]
                        miMemptrPostion[iLoop] = iTempPosition[iLoop].
-		set-size(mTempArray[iLoop]) = 0.
+                set-size(mTempArray[iLoop]) = 0.
             end.
             else
                 set-size(mmMemptrArray[iLoop]) =  this-object:DefaultCapacity.
@@ -209,7 +209,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
         set-size(mmTempBytes) = 1. /* allocate a new 1-byte memptr */
         set-size(mmTempBytes) = 0. /* free this 1-byte memptr, which also clears the size */
-	set-pointer-value(mmTempBytes) = piPointerValue.
+        set-pointer-value(mmTempBytes) = piPointerValue.
         set-size(mmTempBytes) = piSize.
         
         /* Start at the first byte of the input memptr */
@@ -306,8 +306,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
             /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
             set-size(poTarget:mmTempBytes) = 1.  /* allocate a new 1-byte memptr */
             set-size(poTarget:mmTempBytes) = 0.  /* free this 1-byte memptr, which also clears the size */
-	    set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
-	    set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
+            set-pointer-value(poTarget:mmTempBytes) = get-pointer-value(poSource:mmMemptrArray[iLoop]).
+            set-size(poTarget:mmTempBytes)          = get-size(poSource:mmMemptrArray[iLoop]).
             
             /* Start at the first byte of the input memptr */
             poTarget:WriteBytes(1, iNumBytes).
@@ -428,20 +428,36 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64):
-        return GetString(piStartPos, piSliceSize, 'UTF-8').         
+        return GetString(piStartPos, piSliceSize, session:cpinternal, 'UTF-8':u).         
     end method.
-                                         
+
     /** Returns a string/character representation a particular number of bytes,
         from a given start position.
     
         @param  int64 The start potision
         @param  int64 The size of the data (in bytes) to return 
-        @param  character The codepage for the character data
+        @param  character The target codepage for the character data
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64,
                                      input piSliceSize as int64,
-                                     input pcCodepage as character):                                         
+                                     input pcTargetCodepage as character):
+        return GetString(piStartPos, piSliceSize, session:cpinternal, pcTargetCodepage).                                                
+    end method. 
+                                                                                        
+    /** Returns a string/character representation a particular number of bytes,
+        from a given start position.
+    
+        @param  int64 The start potision
+        @param  int64 The size of the data (in bytes) to return 
+        @param  character The source codepage for the character data
+        @param  character The target codepage for the character data
+        @return longchar The character/string data requested     */
+    method public longchar GetString(input piStartPos as int64,
+                                     input piSliceSize as int64,
+                                     input pcSourceCodepage as character,
+                                     input pcTargetCodepage as character):
         define variable lcData as longchar no-undo.
+        define variable lcTemp as longchar no-undo.
         define variable iLoop as integer no-undo.
         define variable iNumBytes as integer no-undo.
         define variable iPutAt as integer no-undo.
@@ -451,13 +467,14 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
-        Assert:NotNullOrEmpty(pcCodepage, 'Codepage').
+        Assert:NotNullOrEmpty(pcSourceCodepage, 'Source codepage').
+        Assert:NotNullOrEmpty(pcTargetCodepage, 'Target codepage').
         
-        fix-codepage(lcData) = pcCodepage.
+        fix-codepage(lcData) = pcTargetCodepage.
         
         /* return an empty Memptr */        
         if this-object:Size eq 0 then
-            return ''.
+            return lcData.
         
         assign iBytesLeft   = piSliceSize
                iPutAt       = 1
@@ -472,6 +489,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         if iGetFrom eq 0 then
             assign iGetFrom = DefaultCapacity.
         
+        fix-codepage(lcTemp) = pcTargetCodepage.
         do iLoop = iStartIndex to miCurrentArrayIndex 
                 while iBytesLeft gt 0:
             
@@ -484,17 +502,20 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                 /* we may have a get-from value somewhere in the middle */
                 iNumBytes = min(get-size(mmMemptrArray[iLoop]) - iGetFrom + 1, iBytesLeft).
             
-            lcData = lcData 
-                   + get-string(mmMemptrArray[iLoop],
-                                    iGetFrom,
-                                    iNumBytes).
-            assign iPutAt      = iPutAt     + iNumBytes
+            copy-lob from mmMemptrArray[iLoop] starting at iGetFrom for iNumBytes
+                     to lcTemp
+                     convert
+                        source codepage pcSourceCodepage 
+                        target codepage pcTargetCodepage.
+            
+            assign lcData      = lcData     + lcTemp
+                   iPutAt      = iPutAt     + iNumBytes
                    iBytesLeft  = iBytesLeft - iNumBytes
                    /* start from the beginning of the next chunk */
                    iGetFrom    = 1.
         end.
-        
-        return lcData.        
+            
+        return lcData.
     end method.
 
     /** Returns a string/character representation a particular number of bytes,
@@ -537,7 +558,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         define variable iStartIndex as integer no-undo.
         define variable iGetFrom as integer no-undo.
         define variable iBytesLeft as integer no-undo.
-        
+        define variable mHolder as memptr no-undo.
+                
         Assert:IsPositive(piStartPos, 'Start position').
         Assert:IsZeroOrPositive(piSliceSize, 'Slice size').
         

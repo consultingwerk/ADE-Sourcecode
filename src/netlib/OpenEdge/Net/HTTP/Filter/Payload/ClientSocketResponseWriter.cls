@@ -32,7 +32,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             implements IHttpMessageWriter:
     
     /* transient variables used to keep parts-of-a-line that span responses */
-    define private variable mlcCurrentLine as longchar no-undo.
+    define private variable mcCurrentLine as character no-undo.
     define private variable moChunk as ByteBucket no-undo.
     define private variable miChunkSize as int64 no-undo.
     define private variable miChunkBytesRemaining as int64 no-undo.
@@ -68,9 +68,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                this-object:MessageBody = poMessageBody
                moChunk                 = ByteBucket:Instance()
                .
-        /* http://tools.ietf.org/html/rfc2616#page-27
-           Section 3.7.1 Canonicalization and Text Defaults says to use ISO-8859-1 */
-        fix-codepage(mlcCurrentLine) = 'ISO8859-1':u.
     end method.
     
     /**  Closes the output. See Open() */
@@ -83,7 +80,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     /** Opens the writer for output. Open/Close allows us to write the same message multiple
         times without requiring a new writer each time. */
     method public void Open():
-        assign mlcCurrentLine        = '':u
+        assign mcCurrentLine         = '':u
                miChunkSize           = 0
                miChunkBytesRemaining = 0
                mlStatusLineRead      = false
@@ -172,8 +169,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 if (miPrevByte eq CR and iByte eq LF ) or 
                    iLoop eq iBytesRead then
                     assign mlStatusLineRead = true
-                           mlcCurrentLine   = mlcCurrentLine 
-                                            + poSocketArgs:Data:GetString(iStartByte, iNumBytes)
+                           mcCurrentLine    = mcCurrentLine 
+                                            + string(poSocketArgs:Data:GetString(iStartByte, iNumBytes, session:cpinternal))
                            iNumBytes = 0.
                 assign miPrevByte = iByte.
             end. /* byte loop */
@@ -183,11 +180,11 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             if mlStatusLineRead then
             do:
                 /* assumption is that we're getting at least the status line in a chunk */
-                assign this-object:Response:Version      = substring(mlcCurrentLine, 1, 8)
-                       this-object:Response:StatusCode   = integer(substring(mlcCurrentLine, 10, 3))
-                       this-object:Response:StatusReason = substring(mlcCurrentLine, 14)
+                assign this-object:Response:Version      = substring(mcCurrentLine, 1, 8)
+                       this-object:Response:StatusCode   = integer(substring(mcCurrentLine, 10, 3))
+                       this-object:Response:StatusReason = substring(mcCurrentLine, 14)
                        
-                       mlcCurrentLine = '':u
+                       mcCurrentLine = '':u
                        /* read the status line again? */
                        mlStatusLineRead = (not Response:StatusCode eq integer(StatusCodeEnum:Continue)).
             end.
@@ -209,19 +206,19 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                    the carriage return */
                 if (miPrevByte eq CR and iByte eq LF ) or 
                    iLoop eq iBytesRead then
-                assign mlcCurrentLine = mlcCurrentLine
-                                      /* start at the beginning of this word/token. */
-                                      + poSocketArgs:Data:GetString(iLoop - (iNumBytes + 1), iNumBytes).
+                assign mcCurrentLine = mcCurrentLine
+                                     /* start at the beginning of this word/token. */
+                                     + string(poSocketArgs:Data:GetString(iLoop - (iNumBytes + 1), iNumBytes, session:cpinternal)).
                 
                 /* if we're at the end of the line, add the header to the response */
                 if iByte eq LF and iNumBytes gt 0 then
                 do:
-                    assign iPos   = index(mlcCurrentLine, ':':u)
-                           cName  = substring(mlcCurrentLine, 1, iPos - 1)
-                           cValue = left-trim(substring(mlcCurrentLine, iPos + 1))
+                    assign iPos   = index(mcCurrentLine, ':':u)
+                           cName  = substring(mcCurrentLine, 1, iPos - 1)
+                           cValue = left-trim(substring(mcCurrentLine, iPos + 1))
                     /* reset counters/temps */
-                           mlcCurrentLine = '':u
-                           iNumBytes      = 0.
+                           mcCurrentLine = '':u
+                           iNumBytes     = 0.
                     Response:SetHeader(
                         HttpHeaderBuilder:Build(cName):Value(cValue):Header).
                 end.

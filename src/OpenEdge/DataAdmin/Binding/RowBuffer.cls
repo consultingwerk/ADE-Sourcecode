@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011,2012 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -98,7 +98,8 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
     
     define public property KeyValues as character extent no-undo 
        get.
-       private set. 
+       private set.
+
 
 	/*------------------------------------------------------------------------------
 			Purpose:  																	  
@@ -122,8 +123,10 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
             undo, throw new UnknownValueError("RowImpl constructor","buffer-handle").
         if pBuffer:avail = false then 
             undo, throw new IllegalArgumentError("Buffer passed to RowImpl is not available.").
-        KeyFields = pKeyFields.           
-        SetKeyValues(pBuffer,pKeyFields).
+        KeyFields = pKeyFields. 
+        if pmodel:name eq "AllTable" then
+            SetKeyValues(pBuffer,pKeyFields,"").
+        else SetKeyValues(pBuffer,pKeyFields).
         create buffer mBuffer for table pbuffer.
         SerializeName = pBuffer:serialize-name.
         Model = pModel.
@@ -197,6 +200,45 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
             undo, throw new IllegalArgumentError("KeyFields does not match buffer. Error:  " + e:GetMessage(1)).  
          end catch. 
     end method. 
+    
+    method private char SetKeyValues(pBuffer as handle,pnames as char,dummy as char):
+         define variable hField as handle no-undo. 
+         define variable i as integer no-undo.
+        
+         if pnames = "" or pnames = ? then
+             undo, throw new UnknownValueError("KeyFields vas not passed RowBuffer constructor.").
+        
+         /* the assumption is that only single key objects will need this without 
+            context */
+         if num-entries(pnames) = 1 then
+         do:
+             extent(KeyValues) = 2.
+             hField = pBuffer:buffer-field(pnames).
+             if hfield:data-type = "character" then
+                KeyValue = hField:buffer-value.  
+              /* seems to have been a bad idea? - this is only used quoted in dynamic queries 
+                - ensure KeyValue is also set */  
+             else if hfield:data-type = "integer" then
+             do:
+                assign
+                    KeyIntValue = hField:buffer-value  
+                    KeyValue = string(KeyIntValue).
+             end.       
+             KeyValues[1] = hField:buffer-value.
+             hField = pBuffer:buffer-field("SchemaName").
+             KeyValues[2] = hField:buffer-value.
+         end.    
+         else do:   
+             extent(KeyValues) = num-entries(pnames).
+             do i = 1 to num-entries(pnames):
+                 hField = pBuffer:buffer-field (entry(i,pnames)).
+                 KeyValues[i] = hField:buffer-value.
+             end.    
+         end. 
+         catch e as Progress.Lang.Error :
+            undo, throw new IllegalArgumentError("KeyFields does not match buffer. Error:  " + e:GetMessage(1)).  
+         end catch. 
+    end method.
     
 	method public character FieldValue( pcColumn as character ):
 		define variable ifld as integer no-undo.

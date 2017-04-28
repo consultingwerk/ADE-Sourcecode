@@ -21,6 +21,7 @@ using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
 using OpenEdge.DataAdmin.DataAccess.DataMapper from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath. 
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath. 
+using OpenEdge.DataAdmin.Error.UnauthorizedOperationError.
 
 routine-level on error undo, throw.
 
@@ -29,6 +30,8 @@ class OpenEdge.DataAdmin.DataSource.DomainDataSource inherits DataSource:
     define buffer b_tenant for dictdb._Tenant.
     define private variable msave as logical no-undo.
     define private variable mAccessDisp as character no-undo init "********".
+    /* Is the current user a security admin? */
+    define private variable mlIsAdmin as logical no-undo init false.
    
 	define private variable mMapping as char
 	   init  	
@@ -43,12 +46,12 @@ AccessCode,_Domain-access-code,~
 SystemOptions,_PAM-options,~
 RuntimeOptions,_Domain-runtime-options,~
 TenantId,_Tenant._tenantId,~
-Comments,_Domain-custom-detail"     
+AuthenticationActions,_PAM-actions,~
+Comments,_Domain-custom-detail"
      no-undo.
 /* Names decided in discussions for 11.1 changes       
 Note: Consider removing Domain from the name. 
 Seems a bit weird to have IDomain:DomainActions. 
-DomainActions,_PAM-actions~  
 DomainControl,_PAM-control~     
 SystemPath,_PAM-library-path"
 */        
@@ -61,6 +64,8 @@ SystemPath,_PAM-library-path"
 		super ("_sec-authentication-domain,_tenant","dictdb._sec-authentication-domain,dictdb._tenant", mMapping). 
 		BaseQuery = "for each _sec-authentication-domain no-lock,"
 		          + " each _tenant outer-join where _tenant._tenant-name = _sec-authentication-domain._tenant-name no-lock".
+        
+        run prodict/_dctadmn.p ( input userid('dictdb':u), output mlIsAdmin ).
     end constructor.
     
     method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
@@ -154,7 +159,8 @@ SystemPath,_PAM-library-path"
                        where b_domain._domain-name = /*phbuffer::Name*/
                              hBeforeBuff::Name exclusive no-wait .
                     
-                    if phBuffer::AccessCode <> mAccessDisp then
+                    if (mlIsAdmin and phBuffer::AccessCode ne b_domain._Domain-access-code) or
+                       phBuffer::AccessCode <> mAccessDisp then
                     do:
                         assign
                             preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */
@@ -177,6 +183,15 @@ SystemPath,_PAM-library-path"
                     else
                        b_domain._Domain-name = phBuffer::Name.         
                 end.
+                
+                if lookup('AuthenticationActions':u, cChanges) gt 0 then
+                do:
+                    if mlIsAdmin then
+                        assign b_domain._PAM-actions = phBuffer::AuthenticationActions.
+                    else
+                        undo, throw new UnauthorizedOperationError('Only a Security Admin can change the authententication actions'). 
+                end.
+                
                 if cChanges = "IsEnabled" then 
                     b_domain._Domain-enabled = phBuffer::IsEnabled.
                 else
@@ -188,7 +203,8 @@ SystemPath,_PAM-library-path"
                         b_domain._Auditing-Context = phBuffer::AuditingContext
                         b_domain._PAM-options = phBuffer::SystemOptions
                         b_domain._Domain-runtime-options = phBuffer::RuntimeOptions
-                        b_domain._Domain-custom-detail = phBuffer::Comments.
+                        b_domain._Domain-custom-detail = phBuffer::Comments
+                        .
                              
                 hdataset = phBuffer:dataset.
                 buffer b_domain:buffer-validate ().    
@@ -219,8 +235,10 @@ SystemPath,_PAM-library-path"
         assign
             hBuffer             = hds:get-buffer-handle("ttDomain")
             hBuffer::Url        = Url + "/domains/" + WebUtil:UrlEncode(hBuffer::Name) 
-            hBuffer::UsersUrl   = hBuffer::Url + "/users" 
-            hBuffer::AccessCode = mAccessDisp.
+            hBuffer::UsersUrl   = hBuffer::Url + "/users".
+            
+        if not mlIsAdmin then 
+            assign hBuffer::AccessCode = mAccessDisp.
         
         /* we cannot create a builtin so the value is always correct on save
            (false if new, from read if update)  */    
