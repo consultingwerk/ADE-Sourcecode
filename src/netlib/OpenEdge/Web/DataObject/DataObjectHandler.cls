@@ -154,7 +154,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         define variable cContentType as character no-undo.
         
         Assert:NotNull(poRequest, 'Web request').
-        Assert:NotNull(poRequest, 'Web response').
+        Assert:NotNull(poResponse, 'Web response').
         Assert:NotNull(poError, 'Error').
         
         Logger:Error(substitute('Exception raised for &1 &2; Entity=&3; Operation=&4',
