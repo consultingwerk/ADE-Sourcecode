@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartEntityWriter
@@ -25,12 +25,10 @@ using OpenEdge.Net.MessagePart.
 using OpenEdge.Net.MultipartEntity.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
+using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWriter
         implements ISupportMultipartEntity: 
-
-    /* private and immutable constant value */
-    define protected property CRLF as character initial '~r~n':u no-undo get.
     
     /** The character string delimiting the parts. Excludes the leading and trailing -- */
     define public property Boundary as character no-undo get. set.
@@ -159,7 +157,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                        check for LF then CR since that means the first byte following a
                                        LF is another line ending (CR). */
                                     if iByte eq 10 and iNumBytes eq 0 and 
-                                       get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (CRLF + CRLF) then
+                                       get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (StringConstant:CRLF + StringConstant:CRLF) then
                                         assign lHeadersRead  = true
                                                iStartDataPos = iPartLoop.
                                                                                                                
@@ -208,7 +206,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                         /* so we leave processing */
                         assign iLoop = iSize.
 
-                        if oMPE:Epilogue eq CRLF then
+                        if oMPE:Epilogue eq StringConstant:CRLF then
                             assign oMPE:Epilogue = '':u. 
                                                        
                         leave MAIN-LOOP.

@@ -21,20 +21,23 @@ using OpenEdge.Logging.TokenResolver.
 class OpenEdge.Logging.Format.LogManagerFormat implements ILoggerFilter, ISupportFormatting:
     
     /* Format for the logger name. See the TokenResolve class for more */
-    define public property Format as character initial '1K':u no-undo get. set.
+    define public property Format as character initial '1C':u no-undo get. set.
     
     /** Performs implementation-specific filtering for a logger type
         
         @param LogMessage The message to log. */
     method public void ExecuteFilter( input poEvent as LogEvent):
+        define variable loggerShortName as character no-undo.
+        
+        if this-object:Format eq poEvent:ShortNameFormat then
+            assign loggerShortName = poEvent:LoggerShortName.
+        else
+            assign loggerShortName = TokenResolver:ResolveName(this-object:Format, poEvent:LoggerName).
+        
         assign poEvent:Message:Message = substitute('[&3 &1] &2':u,
                                                 string(poEvent:LogLevel), 
                                                 poEvent:Message:Message,
-                                                TokenResolver:Resolve(substitute('$&1name.&3.&2}':u, 
-                                                                        StringConstant:CURLY_OPEN,
-                                                                        poEvent:LoggerName,
-                                                                        this-object:Format ))
-                                                ).
+                                                loggerShortName        ).
     end method.
     
 end class.

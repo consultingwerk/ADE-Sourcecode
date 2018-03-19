@@ -1,331 +1,370 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "description": "Schema for Progress Data Object Operation Map, v. 1.0.0",
-    "definitions": {
-        "proDataset": {
-            "type": "object",
-            "description": "A complete prodataset",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": {"$ref": "#/definitions/tempTable"}
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Schema for Progress Data Object Operation Map, v. 1.0.0",
+  "definitions": {
+    "proDataset": {
+      "type": "object",
+      "description": "A complete prodataset",
+      "minItems": 1,
+      "uniqueItems": true,
+      "properties": {
+        "attr": {
+          "type": "object",
+          "description": "Attributes for the dataset",
+          "properties": {
+            "serializeHidden": {"type": "boolean"},
+            "serializeName": {"type": "string"}
+          }
         },
-        "tempTable": {
-            "type": "object",
-            "description": "A complete temp-table",
-            "properties": {
-                "trackChanges": { "type": "boolean"},
-                "fields": {
-                    "type": "array",
-                    "minItems": 1,
-                    "uniqueItems": true,
-                    "items": {"$ref": "#/definitions/ttField"}
-                },
-                "indexes": {
-                    "type": "object",
-                    "patternProperties": {
-                        "^[A-Za-z$0-9-/&#%.]+*$": {"$ref": "#/definitions/ttIndex"}
-                    }
-                }
-            }
-        },
-        "ttIndex": {
-            "type": "object",
-            "properties": {
-                "primary": {"type": "boolean"},
-                "unique": {"type": "boolean"},
-                "word": {"type": "boolean"},
-                "fields": {
-                    "type": "array",
-                    "minItems": 1,
-                    "uniqueItems": true,
-                    "items": {"type": "string"}
-                }
-            },
-            "required": [
-                "primary",
-                "unique",
-                "word",
-                "fields"
-            ]
-        },
-        "ttField": {
-            "type": "object",
-            "description": "A single field in a temp-table",
-            "properties": {
-                "name": {"type": "string"},
-                "ablType": {
-                    "type": "string",
-                    "enum": [
-                        "blob",
-                        "character",
-                        "class",
-                        "clob",
-                        "date",
-                        "datetime",
-                        "datetime-tz",
-                        "decimal",
-                        "handle",
-                        "int64",
-                        "integer",
-                        "logical",
-                        "raw",
-                        "recid",
-                        "rowid"
-                    ]
-                },
-                "extent": {
-                    "type": ["number", "null"]
-                }
-            },
-            "required": [
-                "name",
-                "ablType"
-            ]
-        },
-        "mimeType": {
-            "type": "string",
-            "pattern": "^[A-Za-z]*/[A-Za-z$0-9-.]*$"
-        },
-        "ablTypeName": {
-            "type": "string",
-            "pattern": "^[A-Za-z]+[A-Za-z$0-9-&#%.]+[A-Za-z$0-9-&#%]*$"
-        },
-        "httpMethod": {
-            "type": "string",
-            "enum": [
-                "GET",
-                "PUT",
-                "POST",
-                "DELETE",
-                "HEAD",
-                "OPTIONS",
-                "TRACE",
-                "PATCH"
-            ]
-        },
-        "mergeMode": {
-            "type": "string",
-            "enum": [
-                "EMPTY",
-                "REPLACE",
-                "APPEND",
-                "MERGE"
-            ]
-        },
-        "operationOptions": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-                "writeBI": {"type": "boolean"},
-                "requestEnvelope" : {"type": ["boolean", "string"]},
-                "responseEnvelope" : {"type": ["boolean", "string"]},
-                "errorEnvelope": {"type": ["boolean", "string"]},
-                "timeout": {"type": ["number", "null"]}
-            }
-        },
-        "msgElemValue": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "none",
-                        "path",
-                        "query",
-                        "header",
-                        "field",
-                        "cookie",
-                        "statusCode",
-                        "statusReason",
-                        "body",
-                        "request",
-                        "httpMethod",
-                        "constant"
-                    ]
-                },
-                "name": {
-                    "type": ["string","null"]
-                },
-                "ioMode": {
-                    "type": "string",
-                    "description": "For cases where we use an array of msgElems for an argument, this tells us whether it's an array and how the values are split",
-                    "enum": [
-                        "input",
-                        "output",
-                        "input-output",
-                        "return"
-                    ]
-                }
-            },
-            "required": [
-                "type",
-                "name"
-            ]
-        },
-        "mapValue": {
-            "type": "object",
-            "properties": {
-                "contentType": {
-                    "$ref": "#/definitions/mimeType",
-                    "description": "The content-type of the response payload, if any"
-                },
-                "statusCode": {
-                    "type": "number",
-                    "multipleOf": 1,
-                    "description": "The HTTP status code to return"
-                },
-                "options": {"$ref": "#/definitions/operationOptions"},
-                "void": {
-                    "type": "null",
-                    "description": "A void operation simply returns the statusCode"
-                },
-                "file": {
-                    "type": "string",
-                    "description": "The path (relative or absolute, depends on app) of a file to return. Typically used for catalogs or debug"
-                },
-                "entity": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "type": {
-                            "type": "string",
-                            "enum": ["cls", "proc" ]
-                        },
-                        "function": {"type": "string"},
-                        "arg": {
-                            "type": "array",
-                            "items": [
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "ablName": {
-                                            "type": "string",
-                                            "description": "The (optional) name of the ABL parameter. Blank for return"
-                                        },
-                                        "ablType": {
-                                            "type": "string",
-                                            "description": "The datatype of the ABL parameter. Must be 'class <full.type.name>' for types; Add '<space>extent' to indicate an array. Supported types are: character,longchar,integer,int64,decimal,logical,rowid,recid,date,datetime,datetime-tz,raw,memptr,dataset,temp-table,class"
-                                        },
-                                        "ioMode": {
-                                            "type": "string",
-                                            "enum": [
-                                                "INPUT",
-                                                "OUTPUT",
-                                                "INPUT-OUTPUT",
-                                                "RETURN"
-                                            ]
-                                        },
-                                        "msgElem": {
-                                            "oneOf": [
-                                                {"$ref": "#/definitions/msgElemValue"},
-                                                {
-                                                    "type": "array",
-                                                    "description": "An array is used for INPUT-OUTPUT or OUTPUT ioModes. In the IN-OUT case the first element is the input argument",
-                                                    "minItems": 1,
-                                                    "items": {"$ref": "#/definitions/msgElemValue"}
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "ablType",
-                                        "ioMode",
-                                        "msgElem"
-                                    ]
-                                }
-                            ]
-                        }
-                    },
-                    "required": [
-                        "name",
-                        "function",
-                        "arg"
-                    ]
-                }
-            }
-        }
+        "items": {"$ref": "#/definitions/tempTable"}
+      }
     },
-    "typeWriters": {
-        "type": "object",
-        "description": "Registry of writers used to create input arguments from a request for a ABL type. Must inherit from OpenEdge.Net.HTTP.Filter.Payload.MessageWriter",
-        "patternProperties": {
-            "^[A-Za-z]*/[A-Za-z$0-9-.]*$": {
-                "$ref": "#/definitions/ablTypeName"
-            }
-        }
-    },
-    "bodyWriters": {
-        "type": "object",
-        "description": "Registry of writers used to create a body (response) for a MIME type. Must inherit from OpenEdge.Net.HTTP.Filter.Payload.MessageWriter",
-        "patternProperties": {
-            "^[A-Za-z]*/[A-Za-z$0-9-.]*$": {
-                "$ref": "#/definitions/ablTypeName"
-            }
-        }
-    },
-    "headerWriters": {
-        "type": "object",
-        "description": "Registry of writers used to create an HTTP heaver value",
-        "patternProperties": {
-            "^[A-Za-z]*/[A-Za-z$0-9-.]*$": {
-                "$ref": "#/definitions/ablTypeName"
-            }
-        }
-    },
-    "entityWriters": {
-        "type": "object",
-        "description": "Registry of writers used to create an entity object (request) for a MIME type. Must inherit from OpenEdge.Net.HTTP.Filter.Payload.MessageWriter",
-        "patternProperties": {
-            "^[A-Za-z]*/[A-Za-z$0-9-.]*$": {
-                "$ref": "#/definitions/ablTypeName"
-            }
-        }
-    },
-    "services": {
-        "type": "object",
-        "patternProperties": {
+    "tempTable": {
+      "type": "object",
+      "description": "A complete temp-table",
+      "properties": {
+        "trackChanges": {"type": "boolean"},
+        "serializeHidden": {"type": "boolean"},
+        "serializeName": {"type": "string"},
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/ttField"}
+        },
+        "indexes": {
+          "type": "object",
+          "patternProperties": {
             "^[A-Za-z$0-9-/&#%.]+*$": {
-                "type": "object",
-                "properties": {
-                    "version": {
-                        "type": "string",
-                        "format": "^[0-9]+(.[0-9]+)+$"
-                    },
-                    "options":{"type":"object" },
-                    "operations": {
-                        "type": "object",
-                        "patternProperties": {
-                            "^/[A-Za-z$0-9-/&#%.]+*$": {
-                                "type": "object",
-                                "patternProperties": {
-                                    "GET|PUT|POST|DELETE|HEAD|PATCH|OPTIONS|TRACE": {
-                                        "$ref": "#/definitions/mapValue"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "schemas": {
-                        "type": "object",
-                        "description": "A set of schemas for this service, each uniquely named",
-                        "patternProperties": {
-                            "^[A-Za-z$0-9-/&#%.]+*$": {
-                                "anyOf": [
-                                  {"$ref": "#/definitions/tempTable"},
-                                  {"$ref": "#/definitions/proDataset"}
-                                  ]
-                            }
-                        }
-                    },
-                    "catalog": {"type": "object"}
-                }
-            },
-            "required": [
-                "operations"
-            ]
+              "$ref": "#/definitions/ttIndex"
+            }
+          }
         }
+      },
+      "required": [
+        "fields"
+      ]
     },
-    "required": [
-        "services"
+    "ttIndex": {
+      "type": "object",
+      "properties": {
+        "primary": {"type": "boolean"},
+        "unique": {"type": "boolean"},
+        "word": {"type": "boolean"},
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        }
+      },
+      "required": [
+        "primary",
+        "unique",
+        "word",
+        "fields"
+      ]
+    },
+    "ttField": {
+      "type": "object",
+      "description": "A single field in a temp-table",
+      "properties": {
+        "name": {"type": "string"},
+        "ablType": {
+          "type": "string",
+          "enum": [
+            "blob",
+            "character",
+            "class",
+            "clob",
+            "date",
+            "datetime",
+            "datetime-tz",
+            "decimal",
+            "handle",
+            "int64",
+            "integer",
+            "logical",
+            "raw",
+            "recid",
+            "rowid"
+          ]
+        },
+        "extent": {"type": ["number","null"]},
+        "serializeHidden": {"type": "boolean"},
+        "serializeName": {"type": "string"}
+      },
+      "required": [
+        "name",
+        "ablType"
+      ]
+    },
+    "mimeType": {
+      "type": "string",
+      "pattern": "^[A-Za-z]*/[A-Za-z$0-9-.]*$"
+    },
+    "ablTypeName": {
+      "type": "string",
+      "pattern": "^[A-Za-z]+[A-Za-z$0-9-&#%.]+[A-Za-z$0-9-&#%]*$"
+    },
+    "ablClass": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/ablTypeName"
+        },
+        "hash": {
+          "type": "string",
+          "description": "A hash value to validate that the type is the expected version."
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "httpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE",
+        "HEAD",
+        "OPTIONS",
+        "TRACE",
+        "PATCH"
+      ]
+    },
+    "operationOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "writeBI": {"type": "boolean"},
+        "requestEnvelope": {"type": ["boolean","string"]},
+        "responseEnvelope": {"type": ["boolean","string"]},
+        "errorEnvelope": {"type": ["boolean","string"]},
+        "timeout": {"type": ["number","null"]},
+        "schemaInclude": {
+          "type": "object",
+          "description": "An object of tables/fields to include: one property per dataset and one per temp-table in it. The value is a comma-separated string of values, or * for all",
+          "patternProperties": {
+            "^[A-Za-z$0-9-/&#%.]+*$": {"type": "string"}
+          }
+        }
+      }
+    },
+    "serviceOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eventHandler": {
+          "anyOf": [
+            {"$ref": "#/definitions/ablTypeName"},
+            {"$ref": "#/definitions/ablClass"},
+            {
+              "type": "array",
+              "items": [
+                {"$ref": "#/definitions/ablTypeName"},
+                {"$ref": "#/definitions/ablClass"}
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "msgElemValue": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "path",
+            "query",
+            "queryMap",
+            "header",
+            "headerSet",
+            "field",
+            "cookie",
+            "statusCode",
+            "statusReason",
+            "body",
+            "request",
+            "httpMethod",
+            "constant"
+          ]
+        },
+        "name": {
+          "type": ["string","null"]
+        },
+        "ioMode": {
+          "type": "string",
+          "description": "For cases where we use an array of msgElems for an argument, this tells us whether it's an array and how the values are split",
+          "enum": [
+            "input",
+            "output",
+            "input-output",
+            "return"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ]
+    },
+    "singleService": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Za-z$0-9-/&#%.]+*$": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "format": "^[0-9]+(.[0-9]+)+$"
+            },
+            "options": {"$ref": "#/definitions/serviceOptions"},
+            "operations": {
+              "type": "object",
+              "patternProperties": {
+                "^/[A-Za-z$0-9-/&#%.]+*$": {
+                  "type": "object",
+                  "patternProperties": {
+                    "GET|PUT|POST|DELETE|HEAD|PATCH|OPTIONS|TRACE": {
+                      "$ref": "#/definitions/mapValue"
+                    }
+                  }
+                }
+              }
+            },
+            "schemas": {
+              "type": "object",
+              "description": "A set of schemas for this service, each uniquely named",
+              "patternProperties": {
+                "^[A-Za-z$0-9-/&#%.]+*$": {
+                  "anyOf": [
+                    {"$ref": "#/definitions/tempTable"},
+                    {"$ref": "#/definitions/proDataset"}
+                  ]
+                }
+              }
+            },
+            "catalog": {"type": "object"}
+          }
+        },
+        "required": [
+          "operations"
+        ]
+      }
+    },
+    "mapValue": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "An optional name for this operation"
+        },
+        "contentType": {
+          "$ref": "#/definitions/mimeType",
+          "description": "The content-type of the response payload, if any"
+        },
+        "statusCode": {
+          "type": "number",
+          "multipleOf": 1,
+          "description": "The HTTP status code to return"
+        },
+        "options": {"$ref": "#/definitions/operationOptions"},
+        "void": {
+          "type": "null",
+          "description": "A void operation simply returns the statusCode"
+        },
+        "file": {
+          "type": "string",
+          "description": "The path (relative or absolute, depends on app) of a file to return. Typically used for catalogs or debug"
+        },
+        "entity": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "type": {
+              "type": "string",
+              "enum": [
+                "cls",
+                "class",
+                "proc",
+                "procedure"
+              ]
+            },
+            "typeof": {
+              "description": "The OOABL type that this entity implements. Defaults to Progress.Lang.Object for CLS and Ccs.Common.Support.IHandleHolder for PROC",
+              "$ref": "#/definitions/ablTypeName"
+            },
+            "function": {"type": "string"},
+            "arg": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "ablName": {
+                      "type": "string",
+                      "description": "The (optional) name of the ABL parameter. Blank for return"
+                    },
+                    "ablType": {
+                      "type": "string",
+                      "description": "The datatype of the ABL parameter. Must be 'class<space><full.type.name>' for types; Add '<space>extent' to indicate an array. Supported types are: character,longchar,integer,int64,decimal,logical,rowid,recid,date,datetime,datetime-tz,raw,memptr,dataset,temp-table,class"
+                    },
+                    "ioMode": {
+                      "type": "string",
+                      "enum": [
+                        "INPUT",
+                        "OUTPUT",
+                        "INPUT-OUTPUT",
+                        "RETURN"
+                      ]
+                    },
+                    "msgElem": {
+                      "oneOf": [
+                        {"$ref": "#/definitions/msgElemValue"},
+                        {
+                          "type": "array",
+                          "description": "An array is used for INPUT-OUTPUT or OUTPUT ioModes. In the IN-OUT case the first element is the input argument",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/definitions/msgElemValue"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ablType",
+                    "ioMode",
+                    "msgElem"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "name",
+            "function",
+            "arg"
+          ]
+        }
+      }
+    }
+  },
+  "services": {
+    "oneOf": [
+      {"$ref": "#/definitions/singleService"},
+      {
+        "type": "array",
+        "items": [{"$ref": "#/definitions/singleService"}]
+      }
     ]
+  },
+  "required": [
+    "services"
+  ]
 }

@@ -67,6 +67,11 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISu
         assign ArgumentType = poType.
     end constructor.
     
+    /** Clears or empties the target */
+    method public void Clear():
+    end method.
+    
+    /** Flushes(writes) the input to the target */
     method public void Flush(  ):
     end method.
 

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientLibraryBuilder
@@ -43,6 +43,7 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
     define protected property PROP_SSL_PROTOCOLS  as character init 'sslprotocols':u no-undo get.
     define protected property PROP_SSL_CIPHERS    as character init 'sslciphers':u   no-undo get.
     define protected property PROP_SSL_HOSTVERIFY as character init 'sslhostverify':u no-undo get.
+    define protected property PROP_REUSESESSION   as character init 'reusesession':u no-undo get.
     
     /** Each concrete builder will implement this differently */
     define abstract public property Library as IHttpClientLibrary no-undo get.
@@ -147,6 +148,18 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         Assert:NotUnknown(plVerify, 'SSL host verification').
         
         SetOption(PROP_SSL_HOSTVERIFY, plVerify).
+        
+        return this-object.
+    end method.
+    
+    /** Determines whether (SSL) sessions should be reused.
+        
+        @param logical TRUE if sessions should be reused
+        @return ClientLibraryBuilder This builder object */
+    method public ClientLibraryBuilder ReuseSession(input pReuse as logical):
+        Assert:NotUnknown(pReuse, 'Session reuse flag').
+        
+        SetOption(PROP_REUSESESSION, pReuse).
         
         return this-object.
     end method.

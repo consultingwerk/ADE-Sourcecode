@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2017 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -24,6 +24,8 @@
                   Renamed property 'DisplayFieldsSecurity' to 'FieldSecurity'
     Modified    : 02/27/2003          Neil Bell (MIP)
                   Added property 'SecuredTokens'                  
+    Modified    : 08/14/2017          Rohit
+                  Make FieldPopupMapping non-translatable like others.                  
   ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
 /*----------------------------------------------------------------------*/
@@ -175,7 +177,7 @@ DO:
   ghADMProps:ADD-NEW-FIELD('ColorErrorFG':U,     'INTEGER':U, 0, ?, ?).
   ghADMProps:ADD-NEW-FIELD('BGColor':U,          'INTEGER':U, 0, ?, 12).
   ghADMProps:ADD-NEW-FIELD('FGColor':U,          'INTEGER':U, 0, ?, ?).
-  ghADMProps:ADD-NEW-FIELD('FieldPopupMapping','CHARACTER':U, 0, ?, '':U).  
+  ghADMProps:ADD-NEW-FIELD('FieldPopupMapping':U,'CHARACTER':U, 0, ?, '':U).  
 &ENDIF
 
   {src/adm2/custom/vispropcustom.i}

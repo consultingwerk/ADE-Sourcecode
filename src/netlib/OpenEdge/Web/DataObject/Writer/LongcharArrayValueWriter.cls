@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LongcharArrayValueWriter
@@ -14,7 +14,9 @@ block-level on error undo, throw.
 
 using Ccs.Common.Support.ICharacterArrayHolder.
 using Ccs.Common.Support.ILongcharArrayHolder.
+using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.LongcharArrayHolder.
+using OpenEdge.Core.Memptr.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Lang.AppError.
@@ -39,6 +41,16 @@ class OpenEdge.Web.DataObject.Writer.LongcharArrayValueWriter inherits ArgumentV
             when not valid-object(pData) then
                 assign this-object:Value = new LongcharArrayHolder().
             
+            when type-of(pData, Memptr) or
+            when type-of(pData, ByteBucket) then
+            do:
+                if dynamic-property (pData, 'Size':u) eq 0 then
+                    assign this-object:Value = new LongcharArrayHolder().
+                else
+                    return error new AppError(substitute('Unsupported object type: &1', pData:GetClass():TypeName)
+                                              , 0).
+            end.
+            
             when type-of(pData, JsonArray) then
                 this-object:Write(cast(pData, JsonArray):GetLongchar(1, cast(pData, JsonArray):Length)).
                       
@@ -47,11 +59,10 @@ class OpenEdge.Web.DataObject.Writer.LongcharArrayValueWriter inherits ArgumentV
             
             when type-of(pData, ICharacterArrayHolder) then
                this-object:Write(cast(pData, ICharacterArrayHolder):Value).
-
-            otherwise 
-                return error new AppError(
-                            substitute('Unsupported object type: &1', pData:GetClass():TypeName)
-                            , 0).
+            
+            otherwise
+                return error new AppError(substitute('Unsupported object type: &1', pData:GetClass():TypeName)
+                                          , 0).
         end case.
     end method.
 

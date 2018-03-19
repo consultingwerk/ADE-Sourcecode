@@ -55,6 +55,9 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
         define variable oKey as Object    no-undo.
         define variable lContains as logical no-undo.
         
+        if poCollection:Size eq 0 then
+            return true.
+        
         assign lContains = false
                oIterator = poCollection:Iterator().
         do while oIterator:HasNext():

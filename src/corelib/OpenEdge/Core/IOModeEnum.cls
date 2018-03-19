@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : IOModeEnum
@@ -15,29 +15,76 @@ Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-enum OpenEdge.Core.IOModeEnum:
-    define enum Input                     
-                Output                    
-                
-                Output-Append              
-                OutputAppend = Output-Append
-                
-                Input-Output
-                InputOutput = Input-Output                              
-                
-                Table-Handle               
-                TableHandle = Table-Handle
-                               
-                Table-Handle-By-Reference    
-                TableHandleByReference = Table-Handle-By-Reference
-                    
-                Dataset-Handle             
-                DatasetHandle = Dataset-Handle
-                
-                Dataset-Handle-By-Reference
-                DatasetHandleByReference = Dataset-Handle-By-Reference
-                  
+enum OpenEdge.Core.IOModeEnum flags:
+    
+    define enum // directions
+                Input
+                Output
                 Return
                 
-                Default = Input.                                 
+                // modifiers
+                Append
+                Bind
+                
+                By-Reference
+                ByReference = By-Reference
+                
+                By-Value
+                ByValue = By-Value
+                
+                Default = Input
+                
+                // supported combos
+                Input-By-Reference = Input, ByReference
+                InputByReference   = Input-By-Reference
+                
+                Input-Bind = Input, Bind
+                InputBind  = Input-Bind
+                
+                Output-By-Reference = Output, ByReference
+                OutputByReference  = Output-By-Reference
+                
+                Output-Append = Output, Append
+                OutputAppend  = Output-Append
+                
+                Output-Bind = Output, Bind
+                OutputBind  = Output-Bind
+                
+                Input-Output = Input, Output
+                InputOutput  = Input-Output
+                
+                Input-Output-By-Reference = Input, Output, ByReference
+                InputOutputByReference    = Input-Output-By-Reference
+                
+                //@deprecated(since="11.7.2").
+                Dataset-Handle
+                
+                //@deprecated(since="11.7.2").
+                DatasetHandle  = Dataset-Handle
+                
+                //@deprecated(since="11.7.2").
+                Dataset-Handle-By-Reference = DatasetHandle, ByReference
+                //@deprecated(since="11.7.2").
+                DatasetHandleByReference    = Dataset-Handle-By-Reference
+                
+                //@deprecated(since="11.7.2").
+                Dataset-Handle-By-Value = DatasetHandle, ByValue
+                //@deprecated(since="11.7.2").
+                DatasetHandleByValue    = Dataset-Handle-By-Value
+                
+                //@deprecated(since="11.7.2").
+                Table-Handle
+                //@deprecated(since="11.7.2").
+                TableHandle  = Table-Handle
+                
+                //@deprecated(since="11.7.2").
+                Table-Handle-By-Reference = TableHandle, ByReference
+                //@deprecated(since="11.7.2").
+                TableHandleByReference    = Table-Handle-By-Reference
+                
+                //@deprecated(since="11.7.2").
+                Table-Handle-By-Value = TableHandle, ByValue
+                //@deprecated(since="11.7.2").
+                TableHandleByValue    = Table-Handle-By-Value
+                .
 end enum.

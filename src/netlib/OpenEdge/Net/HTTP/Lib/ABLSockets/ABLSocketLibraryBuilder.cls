@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLSocketLibraryBuilder
@@ -28,12 +28,14 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
     /* constants. private and properties to make immutable */
     define private property LIB_NAME as character init 'Lib-ABLSockets':u no-undo get.
     define private property LIB_VERSION as character init '0.4.0':u no-undo get.
-     
+    
+    /* A useable, built instance of a IHttpClientLibrary */
     define override public property Library as IHttpClientLibrary no-undo
         get():
             return NewLib().
         end get.
-
+    
+    /* Default constructor */
     constructor public ABLSocketLibraryBuilder():
         super().
     end constructor.
@@ -73,13 +75,16 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
 
             /* assume a passed-in object is useable as-is. These options only apply to defaults. */            
             if HasOption(PROP_SSL_HOSTVERIFY) then
-                oConnectionParams:VerifyHost = GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
+                assign oConnectionParams:VerifyHost = GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
+            
+            if HasOption(PROP_REUSESESSION) then
+                assign oConnectionParams:ReuseSession = GetOptionLogicalValue(PROP_REUSESESSION).
             
             if HasOption(PROP_SSL_PROTOCOLS) then
-                oConnectionParams:SslProtocols = GetOptionStringArrayValue(PROP_SSL_PROTOCOLS).
+                assign oConnectionParams:SslProtocols = GetOptionStringArrayValue(PROP_SSL_PROTOCOLS).
             
             if HasOption(PROP_SSL_CIPHERS) then
-                oConnectionParams:SslCiphers = GetOptionStringArrayValue(PROP_SSL_CIPHERS).
+                assign oConnectionParams:SslCiphers = GetOptionStringArrayValue(PROP_SSL_CIPHERS).
             
             if type-of(oConnectionParams, ISupportInitialize) then
                 cast(oConnectionParams, ISupportInitialize):Initialize().

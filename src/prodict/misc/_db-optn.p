@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2007,2009 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2009,2017 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -36,7 +36,7 @@
                            20050921-017.
     fernando 11/30/07      Check if read-only mode.
     fernando 07/20/09      look at correct _db record
-                            
+    rkumar   09/11/17       support for CDC user ID feature                 
 ------------------------------------------------------------------------*/
 /*          This .p file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -66,6 +66,7 @@ DEFINE        VARIABLE glTrustDomain AS LOGICAL     NO-UNDO.
 DEFINE        VARIABLE glRecord      AS LOGICAL     NO-UNDO.
 DEFINE        VARIABLE glNoBlank     AS LOGICAL     NO-UNDO.
 DEFINE        VARIABLE glRuntime     AS LOGICAL     NO-UNDO.
+DEFINE        VARIABLE glCDCUserID   AS CHARACTER   NO-UNDO.
 
 DEFINE SHARED VARIABLE drec_db       AS RECID       NO-UNDO.
 
@@ -75,8 +76,8 @@ DEFINE SHARED VARIABLE drec_db       AS RECID       NO-UNDO.
 &Scoped-define FRAME-NAME Dialog-Frame
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS tbAppUser tbAudInsrt tbTrustDomain tbNoBlank tbRecord tbRuntime btnOk btnCancel txtAuditing txtSecurity 
-&Scoped-Define DISPLAYED-OBJECTS tbAppUser tbAudInsrt tbTrustDomain tbRecord tbNoBlank tbRuntime txtAuditing txtSecurity 
+&Scoped-Define ENABLED-OBJECTS tbAppUser tbAudInsrt tbTrustDomain tbNoBlank tbRecord tbRuntime tbCDCUser btnOk btnCancel txtAuditing txtSecurity txtCDCAuditing
+&Scoped-Define DISPLAYED-OBJECTS tbAppUser tbAudInsrt tbTrustDomain tbRecord tbNoBlank tbRuntime tbCDCUser txtAuditing txtSecurity txtCDCAuditing
 
 /* ***********************  Control Definitions  ********************** */
 
@@ -117,6 +118,13 @@ DEFINE VARIABLE txtSecurity AS CHARACTER FORMAT "X(256)":U
      &ELSE SIZE 23 BY .62 &ENDIF
      FONT 6 NO-UNDO.
 
+DEFINE VARIABLE txtCDCAuditing AS CHARACTER FORMAT "X(256)":U 
+      INITIAL "CDC User Identity:" 
+      VIEW-AS TEXT 
+     &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 25 BY 1
+     &ELSE SIZE 25 BY .62 &ENDIF
+     FONT 6 NO-UNDO.
+	 
 DEFINE VARIABLE tbAppUser AS LOGICAL INITIAL no 
          LABEL "Use Application User Id for Auditing" 
      VIEW-AS TOGGLE-BOX
@@ -153,6 +161,13 @@ DEFINE VARIABLE tbTrustDomain AS LOGICAL INITIAL no
      &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 41 BY 1
      &ELSE SIZE 40.8 BY .81 &ENDIF NO-UNDO.
 
+DEFINE VARIABLE tbCDCUser AS CHARACTER 
+     VIEW-AS RADIO-SET HORIZONTAL RADIO-BUTTONS 
+     "None",        "NONE",
+     "Database",    "DB",
+     "Application", "APP"
+	 &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 40 BY 1
+     &ELSE SIZE 40 BY 1.5 &ENDIF NO-UNDO.
 
 /* ************************  Frame Definitions  *********************** */
 
@@ -175,11 +190,14 @@ DEFINE FRAME Dialog-Frame
      tbRuntime
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 10 COL 7
           &ELSE AT ROW 9.05 COL 7.2 &ENDIF
+     tbCDCUser
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 13 COL 7
+          &ELSE AT ROW 10.61 COL 7.2 &ENDIF NO-LABEL
      btnOk
-          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 13 COL 18
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 14 COL 18
           &ELSE AT ROW 12 COL 3 &ENDIF
      btnCancel
-          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 13 COL 30
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 14 COL 30
           &ELSE AT ROW 12 COL 15 &ENDIF
      &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
        btnHelp AT ROW 12 COL 51.8 &ENDIF
@@ -189,6 +207,10 @@ DEFINE FRAME Dialog-Frame
      txtSecurity
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 6 COL 2 COLON-ALIGNED
           &ELSE AT ROW 5.81 COL 2 COLON-ALIGNED &ENDIF NO-LABEL
+	 txtCDCAuditing
+          &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 12 COL 2 COLON-ALIGNED
+          &ELSE AT ROW 10.41 COL 2 COLON-ALIGNED &ENDIF NO-LABEL
+  
      &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
        RECT-1 AT ROW 11.81 COL 2 &ENDIF
      SPACE(1.19) SKIP(0.18)
@@ -211,7 +233,8 @@ DO WITH FRAME {&FRAME-NAME}:
          tbNoBlank:PRIVATE-DATA     = "_pvm.noBlankUser|2"
          tbRecord:PRIVATE-DATA      = "_pvm.recordSessions|2"
          tbRuntime:PRIVATE-DATA     = "_pvm.RuntimePermissions|2" 
-         tbTrustDomain:PRIVATE-DATA = "_pvm.useAppRegistry|2".
+         tbTrustDomain:PRIVATE-DATA = "_pvm.useAppRegistry|2"
+		 tbCDCUser:PRIVATE-DATA     = "_pvm.CDCUserID|1".
 END. /* Do With Frame {&Frame-Name} */
 
 /* ************************  Control Triggers  ************************ */
@@ -251,6 +274,8 @@ ON VALUE-CHANGED OF tbRuntime IN FRAME {&FRAME-NAME}
 ON VALUE-CHANGED OF tbTrustDomain IN FRAME {&FRAME-NAME} 
   SELF:MODIFIED = (SELF:CHECKED NE glTrustDomain).
 
+ON VALUE-CHANGED OF tbCDCUser IN FRAME {&FRAME-NAME} 
+  glCDCUserID = tbCDCUser:SCREEN-VALUE.
 /* ***************************  Main Block  *************************** */
 
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
@@ -392,8 +417,22 @@ PROCEDURE initializeUI :
            glRecord      = tbRecord:CHECKED
            glNoBlank     = tbNoBlank:CHECKED
            glRuntime     = tbRuntime:CHECKED.
+		   
+	FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Change Data Capture" NO-LOCK NO-ERROR.	
+    if dictdb._Database-feature._dbfeature_enabled EQ "1" and NOT ronly then 
+	    ASSIGN tbCDCUser:SENSITIVE = TRUE.
+	ELSE 
+		ASSIGN tbCDCUser:SENSITIVE = FALSE.
   END.
+ 
   
+  FIND FIRST _Db-option where _Db-option._Db-recid = drec_db AND _Db-option._db-option-code = "_pvm.CDCUserID"
+	                      AND _Db-option._db-option-type = 1 EXCLUSIVE-LOCK NO-ERROR.
+  IF AVAILABLE _Db-option THEN   
+	 ASSIGN tbCDCUser:SCREEN-VALUE = _Db-option._db-option-value. 
+  ELSE 	 
+     ASSIGN tbCDCUser:SCREEN-VALUE = "None".
+ 
 END PROCEDURE.
 
 PROCEDURE saveOptions :
@@ -420,12 +459,12 @@ PROCEDURE saveOptions :
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN "No Db".
   END.
-
+ 
   hField = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
   DO WHILE VALID-HANDLE(hField):
     
     /* If this is not a TOGGLE-BOX or it's not sensitive then skip it. */
-    IF hField:TYPE      <> "TOGGLE-BOX" OR
+    IF hField:TYPE      <> "TOGGLE-BOX" AND hField:TYPE <> "RADIO-SET" OR
        hField:SENSITIVE =  FALSE THEN DO:
       hField = hField:NEXT-SIBLING.
       NEXT.
@@ -438,15 +477,19 @@ PROCEDURE saveOptions :
                                   " AND _db-option-type = " +
                                   ENTRY(2,hField:PRIVATE-DATA,"|")) 
                                   NO-ERROR.
+
+
     /* If we couldn't find an option that matches this one (unlikely) or
        the value hasn't changed, skip it (don't attempt to change the value) */
-    IF NOT (lFound = TRUE) OR
+    IF hField:TYPE EQ "TOGGLE-BOX" THEN DO:
+	  IF NOT (lFound = TRUE) OR
        hField:CHECKED = (IF hDbOption::_db-option-value EQ "yes" THEN
                            TRUE ELSE FALSE) THEN DO:
       hField = hField:NEXT-SIBLING.
       NEXT.
     END.
-    
+	END.
+	
     DO TRANSACTION:
       lFound = hDbOption:FIND-FIRST("WHERE _db-option._db-recid = " +
                                     STRING(hDb:RECID) +
@@ -456,8 +499,26 @@ PROCEDURE saveOptions :
                                     ENTRY(2,hField:PRIVATE-DATA,"|"),
                                     EXCLUSIVE-LOCK) NO-ERROR.
 
-      hDbOption::_db-option-value = (IF hField:CHECKED THEN "yes" 
+		/* Rohit*/
+		if hField:TYPE EQ "RADIO-SET" THEN DO:
+		IF NOT (lFound = TRUE) THEN DO:
+	      CREATE _Db-option.
+          ASSIGN  _Db-option._db-option-code  = "_pvm.CDCUserID"
+				  _Db-option._db-recid = hDb:RECID
+                  _Db-option._db-option-type  = 1
+				  _Db-option._db-option-description = "CDC User Identity"
+                  _Db-option._db-option-value = tbCDCUser:SCREEN-VALUE.
+		END.
+		ELSE DO:
+			ASSIGN  hDbOption::_db-option-value = tbCDCUser:SCREEN-VALUE.
+		END.
+		end.
+	    ELSE DO:			  	   /* not a radio-set- Rohit */
+		hDbOption::_db-option-value = (IF hField:CHECKED THEN "yes" 
                                      ELSE "no").
+		END.
+
+		
       hDbOption:BUFFER-RELEASE().
     END. /* Transaction Block */
     hField = hField:NEXT-SIBLING.

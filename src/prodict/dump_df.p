@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2007,2009,2011 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2007,2009,2011,2016,2017 by Progress Software        *
+* Corporation. All rights reserved.  Prior versions of this work may *
+* contain portions contributed by participants of Possenet.          *
 *                                                                    *
 *********************************************************************/
 

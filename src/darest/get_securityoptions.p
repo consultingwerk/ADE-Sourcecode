@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by Progress Software Corporation       */
+/* Copyright (c) 2011-2017 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -41,6 +41,7 @@ define temp-table ttOptions serialize-name "securityOptions"
     field RecordAuthenticatedSessions          as log  serialize-name "recordAuthenticatedSessions"
     field DisallowBlankUserid                  as log  serialize-name "disallowBlankUserid"
     field UseRuntimePermissions                as log  serialize-name "useRuntimePermissions"
+    field CDCUserid                            as char  serialize-name "cdcUserid"
  .
  
 {darest/restbase.i get securityoptions}  

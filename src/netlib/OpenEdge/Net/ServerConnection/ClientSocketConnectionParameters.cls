@@ -1,3 +1,6 @@
+/************************************************
+Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocketConnectionParameters
     Purpose     : Connection parameters for a client socket connection
@@ -19,18 +22,22 @@ using OpenEdge.Core.String.
 
 class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters 
                 implements IConnectionParameters:
-    
+     
     define public property FormatMask as FormatMaskEnum no-undo
        get():
            return FormatMaskEnum:Custom.
        end get.
     
+    /* The URI to which to connect */
     define public property URI as URI no-undo 
        get.
        set(input poURI as URI):
            Assert:NotNull(poURI, 'Socket connection URI').
            assign this-object:URI = poURI.
        end set.
+    
+    /** Sets the -NoSessionReuse flag for SSL */
+    define public property ReuseSession as logical no-undo get. set.
     
     /** Determines whether the client connection should verify the host
         certificate for SSL */
@@ -42,14 +49,39 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
     /** (optional) An array of SSL ciphers for this connection to use */
     define public property SslCiphers as character extent no-undo get. set.
     
+    /* Constructor
+       
+       @param URI The URI of the connection */
     constructor ClientSocketConnectionParameters(input poURI as URI):
         this-object().
         
+        Assert:NotNull(poURI, 'URI').
+        
         assign this-object:URI = poURI.
     end constructor.
-
+    
+    /* Constructor
+       
+       @param character The scheme (HTTP/HTTPS)
+       @param character The host to which to connect  
+       @param integer  The port to which to connect */
+    constructor ClientSocketConnectionParameters(input pScheme as character,  
+                                                 input pHost as character,
+                                                 input pPort as integer):
+        this-object().
+        
+        Assert:NotNullOrEmpty(pScheme, 'URI scheme').
+        Assert:NotNullOrEmpty(pHost, 'Host name').
+        Assert:IsPositive(pPort, 'Port').
+        
+        assign this-object:URI = new URI(pScheme, pHost, pPort).
+    end constructor.
+    
+    /* Default constructor */
     constructor ClientSocketConnectionParameters():
-        assign this-object:VerifyHost   = true.
+        assign this-object:VerifyHost   = true
+               this-object:ReuseSession = true
+               .
     end constructor.
     
     method public character GetConnectionString():
@@ -79,6 +111,7 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         if this-object:URI:Scheme eq string(UriSchemeEnum:https) then
             assign cSSL = substitute('-ssl &1 &2 &3 &4 &5':u,
                             (if this-object:VerifyHost   eq false then '-nohostverify':u else '':u),
+                            (if this-object:ReuseSession eq false then '-nosessionreuse':u else '':u),
                             (if extent(this-object:SslProtocols) eq ? then '':u else '-sslprotocols':u),
                             String:Join(this-object:SslProtocols, ',':u),
                             (if extent(this-object:SslCiphers) eq ? then '':u else '-sslciphers':u),

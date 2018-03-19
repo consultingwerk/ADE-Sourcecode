@@ -34,7 +34,7 @@ USING Ccs.Common.Support.* FROM PROPATH .
 USING Progress.Lang.*      FROM PROPATH .
 
 INTERFACE Ccs.Common.Support.IDateTimeTzArrayHolder
-    INHERITS IPrimitiveHolder:
+    INHERITS IPrimitiveArrayHolder:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the DATETIME-TZ array held by this holder class

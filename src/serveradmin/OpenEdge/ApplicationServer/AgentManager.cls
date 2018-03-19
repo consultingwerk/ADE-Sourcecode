@@ -25,12 +25,21 @@ class OpenEdge.ApplicationServer.AgentManager:
     method public integer terminateFreeABLSessions(input numSessions as integer):
         return pasam:terminateFreeSessions(numSessions).
     end method.
+
+    method public logical terminateFreeABLSession(input agentSessionId as integer):
+        return pasam:terminateFreeSession(agentSessionId).
+    end method.
     
     method public logical terminateABLSession(input brokerSessionId as character,
                                               input terminateOption as integer):
         return pasam:terminateSession(brokerSessionId, terminateOption).
     end method.
     
+    method public logical terminateABLSession(input agentSessionId as integer,
+                                              input terminateOption as integer):
+        return pasam:terminateSession(agentSessionId, terminateOption).
+    end method.
+
     method public logical stopAgent():
         return pasam:stopAgent().
     end method.
@@ -39,10 +48,37 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:InitiateDebugger(connectstring).
     end method.
     
+    method public logical DebugTest(INPUT operation AS Char,
+                                    INPUT modifiers AS Char,
+                                    INPUT iparm AS Int,
+                                    INPUT cparm AS Char,
+                                    OUTPUT intoutparm AS Int,
+                                    OUTPUT lcharoutparm AS Longchar):
+        return pasam:DebugTest(operation, modifiers, iparm, cparm,
+                               OUTPUT intoutparm, OUTPUT lcharoutparm).
+    end method.
+    
     method public logical dynamicPropertiesUpdate(input dynamicPropertiesString as character):
         return pasam:DynamicPropertiesUpdate(dynamicPropertiesString).
     end method.
     
+    method public logical TrackABLObjects(INPUT toggle AS Logical):
+        return pasam:TrackABLObjects(toggle).
+    end method.
+
+    method public logical TrackingABLObjects():
+        return pasam:TrackingABLObjects().
+    end method.
+
+    method public logical GetABLObjectsReport(OUTPUT jsonrpt AS Longchar):
+        return pasam:GetABLObjectsReport(OUTPUT jsonrpt).
+    end method.
+
+    method public logical GetABLObjectsReport(INPUT AgentSessId AS Integer,
+                                              OUTPUT jsonrpt AS Longchar):
+        return pasam:GetABLObjectsReport(AgentSessId, OUTPUT jsonrpt).
+    end method.
+
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

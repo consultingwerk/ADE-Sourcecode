@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015,2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
@@ -374,8 +374,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         oTempData = poSocketArgs:Data:GetBytes(iStartByte, iNumBytes).
                         
                         MessageBody:PutBytes(oTempData).
-                        /* done if the ContentLength property matches the size of the data */                                
-                        poSocketArgs:ReadComplete = (MessageBody:Size eq Response:ContentLength).                                
+                        /* Done if the Message Body is at least as big as the ContentLength. This is for cases like 
+                           PSC00359890 where the Content-Length header was 760 and the actual body 762 (2 trailing 
+                           whitespace bytes). */
+                        poSocketArgs:ReadComplete = (MessageBody:Size ge Response:ContentLength).                                
                     end.
                 end.    /* no Transfer-Encoding */
             end case.   /* non-HEAD */
@@ -416,4 +418,3 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     end method.
     
 end class.
-

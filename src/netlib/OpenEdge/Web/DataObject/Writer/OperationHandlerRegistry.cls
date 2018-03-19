@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationHandlerRegistry
@@ -19,6 +19,7 @@ using OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry.
 using OpenEdge.Web.DataObject.VoidOperationHandler.
 using OpenEdge.Web.DataObject.ClassOperationHandler.
 using OpenEdge.Web.DataObject.ProcedureOperationHandler.
+using OpenEdge.Web.DataObject.DataObjectHandler.
 
 class OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry inherits BuilderRegistry:
 
@@ -40,25 +41,11 @@ class OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry inherits BuilderRe
         
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
-        poRegistry:Put(substitute('&1.&2':u, 
-                            TargetTypeEnum:File:GetClass():TypeName,
-                            TargetTypeEnum:File:ToString()),
-                       get-class(FileOperationHandler)).
-        
-        poRegistry:Put(substitute('&1.&2':u, 
-                            TargetTypeEnum:Void:GetClass():TypeName,
-                            TargetTypeEnum:Void:ToString()),       
-                       get-class(VoidOperationHandler)).
-                       
-        poRegistry:Put(substitute('&1.&2':u, 
-                            TargetTypeEnum:Class:GetClass():TypeName,
-                            TargetTypeEnum:Class:ToString()),                 
-                       get-class(ClassOperationHandler)).
-                       
-        poRegistry:Put(substitute('&1.&2':u, 
-                            TargetTypeEnum:Procedure:GetClass():TypeName,
-                            TargetTypeEnum:Procedure:ToString()),   
-                       get-class(ProcedureOperationHandler)).
+        poRegistry:Put(string(TargetTypeEnum:Class),      get-class(ClassOperationHandler)).
+        poRegistry:Put(string(TargetTypeEnum:File),       get-class(FileOperationHandler)).
+        poRegistry:Put(string(TargetTypeEnum:Procedure),  get-class(ProcedureOperationHandler)).
+        poRegistry:Put(string(TargetTypeEnum:Self),       get-class(DataObjectHandler)).
+        poRegistry:Put(string(TargetTypeEnum:Void),       get-class(VoidOperationHandler)).
     end method.
-
+    
 end class.

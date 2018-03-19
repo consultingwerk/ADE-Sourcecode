@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterBuilder 
@@ -18,6 +18,7 @@ using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Web.DataObject.OperationArgument.
+using OpenEdge.Web.DataObject.OperationParameter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder.
@@ -47,6 +48,16 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         end get.
         private set.
         
+    /** Returns an argument value writer for a parameter
+        
+        @param  OperationParameter The operation parameter for which to build the writer
+        @return ArgumentValueWriterBuilder The entity writer builder to use  */
+    method static public ArgumentValueWriterBuilder Build(input pParam as OperationParameter):
+        Assert:NotNull(pParam, 'Operation parameter').
+        
+        return ArgumentValueWriterBuilder:Build(pParam:ArgumentType).
+    end method.
+    
     /** Returns an argument value writer for a argument
         
         @param  OperationArgument The operation for which to build the writer

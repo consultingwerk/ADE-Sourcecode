@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistry
@@ -9,64 +9,100 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
     Author(s)   : pjudge
     Created     : Wed May 18 13:06:41 EDT 2016
     Notes       : * static members let multiple DataObjectHandler instances use this
-                  * The actual work is done in the Instance of ServiceRegistryImpl
+                  * The actual work is done in the Registry of ServiceRegistryImpl
+                  * Load-from-JSON is done in the Loader (ServiceRegistryLoader)
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
+using OpenEdge.Core.SemanticVersion.
 using OpenEdge.Net.HTTP.MethodEnum.
+using OpenEdge.Web.DataObject.DataObjectService.
+using OpenEdge.Web.DataObject.IServiceRegistry.
 using OpenEdge.Web.DataObject.MappedOperation.
+using OpenEdge.Web.DataObject.ServiceOptions.
 using OpenEdge.Web.DataObject.ServiceRegistry.
-using OpenEdge.Web.DataObject.ServiceRegistryEventArgs.
 using OpenEdge.Web.DataObject.ServiceRegistryImpl.
+using OpenEdge.Web.DataObject.ServiceRegistryLoader.
 using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Web.DataObject.ServiceRegistry abstract:
-    // Holds the class that does the actual work/maintains the actual registry
-    define static private property Instance as ServiceRegistryImpl no-undo
+    
+    /* Holds the class that does loads from JSON into the registry */
+    define static private property Loader as ServiceRegistryLoader no-undo
         get():
-            if not valid-object(ServiceRegistry:Instance) then
-                assign ServiceRegistry:Instance = new ServiceRegistryImpl().
+            // Use a CCS Service Manager if extant, and let it control this object's lifecycle
+            if valid-object(Ccs.Common.Application:ServiceManager) then
+                assign ServiceRegistry:Loader = cast(Ccs.Common.Application:ServiceManager
+                                                            :getService(get-class(ServiceRegistryLoader)),
+                                                       ServiceRegistryLoader).
             
-            return ServiceRegistry:Instance.
+            if not valid-object(ServiceRegistry:Loader) then
+                assign ServiceRegistry:Loader= new ServiceRegistryLoader(ServiceRegistry:Registry).
+            
+            return ServiceRegistry:Loader.
         end get.
         set.
     
-    /* Event published when a a service has been registered
-       
-       @param Progress.Lang.Object The handler publishing the event
-       @param HandlerErrorEventArgs Event args for this event */
-    define static public event ServiceRegistered signature void (input poSender as Progress.Lang.Object,
-                                                                 input poEventArgs as ServiceRegistryEventArgs).
-
-    /* Event published when a a service has been de-registered
-       
-       @param Progress.Lang.Object The handler publishing the event
-       @param HandlerErrorEventArgs Event args for this event */
-    define static public event ServiceDeregistered signature void (input poSender as Progress.Lang.Object,
-                                                                   input poEventArgs as ServiceRegistryEventArgs).
-
+    // Holds the class that does the actual work/maintains the actual registry
+    define static public property Registry as IServiceRegistry no-undo
+        get():
+            // Use a CCS Service Manager if extant, and let it control this object's lifecycle
+            if valid-object(Ccs.Common.Application:ServiceManager) then
+                assign ServiceRegistry:Registry = cast(Ccs.Common.Application:ServiceManager
+                                                            :getService(get-class(IServiceRegistry)),
+                                                       IServiceRegistry).
+            
+            if not valid-object(ServiceRegistry:Registry) then
+                assign ServiceRegistry:Registry = new ServiceRegistryImpl().
+            
+            return ServiceRegistry:Registry.
+        end get.
+        private set.
+    
     // The default name for the root (unnamed) service
     define static public property ROOT_SERVICE_NAME as character init 'ROOT':u no-undo get.
     
-    // The root uur (ie / ) 
+    // The root uri (ie / ) 
     define static public property ROOT_SERVICE_URI  as character init '/':u no-undo get.
+    
+    /* Default constructor. Private to prevent instantiation */
+    constructor private ServiceRegistry():
+    end constructor.
     
     /* Indicates whether a named service is available. Will attempt to 
        locate a service map if it is not yet registered, and will register
-       it if one can be found. The search path for finding the service mapping
-       files is
+       it if one can be found. 
        
-       1. Look in the webapp's WEB-INF/openedge folder first
-       2. Look in the instance's /openedge folder next
-       3. Look in the rest of PROPATH  
+       @param character The name of the mapped service
+       @param character A version of the service to load
+       @param character The name of the webapp currently executed
+       @return logical TRUE if the service exists */
+    method static public logical TryFindService(input pcServiceName as character,
+                                                input pVersion as character,
+                                                input pcWebAppPath as character):
+        return Loader:TryFindService(pcServiceName, pcWebAppPath).
+    end method.
+
+    /* Indicates whether a named service is available. Will attempt to 
+       locate a service map if it is not yet registered, and will register
+       it if one can be found. 
        
        @param character The name of the mapped service
        @param character The name of the webapp currently executed
        @return logical TRUE if the service exists */
     method static public logical TryFindService(input pcServiceName as character,
                                                 input pcWebAppPath as character):
-        return Instance:TryFindService(pcServiceName, pcWebAppPath).
+        return Loader:TryFindService(pcServiceName, pcWebAppPath).
+    end method.
+        
+    /* Indicates whether a named service is available in the registry.  
+       
+       @param character The name of the mapped service
+       @param character The service version
+       @return logical TRUE if the service exists */
+    method static public logical HasService(input pServiceName as character,
+                                     input pVersion as character):
+        return Registry:HasService(pServiceName, pVersion).
     end method.
     
     /* Indicates whether a named service is available in the registry.  
@@ -74,47 +110,66 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @param character The name of the mapped service
        @return logical TRUE if the service exists */
     method static public logical HasService(input pcServiceName as character):
-        return Instance:HasService(pcServiceName).
+        return Registry:HasService(pcServiceName).
     end method.
     
-    /* Returns all registered service names 
+    /* Returns a the latest version of a service 
        
-       @return character extent An array of registered services. indeterminate if none. */
-    method static public integer GetServices(output pcServices as character extent):
-        return Instance:GetServices(output pcServices).
-    end method.
-
-    /* Sets the service options for a named service 
-       
-       @param character The service name. 
-       @param JsonObject  A JSON object containing options. 
-       @throws AssertionFailedError If the name is empty or null
-       @throws AppError If the requested service does not exist in the registry */
-    method static public void PutServiceOptions(input pcServiceName as character,
-                                                input poOptions as JsonObject):
-        Instance:PutServiceOptions(pcServiceName, poOptions).                                                    
-    end method.
+       @param character The name of the service to remove from the registry
+       @return DataObjectService  A data service 'header' */
+    method static public DataObjectService GetService(input pServiceName as character):
+        define variable svc as DataObjectService no-undo.
         
+        assign svc = Registry:GetService(pServiceName).
+        if valid-object(svc) then
+            assign svc:Registry = Registry.
+        
+        return svc. 
+    end method.
+            
+    /* Returns a service object
+       
+       @param character The name of the service to remove from the registry
+       @param character The service version to retrieve
+       @return DataObjectService  A data service 'header' */
+    method static public DataObjectService GetService(input pServiceName as character,
+                                                      input pVersion as character).
+        define variable svc as DataObjectService no-undo.
+        
+        assign svc = Registry:GetService(pServiceName, pVersion).
+        if valid-object(svc) then
+            assign svc:Registry = Registry.
+        
+        return svc. 
+    end method.
+    
+    /* Returns all registered services
+       
+       @return DataObjectService[] extent An array of registered services. indeterminate if none. */
+    method static public DataObjectService extent GetServices().
+        define variable svc as DataObjectService extent no-undo.
+        define variable cnt as integer no-undo.
+        define variable maxSvc as integer no-undo.
+                
+        assign svc    = Registry:GetServices()
+               maxSvc = extent(svc)
+               .
+        do cnt = 1 to maxSvc:
+            if valid-object(svc[cnt]) then
+                assign svc[cnt]:Registry = Registry.
+        end.
+        return svc. 
+    end method.
+    
     /* Returns the service options for a named service 
        
        @param character The service name. 
-       @return JsonObject  A JSDO object containing options. If no exist or none can be 
+       @return ServiceOptions  A JSDO object containing options. If no exist or none can be 
                            found, return an empty JSON object.
        @throws AssertionFailedError If the name is empty or null */
-    method static public JsonObject GetServiceOptions(input pcServiceName as character):
-        return Instance:GetServiceOptions(pcServiceName).
+    method static public ServiceOptions GetServiceOptions(input pcServiceName as character):
+        return Registry:GetServiceOptions(pcServiceName).
     end method.
-    
-    /* Sets a catalog for a named service 
-       
-       @param character The service name. 
-       @param JsonObject  A JSDO catalog. If no exist or none can be found, return null.
-       @throws AssertionFailedError If the name is empty or null
-       @throws AppError If the requested service does not exist in the registry */
-    method static public void PutServiceCatalog(input pcServiceName as character,
-                                                input poCatalog as JsonObject):
-        Instance:PutServiceCatalog(pcServiceName, poCatalog).
-    end method.         
     
     /* Returns a catalog for a named service 
        
@@ -123,7 +178,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @throws AssertionFailedError If the name is empty or null
        @throws AppError If the requested service does not exist in the registry */
     method static public JsonObject GetServiceCatalog(input pcServiceName as character):
-        return Instance:GetServiceCatalog(pcServiceName).
+        return Registry:GetServiceCatalog(pcServiceName).
     end method.
     
     /* Indicates whether a mapped operation exists  
@@ -135,16 +190,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     method static public logical HasOperation(input pcServiceName as character,
                                               input pcServiceURI as character,
                                               input poMethod as MethodEnum ):
-        return Instance:HasOperation(pcServiceName, pcServiceURI, poMethod).                                                  
-    end method.
-    
-    /* Adds a new operation map for a service.
-       
-       @param character The service name
-       @param MappedOperation The operation map for this Method/URI */
-    method static public void PutOperation(input pcServiceName as character,
-                                           input poMappedOperation as MappedOperation):
-        Instance:PutOperation(pcServiceName, poMappedOperation).
+        return Registry:HasOperation(pcServiceName, pcServiceURI, poMethod).                                                  
     end method.
     
     /* Returns details about the operation  
@@ -156,40 +202,31 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     method static public MappedOperation GetOperation(input pcServiceName as character,
                                                       input pcServiceURI as character,
                                                       input poMethod as MethodEnum ):
-        return Instance:GetOperation(pcServiceName, pcServiceURI, poMethod).                                                          
+        return Registry:GetOperation(pcServiceName, pcServiceURI, poMethod).                                                          
     end method.
               
-    /* Removes an operation mapping from the collection operation maps.
-       No-op if none exists.  
+    /* Returns an array or operations for the service 
        
-       @param character the service name 
-       @param character The relative URI    
-       @param MethodEnum The HTTP method    */
-    method static public void RemoveOperation(input pcServiceName as character,
-                                              input pcServiceURI as character,
-                                              input poMethod as MethodEnum):
-        Instance:RemoveOperation(pcServiceName, pcServiceURI, poMethod).                                                  
-    end method.
-
-    /* Removes an operation schema from service
-       No-op if none exists.  
-        
-       @param character the service name    
-       @param character The schema name   */
-    method static public void RemoveSchema(input pcServiceName as character,
-                                           input pcSchemaName as character):
-        Instance:RemoveSchema(pcServiceName, pcSchemaName).
+       @param character The serviceName
+       @param SemanticVersion The service version 
+       @return MappedOperation[] The operations for this service */
+    method public MappedOperation extent GetOperations(input pServiceName as character,
+                                                       input pVersion as SemanticVersion):
+        return Registry:GetOperations(pServiceName, pVersion).
     end method.
     
-    /* Saves a schema for a given service
+    /* Returns details about the operation
        
-       @param character The service name
-       @param character The schema name
-       @param handle    An empty data structure (TT or PDS) */
-    method static public void PutSchema(input pcServiceName as character,
-                                        input pcSchemaName as character,
-                                        input phSchema as handle):
-        Instance:PutSchema(pcServiceName, pcSchemaName, phSchema). 
+       @param character The serviceName
+       @param SemanticVersion The service version 
+       @param character The relative URI
+       @param MethodEnum The HTTP method
+       @return MappedOperation The operation map for this Method/URI */
+    method static public MappedOperation GetOperation(input pServiceName as character,
+                                                      input pVersion as SemanticVersion,
+                                                      input pServiceURI as character,
+                                                      input pMethod as MethodEnum ):
+        return Registry:GetOperation(pServiceName, pVersion, pServiceURI, pMethod).
     end method.
     
     /* Returns a schema for a given service oepration.
@@ -199,7 +236,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @return handle   An empty data structure (TT or PDS) */
     method static public handle GetSchema(input pcServiceName as character,
                                           input pcSchemaName as character):
-        return Instance:GetSchema(pcServiceName, pcSchemaName).
+        return Registry:GetSchema(pcServiceName, pcSchemaName).
     end method.
     
     /* Register a service in this handler.
@@ -212,27 +249,18 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
                                               input poOperations as JsonObject,
                                               input poCatalog as JsonObject,
                                               input poSchemas as JsonObject ):
-        Instance:RegisterService(pcServiceName,
-                                 pcVersion,
-                                 poOperations,
-                                 poCatalog,
-                                 poSchemas  ).
-        OnServiceRegistered(new ServiceRegistryEventArgs(pcServiceName)).                                 
-    end method.
-    
-    /* Removes a service registration.
-       
-       @param character The name of the service to remove from the registry */
-    method static public void DeregisterService(input pcServiceName as character):
-        Instance:DeregisterService(pcServiceName).
-        OnServiceDeregistered(new ServiceRegistryEventArgs(pcServiceName)).        
+        Loader:RegisterService(pcServiceName,
+                               pcVersion,
+                               poOperations,
+                               poCatalog,
+                               poSchemas  ).
     end method.
     
     /* Registers all services found in a given file. Can be used at agent startup
        
        @param character An extant file */
     method static public void RegisterFromFile(input pcFile as character):
-        Instance:RegisterFromFile(pcFile).
+        Loader:RegisterFromFile(pcFile).
      end method.
 
     /* Registers a named service found in a given file. Can be used at agent startup
@@ -241,30 +269,14 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @param character An extant file */
     method static public void RegisterFromFile(input pcServiceName as character,
                                                input pcFile as character):
-        Instance:RegisterFromFile(pcServiceName, pcFile).                                                   
+        Loader:RegisterFromFile(pcServiceName, pcFile).                                                   
      end method.
 
     /* Registers all services found in a given folder. Can be used at agent startup
        
        @param character An extant folder */
     method static public void RegisterAllFromFolder(input pcFolder as character):
-        Instance:RegisterAllFromFolder(pcFolder).
-    end method.
-    
-    /* Publishes the ServiceRegistered event
-       
-       @param ServiceRegistryEventArgs The event args */
-    method static private void OnServiceRegistered(input poEventArgs as ServiceRegistryEventArgs):
-        Assert:NotNull(poEventArgs, 'Event args').
-        ServiceRegistry:ServiceRegistered:Publish(get-class(ServiceRegistry), poEventArgs).
-    end method.                                              
-
-    /* Publishes the ServiceDeregistered event
-       
-       @param ServiceRegistryEventArgs The event args */
-    method static private void OnServiceDeregistered(input poEventArgs as ServiceRegistryEventArgs):
-        Assert:NotNull(poEventArgs, 'Event args').
-        ServiceRegistry:ServiceDeregistered:Publish(get-class(ServiceRegistry), poEventArgs).
+        Loader:RegisterAllFromFolder(pcFolder).
     end method.
     
 end class.

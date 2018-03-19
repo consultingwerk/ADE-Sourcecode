@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : poh_execute_setparam.i
@@ -30,13 +30,19 @@ when {&IDX} then
 do:
     assign arg_arr_idx_{&ARG-TYPE}   = arg_arr_idx_{&ARG-TYPE} + 1
            {&OPER-ARG}:ArgumentIndex = arg_arr_idx_{&ARG-TYPE}.
-&if '{&SWITCH-VALUE}' eq 'class' &then
-    assign arg_arr_{&ARG-TYPE}_{&IDX} = cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}).
-    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, substitute('&1 extent':u, get-class(Progress.Lang.Object):TypeName), {&OPER-ARG}:IOMode, arg_arr_{&ARG-TYPE}_{&IDX}).
-&else
-    /* input and input-output arguments will have a value at this point; not so for return and output */
     if valid-object({&OPER-ARG}:ArgumentValue) then
-        assign arg_arr_{&ARG-TYPE}_{&IDX} = {&COERCE-TYPE}(cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value).
-    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, substitute('&1 extent':u, {&OPER-ARG}:DataType), {&OPER-ARG}:IOMode, arg_arr_{&ARG-TYPE}_{&IDX}).
+&if '{&SWITCH-VALUE}' eq 'class' &then
+        assign arg_arr_{&ARG-TYPE}_{&IDX} = {&OPER-ARG}:ArgumentValue.
+&else
+        assign arg_arr_{&ARG-TYPE}_{&IDX} = cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value.
 &endif
+    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, 
+&if '{&SWITCH-VALUE}' eq 'class' &then
+                                get-class(Progress.Lang.Object):TypeName
+&else
+                                {&OPER-ARG}:Parameter:DataType
+&endif
+                                + ' extent':u,
+                                OpenEdge.Core.IOModeHelper:ToString({&OPER-ARG}:Parameter:IOMode, 'DYN-CALL':u), 
+                                arg_arr_{&ARG-TYPE}_{&IDX}).
 end.

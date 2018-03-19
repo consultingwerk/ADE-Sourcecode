@@ -34,7 +34,7 @@ USING Ccs.Common.Support.* FROM PROPATH .
 USING Progress.Lang.*      FROM PROPATH .
 
 INTERFACE Ccs.Common.Support.IIntegerArrayHolder
-    INHERITS IPrimitiveHolder:
+    INHERITS IPrimitiveArrayHolder:
 
     /*------------------------------------------------------------------------------
         Purpose: Returns the INTEGER array held by this holder class

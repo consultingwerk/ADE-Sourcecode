@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015, 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StringBodyWriter
@@ -12,10 +12,12 @@ Copyright (c)  2015, 2016 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert.
+using Ccs.Common.Support.ICharacterHolder.
+using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.String.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
+using Progress.IO.FileInputStream.
+using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter: 
@@ -31,23 +33,63 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
         super:Open().
     end method.
     
-    method override public int64 Write(input poData as Object):
-        define variable iBytesBefore as int64 no-undo.
-                
-        Assert:NotNull(poData).
+    method override public int64 Write(input pData as memptr):
+        define variable lcText as longchar no-undo.
         
-        assign iBytesBefore = cast(this-object:Entity, ByteBucket):Size. 
+        copy-lob from pData to lcText.
+        
+        return this-object:Write(lcText).        
+    end method.
+    
+    method override public int64 Write(input pData as longchar):
+        cast(this-object:Entity, ByteBucket):PutString(pData).
+        
+        return length(pData, 'raw':u).
+    end method.
+    
+    method override public int64 Write(input poData as Object):
+        define variable lcText as longchar no-undo.
+        define variable fileStream as FileInputStream no-undo.
         
         case true:
-            /* The :Value property of a String object contains a LONGCHAR; ToString() simply returns a string,
-               which may be too small to contain all the data. */
-            when type-of(poData, String) then
-                cast(this-object:Entity, ByteBucket):PutString(cast(poData, String):Value).
-            otherwise
-                cast(this-object:Entity, ByteBucket):PutString(poData:ToString()).
+            when not valid-object(poData) then
+                return 0.
+            
+            when type-of(poData, OpenEdge.Core.String) or
+            when type-of(poData, ICharacterHolder) or
+            when type-of(poData, ILongcharHolder) then
+            do:
+                assign lcText = dynamic-property(poData, 'Value':u).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).                
+                return length(lcText, 'raw':u).
+            end.    // characters
+            
+            when type-of(poData, FileInputStream) then
+            do:
+                assign fileStream = cast(poData, FileInputStream).
+                case entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u):
+                    when 'txt':u then
+                        return WriteFileStream(fileStream). 
+                    otherwise 
+                        return error new AppError(substitute('Unsupported file extension .&1 for TXT', 
+                                                        entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u))
+                                        , 0).
+                end case.
+            end.    // file stream
+                        
+            otherwise 
+            do:
+                assign lcText = poData:ToString().
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).                
+                return length(lcText, 'raw':u).
+            end.
         end case.
         
-        return (cast(this-object:Entity, ByteBucket):Size - iBytesBefore).
+        return 0.
     end method.
 
 end class.

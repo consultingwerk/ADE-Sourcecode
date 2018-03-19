@@ -16,6 +16,7 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
                         grp                 LogMessage.GroupName
                         logger[.format]     LogEvent.LoggerName
                         level               LogEvent.LogLevel
+                        stack.depth         LogEvent.Callstack[depth]; the lesser of the size of the stack or <depth>; set to 1 if not specified 
                         t.[arg]             LogEvent.TimeStamp
                             arg is * Group args for T (T= time). from TokenResolver
                         cp.[arg]            LogEvent.LoggedBy
@@ -59,7 +60,7 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat implements ILoggerFilter,ISupp
                .
         finally:
             assign mCurrentEvent = ?.
-        end finally.               
+        end finally.
     end method.
     
     /* Callback to handle token replacement with LogEvent/LogMessage context
@@ -69,6 +70,7 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat implements ILoggerFilter,ISupp
     method public void TokenResolvedHandler (input pSender as Progress.Lang.Object,
                                              input pArgs as TokenResolverEventArgs):
         define variable formatString as character no-undo.
+        define variable idx as integer no-undo.
         
         if not valid-object(mCurrentEvent) then
             return.
@@ -91,8 +93,28 @@ class OpenEdge.Logging.Format.ResolvedTokenFormat implements ILoggerFilter,ISupp
                 else
                     assign formatString = '':u.
                 
-                assign pArgs:TokenValue = TokenResolver:ResolveName(formatString, mCurrentEvent:LoggerName).
-            end.
+                // use the pre-formatted logger name if possible
+                if mCurrentEvent:ShortNameFormat eq formatString then
+                    assign pArgs:TokenValue = mCurrentEvent:LoggerShortName.
+                else
+                    assign pArgs:TokenValue = TokenResolver:ResolveName(formatString, mCurrentEvent:LoggerName).
+            end.    //logger
+            
+            when 'stack':u then
+            do:
+                case true:
+                    when extent(mCurrentEvent:CallStack) eq ? then
+                        assign idx = 0.
+                    when num-entries(pArgs:TokenArg, '.':u) gt 1 then
+                        // the number cannot be larger than the actual callstack size
+                        assign idx = min(integer(entry(2, pArgs:TokenArg, '.':u)), extent(mCurrentEvent:CallStack)). 
+                    otherwise
+                        assign idx = 1.
+                end case.
+                
+                if idx gt 0 then                
+                    assign pArgs:TokenValue = mCurrentEvent:CallStack[idx].
+            end.    // stack 
             
             when 'level':u  then
                 assign pArgs:TokenValue = mCurrentEvent:LogLevel:ToString().

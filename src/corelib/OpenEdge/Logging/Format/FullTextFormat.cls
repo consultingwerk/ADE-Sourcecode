@@ -27,10 +27,22 @@ class OpenEdge.Logging.Format.FullTextFormat implements ILoggerFilter, ISupportF
         
         @param LogMessage The message to log. */
     method public void ExecuteFilter( input poEvent as LogEvent ):
+        define variable messageGroup as character no-undo.
+        
+        if poEvent:Message:GroupName eq '':u then
+        do: 
+            if this-object:Format eq poEvent:ShortNameFormat then
+                assign messageGroup = poEvent:LoggerShortName.
+            else
+                assign messageGroup = TokenResolver:ResolveName(this-object:Format, poEvent:LoggerName).
+        end.
+        else
+            assign messageGroup = poEvent:Message:GroupName.
+        
         assign poEvent:Message:Message = substitute('[&1] &3 &2: &4&5':U,
                             /*1*/ iso-date(poEvent:TimeStamp),
                             /*2*/ string(poEvent:LogLevel),
-                            /*3*/ (if poEvent:Message:GroupName eq '':u then TokenResolver:Resolve('$~{name.':u + this-object:Format + '.':u + poEvent:LoggerName + '}':u) else poEvent:Message:GroupName),
+                            /*3*/ messageGroup,
                             /*4*/ poEvent:Message:Message,
                             /*5*/ StringConstant:CRLF).
         end method.

@@ -1,4 +1,10 @@
- 
+ /*************************************************************/
+ /* Copyright (c) 2011-2017 by Progress Software Corporation  */
+ /*                                                           */
+ /* all rights reserved.  no part of this program or document */
+ /* may be  reproduced in  any form  or by  any means without */
+ /* permission in writing from progress Software Corporation. */
+ /*************************************************************/ 
  /*------------------------------------------------------------------------
     File        : SecurityOptionsSource
     Purpose     : 
@@ -33,6 +39,10 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
         if num-dbs EQ 0 then
           undo , throw  new AppError("No database connected!" + "~n" +
             "You must be connected to a database to acces this tool!").
+            
+        // check permissions starting itself
+        isDbAdmin(USERID("DICTDB")).
+        checkReadOnlyDatabase("DICTDB","_Db-option"). 
         
         hBuffer:buffer-create ( ).
         find first DICTDB._db where DICTDB._db._db-local = true  no-lock.
@@ -49,6 +59,12 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
           if DICTDB._db-option._db-option-code =  "_pvm.useAppRegistry" then 
             assign hBuffer::TrustApplicationDomainRegistry = logical(DICTDB._db-option._db-option-value). 
         end.
+        
+        for each DICTDB._db-option where DICTDB._db-option._db-recid = RECID(DICTDB._db) 
+            and   DICTDB._db-option._db-option-type =  1 no-lock:
+          if DICTDB._db-option._db-option-code =  "_pvm.CDCUserID" then 
+            assign hBuffer::CDCUserid = DICTDB._db-option._db-option-value. 
+        end.
     end method.    
     
     method public void Save(phbuffer as handle):
@@ -58,6 +74,10 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
         if num-dbs EQ 0 then
           undo , throw  new AppError("No database connected!" + "~n" +
             "You must be connected to a database to acces this tool!").
+            
+        // check permissions starting itself
+        isDbAdmin(USERID("DICTDB")).
+        checkReadOnlyDatabase("DICTDB","_Db-option"). 
         
         hBeforeBuff = phBuffer:before-buffer.
         
@@ -86,6 +106,29 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
           and phBuffer::TrustApplicationDomainRegistry NE LOGICAL(DICTDB._db-option._db-option-value) then  
             assign DICTDB._db-option._db-option-value = phBuffer::TrustApplicationDomainRegistry. 
        end.
+       
+        find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Change Data Capture" no-lock no-error.        
+        if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled = "1" then
+        do:
+            find DICTDB._db-option where DICTDB._db-option._db-recid = RECID(DICTDB._db)
+                and DICTDB._db-option._db-option-code =  "_pvm.CDCUserID" no-error. 
+            if avail DICTDB._db-option then 
+            do:                
+                if phBuffer::CDCUserid NE DICTDB._db-option._db-option-value then  
+                    assign DICTDB._db-option._db-option-value = phBuffer::CDCUserid.            
+            end.
+            else if not avail DICTDB._db-option 
+                    and (phBuffer::CDCUserid eq "APP" or phBuffer::CDCUserid eq "DB") then 
+                do:
+                    create DICTDB._Db-option.
+                    assign 
+                        DICTDB._db-option._db-option-code  = "_pvm.CDCUserID"
+                        DICTDB._db-option._db-option-type  = 1
+                        DICTDB._db-option._db-option-value = phBuffer::CDCUserid
+                        DICTDB._db-option._db-option-description = "CDC User Identity"
+                        DICTDB._db-option._db-recid = RECID(DICTDB._db).          
+                end.
+        end.
         
         catch e as AppError  :
             undo, throw  e.     
@@ -95,5 +138,45 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
             undo, throw new DataAccessError(e2).
         end.
     end method.
+    
+    /*------------------------------------------------------------------------------
+      Purpose:  Returns whether the user (pcUser) is a database administrator or not.
+      Parameters: INPUT pcUser - Userid of the user to check
+      Notes:  
+    ------------------------------------------------------------------------------*/
+    method public void isDbAdmin(pcUser as character):
+        DEFINE VARIABLE lOk AS LOGICAL NO-UNDO.
+
+        RUN prodict/_dctadmn.p ( INPUT USERID("DICTDB"),
+            OUTPUT lOk ).
+
+        if not lOk then
+            undo , throw  new AppError("You do not have permission to run this tool!").        
+    end.    
+    
+    method public void checkReadOnlyDatabase(INPUT pcdbNname AS CHARACTER, INPUT pctableName AS CHARACTER):
+        DEFINE VARIABLE hFileBuffer AS HANDLE NO-UNDO.
+        DEFINE VARIABLE cWhere      AS CHAR   NO-UNDO.
+        
+        CREATE BUFFER hFileBuffer FOR TABLE pcdbNname + "._File" NO-ERROR.
+    
+        /* if we can't even get a handle to the table, assume it's that
+          user doesn't have permissions.
+        */
+        IF NOT VALID-HANDLE(hFileBuffer) THEN
+            undo , throw  new AppError("You do not have permission to run this tool!").
+    
+        ASSIGN cWhere = "WHERE " + pcdbNname + "._File._File-name = '" +
+            pctableName + "'".
+        hFileBuffer:FIND-FIRST(cWhere, NO-LOCK).
+    
+        IF NOT CAN-DO(hFileBuffer::_Can-read,USERID(pcdbNname)) THEN DO:
+             undo , throw  new AppError("You do not have read permission to use this option.").          
+        END.
+    
+        IF CAN-DO("READ-ONLY", DBRESTRICTIONS(pcdbNname)) or
+            NOT CAN-DO(hFileBuffer::_Can-write,USERID(pcdbNname)) THEN
+           undo , throw  new AppError("You do not have write permission to use this option.").        
+    end.    
     
 end class.

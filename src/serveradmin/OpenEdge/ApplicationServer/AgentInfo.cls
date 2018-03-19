@@ -86,6 +86,38 @@ class OpenEdge.ApplicationServer.AgentInfo :
                                                 output pStack as longchar):
         define variable mptr as memptr no-undo.
         define variable retVal as logical no-undo.
+        define variable sessid_int as int no-undo.
+        define variable use_int as logical no-undo initial no.
+
+        if length(sessid) LE 10 then do:
+            sessid_int = integer(sessid) no-error.
+            if not error-status:error then
+               use_int = yes.
+        end.
+
+        if use_int then
+           retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid_int, mptr).
+        else
+           retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid, mptr).
+        copy-lob from mptr 
+                 // JSON data is spec'ed as UTF-8
+                 to pStack convert target codepage 'utf-8':u.
+        
+        return retVal.
+        finally:
+            set-size(mptr) = 0.
+        end finally. 
+    end method.
+
+    /* Returns the agent call stack for a given session
+       
+       @param integer The agent session id for which to return a call stack
+       @param longchar out JSON representation of the stack 
+       @return logical  */
+    method public logical getAgentSessionStack (input  sessid as integer,
+                                                output pStack as longchar):
+        define variable mptr as memptr no-undo.
+        define variable retVal as logical no-undo.
         
         assign retVal = Progress.ApplicationServer.AgentInfo:GetAgentSessionStack(sessid, mptr).
         copy-lob from mptr 
@@ -96,6 +128,17 @@ class OpenEdge.ApplicationServer.AgentInfo :
         finally:
             set-size(mptr) = 0.
         end finally. 
+    end method.
+
+    method public logical getClientSessionID(input agentsessid as int,
+                                             output clientsessid as char):
+      return Progress.ApplicationServer.AgentInfo:GetClientSessionID(
+                                                         input  agentsessid,
+                                                         output clientsessid).
+    end method.
+
+    method public integer getAgentSessionID(input clsessid as char):
+      return Progress.ApplicationServer.AgentInfo:GetAgentSessionID(clsessid).
     end method.
 
     /* Returns the number of agent requests being monitored 

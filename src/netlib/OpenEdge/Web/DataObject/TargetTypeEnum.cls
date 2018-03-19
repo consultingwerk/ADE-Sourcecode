@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : TargetTypeEnum
@@ -13,11 +13,7 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 
 enum OpenEdge.Web.DataObject.TargetTypeEnum :  
     define enum Class
-                Cls=Class
-                
                 Procedure
-                Proc=Procedure
-                
                 Void
                 File
                 Self        // the dataobjecthandler itself

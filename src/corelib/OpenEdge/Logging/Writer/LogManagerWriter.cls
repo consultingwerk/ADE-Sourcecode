@@ -71,10 +71,8 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
             end.
             otherwise
             case true:
-                when log-manager:logfile-name eq ? then
+                when log-manager:logfile-name eq ? and pcFile ne ? then
                 do:
-                    Assert:NotNullOrEmpty(pcFile, 'Log file name').
-                    
                     assign log-manager:logfile-name = pcFile
                            this-object:Append       = plAppend
                            mlDefaultLog             = true.

@@ -1,0 +1,28 @@
+{
+  "services": {
+    "_oeping": [
+      {
+        "version": "1.0.0",
+        "operations": {
+          "/": {
+            "GET": {
+              "contentType": "application/json",
+              "statusCode": 200,
+              "options" :{
+            	"responseEnvelope": "response"
+              },
+              "entity": {
+                "type": "class",
+                "name": "OpenEdge.Rest.Admin.AppServerStatus",
+                "function": "ServerStatus",
+                "arg": [
+                  {
+                    "ablName": "",
+                    "ablType": "CHARACTER",
+                    "ioMode": "RETURN",
+                    "msgElem": {
+                      "type": "FIELD",
+                      "name": "_retVal"
+                    }
+                  }
+]}}}}}]}}

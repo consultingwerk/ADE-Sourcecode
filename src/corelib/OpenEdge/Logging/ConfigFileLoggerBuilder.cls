@@ -36,6 +36,9 @@ using OpenEdge.Logging.ConfigFileLoggerBuilder.
 using Progress.Json.ObjectModel.ObjectModelParser.
 
 class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder: 
+    // Monitors the time at which the config was last loaded
+    define static private variable CONFIG_FILE_TIMESTAMP as datetime init ? no-undo.
+    
     // The name of the file (in propath) that contains logging configuration.
     define static private variable CONFIG_FILE_NAME as character no-undo
             initial 'logging.config':u.
@@ -95,11 +98,39 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
     
     /* Static constructor */
     constructor static ConfigFileLoggerBuilder():
-        assign file-info:file-name = ConfigFileLoggerBuilder:CONFIG_FILE_NAME. 
-        
-        if file-info:full-pathname ne ? then
-            LoadConfig(cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject)).
+        LoadFromFile(ConfigFileLoggerBuilder:CONFIG_FILE_NAME).
     end constructor.
+    
+    /* Loads logging config from a file
+       
+       @param character The filename to load. */
+    method static private void LoadFromFile(input pFileName as character):
+        define variable lastTouch as datetime no-undo.
+        
+        Assert:NotNullOrEmpty(pFileName, 'Config file').
+        
+        assign file-info:file-name = pFileName.
+        
+        // if there's no file, do nothing.
+        if file-info:full-pathname eq ? then
+        do: 
+            // We previously loaded some config, and now have removed the file
+            if not CONFIG_FILE_TIMESTAMP eq ? then
+                ClearConfig().
+            
+            return.
+        end.
+        
+        assign lastTouch = add-interval(datetime(file-info:file-mod-date), file-info:file-mod-time, 'seconds':u).
+        
+        // Load config file if it exists and the file MOD timestamp is after the last value
+        if lastTouch gt CONFIG_FILE_TIMESTAMP then
+        do:
+            ClearConfig().
+            assign CONFIG_FILE_TIMESTAMP = lastTouch. 
+            LoadConfig(cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject)).
+        end.
+    end method.
     
     /* Constructor
        
@@ -229,6 +260,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         
         define buffer lbLogger for Logger.
         define buffer lbFilter for LogFilter.
+
+        // reload on every logger request. Will no-op if the file hasn't changed
+        LoadFromFile(ConfigFileLoggerBuilder:CONFIG_FILE_NAME).
         
         if FindLogger(this-object:LoggerType, buffer lbLogger) then
         do:

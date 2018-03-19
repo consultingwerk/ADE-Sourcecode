@@ -17,13 +17,15 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
 //block-level on error undo, throw.
 
 using OpenEdge.Logging.Filter.LoggerFilterList.
+using OpenEdge.Logging.Format.ISupportFormatting.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogEvent.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LogMessage.
-using OpenEdge.Logging.Logger.
+using OpenEdge.Logging.TokenResolver.
 
-class OpenEdge.Logging.Logger final implements ILogWriter:
+class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     // (mandatory) Holds filters for formatting the messagesto this logger
     define private variable moLogFilters as LoggerFilterList no-undo.
     
@@ -32,7 +34,23 @@ class OpenEdge.Logging.Logger final implements ILogWriter:
         
     // (mandatory) Name for this logger
     define public property Name as character no-undo get. private set.
-        
+    
+    /* (optional) The short-name of this logger. The short name is the 
+        logger name with the ShortNameFormat applied. This property is a cheat/optimisation
+        to prevent having to re-calculate a formatted name */
+    define protected property ShortName as character no-undo get. private set.
+    
+    /* (optional) The short-name-format of the logger logging this event. 
+       See the TokenResolve class for more detail */ 
+    define public property Format as character no-undo
+        get. 
+        set(input pFormat as character):
+            if pFormat ne this-object:Format then
+                assign this-object:Format    = pFormat
+                       this-object:ShortName = TokenResolver:ResolveName(pFormat, this-object:Name)
+                       .
+        end set.
+    
     /* Constructor
            
        @param character The name of this logger implementation
@@ -43,9 +61,10 @@ class OpenEdge.Logging.Logger final implements ILogWriter:
                               input poLogFilters as LoggerFilterList):
         if not valid-object(poLevel) then
             assign poLevel = LogLevelEnum:DEFAULT.
-        
-        assign this-object:Name = pcName
-               moLogFilters = poLogFilters
+            
+        assign this-object:Name     = pcName
+               this-object:Format   = '1C':u
+               moLogFilters         = poLogFilters
                this-object:LogLevel = poLevel
                .
     end constructor.
@@ -489,7 +508,12 @@ class OpenEdge.Logging.Logger final implements ILogWriter:
         else
             assign oEvent = new LogEvent(poLogLevel, poMessage, now).
         
-        assign oEvent:Logger   = this-object
+        assign oEvent:Logger     = this-object
+               
+               oEvent:LoggerName      = this-object:Name
+               oEvent:ShortNameFormat = this-object:Format
+               oEvent:LoggerShortName = this-object:ShortName
+               
                oEvent:LoggedBy = security-policy:get-client()
                .
         moLogFilters:ExecuteFilter(oEvent).
@@ -510,11 +534,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter:
        @return logical TRUE if these are the same logger object */
     method override public logical Equals( input poRef as Progress.Lang.Object ):
         if super:Equals(poRef) then
-          return true.
+            return true.
           
         if not type-of(poRef, Logger) then
             return false.
-            
+        
         return (cast(poRef, Logger):Name eq this-object:Name).             
     end method.
     

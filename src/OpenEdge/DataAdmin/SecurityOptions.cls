@@ -1,4 +1,10 @@
- 
+ /*************************************************************/
+ /* Copyright (c) 2011-2017 by Progress Software Corporation  */
+ /*                                                           */
+ /* all rights reserved.  no part of this program or document */
+ /* may be  reproduced in  any form  or by  any means without */
+ /* permission in writing from progress Software Corporation. */
+ /*************************************************************/
  /*------------------------------------------------------------------------
     File        : SecurityOptions
     Purpose     : 
@@ -89,6 +95,23 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
             end.
             UseRuntimePermissions = pUseRuntimePermissions.
         end. 
+        
+    define public property CDCUserid as character no-undo 
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::CDCUserid.
+            else
+                return CDCUserid. 
+        end.
+        
+        set(pCDCUserid as character):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::CDCUserid = pCDCUserid.
+            end.
+            CDCUserid = pCDCUserid.
+        end. 
 
 
     /*------------------------------------------------------------------------------
@@ -119,7 +142,8 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
         TrustApplicationDomainRegistry = json:GetLogical("trustApplicationDomainRegistry").
         RecordAuthenticatedSessions    = json:GetLogical("recordAuthenticatedSessions").  
         DisallowBlankUserid            = json:GetLogical("disallowBlankUserid").  
-        UseRuntimePermissions          = json:GetLogical("useRuntimePermissions").            
+        UseRuntimePermissions          = json:GetLogical("useRuntimePermissions").
+        CDCUserid                      = json:GetCharacter("cdcUserid").            
     end method.
      
     method public override void Export(pcfile as char):
@@ -131,7 +155,8 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
         body:Add("trustApplicationDomainRegistry",TrustApplicationDomainRegistry).
         body:Add("recordAuthenticatedSessions",RecordAuthenticatedSessions).
         body:Add("disallowBlankUserid",DisallowBlankUserid).
-        body:Add("useRuntimePermissions",UseRuntimePermissions).        
+        body:Add("useRuntimePermissions",UseRuntimePermissions).
+        body:Add("cdcUserid",CDCUserid).        
         root:WriteFile(pcFile,yes).
     end method.
 

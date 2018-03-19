@@ -1,6 +1,6 @@
 /***********************************************************************
-* Copyright (C) 2005-2015 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2005-2015,2017 by Progress Software Corporation. All   *
+* rights reserved.  Prior versions of this work may contain portions   *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ***********************************************************************/
@@ -38,6 +38,7 @@ Modified: 06/17/99 SLK Added _U._PRIVATE-DATA-ATTR,
           1/06/98  GFS Removed _REFRESHABLE
           1/97     SLK Added _vbx2ocx temp table
        11/13/2001  MAD Changed reference for ryobject.i to ttobject.i
+       07/21/2017  RKUMAR Updated MaxFields to 511- Case 00408829  
 ----------------------------------------------------------------------------*/
 /* _U - Universal Widget
           Contains the attributes that are commonly found in most widgets */
@@ -45,7 +46,7 @@ Modified: 06/17/99 SLK Added _U._PRIVATE-DATA-ATTR,
 /* Max tables in query definition */
 &Glob MaxTbl 20 
 /* Max tables in query definition */
-&Glob MaxFld 127 
+&Glob MaxFld 511
 /* Max User defined lists */
 &Glob MaxUserLists 6
 

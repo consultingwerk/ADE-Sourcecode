@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BuilderRegistry
@@ -11,7 +11,8 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
     Created     : Thu Feb 12 11:39:54 EST 2015
     Notes       : * this is technically a typed Map, but will be kept separate
   ----------------------------------------------------------------------*/
-
+block-level on error undo, throw.
+ 
 using OpenEdge.Core.Assert.
 using Progress.Lang.Object.
 using OpenEdge.Core.Util.BuilderRegistry.

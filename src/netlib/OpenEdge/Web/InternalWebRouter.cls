@@ -17,9 +17,9 @@ using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 using Progress.Web.AbstractWebRouter.
 using Progress.Web.IWebHandler.
-using OpenEdge.Net.HTTP.StatusCodeEnum.
 
 class OpenEdge.Web.InternalWebRouter implements ISupportLogging 
     inherits AbstractWebRouter
@@ -63,23 +63,26 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
     method public override integer HandleRequest( pcHandlerName as character ):
         define variable oWebHandler as IWebHandler no-undo.
         define variable uriTemplate as character no-undo.
+        define variable requestPath as character no-undo.
         
         define buffer lbHandler for ttHandler.
         
-        assign uriTemplate = web-context:get-cgi-value('ENV':u, 'URI_TEMPLATE':u).
-        
-        logger:Debug(substitute('Request for path &1 using handler &2 received', uriTemplate, pcHandlerName)).
-        logger:Debug(substitute('Debug mode: &1', DebugEnabled)).
+        assign requestPath = web-context:get-cgi-value('ENV':u, 'REQUEST_URI':u)
+               uriTemplate = web-context:get-cgi-value('ENV':u, 'URI_TEMPLATE':u)
+               .
+        logger:Debug(substitute('Request for path "&1" using template "&2" and handler "&3"', 
+                        requestPath,
+                        uriTemplate,
+                        pcHandlerName)).
+        logger:Debug(substitute('Debug mode: &1', string(DebugEnabled, 'ON/OFF':u))).
         
         if DebugEnabled then
         do:
             /* in case it's already cached */
             this-object:Release(pcHandlerName).
+            
             /* always use a new  handler instance */
-            oWebHandler = dynamic-new pcHandlerName ().
-
-            if type-of(oWebHandler, ISupportInitialize) then
-                cast(oWebHandler, ISupportInitialize):Initialize().
+            assign oWebHandler = InvokeHandler(pcHandlerName).
         end.
         else
         do:
@@ -94,15 +97,12 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
             end.
             
             /* Create an instance of the handler if necessary */
-            if not valid-object(lbHandler.WebHandler) then
-            do:
-                lbHandler.WebHandler = dynamic-new lbHandler.WebHandlerName ().
-                
-                if type-of(lbHandler.WebHandler, ISupportInitialize) then
-                    cast(lbHandler.WebHandler, ISupportInitialize):Initialize().
-            end.
-            
-            assign oWebHandler = cast(lbHandler.WebHandler,IWebHandler).
+            if valid-object(lbHandler.WebHandler) then
+                assign oWebHandler = cast(lbHandler.WebHandler,IWebHandler).
+            else
+                assign oWebHandler          = InvokeHandler(pcHandlerName)
+                       lbHandler.WebHandler = oWebHandler
+                       .
         end.
         
         Assert:NotNull(oWebHandler, 'URI Handler').
@@ -147,6 +147,31 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         empty temp-table lbHandler.
         
         logger:Debug('Handler cache cleared').
+    end method.
+
+    /* Invokes/instantiates a webhandler
+       
+       @param character The webhandler name
+       @return IWebHandler A usable webhandler instance      */
+    method private IWebHandler InvokeHandler(input pHandlerName as character):
+        define variable webHandler as IWebHandler no-undo.
+        
+        Assert:NotNullOrEmpty(pHandlerName, 'Web handler name').
+        
+        if valid-object(Ccs.Common.Application:ServiceManager) then
+            assign webHandler = cast(Ccs.Common.Application:ServiceManager
+                                                           :getService(get-class(IWebHandler), pHandlerName),
+                                     IWebHandler).
+        
+        if not valid-object(webHandler) then
+        do:
+            webHandler = dynamic-new pHandlerName ().
+            
+            if type-of(webHandler, ISupportInitialize) then
+                cast(webHandler, ISupportInitialize):Initialize().
+        end.
+        
+        return webHandler.
     end method.
     
 end class.

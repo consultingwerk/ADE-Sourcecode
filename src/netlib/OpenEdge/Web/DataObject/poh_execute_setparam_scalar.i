@@ -1,4 +1,7 @@
 &if false &then
+/* *************************************************************************************************************************
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : poh_execute_setparam_scalar.i
     Purpose     : sets values for an entire data type 
@@ -33,17 +36,18 @@ do:
     assign arg_scalar_idx_{&ARG-TYPE} = arg_scalar_idx_{&ARG-TYPE} + 1
            {&OPER-ARG}:ArgumentIndex  = arg_scalar_idx_{&ARG-TYPE}
            .
-    /* input and input-output arguments will have a value at this point; not so for return and output */
+    if valid-object({&OPER-ARG}:ArgumentValue) then
 &if '{&SWITCH-VALUE}' eq 'class' &then
-    assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&OPER-ARG}:ArgumentValue.
-    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, get-class(Progress.Lang.Object):TypeName, {&OPER-ARG}:IOMode, arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
-&elseif '{&SWITCH-VALUE}' eq 'dataset-handle' or '{&SWITCH-VALUE}' eq 'table-handle' &then
-    if valid-object({&OPER-ARG}:ArgumentValue) then
-        assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&COERCE-TYPE}(cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value).
-    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, {&OPER-ARG}:DataType, substitute('&1-by-reference':u, {&OPER-ARG}:IOMode), arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
+        assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&OPER-ARG}:ArgumentValue.
 &else
-    if valid-object({&OPER-ARG}:ArgumentValue) then
         assign arg_scalar_{&ARG-TYPE}[arg_scalar_idx_{&ARG-TYPE}] = {&COERCE-TYPE}(cast({&OPER-ARG}:ArgumentValue, {&ARG-VALUE-TYPE}):Value).
-    {&PARAM-LIST}:set-parameter({&PARAM-IDX}, {&OPER-ARG}:DataType, {&OPER-ARG}:IOMode, arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
 &endif
+    {&PARAM-LIST}:set-parameter({&PARAM-IDX},
+&if '{&SWITCH-VALUE}' eq 'class' &then
+                                get-class(Progress.Lang.Object):TypeName,
+&else
+                                {&OPER-ARG}:Parameter:DataType,
+&endif
+                                OpenEdge.Core.IOModeHelper:ToString({&OPER-ARG}:Parameter:IOMode, 'DYN-CALL':u),
+                                arg_scalar_{&ARG-TYPE}[{&OPER-ARG}:ArgumentIndex]).
 end.

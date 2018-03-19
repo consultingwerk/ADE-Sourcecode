@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriter
@@ -22,6 +22,7 @@ using Progress.IO.OutputStream.
 using Progress.Lang.Object.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Logging.LogLevelEnum.
+using Progress.IO.FileInputStream.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStream
             implements ISupportLogging:
@@ -137,6 +138,28 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStr
             otherwise 
                 Logger:Warn(pcMessage).
         end case.
+    end method.
+    
+    /** Reads the contents of a file and writes the bytes as memptr
+           
+        @param FileInputStream A valid file stream
+        @return int64 The number of bytes read. */
+    method protected int64 WriteFileStream(input pStream as FileInputStream):
+        define variable mData as memptr no-undo.
+        
+        Assert:NotNull(pStream, 'File input stream').
+        
+        assign file-info:file-name = pStream:FileName.
+        
+        // workaround for issue PSC00352961
+        set-size(mData) = file-info:file-size.
+        
+        pStream:Read(mData).
+        
+        return this-object:Write(mData).
+        finally:
+            set-size(mData) = 0.
+        end finally.
     end method.
     
 end class.

@@ -120,7 +120,7 @@ class OpenEdge.Core.Collections.Array serializable
                                 input piExtent as integer):
         
         /* Expand array, if allowed and needed */
-        if piExtent ge this-object:Size then
+        if piExtent gt this-object:Size then
         do:
             if AutoExpand then            
                 SetArraySize(integer(piExtent + round(0.5 * this-object:Size, 0))).

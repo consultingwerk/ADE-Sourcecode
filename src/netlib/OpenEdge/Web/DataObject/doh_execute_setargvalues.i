@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_setargvalues.i
@@ -24,7 +24,7 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 &scoped-define SWITCH-VALUE {&DATA-TYPE}
 &endif
 when '{&SWITCH-VALUE}':u then
-    if {&OPER-ARG}:IsArray then 
+    if {&OPER-ARG}:Parameter:IsArray then 
     case {&OPER-ARG}:ArgumentIndex:
         when 01 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_01).
         when 02 then {&VALUE-WRITER}:Write(arg_arr_{&DATA-TYPE}_02).

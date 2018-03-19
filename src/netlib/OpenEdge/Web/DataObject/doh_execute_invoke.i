@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_invoke.i
@@ -39,23 +39,23 @@ when Progress.Reflect.DataType:{&RETURN-TYPE} then
 case {&METHOD}:ReturnExtent:
     when 0 then
     do:
-        assign iStartTime = mtime
+        assign execTime[1] = now
                retval_scalar_{&VAR-DATA-TYPE} = {&METHOD}:Invoke({&ENTITY-INSTANCE}, {&PARAM-LIST})
-               iEndTime = mtime.
+               execTime[2] = now.
         if valid-object({&VALUE-WRITER}) then
             {&VALUE-WRITER}:Write(retval_scalar_{&VAR-DATA-TYPE}).
     end.
     otherwise
     do:
         if {&METHOD}:ReturnExtent eq ? then
-            assign iStartTime = mtime 
+            assign execTime[1] = now 
                    retval_arr_{&VAR-DATA-TYPE} = {&METHOD}:Invoke({&ENTITY-INSTANCE}, {&PARAM-LIST})
-                   iEndTime = mtime.
+                   execTime[2] = now.
         else
             assign extent(retval_arr_{&VAR-DATA-TYPE}) = {&METHOD}:ReturnExtent
-                   iStartTime = mtime
+                   execTime[1] = now
                    retval_arr_{&VAR-DATA-TYPE} = {&METHOD}:Invoke({&ENTITY-INSTANCE}, {&PARAM-LIST})
-                   iEndTime = mtime.
+                   execTime[2] = now.
         if valid-object({&VALUE-WRITER}) then
             {&VALUE-WRITER}:Write(retval_arr_{&VAR-DATA-TYPE}).
     end.

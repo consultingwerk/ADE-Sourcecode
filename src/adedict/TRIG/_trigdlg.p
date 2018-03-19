@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2017 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -39,6 +39,7 @@ hutegger 94/02/10   commented LARGE-attribut in editor-widget (BUG:94-02-09-034)
 McMann   98/07/10   Added DBVERSION and _Owner check for _file.
 McMann   98/10/08   Added available check for b_file.
 McMann   99/10/15   Changed DBVERSION check to use DICTDB
+Rohit    9/15/2017  Modified trig_proc to X(255)- PSC00360752
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -58,7 +59,7 @@ Define        buffer b_ftrig for _Field-Trig.
 /* Trigger attributes for form */
 Define var trig_event      as char    format "x(18)"                 
 				      view-as combo-box sort       NO-UNDO.
-Define var trig_proc       as char    format "x(60)"
+Define var trig_proc       as char    format "x(255)"
 				      view-as fill-in size 25 by 1 NO-UNDO.
 Define var trig_crc        as logical view-as TOGGLE-BOX           NO-UNDO.
 Define var trig_override   as logical view-as TOGGLE-BOX           NO-UNDO.

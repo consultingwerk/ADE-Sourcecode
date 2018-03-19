@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderCollection
@@ -76,23 +76,24 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
 
     /** Internal helper method to perform the find. 
     
-        @param handle    The buffer handle of the Headers table.
+        @param buffer    The buffer of the Headers table.
         @param character The header name
         @return logical True if a header record was found. */ 
-    method private logical FindHeaderRecord(input phBuffer as handle, input pcName as character):
-        phBuffer:find-unique(substitute('where &1.ParentClass eq &2 and &1.HeaderName eq &3',
-                               phBuffer:name,
-                               int64(this-object),
-                               quoter(pcName))) no-error.
-        return phBuffer:available.
-    end method.
+    method private logical FindHeaderRecord(buffer pbHeader for Headers, input pcName as character):
+        find pbHeader where 
+             pbHeader.ParentClass eq int64(this-object) and
+             pbHeader.HeaderName  eq pcName
+             no-error.
 
+        return available pbHeader.
+    end method.
+    
     /** Internal helper method to perform the find. 
     
         @param character The header name
         @return logical True if a header record was found. */ 
     method private logical FindHeaderRecord(input pcName as character):
-        return FindHeaderRecord(buffer Headers:handle, pcName).
+        return FindHeaderRecord(buffer Headers, pcName).
     end method.
     
     /** Private method for updating the value of a header record
@@ -124,7 +125,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
     method private void DeleteHeaderRecord(input pcName as character):
         define buffer lbHeader for Headers.
         
-        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
+        if FindHeaderRecord(buffer lbHeader, pcName) then
             delete lbHeader.
     end method.
     
@@ -137,7 +138,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
         
         Assert:NotNullOrEmpty(pcName, 'Header name').
         
-        if FindHeaderRecord(buffer lbHeader:handle, pcName) then
+        if FindHeaderRecord(buffer lbHeader, pcName) then
             return cast(lbHeader.HttpHeader, HttpHeader).
         else
             return OpenEdge.Net.HTTP.HttpHeader:NullHeader.

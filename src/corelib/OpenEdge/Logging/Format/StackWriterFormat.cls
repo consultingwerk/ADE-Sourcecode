@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : StackWriterFormat
@@ -14,11 +14,9 @@ block-level on error undo, throw.
 
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.LogEvent.
+using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Logging.Format.StackWriterFormat implements ILoggerFilter: 
-    define private property LF as character initial '~n':u no-undo get.
-    define private property TAB as character initial '~t':u no-undo get.
-    
     /** Performs implementation-specific filtering for a logger type
         
         @param LogMessage The message to log. */
@@ -31,11 +29,11 @@ class OpenEdge.Logging.Format.StackWriterFormat implements ILoggerFilter:
         if stackSize ne ? then
         do:
             assign poEvent:Message:Message = poEvent:Message:Message
-                                           + LF + TAB
+                                           + StringConstant:LF + StringConstant:TAB
                                            + 'Log stack:'.
             do stackCnt = 1 to stackSize:
                 assign poEvent:Message:Message = poEvent:Message:Message
-                                               + LF + TAB + TAB
+                                               + StringConstant:LF + StringConstant:TAB + StringConstant:TAB
                                                + poEvent:CallStack[stackCnt]. 
             end.
         end.

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : HandlerLoadEntityEventArgs
@@ -33,7 +33,9 @@ class OpenEdge.Web.DataObject.HandlerLoadEntityEventArgs inherits DataObjectEven
         
         Assert:NotNull(poOperation, 'Mapped operation').
         
-        assign this-object:Operation = poOperation.
+        assign this-object:Operation  = poOperation
+               this-object:EntityType = poOperation:EntityType
+               .
     end constructor.
     
 end class.

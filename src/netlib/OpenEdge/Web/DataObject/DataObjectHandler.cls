@@ -12,11 +12,13 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.LogicalValue.
 using OpenEdge.Core.Memptr.
+using OpenEdge.Core.SemanticVersion.
+using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
@@ -30,15 +32,17 @@ using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Net.MimeTypeHelper.
+using OpenEdge.Net.URI.
 using OpenEdge.Web.DataObject.DataObjectError.
 using OpenEdge.Web.DataObject.DataObjectEventArgs.
 using OpenEdge.Web.DataObject.DataObjectHandler.
-using OpenEdge.Web.DataObject.FileOperationHandler.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.HandlerErrorEventArgs.
 using OpenEdge.Web.DataObject.HandlerLoadEntityEventArgs.
 using OpenEdge.Web.DataObject.IOperationHandler.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.OperationInvocationEventArgs.
+using OpenEdge.Web.DataObject.ServiceDiscoveryEventArgs.
 using OpenEdge.Web.DataObject.ServiceRegistry.
 using OpenEdge.Web.DataObject.TargetTypeEnum.
 using OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry.
@@ -55,6 +59,14 @@ using Progress.Lang.AppError.
 using Progress.Web.IWebHandler.
 
 class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupportInitialize, ISupportLogging, IOperationHandler:
+    
+    /* Event published before the service lookup occurs in the registry;  
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param ServiceLookupEventArgs Event args for this event */
+    define static public event DiscoverService signature void (input pSender as Progress.Lang.Object,
+                                                               input pEventArgs as ServiceDiscoveryEventArgs). 
+    
     /* Event published when an error is encountered 
        
        @param Progress.Lang.Object The handler publishing the event
@@ -64,12 +76,17 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     
     /* Event published to invoke/load a piece of business logic (aka Business Entity).
        
-       If none exists, we try a simple DYNAMIC-NEW. 
-       
        @param Progress.Lang.Object The handler publishing the event
        @param HandlerLoadEntityEventArgs Event args for this event */
     define static public event LoadEntity signature void (input poSender as Progress.Lang.Object,
                                                           input poEventArgs as HandlerLoadEntityEventArgs). 
+
+    /* Event published to unload a piece of business logic (aka Business Entity).
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param HandlerLoadEntityEventArgs Event args for this event */
+    define static public event UnloadEntity signature void (input poSender as Progress.Lang.Object,
+                                                            input poEventArgs as HandlerLoadEntityEventArgs). 
     
     /* Event published before the business logic function is called by the handler
        
@@ -99,9 +116,10 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        The ServiceName and URI are derived from the URI path, which are CASE-SENSITIVE (see URI/spec RFC3986) */
     define static private temp-table TargetRef no-undo
         field Service as character case-sensitive
+        field Version as character
         field EntityName as character
         field Entity as Progress.Lang.Object
-        index idx1 as primary unique Service EntityName. 
+        index idx1 as primary unique Service Version EntityName.
     
     /* Default constructor*/
     constructor public DataObjectHandler():
@@ -230,17 +248,10 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         if oArgs:ReturnStatusCode eq 0 then
         do on error undo, throw:
             /* is there an envelope? */
-            if valid-object(poOperation) and
-               poOperation:Options:Has('errorEnvelope':u) then
-            do:
-                if poOperation:Options:GetType('errorEnvelope':u) eq JsonDataType:BOOLEAN and
-                   poOperation:Options:GetLogical('errorEnvelope':u) then
-                    assign cEnvelope = 'error':u.
-                else
-                    assign cEnvelope = poOperation:Options:GetCharacter('errorEnvelope':u).
-                
-                AddResponseEnvelope(poResponse, poOperation, cEnvelope).
-            end.    
+            if     valid-object(poOperation) 
+               and poOperation:Options:HasErrorEnvelope
+               then
+                AddResponseEnvelope(poResponse, poOperation, poOperation:Options:ErrorEnvelope).
         
             WriteResponse(oArgs:Response).
             
@@ -261,7 +272,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             
             return integer(StatusCodeEnum:InternalServerError).
         end catch.
-
     end method.
     
     /* Dumps a complete response to the output stream. Does not allow for
@@ -286,102 +296,44 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     
     /* Destroy/Shutdown/Anti-Initializer */
     method public void Destroy():
-        RemoveAllEntities(this-object:GetClass():TypeName).
+        RemoveAllEntities(this-object:GetClass():TypeName, '').
     end method.
     
 /** HANDLING OF THE REQUEST **/    
-    /* Returns a useable instance of a business entity/logic class
+    /* Returns a usable instance of a business entity/logic class
        
-       @param character The (internal) id of the mapped operation
-       @return Progress.Lang.Object the business entity instance */
-    method protected Progress.Lang.Object InvokeEntity(input poOperation as MappedOperation,
-                                                       input poRequest as IWebRequest):
-        define variable oArgs   as HandlerLoadEntityEventArgs no-undo.
-        define variable oBusinessEntity as Progress.Lang.Object no-undo.
-        define variable hProcedure as handle no-undo.
+       @param HandlerLoadEntityEventArgs Event args for the operation */
+    method protected void InvokeEntity(input pEntityLoadArgs as HandlerLoadEntityEventArgs):
+        define variable invokeTime as datetime extent 2 no-undo.
         
-        Assert:NotNull(poOperation, 'Mapped operation').
+        Assert:NotNull(pEntityLoadArgs, 'Entity load event args').
         
-        assign oArgs = new HandlerLoadEntityEventArgs(poRequest, poOperation).
+        assign invokeTime[1] = now.
         
-        case poOperation:TargetType:
-            when TargetTypeEnum:Self then
-                assign oArgs:EntityType = get-class(DataObjectHandler).
-            when TargetTypeEnum:Void then
-                assign oArgs:EntityType = get-class(DataObjectHandler).
-            when TargetTypeEnum:File then
-                assign oArgs:EntityType = get-class(FileOperationHandler).
-            when TargetTypeEnum:Procedure then
-                assign oArgs:EntityType = get-class(IHandleHolder).
-            otherwise
-               /* default since we don't know what this type should be */
-               assign oArgs:EntityType = get-class(Progress.Lang.Object).
-        end case.
+        OnLoadEntity(pEntityLoadArgs).
         
-        OnLoadEntity(oArgs).
+        if not valid-object(pEntityLoadArgs:BusinessEntity) then
+            undo, throw new SendExceptionError(StatusCodeEnum:ServiceUnavailable,
+                                               new AppError(substitute('Unable to instantiate business entity &2 &1 ; type-of: &3',
+                                                                pEntityLoadArgs:Operation:TargetName,
+                                                                pEntityLoadArgs:Operation:TargetType,
+                                                                (if valid-object(pEntityLoadArgs:EntityType) then pEntityLoadArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) ),
+                                                            0)).
         
-        /* bzzzt */
-        if valid-object(oArgs:Error) then
-            undo, throw oArgs:Error.
+        Logger:Debug(substitute('Using business entity &1 of type &2',
+                                pEntityLoadArgs:BusinessEntity,
+                                pEntityLoadArgs:BusinessEntity:GetClass():TypeName)).
         
-        if oArgs:Cancel then
-        do:
-            Logger:Warn(substitute('Business entity &1 load for operation &2 cancelled by external handler',
-                            poOperation:TargetName,
-                            poOperation:ToString())). 
-            undo, throw new AppError(substitute('Business entity &1 load for operation &2 cancelled',
-                                        poOperation:TargetName,
-                                        poOperation:ToString()),
-                                     0).
-        end.
+        if valid-object(pEntityLoadArgs:EntityType) then
+            Assert:IsType(pEntityLoadArgs:BusinessEntity, pEntityLoadArgs:EntityType).
         
-        assign oBusinessEntity = oArgs:BusinessEntity.
-        
-        if valid-object(oBusinessEntity) then
-            Logger:Debug(substitute('Business entity reference for &1 obtained from external handler', poOperation:TargetName)).
-        else
-        do:
-            Logger:Debug(substitute('Business entity &1 invoked by &2',
-                            poOperation:TargetName, string(this-object) )).
-            
-            case poOperation:TargetType:
-                when TargetTypeEnum:Void or 
-                when TargetTypeEnum:Self then
-                    assign oBusinessEntity = this-object.
-                when TargetTypeEnum:File then
-                    assign oBusinessEntity = GetOperationHandler(TargetTypeEnum:File).  
-                when TargetTypeEnum:Class then
-                do:
-                    assign oBusinessEntity = GetEntity(poOperation:ServiceName, poOperation:TargetName).
-                    
-                    if not valid-object(oBusinessEntity) then
-                    do:
-                        oBusinessEntity = dynamic-new string(poOperation:TargetName) ().
-                        SetEntity(poOperation:ServiceName, poOperation:TargetName, oBusinessEntity).
-                    end.
-                end.    /* class */
-                when TargetTypeEnum:Procedure then
-                do:
-                    assign oBusinessEntity = GetEntity(poOperation:ServiceName, poOperation:TargetName).
-                    if not valid-object(oBusinessEntity) then
-                    do:
-                        run value(poOperation:TargetName) persistent set hProcedure.
-                        assign oBusinessEntity = new WidgetHandle(hProcedure, true /* auto-destroy */ ).
-                        SetEntity(poOperation:ServiceName, poOperation:TargetName, oBusinessEntity).
-                    end.
-                end.    /* proc */
-                otherwise
-                    assign oBusinessEntity = ?.
-            end case.            
-        end.
-        
-        if valid-object(oArgs:EntityType) then
-            Assert:IsType(oBusinessEntity, oArgs:EntityType).
+        assign invokeTime[2] = now.
         
         Logger:Debug(substitute('Using entity &1 for operation &2',
-                        oBusinessEntity:ToString(), poOperation:ToString())).
-        
-        return oBusinessEntity.        
+                        pEntityLoadArgs:BusinessEntity:ToString(), pEntityLoadArgs:Operation:ToString())).
+        Logger:Trace(substitute('Entity &1 invoked in &2(ms)',
+                        pEntityLoadArgs:BusinessEntity:ToString(),
+                        interval(invokeTime[2], invokeTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
     end method.
     
     /* Processes a request. The primary entrypoint into the handler.
@@ -582,27 +534,32 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                             input poResponse as IHttpResponse,
                                             input poOperation as MappedOperation):
         define variable iStatusCode as integer no-undo.
-        define variable oBusinessEntity as Progress.Lang.Object no-undo.
         define variable oOperationArgs as OperationInvocationEventArgs no-undo.
         define variable oOperationHandler as IOperationHandler no-undo.
         define variable iTimeout as integer no-undo.
         define variable oStopError as Progress.Lang.Error no-undo.
         define variable operationLogger as ILogWriter no-undo.
-        define variable startTime as integer no-undo.
+        define variable operationTime as datetime no-undo.
+        define variable entityArgs as HandlerLoadEntityEventArgs no-undo.
         
         Assert:NotNull(poRequest,   'Web request').
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(poOperation, 'Mapped operation').
         
-        assign startTime                  = mtime
-               oBusinessEntity            = InvokeEntity(poOperation, poRequest)
-               oOperationArgs             = new OperationInvocationEventArgs(poRequest, oBusinessEntity, poResponse, poOperation)
+        assign operationTime       = now
+               entityArgs          = new HandlerLoadEntityEventArgs(poRequest, poOperation)
+               entityArgs:Response = poResponse
+               .
+        InvokeEntity(entityArgs).
+        
+        assign oOperationArgs             = new OperationInvocationEventArgs(poRequest,
+                                                                             entityArgs:BusinessEntity,
+                                                                             poResponse,
+                                                                             poOperation)
                oOperationArgs:RequestBody = poMessageBody
                iStatusCode                = 0
                .
         OnInvoking(oOperationArgs).
-        if valid-object(oOperationArgs:Error) then
-            undo, throw new DataObjectError(oOperationArgs).
         
         /* do the work */
         assign oOperationHandler = GetOperationHandler(poOperation:TargetType)
@@ -613,17 +570,22 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                oStopError        = new HttpRequestError(string(integer(StatusCodeEnum:RequestTimeOut)),
                                              poRequest:Method,
                                              poRequest:URI:ToString()).
+
+        Logger:Trace(substitute('Service &2 &1 &3 handler init time(ms)=&4', 
+                            poOperation:ServiceName, 
+                            string(poOperation:Method),
+                            string(poOperation:TargetType),
+                            interval(now, operationTime, string(DateTimeAddIntervalEnum:Milliseconds)))).
         
-        if poOperation:Options:Has('timeout':u) and
-           poOperation:Options:GetType('timeout':u) eq JsonDataType:NUMBER then
-            assign iTimeout = poOperation:Options:GetInteger('timeout':u).                      
-        
+        assign operationTime = now
+               iTimeout      = poOperation:Options:Timeout
+               .
         if valid-object(oOperationHandler) then
         do  on stop undo, return error oStopError
             on error undo, throw
             stop-after iTimeout:
             
-            assign iStatusCode = oOperationHandler:Execute(poRequest, poMessageBody, poResponse, poOperation, oBusinessEntity).        
+            assign iStatusCode = oOperationHandler:Execute(poRequest, poMessageBody, poResponse, poOperation, entityArgs:BusinessEntity).
         end.
         else
             undo, throw new AppError(substitute('Unable to service request for "&1 &2"',
@@ -631,7 +593,12 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                             poOperation:ServiceURI), 
                                     0).
         
-        assign oOperationArgs = new OperationInvocationEventArgs(poRequest, oBusinessEntity, poResponse, poOperation)
+        Logger:Trace(substitute('Service &2 &1 execute handler time(ms)=&3', 
+                            poOperation:ServiceName, 
+                            string(poOperation:Method),                            
+                            interval(now, operationTime, string(DateTimeAddIntervalEnum:Milliseconds)))).
+        
+        assign oOperationArgs = new OperationInvocationEventArgs(poRequest, entityArgs:BusinessEntity, poResponse, poOperation)
                oOperationArgs:RequestBody      = poMessageBody
                oOperationArgs:ReturnStatusCode = iStatusCode
                .
@@ -640,6 +607,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             undo, throw new DataObjectError(oOperationArgs).
         
         return oOperationArgs:ReturnStatusCode.
+        catch doeErr as DataObjectError:
+            undo, throw doeErr.
+        end catch.
         catch err as Progress.Lang.Error:
             define variable dohError as DataObjectError no-undo.
             
@@ -647,17 +617,20 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                    dohError:Error          = err
                    dohError:Request        = poRequest
                    dohError:Response       = poResponse
-                   dohError:BusinessEntity = oBusinessEntity
+                   dohError:BusinessEntity = entityArgs:BusinessEntity
                    dohError:Operation      = poOperation
                    .
             undo, throw dohError.
         end catch.
         finally:
+            // We're done with this request - tell clients that they can let go
+            OnUnloadEntity(entityArgs).
+            
             Logger:Trace(substitute('Service &1 operation &2 &3 execution time(ms)=&4', 
                             poOperation:ServiceName, 
                             string(poOperation:Method),
                             poOperation:ServiceURI,
-                            mtime - startTime)).
+                            interval(now, operationTime, string(DateTimeAddIntervalEnum:Milliseconds)))).
             //reset to original/default. NO-ERROR to avoid trying to do this if the operation handler is invalid 
             assign cast(oOperationHandler, ISupportLogging):Logger = operationLogger no-error.
         end finally.
@@ -665,24 +638,21 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     
     /* Factory method for retrieving an operation handler   
        
-       @param TargetTypeEnum The operation type for which to find a handler
+       @param character The operation type for which to find a handler
        @return IOperationHandler A handler, if one exists */
-    method protected IOperationHandler GetOperationHandler(input poTargetType as TargetTypeEnum):
+    method protected IOperationHandler GetOperationHandler(input pTargetType as character):
         define variable oHandler as IOperationHandler no-undo.
         define variable oHandlerType as class Progress.Lang.Class no-undo.
-        define variable cTypeName as character no-undo.
         
-        Assert:NotNull(poTargetType).
-        if poTargetType:Equals(TargetTypeEnum:Self) then
+        Assert:NotNullOrEmpty(pTargetType).
+        if pTargetType eq string(TargetTypeEnum:Self) then
             return this-object.
-        assign cTypeName = substitute('&1.&2':u,
-                                poTargetType:GetClass():TypeName,
-                                poTargetType:ToString())
-               oHandler  = cast(GetEntity(this-object:GetClass():TypeName, cTypeName),
+        
+        assign oHandler = cast(GetEntity(get-class(IOperationHandler):TypeName, '':u, pTargetType),
                                IOperationHandler).
         if not valid-object(oHandler) then
         do:
-            assign oHandlerType = OperationHandlerRegistry:Registry:Get(cTypeName).
+            assign oHandlerType = OperationHandlerRegistry:Registry:Get(pTargetType).
             
             Assert:IsType(oHandlerType, get-class(IOperationHandler)).
             oHandler = dynamic-new string(oHandlerType:TypeName) ().
@@ -690,119 +660,13 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             if valid-object(oHandler) and type-of(oHandler, ISupportInitialize) then
                 cast(oHandler, ISupportInitialize):Initialize().
             
-            SetEntity(this-object:GetClass():TypeName, cTypeName, oHandler).
+            SetEntity(get-class(IOperationHandler):TypeName, '':u, pTargetType, oHandler).
         end.
+        
         return oHandler.
     end method.
-
-    /* Retrieves a catalog for a named service. First tries to run a mapped 
-       operation, then looks in the serviceregistry
-       
-       @param MappedOperation The mapped operation
-       @param IWebRequest The request that resulting in the exception
-       @param P.L.Object The message body of the incoming request. Typically 
-                         will be transformed from bytes into something useful; may also have an envelope removed.
-       @param IHttpResponse The current response object, if any
-       @return integer A non-null status code use to deal with errors */ 
-    method protected integer GetCatalog(input pcServiceName as character,
-                                        input poRequest  as IWebRequest,
-                                        input poMessageBody as Progress.Lang.Object,
-                                        input poResponse as IHttpResponse):
-        define variable oCatalogOperation as MappedOperation no-undo.
-        define variable oCatalog as JsonObject no-undo.
-        define variable iStatusCode as integer no-undo.
-        
-        Assert:NotNullOrEmpty(pcServiceName, 'Service').
-        Assert:NotNull(poRequest, 'Web request').
-        Assert:NotNull(poResponse, 'Web response').
-        
-        assign oCatalogOperation = ServiceRegistry:GetOperation(pcServiceName, ServiceRegistry:ROOT_SERVICE_URI, MethodEnum:GET).
-        if not valid-object(oCatalogOperation) then
-            assign oCatalog    = ServiceRegistry:GetServiceCatalog(pcServiceName)
-                   iStatusCode = 0
-                   
-                   poResponse:ContentType = 'application/json':u
-                   poResponse:Entity      = oCatalog.
-        else
-            assign iStatusCode = PerformOperation(poRequest, poMessageBody, poResponse, oCatalogOperation).                   
-        
-        return iStatusCode.
-    end method.
     
-    /* Deregisters all known services 
-       
-       @param MappedOperation The mapped operation
-       @param IWebRequest The request that resulting in the exception
-       @param IHttpResponse The current response object, if any
-       @return integer A non-null status code use to deal with errors */
-    method protected integer DeregisterAllServices(input poOperation as MappedOperation,
-                                                   input poRequest  as IWebRequest,
-                                                   input poResponse as IHttpResponse):
-        define variable oServices as JsonArray no-undo.
-        define variable oHeader as JsonObject no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable cServices as character extent no-undo.
-        define variable iStatusCode as integer no-undo.
-        
-        Assert:NotNull(poOperation, 'Operation').
-        Assert:NotNull(poRequest, 'Web request').
-        Assert:NotNull(poResponse, 'Web response').
-        
-        assign oHeader           = new JsonObject() 
-               oServices         = new JsonArray()
-               poResponse:Entity = oServices
-               iStatusCode       = 0
-               
-               iMax = ServiceRegistry:GetServices(output cServices).
-        
-        oHeader:Add('services':u, oServices).
-            
-        do iLoop = 1 to iMax:
-            ServiceRegistry:DeregisterService(cServices[iLoop]).
-            RemoveAllEntities(cServices[iLoop]).
-            
-            oServices:Add(cServices[iLoop]).
-        end.
-        
-        return iStatusCode.
-    end method.
-    
-    /* Deregisters asingle known services 
-       
-       @param MappedOperation The mapped operation
-       @param IWebRequest The request that resulting in the exception
-       @param IHttpResponse The current response object, if any
-       @return integer A non-null status code use to deal with errors */
-    method protected integer DeregisterService(input poOperation as MappedOperation,
-                                               input poRequest  as IWebRequest,
-                                               input poResponse as IHttpResponse):
-        define variable oHeader as JsonObject no-undo.
-        define variable oServices as JsonArray no-undo.
-        define variable iStatusCode as integer no-undo.
-        
-        Assert:NotNull(poOperation, 'Operation').
-        Assert:NotNull(poRequest, 'Web request').
-        Assert:NotNull(poResponse, 'Web response').
-        
-        assign oHeader           = new JsonObject() 
-               oServices         = new JsonArray()
-               poResponse:Entity = oServices
-               iStatusCode       = 0
-               .
-        Logger:Debug(substitute('DeregisterService called for &1', poOperation:ServiceName)).
-        
-        oHeader:Add('services':u, oServices).
-        
-        ServiceRegistry:DeregisterService(poOperation:ServiceName).
-        RemoveAllEntities(poOperation:ServiceName).
-        
-        oServices:Add(poOperation:ServiceName).
-        
-        return iStatusCode.
-    end method.
-    
-    /* Lists catalogs for all currently-registered services. 
+    /* Lists service names, versions and catalogs for all currently-registered services. 
        
        @param MappedOperation The mapped operation
        @param IWebRequest The request that resulting in the exception
@@ -814,13 +678,21 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                           input poRequest  as IWebRequest,
                                           input poMessageBody as Progress.Lang.Object,
                                           input poResponse as IHttpResponse):
+        define variable regdSvc as DataObjectService extent no-undo.
+        define variable regdOps as MappedOperation extent no-undo.
         define variable oServices as JsonObject no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable cServices as character case-sensitive extent no-undo.
+        define variable oVersions as JsonArray no-undo.
+        define variable svcVersion as JsonObject no-undo.
+        define variable svcOps as JsonArray no-undo.
+        define variable maxSvc as integer no-undo.
+        define variable svcCnt as integer no-undo.
+        define variable maxOps as integer no-undo.
+        define variable opsCnt as integer no-undo.
         define variable oCatalog as JsonObject no-undo.
         define variable iStatusCode as integer no-undo.
-        define variable oCatalogResponse as IHttpResponse no-undo.
+        define variable catalogResponse as IHttpResponse no-undo.
+        define variable catalogOperation as MappedOperation no-undo.
+        define variable operationURL as URI no-undo.
         
         Assert:NotNull(poOperation, 'Operation').
         Assert:NotNull(poRequest, 'Web request').
@@ -830,32 +702,106 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                poResponse:Entity = oServices
                iStatusCode       = 0
                
-               iMax = ServiceRegistry:GetServices(output cServices).
-        do iLoop = 1 to iMax:
-            if cServices[iLoop] eq ServiceRegistry:ROOT_SERVICE_NAME then
-            do:
-                if iMax eq 1 then
-                    return integer(StatusCodeEnum:NotFound). 
-                
-                next.
-            end.
-
-            assign oCatalog         = ? 
-                   oCatalogResponse = new WebResponse()
-                   iStatusCode      = this-object:GetCatalog(cServices[iLoop], poRequest, poMessageBody, oCatalogResponse)
-                   .
-            if iStatusCode ne 0 then
-                return iStatusCode.
-            
-            if type-of(oCatalogResponse:Entity, JsonObject) then
-                assign oCatalog = cast(oCatalogResponse:Entity, JsonObject).
+               regdSvc           = ServiceRegistry:GetServices()
+               maxSvc            = extent(regdSvc)
+               .
+        do svcCnt = 1 to maxSvc:
+            if oServices:Has(regdSvc[svcCnt]:Name) then
+                assign oVersions = oServices:GetJsonArray(regdSvc[svcCnt]:Name).
             else
-                Logger:Error(substitute('Unable to convert catalog for service &1 to JsonObject', cServices[iLoop])).
+            do:
+                assign oVersions = new JsonArray().
+                oServices:Add(regdSvc[svcCnt]:Name, oVersions).
+            end.
             
-            oServices:Add(cServices[iLoop], oCatalog).
-        end.
+            // if there's a catalog registered, use that. otherwise guesstimate 
+            if valid-object(regdSvc[svcCnt]:Catalog) then
+                assign oCatalog = regdSvc[svcCnt]:Catalog.
+            else
+            do:
+                assign oCatalog         = ?
+                       catalogOperation = regdSvc[svcCnt]:GetOperation('dataservice.catalog':u).
+                if valid-object(catalogOperation) then
+                do:
+                    if not ValidateContentType(poRequest, catalogOperation:ContentType) then
+                        Logger:Warn(substitute('Request "Accept" header value "&1" and catalog operation ContentType "&2" value are not compatible',
+                                        poRequest:GetHeader('Accept':u):Value,
+                                        catalogOperation:ContentType)).
+                    else
+                    do:
+                        assign catalogResponse = CreateOperationResponse(catalogOperation).
+                        // don't care about the return code, just the content
+                        PerformOperation(poRequest, poMessageBody, catalogResponse, catalogOperation)
+                            no-error.
+                        if type-of(catalogResponse:Entity, JsonObject) then
+                            assign oCatalog = cast(catalogResponse:Entity, JsonObject).
+                        else
+                            Logger:Warn(substitute('Unable to convert catalog for service &1 v&2 to JsonObject', 
+                                                regdSvc[svcCnt]:Name,
+                                                regdSvc[svcCnt]:Version:ToString())).
+                    end.
+                end.    // aliased to CATALOG
+            end.
+            
+            assign svcVersion = new JsonObject().
+            oVersions:Add(svcVersion).
+                        
+            svcVersion:Add('version':u, regdSvc[svcCnt]:Version:ToString()).
+            
+            // add even if null
+            svcVersion:Add('catalog':u, oCatalog).
+            
+            assign svcOps = new JsonArray().
+            svcVersion:Add('operations':u, svcOps).
+            
+            assign extent(regdOps) = ?
+                   regdOps         = regdSvc[svcCnt]:GetOperations()
+                   maxOps          = extent(regdOps)
+                   .
+            do opsCnt = 1 to maxOps:
+                assign oCatalog     = new JsonObject()
+                       
+                       operationURL      = new URI(poRequest:URI:Scheme, poRequest:URI:Host, poRequest:URI:Port)
+                       operationURL:Path = poRequest:TransportPath + '/' + poRequest:PathInfo
+                       .
+                oCatalog:Add('uri':u, regdOps[opsCnt]:ServiceURI).
+                oCatalog:Add('method':u, string(regdOps[opsCnt]:Method)).
+                oCatalog:Add('name':u, regdOps[opsCnt]:Name).
+                
+                if not regdSvc[svcCnt]:Name eq ServiceRegistry:ROOT_SERVICE_NAME then
+                    operationURL:AddPathSegment(regdSvc[svcCnt]:Name).
+                if not regdOps[opsCnt]:ServiceURI eq ServiceRegistry:ROOT_SERVICE_URI then
+                    operationURL:AddPathSegment(regdOps[opsCnt]:ServiceURI).
+                      
+                oCatalog:Add('url':u, operationURL:ToString()).
+                
+                svcOps:Add(oCatalog). 
+            end.
+        end.    // services
         
         return iStatusCode.
+    end method.
+
+    /* Publishes the 'ServiceDiscovery' event with the provided args 
+    
+       @param ServiceDiscoveryEventArgs The args for this event */
+    method protected void OnDiscoverService (input poEventArgs as ServiceDiscoveryEventArgs):
+        Assert:NotNull(poEventArgs, 'Event args').
+        
+        DataObjectHandler:DiscoverService:Publish(this-object, poEventArgs).
+        
+        // Run our local 'handler'
+        DiscoverServiceHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw poEventArgs:Error.
+        
+        // no error, but stop
+        if poEventArgs:Cancel then
+            undo, throw new AppError(substitute('Service discovery for &1 version &1 was cancelled',
+                                        poEventArgs:Name,
+                                        poEventArgs:Version),
+                                     0).
     end method.
     
     /* Publishes the 'Invoking' event with the provided args 
@@ -865,6 +811,23 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:Invoking:Publish(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        if poEventArgs:Cancel then
+            undo, throw new AppError(substitute('Running of &2 in &1 for operation &2 cancelled',
+                                        poEventArgs:Operation:TargetFunction,
+                                        poEventArgs:Operation:TargetName, 
+                                        poEventArgs:Operation:ToString()),
+                                     0).
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign poEventArgs:Error = ple.
+            undo, throw new DataObjectError(poEventArgs).
+        end catch.
     end method.
     
     /* Publishes the 'Invoked' event with the provided args 
@@ -874,6 +837,23 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:Invoked:Publish(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        if poEventArgs:Cancel then
+            undo, throw new AppError(substitute('Running of &2 in &1 for operation &2 cancelled',
+                                        poEventArgs:Operation:TargetFunction,
+                                        poEventArgs:Operation:TargetName, 
+                                        poEventArgs:Operation:ToString()),
+                                     0).
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign poEventArgs:Error = ple.
+            undo, throw new DataObjectError(poEventArgs).
+        end catch.
     end method.
 
     /* Publishes the 'OperationError' event with the provided args 
@@ -892,9 +872,50 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:LoadEntity:Publish(this-object, poEventArgs).
+        
+        // Run our local 'handler'
+        LoadEntityHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        if poEventArgs:Cancel then
+            undo, throw new AppError(substitute('Business entity &1 load for operation &2 cancelled',
+                                        poEventArgs:Operation:TargetName, poEventArgs:Operation:ToString()),
+                                     0).
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign poEventArgs:Error = ple.
+            undo, throw new DataObjectError(poEventArgs).
+        end catch.
     end method.
     
-    /* Executes the operation.
+    /* Publishes the 'UnloadEntity' event with the provided args 
+       
+       @param HandlerErrorEventArgs The args for this event */
+    method protected void OnUnloadEntity(input poEventArgs as HandlerLoadEntityEventArgs):
+        Assert:NotNull(poEventArgs, 'Event args').
+        
+        DataObjectHandler:UnloadEntity:Publish(this-object, poEventArgs).
+        
+        // Run our local 'handler'
+        UnloadEntityHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign poEventArgs:Error = ple.
+            undo, throw new DataObjectError(poEventArgs).
+        end catch.
+    end method.
+    
+    /* Executes the operation.  
        
        We don't care about the entity in this handler (since we are the handler)  
        
@@ -903,7 +924,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                          will be transformed from bytes into something useful; may also have an envelope removed. 
        @param IHttpResponse The current response object, if any
        @param MappedOperation The mapped operation
-       @param P.L.Object The business logic/entity  
+       @param P.L.Object The business logic/entity
        @return integer A non-null status code use to deal with errors */
     method public integer Execute(input poRequest as IWebRequest,
                                   input poMessageBody as Progress.Lang.Object,
@@ -919,18 +940,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poBusinessEntity, 'Entity').
         
         case poOperation:TargetFunction:
-            when 'DeregisterAllServices':u then
-                assign iStatusCode = this-object:DeregisterAllServices(poOperation, poRequest, poResponse).
-            when 'DeregisterService':u then
-                assign iStatusCode = this-object:DeregisterService(poOperation, poRequest, poResponse).
             when 'ListServices':u then
                 assign iStatusCode = this-object:ListServices(poOperation, poRequest, poMessageBody, poResponse).
-            when 'GetCatalog':u then
-                assign iStatusCode = this-object:GetCatalog(poOperation:ServiceName,
-                                                            poRequest, 
-                                                            poMessageBody,
-                                                            poResponse).
-            otherwise 
+            otherwise
                 assign iStatusCode = integer(StatusCodeEnum:MethodNotAllowed).                
         end case.
         
@@ -943,15 +955,18 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        @param character The entity name (for an operation)
        @return Progress.Lang.Object The cached entity, if one exists */
     method private Progress.Lang.Object GetEntity (input pcService as character,
+                                                   input pVersion as character,
                                                    input pcEntityName as character):
         define variable oBusinessEntity as Progress.Lang.Object no-undo.
         define buffer lbEntity for TargetRef.
         
-        Assert:NotNullOrEmpty(pcService, 'Service').
+        Assert:NotNullOrEmpty(pcService, 'Service name').
+        Assert:NotNull(pVersion, 'Service version').
         Assert:NotNullOrEmpty(pcEntityName, 'Entity name').
         
         find lbEntity where
              lbEntity.Service eq pcService and
+             lbEntity.Version eq pVersion and
              lbEntity.EntityName eq pcEntityName
              no-error.
         if available lbEntity then
@@ -963,20 +978,24 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     /* Caches an entity instance for a given service & operation 
        
        @param character The service name
+       @param character The service version
        @param character The entity name 
        @param Progress.Lang.Object The entity instance. may be null/unknown
        @return logical Returns TRUE if the entity was alrady cached */
     method private logical SetEntity(input pcService as character,
+                                     input pVersion as character,
                                      input pcEntityName as character,
                                      input poBusinessEntity as Progress.Lang.Object):
         define variable lExists as logical no-undo.
         define buffer lbEntity for TargetRef.
 
-        Assert:NotNullOrEmpty(pcService, 'Service').
+        Assert:NotNullOrEmpty(pcService, 'Service name').
+        Assert:NotNull(pVersion, 'Service version').
         Assert:NotNullOrEmpty(pcEntityName, 'Entity name').
         
         find lbEntity where
              lbEntity.Service eq pcService and
+             lbEntity.Version eq pVersion and
              lbEntity.EntityName eq pcEntityName
              no-error.
         assign lExists = available lbEntity. 
@@ -984,6 +1003,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         do:
             create lbEntity.
             assign lbEntity.Service    = pcService
+                   lbEntity.Version    = pVersion
                    lbEntity.EntityName = pcEntityName
                    .
         end.
@@ -995,24 +1015,28 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     /* Removes a cached entity instance for a given service & operation 
        
        @param character The service name
+       @param character The service version
        @param character The entity name */
     method private logical RemoveEntity(input pcService as character,
+                                        input pVersion as character,
                                         input pcEntityName as character):
         define variable lExists as logical no-undo.
         define buffer lbEntity for TargetRef.
 
-        Assert:NotNullOrEmpty(pcService, 'Service').
+        Assert:NotNullOrEmpty(pcService, 'Service name').
+        Assert:NotNull(pVersion, 'Service version').
         Assert:NotNullOrEmpty(pcEntityName, 'Entity name').
         
         find lbEntity where
              lbEntity.Service eq pcService and
+             lbEntity.Version eq pVersion and
              lbEntity.EntityName eq pcEntityName
              no-error.
         assign lExists = available lbEntity. 
         if lExists then
         do:
-            Logger:Debug(substitute('Cached entity "&1" removed for service "&2"',
-                            lbEntity.EntityName, pcService)).
+            Logger:Debug(substitute('Cached entity "&1" removed for service "&2" &3',
+                            lbEntity.EntityName, pcService, pVersion)).
             delete lbEntity.
         end.
         
@@ -1021,16 +1045,21 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
 
     /* Removes all the cached entity instances for a given service 
     
-       @param character The service name */
-    method private void RemoveAllEntities(input pcService as character):
+       @param character The service name 
+       @param character The service version */
+    method private void RemoveAllEntities(input pcService as character,
+                                          input pVersion as character):
         define variable lExists as logical no-undo.
         define buffer lbEntity for TargetRef.
 
-        Assert:NotNullOrEmpty(pcService, 'Service').
-
-        for each lbEntity where lbEntity.Service eq pcService:
-            Logger:Debug(substitute('Cached entity "&1" removed for service "&2"',
-                            lbEntity.EntityName, pcService)).
+        Assert:NotNullOrEmpty(pcService, 'Service name').
+        Assert:NotNull(pVersion, 'Service version').
+        
+        for each lbEntity where
+                 lbEntity.Service eq pcService and
+                 lbEntity.Version eq pVersion:
+            Logger:Debug(substitute('Cached entity "&1" removed for service "&2" &3',
+                            lbEntity.EntityName, pcService, pVersion)).
             delete lbEntity.
         end.
     end method.
@@ -1042,7 +1071,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        @return Progress.Lang.Object The extracted body */
     method protected Progress.Lang.Object ExtractMessageBody (input poRequest as IWebRequest,
                                                               input poOperation as MappedOperation):
-        define variable cEnvelope as character no-undo.
         define variable oBody as Progress.Lang.Object no-undo.
         define variable oEntityWriter as MessageWriter no-undo.
         
@@ -1086,19 +1114,12 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         end.
         
         /* is there an envelope? */
-        if not poOperation:Options:Has('requestEnvelope':u) then
+        if not poOperation:Options:HasRequestEnvelope
+           or  poOperation:Options:RequestEnvelope eq '':u  
+           then
             return oBody.
         
-        if poOperation:Options:GetType('requestEnvelope':u) eq JsonDataType:BOOLEAN and
-           poOperation:Options:GetLogical('requestEnvelope':u) then
-            assign cEnvelope = 'request':u.
-        else
-            assign cEnvelope = poOperation:Options:GetCharacter('requestEnvelope':u).
-        
-        if cEnvelope eq '':u then
-            return oBody. 
-        
-        Logger:Info(substitute('Extracting request data from envelope "&1"', cEnvelope)).
+        Logger:Info(substitute('Extracting request data from envelope "&1"', poOperation:Options:RequestEnvelope)).
        
         /* now we have the envelope, get the children of it */
         case true:
@@ -1106,28 +1127,28 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             do:
                 Assert:IsType(oBody, get-class(JsonObject)).
                 
-                if not cast(oBody, JsonObject):Has(cEnvelope) then
+                if not cast(oBody, JsonObject):Has(poOperation:Options:RequestEnvelope) then
                 do:
                     Logger:Warn(substitute('Unable to find envelope "&1" in request &2 &3',
-                                cEnvelope,
+                                poOperation:Options:RequestEnvelope,
                                 poRequest:Method,
                                 poRequest:URI:ToString())).
                     return oBody.
                 end.
                 
-                case cast(oBody, JsonObject):GetType(cEnvelope):
-                    when JsonDataType:OBJECT  then return cast(oBody, JsonObject):GetJsonObject(cEnvelope).
-                    when JsonDataType:ARRAY   then return cast(oBody, JsonObject):GetJsonArray(cEnvelope). 
-                    when JsonDataType:STRING  then return new OpenEdge.Core.String(cast(oBody, JsonObject):GetCharacter(cEnvelope)).
-                    when JsonDataType:BOOLEAN then return new LogicalValue(cast(oBody, JsonObject):GetLogical(cEnvelope)).
-                    when JsonDataType:NUMBER  then return new OpenEdge.Core.Decimal(cast(oBody, JsonObject):GetDecimal(cEnvelope)).
+                case cast(oBody, JsonObject):GetType(poOperation:Options:RequestEnvelope):
+                    when JsonDataType:OBJECT  then return cast(oBody, JsonObject):GetJsonObject(poOperation:Options:RequestEnvelope).
+                    when JsonDataType:ARRAY   then return cast(oBody, JsonObject):GetJsonArray(poOperation:Options:RequestEnvelope). 
+                    when JsonDataType:STRING  then return new OpenEdge.Core.String(cast(oBody, JsonObject):GetCharacter(poOperation:Options:RequestEnvelope)).
+                    when JsonDataType:BOOLEAN then return new LogicalValue(cast(oBody, JsonObject):GetLogical(poOperation:Options:RequestEnvelope)).
+                    when JsonDataType:NUMBER  then return new OpenEdge.Core.Decimal(cast(oBody, JsonObject):GetDecimal(poOperation:Options:RequestEnvelope)).
                     when JsonDataType:NULL    then return ?.
                 end case.
             end.    //JSON
             
             otherwise
                 Logger:Warn(substitute('Unable to extract content from envelope &1 for content-type &2',
-                                cEnvelope, poRequest:ContentType)).
+                                poOperation:Options:RequestEnvelope, poRequest:ContentType)).
         end case.
         
         return oBody. 
@@ -1197,22 +1218,14 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        @param MappedOperation Metadata about what to do with this request */
     method protected void AddResponseEnvelope(input poResponse as IHttpResponse,
                                               input poOperation as MappedOperation):
-        define variable cEnvelope as character no-undo.
-        
         Assert:NotNull(poOperation, 'Mapped operation'). 
         Assert:NotNull(poResponse, 'Response').
         
         /* is there an envelope? */
-        if not poOperation:Options:Has('responseEnvelope':u) then
+        if not poOperation:Options:HasResponseEnvelope then
             return.
-            
-        if poOperation:Options:GetType('responseEnvelope':u) eq JsonDataType:BOOLEAN and
-           poOperation:Options:GetLogical('responseEnvelope':u) then
-            assign cEnvelope = 'response':u.
-        else
-            assign cEnvelope = poOperation:Options:GetCharacter('responseEnvelope':u).
         
-        AddResponseEnvelope(poResponse, poOperation, cEnvelope).
+        AddResponseEnvelope(poResponse, poOperation, poOperation:Options:ResponseEnvelope).
     end method.
     
     /* Returns a mapped operation for this request
@@ -1224,71 +1237,247 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     method protected MappedOperation FindOperation(input poRequest as IWebRequest):
         define variable oOperation as MappedOperation no-undo.
         define variable cServicePaths as character case-sensitive extent no-undo.
-        define variable cServiceName as character case-sensitive no-undo.                
         define variable cPathType as character no-undo.
         define variable cUriTemplate as character case-sensitive no-undo.
+        define variable discoveryArgs as ServiceDiscoveryEventArgs no-undo.
         
         Assert:NotNull(poRequest, 'Request').
         
-        // First check for a matych on the actual path (non-tokenised)        
-        assign cServicePaths = SplitServicePath(poRequest:PathInfo)
-               // Always use a hard-coded/non-tokenised service name
-               cServiceName  = cServicePaths[1]
-               .
-        Logger:Trace(substitute('Request received for &1 &2 ; service=&3',
-                        poRequest:Method, poRequest:URI:ToString(), cServiceName)).
+        Logger:Trace(substitute('Request received for &1 &2',
+                        poRequest:Method, poRequest:URI:ToString())).
         
-        /* find the service */
-        if not ServiceRegistry:TryFindService(cServiceName, poRequest:WebAppPath) then
+        // First check for a matych on the actual path (non-tokenised)
+        assign discoveryArgs = new ServiceDiscoveryEventArgs(poRequest).
+        
+        OnDiscoverService(discoveryArgs).
+        
+        // no service was found
+        if not valid-object(discoveryArgs:Service) then
         do:
-            Logger:Debug(substitute('Service not found for "&1 &2"',
-                                    poRequest:Method, poRequest:URI:ToString())).
-            undo, throw new SendExceptionError(StatusCodeEnum:NotFound,
-                                               new AppError(substitute('Service not found for "&1 &2"',
-                                                                poRequest:Method, poRequest:URI:ToString()),
-                                                            0)).
+            Logger:Error(substitute('Service not found for "&1"',
+                                    discoveryArgs:Name)).
+            return error new SendExceptionError(StatusCodeEnum:NotFound).
         end.
+        
+        Logger:Trace(substitute('Service "&1" found for "&2 &3"',
+                                discoveryArgs:Service:ToString(),
+                                poRequest:Method, 
+                                poRequest:URI:ToString() )).
         
         assign cPathType = 'service path'.
         Logger:Trace(substitute('Searching for mapped operation for service "&1" with &3 "&2"',
-                                cServiceName, cServicePaths[2], cPathType)).
+                                string(discoveryArgs:Service), discoveryArgs:ServiceURI, cPathType)).
         
-        assign oOperation = ServiceRegistry:GetOperation(cServiceName, cServicePaths[2], MethodEnum:GetEnum(poRequest:Method)).
+        assign oOperation = discoveryArgs:Service:GetOperation(discoveryArgs:ServiceURI, MethodEnum:GetEnum(poRequest:Method)).
         if not valid-object(oOperation) then
         do:
-            // Now check for a match on the tokenised path 
-            assign cUriTemplate  = poRequest:UriTemplate
-                   cServicePaths = '':u.
+            // Now check for a match on the tokenised path
+            assign cUriTemplate = poRequest:UriTemplate.
             if index(cUriTemplate, StringConstant:CURLY_OPEN) gt 0 then
             do:
-                assign cServicePaths = SplitServicePath(cUriTemplate).
+                assign cServicePaths            = SplitServicePath(cUriTemplate)
+                       discoveryArgs:ServiceURI = cServicePaths[2]
+                       .
                 // if there are no tokens in the relative URI it's a no-op
-                if index(cServicePaths[2], StringConstant:CURLY_OPEN) eq 0 then
-                    assign cServicePaths[2] = '':u.
-            end.
-            if cServicePaths[2] ne '':u then
-            do:
-                assign cPathType = 'URI template'.
-                Logger:Trace(substitute('Searching for mapped operation for service "&1" with &3 "&2"',
-                                        cServiceName, cServicePaths[2], cPathType)).
-                assign oOperation = ServiceRegistry:GetOperation(cServiceName, cServicePaths[2], MethodEnum:GetEnum(poRequest:Method)).
+                if index(discoveryArgs:ServiceURI, StringConstant:CURLY_OPEN) eq 0 then
+                    assign discoveryArgs:ServiceURI = '':u.
+                if not discoveryArgs:ServiceURI eq '':u then
+                do:
+                    assign cPathType = 'URI template'.
+                    Logger:Trace(substitute('Searching for mapped operation for service "&1" with &3 "&2"',
+                                            discoveryArgs:Service:Name, discoveryArgs:ServiceURI, cPathType)).
+                    assign oOperation = discoveryArgs:Service:GetOperation(discoveryArgs:ServiceURI, MethodEnum:GetEnum(poRequest:Method)).
+                end.
             end.
         end.
         
         if not valid-object(oOperation) then
         do:
-            Logger:Trace(substitute('Mapped operation not found for service "&1" with &3 "&2"',
-                                    cServiceName, cServicePaths[2], cPathType)).
+            Logger:Error(substitute('Mapped operation not found for service "&1" with &3 "&2"',
+                                    discoveryArgs:Service:Name, discoveryArgs:ServiceURI, cPathType)).
             return error new SendExceptionError(StatusCodeEnum:NotFound).
         end.
         
         Logger:Debug(substitute('Using mapped operation for &1 &4 &2: &3',
                         string(oOperation:Method),
-                        cServicePaths[2],
+                        discoveryArgs:ServiceURI,
                         string(oOperation),
                         cPathType)).        
         
         return oOperation.
+    end method.
+
+    /* Event handler to unload a piece of business logic (aka Business Entity).
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param HandlerLoadEntityEventArgs Event args for this event */
+    method public void UnloadEntityHandler(input pSender as Progress.Lang.Object,
+                                           input pEventArgs as HandlerLoadEntityEventArgs):
+        // If we have unloaded the entity, or something already went wrong, return
+        if not valid-object(pEventArgs:BusinessEntity)
+           or pEventArgs:Cancel
+           or valid-object(pEventArgs:Error)
+           then
+            return.
+        
+        case pEventArgs:Request:GetContextValue('SERVLET_SRVR_DEBUG':u):
+            /* rules per web/objects/web-util.p */
+            when 'On':u or
+            when 'Enabled':u then
+                RemoveEntity(pEventArgs:Operation:ServiceName,
+                             string(pEventArgs:Operation:ServiceVersion),
+                             pEventArgs:Operation:TargetName).
+        end case.
+        
+        catch ple as Progress.Lang.Error:
+            assign pEventArgs:Error = ple.
+        end catch.
+        finally:
+            assign error-status:error = false.
+        end finally.
+    end method.
+    
+    /* Event handler invoke/load a piece of business logic (aka Business Entity).
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param HandlerLoadEntityEventArgs Event args for this event */
+    method public void LoadEntityHandler(input pSender as Progress.Lang.Object,
+                                         input pEventArgs as HandlerLoadEntityEventArgs).
+        define variable hProcedure as handle no-undo.
+        define variable targetType as TargetTypeEnum no-undo.
+        
+        // If we have an entity, or something already went wrong, return
+        if    valid-object(pEventArgs:BusinessEntity)
+           or pEventArgs:Cancel
+           or valid-object(pEventArgs:Error)
+           then
+            return.
+        
+        // Use a CCS Service Manager if extant, and let it control this object's lifecycle
+        if valid-object(Ccs.Common.Application:ServiceManager) then
+            assign pEventArgs:BusinessEntity = Ccs.Common.Application:ServiceManager
+                                                    :getService(pEventArgs:Operation:EntityType,
+                                                                pEventArgs:Operation:TargetName).
+        
+        if valid-object(pEventArgs:BusinessEntity) then
+            Logger:Debug(substitute('Business entity reference for &3 (entity type: &2) obtained from &1',
+                            Ccs.Common.Application:ServiceManager:GetClass():TypeName,
+                            pEventArgs:Operation:EntityType,
+                            pEventArgs:Operation:TargetName)).
+        else
+        do:
+            Logger:Debug(substitute('Business entity &1 (type-of &4) invoked by &2 as target type &3',
+                            pEventArgs:Operation:TargetName,
+                            string(this-object),
+                            pEventArgs:Operation:TargetType,
+                            (if valid-object(pEventArgs:EntityType) then pEventArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) )).
+            
+            assign targetType = TargetTypeEnum:GetEnum(pEventArgs:Operation:TargetType) no-error.
+            case targetType:
+                when TargetTypeEnum:Self then
+                    assign pEventArgs:BusinessEntity = this-object.
+                
+                when TargetTypeEnum:Void or
+                when TargetTypeEnum:File then
+                    assign pEventArgs:BusinessEntity = GetOperationHandler(pEventArgs:Operation:TargetType).  
+                
+                when TargetTypeEnum:Class then
+                do:
+                    assign pEventArgs:BusinessEntity = GetEntity(pEventArgs:Operation:ServiceName, pEventArgs:Operation:ServiceVersion:ToString(), pEventArgs:Operation:TargetName).
+                    if not valid-object(pEventArgs:BusinessEntity) then
+                    do:
+                        pEventArgs:BusinessEntity = dynamic-new string(pEventArgs:Operation:TargetName) ().
+                        SetEntity(pEventArgs:Operation:ServiceName,
+                                  pEventArgs:Operation:ServiceVersion:ToString(),
+                                  pEventArgs:Operation:TargetName, 
+                                  pEventArgs:BusinessEntity).
+                    end.
+                end.    /* class */
+                
+                when TargetTypeEnum:Procedure then
+                do:
+                    assign pEventArgs:BusinessEntity = GetEntity(pEventArgs:Operation:ServiceName,
+                                                       pEventArgs:Operation:ServiceVersion:ToString(),
+                                                       pEventArgs:Operation:TargetName).
+                    
+                    if not valid-object(pEventArgs:BusinessEntity) then
+                    do:
+                        run value(pEventArgs:Operation:TargetName) persistent set hProcedure.
+                        assign pEventArgs:BusinessEntity = new WidgetHandle(hProcedure, true /* auto-destroy */ ).
+                        SetEntity(pEventArgs:Operation:ServiceName,
+                                  pEventArgs:Operation:ServiceVersion:ToString(),
+                                  pEventArgs:Operation:TargetName,
+                                  pEventArgs:BusinessEntity).
+                    end.
+                end.    /* proc */
+                
+                otherwise
+                do:
+                    Logger:Trace(substitute('Unsupported target type &1 for operation &2', 
+                                    pEventArgs:Operation:TargetType, 
+                                    pEventArgs:Operation:ToString())).
+                    assign pEventArgs:BusinessEntity = ?
+                           error-status:error        = no   // from the failed GetEnum() call
+                           .
+                end.
+            end case.
+        end.
+        
+        catch loadError as Progress.Lang.Error:
+            assign pEventArgs:Error = loadError.
+        end catch.
+    end method.
+    
+    /* Event handler for service discovery
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param ServiceLookupEventArgs Event args for this event */
+    method public void DiscoverServiceHandler(input pSender as Progress.Lang.Object,
+                                              input pEventArgs as ServiceDiscoveryEventArgs):
+        define variable servicePaths as character extent no-undo.
+        
+        // If we have a service, or something already went wrong, return
+        if    valid-object(pEventArgs:Service)
+           or pEventArgs:Cancel
+           or valid-object(pEventArgs:Error)
+           then
+            return.
+        
+        // we have a default name algorithm
+        if String:IsNullOrEmpty(pEventArgs:Name) then
+            assign servicePaths          = SplitServicePath(pEventArgs:Request:PathInfo)
+                   pEventArgs:Name       = servicePaths[1]
+                   pEventArgs:ServiceURI = servicePaths[2]
+                   .
+        if valid-object(pEventArgs:Registry) then
+            if pEventArgs:Registry:HasService(pEventArgs:Name, pEventArgs:Version) then
+                assign pEventArgs:Service = pEventArgs:Registry:GetService(pEventArgs:Name, pEventArgs:Version).
+        else
+            // Look in the default registry
+            if ServiceRegistry:HasService(pEventArgs:Name, pEventArgs:Version) then
+                assign pEventArgs:Service = ServiceRegistry:GetService(pEventArgs:Name, pEventArgs:Version).
+        
+        // If we don't have a registered service, look on disk
+        if not valid-object(pEventArgs:Service) then
+            // try to load from disk (.GEN and/or .MAP)
+            if not ServiceRegistry:TryFindService(pEventArgs:Name, pEventArgs:Version,  pEventArgs:Request:WebAppPath) then
+            do:
+                Logger:Debug(substitute('Service not found for "&1 &2"',
+                                        pEventArgs:Request:Method, pEventArgs:Request:URI:ToString())).
+                undo, throw new SendExceptionError(StatusCodeEnum:NotFound,
+                                                   new AppError(substitute('Service not found for "&1 &2"',
+                                                                    pEventArgs:Request:Method, 
+                                                                    pEventArgs:Request:URI:ToString()),
+                                                                0)).
+            end.
+            else
+                assign pEventArgs:Service  = ServiceRegistry:GetService(pEventArgs:Name, pEventArgs:Version)
+                       // set the registry, in case it was previously set
+                       pEventArgs:Registry = pEventArgs:Service:Registry
+                       .
+        catch e as Progress.Lang.Error:
+            assign pEventArgs:Error = e.
+        end catch.
     end method.
     
     /* Splits a URI path into a service and service-relative-uri. Can be used for

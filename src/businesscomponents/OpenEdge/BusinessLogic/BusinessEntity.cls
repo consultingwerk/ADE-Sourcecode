@@ -1,8 +1,8 @@
  
  
 /**********************************************************************************************
-*    Copyright (C) 2014-2017 by Progress Software Corporation. All rights reserved.                  *
-*    Prior versions of this work may contain portions contributed by participants of Possenet.        *
+*    Copyright (C) 2014-2017 by Progress Software Corporation. All rights reserved.           *
+*    Prior versions of this work may contain portions contributed by participants of Possenet.*
 ***********************************************************************************************/
 
 
@@ -77,7 +77,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         THIS-OBJECT:AttachDataSources().
         
         /* Get rid of any existing data in DataSet */
-        EmptyDataSet(). 
+        EmptyDataSet().
         
         cWhere = AdjustWhere(cFilter).
         
@@ -203,9 +203,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         THIS-OBJECT:AttachDataSources().
          
         DO TRANSACTION ON ERROR UNDO, THROW:   
-            // If HasBIData() detected that bi data was not sent as part of request, it returns
-            // FALSE, and also adds the bi data. It is required in order to call SAVE-ROW-CHANGES()
-            IF HasBIData(ROW-CREATED) EQ TRUE THEN
+            // ProcessBIData() determines if BI data was sent as part of request.
+            // If not sent, it adds it. BI data is required when calling SAVE-ROW-CHANGES()
+            IF ProcessBIData(ROW-CREATED) EQ TRUE THEN
                 UpdateMode = UpdateModeEnum:CUD.
             ELSE
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
@@ -250,9 +250,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          THIS-OBJECT:AttachDataSources().
          
          DO TRANSACTION ON ERROR UNDO, THROW:   
-            // If HasBIData() detected that bi data was not sent as part of request, it returns
-            // FALSE, and also adds the bi data. It is required in order to call SAVE-ROW-CHANGES()
-            IF HasBIData(ROW-MODIFIED) EQ TRUE THEN
+            // ProcessBIData() determines if BI data was sent as part of request.
+            // If not sent, it adds it. BI data is required when calling SAVE-ROW-CHANGES()
+            IF ProcessBIData(ROW-MODIFIED) EQ TRUE THEN
                 UpdateMode = UpdateModeEnum:CUD.
             ELSE
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
@@ -298,10 +298,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         THIS-OBJECT:AttachDataSources().
         
         DO TRANSACTION ON ERROR UNDO, THROW:   
-            // If HasBIData() detected that bi data was not sent as part of request, it returns
-            // FALSE, and also adds the bi data, if row-state param is set.
-            // It is required in order to call SAVE-ROW-CHANGES()
-            IF HasBIData(ROW-DELETED) EQ TRUE THEN
+            // ProcessBIData() determines if BI data was sent as part of request.
+            // If not sent, it adds it. BI data is required when calling SAVE-ROW-CHANGES()
+            IF ProcessBIData(ROW-DELETED) EQ TRUE THEN
                 UpdateMode = UpdateModeEnum:CUD.
             ELSE
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
@@ -336,61 +335,75 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                      Also, if no bi data was sent, then it's created based on iRowState param.
                      Before-Image data is a requirement in order to call SAVE-ROW-CHANGES()                                          
     ----------------------------------------------------------------------------------------*/
-     METHOD PRIVATE LOGICAL HasBIData(INPUT iRowState AS INTEGER):
+     METHOD PRIVATE LOGICAL ProcessBIData(INPUT iRowState AS INTEGER):
      
           DEFINE VAR iIndex AS INTEGER NO-UNDO.  
           DEFINE VAR hBuffer AS HANDLE NO-UNDO.
           DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
           DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
           DEFINE VAR lReturnValue AS LOGICAL NO-UNDO.
-          DEFINE VAR hAfterQuery  AS HANDLE NO-UNDO.
+          DEFINE VAR hAfterQuery  AS HANDLE EXTENT NO-UNDO.
           DEFINE VAR lHasBIData AS LOGICAL INIT ? NO-UNDO.
           
-          REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:    
-            hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-            hBeforeBuffer = hBuffer:BEFORE-BUFFER.
+          EXTENT(hAfterQuery) = ProDataSet:NUM-BUFFERS.
+          
+          REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+            // Only need to worry about tables that have data-source attached..
+            IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+                hBeforeBuffer = hBuffer:BEFORE-BUFFER.
 
-            IF hBeforeBuffer EQ ? THEN
-                UNDO, THROW NEW 
-                Progress.Lang.AppError("To use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.", 0).
+                IF hBeforeBuffer EQ ? THEN
+                    UNDO, THROW NEW 
+                    Progress.Lang.AppError("To use BusinessEntity CUD functionality, temp-tables must be specified with BEFORE-TABLE.", 0).
             
-            // Check for before-image rows. Skip over tables that have no rows at all
-            IF hBuffer:TABLE-HANDLE:HAS-RECORDS OR hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
+                // Check for before-image rows. Skip over tables that have no rows at all
+                IF hBuffer:TABLE-HANDLE:HAS-RECORDS OR hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
             
-                IF lHasBIData EQ ? THEN DO:
-                    lHasBIData = hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS.
+                    IF lHasBIData EQ ? THEN DO:
+                        lHasBIData = hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS.
+                    END.
+                    ELSE IF lHasBIData NE hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
+                        UNDO, THROW NEW Progress.Lang.AppError("To use BusinessEntity CUD functionality, all temp-tables must have same setting of before-image data", 0).
+                    END.
                 END.
-                ELSE IF lHasBIData NE hBeforeBuffer:TABLE-HANDLE:HAS-RECORDS THEN DO:
-                    UNDO, THROW NEW Progress.Lang.AppError("To use BusinessEntity CUD functionality, all temp-tables must have same setting of before-image data", 0).
-                END.
-            END. 
+              END.
           END.
           
           // If no bi data, then create it..
           IF lHasBIData EQ FALSE AND iRowState NE ? THEN DO:
-              REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:    
-                  hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+              REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                  // Only need to worry about tables that have data-source attached..
+                  IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                      hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
 
-                  CREATE QUERY hAfterQuery.
-                  hAfterQuery:SET-BUFFERS(hBuffer).
-                  lReturnValue = hAfterQuery:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBuffer:NAME)).
-                  lReturnValue = hAfterQuery:QUERY-OPEN().
-                  lAvailable = hAfterQuery:GET-FIRST().
+                      CREATE QUERY hAfterQuery[iIndex].
+                      hAfterQuery[iIndex]:SET-BUFFERS(hBuffer).
+                      lReturnValue = hAfterQuery[iIndex]:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBuffer:NAME)).
+                      lReturnValue = hAfterQuery[iIndex]:QUERY-OPEN().
+                      lAvailable = hAfterQuery[iIndex]:GET-FIRST().
             
-                  DO WHILE lAvailable:
-                      /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
-                      lReturnValue = hBuffer:MARK-ROW-STATE(iRowState).
+                      DO WHILE lAvailable:
+                          /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
+                          lReturnValue = hBuffer:MARK-ROW-STATE(iRowState).
                 
-                      IF NOT lReturnValue THEN 
-                          UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + 
-                                   GetRowState(iRowState) + 
+                          IF NOT lReturnValue THEN 
+                              UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + GetRowState(iRowState) + 
                                    ' record. Cannot create corresponding row in BEFORE-TABLE.', 0).
-                      lAvailable = hAfterQuery:GET-NEXT().
+                          lAvailable = hAfterQuery[iIndex]:GET-NEXT().
+                      END.
                   END.
-              END.
+              END.  // END REPEAT
           END.
           
-           RETURN lHasBIData.
+          FINALLY:
+              REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                  IF VALID-HANDLE(hAfterQuery[iIndex]) THEN
+                      DELETE OBJECT hAfterQuery[iIndex].
+              END.
+          
+              RETURN lHasBIData.
+          END FINALLY.  
   
     END METHOD.
 
@@ -467,7 +480,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
            ProcessTransactionalError(e:GetMessage(1)).
        END.
  
-       FINALLY: 
+       FINALLY:
             THIS-OBJECT:DetachDataSources().
             
             // Reset undos to orig values
@@ -496,34 +509,39 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
         DEFINE VARIABLE lReturnValue AS LOGICAL NO-UNDO.
         DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
-        DEFINE VAR hBeforeQuery AS HANDLE NO-UNDO.
+        DEFINE VAR hBeforeQuery AS HANDLE EXTENT NO-UNDO.
+        
+        EXTENT(hBeforeQuery) = ProDataSet:NUM-BUFFERS.
 
-        /* If no error message, check to see if RETURN-VALUE is set. 
-            * This is possible if error was returned from DB trigger */
-           IF LENGTH(errMessage) EQ 0 THEN
-               errMessage = RETURN-VALUE.
+        /* If RETURN-VALUE is set, use it.
+         * This would be set if error was returned from DB trigger */
+        IF LENGTH(RETURN-VALUE) > 0 THEN
+           errMessage = RETURN-VALUE.
                
         // If UpdateMode was never set, don't bother setting REJECTED attributes.
         // Error happened before we got a chance to call SAVE-ROW-CHANGES()
         IF UpdateMode NE UpdateModeEnum:UNDEFINED THEN DO:
-            REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:    
-                hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-                hBeforeBuffer = hBuffer:BEFORE-BUFFER.
+            REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                // Only need to worry about tables that have data-source attached..
+                IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                    hBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+                    hBeforeBuffer = hBuffer:BEFORE-BUFFER.
 
-                CREATE QUERY hBeforeQuery.
-                hBeforeQuery:SET-BUFFERS(hBeforeBuffer).
+                    CREATE QUERY hBeforeQuery[iIndex].
+                    hBeforeQuery[iIndex]:SET-BUFFERS(hBeforeBuffer).
         
-                lReturnValue = hBeforeQuery:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBeforeBuffer:NAME)).
-                lReturnValue  = hBeforeQuery:QUERY-OPEN().
-                lAvailable = hBeforeQuery:GET-FIRST().
+                    lReturnValue = hBeforeQuery[iIndex]:QUERY-PREPARE(SUBSTITUTE('FOR EACH &1', hBeforeBuffer:NAME)).
+                    lReturnValue  = hBeforeQuery[iIndex]:QUERY-OPEN().
+                    lAvailable = hBeforeQuery[iIndex]:GET-FIRST().
         
-                DO WHILE lAvailable:
-                    hBeforeBuffer:REJECTED = TRUE.
-                    IF hBeforeBuffer:ERROR EQ TRUE THEN DO:
-                        hBeforeBuffer:ERROR-STRING = errMessage.
-                    END.   
-                    lAvailable = hBeforeQuery:GET-NEXT().     
-                END.        
+                    DO WHILE lAvailable:
+                        hBeforeBuffer:REJECTED = TRUE.
+                        IF hBeforeBuffer:ERROR EQ TRUE THEN DO:
+                            hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, errMessage).
+                        END.
+                        lAvailable = hBeforeQuery[iIndex]:GET-NEXT().     
+                    END.     
+                END.
             END.
         END.
         ELSE DO:
@@ -533,7 +551,29 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         IF UpdateMode EQ UpdateModeEnum:CUD_NOBI OR UpdateMode EQ UpdateModeEnum:UNDEFINED THEN DO:
             UNDO, THROW NEW Progress.Lang.AppError(errMessage, 0).
         END.
+        
+        FINALLY:
+            REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+                IF VALID-HANDLE(hBeforeQuery[iIndex]) THEN
+                    DELETE OBJECT hBeforeQuery[iIndex].
+            END.
+        END FINALLY. 
               
+    END METHOD.
+    
+    /*------------------------------------------------------------------------------------------------
+            Purpose: If errMessage param is not set, create an error message for the current bi row
+            Notes:                                                                        
+    -------------------------------------------------------------------------------------------------*/  
+    METHOD PRIVATE CHAR GetRowErrorMessage(INPUT hBeforeBuffer AS HANDLE, INPUT errMessage AS CHAR):
+        // Want to ensure that we always return an error message when a create, update, or delete record fails
+        // when calling SAVE-ROW-CHANGES
+        IF LENGTH(errMessage) EQ 0 THEN
+            errMessage = 'Unable to ' + GetRowState(hBeforeBuffer:ROW-STATE) +
+                                   ' record in the database during SAVE-ROW-CHANGES().'.
+        
+        RETURN errMessage.
+                                    
     END METHOD.
 
 
@@ -587,8 +627,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE iIndex AS INTEGER NO-UNDO.
            
         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-            hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-            hCurBuffer:ATTACH-DATA-SOURCE(ProDataSource[iIndex]).
+            // Only need to worry about tables that have data-source attached..
+            IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+                hCurBuffer:ATTACH-DATA-SOURCE(ProDataSource[iIndex]).
+            END.
         END.
                                     
     END METHOD.
@@ -606,8 +649,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         ValidateFieldLists(INPUT-OUTPUT cFieldList).
                  
         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-            hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-            hCurBuffer:ATTACH-DATA-SOURCE(ProDataSource[iIndex], cFieldList[iIndex]).
+            // Only need to worry about tables that have data-source attached..
+            IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+                hCurBuffer:ATTACH-DATA-SOURCE(ProDataSource[iIndex], cFieldList[iIndex]).
+            END.
         END.
                                     
     END METHOD.
@@ -623,15 +669,19 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE iIndex AS INTEGER NO-UNDO.
            
         REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
-            hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
-            hCurBuffer:DETACH-DATA-SOURCE().
+            // Only need to worry about tables that have data-source attached..
+            IF VALID-HANDLE(ProDataSource[iIndex]) THEN DO:
+                hCurBuffer = ProDataSet:GET-BUFFER-HANDLE(iIndex).
+                hCurBuffer:DETACH-DATA-SOURCE().
+            END.
         END.
                                     
     END METHOD.
     
     /*-----------------------------------------------------------------------------------
             Purpose: Must verify that ProDataSource contains a data source entry for each 
-                     table specified in dataset. Also verify that they are valid handles.                                                                  
+                     table specified in dataset. Also verify that they are valid handles.
+                     A data source entry can be set to UNKNOWN as well, as allow for that.                                                                
             Notes:                                                                        
     ------------------------------------------------------------------------------------*/  
     METHOD PROTECTED VOID ValidateDataSources():
@@ -641,8 +691,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         IF ProDataSet:NUM-BUFFERS NE EXTENT(ProDataSource) THEN
             UNDO, THROW NEW Progress.Lang.AppError("ProDataSource's EXTENT value must equal number of buffers in DataSet.", 0).
            
-        REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:         
-            IF NOT VALID-HANDLE(ProDataSource[iIndex]) THEN
+        REPEAT iIndex = 1 TO ProDataSet:NUM-BUFFERS:
+            IF ProDataSource[iIndex] NE ? AND NOT VALID-HANDLE(ProDataSource[iIndex]) THEN
                 UNDO, THROW NEW Progress.Lang.AppError("ProDataSource extent value must be a valid DataSource Handle.", 0).            
         END.
                                     
@@ -795,16 +845,24 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                     IF ERROR-STATUS:NUM-MESSAGES >= 1 THEN DO:
                         hBeforeBuffer:ERROR-STRING = ERROR-STATUS:GET-MESSAGE(1).
                     END.
-                
-                    /* Check to see if RETURN-VALUE is set. This is possible if error was 
-                     * returned from DB trigger */
-                    IF  hBeforeBuffer:ERROR-STRING EQ ? THEN
+                    
+                    /* But if RETURN-VALUE is set, use it. This is possible if error 
+                     * was returned from DB trigger */
+                    IF LENGTH(RETURN-VALUE) > 0 THEN DO:
                         hBeforeBuffer:ERROR-STRING = RETURN-VALUE.
+                    END.
+                    // Now verify that we are sending back an error message
+                    hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, hBeforeBuffer:ERROR-STRING).
                 END.
            
                 lAvailable = hBeforeQuery:GET-NEXT().
             END.
-        END.       
+        END.
+        
+        FINALLY:
+          IF VALID-HANDLE(hBeforeQuery) THEN
+              DELETE OBJECT hBeforeQuery.
+        END FINALLY.
         
     END METHOD.
     
@@ -876,9 +934,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     METHOD PRIVATE VOID SetFillWhereString(INPUT cWhere AS CHARACTER, 
                                            INPUT hBuffer AS HANDLE):
         DEFINE VARIABLE hDataSrc AS HANDLE NO-UNDO.
-         
+        
         /* Set FILL-WHERE-STRING if applicable */
-        IF cWhere NE "" AND cWhere NE ? THEN DO:
+        IF cWhere NE "" AND cWhere NE ? AND VALID-HANDLE(hBuffer:DATA-SOURCE) THEN DO:
             hDataSrc =  hBuffer:DATA-SOURCE.
             hDataSrc:FILL-WHERE-STRING = cWhere.
         END.  

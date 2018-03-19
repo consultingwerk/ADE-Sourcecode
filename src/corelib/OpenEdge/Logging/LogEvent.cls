@@ -22,18 +22,8 @@ class OpenEdge.Logging.LogEvent serializable:
     define public property Logger as ILogWriter no-undo get. set.
     
     // (optional) The name of the logger
-    define public property LoggerName as character no-undo
-        get():
-            if valid-object(Logger) then
-                return Logger:Name.
-            
-            return this-object:LoggerName. 
-        end get.
-        set(input pcName as character):
-            if not valid-object(Logger) then
-                assign this-object:LoggerName = pcName.
-        end set. 
-            
+    define public property LoggerName as character no-undo get. set.
+    
     // (mandatory) THe level of this event
     define public property LogLevel as LogLevelEnum no-undo get. private set.
     
@@ -51,6 +41,12 @@ class OpenEdge.Logging.LogEvent serializable:
     
     /* (optional) The user logging this event */
     define public property LoggedBy as handle no-undo get. set.
+    
+    /* (optional) The short-name of the logger logging this event. The short name is the logger name */
+    define public property LoggerShortName as character no-undo get. set.
+    
+    /* (optional) The short-name-format of the logger logging this event */
+    define public property ShortNameFormat as character no-undo get. set.
     
     /* Constructor
        
@@ -109,9 +105,14 @@ class OpenEdge.Logging.LogEvent serializable:
                this-object:TimeStamp = now
                this-object:LogLevel  = poLevel
                .
-        if this-object:LogLevel ge LogLevelEnum:DEBUG then
-            BuildStack().
+        BuildStack().
     end constructor.
+    
+    /* Destructor */
+    destructor public LogEvent():
+        if valid-handle(this-object:LoggedBy) then
+            delete object this-object:LoggedBy no-error.
+    end destructor.
     
     /* Builds the calls stack of the log event */
     method private character extent BuildStack():
@@ -120,6 +121,10 @@ class OpenEdge.Logging.LogEvent serializable:
         define variable cStack as character no-undo.
         define variable cDelim as character no-undo.
         define variable cProgName as character no-undo.
+        
+        // we want the line that did the logging
+        if this-object:LogLevel lt LogLevelEnum:DEBUG then
+            assign iMax = 1.
         
         assign cDelim = '':u
                iLoop  = 1
@@ -138,11 +143,14 @@ class OpenEdge.Logging.LogEvent serializable:
             
             assign cStack = cStack + cDelim + cProgName
                    cDelim = StringConstant:LF. 
+            if iMax eq 1 then
+                leave.
         end.
         
-        assign iMax              = num-entries(cStack, cDelim)
-               extent(CallStack) = iMax
-               .
+        if iMax eq 0 then
+            assign iMax = num-entries(cStack, cDelim).
+        
+        assign extent(CallStack) = iMax.
         do iLoop = 1 to iMax:
             assign CallStack[iLoop] = entry(iLoop, cStack, StringConstant:LF).
         end.

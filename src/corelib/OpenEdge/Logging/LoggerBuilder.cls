@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Core.Util.ConfigBuilder.
 using OpenEdge.Logging.ConfigFileLoggerBuilder.
@@ -77,7 +78,27 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     
     /** Returns a logger (ILogWriter). 
         
-        @param P.L.Class The typename for which to find a logger
+        @param handle The procedure for which to find a logger
+        @return ILogWriter An instance of the default logger */
+    method static public ILogWriter GetLogger(input pLoggerType as handle):
+        define variable loggerName as character no-undo.
+        
+        if    valid-handle(pLoggerType)
+           and can-query(pLoggerType, 'FILE-NAME':U)
+           then
+            assign loggerName = replace(pLoggerType:file-name,'/':u, '.':u)
+                   loggerName = replace(loggerName, StringConstant:BACKSLASH, '.':u)
+                   loggerName = substring(loggerName, 1, r-index(loggerName, '.':u) - 1)
+                   .
+        else
+            assign loggerName = LoggerBuilder:DefaultLogger.
+        
+        return LoggerBuilder:Build(loggerName):Logger.
+    end method.
+    
+    /** Returns a logger (ILogWriter)
+        
+        @param character The logger name 
         @return ILogWriter An instance of the default logger */
     method static public ILogWriter GetLogger(input pcLoggerType as character):
         if pcLoggerType eq '':u or pcLoggerType eq ? then
@@ -182,7 +203,8 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         end.
         
-        assign logWriter = BuildFilterLogger(). 
+        if HasOption('filterName':u) then
+            assign logWriter = BuildFilterLogger(). 
         
         if not valid-object(logWriter) then 
             assign logWriter = new VoidLogger(this-object:LoggerType).

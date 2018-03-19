@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /* ------------------------------------------------------------------------
     File        : EventArgs
@@ -19,7 +19,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.EventArgs.
 
-class OpenEdge.Core.EventArgs:
+class OpenEdge.Core.EventArgs serializable:
 
     /** A single instance of this class so that we don't have
         to pass nulls around (ie we can depend on there always being

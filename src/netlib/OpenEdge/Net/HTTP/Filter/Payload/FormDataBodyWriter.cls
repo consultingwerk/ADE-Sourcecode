@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : FormDataBodyRequestFilter
@@ -13,12 +13,13 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.ICharacterHolder.
+using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.IStringStringMap.
 using OpenEdge.Core.Collections.MapEntry.
-using OpenEdge.Core.String.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
@@ -52,34 +53,49 @@ class OpenEdge.Net.HTTP.Filter.Payload.FormDataBodyWriter inherits MessageWriter
         define variable cDelimiter as character no-undo.
         define variable oEntry as MapEntry no-undo.
         define variable cFormString as character no-undo.
+        define variable lcText as longchar no-undo.
         
-        Assert:NotNull(poData).
+        case true:
+            when not valid-object(poData) then
+                return 0.
+            
+            when type-of(poData, IStringStringMap) then
+            do:
+                assign cDelimiter   = '':u
+                       oIterator    = cast(poData, IStringStringMap):EntrySet:Iterator()
+                       iBytesWritten = cast(this-object:Entity, ByteBucket):Size.
         
-        if poData:GetClass():IsA(get-class(String)) then
-            assign iBytesWritten = this-object:Write(cast(poData, String):Value).
-        else
-        if poData:GetClass():IsA(get-class(IStringStringMap)) then
-        do:
-            assign cDelimiter   = '':u
-                   oIterator    = cast(poData, IStringStringMap):EntrySet:Iterator()
-                   iBytesWritten = cast(this-object:Entity, ByteBucket):Size.
-    
-            do while oIterator:HasNext():
-                assign oEntry        = cast(oIterator:Next(), MapEntry)
-                       cFormString   = cDelimiter + substitute('&1=&2':u, oEntry:Key:ToString(), oEntry:Value:ToString())
-                       cDelimiter    = '&':u
-                       .
-                cast(this-object:Entity, ByteBucket):PutString(cFormString).
+                do while oIterator:HasNext():
+                    assign oEntry        = cast(oIterator:Next(), MapEntry)
+                           cFormString   = cDelimiter + substitute('&1=&2':u, oEntry:Key:ToString(), oEntry:Value:ToString())
+                           cDelimiter    = '&':u
+                           .
+                    cast(this-object:Entity, ByteBucket):PutString(cFormString).
+                end.
+                
+                return (cast(this-object:Entity, ByteBucket):Size - iBytesWritten).
             end.
             
-            assign iBytesWritten = (cast(this-object:Entity, ByteBucket):Size - iBytesWritten).
-        end.
-        else                 
-            return error new AppError(
-                        substitute('Unsupported object type: &1', poData:GetClass():TypeName)
-                        , 0).
+            when type-of(poData, OpenEdge.Core.String) or
+            when type-of(poData, ICharacterHolder) or
+            when type-of(poData, ILongcharHolder) then
+            do:
+                // coerce into using the LONGCHAR version
+                assign lcText = dynamic-property(poData, 'Value':u).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.    // characters
+            
+            otherwise 
+                return error new AppError(
+                            substitute('Unsupported object type: &1', poData:GetClass():TypeName)
+                            , 0).
+            
+        end case.
         
-        return iBytesWritten.
+        return 0.
     end method.
     
 end class.

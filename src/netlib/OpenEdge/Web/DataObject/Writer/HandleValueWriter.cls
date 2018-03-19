@@ -20,6 +20,7 @@ using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.ReadModeEnum.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
@@ -36,7 +37,27 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
         
         assign this-object:Value = new OpenEdge.Core.WidgetHandle(handle(pData)).
     end method.
-
+    
+    /** Clears or empties the target */
+    method override public void Clear():
+        define variable hData as handle no-undo.
+        
+        /* If we have a handle already, use that. */
+        if valid-object(this-object:Value) then
+        do:
+            assign hData = cast(this-object:Value, IHandleHolder):Value.
+            if valid-handle(hData) then
+            case hData:type:
+                when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
+                when DataTypeHelper:GetMask(DataTypeEnum:TempTable) then
+                    hData:empty-temp-table().
+                
+                when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+                    hData:empty-dataset().
+            end case.
+        end.
+    end method.
+    
     method override public void Write(input pData as longchar):
         this-object:Write(string(pData)).
     end method.
@@ -124,7 +145,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                         // use EMPTY read-mode in case there are index conflicts in the input data
                         hData:read-json('JsonArray':u, cast(pData, JsonArray), ReadModeEnum:Empty:ToString()).
                     else
-                    if type-of(pData, JsonObject) then                
+                    if type-of(pData, JsonObject) then
                         /* JsonObject data can be read into a table or dataset. Try a dataset, since we don't really know the 
                            name of the tables. If it fails, throw an error. 
                            
@@ -146,11 +167,12 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                 end.
                 
                 /* Auto-destroy this dataset/temp-table if we built it here. If it was passed in, then not */
-                this-object:Write(new OpenEdge.Core.WidgetHandle(hData, lDestroy)).
+                assign this-object:Value = new OpenEdge.Core.WidgetHandle(hData, lDestroy).
             end.    /* JSON */
             
             when type-of(pData, IHandleHolder) then
-                this-object:Write(cast(pData, IHandleHolder):Value).
+                // Use the input value as-is; no need to create a new object
+                assign this-object:Value = cast(pData, IHandleHolder).
             
             when type-of(pData, ILongcharHolder) then
                this-object:Write(cast(pData, ILongcharHolder):Value).

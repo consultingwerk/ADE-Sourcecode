@@ -18,12 +18,14 @@ Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Net.MimeTypeHelper.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
 using OpenEdge.Web.WebRequest.
@@ -50,9 +52,9 @@ class OpenEdge.Web.WebHandler abstract
         define variable webRequest as IWebRequest no-undo.
         define variable httpStatus as integer no-undo.
         
-        assign webRequest = new WebRequest()        
-               httpStatus = integer(StatusCodeEnum:None).
-        
+        assign webRequest = new WebRequest()
+               httpStatus = integer(StatusCodeEnum:None)
+               .
         /* Check http method and dispatch to corresponding handler */
         case MethodEnum:GetEnum(webRequest:Method):
             when MethodEnum:DELETE  then assign httpStatus = HandleDelete(webRequest).
@@ -225,6 +227,70 @@ class OpenEdge.Web.WebHandler abstract
             otherwise 
                 Logger:Warn(pcMessage).
         end case.
+    end method.
+    
+    /* Ensures that the request's Accept header and the operation's 
+       ContentType values are compatible, per https://tools.ietf.org/html/rfc7231#section-5.3.2
+       
+       ContentType must be a complete type/subtype.
+       Accept may contain type/subtype, type/<star> or <star>/<star> values. If <star>/<star>
+       values appear the we can service the request.
+       
+       @param IWebRequest The request that resulting in the exception
+       @param character The MIME type we're wanting to return (usally from the operation) 
+       @return logical TRUE if the operation's ContentType is compatible with the request's Accept value */
+    method protected logical CanAcceptContentType(input pRequest as IWebRequest,                                              
+                                                  input pContentType as character):
+        define variable reqAccept as character no-undo.
+        define variable cnt as integer no-undo.
+        define variable maxTypes as integer no-undo.
+        define variable canAccept as logical no-undo.
+        define variable reqCType as character extent 2 no-undo.
+        define variable compCType as character extent 2 no-undo.
+        
+        Assert:NotNull(pRequest, 'Request').
+        Assert:NotNullOrEmpty(pContentType, 'Content type').
+        
+        // We assume */* with no Accept header (ie accept all)
+        if not pRequest:HasHeader('Accept':u) then
+            return true.
+        
+        assign reqAccept = pRequest:GetHeader('Accept':u):Value
+               maxTypes  = num-entries(reqAccept)
+               .
+        Logger:Debug(substitute('Request "Accept" header: &1', reqAccept)).
+        Logger:Debug(substitute('Response Content-Type: &1', pContentType)).
+        
+        assign canAccept = false
+               compCType = MimeTypeHelper:SplitType(pContentType)
+               .
+        do cnt = 1 to maxTypes while not canAccept:
+            assign reqCType = MimeTypeHelper:SplitType(entry(cnt, reqAccept))
+                   .
+            // stars mean anything goes; exact match means we're good here          
+            if    (reqCType[1] eq '*':u        and reqCType[2] eq '*':u) 
+               or (reqCType[1] eq compCType[1] and reqCType[2] eq compCType[2]) 
+               then
+            do:
+                assign canAccept = true.
+                leave.
+            end.
+            
+            // unless the request is * (done above) we want a match
+            if reqCType[1] ne compCType[1] then
+                next.
+            
+            // *-groups and exact matches
+            if    reqCType[2] eq '*':u
+               or reqCType[2] eq compCType[2] 
+               then
+            do:
+                assign canAccept = true.
+                leave.
+            end.
+        end.
+        
+        return canAccept.
     end method.
     
 end class.

@@ -17,20 +17,42 @@ using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.URI.
-using OpenEdge.Net.UriEncodingTypeEnum.
 using Progress.Lang.Object.
 
-class OpenEdge.Net.HTTP.Cookie:
+class OpenEdge.Net.HTTP.Cookie serializable:
+    /** (mandatory) The cookie name */ 
     define public property Name as character no-undo get. private set.
+    
+    /** (mandatory) The cookie domain */
     define public property Domain as character initial ?  no-undo get. private set.
+    
+    /** (mandatory) The cookie path */
     define public property Path as character initial ?  no-undo get. private set.
+    
+    /** (optional)  The cookie value */
     define public property Value as character no-undo get. private set.
+    
+    /** (optional) The max age of the cookie (time-to-expiry) */
     define public property MaxAge as integer initial ? no-undo get. private set.
+    
+    /** (optional) The date at which the cookie expires */
     define public property ExpiresAt as datetime-tz initial ? no-undo get. private set.
+    
+    /** (optional) TRUE if the cookie is secure/https-only */ 
     define public property Secure as logical initial false no-undo get. private set.
+    
+    /** (optional) TRUE if the cookie is HTTP-only */
     define public property HttpOnly as logical initial false no-undo get. private set.
+    
+    /** (optional) The version of the cookie */
     define public property Version as decimal initial ? no-undo get. private set.
     
+    /* Constructor
+       
+       @param character (mandatory) The cookie name 
+       @param character (mandatory) The cookie domain
+       @param character (mandatory) The cookie path
+       @param character (optional)  The cookie value    */
     constructor public Cookie(input pcCookieName as character,
                               input pcDomain as character,
                               input pcPath as character,
@@ -38,6 +60,17 @@ class OpenEdge.Net.HTTP.Cookie:
         this-object(pcCookieName, pcDomain, pcPath, pcCookieValue, ?, ?, ?, ?, ?).                                  
     end constructor.
     
+    /* Constructor
+       
+       @param character (mandatory) The cookie name 
+       @param character (mandatory) The cookie domain
+       @param character (mandatory) The cookie path
+       @param character (optional)  The cookie value
+       @param integer (optional) The max age of the cookie (time-to-expiry)
+       @param datetime-tz (optional) The date at which the cookie expires
+       @param logical (optional) TRUE if the cookie is secure/https-only 
+       @param logical (optional) TRUE if the cookie is HTTP-only
+       @param decimal (optional) The version of the cookie */
     constructor public Cookie(input pcCookieName as character,
                               input pcDomain as character,
                               input pcPath as character,
@@ -103,35 +136,44 @@ class OpenEdge.Net.HTTP.Cookie:
         define variable lHttpOnly as logical no-undo.
         define variable tExpiresAt as datetime-tz no-undo.
         define variable dVersion as decimal no-undo.
+        define variable chrPos as integer no-undo.
+        define variable attrName as character no-undo.
+        define variable attrValue as character no-undo.
         
         Assert:NotNullOrEmpty(pcCookie, 'Cookie').
         
-        assign cAttribute = entry(1, pcCookie, ';':u)
-               cName = entry(1, cAttribute, '=':u)
-               cValue = entry(2, cAttribute, '=':u)
-               
-               iMaxAge = ?
-               cDomain = '':u
+        assign iMaxAge     = ?
+               cDomain     = '':u
                lSecureOnly = false
-               lHttpOnly = false
+               lHttpOnly   = false
                /* default is root */
-               cPath = '/':u
-               tExpiresAt = ? 
-               dVersion = ?
-               iMax = num-entries(pcCookie, ';':u).
+               cPath       = '/':u
+               tExpiresAt  = ? 
+               dVersion    = ?
                
+               iMax = num-entries(pcCookie, ';':u)
+               .
         /* do the name=value separately so that we can "strongly-type" our case statement. */
-        do iLoop = 2 to iMax:
-            assign cAttribute = entry(iLoop, pcCookie, ';':u).
-            case trim(entry(1, cAttribute, '=':u)):
-                when 'Max-Age':u  then assign iMaxAge = integer(entry(2, cAttribute, '=':u)).
+        do iLoop = 1 to iMax:
+            assign cAttribute = entry(iLoop, pcCookie, ';':u)
+                   chrPos     = index(cAttribute, '=':u)
+                   attrName   = trim(substring(cAttribute, 1, chrPos - 1)) 
+                   attrValue  = trim(substring(cAttribute, chrPos + 1))
+                   .
+            case attrName:
+                when 'Max-Age':u  then assign iMaxAge = integer(attrValue).
                 /* trim off the leading/trailing quotes (") */
-                when 'Domain':u   then assign cDomain = trim(entry(2, cAttribute, '=':u), '"':u).
+                when 'Domain':u   then assign cDomain = trim(attrValue, '"':u).
                 when 'Secure':u   then assign lSecureOnly = true.
                 when 'HttpOnly':u then assign lHttpOnly = true.
-                when 'Path':u     then assign cPath = trim(entry(2, cAttribute, '=':u), '"':u).
-                when 'Expires':u  then assign tExpiresAt = TimeStamp:ToABLDateTimeTzFromHttp(trim(entry(2, cAttribute, '=':u), '"':u)).
-                when 'Version':u  then assign dVersion = decimal(entry(2, cAttribute, '=':u)).
+                when 'Path':u     then assign cPath = trim(attrValue, '"':u).
+                when 'Expires':u  then assign tExpiresAt = TimeStamp:ToABLDateTimeTzFromHttp(trim(attrValue, '"':u)).
+                when 'Version':u  then assign dVersion = decimal(attrValue).
+                otherwise
+                    if iLoop eq 1 then
+                        assign cName  = attrName
+                               cValue = attrValue
+                               .                
             end case.
         end.
         

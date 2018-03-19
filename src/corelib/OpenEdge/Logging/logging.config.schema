@@ -56,7 +56,11 @@
                 {
                   "type": "object",
                   "properties": {
-                    "name": {"type": "string"}
+                    "name": {"type": "string"},
+                    "format": {
+                        "type": "string",
+                        "description": "A string to format that the filter uses to format the message (or part thereof)"
+                    }
                   },
                   "required": ["name"]
                 }

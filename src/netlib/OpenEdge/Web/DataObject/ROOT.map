@@ -1,0 +1,38 @@
+{"services": {
+    "_oeping": {
+      "version": "1.0.0",
+      "operations": {
+        "/": {
+          "GET": {
+            "contentType": "application/json",
+            "options": {"responseEnvelope": "response"},
+            "statusCode": 200,
+            "entity": {
+              "type": "class1",
+              "name": "OpenEdge.Rest.Admin.AppServerStatus",
+              "function": "ServerStatus",
+              "arg": [
+                {
+                  "ablName": "",
+                  "ablType": "CHARACTER",
+                  "ioMode": "RETURN",
+                  "msgElem": {"type": "FIELD","name": "_retVal"}
+                }]}}}}
+    },
+    "ROOT": {
+      "version": "1.0.0",
+      "operations": {
+        "/": {
+          "GET": {
+            "contentType": "application/json",
+            "statusCode": 200,
+            "entity": {
+              "type": "self",
+              "name": "OpenEdge.Web.DataObject.DataObjectHandler",
+              "function": "ListServices",
+              "arg": []
+            }
+          }
+        }
+      }
+}}}

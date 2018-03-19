@@ -744,7 +744,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeScheme(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Scheme, true). 
+        return URI:EncodeString(pcString, ?, mEncFlag_Scheme, false). 
     end method.
 
     /* Encodes a string per URI Scheme encoding rules
@@ -756,7 +756,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeScheme(input pString as String):
-        return URI:EncodeString(pString:ToSTring(), pString:Encoding, mEncFlag_Scheme, true). 
+        return URI:EncodeString(pString:ToSTring(), pString:Encoding, mEncFlag_Scheme, false). 
     end method.
         
     /* Encodes a string per URI Host encoding rules
@@ -770,7 +770,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeHost(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Host, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Host, false).
     end method.
 
     /* Encodes this uri's Host per URI Host encoding rules
@@ -796,7 +796,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeUserinfo(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Userinfo, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Userinfo, false).
     end method.
     
     /* Encodes a string per URI userinfo encoding rules
@@ -810,7 +810,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeUserinfo(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Userinfo, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Userinfo, false).
     end method.
 
     /* Encodes this uri's Host per URI Host encoding rules
@@ -823,11 +823,11 @@ class OpenEdge.Net.URI:
         if this-object:User eq ? then
             return '':u.
         
-        assign authority = URI:EncodeString(this-object:User, ?, mEncFlag_Host, true).
+        assign authority = URI:EncodeString(this-object:User, ?, mEncFlag_Host, false).
         if this-object:Password ne ? then
             assign authority = authority 
                              + ':':u
-                             + URI:EncodeString(this-object:Password, ?, mEncFlag_Host, true).
+                             + URI:EncodeString(this-object:Password, ?, mEncFlag_Host, false).
         
         return authority.
     end method.
@@ -843,7 +843,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeHost(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Host, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Host, false).
     end method.    
     
     /* Encodes a string per URI Path encoding rules
@@ -857,7 +857,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodePath(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Path, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Path, false).
     end method.
     
     /* Encodes a string per URI Path encoding rules
@@ -871,7 +871,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodePath(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Path, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Path, false).
     end method.
     
     /* Encodes this URI's Query string per URI Query  encoding rules. 
@@ -929,7 +929,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeQuery(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Query, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Query, false).
     end method.
     
     /* Encodes a string per URI Query encoding rules
@@ -943,7 +943,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeQuery(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Query, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Query, false).
     end method.
     
     /* Encodes this URI's Fragment per URI Fragment encoding rules
@@ -965,7 +965,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeFragment(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Fragment, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Fragment, false).
     end method.
     
     /* Encodes a string per URI Fragment encoding rules
@@ -980,7 +980,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeFragment(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Fragment, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Fragment, false).
     end method.
         
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
@@ -990,7 +990,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeCookie(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Cookie, true).
+        return URI:EncodeString(pcString, ?, mEncFlag_Cookie, false).
     end method.
 
     /* Encodes a string per Cookie encoding rules. This method is here for historical reasons.
@@ -1000,7 +1000,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeCookie(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Cookie, true).
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Cookie, false).
     end method.
     
     /* Encodes a string per URI Default encoding rules
@@ -1011,7 +1011,7 @@ class OpenEdge.Net.URI:
        @param character A string to encode
        @return character An encoded string */
     method static public character EncodeString(input pcString as character):
-        return URI:EncodeString(pcString, ?, mEncFlag_Default, true). 
+        return URI:EncodeString(pcString, ?, mEncFlag_Default, false). 
     end method.
     
     /* Encodes a string per URI Default encoding rules
@@ -1022,7 +1022,7 @@ class OpenEdge.Net.URI:
        @param String A string to encode
        @return character An encoded string */
     method static public character EncodeString(input pString as String):
-        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Default, true). 
+        return URI:EncodeString(pString:ToString(), pString:Encoding, mEncFlag_Default, false). 
     end method.
     
     /* Encodes a string per the input flags
@@ -1030,7 +1030,7 @@ class OpenEdge.Net.URI:
        @param character    The string to encode
        @param character    The codepage of the input/source string
        @param logical[128] An array of flags indicating which ASCII chars to encode
-       @param logical      TRUE if existing % values must be reencoded as %25 
+       @param logical      TRUE if existing % values must be reencoded as %25
        @return character   The encoded string       */
     method static private character EncodeString(input pcString as character,
                                                  input pcSourceCodepage as character,
@@ -1094,30 +1094,41 @@ class OpenEdge.Net.URI:
         
         return encodedString.
     end method.
-    
-    /** Encodes a string for a particular purpose . Wrapper around Encode<encoding-type> and
-        EncodeString() for the Default.
-        
-        Usage of Encode<encoding-type> is recommended.
+
+    /** Encodes a string for a particular purpose. Usage of Encode<encoding-type> is recommended. 
+        The method does NOT re-encode % characters.
         
         @param character The string to encode
         @param EncondingTypeEnum The type of encoding to apply
         @return character the encoded string */
     method static public character Encode(input pcString as character, 
                                           input poEncodingType as UriEncodingTypeEnum):
+        return URI:Encode(pcString, poEncodingType, false).
+    end method.
+    
+    /** Encodes a string for a particular purpose. Usage of Encode<encoding-type> is recommended, 
+        unless the re-encoding of % characters is desired.
+        
+        @param character The string to encode
+        @param EncondingTypeEnum The type of encoding to apply
+        @param logical TRUE if any percent characters should  be encoded as %25
+        @return character the encoded string */
+    method static public character Encode(input pString as character, 
+                                          input pEncodingType as UriEncodingTypeEnum,
+                                          input pReEncode as logical):
         /* Don't bother with blank or unknown  */
-        if length(pcString) eq 0 or pcString eq ? then
+        if length(pString) eq 0 or pString eq ? then
             return '':u.
         
         /* What kind of encoding should be used? */
-        case poEncodingType:
-            when UriEncodingTypeEnum:Scheme     then return URI:EncodeScheme(pcString).
-            when UriEncodingTypeEnum:Host       then return URI:EncodeHost(pcString).
-            when UriEncodingTypeEnum:Path       then return URI:EncodePath(pcString).
-            when UriEncodingTypeEnum:Query      then return URI:EncodeQuery(pcString).
-            when UriEncodingTypeEnum:Fragment   then return URI:EncodeFragment(pcString).
-            when UriEncodingTypeEnum:Cookie     then return URI:EncodeCookie(pcString).
-            otherwise                                return URI:EncodeString(pcString).
+        case pEncodingType:
+            when UriEncodingTypeEnum:Scheme   then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Scheme,   pReEncode).
+            when UriEncodingTypeEnum:Host     then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Host,     pReEncode).
+            when UriEncodingTypeEnum:Path     then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Path,     pReEncode).
+            when UriEncodingTypeEnum:Query    then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Query,    pReEncode).
+            when UriEncodingTypeEnum:Fragment then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Fragment, pReEncode).
+            when UriEncodingTypeEnum:Cookie   then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Cookie,   pReEncode).
+            otherwise                              return URI:EncodeString(pString, session:cpinternal, mEncFlag_Default,  pReEncode).
         end case.
     end method.
     
