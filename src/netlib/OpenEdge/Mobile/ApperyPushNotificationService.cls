@@ -15,9 +15,9 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
                     https://mobile.rollbase.com/push/.
 
                   * To send Push Notification using Push API Key, send POST request
-                    to the according URL. “filter” is the optional parameter, when 
-                    it’s empty Push Notification is sent to all devices. 
-                    “schedule” is the optional parameter, when it’s not empty 
+                    to the according URL. filter is the optional parameter, when 
+                    its empty Push Notification is sent to all devices. 
+                    schedule is the optional parameter, when its not empty 
                     Push Notification can be scheduled.
             curl -X POST \
             -H "X-Appery-Push-API-Key:<pushAPIKey>" \
@@ -38,7 +38,7 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
         If Push Notification is scheduled, server returns HTTP 200 and list of saved Push Notifications, else server returns HTTP 204 NO CONTENT status even if no messages were sent or delivered.
             Error                           HTTP    Code        Description
             Push API Key not found          404     PNMM004     Master Key: <pushAPIKey> not found
-            Empty message                   400     PNMM017     Message can’t be empty
+            Empty message                   400     PNMM017     Message cant be empty
             Badge negative                  400     PNMM062     Badge cannot be negative
             No iOS certificate              400     PNMM082     iOS Push certificate is not set
             No android API key              400     PNMM084     Android API key is not set

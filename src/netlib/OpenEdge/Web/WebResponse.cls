@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017  by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    File        : WebResponse
@@ -11,17 +11,34 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
    Notes       : 
  ----------------------------------------------------------------------*/
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
+using OpenEdge.Net.HTTP.StatusCodeHelper.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 
-class OpenEdge.Web.WebResponse 
-    inherits OpenEdge.Net.HTTP.HttpResponse: 
+class OpenEdge.Web.WebResponse inherits OpenEdge.Net.HTTP.HttpResponse: 
         
-    /** Constructor. */
+    /* Default constructor. */
     constructor public WebResponse():
+        this-object(200).
+    end constructor.
+    
+    /* Constructor.
+        
+       @param integer A status code for the response    */
+    constructor public WebResponse(input pStatusCode as integer):
         super().
         this-object:Initialize().
-        this-object:StatusCode = 200.
-        this-object:StatusReason = "OK":u.
-        this-object:Version = 'HTTP/1.1':u.
+        
+        assign this-object:StatusCode   = pStatusCode
+               this-object:StatusReason = StatusCodeHelper:GetMessage(pStatusCode)
+               this-object:Version      = 'HTTP/1.1':u.
+               .
+    end constructor.    
+
+    /* Constructor.
+        
+       @param StatusCodeEnum A status code for the response    */
+    constructor public WebResponse(input pStatusCode as StatusCodeEnum):
+        this-object(integer(pStatusCode)).
     end constructor.    
 
     /** Adds header info to this message's collection of headers.

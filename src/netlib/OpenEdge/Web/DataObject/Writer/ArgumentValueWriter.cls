@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : ArgumentValueWriter
@@ -58,7 +58,9 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISu
         assign this-object:Value = poValue.
     end method.
 
-    /** Default constructor. */
+    /** Constructor.
+        
+        @param Class  The type of the entity - pseudo-generics here. */
     constructor protected ArgumentValueWriter (input poType as class Progress.Lang.Class):
         Assert:NotNull(poType, 'Entity type').
         

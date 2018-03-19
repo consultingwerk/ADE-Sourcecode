@@ -1,6 +1,6 @@
 /*********************************************************************
-* Copyright (C) 2007,2011 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2007,2011,2017 by Progress Software Corporation. All *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -92,6 +92,7 @@ DEFINE VARIABLE cMsg          AS CHARACTER NO-UNDO.
 define variable lImmediatedisp as logical no-undo.
 define variable xDumpTerminatedMsg as character no-undo init "Dump terminated.".
 define variable dumpCollection  as OpenEdge.DataAdmin.IDataAdminCollection no-undo.
+
 FORM
   DICTDB._File._File-name FORMAT "x(32)" LABEL "Table"  
   SPACE(0) fil            FORMAT "x(32)" LABEL "Dump File" SPACE(0)
@@ -339,7 +340,7 @@ do:
            undo, throw new AppError(cMsg).
    end.
 end.
- 
+
 DO ON STOP UNDO, LEAVE:
     /* if not specifically skippng this check and not the no-convert case, 
        check utf-8 case  */
@@ -755,7 +756,13 @@ DO ON STOP UNDO, LEAVE:
                                       phDbName + "." +  DICTDB._File._File-name /* db-name.table-name */, 
                                       "" /* detail */).
         /* this block has on error, undo next, so handle error so we can throw in case we are running silent */
-        catch e as Progress.Lang.Error :
+        
+        CATCH stopErr AS Progress.Lang.StopError:
+            /* This will cause the DO ON STOP to take effect, as
+               with catchStop 0. */
+            UNDO, THROW stopErr.
+        END.
+        CATCH e as Progress.Lang.Error :
         	run handleError(e).	
         end catch.      
     END. /* DO FOR DICTDB._File ix = 1 to numCount ON ERROR UNDO,NEXT:*/
@@ -867,3 +874,4 @@ procedure GetGroupName  :
 end procedure.
 
  
+

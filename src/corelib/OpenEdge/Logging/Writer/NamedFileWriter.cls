@@ -18,6 +18,7 @@ using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.LogEvent.
 using Progress.IO.FileOutputStream.
 using OpenEdge.Logging.Writer.IFileWriter.
+using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWriter:
     // The file we're writing to
@@ -80,10 +81,10 @@ class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWri
         if moFileOutputStream:Closed then
             return.
             
-        assign iSize = length(poEvent:Message:Message, 'raw':u) + 1.
+        assign iSize = length(poEvent:Message:Message, 'raw':u) + 2.
         set-size(mLine) = iSize.
-        put-string(mLine, 1) = poEvent:Message:Message.
-
+        put-string(mLine, 1) = poEvent:Message:Message + StringConstant:LF.
+        
         moFileOutputStream:Write(mLine, 1, iSize - 1).
         
         // force a write 

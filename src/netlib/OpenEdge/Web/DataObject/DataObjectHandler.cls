@@ -22,7 +22,6 @@ using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.HttpRequestError.
@@ -31,6 +30,7 @@ using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Net.MimeTypeHelper.
+using OpenEdge.Web.DataObject.DataObjectError.
 using OpenEdge.Web.DataObject.DataObjectEventArgs.
 using OpenEdge.Web.DataObject.DataObjectHandler.
 using OpenEdge.Web.DataObject.FileOperationHandler.
@@ -153,8 +153,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         define variable iStatusCode as integer no-undo.
         define variable cContentType as character no-undo.
         
-        Assert:NotNull(poRequest, 'Web request').
-        Assert:NotNull(poRequest, 'Web response').
+        Assert:NotNull(poRequest,  'Web request').
+        Assert:NotNull(poResponse, 'Web response').
         Assert:NotNull(poError, 'Error').
         
         Logger:Error(substitute('Exception raised for &1 &2; Entity=&3; Operation=&4',
@@ -403,10 +403,24 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poOperation, 'Mapped operation').
         
         // Set the default response values from the operation
-        assign httpResponse             = new WebResponse()
+        assign httpResponse             = CreateDefaultResponse()
+               
                httpResponse:ContentType = poOperation:ContentType
                httpResponse:StatusCode  = poOperation:StatusCode      when poOperation:StatusCode ne 0
                .
+        return httpResponse.
+    end method.
+
+    /* Creates a default HTTP Response object.
+       
+       This is in its own method in case of overriding.
+       
+       @return IHttpResponse  The default HTTP response */
+    method protected IHttpResponse CreateDefaultResponse():
+        define variable httpResponse as IHttpResponse no-undo.
+        
+        assign httpResponse = new WebResponse().
+        
         return httpResponse.
     end method.
     
@@ -419,7 +433,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         define variable iStatusCode as integer no-undo initial 0.
         define variable oResponse as IHttpResponse no-undo.
         define variable oOperation as MappedOperation no-undo.
-        define variable oBusinessEntity as Progress.Lang.Object no-undo.
         define variable oMessageBody as Progress.Lang.Object no-undo.
         define variable oOperationArgs as OperationInvocationEventArgs no-undo.
         define variable oOperationHandler as IOperationHandler no-undo.
@@ -472,8 +485,16 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         
         return iStatusCode.
         /* errors? */
+        catch doErr as DataObjectError:
+            assign iStatusCode = HandleException(doErr:Error, doErr:Request, doErr:Response, doErr:BusinessEntity, doErr:Operation).
+            return iStatusCode.
+        end catch.
         catch oError as Progress.Lang.Error:
-            assign iStatusCode = HandleException(oError, poRequest, oResponse, oBusinessEntity, oOperation).
+            // if there are errors thrown from the FindOperation (run before CreateOperationResponse())
+            if not valid-object(oResponse) then
+                assign oResponse = CreateDefaultResponse().
+            
+            assign iStatusCode = HandleException(oError, poRequest, oResponse, ?, oOperation).
             return iStatusCode.
         end catch.
         finally:
@@ -531,7 +552,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                 assign lValidType = true.
                 leave.
             end.
-
+            
             // unless the request is * (done above) we want a match
             if cReqType[1] ne cOperType[1] then
                 next.
@@ -581,7 +602,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                .
         OnInvoking(oOperationArgs).
         if valid-object(oOperationArgs:Error) then
-            return HandleException(oOperationArgs).
+            undo, throw new DataObjectError(oOperationArgs).
         
         /* do the work */
         assign oOperationHandler = GetOperationHandler(poOperation:TargetType)
@@ -616,9 +637,21 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                .
         OnInvoked(oOperationArgs).
         if valid-object(oOperationArgs:Error) then
-            return HandleException(oOperationArgs).
+            undo, throw new DataObjectError(oOperationArgs).
         
         return oOperationArgs:ReturnStatusCode.
+        catch err as Progress.Lang.Error:
+            define variable dohError as DataObjectError no-undo.
+            
+            assign dohError                = new DataObjectError()
+                   dohError:Error          = err
+                   dohError:Request        = poRequest
+                   dohError:Response       = poResponse
+                   dohError:BusinessEntity = oBusinessEntity
+                   dohError:Operation      = poOperation
+                   .
+            undo, throw dohError.
+        end catch.
         finally:
             Logger:Trace(substitute('Service &1 operation &2 &3 execution time(ms)=&4', 
                             poOperation:ServiceName, 
@@ -903,7 +936,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         
         return iStatusCode.
     end method.
-
+    
     /* Retrieves a cached entity if one exits
        
        @param character The service name

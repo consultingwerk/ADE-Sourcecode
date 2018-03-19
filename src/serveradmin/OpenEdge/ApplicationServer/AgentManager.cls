@@ -39,6 +39,10 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:InitiateDebugger(connectstring).
     end method.
     
+    method public logical dynamicPropertiesUpdate(input dynamicPropertiesString as character):
+        return pasam:DynamicPropertiesUpdate(dynamicPropertiesString).
+    end method.
+    
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

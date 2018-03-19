@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectEventArgs
@@ -59,7 +59,7 @@ class OpenEdge.Web.DataObject.DataObjectEventArgs inherits EventArgs:
     /* Constructor.
        
        @param IWebRequest The request that resulting in the exception */
-    constructor protected DataObjectEventArgs(input poRequest as IWebRequest):
+    constructor public DataObjectEventArgs(input poRequest as IWebRequest):
         super().
         
         Assert:NotNull(poRequest, 'Request').        

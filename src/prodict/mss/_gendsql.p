@@ -204,6 +204,9 @@ DEFINE VARIABLE is-word-idx    AS LOGICAL        NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE maxidxcount    AS INTEGER        NO-UNDO.
 DEFINE VARIABLE chkfldrecid    AS RECID          NO-UNDO.
 DEFINE VARIABLE nidx           AS LOGICAL        NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE renmae-index   AS LOGICAL        NO-UNDO INITIAL FALSE.
+DEFINE VARIABLE old-idx-name   AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE new-idx-name   AS CHARACTER             NO-UNDO.
 FUNCTION findShadow RETURNS INTEGER (INPUT fldRecid AS RECID) FORWARD.
 
 batch_mode = SESSION:BATCH-MODE.
@@ -5474,6 +5477,8 @@ DO ON STOP UNDO, LEAVE:
         
         IF idxline <> ? AND idxname <> ilin[5] THEN 
           RUN write-idx-sql.
+        ELSE
+          ASSIGN renmae-index = TRUE. 
         
         IF seq-line <> ? THEN
           RUN write-seq-sql.
@@ -5525,6 +5530,23 @@ DO ON STOP UNDO, LEAVE:
                    t-name = ilin[7]
                    old-name = ilin[3]
                    rename-obj.new-name = ilin[5].
+          IF renmae-index = TRUE THEN DO:
+            ASSIGN old-idx-name = DICTDB._Index._For-Name.
+
+
+          ASSIGN new-idx-name = ilin[5].
+          IF xlate THEN DO:          
+            ASSIGN new-idx-name = new-idx-name  + "," + idbtyp + "," + user_env[28].          
+            RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT new-idx-name).
+          END. 
+          ASSIGN new-idx-name = new-idx-name.  
+
+          PUT STREAM tosql UNFORMATTED "EXEC sp_rename '" + DICTDB._File._For-owner + "." 
+	               + DICTDB._File._For-name + "." + old-idx-name + "',"
+                       + DICTDB._File._For-name + "##" + new-idx-name + ",'INDEX';" skip.
+          PUT STREAM tosql UNFORMATTED comment_chars "go" SKIP(1).
+          ASSIGN renmae-index = FALSE.
+          END.
 
             CREATE df-info.
             ASSIGN df-info.df-seq = dfseq

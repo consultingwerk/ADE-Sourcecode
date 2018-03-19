@@ -360,7 +360,9 @@ procedure  SaxReaderStartElementHandler:
                 when 'ldapSearchBean':u then
                     assign beanId = 'ldap.search':u.  
                 when 'OERealmUserDetails':u then
-                    assign beanId = 'OERealm.UserDetails':u. 
+                    assign beanId = 'OERealm.UserDetails':u.
+                when 'OERealmAuthProvider':u then
+                    assign beanId = 'OERealm.AuthProvider':u.
             end case.
         end.
         

@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2015-2017 by progress Software Corporation. */
+ /* Copyright (c) 2015-2017 by Progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -347,8 +347,7 @@ Misc,_misc"
                                 hchild = phBuffer:get-child-relation(i):child-buffer.                            
                                 SaveFieldPolicy(hchild,row-modified,policyId,phbuffer).
                                 SaveFieldPolicy(hchild,row-created,policyId,phbuffer).                                         
-                            end.
-                            fieldsSaved = true.                       
+                            end.                                                   
                         end.    
                             
                         /* core requirment: special case where loading current inactive policy, we need to set policy state to active(0) initially. 
@@ -375,6 +374,7 @@ Misc,_misc"
                                
                         phBuffer:error = false.
                         phBuffer:rejected = false.
+                        fieldsSaved = false.
                     end.
                 end.
                 hQuery:get-next.

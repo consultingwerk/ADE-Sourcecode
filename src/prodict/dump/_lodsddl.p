@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011,2014,2016 by Progress Software Corporation.*
+* Copyright (C) 2006-2017 by Progress Software Corporation.          *
 * All contributed by participants of Possenet.                       *
 *                                                                    *
 **********************F***********************************************/
@@ -2980,8 +2980,10 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
      
       IF NOT do-commit THEN 
         MESSAGE msg2 VIEW-AS ALERT-BOX ERROR.
-      ELSE
-        ASSIGN xerror = FALSE.
+      ELSE do:
+        ASSIGN xerror = FALSE
+               stopped = false.
+      end.
     END.
     ELSE IF NOT (xerror OR stopped OR xwarn) THEN DO:
        if not valid-object(dictLoader) then
@@ -3024,7 +3026,7 @@ ELSE DO FOR _Db, _file, _Field, _Index, _Index-field TRANSACTION:
      (if iError <> 0 then the error is managed and already shown). 
      Throw an AppError to handle the STOP in the CATCH at end of the 
      transaction here or in caller prodict/load_df.p. */
-  if stopped and (iError = 0 or iError = 23) then 
+  if (stopped or xerror) and (iError = 0 or iError = 23) then 
   do: 
      oAppError = new Progress.Lang.AppError().
      /* Get the error message - use proc defined in prohelp/msgs.i 

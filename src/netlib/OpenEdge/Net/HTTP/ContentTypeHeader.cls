@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ContentTypeHeader
@@ -50,8 +50,11 @@ class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
         
         if pcValue eq '':u then
             return.
-            
-        assign iNumParts = num-entries(pcValue, '/':u).
+        
+        // Spilt off the content without the params    
+        assign pcValue   = entry(1, pcValue, ParamDelimiter)
+               iNumParts = num-entries(pcValue, '/':u)
+               .
         if iNumParts lt 2 then
             undo, throw new AppError(substitute('Header value must have at least 2 "/"-delimited parts: &1', pcValue), 0).
         

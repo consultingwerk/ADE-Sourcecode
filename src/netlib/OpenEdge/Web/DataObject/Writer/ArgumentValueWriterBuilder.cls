@@ -178,13 +178,49 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
 
         return this-object.
     end method.
-
+    
     /** Returns a value writer from a particular registry
         
+        The search alogrithm is
+        1. Equality match  - identical type name
+        2. IsA / Inherits match. This may be slow, so if one is found, it's registered
+
         @param Progress.Lang.Class The current argument type for which we are trying to find a writer
         @param BuilderRegistry The registry in which to look 
-        @return Progress.Lang.Class The type of the writer. It's the caller's responsibility to invoke and use the writer */
-    method abstract protected class Progress.Lang.Class GetWriter(input poArgType as class Progress.Lang.Class,
-                                                                  input poRegistry as BuilderRegistry).
+        @return Progress.Lang.Class The type of the writer. It's the caller's responsibility to invoke and use the writer */        
+    method protected class Progress.Lang.Class GetWriter(input poArgType as class Progress.Lang.Class,
+                                                         input poRegistry as BuilderRegistry):
+        define variable writerType as Progress.Lang.Class no-undo.
+        define variable ifaceType as class Progress.Lang.Class extent no-undo.
+        define variable cnt as integer no-undo.
+        define variable loopMax as integer no-undo.
+        define variable currentType as class Progress.Lang.Class no-undo.
+        
+        Assert:NotNull(poArgType, 'Argument type').
+        Assert:NotNull(poRegistry, 'Value writer registry').
+        
+        /* 1. Equality */
+        assign writerType = poRegistry:Get(poArgType:TypeName).
+        
+        /* 2. IsA() */
+        if not valid-object(writerType) then
+        do:
+            assign currentType = poArgType.
+            do while valid-object(currentType) and not valid-object(writerType):
+                assign extent(ifaceType) = ?   
+                       ifaceType = currentType:GetInterfaces()
+                       loopMax   = extent(ifaceType).
+                do cnt = 1 to loopMax while not valid-object(writerType): 
+                    assign writerType = poRegistry:Get(ifaceType[cnt]:TypeName).
+                end.
+                assign writerType  = poRegistry:Get(currentType:TypeName) when not valid-object(writerType)
+                       currentType = currentType:SuperClass.
+            end.
+            if valid-object(writerType) then
+                poRegistry:Put(poArgType:TypeName, writerType).
+        end.
+        
+        return writerType.
+    end method.                                                                  
 
 end class.

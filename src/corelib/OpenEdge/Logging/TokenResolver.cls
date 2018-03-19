@@ -404,7 +404,7 @@ class OpenEdge.Logging.TokenResolver:
                currentTime    = now
                .
         do while startPos gt 0:
-            assign endPos     = index(pcBaseString, '~}':u)
+            assign endPos     = index(pcBaseString, StringConstant:CURLY_CLOSE)
                    token      = substring(pcBaseString, startPos, endPos - startPos + 1)
                    token      = trim(token, '$':u + StringConstant:CURLY_OPEN)
                    token      = trim(token, StringConstant:CURLY_CLOSE)
@@ -434,7 +434,7 @@ class OpenEdge.Logging.TokenResolver:
                     assign tokenEventArgs:SourceValue = new TimeStamp(currentTime)
                            tokenEventArgs:TokenValue  = ResolveTime(tokenEventArgs:TokenArg, currentTime).
                 
-                when 'guid' then
+                when 'guid':u then
                     assign tokenEventArgs:TokenValue = guid.
                 
                 when 'env':u then

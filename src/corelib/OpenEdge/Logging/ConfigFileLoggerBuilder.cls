@@ -199,7 +199,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                    .
             do iLoop = 1 to iMax:
                 // this will give us the filter's type 
-                assign resolvedType = GetABLType(oData, cNames[iLoop]).                    
+                assign resolvedType = GetABLType(oConfig, cNames[iLoop]).                    
                 if valid-object(resolvedType) then
                     ConfigFileLoggerBuilder:Filters:Put(cNames[iLoop], resolvedType).
                 

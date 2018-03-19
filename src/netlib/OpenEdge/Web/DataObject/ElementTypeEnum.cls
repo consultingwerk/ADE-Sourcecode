@@ -16,9 +16,13 @@ enum OpenEdge.Web.DataObject.ElementTypeEnum :
                 Path 
                 Query
                 Qry         = Query
+                QueryMap
+                QryMap      = QueryMap
                 Header
                 Hdr         = Header
-                Field       
+                HeaderSet
+                HdrSet      = HeaderSet
+                Field
                 Cookie
                 StatusCode
                 Code        = StatusCode

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpHeader
@@ -16,13 +16,16 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.NullHeader.
+using OpenEdge.Core.StringConstant.
+using OpenEdge.Core.String.
 
 class OpenEdge.Net.HTTP.HttpHeader:
+    // holds the parameters for all headers (keyed off the header 'instance id')
     define static private temp-table HeaderParameter no-undo
-        field ParentHeader as integer 
+        field ParentHeader as int64 
         field ParamName as character
         field ParamValue as character
-        index idx1 as primary ParentHeader. 
+        index idx1 as primary ParentHeader.
     
     /* A null header allows chaining of GetHeader() calls even if
        there is no header defined. */
@@ -57,10 +60,10 @@ class OpenEdge.Net.HTTP.HttpHeader:
             assign this-object:ParamDelimiter = pcParamDelimiter. 
         end set. 
     
-    /** Constructor
+    /* Constructor
         
-        @param character The header name
-        @param character The header value */
+       @param character The header name
+       @param character The header value */
     constructor public HttpHeader(input pcName as character,
                                   input pcValue as character):
         this-object(pcName).
@@ -68,7 +71,8 @@ class OpenEdge.Net.HTTP.HttpHeader:
         assign this-object:Value = pcValue.
     end constructor.
     
-    constructor private HttpHeader():
+    /* Default constructor */
+    constructor private HttpHeader():        
     end constructor.
     
     /** Constructor
@@ -88,7 +92,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
     method protected void ClearParams():
         define buffer HeaderParameter for HeaderParameter.
         
-        for each HeaderParameter where HeaderParameter.ParentHeader eq integer(this-object):
+        for each HeaderParameter where HeaderParameter.ParentHeader eq int64(this-object):
             delete HeaderParameter.
         end.
     end method.
@@ -109,6 +113,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         define variable iMax as integer no-undo.
         define variable cParam as character no-undo.
         define variable cValue as character no-undo.
+        define variable cName as character no-undo.
         define variable iLength as integer no-undo.
         define variable iPos as integer no-undo.
         
@@ -121,15 +126,16 @@ class OpenEdge.Net.HTTP.HttpHeader:
                    /* the parameter value may contain quoted = characters, so use everthing from the 
                       first = onwards as a value. */
                    iPos    = index(cParam, '=':u)
+                   cName   = entry(1, cParam, '=':u)
                    cValue  = substring(cParam, iPos + 1) 
-                   iLength = length(cValue, 'raw':u).
+                   iLength = length(cValue, 'raw':u)
+                   .
             
-            /* strip off any quotation marks */
-            if substring(cValue, 1,       1) eq '~"' and
-               substring(cValue, iLength, 1) eq '~"' then
-                assign cValue = substring(cValue, 2, iLength - 2, 'raw':u).
+            //Ignore empty/blank entries 
+            if cName eq '':u then
+                next.
             
-            SetParameterValue(entry(1, cParam, '=':u), cValue).
+            SetParameterValue(cName, cValue).
         end.
     end method.
     
@@ -143,7 +149,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
         
         find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq integer(this-object) and
+                   HeaderParameter.ParentHeader eq int64(this-object) and
                    HeaderParameter.ParamName eq pcParamName
                    no-error.
         
@@ -166,7 +172,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         Assert:NotNull(pcParamValue, 'Param value').
         
         find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq integer(this-object) and
+                   HeaderParameter.ParentHeader eq int64(this-object) and
                    HeaderParameter.ParamName eq pcParamName
                    no-error.
         assign lExists = available HeaderParameter.
@@ -174,11 +180,11 @@ class OpenEdge.Net.HTTP.HttpHeader:
         if not lExists then
         do:
             create HeaderParameter.
-            assign HeaderParameter.ParentHeader = integer(this-object)
+            assign HeaderParameter.ParentHeader = int64(this-object)
                    HeaderParameter.ParamName    = pcParamName.
         end.
-        assign HeaderParameter.ParamValue = pcParamValue.
-                           
+        assign HeaderParameter.ParamValue  = pcParamValue.
+        
         return lExists.                                                
     end method.
         
@@ -190,18 +196,18 @@ class OpenEdge.Net.HTTP.HttpHeader:
         define buffer HeaderParameter for HeaderParameter.
         
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
-
+        
         /* blank delimiter means no parameters */        
         if this-object:ParamDelimiter eq '':u then
             return '':u.
-
+        
         find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq integer(this-object) and
+                   HeaderParameter.ParentHeader eq int64(this-object) and
                    HeaderParameter.ParamName eq pcParamName
                    no-error.
         if available HeaderParameter then
             return HeaderParameter.ParamValue.
-            
+        
         return '':u.
     end method.
     
@@ -223,8 +229,9 @@ class OpenEdge.Net.HTTP.HttpHeader:
             assign iLength = length(pcValue, 'raw':u).
             
             /* strip off any quotation marks */
-            if substring(pcValue, 1,       1) eq '~"':u and
-               substring(pcValue, iLength, 1) eq '~"':u then
+            if     substring(pcValue, 1,       1) eq StringConstant:DOUBLE_QUOTE 
+               and substring(pcValue, iLength, 1) eq StringConstant:DOUBLE_QUOTE 
+               then
                 assign pcValue = substring(pcValue, 2, iLength - 2, 'raw':u).
             
             assign mValue = pcValue.
@@ -252,37 +259,48 @@ class OpenEdge.Net.HTTP.HttpHeader:
         
         @return character The value. */
     method public character GetParameterValues():
-        define variable cParameters as character no-undo.
         define variable cValue as character no-undo.
-        define variable iLength as integer no-undo.
-        define variable iLoop as integer no-undo.
-        define variable cChar as character no-undo.
-        define variable lQuote as logical no-undo.
+        define variable cParameters as character no-undo.
         define variable cDelim as character no-undo.
+        
         define buffer HeaderParameter for HeaderParameter.
         
         /* blank delimiter means no parameters */        
         if this-object:ParamDelimiter eq '':u then
-            return cParameters.
+            return '':u.
         
         if this-object:Value ne '':u then
             assign cDelim = this-object:ParamDelimiter.
         
-        for each HeaderParameter where HeaderParameter.ParentHeader eq integer(this-object):
-            assign iLength = length(HeaderParameter.ParamValue, 'raw':u)
-                   /* quoted already? */
-                   lQuote  = not OpenEdge.Core.String:IsQuoted(HeaderParameter.ParamValue, '~"':u)
-                   .
-            if not lQuote then
-            do iLoop = 1 to iLength while not lQuote:
-                assign cChar  = substring(HeaderParameter.ParamValue, iLoop, 1, 'raw':u)
-                       lQuote = index(' ()<>@,;:\~"/[]?=', cChar) gt 0.
-            end.
-            
-            if lQuote then
-                assign cValue = quoter(HeaderParameter.ParamValue).
-            else
-                assign cValue = HeaderParameter.ParamValue. 
+        for each HeaderParameter where HeaderParameter.ParentHeader eq int64(this-object):
+            case true:
+                // if the parameter value is already quoted, leave it alone
+                when String:IsQuoted(HeaderParameter.ParamValue, StringConstant:DOUBLE_QUOTE) then
+                    assign cValue  = HeaderParameter.ParamValue.
+                
+                // if the parameter value has a quotable character, quote it
+                when index(HeaderParameter.ParamValue, StringConstant:SPACE) gt 0 or
+                when index(HeaderParameter.ParamValue, StringConstant:DOUBLE_QUOTE) gt 0 or
+                when index(HeaderParameter.ParamValue, StringConstant:BACKSLASH) gt 0 or
+                when index(HeaderParameter.ParamValue, StringConstant:SEMICOLON) gt 0 or
+                when index(HeaderParameter.ParamValue, '(':u) gt 0 or
+                when index(HeaderParameter.ParamValue, ')':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '<':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '>':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '@':u) gt 0 or
+                when index(HeaderParameter.ParamValue, ',':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '=':u) gt 0 or
+                when index(HeaderParameter.ParamValue, ':':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '/':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '[':u) gt 0 or
+                when index(HeaderParameter.ParamValue, ']':u) gt 0 or
+                when index(HeaderParameter.ParamValue, '?':u) gt 0 then
+                    assign cValue = StringConstant:DOUBLE_QUOTE + HeaderParameter.ParamValue + StringConstant:DOUBLE_QUOTE.
+                
+                // all other cases, leave it be
+                otherwise 
+                    assign cValue  = HeaderParameter.ParamValue.
+            end case.
             
             assign cParameters = substitute('&1&2 &3=&4':u, 
                                    cParameters,
@@ -309,7 +327,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         assign lExisting = false.
         
         for each HeaderParameter where
-                 HeaderParameter.ParentHeader eq integer(this-object) and
+                 HeaderParameter.ParentHeader eq int64(this-object) and
                  HeaderParameter.ParamName eq pcParamName:
             delete HeaderParameter. 
             assign lExisting = true.

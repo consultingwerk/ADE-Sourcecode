@@ -31,7 +31,9 @@ using Progress.Lang.AppError.
 
 class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
     // illegal characters for file names (on windows). 
-    define protected property illegalChars as character no-undo initial '<>:"|?*':u get.
+    define protected property illegalChars as character extent 7 no-undo 
+        initial ['<','>',':','"','|','?','*':u]
+        get.
     
     /* Constructor */
     constructor public FileLogWriterBuilder(input filterName as character):
@@ -106,15 +108,15 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
                 // certain characters are illegal on windows
                 if opsys eq 'win32':u then
                 do:
-                    assign chrMax   = length(illegalChars)
+                    assign chrMax   = extent(illegalChars)
                            chrStart = 3.
                     if logfileName begins '/':u then
                         assign chrStart = 1.
                     
                     do chrLoop = 1 to chrMax:
-                        if index(logfileName, substring(illegalChars, chrLoop, 1), chrStart) gt 0 then
+                        if index(logfileName, illegalChars[chrLoop], chrStart) gt 0 then
                             return error new AppError(substitute('Illegal character &1 in filename &2',
-                                                        substring(illegalChars, chrLoop, 1),
+                                                        illegalChars[chrLoop],
                                                         logfileName),
                                                      0). 
                     end.
@@ -133,8 +135,6 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
                     else
                         assign appendToFile = true.
                 end.
-                else
-                    assign appendToFile = true. 
                 
                 filter = dynamic-new string(filterType:TypeName) (logfileName, appendToFile).
             end.

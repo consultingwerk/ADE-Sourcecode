@@ -177,6 +177,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
                 LogAt(LogLevelEnum:GetEnum(log-manager:logging-level)) no-error.
             
             AddFilter(LoggerFilterRegistry:ABL_SUBSTITUTE_FORMAT).
+            AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
             AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
             AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         end.

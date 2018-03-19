@@ -1,9 +1,9 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : JsonBodyWriter
-    Purpose     : 
+    Purpose     : Writes JSON as a series of bytes/chars
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -53,7 +53,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
     
     method override public int64 Write( input poData as Object):
         define variable mJson as memptr no-undo.
-        define variable hData as handle no-undo.
         define variable iBytesWritten as int64 no-undo.
         
         case true:
@@ -75,8 +74,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 return this-object:Write(cast(poData, IMemptrHolder):Value).
             
             when type-of(poData, JsonConstruct) then
+            do on error undo, throw:
                 cast(poData, JsonConstruct):Write(mJson, session:debug-alert).
-
+                
+                /* Add the JSON to the message body's bytebucket */
+                assign iBytesWritten = get-size(mJson).
+                cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(mJson),
+                                                              iBytesWritten).
+                finally:
+                    set-size(mJson) = 0.
+                end finally.
+            end.
+            
             when type-of(poData, IHandleHolder) then
                 return this-object:Write(cast(poData, IHandleHolder):Value).
             
@@ -102,7 +111,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 cast(this-object:Entity, ByteBucket):PutString(cast(poData, String)).
                 return cast(poData, String):Size.
             end.
-
+            
             when type-of(poData, ILongcharHolder) then
                 return this-object:Write(cast(poData, ILongcharHolder):Value).
             
@@ -112,16 +121,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                                 , 0).
         end case.
         
-        /* Add the JSON to the message body's bytebucket */
-        assign iBytesWritten = get-size(mJson).
-        cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(mJson),
-                                         iBytesWritten).
-        
         return iBytesWritten.
-        finally:
-            set-pointer-value(mJson) = 0.
-            set-size(mJson) = 0.
-        end finally.
     end method.
     
     method public int64 WriteHandle(input phData as handle):
@@ -159,10 +159,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
         
         return iBytesWritten.
         finally:
-            set-pointer-value(mJson) = 0.
             set-size(mJson) = 0.
         end finally.
     end method.
-
     
 end class.

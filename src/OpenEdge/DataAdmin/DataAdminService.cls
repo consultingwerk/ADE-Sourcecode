@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2017 by progress Software Corporation  */
+/* Copyright (c) 2011-2017 by Progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -757,12 +757,17 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     end method.
     
     /* This method is introduced to support retrieval of PUB and non-PUB tables as part of CDC feature */
-    method public ITable GetTable(tableName as char,owner as char):
-        define variable tabSet as ITableSet no-undo.
-        define variable nonPUBTbl as ITable no-undo.        
-        define variable iter     as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
+	method public ITable GetTable(tableName as char,owner as char):
+        define variable tabSet    as ITableSet                                     no-undo.
+        define variable nonPUBTbl as ITable                                        no-undo.         
+        define variable iter      as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
         
-        if owner ne "PUB" and owner ne "" then do:
+        if owner eq "PUB" or owner eq "" then 
+        do:        
+            return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
+        end.
+        else 
+        do: 
             /* find the table based on given schema and table name */               
             tabSet = cast(ContextFactory:AllTableContext:GetCollection("SchemaName eq " + quoter(owner) + " and Name eq " + quoter(tableName)),ITableset).
             iter = tabset:Iterator(). 
@@ -773,9 +778,8 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
             if valid-object(nonPUBTbl) then 
                 return nonPUBTbl.
             else undo, throw new IllegalArgumentError("GetTable method without corresponding Table and Owner Name").
-        end.
-        else return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
-    end method.
+	    end.
+	end method. 
     
     method public ITable GetTable(pRequestInfo as IRequestInfo):
         return cast(ContextFactory:TableContext:GetEntity(pRequestInfo),ITable). 

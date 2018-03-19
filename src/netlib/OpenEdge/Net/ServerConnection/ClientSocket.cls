@@ -95,7 +95,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     define public property SendBufferSize as integer initial ? no-undo get. set.
 
     /** Sets the TCP socket option SO-RCVTIMEO.
-        Sets the timeout length—that is, the number of seconds the socket waits
+        Sets the timeout lengththat is, the number of seconds the socket waits
         to receive data before timing out. */
     define public property ReceiveTimeout as integer initial ? no-undo get. set.
 
@@ -407,7 +407,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             
             /* We can determine whether the socket disconnected thusly:
                 - Calling the READ( ) method on the socket object returns an error
-                                                       – The value returned by a GET-BYTES-AVAILABLE( ) method invoked on the
+                - The value returned by a GET-BYTES-AVAILABLE( ) method invoked on the
                   socket object is zero (0) */
             if error-status:error or
                iBytesAvailable eq 0 then
@@ -456,10 +456,13 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                 else
                 do:
                     /* Add this data to the eventargs */
-                    moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
-                                                      get-size(mData)).
+                    assign moReadEventArgs:Data = new Memptr(get-pointer-value(mData),
+                                                      get-size(mData))
+                           iStartTime           = mtime.                                                      
                     /* tell any listeners that we have new data */
                     OnDataReceived(moReadEventArgs).
+                    
+                    Logger:Debug(substitute('ReadHandler:OnDataReceived time(ms)=&1':u, mtime - iStartTime)).
                 end.    // got data
             end.
             

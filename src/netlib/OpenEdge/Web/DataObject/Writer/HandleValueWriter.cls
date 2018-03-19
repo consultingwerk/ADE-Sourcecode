@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : HandleValueWriter
@@ -19,6 +19,7 @@ using Ccs.Common.Support.ILongcharHolder.
 using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
+using OpenEdge.Core.ReadModeEnum.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
@@ -120,12 +121,15 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                 
                 do on error undo, throw:
                     if type-of(pData, JsonArray) then
-                        hData:read-json('JsonArray':u, cast(pData, JsonArray)).
+                        // use EMPTY read-mode in case there are index conflicts in the input data
+                        hData:read-json('JsonArray':u, cast(pData, JsonArray), ReadModeEnum:Empty:ToString()).
                     else
                     if type-of(pData, JsonObject) then                
                         /* JsonObject data can be read into a table or dataset. Try a dataset, since we don't really know the 
-                           name of the tables. If it fails, throw an error. */
-                        hData:read-json('JsonObject':u, cast(pData, JsonObject)).
+                           name of the tables. If it fails, throw an error. 
+                           
+                           Use EMPTY read-mode in case there are index conflicts in the input data */
+                        hData:read-json('JsonObject':u, cast(pData, JsonObject), ReadModeEnum:Empty:ToString()).
                     
                     catch oError as Progress.Lang.Error :
                         assign oReadError = new AppError(substitute('Unable to READ-JSON into &1 "&2"',
@@ -135,7 +139,7 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                                iMax = oError:NumMessages
                                .
                         do iLoop = 1 to iMax:
-                            oREadError:AddMessage(oError:GetMessage(iLoop), oError:GetMessageNum(iLoop)).
+                            oReadError:AddMessage(oError:GetMessage(iLoop), oError:GetMessageNum(iLoop)).
                         end.
                         undo, throw oReadError.    
                     end catch.

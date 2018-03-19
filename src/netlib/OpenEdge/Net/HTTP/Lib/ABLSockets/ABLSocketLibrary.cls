@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
@@ -15,9 +15,10 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.IAdaptable.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
@@ -30,14 +31,14 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
+using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
-using OpenEdge.Logging.LoggerBuilder.
-using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary 
         implements IHttpClientLibrary, ISupportLogging:
@@ -306,7 +307,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         moResponseWriter:Close().
         
-        ExtractEntity(poResponse, oMessageBody).
+        // HEAD requests have no bodies, so don't bother
+        if poRequest:Method ne MethodEnum:HEAD:ToString() then 
+            ExtractEntity(poResponse, oMessageBody).
                         
         finally:
             moResponseWriter = ?.

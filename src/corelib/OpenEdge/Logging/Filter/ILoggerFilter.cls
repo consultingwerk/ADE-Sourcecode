@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ILoggerFilter
@@ -18,7 +18,7 @@ interface OpenEdge.Logging.Filter.ILoggerFilter:
     
     /** Performs implementation-specific filtering for a logger type
         
-        @param LogMessage The message to log. */
+        @param LogEvent The log event to filter. */
     method public void ExecuteFilter(input poEvent as LogEvent).
     
 end interface.

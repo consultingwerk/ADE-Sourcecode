@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    Purpose     : Keep a list of customer specified handlers and invoke 
@@ -12,14 +12,28 @@ Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using Progress.Web.AbstractWebRouter.
-using Progress.Web.IWebHandler.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
+using Progress.Web.AbstractWebRouter.
+using Progress.Web.IWebHandler.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 
-class OpenEdge.Web.InternalWebRouter
+class OpenEdge.Web.InternalWebRouter implements ISupportLogging 
     inherits AbstractWebRouter
     final:
+    
+    // A reference to the Logger in use by an implementer
+    define public property Logger as ILogWriter no-undo
+        get(): 
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(OpenEdge.Web.InternalWebRouter)).
+            
+            return this-object:Logger.
+        end get.
+        set.
     
     /* Indicates whether debugging is enabled for this request. */
     define private property DebugEnabled as logical no-undo
@@ -48,7 +62,14 @@ class OpenEdge.Web.InternalWebRouter
        @param pcHandlerName   the name of the customer registered webspeed handler */
     method public override integer HandleRequest( pcHandlerName as character ):
         define variable oWebHandler as IWebHandler no-undo.
+        define variable uriTemplate as character no-undo.
+        
         define buffer lbHandler for ttHandler.
+        
+        assign uriTemplate = web-context:get-cgi-value('ENV':u, 'URI_TEMPLATE':u).
+        
+        logger:Debug(substitute('Request for path &1 using handler &2 received', uriTemplate, pcHandlerName)).
+        logger:Debug(substitute('Debug mode: &1', DebugEnabled)).
         
         if DebugEnabled then
         do:
@@ -74,20 +95,29 @@ class OpenEdge.Web.InternalWebRouter
             
             /* Create an instance of the handler if necessary */
             if not valid-object(lbHandler.WebHandler) then
-            do: 
+            do:
                 lbHandler.WebHandler = dynamic-new lbHandler.WebHandlerName ().
                 
                 if type-of(lbHandler.WebHandler, ISupportInitialize) then
                     cast(lbHandler.WebHandler, ISupportInitialize):Initialize().
             end.
-                
+            
             assign oWebHandler = cast(lbHandler.WebHandler,IWebHandler).
         end.
         
         Assert:NotNull(oWebHandler, 'URI Handler').
         
+        logger:Debug(substitute('Handler instance &1 used for handler &2', oWebHandler:ToString(), pcHandlerName)).
+        
         /* Invoke the registered URI handler */
-        return oWebHandler:HandleRequest(). 
+        return oWebHandler:HandleRequest().
+        
+        catch e as Progress.Lang.Error :
+            logger:Error(substitute('Error handling request for path &2 using handler &1', pcHandlerName, uriTemplate),
+                         e).
+            //We're not sure exactly what went wrong; send a general error
+            return integer(StatusCodeEnum:InternalServerError).
+        end catch.
     end method.
     
     /* Releases the specified handler from the cache. This lets it be cleaned up/GC'ed.
@@ -102,7 +132,10 @@ class OpenEdge.Web.InternalWebRouter
         find lbHandler where lbHandler.WebHandlerName eq pcHandlerName no-error.
         assign lCached = available lbHandler and valid-object(lbHandler.WebHandler).
         if lCached then
+        do:
+            logger:Debug(substitute('Handler &1 released from cache', pcHandlerName)).
             assign lbHandler.WebHandler = ?.
+        end.
         
         return lCached.
     end method.    
@@ -112,6 +145,8 @@ class OpenEdge.Web.InternalWebRouter
         define buffer lbHandler for ttHandler.
         
         empty temp-table lbHandler.
+        
+        logger:Debug('Handler cache cleared').
     end method.
     
 end class.

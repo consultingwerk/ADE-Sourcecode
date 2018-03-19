@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultArgumentValueWriterBuilder
@@ -56,57 +56,13 @@ class OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder inherits 
                    oWriter:Value= oArgValue.
         
         /* hook up logging */
-        if HasOption(get-class(ILogWriter):TypeName) and type-of(oWriter, ISupportLogging) then
+        if type-of(oWriter, ISupportLogging) and HasOption(get-class(ILogWriter):TypeName) then
             assign cast(oWriter, ISupportLogging):Logger = cast(GetOptionObjectValue(get-class(ILogWriter):TypeName), ILogWriter).
-   
+        
         if type-of(oWriter, ISupportInitialize) then
             cast(oWriter, ISupportInitialize):Initialize().
-            
+        
         return oWriter.            
-    end method.
-        
-    /** Returns a value writer from a particular registry
-        
-        The search alogrithm is
-        1. Equality match  - identical type name
-        2. IsA / Inherits match. This may be slow, so if one is found, it's registered
-
-        @param Progress.Lang.Class The current argument type for which we are trying to find a writer
-        @param BuilderRegistry The registry in which to look 
-        @return Progress.Lang.Class The type of the writer. It's the caller's responsibility to invoke and use the writer */        
-    method override protected class Progress.Lang.Class GetWriter(input poArgType as class Progress.Lang.Class,
-                                                                  input poRegistry as BuilderRegistry):
-        define variable oWriterType as Progress.Lang.Class no-undo.
-        define variable oIFace as class Progress.Lang.Class extent no-undo.
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable oType as class Progress.Lang.Class no-undo.
-        
-        Assert:NotNull(poArgType, 'Argument type').
-        Assert:NotNull(poRegistry, 'Value writer registry').
-        
-        /* 1. Equality */
-        assign oWriterType = poRegistry:Get(poArgType:TypeName).
-        
-        /* 2. IsA() */
-        if not valid-object(oWriterType) then
-        do:
-            assign oType = poArgType.
-            do while valid-object(oType) and not valid-object(oWriterType):
-                assign extent(oIFace) = ?   
-                       oIFace = oType:GetInterfaces()
-                       iMax   = extent(oIFace).
-                do iLoop = 1 to iMax while not valid-object(oWriterType): 
-                    assign oWriterType = poRegistry:Get(oIFace[iLoop]:TypeName).
-                end.
-                assign oWriterType = poRegistry:Get(oType:TypeName) when not valid-object(oWriterType)
-                       oType       = oType:SuperClass.
-            end.
-            if valid-object(oWriterType) then
-                poRegistry:Put(poArgType:TypeName, oWriterType).
-        end.
-        
-        return oWriterType.
     end method.
     
 end class.
