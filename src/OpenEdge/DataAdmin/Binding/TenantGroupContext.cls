@@ -49,6 +49,7 @@ using OpenEdge.DataAdmin.Support.TenantTenantGroupSet.
 using OpenEdge.DataAdmin.TenantGroup.
 using OpenEdge.DataAdmin.TenantGroupSet.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/tenantgroup.i} 
@@ -106,27 +107,35 @@ class OpenEdge.DataAdmin.Binding.TenantGroupContext inherits DataAdminContext im
     constructor public TenantGroupContext (pScope as IMultiTenantScope):
         super ("TenantGroup",pScope).
         CanGenerateCode = true.
-        TenantContext = pScope:TenantContext.
         ContextFactory = pScope.
-        AddChild(pScope:TenantGroupMemberContext).
-        AddChild(pScope:PartitionContext).
         CanEditKey = true.
     end method.
     
     constructor public TenantGroupContext ():
-        define variable partitions     as PartitionContext no-undo.
-        define variable details        as TenantGroupMemberContext no-undo.
         super ("TenantGroup").
         CanGenerateCode = true.
+    end constructor.
+    
+	method protected override void initChildren( ):
+        define variable partitions     as PartitionContext no-undo.
+        define variable details        as TenantGroupMemberContext no-undo.
         partitions = new PartitionContext().
         details = new TenantGroupMemberContext().
         
         AddChild(details).
         AddChild(partitions).                                    
-
-/*        DatasetHandle = CreateDataset().*/
-        
-    end constructor.
+    end method.  
+    
+	method protected override void initChildren(pScope as IContextScope):
+         initchildren(cast(pScope,IMultiTenantScope)).
+    end method.  
+    
+    method protected void initChildren(pScope as IMultiTenantScope):
+        TenantContext = pScope:TenantContext.
+        ContextFactory = pScope.
+        AddChild(pScope:TenantGroupMemberContext).
+        AddChild(pScope:PartitionContext). 
+    end method.  
 	
      /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():

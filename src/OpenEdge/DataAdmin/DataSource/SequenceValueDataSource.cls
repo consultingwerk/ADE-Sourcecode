@@ -218,11 +218,13 @@ class OpenEdge.DataAdmin.DataSource.SequenceValueDataSource inherits TenantDataS
         
         if not mSaving then
         do:
+            if url > "" then do:
             if hBuffer::TenantName > "" then
                 hBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(hBuffer::TenantName).
         
             if hBuffer::SequenceName > "" then
                 hBuffer::SequenceUrl  = SequenceURL + WebUtil:UrlEncode(hBuffer::SequenceName).
+            end.
        
             if get-effective-tenant-name("dictdb") <> hBuffer::Tenantname then
             do:

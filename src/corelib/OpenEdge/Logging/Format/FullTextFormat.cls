@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : FullTextFormat
@@ -19,9 +19,9 @@ using OpenEdge.Logging.LogEvent.
 using OpenEdge.Logging.TokenResolver.
 
 class OpenEdge.Logging.Format.FullTextFormat implements ILoggerFilter, ISupportFormatting:
-         
+    
     /* Format for the logger name. See the TokenResolve class for more */
-    define public property Format as character initial '1K':u no-undo get. set.
+    define public property Format as character initial '1C':u no-undo get. set.
     
     /** Performs implementation-specific filtering for a logger type
         

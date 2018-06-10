@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StringEntityWriter
@@ -13,18 +13,22 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.ICharacterHolder.
+using Ccs.Common.Support.ILongcharHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.String.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.ISupportEncoding.
+using Progress.Json.ObjectModel.JsonArray.
+using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
             implements ISupportEncoding:
-                
+    
     /* Content encoding (eg utf-8) used used by this writer */ 
     define public property Encoding as character no-undo get. set.
      
@@ -36,19 +40,40 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
         define variable mTemp as memptr no-undo.
         define variable oData as class Memptr no-undo.          
         
-        if type-of(poData, String) then
-            return this-object:Write(cast(poData, String):Value).
-        else
-        if type-of(poData, Memptr) then
-            assign oData = cast(poData, Memptr).
-        else
-        if type-of(poData, ByteBucket) then
-            assign oData = cast(poData, ByteBucket):GetBytes().
-        else        
-            return error new AppError(
-                            substitute('Unsupported object type: &1', poData:GetClass():TypeName)
-                            , 0).
-                            
+        case true:
+            when not valid-object(poData) then
+                return 0.
+            
+            when type-of(poData, JsonObject) then
+            do:
+                // JSON is defined as UTF-8
+                assign this-object:Encoding = 'UTF-8':u.
+                return this-object:Write(cast(poData, JsonObject):GetJsonText()).
+            end.
+            
+            when type-of(poData, JsonArray) then
+            do:
+                // JSON is defined as UTF-8
+                assign this-object:Encoding = 'UTF-8':u.
+                return this-object:Write(cast(poData, JsonArray):GetJsonText()).
+            end.
+            
+            when type-of(poData, ILongcharHolder) then
+                return this-object:Write(cast(poData, ILongcharHolder):Value).
+            
+            when type-of(poData, ICharacterHolder) then
+                return this-object:Write(cast(poData, ICharacterHolder):Value).
+            
+            when type-of(poData, Memptr) then
+                assign oData = cast(poData, Memptr).
+            
+            when type-of(poData, ByteBucket) then
+                assign oData = cast(poData, ByteBucket):GetBytes().
+            
+            otherwise
+                return this-object:Write(poData:ToString()).
+        end case.
+        
         if valid-object(oData) then
         do on error undo, throw:
             set-size(mTemp) = 1. /* allocate a new 1-byte memptr */
@@ -56,7 +81,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
             set-pointer-value(mTemp) = oData:GetPointerValue(). 
             set-size(mTemp) = oData:Size.
             
-            return this-object:Write(input mTemp).
+            return this-object:Write(mTemp).
             
             finally:
                 set-pointer-value(mTemp) = 0. 
@@ -86,8 +111,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
                               output cOECodepage).
         
         if is-codepage-fixed(pcData) then
-            Assert:Equals(cOECodepage, get-codepage(pcData)).            
+            Assert:Equals(cOECodepage, get-codepage(pcData)).
         else
+        if length(pcData, 'raw':u) eq 0 then 
             fix-codepage(pcData) = cOECodepage.
         
         this-object:Entity = new String(pcData).
@@ -117,12 +143,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
         
         fix-codepage(lcData) = cOECodepage.
         
-        if log-manager:logging-level gt 4 then
-            copy-lob from pmData to file session:temp-directory + 'body.txt':u.
-        
         if iBytesWritten gt 0 then
             copy-lob from pmData 
-    /*                    for iBytesWritten /*Message:ContentLength*/ /* - 1 */*/
                      to lcData
                      convert source codepage cOECodepage.
         
@@ -132,7 +154,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter inherits MessageWriter
     end method.
     
     /** Write data to/from the message
-
+        
         @param character Data to write */
     method override public int64 Write(input pcData as character):    
         define variable lcData as longchar no-undo.

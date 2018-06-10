@@ -154,9 +154,14 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
         get():
             if not valid-object(DefaultDataArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-                and valid-object(Service) then
-                   DefaultDataArea = Service:GetArea(mBuffer::DefaultDataAreaName).            
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                    if mBuffer::DefaultDataAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultDataAreaNumber).
+                    else if mBuffer::DefaultDataAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultDataAreaName).
+                end.                    
             end.
             return DefaultDataArea.
         end.
@@ -171,6 +176,9 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             do:
                 undo, throw new UnknownValueError("DefaultDataArea").          
             end.
+            /* if we want to support optimistic locking we may need to do a RefreshRow here since
+               the areaname may not have been populated if the read was lazy 
+               Alternatively update -Areanumber, but this requires change in datasource also  */  
             if valid-handle(mBuffer) then
                 Context:SetProperty(mBuffer:rowid,"DefaultDataAreaName",pDefaultDataArea:Name).
             DefaultDataArea = pDefaultDataArea.
@@ -180,9 +188,14 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
         get():
             if not valid-object(DefaultIndexArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-                and valid-object(Service) then
-                    DefaultIndexArea = Service:GetArea(mBuffer::DefaultIndexAreaName).            
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                    if mBuffer::DefaultIndexAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultIndexAreaNumber).
+                    else if mBuffer::DefaultIndexAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultIndexAreaName).
+                end.                    
             end.
             return DefaultIndexArea. 
         end.
@@ -197,6 +210,9 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             do:
                 undo, throw new UnknownValueError("DefaultIndexArea").          
             end.   
+             /* if we want to support optimistic locking we may need to do a RefreshRow here since
+               the areaname may not have been populated if the read was lazy 
+               Alternatively update -Areanumber, but this requires change in datasource also  */  
             if valid-handle(mBuffer) then
                 Context:SetProperty(mBuffer:rowid,"DefaultIndexAreaName",pDefaultIndexArea:Name).
             DefaultIndexArea = pDefaultIndexArea.
@@ -207,9 +223,14 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             
             if not valid-object(DefaultLobArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultLobAreaName > "" 
-                and valid-object(Service) then
-                    DefaultLobArea = Service:GetArea(mBuffer::DefaultLobAreaName).            
+                /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultLobAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultLobAreaNumber).
+                    else if mBuffer::DefaultDataAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultLobAreaName).
+                end.                   
             end.
             return DefaultLobArea. 
         end.
@@ -224,6 +245,9 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             do:
                undo, throw new UnknownValueError("DefaultLobArea").          
             end.         
+             /* if we want to support optimistic locking we may need to do a RefreshRow here since
+               the areaname may not have been populated if the read was lazy 
+               Alternatively update -Areanumber, but this requires change in datasource also  */   
             if valid-handle(mBuffer) then
                 Context:SetProperty(mBuffer:rowid,"DefaultLobAreaName",pDefaultLobArea:Name).
             DefaultLobArea = pDefaultLobArea.
@@ -323,6 +347,12 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
         super (cname).
     end constructor. 
     
+    /* if lazy datasource none of the arename fields will have data 
+       it is sufficient to check one of them - super does not have 
+       area  - default may have...  */ 
+    method protected override logical NeedsRefresh():
+        return Type <> "Super" and valid-handle(mBuffer) and mBuffer::DefaultDataAreaName = "".
+    end method.    
     method protected override IDataAdminModel CreateLocalContext(): 
         return new TenantContext().  
     end method.
@@ -364,7 +394,7 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             Attach(cntxt).
         end.
         
-        tree:SetHandle(SerializeName,mDefaultBuffer,mDefaultBuffer:rowid).   
+        tree:SetHandle(SerializeName,mBuffer,mBuffer:rowid).   
         do i = 1 to num-entries(pccollections):
            ccoll = entry(i,pccollections).
            case ccoll:
@@ -426,7 +456,7 @@ class OpenEdge.DataAdmin.Tenant inherits AbstractPartitionOwner implements ITena
             ExportAsProcedure(pcfile,pcCollectionlist).
         end.
         else do:
-             iPos = lookup("TenantGroups",pcCollectionList).
+            iPos = lookup("TenantGroups",pcCollectionList).
              if iPos > 0 then
                  undo, throw new UnsupportedOperationError("Export of TenantGroups collection. Use TenantGroupMembers instead.").
                     

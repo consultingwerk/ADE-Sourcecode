@@ -28,21 +28,25 @@ class OpenEdge.DataAdmin.DataSource.TablePartitionDataSource inherits PartitionD
         
     constructor public TablePartitionDataSource (hchanges as handle ):     
         super (hchanges,"_File","dictdb._File", StorageFileMap).
-        BaseQuery = "for each ttTablechange," 
-                  + " each _file where _file._file-name = ttTableChange.Tablename and " + DatabaseInfo:FileExpression + " no-lock," 
+        BaseTableExpression = "_file._file-name = ttTableChange.Tablename and " + DatabaseInfo:FileExpression. 
+        BaseQueryTemplate   = "for each ttTablechange," 
+                            + " each _file&1no-lock," 
                   + " each _StorageObject where " + DatabaseInfo:StorageFileJoin + " no-lock".
     end constructor.
  
     constructor public TablePartitionDataSource (hchanges as handle,pfilejoin as char ):     
         super (hchanges,"_File","dictdb._File", StorageFileMap).
-        BaseQuery = "for each " +  hchanges:name + "," 
-                  + " each _file where " + pFilejoin + " and " + DatabaseInfo:FileExpression + " no-lock,"
+        BaseTableExpression = pFilejoin + " and " + DatabaseInfo:FileExpression. 
+        BaseQueryTemplate = "for each " +  hchanges:name + "," 
+                          + " each _file&1no-lock,"
                   + " each _StorageObject where " + DatabaseInfo:StorageFileJoin  + " no-lock".
     end constructor.
         
 	constructor public TablePartitionDataSource ( ):	    
 		super ("_File","dictdb._File",StorageFileMap).
-		BaseQuery = TableBaseQuery. 
+		BaseTableExpression = DatabaseInfo:FileExpression. 
+        BaseQueryTemplate   = "for each _file&1no-lock,"
+                            + " each _StorageObject where " + DatabaseInfo:StorageFileJoin + " no-lock".
     end constructor.
     
     constructor public TablePartitionDataSource (pcJoinTables as char, pcJoinPhysTables as char,pcJoinQueries as char ):        

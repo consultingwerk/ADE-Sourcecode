@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AuthenticationRequestFilter
@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.ObjectStack.
+using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.AuthenticationRequestEventArgs.
 using OpenEdge.Net.HTTP.Credentials.
@@ -22,6 +23,7 @@ using OpenEdge.Net.HTTP.Filter.IFilterEvents.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
+using OpenEdge.Net.HTTP.IHttpRequest.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter 
@@ -42,14 +44,26 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
         get():
             return get-class(IAuthFilterEventHandler).
         end get.
-
-    /** The request being authenticated */
+    
+    /** The request being authenticated. We know it's derived from an IAuthenticatedRequest (via adapter or inheritance) */
     define public property Message as IHttpMessage no-undo get. private set.
     
+    /** The request being authenticated. A helper property */
+    define protected property AuthenticatedRequest as IAuthenticatedRequest no-undo get. private set.
+    
+    /** Constructor
+        
+        @param IAuthenticatedRequest The request being authenticated. */
     constructor public AuthenticationRequestFilter(input poRequest as IAuthenticatedRequest):
         Assert:NotNull(poRequest, 'Request').
         
-        assign this-object:Message = poRequest.
+        assign this-object:AuthenticatedRequest = poRequest.
+        
+        if type-of(poRequest, IAdaptable) then
+            assign this-object:Message = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(IHttpRequest)), IHttpRequest).
+        else
+        if type-of(poRequest, IHttpRequest) then
+            assign this-object:Message = cast(poRequest, IHttpRequest).
     end method.
     
     destructor AuthenticationRequestFilter():
@@ -104,9 +118,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
     method protected void OnHttpCredentialRequest(input poAuthRequestArgs as AuthenticationRequestEventArgs):
         Assert:NotNull(poAuthRequestArgs, 'Authentication Request Event Args').
 
-        this-object:HttpCredentialRequest:Publish(
-                    this-object,
-                    poAuthRequestArgs).
+        this-object:HttpCredentialRequest:Publish(this-object, poAuthRequestArgs).
     end method.
     
     /** Returns credentials to be used by this filter. Can be retrieved from
@@ -116,20 +128,17 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
         @return Credentials A set of credentials (may not be correct, of course) */
     method protected Credentials GetCredentials(input pcRealm as character):
         define variable oAuthRequestArgs as AuthenticationRequestEventArgs no-undo.
-        define variable oAuthRequest as IAuthenticatedRequest no-undo.
         
         /* blank realms allowed */
         Assert:NotNull(pcRealm, 'Realm').
-        /* cast for comfort */
-        assign oAuthRequest = cast(this-object:Message, IAuthenticatedRequest).
         
         /* First try to get credentials off the request */
-        if valid-object(oAuthRequest:Credentials) then
-            return oAuthRequest:Credentials.
+        if valid-object(this-object:AuthenticatedRequest:Credentials) then
+            return this-object:AuthenticatedRequest:Credentials.
         
         /* Last, publish the HttpAuthenticationRequest event to get the credentials from 
            an external listener(s). */  
-        assign oAuthRequestArgs = new AuthenticationRequestEventArgs(oAuthRequest, pcRealm).
+        assign oAuthRequestArgs = new AuthenticationRequestEventArgs(cast(this-object:Message, IHttpRequest), pcRealm).
         
         OnHttpCredentialRequest(oAuthRequestArgs).
         
@@ -150,7 +159,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
         this-object:HttpCredentialRequest
                     :Subscribe(cast(poListener, IAuthFilterEventHandler):AuthFilter_HttpCredentialRequestHandler).
     end method.
-
+    
     /** Unsubscribes a listener to events from the implementing filter.
         
         @param Object The prospective listener. */
@@ -170,7 +179,6 @@ class OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter
     
     method public void Initialize():
         assign moListeners = new ObjectStack().
-        /* no-op */
     end method.
     
     method public void Destroy(  ):

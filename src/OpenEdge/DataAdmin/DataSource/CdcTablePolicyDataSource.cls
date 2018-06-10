@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2015-2017 by Progress Software Corporation. */
+ /* Copyright (c) 2015-2018 by Progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -54,7 +54,7 @@ class OpenEdge.DataAdmin.DataSource.CdcTablePolicyDataSource inherits DataSource
             //return "each _file no-lock where _file._file-number = _Cdc-Table-Policy._ObjectId"
         end. 
         
-    define protected property FieldMapNoArea as char no-undo 
+    define protected property BaseFieldMap as char no-undo 
           /*isDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2], */
 /*        init "Name,_Partition-Policy-name,Table-Name,_File._Field-Name,Field-Names,_Column-Name,HasRange,_Has-Range,NumField,_Num-Columns,Description,_Description,DefaultAllocation,_Allocation-default,DefaultDataAreaName"*/
          init 
@@ -75,9 +75,14 @@ LastModified,_Last-Modified,~
 Misc,_misc"
        get. 
        
+    define protected property FieldMapNoArea as char no-undo        
+        get():
+            return BaseFieldMap +  ",DataAreaNumber,_Area-Ianum,IndexAreaNumber,_Index-Area-Ianum".
+        end.
+       
     define protected property FieldMap as char no-undo 
         get().
-            return FieldMapNoArea + ",DataAreaName,b_dataarea._Area-name,IndexAreaName,b_indexarea._Area-name".
+            return BaseFieldMap + ",DataAreaName,b_dataarea._Area-name,IndexAreaName,b_indexarea._Area-name".
         end.
         
     define protected variable mBuffer as handle no-undo.
@@ -94,23 +99,47 @@ Misc,_misc"
         end.
         private set.
         
-    constructor public CdcTablePolicyDataSource ( ):       
-        this-object (FieldMap).
+    constructor public CdcTablePolicyDataSource ( ):  
+        super().     
+        //this-object (FieldMap).
         /* order is important = policyfield source creates local index if noin eexists  */
         //SaveChildNames = "ttCdcTablePolicyField".
     end constructor.
     
     constructor public CdcTablePolicyDataSource (pfieldmap as char ):        
         super ("_Cdc-Table-Policy,_File,b_dataArea,b_indexArea","dictdb._Cdc-Table-Policy,dictdb._File,dictdb._Area,dictdb._Area", pFieldMap). 
-        BaseQuery = "for each _Cdc-Table-Policy no-lock, " + mAreaQuery.    
+        BaseQueryTemplate = "for each _Cdc-Table-Policy&1no-lock, " + mAreaQuery.    
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method override protected void DefineSource(  ):
+        if Lazy then do:
+             /* @TODO - remove _File 
+                Tablename is used directly in   
+                CdcTablePolicyContext:FetchTableName (pCdcPolicyName):
+                This would need to be fixed to refresh if lazy and tablename is blank   
+                CdcTablePolicy:Table is already prepared to use table recid of no tablename
+              */
+             assign 
+                Tables            = "_Cdc-Table-Policy,_file"
+                PhysicalTables    = "dictdb._Cdc-Table-Policy,dictdb._file"
+                FieldMapping      = FieldMapNoArea
+                BaseQueryTemplate = "for each _Cdc-Table-Policy&1no-lock, each _file no-lock where recid(_file) = _Cdc-Table-Policy._Source-File-Recid". 
+                .
+        end.    
+        else do:
+            assign 
+                Tables            = "_Cdc-Table-Policy,_File,b_dataArea,b_indexArea"
+                PhysicalTables    = "dictdb._Cdc-Table-Policy,dictdb._file,dictdb._Area,dictdb._Area"
+                FieldMapping      = FieldMap
+                BaseQueryTemplate = "for each _Cdc-Table-Policy&1no-lock," + mAreaQuery
+                .
+        end.     
+        Defined = true.
+    end method.
+    
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
         mBuffer = phBuffer.      
-        lok = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
-        return lok.
     end method.
     
     method override protected void AfterSetUrl(): 
@@ -348,6 +377,7 @@ Misc,_misc"
                                 SaveFieldPolicy(hchild,row-modified,policyId,phbuffer).
                                 SaveFieldPolicy(hchild,row-created,policyId,phbuffer).                                         
                             end.                                                   
+                            fieldsSaved = true.                       
                         end.    
                             
                         /* core requirment: special case where loading current inactive policy, we need to set policy state to active(0) initially. 
@@ -374,7 +404,6 @@ Misc,_misc"
                                
                         phBuffer:error = false.
                         phBuffer:rejected = false.
-                        fieldsSaved = false.
                     end.
                 end.
                 hQuery:get-next.
@@ -623,17 +652,18 @@ Misc,_misc"
         do:
             hBuffer::IsCompositeReadOnly = partitionobj:readOnly.
         end. */    
-        */                   
-        assign
-            cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  
-            hBuffer::url  = PolicyURL + cEncodeName
-            hBuffer::TableUrl  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(hBuffer::TableName) 
+        */  
+        if url > "" then                  
+            assign
+                cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  
+                hBuffer::url  = PolicyURL + cEncodeName
+                hBuffer::TableUrl  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(hBuffer::TableName) 
         
-            hBuffer::DataAreaUrl  = AreaUrl + WebUtil:UrlEncode(hBuffer::DataAreaName)                   
-            hBuffer::IndexAreaUrl = AreaUrl + WebUtil:UrlEncode(hBuffer::IndexAreaName)               
-            hBuffer::CdcFieldPoliciesURL = PolicyURL + cEncodeName + "/cdcfieldpolicies"
-            //hBuffer::type = if hBuffer::State eq CdcTablePolicyStateEnum:Active then "Active" else "InActive" 
-            . 
+                hBuffer::DataAreaUrl  = AreaUrl + WebUtil:UrlEncode(hBuffer::DataAreaName)                   
+                hBuffer::IndexAreaUrl = AreaUrl + WebUtil:UrlEncode(hBuffer::IndexAreaName)               
+                hBuffer::CdcFieldPoliciesURL = PolicyURL + cEncodeName + "/cdcfieldpolicies"
+                //hBuffer::type = if hBuffer::State eq CdcTablePolicyStateEnum:Active then "Active" else "InActive" 
+                . 
 /*            hBuffer::AreasUrl      = AreasUrl.*/
     end method.
         

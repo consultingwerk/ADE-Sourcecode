@@ -146,12 +146,19 @@ class OpenEdge.DataAdmin.DataSource.IndexDataReader inherits DataSource:
         
     end method.    
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override logical Prepare(phBuffer as handle,pcBaseQuery as char,pcTargetQuery as char,pcJoin as char):
         define variable oQueryString as QueryString no-undo.
         define variable cIndexes as character no-undo.
         define variable i as integer no-undo.
         define variable dbRecid as recid no-undo.
         define variable ibadchar as integer no-undo.
+        
+        /* this override was added before we supported the optional basequery 
+           It is not needed here, but add an error as a precaution (it is easy to support  if needed ) */  
+        
+        if pcBaseQuery > "" then
+            undo, throw new UnsupportedOperationError("Prepare query with key is not supported").
+        
         dbRecid = DatabaseInfo:DatabaseRecid. 
    
         DataBuffer = phBuffer.

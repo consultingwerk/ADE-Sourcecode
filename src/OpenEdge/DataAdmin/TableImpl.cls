@@ -120,7 +120,10 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
         get():
             if not valid-object(this-object:PartitionPolicy) and valid-handle(mBuffer) and valid-object(Service) then
             do:
+                 if mBuffer::PartitionPolicyName > "" then 
                  this-object:PartitionPolicy = service:GetPartitionPolicy(mBuffer::PartitionPolicyName). 
+                 else
+                     this-object:PartitionPolicy = service:GetPartitionPolicy(int(mBuffer::Id)). 
             end.
             return this-object:PartitionPolicy.
         end.
@@ -156,6 +159,7 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
         protected set.
      
     method public override void Export():
+        Refresh().
         Export("table.json").
     end method.          
     
@@ -173,6 +177,10 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
         super (cntxt,pReq).
     end constructor.
     
+	/* if lazy datasource HasType1Area will be ? */ 
+    method protected override logical NeedsRefresh():
+        return valid-handle(mBuffer) and mBuffer::HasType1Area = ?.
+    end method.    
 	
     /** Allocate all delayed partitions for all tenants
         Does not allocate group partitions  
@@ -219,6 +227,7 @@ class OpenEdge.DataAdmin.TableImpl final inherits AbstractSchemaElement implemen
         do:
             undo, throw new UnsupportedOperationError("Export of new table").
         end.
+        Refresh().
         create temp-table htbl.
         htbl:create-like(mDefaultBuffer).
         htbl:temp-table-prepare ("ttTable").

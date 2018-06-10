@@ -39,7 +39,7 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
     define public property ServiceName as character   no-undo 
         get():
             if ServiceName = "" then 
-                return ConnectionName.
+                return DataService:ServiceName.
             return ServiceName.                 
         end.
         private set.
@@ -75,6 +75,10 @@ class OpenEdge.DataAdmin.Binding.ServiceAdapter:
     method public void FetchData(msg as IFetchRequest):
         RetrieveData(msg).
     end method.     
+    
+    method public void FetchRow(pEntity as char,pId as char,pUrl as char,pDataset as handle,pField as char, pValue as char,pLazy as logical):
+        DataService:FetchRow(pEntity,pId,pUrl,pDataset,pfield,pValue,pLazy). 
+    end method. 
    
     /*
     method private void RetrieveData(msg as IFetchRequest):

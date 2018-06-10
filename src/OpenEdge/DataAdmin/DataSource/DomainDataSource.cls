@@ -62,15 +62,14 @@ SystemPath,_PAM-library-path"
     
 	constructor public DomainDataSource ( ):	    
 		super ("_sec-authentication-domain,_tenant","dictdb._sec-authentication-domain,dictdb._tenant", mMapping). 
-		BaseQuery = "for each _sec-authentication-domain no-lock,"
-		          + " each _tenant outer-join where _tenant._tenant-name = _sec-authentication-domain._tenant-name no-lock".
+		BaseQueryTemplate = "for each _sec-authentication-domain&1no-lock,"
+		                  + " each _tenant outer-join where _tenant._tenant-name = _sec-authentication-domain._tenant-name no-lock".
         
         run prodict/_dctadmn.p ( input userid('dictdb':u), output mlIsAdmin ).
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterDomainRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
     end method.
     
     /** Save all  
@@ -232,10 +231,12 @@ SystemPath,_PAM-library-path"
     method public void AfterDomainRow(dataset-handle hds):
         define variable hbuffer as handle no-undo.
         define variable iSource as integer no-undo.
-        assign
-            hBuffer             = hds:get-buffer-handle("ttDomain")
-            hBuffer::Url        = Url + "/domains/" + WebUtil:UrlEncode(hBuffer::Name) 
-            hBuffer::UsersUrl   = hBuffer::Url + "/users".
+        
+        hBuffer = hds:get-buffer-handle("ttDomain").
+        if url > "" then
+            assign
+                hBuffer::Url        = Url + "/domains/" + WebUtil:UrlEncode(hBuffer::Name) 
+                hBuffer::UsersUrl   = hBuffer::Url + "/users".
             
         if not mlIsAdmin then 
             assign hBuffer::AccessCode = mAccessDisp.
@@ -247,7 +248,7 @@ SystemPath,_PAM-library-path"
             isource = lookup("_sec-authentication-domain",Tables).
             hBuffer::IsBuiltin = DataSourceHandle:get-source-buffer(isource)::_Domain-category <> 0.
         end.
-        if hBuffer::TenantName > "" then
+        if hBuffer::TenantName > "" and url > "" then
             hBuffer::TenantUrl = Url + "/tenants/" + WebUtil:UrlEncode(hBuffer::Tenantname ).
         
         if hBuffer::TenantName = "?" then

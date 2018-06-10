@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ByteBucket
@@ -171,7 +171,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         if get-size(mmTempBytes) gt 0 then
             set-size(mmTempBytes) = 0.
     end method.
-
+    
     /** Resizes the internal 'array' of records.
         We can shrink down the number of rows, but not smaller than the 
         bucket's size. 
@@ -180,7 +180,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public void ResizeArray(input piSize as integer):
         this-object:Resize(piSize).    
     end method.
-                
+    
     /** Resizes the internal 'array' of records.
         We can shrink down the number of rows, but not smaller than the 
         bucket's size in bytes. 
@@ -223,9 +223,13 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         @param int64 The size of the memptr represented by the pointer value. */
     method public void PutBytes(input piPointerValue as int64,
                                 input piSize as int64):
+        // Nothing to do if there's no data
+        if piSize eq 0 then
+            return.
+        
         Assert:IsPositive(piPointerValue, 'Pointer Value').
         Assert:IsPositive(piSize, 'Memptr Size').
-                                            
+        
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
         set-size(mmTempBytes) = 1. /* allocate a new 1-byte memptr */
         set-size(mmTempBytes) = 0. /* free this 1-byte memptr, which also clears the size */
@@ -240,12 +244,12 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                calling SET-SIZE() = 0 on it. */
             set-pointer-value(mmTempBytes) = 0.
             if get-size(mmTempBytes) gt 0 then
-                set-size(mmTempBytes) = 0.           
+                set-size(mmTempBytes) = 0.
         end finally.
     end method.
     
     /** Copies all of the bytes from a String object (longchar) into this bucket. 
-   
+        
         @param String The longchar containing the source data. */
     method public void PutString(input poData as String):
         Assert:NotNull(poData, 'String data').
@@ -254,22 +258,37 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     end method.
     
     /** Copies all of the bytes from a longchar into this bucket. 
-   
+        
         @param longchar The longchar containing the source data */
     method public void PutString(input pcData as longchar):
         PutString(pcData, 'utf-8':u).
     end method.
     
     /** Copies all of the bytes from a longchar into this bucket.
-   
+        
         @param longchar The longchar containing the source data 
-        @param character The target codepage used to write data into the bucket. Defaults to UTF-8 */
+        @param longchar The target codepage used to write data into the bucket. Defaults to UTF-8 */
+    @deprecated(since="11.7.3", use="PutString(longchar,character)").
     method public void PutString(input pcData as longchar,
                                  input pcTargetCodepage as longchar):
+        PutString(pcData, string(pcTargetCodepage)).
+    end method.
+    
+    /** Copies all of the bytes from a longchar into this bucket.
+        
+        @param longchar The longchar containing the source data
+        @param character The target codepage used to write data into the bucket. Defaults to UTF-8 */
+    method public void PutString(input pcData as longchar,
+                                 input pcTargetCodepage as character):
         define variable mData as memptr no-undo.
         
+        // Nothing to do if there's no data
+        if length(pcData, 'raw':u) eq 0 then
+            return.
+        
         if    pcTargetCodepage eq '':u
-           or pcTargetCodepage eq ? then
+           or pcTargetCodepage eq ? 
+        then
             assign pcTargetCodepage = 'UTF-8':u.
         
         copy-lob pcData to mData
@@ -283,7 +302,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                 set-size(mData) = 0.
         end finally.
     end method.
-
+    
     /** Copies all of the bytes from a Memptr instance into this bucket. The
         caller is responsible for cleaning up the memptr.
     
@@ -299,6 +318,11 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
             
         @param ByteBucket The ByteBucket instance containing the data. */
     method public void PutBytes(input poData as class ByteBucket):
+        Assert:NotNull(poData, 'Input data').
+        // Nothing to do if there's no data
+        if poData:Size eq 0 then
+            return.
+        
         /* We use a static method because it gives us access to the private/
            internal members of both instances. We want to do this merge as 
            quickly as possible  */
@@ -363,6 +387,10 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     
         @param memptr The memptr containing the data. */
     method public void PutBytes(input pmData as memptr):
+        // Nothing to do if there's no data
+        if get-size(pmData) eq 0 then
+            return.
+        
         /* jiggery-pokery so we can reuse code without deep-copying memptr's all over the show */
         PutBytes(get-pointer-value(pmData), get-size(pmData)). 
     end method.
@@ -387,14 +415,20 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         Assert:IsPositive(piBytesLeft, 'Num bytes left').
         
         do while piBytesLeft gt 0:
-            find data where data.ParentBucket eq int64(this-object) and
-                 data.DataIndex    eq miCurrentDataIndex
-                 no-error.
+            // force the TT record out of scope so that there's nothing left-over for the next AVAILABLE check
+            release data.
+            
+            if can-find (data where data.ParentBucket eq int64(this-object) and
+                                    data.DataIndex    eq miCurrentDataIndex) 
+            then
+                find data where data.ParentBucket eq int64(this-object) and
+                                data.DataIndex    eq miCurrentDataIndex.
             if not available data then
             do:
                 create data.
-                assign data.ParentBucket = int64(this-object)
-                       data.DataIndex    = miCurrentDataIndex.
+                assign data.ParentBucket  = int64(this-object)
+                       data.DataIndex     = miCurrentDataIndex
+                       .
             end.
             
             // we can only write so many bytes into this record set
@@ -415,8 +449,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
                 assign data.BytesWritten    = data.BytesWritten + iNumBytes
                        piStartPos           = piStartPos + iNumBytes
                        this-object:Position = this-object:Position + iNumBytes
-                       this-object:Size     = this-object:Size + iNumBytes.
-                
+                       this-object:Size     = this-object:Size + iNumBytes
+                       .
                 set-size(mTemp) = 0.
             end.
             // this record is full, move along
@@ -460,11 +494,14 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
            byte of a particular array). */
         if iGetFrom eq 0 then
             assign iGetFrom = DefaultCapacity.
-
-        find data where             
-             data.ParentBucket eq int64(this-object) and
-             data.DataIndex    eq iStartIndex
-             no-error.
+        
+        if can-find(data where data.ParentBucket eq int64(this-object) and
+                               data.DataIndex    eq miCurrentDataIndex) 
+        then
+            find data where
+                 data.ParentBucket eq int64(this-object) and
+                 data.DataIndex    eq iStartIndex
+                 .
         if available data then
             return get-byte(data.Data, iGetFrom).
         
@@ -586,7 +623,8 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         
         /* return an empty Memptr */
         if    this-object:Size eq 0 
-           or piSliceSize eq 0 then
+           or piSliceSize eq 0 
+        then
             return Memptr:Empty.
         
         set-size(data) = piSliceSize.
@@ -692,7 +730,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
     method public raw GetHash():
         return GetHash(HashAlgorithmEnum:MD5).
     end method.
-
+    
     /** Returns a hash of the current contents of the memptr. This can be used
         for comparing memptr values quickly.  
         

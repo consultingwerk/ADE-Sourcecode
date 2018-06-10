@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -33,14 +33,16 @@ class OpenEdge.Core.String serializable
     /* Helper/holder for an empty String instance.  */  
     define static private variable moEmptyString as OpenEdge.Core.String no-undo.
     
-    // holds the actual value, in UTF-8. UTF-8 can hold pretty much all characters, so let's be smart and use that
-    define private variable mUTF8Value as longchar no-undo.
+    /* Holds the actual value, in UTF-8. UTF-8 can hold pretty much all characters, so let's be smart and use that. 
+       SERIALIZABLE since this is the actual value 'holder' */
+    define private serializable variable mUTF8Value as longchar no-undo. 
     
     /* Content encoding (eg utf-8) of this string. Defaults to CPINTERNAL if not specified */ 
     define public property Encoding as character no-undo get. set.
     
-    /** Contains the actual string value */
-    define public property Value as longchar no-undo
+    /** Contains the actual string value. Marked as NON-SERIALIZABLE since the actual value is derived, 
+        and stored in the private mUTF8Value variable */
+    define public non-serializable property Value as longchar no-undo
         get():
             // always deallocate/reset/clear
             assign this-object:Value = ?.
@@ -365,7 +367,7 @@ class OpenEdge.Core.String serializable
         // left- and right-trim since this class has a Trim() method and we cannot disambiguate
         if pcValue eq ? or length(right-trim(left-trim(pcValue)), 'character':u) lt 2 then
             return false.
-    
+        
         Assert:NotNullOrEmpty(pcQuote, 'Quote character').
         
         return (index(pcValue, pcQuote)   eq 1 and 

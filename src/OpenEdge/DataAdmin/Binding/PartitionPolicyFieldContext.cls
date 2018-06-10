@@ -46,6 +46,7 @@ using OpenEdge.DataAdmin.PartitionPolicyField.
 using OpenEdge.DataAdmin.Support.PartitionPolicyFieldList.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 
 class OpenEdge.DataAdmin.Binding.PartitionPolicyFieldContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -90,7 +91,6 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyFieldContext inherits DataAdminC
         
 	constructor public PartitionPolicyFieldContext ( pscope as ISchemaScope):
         super ("PartitionPolicyField",pscope).
-        Lazy = false.
     end constructor.
 	
 	method public override character GetJoinFields(parentid as char):
@@ -419,6 +419,42 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyFieldContext inherits DataAdminC
                           and ttPartitionPolicyField.FieldName = pFieldname no-error.
         return avail ttPartitionPolicyField.                             
     end method.
+        
+    method public character FetchField (pPartitionPolicyName as character, iseq as int,pcfield as char ):
+        define variable lok as logical no-undo.
+        lok = this-object:Find(pPartitionPolicyName, iseq).
+        if not lok then do:
+             this-object:Fetch(pPartitionPolicyName).
+             lok = this-object:Find(pPartitionPolicyName, iseq).
+        end.    
+        if lok then do:
+             return TableHandle:default-buffer-handle:buffer-field(pcfield):buffer-value.
+        end.   
+        return ?.                        
+    end.    
+    
+    method public integer FetchFieldNumber (pPartitionPolicyName as character, pcTablename as char, pcfieldname as char ):
+        define variable lok as logical no-undo.
+        lok = this-object:Find(pPartitionPolicyName, pcTablename,pcfieldname).
+        if not lok then do:
+            this-object:Fetch(pPartitionPolicyName).  
+            lok = this-object:Find(pPartitionPolicyName, pcTablename,pcfieldname).
+        end.    
+        if lok then do:
+            return ttPartitionPolicyField.number.
+        end.     
+        return ?.                      
+    end.    
+    
+    method protected void Fetch(pPartitionPolicyName as character):
+        define variable oMsg as IFetchRequest no-undo.
+        oMsg = GetRequest(). 
+        omsg:SetTableQuery(Tablehandle:name,
+                           subst( " for each ttPartitionPolicyField where ttPartitionPolicyField.PartitionPolicyName = '&1'", 
+                                    pPartitionPolicyName)
+                          ).
+        FetchData(oMsg). 
+    end.    
         
     method public logical Find (pPartitionPolicyName as character, iseq as int ):
         find  ttPartitionPolicyField where ttPartitionPolicyField.PartitionPolicyName = pPartitionPolicyName

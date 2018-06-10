@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2005,2009-2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2009-2011, 2018 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -844,7 +844,6 @@ Description: Outputs the specified HTTP header with associated value followed
   value and carriage return/linefeed pair are still output.
 Input Parameters: HTTP Header name (less colon), associated header value.
 ****************************************************************************/
-  
   /* Remove a trailing colon or spaces from the header name.  Add it back
      on exactly the way we want it. */
   ASSIGN p_header = RIGHT-TRIM(p_header, ": ":U).
@@ -856,7 +855,24 @@ Input Parameters: HTTP Header name (less colon), associated header value.
   IF debugging-enabled AND CAN-DO(debug-options, "http":U) AND
       p_header <> "" AND p_value <> "" THEN
     queue-message("DEBUG":U, "<B>HTTP header:</B> ":U + p_header + p_value).
-
+    
+    // if the status is passed in, set the flag to true 
+    if     p_header eq '':u
+       and p_value begins 'HTTP/':u
+    then
+        assign http-status-written  = true.
+    
+    /* If the HTTP return status has not yet been written and */
+    if not http-status-written then
+    do:
+        // if the status line is not being specified, then use 200/OK
+        put {&webstream} control
+            'HTTP/1.1 200 OK':u
+            http-newline.
+        
+        assign http-status-written  = true.
+    end.
+    
   /* Output the header and associated value to the output stream */
   PUT {&WEBSTREAM} CONTROL
     p_header
@@ -1399,3 +1415,4 @@ END PROCEDURE. /* find_web_form_field */
 &ANALYZE-RESUME
 
 &ENDIF
+

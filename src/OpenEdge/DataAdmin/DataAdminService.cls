@@ -756,18 +756,17 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
         return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
     end method.
     
+    /* id mapped to field-number */
+    method public ITable GetTable(id as integer):
+        return cast(ContextFactory:TableContext:GetEntity(id),ITable). 
+    end method.
     /* This method is introduced to support retrieval of PUB and non-PUB tables as part of CDC feature */
 	method public ITable GetTable(tableName as char,owner as char):
         define variable tabSet    as ITableSet                                     no-undo.
         define variable nonPUBTbl as ITable                                        no-undo.         
         define variable iter      as OpenEdge.DataAdmin.Lang.Collections.IIterator no-undo.
         
-        if owner eq "PUB" or owner eq "" then 
-        do:        
-            return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
-        end.
-        else 
-        do: 
+        if owner ne "PUB" and owner ne "" then do:
             /* find the table based on given schema and table name */               
             tabSet = cast(ContextFactory:AllTableContext:GetCollection("SchemaName eq " + quoter(owner) + " and Name eq " + quoter(tableName)),ITableset).
             iter = tabset:Iterator(). 
@@ -779,6 +778,7 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
                 return nonPUBTbl.
             else undo, throw new IllegalArgumentError("GetTable method without corresponding Table and Owner Name").
 	    end.
+        else return cast(ContextFactory:TableContext:GetEntity(tableName),ITable). 
 	end method. 
     
     method public ITable GetTable(pRequestInfo as IRequestInfo):
@@ -843,6 +843,10 @@ class OpenEdge.DataAdmin.DataAdminService implements IDataAdminService:
     
     method public IPartitionPolicy GetPartitionPolicy(pname as char).
         return cast(ContextFactory:PartitionPolicyContext:GetEntity(pname),IPartitionPolicy). 
+    end method. 
+     
+    method public IPartitionPolicy GetPartitionPolicy(pid as int).
+        return cast(ContextFactory:PartitionPolicyContext:GetEntity(pid),IPartitionPolicy). 
     end method. 
      
     method public IPartitionPolicy GetPartitionPolicy(pRequestInfo as IRequestInfo).

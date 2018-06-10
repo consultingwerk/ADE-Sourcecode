@@ -50,14 +50,15 @@ CustomDetail,_Custom-grant-detail":u
         super ("_sec-granted-role":u,
                "dictdb._sec-granted-role":u,
                mMapping).
-		assign BaseQuery = "for each _sec-granted-role no-lock ":u.
+		assign BaseQueryTemplate = "for each _sec-granted-role&1no-lock ":u.
 		
         run prodict/_dctadmn.p ( input userid('dictdb':u), output mIsAdmin ).
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
+     /* after row only needed for url */
+        if url > "" then
         phBuffer:set-callback("After-Row-fill":u, "AfterGrantRoleRow":u).
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
     end method.
     
     /** Save all  

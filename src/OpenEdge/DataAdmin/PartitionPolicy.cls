@@ -33,6 +33,7 @@ using OpenEdge.DataAdmin.IRequestInfo.
 using OpenEdge.DataAdmin.ITable.
 using Progress.Lang.*.
 using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
+using OpenEdge.DataAdmin.Binding.IContextTree from propath.
 
 routine-level on error undo, throw.
 
@@ -68,9 +69,14 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
     get():
         if not valid-object(DefaultDataArea) then
         do: 
-            if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-            and valid-object(Service) then
-               DefaultDataArea = Service:GetArea(mBuffer::DefaultDataAreaName).            
+            /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+            if valid-handle(mBuffer) and valid-object(Service) then do:
+                if mBuffer::DefaultDataAreaNumber <> 0 then 
+                    return Service:GetArea(mBuffer::DefaultDataAreaNumber).
+                else if mBuffer::DefaultDataAreaName > "" then
+                    return Service:GetArea(mBuffer::DefaultDataAreaName).
+            end.                    
         end.
         return DefaultDataArea.
     end.
@@ -88,9 +94,14 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
         get():
         if not valid-object(DefaultIndexArea) then
         do: 
-            if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-            and valid-object(Service) then
-                DefaultIndexArea = Service:GetArea(mBuffer::DefaultIndexAreaName).            
+                /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultIndexAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultIndexAreaNumber).
+                    else if mBuffer::DefaultIndexAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultIndexAreaName).
+                end.                    
         end.
         return DefaultIndexArea. 
     end.
@@ -109,9 +120,14 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
         
         if not valid-object(DefaultLobArea) then
         do: 
-            if valid-handle(mBuffer) and mBuffer::DefaultLobAreaName > "" 
-            and valid-object(Service) then
-                DefaultLobArea = Service:GetArea(mBuffer::DefaultLobAreaName).            
+                /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultLobAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultLobAreaNumber).
+                    else if mBuffer::DefaultDataAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultLobAreaName).
+                end.                   
         end.
         return DefaultLobArea. 
     end.
@@ -134,8 +150,14 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
          
     define public property Fields as IFieldList no-undo 
         get():
-            if not valid-object( this-object:Fields) then
+            define variable oTable as handle no-undo. 
+            if not valid-object( this-object:Fields) then do:
+               /* if not saved yet then we need the have the table's fields 
+                   on the client, so the polciyfield can join to it. */
+                if Created and valid-object(this-object:Table) then
+                    this-object:Table:Fields.  
                 this-object:Fields = cast(GetChildCollection("fields"),IFieldList).
+            end.
             return this-object:Fields.
         end.
         protected set.
@@ -215,12 +237,24 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
    
 	define public property Table as ITable no-undo 
         get():
-            if not valid-object(this-object:Table) and valid-handle(mBuffer) and mBuffer::Tablename > "" then 
+            if valid-object(this-object:Table) = false
+            and valid-handle(mBuffer) then 
             do: 
                if valid-object(Service) then
+               do:
+                   if mBuffer::Tablename > "" then
                    return service:GetTable(mBuffer::Tablename). 
+                   else
+                       return service:GetTable(mBuffer::ObjectNumber).
+               end.     
                else if valid-object(Context:TargetService) then
+               do:
+                   if mBuffer::Tablename > "" then
                    return Context:TargetService:GetTable(mBuffer::Tablename). 
+                   else
+                       return Context:TargetService:GetTable(mBuffer::ObjectNumber). 
+
+               end.
             end.
             return this-object:Table.
         end.
@@ -246,8 +280,14 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
         must match table and Fields  */
     define public property Indexes as IIndexSet no-undo 
         get():
-            if not valid-object( this-object:Indexes) then
+            if not valid-object( this-object:Indexes) then do:
+                /* if not saved yet then we need the have the table's indexes 
+                   on the client, so the policyindexes can join to it. */
+                if Created and valid-object(this-object:Table) then
+                    this-object:Table:Indexes.  
+                 
                 this-object:Indexes = cast(GetChildCollection("indexes"),IIndexSet).
+            end.    
             return this-object:Indexes.
         end.
         private set.
@@ -267,9 +307,16 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
 	constructor public PartitionPolicy (  cntxt as IDataAdminModel ):
 		super (input cntxt).
 	end constructor.
-
+   
 	method override protected IDataAdminModel CreateLocalContext(  ):
 		return  new PartitionPolicyContext().  
+	end method.
+	
+	 /* if lazy datasource none of the arename fields will have data 
+       it is sufficent to check one of them - super does not have 
+       area  - default may have...  */ 
+    method protected override logical NeedsRefresh():
+        return valid-handle(mBuffer) and mBuffer::DefaultDataAreaName = "".
 	end method.
 	
 	 /* populate Details from data */
@@ -298,6 +345,15 @@ class OpenEdge.DataAdmin.PartitionPolicy inherits AbstractPartitionParent implem
     method public logical AddDetailsFromData(pcSubstituteBase as char,pcSubstituteArgs as char):
         AssertLoadFromData().
         PartitionPolicyContext:FillNewDetails(this-object:Name,pcSubstituteBase,pcSubstituteArgs).
+    end method.
+    
+    /** override to check for indexes -which will be found, but cause error when building dataset with bad join */
+    method public override void ExportTree(pcfile as char,pcCollectionlist as char):
+        if lookup("Indexes",pcCollectionList) > 0 then
+            undo, throw new UnsupportedOperationError("Export of Indexes collection. Use LocalIndexes instead.").
+        if lookup("Fields",pcCollectionList) > 0 then
+             undo, throw new UnsupportedOperationError("Export of Fields collection. Use PartitionPolicyFields instead.").                    
+        super:ExportTree(pcfile,pcCollectionlist). 
     end method.
     
     method private void AssertLoadFromData():

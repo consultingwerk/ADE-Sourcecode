@@ -54,6 +54,9 @@ class OpenEdge.DataAdmin.DataAccess.TenantGroupMemberData inherits DataAccess im
         DatasetHandle = msg:DataHandle.
         Url = msg:Url. 
         hBuffer = DatasetHandle:get-buffer-handle("ttTenantGroupMember").
+        /* @TODO if the query is for tenant the basequery for the class empty constructor is bad...
+             use the new TenantGroupMemberDataSource("_Tenant","_Partition-Set")
+         */
         datasource = new TenantGroupMemberDataSource().      
         cQuery = msg:GetTableQuery(hBuffer:name).
         datasource:FillMode = "Append".

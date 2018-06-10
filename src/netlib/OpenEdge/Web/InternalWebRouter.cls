@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    Purpose     : Keep a list of customer specified handlers and invoke 
@@ -39,7 +39,7 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
     define private property DebugEnabled as logical no-undo
         get:
             define variable cVal as character no-undo.
-                
+            
             assign cVal = web-context:get-cgi-value('ENV':u, 'SERVLET_SRVR_DEBUG':u).
             
             /* rules per web/objects/web-util.p */
@@ -52,8 +52,7 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         field WebHandler     as Progress.Lang.Object
         field WebHandlerName as character
         index idx1 as primary unique WebHandlerName.
-        
-                
+    
     /* Handles a web request.  A customer can specify a different handler for
        each application.  If this is the first request for this handler or the 
        handler is invalaid, an instance of it is created.  
@@ -87,7 +86,8 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         else
         do:
             /* Check to see if we've used this handler for a previous request */
-            find lbHandler where lbHandler.WebHandlerName eq pcHandlerName no-error.        
+            if can-find(lbHandler where lbHandler.WebHandlerName eq pcHandlerName) then
+                find lbHandler where lbHandler.WebHandlerName eq pcHandlerName.
             
             /* Create a record for the handler if it does not exist */    
             if not available lbHandler then
@@ -129,7 +129,8 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         define buffer lbHandler for ttHandler.
         
         /* Check to see if we've used this handler for a previous request */
-        find lbHandler where lbHandler.WebHandlerName eq pcHandlerName no-error.
+        if can-find(lbHandler where lbHandler.WebHandlerName eq pcHandlerName) then
+            find lbHandler where lbHandler.WebHandlerName eq pcHandlerName.
         assign lCached = available lbHandler and valid-object(lbHandler.WebHandler).
         if lCached then
         do:
@@ -138,8 +139,8 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         end.
         
         return lCached.
-    end method.    
-
+    end method.
+    
     /* Clears (empties) the entire handler cache. */
     method public void Clear():
         define buffer lbHandler for ttHandler.
@@ -148,7 +149,7 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         
         logger:Debug('Handler cache cleared').
     end method.
-
+    
     /* Invokes/instantiates a webhandler
        
        @param character The webhandler name
@@ -161,7 +162,8 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         if valid-object(Ccs.Common.Application:ServiceManager) then
             assign webHandler = cast(Ccs.Common.Application:ServiceManager
                                                            :getService(get-class(IWebHandler), pHandlerName),
-                                     IWebHandler).
+                                     IWebHandler)
+                                no-error.
         
         if not valid-object(webHandler) then
         do:
@@ -172,6 +174,10 @@ class OpenEdge.Web.InternalWebRouter implements ISupportLogging
         end.
         
         return webHandler.
+        finally:
+            // for cases where there is a Service Manager but it does not handle IWebHandler
+            assign error-status:error = false.
+        end finally.
     end method.
     
 end class.

@@ -52,6 +52,7 @@ using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
 using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
 using Progress.Lang.*.
 using Progress.Json.ObjectModel.JsonObject from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 routine-level on error undo, throw.
 
@@ -107,68 +108,60 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
           init "The property can only be edited after the policy has been created." no-undo get.  
     
     constructor public PartitionPolicyContext ():
-        define variable policyFieldcontext  as PartitionPolicyFieldContext no-undo.
-        define variable policydetailcontext as PartitionPolicyDetailContext no-undo.
-        define variable localIndexContext   as LocalIndexContext no-undo.
-         super ("PartitionPolicy").
-        policyFieldcontext = new PartitionPolicyFieldContext().
-        policydetailcontext = new PartitionPolicyDetailContext().
-        localIndexContext = new LocalIndexContext().
-        AddChild(policyFieldcontext).
-        AddChild(localIndexContext).
-        AddChild(policydetailcontext).
+        super ("PartitionPolicy").
         ExportWithRoot = false.
         CanGenerateCode = true.
-
     end constructor.
 
     constructor public PartitionPolicyContext (pScope as ISchemaScope):
         super ("PartitionPolicy",pScope).
-        AddChild(pScope:PartitionPolicyFieldContext).
-        AddChild(pScope:LocalIndexContext).
-        AddChild(pScope:PartitionPolicyDetailContext).
         SchemaScope = pScope.
         ExportWithRoot = false.
         CanGenerateCode = true.
      
     end method.
     
-/*    method public override IFetchRequest GetRequest():     */
-/*        define variable hDs as handle no-undo.             */
-/*        define variable tree as IContextTree no-undo.      */
-/*        define variable cntxt as IDataAdminContext no-undo.*/
-/*        tree = new ContextTree().                          */
-/*        tree:Parse = true.                                 */
-/*                                                           */
-/*        AddTableTo(tree).                                  */
-/*/*        cntxt = getChild("partitionPolicyDetail").*/     */
-/*/*        cntxt:AddTreeTo(tree).                    */     */
-/*        hDs = tree:GetReadHandle().                        */
-/*/*        h = CreateDataSet().*/                           */
-/*                                                           */
-/*        return new FetchRequest(Name,Id,hDs,no).           */
-/*    end method.                                            */
+    method override protected void InitChildren ():
+        define variable policyFieldcontext  as PartitionPolicyFieldContext no-undo.
+        define variable policydetailcontext as PartitionPolicyDetailContext no-undo.
+        define variable localIndexContext   as LocalIndexContext no-undo.
+        policyFieldcontext = new PartitionPolicyFieldContext().
+        policydetailcontext = new PartitionPolicyDetailContext().
+        localIndexContext = new LocalIndexContext().
+        AddChild(policyFieldcontext).
+        AddChild(localIndexContext).
+        AddChild(policydetailcontext).
+    end method.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,ISchemaScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as ISchemaScope):
+        /* field needs to be first - used to export values for detail */
+        AddChild(pScope:PartitionPolicyFieldContext).
+        AddChild(pScope:LocalIndexContext).
+        AddChild(pScope:PartitionPolicyDetailContext).
+    end method.
+    
+    /* temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsPolicy:handle. 
+    end method.
     
 	method public override void CreateRow(entity as IDataAdminElement):
 	    /* the default syserror has all info */
 	    CreateRow(cast(entity,IPartitionPolicy)).    
 	end method.
 	
+    method override protected character GetIntegerKey(  ):
+        return "ObjectNumber".
+    end method.
+
     method public override character GetJoinFields(parentid as char):
         return "".
     end.
     
-    /* detail has different join on server */
-    method protected override handle GetRequestDataset():
-        /* way too much data to load up front - just load the fields */
-        return CreateServerDataset("partitionPolicyFields").  /* final - calls createDataset true */
-    end method.
-    
-    /* override to use Name in JSON import 
-    method protected override character GetClientKeyFields():
-        return "Name". 
-    end method.
-      */
       
     method public void FillNewDetails (pcPolicyname as char) :
         define variable request as IFetchRequest   no-undo.
@@ -657,7 +650,49 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyContext inherits DataAdminContex
         find ttPartitionPolicy where ttPartitionPolicy.name = name no-error.
         return avail ttPartitionPolicy.            
     end.    
- 
+    
+    method public override logical Find(id as integer):
+        find ttPartitionPolicy where ttPartitionPolicy.objectnumber = id no-error.
+        return avail ttPartitionPolicy.            
+    end.    
+    
+    method public character FetchTableName (pPartitionPolicyName as character):
+        define variable lFound as logical no-undo.
+        lfound = this-object:Find(pPartitionPolicyName).
+        if not lFound then do:
+             this-object:Fetch(pPartitionPolicyName).  
+             lfound = this-object:Find(pPartitionPolicyName).
+        end.    
+        
+        if lFound then 
+            return ttPartitionPolicy.TableName.
+
+        return ?.                        
+    end.    
+    
+    method public integer FetchNumFields (pPartitionPolicyName as character):
+        define variable lFound as logical no-undo.
+        lfound = this-object:Find(pPartitionPolicyName).
+        if not lFound then do:
+            this-object:Fetch(pPartitionPolicyName).  
+            lfound = this-object:Find(pPartitionPolicyName).
+        end.    
+        if lFound then  
+             return ttPartitionPolicy.NumFields.
+          
+        return ?.                        
+    end.    
+    
+    method protected logical Fetch(pPartitionPolicyName as character):
+        define variable oMsg as IFetchRequest no-undo.
+        oMsg = GetRequest(). 
+        omsg:SetTableQuery(Tablehandle:name,
+                           subst( " for each ttPartitionPolicy where ttPartitionPolicy.name = '&1'", 
+                                    pPartitionPolicyName)
+                          ).
+        FetchData(oMsg). 
+    end.    
+    
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):
         return new PartitionPolicySet(cntxt). 
     end method.

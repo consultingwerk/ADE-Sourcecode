@@ -20,6 +20,8 @@ USING OpenEdge.DataAdmin.Message.SaveRequest.
 USING OpenEdge.DataAdmin.UserTablePermission.
 USING OpenEdge.DataAdmin.UserTablePermissionSet.
 USING Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
+
  /* Copyright (c) 2011 by progress Software Corporation       */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
@@ -69,12 +71,19 @@ class OpenEdge.DataAdmin.Binding.UserTablePermissionContext inherits DataAdminCo
         protected set.
     
     constructor public UserTablePermissionContext (pScope as IServiceContextFactory):
-        define variable cntxt as IDataAdminModel no-undo.
         super ("UserTablePermission",pScope).
+    end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
+        initchildren(cast(pScope,IServiceContextFactory)).
+    end method.  
+    
+    method protected void initChildren(pScope as IServiceContextFactory):
+        define variable cntxt as IDataAdminModel no-undo.
         cntxt = pScope:GetUserFieldPermissionContext().
         cntxt:Lazy = false.
         AddChild(cntxt).  
-    end constructor.
+    end method.  
       
     method override protected handle InitDataset ():
         return dataset dsTablePermission:handle. 

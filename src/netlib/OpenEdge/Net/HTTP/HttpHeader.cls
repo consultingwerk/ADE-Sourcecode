@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpHeader
@@ -90,10 +90,10 @@ class OpenEdge.Net.HTTP.HttpHeader:
     
     /** Removes any parameter records for this header. */
     method protected void ClearParams():
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
         
-        for each HeaderParameter where HeaderParameter.ParentHeader eq int64(this-object):
-            delete HeaderParameter.
+        for each hdrParam where hdrParam.ParentHeader eq int64(this-object):
+            delete hdrParam.
         end.
     end method.
     
@@ -144,16 +144,25 @@ class OpenEdge.Net.HTTP.HttpHeader:
         @param character The name of the parameter to check.
         @return logical True if the parameter exists. */    
     method public logical HasParameter(input pcParamName as character):
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
         
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
         
-        find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq int64(this-object) and
-                   HeaderParameter.ParamName eq pcParamName
-                   no-error.
+        return can-find(first hdrParam where
+                              hdrParam.ParentHeader eq int64(this-object) and
+                              hdrParam.ParamName    eq pcParamName).
+    end method.
+
+
+    /** Returns a parameter from a (for example, 'charset' from Content-Type) header value 
         
-        return available HeaderParameter.
+        @param character The name of the parameter value to retrieve
+        @param character The charset paremeter value; blank/empty otherwise 
+        @param logical TRUE If the value is to be quoted in a header
+        @return logical  TRUE when the parameter was replaced/previously existed. */
+    method public logical SetParameterValue(input pParamName as character,
+                                            input pParamValue as character,
+                                            input pQuoteValue as character):
     end method.
     
     /** Returns a parameter from a (for example, 'charset' from Content-Type) header value 
@@ -165,25 +174,27 @@ class OpenEdge.Net.HTTP.HttpHeader:
     method public logical SetParameterValue(input pcParamName as character,
                                             input pcParamValue as character):
         define variable lExists as logical no-undo.
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
         
         Assert:NotNullOrEmpty(this-object:ParamDelimiter, 'Param delimiter').
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
         Assert:NotNull(pcParamValue, 'Param value').
         
-        find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq int64(this-object) and
-                   HeaderParameter.ParamName eq pcParamName
-                   no-error.
-        assign lExists = available HeaderParameter.
-        
-        if not lExists then
+        assign lExists = can-find(first hdrParam where
+                                        hdrParam.ParentHeader eq int64(this-object) and
+                                        hdrParam.ParamName    eq pcParamName).
+        if lExists then
+            find first hdrParam where
+                       hdrParam.ParentHeader eq int64(this-object) and
+                       hdrParam.ParamName    eq pcParamName
+                       .
+        else
         do:
-            create HeaderParameter.
-            assign HeaderParameter.ParentHeader = int64(this-object)
-                   HeaderParameter.ParamName    = pcParamName.
+            create hdrParam.
+            assign hdrParam.ParentHeader = int64(this-object)
+                   hdrParam.ParamName    = pcParamName.
         end.
-        assign HeaderParameter.ParamValue  = pcParamValue.
+        assign hdrParam.ParamValue  = pcParamValue.
         
         return lExists.                                                
     end method.
@@ -193,7 +204,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         @param character  The name of the parameter value to retrieve
         @return character The charset paremeter value; blank/empty otherwise */
     method public character GetParameterValue(input pcParamName as character):
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
         
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
         
@@ -201,12 +212,16 @@ class OpenEdge.Net.HTTP.HttpHeader:
         if this-object:ParamDelimiter eq '':u then
             return '':u.
         
-        find first HeaderParameter where
-                   HeaderParameter.ParentHeader eq int64(this-object) and
-                   HeaderParameter.ParamName eq pcParamName
-                   no-error.
-        if available HeaderParameter then
-            return HeaderParameter.ParamValue.
+        if can-find(first hdrParam where
+                          hdrParam.ParentHeader eq int64(this-object) and
+                          hdrParam.ParamName    eq pcParamName)
+        then
+            find first hdrParam where
+                       hdrParam.ParentHeader eq int64(this-object) and
+                       hdrParam.ParamName    eq pcParamName
+                       .
+        if available hdrParam then
+            return hdrParam.ParamValue.
         
         return '':u.
     end method.
@@ -231,7 +246,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
             /* strip off any quotation marks */
             if     substring(pcValue, 1,       1) eq StringConstant:DOUBLE_QUOTE 
                and substring(pcValue, iLength, 1) eq StringConstant:DOUBLE_QUOTE 
-               then
+            then
                 assign pcValue = substring(pcValue, 2, iLength - 2, 'raw':u).
             
             assign mValue = pcValue.
@@ -263,7 +278,7 @@ class OpenEdge.Net.HTTP.HttpHeader:
         define variable cParameters as character no-undo.
         define variable cDelim as character no-undo.
         
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
         
         /* blank delimiter means no parameters */        
         if this-object:ParamDelimiter eq '':u then
@@ -272,40 +287,40 @@ class OpenEdge.Net.HTTP.HttpHeader:
         if this-object:Value ne '':u then
             assign cDelim = this-object:ParamDelimiter.
         
-        for each HeaderParameter where HeaderParameter.ParentHeader eq int64(this-object):
+        for each hdrParam where hdrParam.ParentHeader eq int64(this-object):
             case true:
                 // if the parameter value is already quoted, leave it alone
-                when String:IsQuoted(HeaderParameter.ParamValue, StringConstant:DOUBLE_QUOTE) then
-                    assign cValue  = HeaderParameter.ParamValue.
+                when String:IsQuoted(hdrParam.ParamValue, StringConstant:DOUBLE_QUOTE) then
+                    assign cValue  = hdrParam.ParamValue.
                 
                 // if the parameter value has a quotable character, quote it
-                when index(HeaderParameter.ParamValue, StringConstant:SPACE) gt 0 or
-                when index(HeaderParameter.ParamValue, StringConstant:DOUBLE_QUOTE) gt 0 or
-                when index(HeaderParameter.ParamValue, StringConstant:BACKSLASH) gt 0 or
-                when index(HeaderParameter.ParamValue, StringConstant:SEMICOLON) gt 0 or
-                when index(HeaderParameter.ParamValue, '(':u) gt 0 or
-                when index(HeaderParameter.ParamValue, ')':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '<':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '>':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '@':u) gt 0 or
-                when index(HeaderParameter.ParamValue, ',':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '=':u) gt 0 or
-                when index(HeaderParameter.ParamValue, ':':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '/':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '[':u) gt 0 or
-                when index(HeaderParameter.ParamValue, ']':u) gt 0 or
-                when index(HeaderParameter.ParamValue, '?':u) gt 0 then
-                    assign cValue = StringConstant:DOUBLE_QUOTE + HeaderParameter.ParamValue + StringConstant:DOUBLE_QUOTE.
+                when index(hdrParam.ParamValue, StringConstant:SPACE) gt 0 or
+                when index(hdrParam.ParamValue, StringConstant:DOUBLE_QUOTE) gt 0 or
+                when index(hdrParam.ParamValue, StringConstant:BACKSLASH) gt 0 or
+                when index(hdrParam.ParamValue, StringConstant:SEMICOLON) gt 0 or
+                when index(hdrParam.ParamValue, '(':u) gt 0 or
+                when index(hdrParam.ParamValue, ')':u) gt 0 or
+                when index(hdrParam.ParamValue, '<':u) gt 0 or
+                when index(hdrParam.ParamValue, '>':u) gt 0 or
+                when index(hdrParam.ParamValue, '@':u) gt 0 or
+                when index(hdrParam.ParamValue, ',':u) gt 0 or
+                when index(hdrParam.ParamValue, '=':u) gt 0 or
+                when index(hdrParam.ParamValue, ':':u) gt 0 or
+                when index(hdrParam.ParamValue, '/':u) gt 0 or
+                when index(hdrParam.ParamValue, '[':u) gt 0 or
+                when index(hdrParam.ParamValue, ']':u) gt 0 or
+                when index(hdrParam.ParamValue, '?':u) gt 0 then
+                    assign cValue = StringConstant:DOUBLE_QUOTE + hdrParam.ParamValue + StringConstant:DOUBLE_QUOTE.
                 
                 // all other cases, leave it be
                 otherwise 
-                    assign cValue  = HeaderParameter.ParamValue.
+                    assign cValue  = hdrParam.ParamValue.
             end case.
             
             assign cParameters = substitute('&1&2 &3=&4':u, 
                                    cParameters,
                                    cDelim,
-                                   HeaderParameter.ParamName,
+                                   hdrParam.ParamName,
                                    cValue )
                    cDelim = this-object:ParamDelimiter
                    .
@@ -320,16 +335,16 @@ class OpenEdge.Net.HTTP.HttpHeader:
        @return logical TRUE if at least one parameter was removed. */
     method public logical RemoveParameters(input pcParamName as character):
         define variable lExisting as logical no-undo.
-        define buffer HeaderParameter for HeaderParameter.
+        define buffer hdrParam for HeaderParameter.
          
         Assert:NotNullOrEmpty(pcParamName, 'Param name').
         
         assign lExisting = false.
         
-        for each HeaderParameter where
-                 HeaderParameter.ParentHeader eq int64(this-object) and
-                 HeaderParameter.ParamName eq pcParamName:
-            delete HeaderParameter. 
+        for each hdrParam where
+                 hdrParam.ParentHeader eq int64(this-object) and
+                 hdrParam.ParamName eq pcParamName:
+            delete hdrParam. 
             assign lExisting = true.
         end.
         

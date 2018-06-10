@@ -37,6 +37,7 @@ class OpenEdge.DataAdmin.Message.DataAdminMessage implements IDataAdminMessage:
         field Entity        as char 
         field TableName     as char
         field RequestType   as char
+        field KeyField      as char
         field KeyValue      as char
 /*        field SerializeName as char */
         field FullPage      as logical
@@ -49,6 +50,7 @@ class OpenEdge.DataAdmin.Message.DataAdminMessage implements IDataAdminMessage:
         field PrevPosition  as char
         field NextPosition  as char
         field Total         as int  init ?
+        field Lazy          as logical
          index idxMsg as primary unique entity tablename.
     
     define buffer bMsg for ttTableMessage.

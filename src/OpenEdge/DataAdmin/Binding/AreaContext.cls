@@ -41,6 +41,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest.
 using OpenEdge.DataAdmin.Message.ISaveRequest.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implements IDataAdminContext: 
     
     {daschema/area.i}
@@ -86,20 +87,30 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         protected set.
     
     constructor public AreaContext():
-        define variable  extcntxt as Extentcontext no-undo. 
         super ("Area").       
-        extcntxt = new ExtentContext().
-        extcntxt:Lazy = false.
-        AddChild(new ExtentContext()).
     end constructor.
     
     constructor public AreaContext(pscope as IAreaScope):
-        define variable  extcntxt as Extentcontext no-undo. 
         super ("Area",pscope).       
-        extcntxt = pscope:ExtentContext.
-        extcntxt:Lazy = false.
-        AddChild(extcntxt).
     end constructor.
+    
+    method override protected void InitChildren ():
+        define variable  extcntxt as Extentcontext no-undo. 
+        extcntxt = new ExtentContext().
+     //   extcntxt:Lazy = false.
+        AddChild(new ExtentContext()).
+    end method.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,IAreaScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as IAreaScope):
+        define variable  extcntxt as Extentcontext no-undo. 
+        extcntxt = pscope:ExtentContext.
+     //   extcntxt:Lazy = false.
+        AddChild(extcntxt).
+    end method.
     
     /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():
@@ -126,7 +137,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         define variable dataerror as DataContextError no-undo.   
         define variable extentcntxt as ExtentContext no-undo.  
         define variable cHeader    as character no-undo init "Create failed.".
-        
+        define variable lTrack      as logical no-undo.
         if valid-object(Service)then
         do:
             extentcntxt = cast(pcntxt:GetChild("extents"),ExtentContext).
@@ -162,7 +173,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         
         if valid-object(dataError) then
             undo, throw dataError.
-             
+        lTrack = temp-table ttArea:tracking-changes.     
         temp-table ttArea:tracking-changes = true.
         for each copytable:
             create ttArea.    
@@ -171,7 +182,7 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
             OnRowCreated().
         end.
  
-        temp-table ttArea:tracking-changes = false.
+        temp-table ttArea:tracking-changes = ltrack.
             
     end method.  
     

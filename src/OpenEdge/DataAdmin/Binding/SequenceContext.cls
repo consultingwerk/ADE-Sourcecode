@@ -82,12 +82,15 @@ class OpenEdge.DataAdmin.Binding.SequenceContext inherits DataAdminContext imple
     
     constructor public SequenceContext (pScope as IContextScope):
         super ("Sequence",pScope).
+    end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
         if pScope:IsLocal = false and type-of(pScope,IContextFactory) then
         do: 
            AddChild(cast(pScope,IContextFactory):SequenceValueContext). 
            SkipList = "sequenceValues".
         end.
-    end constructor.
+    end method.  
     
 	    /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():

@@ -29,9 +29,9 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
     define buffer b_indexArea for dictdb._Area.
     define buffer b_LobArea   for dictdb._Area.
      
-    define protected variable BaseExpression as char no-undo
-       init "each _Partition-Set where _Partition-Set._PSet-type = '1' and _Partition-Set._Object-type = '1'".
-        
+    define protected property LazyFieldMap as char no-undo 
+        init "Id,_PSetid,ObjectType,_Object-Type,ObjectNumber,_Object-Number,Name,_PSet-name,Description,_PSet-description,DefaultAllocation,_PSet-Allocation-default,IsAllocated,_PSet-attributes[1],DefaultDataAreaNumber,_Partition-Set._PSet-DataArea-default,DefaultIndexAreaNumber,_Partition-Set._PSet-IndexArea-default,DefaultLobAreaNumber,_Partition-Set._PSet-LobArea-default"
+        get.
 
     define protected property FieldMap as char no-undo 
         init "Id,_PSetid,ObjectType,_Object-Type,ObjectNumber,_Object-Number,Name,_PSet-name,TableName,_file._file-name,SchemaName,_file._owner,Description,_PSet-description,DefaultDataAreaName,b_dataarea._Area-name,DefaultIndexAreaName,b_indexarea._Area-name,DefaultLobAreaName,b_lobarea._Area-name,DefaultAllocation,_PSet-Allocation-default,IsAllocated,_PSet-attributes[1]"
@@ -45,19 +45,41 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
     end.
     
     constructor public TenantGroupDataSource ( ):        
-        this-object (FieldMap).
+        super ().
+        BaseTableExpression = "_Partition-Set._PSet-type = '1' and _Partition-Set._Object-type = '1'".
     end constructor.
     
  	constructor public TenantGroupDataSource (pfieldmap as char ):	    
 		super ("_Partition-Set,_File,b_dataArea,b_indexArea,b_LobArea","dictdb._Partition-Set,dictdb._File,dictdb._Area,dictdb._Area,dictdb._Area", pFieldMap). 
-		BaseQuery = "for " + BaseExpression + " no-lock,"
+		BaseTableExpression = "_Partition-Set._PSet-type = '1' and _Partition-Set._Object-type = '1'".
+		BaseQueryTemplate   = "for each _Partition-Set&1no-lock,"
                     + " each _File where _File._file-number = _Partition-Set._Object-number no-lock, " + mAreaQuery .
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
+      /* after row is only used for url data */
+        if url > "" then
         phBuffer:set-callback("After-Row-fill","AfterTenantGroupRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
-     
+    end method.
+    
+    method override protected void DefineSource(  ):
+        if Lazy then do:
+             assign 
+                Tables            = "_Partition-Set"
+                PhysicalTables    = "dictdb._Partition-Set"
+                FieldMapping      =  LazyFieldMap
+                BaseQueryTemplate = "for each _Partition-Set&1no-lock" 
+                .
+        end.    
+        else do:
+            assign 
+                Tables            = "_Partition-Set,_File,b_dataArea,b_indexArea,b_LobArea"
+                PhysicalTables    = "dictdb._Partition-Set,dictdb._File,dictdb._Area,dictdb._Area,dictdb._Area"
+                FieldMapping      = FieldMap
+                BaseQueryTemplate = "for each _Partition-Set&1no-lock,"
+                                  + " each _File where _File._file-number = _Partition-Set._Object-number no-lock, " + mAreaQuery .
+        end.     
+        Defined = true.
     end method.
     
     /** tenantgroup requires control of order , so this is not supported  */
@@ -175,7 +197,8 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                              undo, throw new DataAccessError(cMsg).
                         end.        
                     end.
-                    else 
+                    /* don't give error if lazy read */
+                    else if phbuffer::DefaultDataAreaNumber = 0 then 
                         undo, throw new DataAccessError("DefaultDataArea cannot be set to blank or unknown.").    
                         
                     if phbuffer::DefaultIndexAreaName > "" then
@@ -187,7 +210,8 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                             undo, throw new DataAccessError(cMsg).
                         end.            
                     end.
-                    else 
+                    /* don't give error if lazy read */
+                    else if phbuffer::DefaultIndexAreaNumber = 0 then 
                         undo, throw new DataAccessError("DefaultIndexArea cannot be set to blank or unknown.").    
                             
                     if phbuffer::DefaultLobAreaName > "" then
@@ -199,7 +223,8 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                              undo, throw new DataAccessError(cMsg).
                          end.        
                     end.
-                    else 
+                      /* don't give error if lazy read */
+                    else if phbuffer::DefaultLobAreaNumber = 0 then 
                         undo, throw new DataAccessError("DefaultLobArea cannot be set to blank or unknown.").    
                  
                     /* rename a group  
@@ -209,9 +234,9 @@ class OpenEdge.DataAdmin.DataSource.TenantGroupDataSource inherits DataSource:
                     assign
                         dictdb._Partition-Set._PSet-Name = phBuffer::Name
                         dictdb._Partition-Set._PSet-Description = phBuffer::Description
-                        dictdb._Partition-Set._PSet-DataArea-default =  b_dataarea._area-number 
-                        dictdb._Partition-Set._PSet-IndexArea-default = b_indexarea._area-number 
-                        dictdb._Partition-Set._PSet-LobArea-default =  b_lobarea._area-number 
+                        dictdb._Partition-Set._PSet-DataArea-default =  b_dataarea._area-number when avail b_dataarea
+                        dictdb._Partition-Set._PSet-IndexArea-default = b_indexarea._area-number when avail b_indexarea
+                        dictdb._Partition-Set._PSet-LobArea-default =  b_lobarea._area-number when avail b_lobarea 
                         dictdb._Partition-Set._PSet-Allocation-default  = phBuffer::DefaultAllocation  
                     /* TODO   - save-row-changes? */
                         hdataset = phBuffer:dataset.

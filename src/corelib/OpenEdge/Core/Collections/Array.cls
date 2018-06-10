@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2014, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Array
@@ -12,14 +12,12 @@ Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.Array.
+using OpenEdge.Core.Collections.ArrayIterator.
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.ArrayIterator.
 using OpenEdge.Core.Collections.ResizeError.
-using OpenEdge.Core.Assert.
-
-using Progress.Lang.Class.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.Collections.Array serializable 
@@ -118,7 +116,6 @@ class OpenEdge.Core.Collections.Array serializable
     
     method public void SetValue(input poValue as Object,
                                 input piExtent as integer):
-        
         /* Expand array, if allowed and needed */
         if piExtent gt this-object:Size then
         do:
@@ -128,7 +125,7 @@ class OpenEdge.Core.Collections.Array serializable
                 undo, throw new ResizeError('Array','larger').
         end.
         
-        this-object:Value[piExtent] = poValue.
+        assign this-object:Value[piExtent] = poValue.
     end method.
     
     /* ICollection */
@@ -177,23 +174,29 @@ class OpenEdge.Core.Collections.Array serializable
     /** Returns true if this list contains all of the elements of the
         specified collection.
         
-        @param ICollection The collection of obejcts to check
+        @param ICollection The collection of objects to check
         @return logical True if all the elements match */
     method public logical ContainsAll(input poCollection as ICollection).
         define variable oIterator as IIterator.
-        define variable oCheck as Object. 
-        define variable lAny as logical no-undo.
         
-        assign oIterator = poCollection:Iterator()  
-               lAny = false.
+        Assert:NotNull(poCollection, 'Check collection').
+        
+        /* if the 'check' collection is empty, then true */  
+        if poCollection:IsEmpty() then
+            return true.
+        
+        /* if the passed in collection is larger than this collection,
+           this cannot be true. */
+        if poCollection:Size gt this-object:Size then
+            return false.
+        
+        assign oIterator = poCollection:Iterator().
         do while oIterator:HasNext():
-            oCheck = oIterator:Next().
-            lAny = this-object:Contains(oCheck).
-            if not lAny then
-                leave.               
+            if not this-object:Contains(oIterator:Next()) then
+                return false.
         end.
         
-        return lAny.
+        return true.
     end method.   
 
     method public IIterator Iterator( ):
@@ -214,7 +217,8 @@ class OpenEdge.Core.Collections.Array serializable
         do iLoop = 1 to iMax while not lRemoved:
             if this-object:Value[iLoop]:Equals(o) then
                 assign this-object:Value[iLoop] = ?
-                       lRemoved = true.
+                       lRemoved                 = true
+                       .
         end.
         
         return lRemoved.

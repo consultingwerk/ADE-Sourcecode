@@ -26,14 +26,27 @@ interface OpenEdge.DataAdmin.Message.ITableRequest  :
     /** The number of records to return per page or batch */
     define property PageSize as integer no-undo get. set.
                      
+    /* single row request use keyfield and keyvalue */
+    define property KeyField as char no-undo get. set. 
     define property KeyValue as char no-undo get. set.
-    /** The default FillMode for this request. */
-/*    define property FillMode as char no-undo get. set.*/
+    /* Set to true if the client will do a second request 
+       to get related data before export 
+       This is a cover-up for the fact that (perhaps a design flaw) 
+       related one-to-one data is exported as <parent>Name
+       (for example AreaName of Table) and thus 
+       require the data access/source to resolve those relations
+       in cases where the name is not the primary key (99/100% of cases in
+       Progress Schema)
+       Note that the objects do not suffer from this as they will
+       always return the Object (possible exceptions in Cdc because ..??. )
+       So to not let pure ABL clients suffer from the overhead of 
+       retrieving related data this is passed to the source to allow it 
+       to skip those name fields. 
+       The DataSource may or may not support this. The support of this need 
+       to be implemented both in client and source.    
+       */
     
-    /** Retrieve full page when page position is at beginning or end of result-set */
-/*    define property FullPage as logical no-undo get. set.*/
-
-/*    define property RequestType as char no-undo get. set.*/
+    define property Lazy     as logical no-undo get. set.
 
     /** context info/key for where to start appending page begin or end */
 /*    define property PageContext as char    no-undo get. set.*/

@@ -19,6 +19,7 @@ routine-level on error undo, throw.
 using OpenEdge.DataAdmin.DataSource.PartitionDataSource from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
  
 class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDataSource: 
     
@@ -41,11 +42,18 @@ class OpenEdge.DataAdmin.DataSource.NewPartitionDataSource inherits PartitionDat
         super(pcTables,pcPhysicalTables,pcMapping,yes ). 
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override logical Prepare(phBuffer as handle,pcBaseQuery as char,pcTargetQuery as char,pcJoin as char):
         define variable oQueryString as class QueryString.
         define variable lOk          as logical    no-undo.
         define variable hParentRel   as handle     no-undo.
         define variable cQuery       as character no-undo.
+        
+        /* this override was added before we supported the optional basequery 
+           It is not needed here since it currently only handle single key, but add an error for protection 
+           (it is easy to add if needed)*/  
+        
+        if pcBaseQuery > "" then
+            undo, throw new UnsupportedOperationError("Prepare query with key is not supported").
         
         DataBuffer = phBuffer.    
         

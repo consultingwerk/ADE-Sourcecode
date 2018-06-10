@@ -57,10 +57,14 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
          
     define public property Table as ITable no-undo                 
         get():
-            if not valid-object(this-object:Table) then
+            if valid-object(this-object:Table) = false 
+            and valid-handle(mBuffer) 
+            and valid-object(Service) then
             do:
-                if valid-handle(mBuffer) and valid-object(Service) then
+                if mBuffer::TableName > "" then
                     return Service:GetTable(mBuffer::TableName).
+                else
+                    return Service:GetTable(mBuffer::ObjectNumber).
             end.
             return this-object:Table. 
         end.
@@ -145,9 +149,14 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         get():
             if not valid-object(DefaultDataArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-                and valid-object(Service) then
-                   DefaultDataArea = Service:GetArea(mBuffer::DefaultDataAreaName).            
+                /* do NOT assign since the setter changes data and will set row-modified
+                      (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultDataAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultDataAreaNumber).
+                    else if mBuffer::DefaultDataAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultDataAreaName).
+                end.                    
             end.
             return DefaultDataArea.
         end.
@@ -165,9 +174,14 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         get():
             if not valid-object(DefaultIndexArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultIndexAreaName > "" 
-                and valid-object(Service) then
-                    DefaultIndexArea = Service:GetArea(mBuffer::DefaultIndexAreaName).            
+               /* do NOT assign since the setter changes data and will set row-modified
+                  (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultIndexAreaNumber <> 0 then 
+                        return Service:GetArea(mBuffer::DefaultIndexAreaNumber).
+                    else if mBuffer::DefaultIndexAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultIndexAreaName).
+                end.                    
             end.
             return DefaultIndexArea. 
         end.
@@ -188,9 +202,14 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         get():
             if not valid-object(DefaultLobArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DefaultLobAreaName > "" 
-                and valid-object(Service) then
-                    DefaultLobArea = Service:GetArea(mBuffer::DefaultLobAreaName).            
+               /* do NOT assign since the setter changes data and will set row-modified
+                  (the area is cached in the service) */
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DefaultLobAreaNumber <> 0 then 
+                        return  Service:GetArea(mBuffer::DefaultLobAreaNumber).
+                    else if mBuffer::DefaultDataAreaName > "" then
+                        return Service:GetArea(mBuffer::DefaultLobAreaName).
+                end.                   
             end.
             return DefaultLobArea. 
         end.
@@ -204,11 +223,6 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
             DefaultLobArea = pDefaultLobArea.
         end. 
         
-/*    define public property SequenceBlock as int no-undo*/
-/*        get():                                         */
-/*            return mBuffer::SequenceBlock.             */
-/*        end.                                           */
-/*        set.                                           */
         
     
     /*------------------------------------------------------------------------------
@@ -237,6 +251,11 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         return new TenantGroupContext().
     end method.
      
+   /* if lazy datasource none of the arename fields will have data 
+      it is sufficient to check one of them  */ 
+    method protected override logical NeedsRefresh():
+        return valid-handle(mBuffer) and mBuffer::DefaultDataAreaName = "".
+    end method.    
   
     method public override logical Allocate():
         IsAllocated = true.
@@ -281,7 +300,7 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         define variable i as integer no-undo.
         define variable cColl as character no-undo.
         
-        tree:SetHandle(SerializeName,mDefaultBuffer,mDefaultBuffer:rowid).   
+        tree:SetHandle(SerializeName,mBuffer,mBuffer:rowid).   
         
         do i = 1 to num-entries(pccollections):
            ccoll = entry(i,pccollections).
@@ -359,11 +378,6 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
         
     end method.
      */
-    method public override void ExportTree(pcfile as char):
-        define variable writer as IDataAdminExporter no-undo.
-        writer = GetExporter(pcfile).
-        writer:WriteToFile(this-object,pcfile,"All").
-    end method.     
     
     /** override to get codewriter if .p and to handle collections for this */
     method public override void ExportTree(pcfile as char,pcCollectionlist as char):
@@ -390,34 +404,9 @@ class OpenEdge.DataAdmin.TenantGroup inherits AbstractPartitionOwner implements 
                 entry(iPos,pcCollectionList) = "TenantGroupMembers".
         end.
         
-        writer = GetExporter(pcfile).
-        writer:WriteToFile(this-object,pcfile,pcCollectionlist).
+        super:ExportTree(pcfile,pcCollectionlist).
     end method.     
     
-    /**
-    /* Copy partition table as it cannot be imported with non-primary group index 
-       Copy tenantGroupMembers to support Delete of those not imported 
-       (CopyChildTable will replace "tenantGroupDetails" )  */ 
-    method public override void ImportTree(pcfile as char):
-        define variable cntxt as TenantGroupContext no-undo.
-        define variable reader as JSONLoader no-undo.        
-        reader = new JSONLoader().
-        cntxt  = cast(Context,TenantGroupContext).
-        mPartitionTable = cntxt:CreateImportTable("partitions").      
-        mTenantGroupMembersTable = cntxt:CreateImportTable("tenantGroupMembers").  
-        reader:LoadFromFile(this-object,pcfile,"replace").
-        /* destructor delete ds and auto deletes the tt */
-        cntxt:CopyChildTable("partitions",mPartitionTable).
-        cntxt:CopyChildTable("tenantGroupMembers",mTenantGroupMembersTable).
-        finally:
-            delete object mPartitionTable no-error.
-            delete object mTenantGroupMembersTable no-error.
-            delete object reader no-error.    
-            		
-        end finally. 
-       
-    end method.     
-       ***/ 
     
     
     method protected override void AssertPartitions():

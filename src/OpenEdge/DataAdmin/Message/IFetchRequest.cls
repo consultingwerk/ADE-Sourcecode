@@ -35,9 +35,18 @@ interface OpenEdge.DataAdmin.Message.IFetchRequest  inherits IDataAdminMessage  
     method public logical HasTable (pcTable as char).
     
     method public void SetTableQuery (pcTable as char, pcQuery as char).
+  
+    method public void SetTableKeyValue (pcTable as char, pcField as char, pcValue as char).
+    method public void SetTableLazy     (pcTable as char, pLazyc as logical).
      
     method public ITableRequest GetTableRequest(pcTable as char).
     
+    /* one setter for both of these */
+    method public char GetTableKeyField(pcTable as char).
+    method public char GetTableKeyValue(pcTable as char).
+    
+    method public logical GetTableLazy     (pcTable as char).
+       
     method public char GetTableRequestType (pcTable as char).
      /** Set total (response after fill)- currently both here and in IFetchResponse */   
     method public void SetTableTotal (pcTable as char, piTotal as int).     

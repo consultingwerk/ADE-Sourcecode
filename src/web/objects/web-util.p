@@ -4,7 +4,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2017 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2018 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -592,10 +592,13 @@ PROCEDURE init-request :
   Input:       Environment variables
   Output:      Sets global variables defined in src/web/method/cgidefs.i
 ---------------------------------------------------------------------------*/
+    // indicate that we need to write the HTTP status line first. This flag will be
+    // set on each request so set to FALSE for each requests 
+    assign http-status-written = false.
   
   IF glStateAware THEN  
     RUN SUPER.
-  
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

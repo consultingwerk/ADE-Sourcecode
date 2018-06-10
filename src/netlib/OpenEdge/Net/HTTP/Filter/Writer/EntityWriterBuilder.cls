@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : EntityWriterBuilder
@@ -38,7 +38,6 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder:
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))
                             :Option('multipartBoundary':u, oHeader:GetParameterValue('boundary':u)).
     end method.
-        
     
     /** Returns an entity writer for a message
         
@@ -46,9 +45,6 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder:
         @return MessageWriterBuilder The entity writer builder to use */
     method static public MessageWriterBuilder Build(input poMessage as IHttpMessage):
         define variable oHeader as HttpHeader no-undo.
-        
-        if not poMessage:HasHeader('Content-Type':u) then
-            return ?.
         
         assign oHeader = poMessage:GetHeader('Content-Type':u).
         

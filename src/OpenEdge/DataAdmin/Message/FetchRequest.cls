@@ -82,11 +82,40 @@ class OpenEdge.DataAdmin.Message.FetchRequest
         find ttTableMessage where ttTableMessage.TableName   = pctable no-error.
         if avail ttTableMessage then 
         do:
+          /* ensure this works also when only keyfield and keyvalue is passed from client */
+          if (ttTableMessage.QueryString = "" or ttTableMessage.QueryString = ?)
+          and ttTableMessage.KeyField > "" and ttTableMessage.KeyValue > "" then  
+              return subst("for each &1 where &1.&2 = &3",pctable,ttTableMessage.KeyField,quoter(ttTableMessage.KeyValue)).
+          else
             return ttTableMessage.QueryString. 
         end.
         return "".
     end method.    
     
+     /* key field for single row request */   
+    method public char GetTableKeyField (pcTable as char):
+        AssertTable(pcTable).
+        find ttTableMessage where ttTableMessage.TableName   = pctable no-error.
+        if avail ttTableMessage then 
+        do:
+            return ttTableMessage.KeyField. 
+        end.
+        return "".
+    end method.    
+    
+         /* key value for single row request 
+            values are quoted in query so datatype is not important
+            if we know the type we may just convert to the right type 
+            in static code */   
+    method public char GetTableKeyValue (pcTable as char):
+        AssertTable(pcTable).
+        find ttTableMessage where ttTableMessage.TableName   = pctable no-error.
+        if avail ttTableMessage then 
+        do:
+            return ttTableMessage.KeyValue. 
+        end.
+        return "".
+    end method.  
     
     method public char GetTableRequestType (pcTable as char):
         AssertTable(pcTable).
@@ -98,6 +127,15 @@ class OpenEdge.DataAdmin.Message.FetchRequest
         return "".
     end method.    
     
+    /* optional so don't assertTable - just return false if not found  */
+    method public logical GetTableLazy  (pcTable as char).
+        find ttTableMessage where ttTableMessage.TableName   = pctable no-error.
+        if avail ttTableMessage then 
+        do:
+            return ttTableMessage.Lazy. 
+        end.
+        return false.
+    end method.
     
     method public ITableRequest GetTableRequest(pcName as char):
         define variable hmsg as handle no-undo.
@@ -124,10 +162,22 @@ class OpenEdge.DataAdmin.Message.FetchRequest
     
     end method.    
     
+    method public void SetTableKeyValue (pcTable as char, pcField as char, pcValue as char):     
+        FindOrCreateTable(pctable).
+        assign
+            ttTableMessage.KeyField = pcField
+            ttTableMessage.KeyValue = pcValue
+            .
+    end method.    
     
     method public void SetTableRequestType (pcTable as char, pcType as char):     
         FindOrCreateTable(pctable).
         ttTableMessage.RequestType = pcType.
+    end method.    
+    
+    method public void SetTableLazy     (pcTable as char, pLazy as logical).
+        FindOrCreateTable(pctable).
+        ttTableMessage.Lazy = pLazy.
     end method.    
     
     method public void SetTablePageRequest (pcTable as char, pisize as int):     

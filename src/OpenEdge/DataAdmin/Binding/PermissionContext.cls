@@ -33,6 +33,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.UserTablePermission from propath.
 using OpenEdge.DataAdmin.UserTablePermissionSet from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -69,11 +70,18 @@ class OpenEdge.DataAdmin.Binding.PermissionContext inherits DataAdminContext imp
   
   	constructor public PermissionContext (pscope as IServiceContextFactory):
         super ("Permission",pscope).
+        NewFactory = pScope.  
+    end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
+        initChildren(cast(pScope,IServiceContextFactory)).
+    end method.    
+    
+    method protected void initChildren(pScope as IServiceContextFactory):
         mUsercntxt = pscope:GetUserFieldPermissionContext().
         mUsercntxt:Lazy = false.
         AddChild(mUsercntxt).
-        NewFactory = pScope.  
-    end constructor.
+    end method.    
     
 	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Permission").

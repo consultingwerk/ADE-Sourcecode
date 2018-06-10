@@ -64,15 +64,16 @@ no-undo.
  
 	constructor public SequenceDataSource ( ):	    
 		super ("_Sequence","dictdb._Sequence", mMapping). 
-        BaseQuery = "for each _Sequence where " + SequenceExpression + " no-lock".
+		BaseTableExpression = SequenceExpression.
+        BaseQueryTemplate   = "for each _Sequence&1no-lock".
 	end constructor.
     
     constructor public SequenceDataSource (hchanges as handle ):     
         super ("ttSequenceChange,_Sequence","ttSequenceChange,dictdb._Sequence", mMapping).
         mTempSourceBuffer =  hchanges.  
    
-        BaseQuery = "for each ttSequenceChange,"
-                  +  " each _Sequence where " + SequenceExpression + " no-lock".
+        BaseQueryTemplate = "for each ttSequenceChange,"
+                          + " each _Sequence&1no-lock".
     end constructor.
     
     method public override logical Save(bufferHandle as handle):
@@ -214,9 +215,8 @@ no-undo.
         
     end method.     
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
         
@@ -224,6 +224,7 @@ no-undo.
         define variable hBuffer as handle no-undo. 
         hBuffer =  hds:get-buffer-handle("ttSequence").
        
+        if url > "" then
         hBuffer::SequenceValuesUrl = url + "/schemas/PUB/sequences/" + WebUtil:UrlEncode(hbuffer::Name) + "/sequencevalues".
          
          /* return ? for super tenant to (values per tenant)  */
@@ -232,6 +233,7 @@ no-undo.
         else if not msaving then  /* for regular tenant the current-value will find the applicable value */
             hBuffer::CurrentValue = dynamic-current-value(hbuffer::NAME, "DICTDB").
          
+        if url > "" then
         hBuffer::url = url + "/schemas/PUB/sequences/" + WebUtil:UrlEncode(hbuffer::Name).
     
     end method.

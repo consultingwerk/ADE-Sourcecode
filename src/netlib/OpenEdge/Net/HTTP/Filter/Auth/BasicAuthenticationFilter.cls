@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BasicAuthenticationFilter
@@ -12,13 +12,17 @@ Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.Filter.Auth.AuthenticationRequestFilter.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using Progress.Lang.AppError.
 
-class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits AuthenticationRequestFilter: 
+class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits AuthenticationRequestFilter:
+     /** Constructor
+       
+        @param IAuthenticatedRequest The request being authenticated. */
     constructor public BasicAuthenticationFilter (input poRequest as IAuthenticatedRequest ):
         super (input poRequest).
     end constructor.
@@ -31,12 +35,10 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits Authentic
         define variable mShortCredentials as memptr no-undo.
         define variable oCredentials as Credentials no-undo.
         define variable ilength as integer no-undo.
-        define variable oRequest as IAuthenticatedRequest no-undo.
         
-        /* cast for comfort */
-        assign oRequest = cast(this-object:Message, IAuthenticatedRequest) 
-               cRealm = entry(2, oRequest:AuthenticationChallenge, '=':u)
-               cRealm = trim(cRealm, '"':u).
+        assign cRealm = entry(2, this-object:AuthenticatedRequest:AuthenticationChallenge, '=':u)
+               cRealm = trim(cRealm, StringConstant:DOUBLE_QUOTE)
+               .
         Assert:NotNull(cRealm, 'Realm').
         
         assign oCredentials = GetCredentials(cRealm).
@@ -46,8 +48,8 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits Authentic
         assign cCredentials = substitute('&1:&2':u,
                                 oCredentials:UserName,
                                 oCredentials:Password)
-               iLength = length(cCredentials, 'RAW':u).
-
+               iLength = length(cCredentials, 'RAW':u)
+               .
         set-size(mCredentials) = iLength + 1. /* for the null terminator */
         put-string(mCredentials, 1) = cCredentials.
         /* jiggery-pokery with lengths because there's a null at the end of the 
@@ -57,7 +59,7 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits Authentic
         
         assign cCredentials = substitute('Basic &1':u, base64-encode(mShortCredentials)).
         /* add to the request */
-        oRequest:SetHeader(
+        this-object:Message:SetHeader(
             HttpHeaderBuilder:Build('Authorization':u):Value(cCredentials):Header).
         
         finally:

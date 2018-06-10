@@ -25,6 +25,7 @@ using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
 using OpenEdge.DataAdmin.Error.* from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -63,12 +64,19 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
     
                                                 
     constructor public UserPermissionContext ( pScope as IServiceContextFactory):
-        define variable cntxt as IDataAdminModel no-undo.
         super ("UserPermission",pScope).
+    end constructor.                                                        
+    
+    method protected override void initChildren(pScope as IContextScope):
+         initchildren(cast(pScope,IServiceContextFactory)).
+    end method.  
+    
+    method protected void initChildren(pScope as IServiceContextFactory):
+        define variable cntxt as IDataAdminModel no-undo.
         cntxt = pScope:GetUserTablePermissionContext().
         cntxt:Lazy = false.
         AddChild(cntxt).  
-    end constructor.                                                        
+    end method.  
         
 	method public override character GetJoinFields(parentid as char):
 	   
@@ -85,7 +93,7 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
 	end method. 
     
     method public override logical CanFind(pid as character):
-        return can-find(ttUserPermission where ttUserPermission.id = pid ).            
+        return can-find(ttUserPermission where ttUserPermission.id = right-trim(pid,'@')).            
     end.    
     
     method private void validId(id as char, output pdomain as char,output puser as char): 
@@ -104,7 +112,7 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
     end method.
      
     method public override logical Find(pid as character):
-        find ttUserPermission where ttUserPermission.id = pid no-error.
+        find ttUserPermission where ttUserPermission.id = right-trim(pid,'@') no-error.
         return avail ttUserPermission.            
     end.    
     
@@ -144,6 +152,32 @@ class OpenEdge.DataAdmin.Binding.UserPermissionContext inherits DataAdminContext
 /*            message cc view-as alert-box.*/
 /*        end.                             */
     end method. 
+
+    /* Override to deal with the fact that id is split into name and domain on client  */ 
+    method public override IDataAdminElement GetEntity(pKey as char).
+        define variable msg      as IFetchRequest no-undo.
+        define variable h        as handle no-undo.
+        define variable hDs      as handle no-undo.
+        define variable lok      as logical no-undo.
+        define variable cField   as character no-undo.
+        define variable cFindExp as character no-undo.
+        if not this-object:Find(pKey) then
+        do:
+            cField = KeyFields.
+            hDs = getRequestDataset().
+            if hDs:num-buffers = 1 and IsDatasetLoaded and DatasetHandle = hDs then do:
+                FetchRow(hDs, cField ,pkey, Lazy).
+            end.
+            else do:
+                msg = GetRequest(). 
+                msg:SetTableKeyValue(Tablehandle:name, cField ,pKey).
+                msg:SetTableLazy(Tablehandle:name,Lazy).
+                FetchData(msg). 
+            end.
+        end.  
+        
+        return FindEntity(pKey).       
+    end method.
       
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
         return new UserPermissionSet(cntxt).

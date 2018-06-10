@@ -35,6 +35,7 @@ using OpenEdge.DataAdmin.Message.SaveRequest.
 using OpenEdge.DataAdmin.TablePermission.
 using OpenEdge.DataAdmin.TablePermissionSet.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -73,9 +74,20 @@ class OpenEdge.DataAdmin.Binding.TablePermissionContext inherits DataAdminContex
     
 	constructor public TablePermissionContext ( pScope as IServiceContextFactory):
         super ("TablePermission",pscope).
-        pscope:FieldPermissionContext:lazy = false.
-        AddChild(pscope:FieldPermissionContext).
     end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
+         initchildren(cast(pScope,IServiceContextFactory)).
+    end method.  
+    
+    /* temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsTablePermission:handle. 
+    end method.
+        
+    method protected void initChildren(pScope as IServiceContextFactory):
+        AddChild(pscope:FieldPermissionContext).
+    end method.  
     
 	
 	method public override void CopyTable(cntxt as IDataAdminModel).

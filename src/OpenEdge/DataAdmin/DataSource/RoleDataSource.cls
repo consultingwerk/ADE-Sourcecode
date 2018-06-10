@@ -49,13 +49,12 @@ CustomDetail,_Custom-role-detail"
         super ("_sec-role":u,
                "dictdb._sec-role":u,
                mMapping).
-		BaseQuery = "for each _sec-role no-lock ":u.
+		BaseQueryTemplate = "for each _sec-role&1no-lock ":u.
         run prodict/_dctadmn.p ( input userid('dictdb':u), output mIsAdmin ).
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill":u, "AfterRoleRow":u).
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
     end method.
     
     /** Save all  

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogFilterBuilder
@@ -26,18 +26,17 @@ using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
-    // The filter being built 
-
+    /** The filter being built */ 
     define public property Filter as ILoggerFilter no-undo
         get():
             if not valid-object(this-object:Filter) then
                 assign this-object:Filter = NewFilter().
             
-            return this-object:Filter.            
+            return this-object:Filter.
         end get.
         private set.
         
-    /* (mandatory) The Filter type for which we want to log */
+    /** (mandatory) The Filter type for which we want to log */
     define public property FilterType as character no-undo get. private set.
     
     /** Returns log writer build for a logging type
@@ -77,7 +76,6 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
             Assert:IsType(oBuilderType, get-class(LogFilterBuilder)).        
         else
             // default is this class 
-
             assign oBuilderType = get-class(LogFilterBuilder).
         
         oBuilder = dynamic-new string(oBuilderType:TypeName) (pcFilterType).
@@ -116,7 +114,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         SetOption('writeToFileName':u, pcLogFile).
         
         return this-object.
-    end method.    
+    end method.
 
     /** Indicates whether to append to the log
         
@@ -128,7 +126,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         SetOption('appendToLog':u, plAppendToLog).
         
         return this-object.
-    end method.    
+    end method.
     
     /** Sets the output destination
         
@@ -200,13 +198,6 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         assign filterType = filterRegistry:Get(filterTypeName).
         
-        /* Default to returing the NO-OP writer. First look in the input registry,
-           then look in the default registry */
-        if not valid-object(filterType) then
-            assign filterType = filterRegistry:Get(LoggerFilterRegistry:VOID_WRITER).
-        if not valid-object(filterType) then
-            assign filterType = LoggerFilterRegistry:Registry:Get(LoggerFilterRegistry:VOID_WRITER).
-        
         if valid-object(filterType) then
             Assert:IsType(filterType, get-class(ILoggerFilter)).
         
@@ -217,7 +208,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
        
        @return ILoggerFilter A filter instance  */
     method protected ILoggerFilter NewFilter():
-        define variable logFilter as ILoggerFilter no-undo.        
+        define variable logFilter as ILoggerFilter no-undo.
         define variable filterType as class Progress.Lang.Class no-undo.
         define variable formatString as character no-undo.
         define variable filterOptions as JsonObject no-undo.

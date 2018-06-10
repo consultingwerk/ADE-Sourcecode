@@ -64,6 +64,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
             /* Extract the Entity into the message body. Do this first because this extraction 
                will calculate the content type, charset etc. */
             assign oEntity = ExtractEntity(poRequest).
+        else
+        do:
+            // No need for the Content-Type or -Length to be sent, if they've been previously set
+            poRequest:RemoveHeader('Content-Type').
+            poRequest:RemoveHeader('Content-Length').
+        end.
         
         /* WRITE THE MESSAGE */
         WriteRequestLine(poRequest).
@@ -73,7 +79,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
         cast(this-object:Entity, ByteBucket):PutString(StringConstant:CRLF).
         
         /* Add Body to the end of the payload */
-        if poRequest:ContentLength gt 0 then
+        if poRequest:ContentLength gt 0 then        
             cast(this-object:Entity, ByteBucket):PutBytes(oEntity).
     end method.
     
@@ -107,8 +113,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
             
         if type-of(oBodyWriter, ISupportMultipartEntity) then
             poRequest:GetHeader('Content-Type':u)
-                     :SetParameterValue('boundary':u, quoter(cast(oBodyWriter, ISupportMultipartEntity):Boundary)).            
-
+                     :SetParameterValue('boundary':u, cast(oBodyWriter, ISupportMultipartEntity):Boundary).
+        
         if type-of(oBodyWriter, ISupportTransferEncoding) then
             assign poRequest:TransferEncoding = cast(oBodyWriter, ISupportTransferEncoding):TransferEncoding.
         

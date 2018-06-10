@@ -362,6 +362,9 @@ interface OpenEdge.DataAdmin.Binding.IDataAdminContext inherits IIterable,IQuery
        */
     method public logical SetProperty(pid as rowid,pname as char,pvalue as char).
     
+    /* refresh the row from source  */
+    method public void RefreshRow(pFields as char, pValues as char extent).
+          
     /** get a where expression from the passed extent using Keyfields */
     method public character GetKeyWhere(pcValues as char extent).     
 end interface.

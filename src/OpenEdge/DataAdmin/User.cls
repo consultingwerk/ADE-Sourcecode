@@ -15,11 +15,13 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
+using OpenEdge.DataAdmin.IUser from propath.
+using OpenEdge.DataAdmin.Entity from propath.
+using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
+using OpenEdge.DataAdmin.IDomain from propath.
+using OpenEdge.DataAdmin.ITenant from propath.
+using OpenEdge.DataAdmin.IRequestInfo from propath.
 using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.* from propath.
-using OpenEdge.DataAdmin.Binding.* from propath.
-using OpenEdge.DataAdmin.DataAccess.* from propath.
-using OpenEdge.DataAdmin.Error.* from propath.
  
 class OpenEdge.DataAdmin.User inherits Entity implements IUser: 
 
@@ -29,9 +31,11 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
         get():
              if not valid-object(Domain) then
              do:
+                 /* do  not assign since the setter changes buffer and will set 
+                    row-modified  - (the domain is cached in service) */
                  if valid-handle(mBuffer)  
                  and valid-object(Service) then
-                     Domain = Service:GetDomain(mBuffer::DomainName).            
+                     return Service:GetDomain(mBuffer::DomainName).            
              end.
              return Domain.
         end.
@@ -54,12 +58,16 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
              if valid-object(Domain) then 
                  return Domain:Tenant.
                   
-             if not valid-object(Tenant) then
+             if not valid-object(Tenant) 
+             and valid-handle(mBuffer) 
+             and valid-object(Service) then
              do:
-                      
-                 if valid-handle(mBuffer) and mBuffer::TenantName > "" 
-                 and valid-object(Service) then
-                     Tenant = Service:GetTenant(mBuffer::TenantName).            
+                 /* do  not assign since the setter changes buffer and will set 
+                    row-modified  - (the tenant is cached in service) */
+                 if mBuffer::TenantName > "" then 
+                     return Service:GetTenant(mBuffer::TenantName).            
+                 else if mBuffer::TenantId <> ? then 
+                     return Service:GetTenant(mBuffer::TenantId).            
              end.
              return tenant.
         end.     
@@ -268,6 +276,10 @@ class OpenEdge.DataAdmin.User inherits Entity implements IUser:
 
     method protected override char GetKeyValue():
         return this-object:Id.
+    end method.
+
+    method override protected logical NeedsRefresh(  ):
+        return mBuffer::TenantId <> ? and mBuffer::TenantName = "".
     end method.
                    
 end class.

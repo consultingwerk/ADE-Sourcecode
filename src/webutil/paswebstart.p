@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2015 by Progress Software Corporation. All rights      *
+* Copyright (C) 2015, 2018 by Progress Software Corporation. All rights      *
 * reserved. Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -26,20 +26,20 @@ block-level on error undo, throw.
 /* ************************  Function Prototypes ********************** */
 
 function GetDLC returns character 
-	(  ) forward.
+    (  ) forward.
 
 function GetEnv returns character 
-	(pcname as char) forward.
-	
+    (pcname as char) forward.
+    
 
 /* ************************  Function Implementations ***************** */
 
 function GetDLC returns character 
-	(  ):
+    (  ):
 /*------------------------------------------------------------------------------
  Purpose:
  Notes:
-------------------------------------------------------------------------------*/	
+------------------------------------------------------------------------------*/    
     define variable cDLC as character no-undo.
     if opsys = "Win32":U then /* Get DLC from Registry */
         get-key-value section "Startup":U key "DLC":U value cDLC.
@@ -51,31 +51,23 @@ function GetDLC returns character
 end function.
 
 function GetEnv returns character 
-	(pcname as char  ):
+    (pcname as char  ):
     define variable cValue as character no-undo.
     case pcname:
         /* PAS does not support state aware (and if binding is to be supported in 
            the future it will not use this mechanism) */
         when "STATE_AWARE_ENABLED":U then
-        do:
-            cValue = "no":U.
-        end.
+            assign cValue = "no":U.
         /* The batchinterval is not in use in web-handler.p (so this is not really necessary to have here)  */
         when "BATCH_INTERVAL":U then
-        do:
-            cValue = "-1":U.
-        end.
+            assign cValue = "-1":U.
         when "DLC":U then
-        do:
-            cValue = GetDLC().
-        end.
-        otherwise do:
-            cValue = ?.
-        end.       
-	   
-	end.
- 
-	return cValue.	
+            assign cValue = GetDLC().
+        otherwise 
+            assign cValue = os-getenv (pcname).
+    end.
+     
+    return cValue.    
 end function.
 
 &scop EXCLUDE-getEnv

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EntrySet
@@ -52,24 +52,28 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
     method override public logical ContainsAll(input poCollection as ICollection):
         define variable oIterator as IIterator no-undo.               
         define variable oEntry as Object    no-undo.
-        define variable oKey as Object    no-undo.
-        define variable lContains as logical no-undo.
         
-        if poCollection:Size eq 0 then
+        Assert:NotNull(poCollection, 'Check collection').
+        
+        /* if the 'check' collection is empty, then true */  
+        if poCollection:IsEmpty() then
             return true.
         
-        assign lContains = false
-               oIterator = poCollection:Iterator().
+        /* if the passed in collection is larger than this collection,
+           this cannot be true. */
+        if poCollection:Size gt this-object:Size then
+            return false.
+        
+        assign oIterator = poCollection:Iterator().
         do while oIterator:HasNext():
             oEntry = oIterator:Next().
             Assert:IsType(oEntry, get-class(IMapEntry)).
             
-            lContains = OwningMap:ContainsKey(cast(oEntry, IMapEntry):Key).
-            if not lContains then
+            if not OwningMap:ContainsKey(cast(oEntry, IMapEntry):Key) then
                 return false.
         end.
         
-        return lContains.        
+        return true.
     end method.
     
     /* abstract because this could be a collection of keys or values */
@@ -78,7 +82,7 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
         
         return OwningMap:KeySet:Remove(cast(poOld, IMapEntry):Key).
     end method.
-        
+    
     /* abstract because this could be a collection of keys or values */
     method override public logical RemoveAll(poRemoveCol as ICollection):
         define variable oIterator as IIterator no-undo.

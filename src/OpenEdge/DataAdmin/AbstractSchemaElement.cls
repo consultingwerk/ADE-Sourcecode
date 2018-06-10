@@ -14,18 +14,16 @@
     Notes       : 
   ----------------------------------------------------------------------*/
 
+routine-level on error undo, throw.
+
 using OpenEdge.DataAdmin.Binding.IDataAdminModel from propath.
 using OpenEdge.DataAdmin.Entity from propath.
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.IArea from propath.
 using OpenEdge.DataAdmin.IRequestInfo from propath.
 using OpenEdge.DataAdmin.ISchema from propath.
 using OpenEdge.DataAdmin.ISchemaElement from propath.
 using OpenEdge.DataAdmin.ISchemaPartitionMap from propath.
-using Progress.Lang.* from propath.
-
-routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract implements ISchemaElement: 
     
@@ -45,23 +43,30 @@ class OpenEdge.DataAdmin.AbstractSchemaElement  inherits Entity abstract impleme
                 return mBuffer::SchemaName.               
             return ?.          
         end.   
+    
+    define public abstract property ObjectType as character no-undo 
+        get.
         
     define public property Area as IArea no-undo 
         get():
-            if not valid-object(Area) then
+            if not valid-object(Area) 
+            and valid-handle(mBuffer)  
+            and valid-object(Service) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::AreaName > "" 
-                and valid-object(Service) then do:
+                    
                    if mbuffer::AreaName > "" then 
                         Area = Service:GetArea(mBuffer::AreaName).            
+                else if mbuffer::AreaNumber > 0 then 
+                    Area = Service:GetArea(mBuffer::AreaNumber).            
+                else if ObjectType = "Table" then do: 
+                    Refresh().
+                    Area = Service:GetArea(mBuffer::AreaName).            
                 end. 
             end. 
             return Area.
         end.    
         private set.
     
-    define public abstract property ObjectType as character no-undo 
-        get.
     
     define public property Partitions as ISchemaPartitionMap no-undo  
         get():

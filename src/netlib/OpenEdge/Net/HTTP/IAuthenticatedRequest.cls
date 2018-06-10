@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : IAuthenticatedRequest
@@ -14,7 +14,7 @@ using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 
-interface OpenEdge.Net.HTTP.IAuthenticatedRequest inherits IHttpRequest:
+interface OpenEdge.Net.HTTP.IAuthenticatedRequest:
     
     /** The authentication method for this request. */
     define public property AuthenticationMethod as character no-undo get.

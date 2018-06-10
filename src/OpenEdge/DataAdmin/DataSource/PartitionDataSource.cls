@@ -204,7 +204,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
         end.
     end method. 
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override logical Prepare(phBuffer as handle,pcBaseQuery as char,pcTargetQuery as char,pcJoin as char):
         define variable oQueryString as class QueryString.
         define variable lOk          as logical    no-undo.
         define variable hParentRel   as handle     no-undo.
@@ -847,10 +847,10 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                 delete object partition no-error.  
             end.
         end. /* not msaving */
-        if hBuffer::AreaName > "" then
+        if url > "" and hBuffer::AreaName > "" then
             hBuffer::AreaUrl = AreaURL + WebUtil:UrlEncode(hBuffer::AreaName).
         
-        if hBuffer::TenantName > "" then
+        if url > "" and hBuffer::TenantName > "" then
         do:
             hBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(hBuffer::TenantName).
             if  hBuffer::ObjectType = "table" 
@@ -858,7 +858,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
                 hBuffer::DeallocateUrl = hBuffer::TenantUrl + "/partitions/" + WebUtil:UrlEncode(hBuffer::TableName) + "/deallocate".
         end.
         
-        if hBuffer::TenantGroupName > "" then
+        if url > "" and hBuffer::TenantGroupName > "" then
             hBuffer::TenantGroupUrl  = GroupUrl + WebUtil:UrlEncode(hBuffer::TenantGroupName).
        
         if hBuffer::PartitionPolicyDetailName > ""  then
@@ -870,10 +870,11 @@ class OpenEdge.DataAdmin.DataSource.PartitionDataSource inherits DataSource:
             find dictdb._file where dictdb._file._db-recid = dbRecid
                               and   dictdb._file._file-name = hBuffer::TableName 
                               and   dictdb._file._owner = hBuffer::SchemaName no-lock. 
-                
+            if url > "" then do:    
             mPolicybuffer:find-unique ("where _object-number = " + string(dictdb._file._File-number)).
             hBuffer::PartitionPolicyDetailUrl 
                = substitute(DetailURL,WebUtil:UrlEncode(mPolicybuffer::_Partition-Policy-Name),WebUtil:UrlEncode(hBuffer::PartitionPolicyDetailName)).
+            end.
         end.  
       
         /* NOTE - this needs to be deprecated, rowids are reused when partions are moved to 

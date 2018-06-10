@@ -43,13 +43,13 @@ INTERFACE Ccs.Common.IClientContext:
        
        @param handle The handle to the Client Principal object for the client request
        @throws Progress.Lang.SysError, Progress.Lang.AppError */
-    METHOD PUBLIC VOID initializeConext( INPUT phClientPrincipal AS HANDLE ).
+    METHOD PUBLIC VOID initializeContext( INPUT phClientPrincipal AS HANDLE ).
 
     /* Initialize the context data for the Client Context object 
        
        @param character The known Session ID for the client request
        @throws Progress.Lang.SysError, Progress.Lang.AppError */
-    METHOD PUBLIC VOID initializeConext( INPUT pcSessionID AS CHARACTER ).
+    METHOD PUBLIC VOID initializeContext( INPUT pcSessionID AS CHARACTER ).
 
     /* Save the context data to a persistent store 
        

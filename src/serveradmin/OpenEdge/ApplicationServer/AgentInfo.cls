@@ -52,12 +52,80 @@ class OpenEdge.ApplicationServer.AgentInfo :
         return valid-handle(pasThandle).
     end method.
 
-    method public logical getAgentRequestData (output table-handle pasThandle):
+   /*
+    This method used to give all the requests that are running on the agent.
+    But because of the Issue:PSC00364863, we limited the API to return only
+    last 1000 requests information.
+    */
+    method public logical getAgentRequestData (output table-handle hTTCopy):
+        
+        DEFINE VARIABLE hTTSrcBuffer  AS HANDLE NO-UNDO.
+        DEFINE VARIABLE hTTCopyBuffer AS HANDLE NO-UNDO.
+        DEFINE VARIABLE hQuery        AS HANDLE NO-UNDO.
+        DEF    VAR      iCounter      AS INT    NO-UNDO.
+        def    var      pasThandle    as HANDLE NO-UNDO.
+        
         Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output pasThandle).
         
-        return valid-handle(pasThandle).
-    end method.
+        /* create dynamic temp-table */
+        CREATE TEMP-TABLE hTTCopy.
     
+        /* Copy the schema from the one passed in */
+        hTTCopy:CREATE-LIKE (pasThandle).
+    
+      
+        /* Get it ready and name it - in this case, AgentRequest is the new temp-table name */
+        hTTCopy:TEMP-TABLE-PREPARE("AgentRequest").    
+    
+      
+        /* Get the default buffer for both source and target tables */
+        ASSIGN 
+            hTTSrcBuffer  = pasThandle:DEFAULT-BUFFER-HANDLE 
+            hTTCopyBuffer = hTTCopy:DEFAULT-BUFFER-HANDLE. 
+    
+        /* scan the source temp-table, in reverse order, and copy only the last
+           1000 records. First create query to fetch records from source table */      
+     
+        CREATE QUERY hQuery.
+        hQuery:SET-BUFFERS(hTTSrcBuffer).
+        hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME).
+     
+        hQuery:QUERY-OPEN().
+        /* get last one, to do reverse fetching */
+        hQuery:GET-LAST().
+     
+        /* loop through until query returns no more records */
+        DO WHILE NOT hQuery:QUERY-OFF-END:
+       
+            iCounter = iCounter + 1.
+       
+            /* Create record and copy from source */
+            hTTCopyBuffer:BUFFER-CREATE().
+            hTTCopyBuffer:BUFFER-COPY(hTTSrcBuffer).
+            hTTCopyBuffer:BUFFER-RELEASE().
+       
+            /* Stop when we create 100 records */
+            IF iCounter = 1000 THEN       
+            DO:
+                LEAVE.           
+            END.
+       
+            /* get previous record */
+            hQuery:GET-PREV().
+        END.
+     
+        /* Done with query */
+        hQuery:QUERY-CLOSE().
+        DELETE OBJECT hQuery.     
+        
+        return valid-handle(hTTCopy).
+        
+        FINALLY:
+            delete object hTTCopy. 
+        END FINALLY.
+
+    end method.
+ 
     /* Returns the agent call stack for all sessions
        
        @param longchar out JSON representation of the stack 

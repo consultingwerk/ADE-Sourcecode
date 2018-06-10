@@ -1,5 +1,5 @@
  /* ***********************************************************/
-/* Copyright (c) 2015-2017 by Progress Software Corporation  */
+/* Copyright (c) 2015-2018 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -37,7 +37,9 @@ using OpenEdge.DataAdmin.CdcTablePolicyStateEnum.
 using OpenEdge.DataAdmin.CdcTablePolicyLevelEnum.
 using OpenEdge.DataAdmin.Internal.Util.CdcTablePolicyInstanceEnum.
 using Progress.Lang.*.
-using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError from propath.
+using OpenEdge.DataAdmin.Error.ReadOnlyPropertyError.
+using OpenEdge.DataAdmin.Binding.IContextTree.
+
 routine-level on error undo, throw.
 
 class OpenEdge.DataAdmin.CdcTablePolicy inherits AbstractPartitionParent implements ICdcTablePolicy: 
@@ -52,9 +54,12 @@ class OpenEdge.DataAdmin.CdcTablePolicy inherits AbstractPartitionParent impleme
         get():
             if not valid-object(DataArea) then
             do: 
-                if valid-handle(mBuffer) and mBuffer::DataAreaName > ""  
-                and valid-object(Service) then
-                    DataArea = Service:GetArea(mBuffer::DataAreaName).            
+                if valid-handle(mBuffer) and valid-object(Service) then do:
+                    if mBuffer::DataAreaNumber <> 0 then
+                        return Service:GetArea(mBuffer::DataAreaNumber).
+                    else if mBuffer::DataAreaName > "" then
+                        return Service:GetArea(mBuffer::DataAreaName).     
+                end.           
             end.
             return DataArea.
         end.
@@ -72,9 +77,12 @@ class OpenEdge.DataAdmin.CdcTablePolicy inherits AbstractPartitionParent impleme
    get():
         if not valid-object(IndexArea) then
         do: 
-            if valid-handle(mBuffer) and mBuffer::IndexAreaName > "" 
-            and valid-object(Service) then
-                IndexArea = Service:GetArea(mBuffer::IndexAreaName).            
+            if valid-handle(mBuffer) and valid-object(Service) then do:
+                if mBuffer::IndexAreaNumber <> 0 then
+                    return Service:GetArea(mBuffer::IndexAreaNumber).
+                else if mBuffer::IndexAreaName > "" then
+                        return Service:GetArea(mBuffer::IndexAreaName).     
+             end.         
         end.
         return IndexArea. 
     end.
@@ -378,6 +386,13 @@ class OpenEdge.DataAdmin.CdcTablePolicy inherits AbstractPartitionParent impleme
             undo, throw AddFieldPolicyError("in a policy with no fields").*/
         if not valid-object(Context) then
             undo, throw AddFieldPolicyError("in a policy not attached to or created by a service").
+    end method.
+    
+    /* if lazy datasource none of the areaname fields will have data 
+       it is sufficent to check one of them - super does not have 
+       area  - default may have...  */ 
+    method protected override logical NeedsRefresh():
+        return valid-handle(mBuffer) and mBuffer::DataAreaName = "".
     end method.
     
     method protected char GetValidDefaultLevelList(): 

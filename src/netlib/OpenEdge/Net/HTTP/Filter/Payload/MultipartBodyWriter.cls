@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartBodyWriter
@@ -14,12 +14,14 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.ISupportMultipartEntity.
 using OpenEdge.Net.MessagePart.
 using OpenEdge.Net.MultipartEntity.
+using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MultipartBodyWriter inherits MessageWriter
@@ -30,11 +32,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartBodyWriter inherits MessageWrite
     
     define private variable mlExternalEntity as logical no-undo.
 
-    /* private and immutable constant value */
-    define protected property CRLF as character initial '~r~n':u no-undo get.
-    
     constructor public MultipartBodyWriter():
         super(get-class(ByteBucket)).
+        
+        assign this-object:Boundary = guid.
     end constructor.
     
     method override public void Open():
@@ -45,40 +46,51 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartBodyWriter inherits MessageWrite
         super:Open().
     end method.
 
-    method override public int64 Write(input poData as Object):
+    method override public int64 Write(input pData as Object):
+        case true:
+            when not valid-object(pData) then
+                return 0.
+            
+            when type-of(pData, MultipartEntity) then
+                return this-object:Write(cast(pData, MultipartEntity)).
+            
+            otherwise 
+                return error new AppError(
+                            substitute('Unsupported object type: &1', pData:GetClass():TypeName)
+                            , 0).
+        end case.
+        return 0.
+    end method.
+    
+    method protected int64 Write(input pData as MultipartEntity):
         define variable oPart as ByteBucket no-undo.
         define variable oMessagePart as MessagePart no-undo.
-        define variable oMultipartEntity as MultipartEntity no-undo.
         define variable iLoop as integer no-undo.
         define variable iBytesBefore as int64 no-undo.
         define variable oPartWriter as MessageWriter no-undo.
-        define variable cEncoding as character no-undo.
-        define variable cPartBoundary as character no-undo.
         define variable oHeaders as HttpHeader extent no-undo.
         define variable iHeaderLoop as integer no-undo.
+        define variable boundaryString as character no-undo.
         
-        Assert:IsType(poData, get-class(MultipartEntity)).
-
-        assign iBytesBefore     = cast(this-object:Entity, ByteBucket):Size
-               /* cast for convenience */
-               oMultipartEntity = cast(poData, MultipartEntity)
+        Assert:NotNull(pData, 'Multipart entity').
+        
+        assign iBytesBefore         = cast(this-object:Entity, ByteBucket):Size
                /* make sure we set our boundary */
-               this-object:Boundary = oMultipartEntity:Boundary
-               
-               oPart = ByteBucket:Instance()
+               this-object:Boundary = pData:Boundary
+               oPart                = ByteBucket:Instance()
+               boundaryString       = substitute('--&1&2':u, this-object:Boundary, StringConstant:CRLF)
                .
-        
         /* PROLOGUE */
-        if oMultipartEntity:Prologue ne '':u then                
-            cast(this-object:Entity, ByteBucket):PutString(oMultipartEntity:Prologue + CRLF).
+        if pData:Prologue ne '':u then                
+            cast(this-object:Entity, ByteBucket):PutString(pData:Prologue + StringConstant:CRLF).
         
         /* DATA PARTS */
-        do iLoop = 1 to oMultipartEntity:Size:
+        do iLoop = 1 to pData:Size:
             oPart:Clear().            
-            cast(this-object:Entity, ByteBucket):PutString(substitute('--&1&2':u, oMultipartEntity:Boundary, CRLF)).
+            cast(this-object:Entity, ByteBucket):PutString(boundaryString).
             
             /* now write the content */
-            assign oMessagePart = oMultipartEntity:GetPart(iLoop)
+            assign oMessagePart = pData:GetPart(iLoop)
                    oPartWriter  = BodyWriterBuilder:Build(oMessagePart)
                                      :WriteTo(oPart)
                                      :Writer.
@@ -94,20 +106,20 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartBodyWriter inherits MessageWrite
                 cast(this-object:Entity, ByteBucket)
                     :PutString(substitute('&1&2':u, 
                                             oHeaders[iHeaderLoop]:ToString(),
-                                            CRLF)).
+                                            StringConstant:CRLF)).
             end.    /* header */
-            cast(this-object:Entity, ByteBucket):PutString(CRLF).
+            cast(this-object:Entity, ByteBucket):PutString(StringConstant:CRLF).
             
             /* write part content to MessageBody */
             cast(this-object:Entity, ByteBucket):PutBytes(oPart).
-            cast(this-object:Entity, ByteBucket):PutString(CRLF).
+            cast(this-object:Entity, ByteBucket):PutString(StringConstant:CRLF).
         end.
         
         /* EPILOGUE: content/data done */
-        cast(this-object:Entity, ByteBucket):PutString(substitute('--&1--&2':u, oMultipartEntity:Boundary, CRLF)).
+        cast(this-object:Entity, ByteBucket):PutString(substitute('--&1--&2':u, this-object:Boundary, StringConstant:CRLF)).
         
-        if oMultipartEntity:Epilogue ne '':u then
-            cast(this-object:Entity, ByteBucket):PutString(oMultipartEntity:Epilogue).
+        if pData:Epilogue ne '':u then
+            cast(this-object:Entity, ByteBucket):PutString(pData:Epilogue).
         else
         /* if this is a nested multipart entity (ie a part in another multipart entity, then
            we don't need to add a CRLF, since the parent will do it for us, as part of adding 
@@ -115,7 +127,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartBodyWriter inherits MessageWrite
            
            if we are the outermost/un-parented entity, then add a final CRLF */
         if not mlExternalEntity then
-            cast(this-object:Entity, ByteBucket):PutString(CRLF).
+            cast(this-object:Entity, ByteBucket):PutString(StringConstant:CRLF).
         
         return (cast(this-object:Entity, ByteBucket):Size - iBytesBefore).
     end method.

@@ -1826,6 +1826,8 @@ END.
           FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = "z" + const_name1 NO-LOCK NO-ERROR.
           IF NOT AVAILABLE (DICTDB._Index) THEN 
           FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._Index-Name = const_name1 NO-LOCK NO-ERROR.
+          IF NOT AVAILABLE (DICTDB._Index) THEN 
+          FIND FIRST DICTDB._Index OF DICTDB._File WHERE DICTDB._Index._For-Name = const_name NO-LOCK NO-ERROR.
           
           CREATE DICTDB._constraint.
           ASSIGN        

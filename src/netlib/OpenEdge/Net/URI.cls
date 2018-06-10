@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : URI
@@ -63,14 +63,14 @@ using Progress.Lang.AppError.
 class OpenEdge.Net.URI:
     
     // true/false flags for the US-ASCII characters that must / not be percent-encoded
-    define private static variable mEncFlag_Default  as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Scheme   as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Userinfo as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Host     as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Path     as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Query    as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Fragment as logical   extent 128 initial false no-undo.
-    define private static variable mEncFlag_Cookie   as logical   extent 128 initial false no-undo.
+    define private static variable mEncFlag_Default  as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Scheme   as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Userinfo as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Host     as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Path     as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Query    as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Fragment as logical extent 128 initial false no-undo.
+    define private static variable mEncFlag_Cookie   as logical extent 128 initial false no-undo.
     
     /* internal string representation of this object. we don't really want to build it 
        every time we need it */
@@ -211,9 +211,9 @@ class OpenEdge.Net.URI:
                pchar      = unreserved + ',':u + sub-delims
                           // colon (:) at (@)
                           + ',58,64':u
-              .
+               .
         // Default = unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"        
-        assign allowedChr = unreserved 
+        assign allowedChr = unreserved
                chrMax     = num-entries(allowedChr)
                .
         do chrLoop = 1 to chrMax:
@@ -234,7 +234,7 @@ class OpenEdge.Net.URI:
                chrMax     = num-entries(allowedChr)
                .
         do chrLoop = 1 to chrMax:
-            assign mEncFlag_Host[integer(entry(chrLoop, allowedChr)) + 1] = true
+            assign mEncFlag_Host[integer(entry(chrLoop, allowedChr)) + 1]     = true
                    mEncFlag_Userinfo[integer(entry(chrLoop, allowedChr)) + 1] = true
                    .
         end.
@@ -265,11 +265,11 @@ class OpenEdge.Net.URI:
                mEncFlag_Fragment[63 + 1] = true
                
                /* While the spec at RFC3896 allows ampersands & in the query string,
-                  it is extremely standard practice to use that as a delimiter between
-                  key-value pairs of query parameters.
-                  Section 3.4 refers https://tools.ietf.org/html/rfc3986#section-3.4  */
+                   it is extremely standard practice to use that as a delimiter between
+                   key-value pairs of query parameters.
+                   Section 3.4 refers https://tools.ietf.org/html/rfc3986#section-3.4  */
                // "&" = 38
-               mEncFlag_Query[38 + 1] = false
+               mEncFlag_Query[38 + 1]    = false
                .
         
         // Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)       
@@ -278,7 +278,8 @@ class OpenEdge.Net.URI:
             if     chrLoop eq 34         // 34=DQUOTE
                 or chrLoop eq 44         // 44=comma
                 or chrLoop eq 59         // 59=semicolon
-                or chrLoop eq 92 then    // 92=backslash
+                or chrLoop eq 92         // 92=backslash
+            then
                 assign mEncFlag_Cookie[chrLoop + 1] = false.
             else
                 assign mEncFlag_Cookie[chrLoop + 1] = true.
@@ -297,13 +298,8 @@ class OpenEdge.Net.URI:
         @param character The scheme for this URI.
         @param character The host name. */
     constructor public URI(input pcScheme as character,
-                           input pcHost as character):
-        this-object(pcScheme,
-                    pcHost,
-                    ?,
-                    '/':u,
-                    new StringStringMap(),
-                    ?).
+        input pcHost as character):
+        this-object(pcScheme, pcHost, ?, '/':u, new StringStringMap(), ?).
     end constructor.
 
     /** Constructor.
@@ -314,12 +310,7 @@ class OpenEdge.Net.URI:
     constructor public URI(input pcScheme as character,
                            input pcHost as character,
                            input piPort as integer):
-        this-object(pcScheme,
-                    pcHost,
-                    piPort,
-                    '/':u,
-                    new StringStringMap(),
-                    ?).
+        this-object(pcScheme, pcHost, piPort, '/':u, new StringStringMap(), ?).
     end constructor.
     
     /** Constructor.
@@ -353,12 +344,22 @@ class OpenEdge.Net.URI:
                mcUri                   = ?
                .
     end constructor.
-    
+
     /** Parses a string containing a URI and creates a URI object from it
     
         @param character a string URI (eg http://www.progress.com/)
         @return URI A URI representation of the string. */
     method static public URI Parse(input pcURI as character):
+        return URI:Parse(pcURI, true).
+    end method.
+    
+    /** Parses a string containing a URI and creates a URI object from it
+        
+        @param character a string URI (eg http://www.progress.com/)
+        @param logical TRUE if the incoming strings should be URL-decoded
+        @return URI A URI representation of the string. */
+    method static public URI Parse(input pcURI as character,
+                                   input pDecode as logical):
         define variable oURI       as URI       no-undo.
         define variable cScheme    as character no-undo.
         define variable cHost      as character no-undo.
@@ -373,8 +374,12 @@ class OpenEdge.Net.URI:
         define variable cDelimiter as character no-undo.
         define variable cQueryPart as character no-undo.
         define variable cValue     as character no-undo.
+        define variable cFragment  as character no-undo.
         
         Assert:NotNullOrEmpty(pcURI, 'URI string').
+        // default is to DECODE
+        if pDecode eq ? then
+            assign pDecode = true. 
         
         /* No scheme. Default to HTTP */
         if num-entries(pcURI, ':':u) eq 1 then
@@ -382,6 +387,20 @@ class OpenEdge.Net.URI:
                                 string(UriSchemeEnum:http),
                                 left-trim(pcURI,'/':u)).  
         
+        //extract the fragment and URI before processing the /-delimited stuff   the fragment is always the last element 
+        // of the URI per the spec: URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ] - so we cut that off first,
+        // then the query
+        assign iPos = index(pcURI, '#':u).
+        if iPos gt 0 then
+            assign cFragment = substring(pcURI, iPos + 1)
+                   pcURI     = substring(pcURI, 1,      iPos - 1)
+                   .
+        assign iPos = index(pcURI, '?':u).
+        if iPos gt 0 then
+            assign cQuery = substring(pcURI, iPos + 1)
+                   pcURI  = substring(pcURI, 1,      iPos - 1)
+                   .
+        // now the string contains scheme, host, path
         assign iMax = num-entries(pcURI, '/':u).
         /* we need at least 3 entries for this to be a decent URL:
              1  - scheme (eg http:)
@@ -397,16 +416,19 @@ class OpenEdge.Net.URI:
         Assert:NotNullOrEmpty(cScheme, 'URI scheme').
         
         /* entry 2 is the 'space' between the double slashes */
-        assign cHost = URI:Decode(entry(3, pcURI, '/':u))
-               iPos  = r-index(cHost, '@':u)
-               .
+        assign cHost = entry(3, pcURI, '/':u).
+        if pDecode then
+            assign cHost = URI:Decode(cHost).
+        assign iPos = r-index(cHost, '@':u).
+        
         /* get username/password out of real host */
         if iPos eq 0 then
-            assign cUser     = ?
-                   cPassword = ?.
+            assign cUser  = ?
+                   cPassword = ?
+                   .
         else
         do:
-            assign cUser     = substring(cHost, 1, iPos - 1)  
+            assign cUser     = substring(cHost, 1, iPos - 1)
                    cPassword = ?
                    cHost     = substring(cHost, iPos + 1)
                    iPos      = index(cUser, ':':u)
@@ -419,52 +441,49 @@ class OpenEdge.Net.URI:
         
         // IPv6 addesses contain : so look for the right-most after any ]
         assign iPos = r-index(cHost, ']':u)
-               iPos = index(cHost, ':':u, max(1, iPos)).
+               iPos = index(cHost, ':':u, max(1, iPos))
+               .
         if iPos eq 0 then 
             assign iPort = ?.
         else
             /* port first, else we lose it */
             assign iPort = integer(substring(cHost, iPos + 1))
-                   cHost = substring(cHost, 1, iPos - 1).
-        
-        assign oURI = new URI(URI:Decode(cScheme), 
-                              URI:Decode(cHost),
-                              iPort).
+                   cHost = substring(cHost, 1, iPos - 1)
+                   .
+        if pDecode then
+            assign cScheme = URI:Decode(cScheme)
+                   cHost   = URI:Decode(cHost)
+                   .
+        assign oURI = new URI(cScheme, cHost, iPort).
         
         if cUser ne ? then
+        do:
+            if pDecode then
+                assign cUser     = URI:Decode(cUser)
+                       cPassword = URI:Decode(cPassword)
+                       .
             /* no domain string in the URL */
-            assign oURI:User     = URI:Decode(cUser)
-                   oURI:Password = URI:Decode(cPassword).
+            assign oURI:User     = cUser
+                   oURI:Password = cPassword
+                   .
+        end.
         
         /* get path, querystring, fragments */
         /* entry 2 is the 'space' between the double slashes, so we start after the host, at 4 */
         assign cDelimiter = '':u.
         do iLoop = 4 to iMax:
-            assign cValue = entry(iLoop, pcURI, '/':u).
-            // check for query and fragment on the last segment only
-            if iLoop eq iMax then
-            do:
-                assign iPos = index(cValue, '#':u).
-                if iPos gt 0 then
-                    assign oURI:Fragment = URI:Decode(substring(cValue, iPos + 1))
-                           cValue        = substring(cValue, 1, iPos - 1)
-                           .
-                assign iPos = index(cValue, '?':u).
-                if iPos gt 0 then
-                    assign cQuery = substring(cValue, iPos + 1)
-                           cValue = substring(cValue, 1, iPos - 1)
-                           .
-            end.
-            assign cPath = '/':u when cPath eq '':u 
-                   cPath = cPath + cDelimiter 
-                         // encode the paths (especially for unicode chars); leave any %-encoding alone though
-                         + URI:EncodeString(cValue, ?, mEncFlag_Path, false)
-                   cDelimiter = '/':u.
+            assign cValue     = entry(iLoop, pcURI, '/':u)
+                   cPath      = '/':u when cPath eq '':u 
+                   cPath      = cPath + cDelimiter 
+                              // encode the paths (especially for unicode chars); leave any %-encoding alone though
+                              + URI:EncodeString(cValue, ?, mEncFlag_Path, false)
+                   cDelimiter = '/':u
+                   .
         end.
         
         if cPath eq '':u then
             assign cPath = '/':u.
-                        
+        
         assign oURI:Path = cPath
                cValue    = '':u
                iMax      = 0
@@ -486,17 +505,30 @@ class OpenEdge.Net.URI:
                 oURI:AddQuery(URI:Decode(cQueryPart)).
             else
             do:
-                assign cValue = URI:Decode(substring(cQueryPart, iPos + 1))
+                assign cValue = substring(cQueryPart, iPos + 1)
                        no-error.
                 if cValue eq ? then
                     assign cValue = '':u.
-                oURI:AddQuery(URI:Decode(substring(cQueryPart, 1, iPos - 1)), cValue).
+                else
+                if pDecode then
+                    assign cValue = URI:Decode(cValue).
+                
+                // query-name 
+                assign cQueryPart = substring(cQueryPart, 1, iPos - 1). 
+                if pDecode then
+                    assign cQueryPart = URI:Decode(cQueryPart).
+                oURI:AddQuery(cQueryPart, cValue).
             end.
         end.
         
+        if cFragment ne '':u then
+            assign cFragment     = URI:Decode(cFragment) when pDecode
+                   oURI:Fragment = cFragment
+                   .
+        
         return oURI.
     end method.
-    
+   
     /* Helper method to return the path as an array of segments.
        
        @return character[] An array of path segments. */
@@ -506,7 +538,7 @@ class OpenEdge.Net.URI:
         
         // There is always at least one slash, so start at 2. 
         assign segmentCnt        = num-entries(this-object:Path, '/':u)
-               extent(pSegments) = segmentCnt - 1 
+               extent(pSegments) = segmentCnt - 1
                .
         do segmentLoop = 2 to segmentCnt:
             assign pSegments[segmentLoop - 1] = URI:Decode(entry(segmentLoop, this-object:Path, '/':u)).
@@ -527,12 +559,12 @@ class OpenEdge.Net.URI:
         define variable slashPos    as integer   no-undo.
         define variable path        as character no-undo.
         define variable segment     as character no-undo.
-        define variable pathDelim as character no-undo.
+        define variable pathDelim   as character no-undo.
         
         assign segmentCnt = extent(pcSegments)
                pathDelim  = '':u.
         do segmentLoop = 1 to segmentCnt:
-            assign segment = URI:EncodePath(pcSegments[segmentLoop]).            
+            assign segment = URI:EncodePath(pcSegments[segmentLoop]).
             // Don't add empty segments
             if segment ne '':u then
                 assign path      = '/':u when path eq '':u
@@ -570,15 +602,16 @@ class OpenEdge.Net.URI:
     /** Adds a query argument
         @param character The query name 
         @param character The query value */
-    method public void AddQuery (input pcName as character, input pcValue as character):
+    method public void AddQuery (input pcName as character,
+                                 input pcValue as character):
         define variable lcValue as longchar no-undo.
         
         Assert:NotNullOrEmpty(pcName, 'Query name').
         
         /* flag URI as changed */
         assign mcUri   = ?
-               lcValue = pcValue.
-        
+               lcValue = pcValue
+               .
         this-object:QueryMap:Put(pcName, lcValue).
     end method.
     
@@ -605,7 +638,7 @@ class OpenEdge.Net.URI:
         
         Assert:NotNullOrEmpty(pcName, 'Query name').
         
-        val = QueryMap:Get(input pcName).
+        assign val = QueryMap:Get(input pcName).
         
         return string(val). 
     end method.
@@ -645,13 +678,16 @@ class OpenEdge.Net.URI:
         do:
             assign cDelimiter   = '?':u
                    oIterator    = this-object:QueryMap:EntrySet:Iterator()
-                   cQueryString = '':u. 
+                   cQueryString = '':u
+                   . 
             do while oIterator:HasNext():
                 assign oEntry       = cast(oIterator:Next(), MapEntry)
                        cQueryString = cQueryString + substitute('&1&2':u, cDelimiter, oEntry:Key:ToString())
-                       cDelimiter   = '&':u.
+                       cDelimiter   = '&':u
+                       .
                 if     valid-object(oEntry:Value) 
-                    and cast(oEntry:Value, OpenEdge.Core.String):Value ne ? then
+                   and cast(oEntry:Value, OpenEdge.Core.String):Value ne ? 
+                then
                     assign cQueryString = cQueryString + substitute('=&1':u, oEntry:Value:ToString()).
             end.
         end.
@@ -720,7 +756,7 @@ class OpenEdge.Net.URI:
         assign encodedUri = encodedUri 
                           + poURI:Path      // assumed to be already-encoded
                           + poURI:EncodeQuery()
-                          .
+            .
         // Fragment
         if poURI:Fragment ne ? then
             assign encodedUri = encodedUri + '#':u + URI:EncodeFragment(poUri:Fragment).
@@ -1049,12 +1085,14 @@ class OpenEdge.Net.URI:
         /* Don't bother with blank or unknown. Unknown has no meaning outside of 
            ABL so just no-op it  */
         if    length(pcString) eq 0
-           or pcString eq ? then
+           or pcString eq ? 
+        then
             return '':u.
         
         //determine or default the source codepage (for non-ascii characters)
         if    pcSourceCodepage eq ? 
-           or pcSourceCodepage eq '':u then
+            or pcSourceCodepage eq '':u 
+        then
             assign pcSourceCodepage = session:cpinternal.
             
         /* Loop through entire input string */
@@ -1066,7 +1104,8 @@ class OpenEdge.Net.URI:
                    .
             // percent-encoded 
             if     codepoint eq 37 
-               and not plReEncode then
+               and not plReEncode 
+            then
                 assign chrVal  = substring(pcString, chrLoop, 3)
                        chrLoop = chrLoop + 2
                        . 
@@ -1074,19 +1113,25 @@ class OpenEdge.Net.URI:
             // outside of US-ASCII range gets pct-encoded
             if     codepoint ge 127
                 or codepoint le 31
-                or not pcEncodeFlags[codepoint + 1] then
+                or not pcEncodeFlags[codepoint + 1] 
+            then
             do:
                 // Section 2.4 https://tools.ietf.org/html/rfc3986#section-2.4 describes how
                 // to deal with unicode
                 put-string(rawChar, 1) = codepage-convert(chrVal, 'utf-8':u, pcSourceCodepage).
                 // PUT-STRING() adds a NULL\0x00 byte at the end; we don't want that in our pretty encoding 
                 assign byteCnt = length(rawChar, 'raw':u) - 1
-                       chrVal  = '':u.
+                       chrVal  = '':u
+                       .
                 do byteLoop = 1 to byteCnt:
                     put-byte(rawByte, 1) = get-byte(rawChar, byteLoop).
                     /* Replace character with %hh hexidecimal triplet */
                     assign chrVal = chrVal + caps(substitute('%&1':u, hex-encode(rawByte))).
                 end.
+                // empty/reset this raw, otherwise if we have a unicode character followed by an ASCII, 
+                // it will have a length of 2 bytes, which will add an unnecessary null (%00) to the
+                // encoded string 
+                assign length(rawChar) = 0.
             end.
             /* add/create a new string because replacing 1 character with 2 messes up our math */
             assign encodedString = encodedString + chrVal.
@@ -1165,33 +1210,45 @@ class OpenEdge.Net.URI:
     method static public character Decode(input pEncodedString as character,
                                           input pTargetCodepage as character):
         define variable decodedString as character no-undo.
-        define variable loop as integer no-undo.
-        define variable pctPos as integer no-undo.
-        define variable hexChar as character no-undo.
-        define variable numBytes as integer no-undo.
-        define variable startAt as integer no-undo.
-        define variable rawChar as raw no-undo.
-        define variable decodedChar as character no-undo.
+        define variable loop          as integer   no-undo.
+        define variable pctPos        as integer   no-undo.
+        define variable hexChar       as character no-undo.
+        define variable numBytes      as integer   no-undo.
+        define variable startAt       as integer   no-undo.
+        define variable rawChar       as raw       no-undo.
+        define variable decodedChar   as character no-undo.
         define variable codepoint     as integer   no-undo.
 
         if    pEncodedString eq ? 
-           or pEncodedString eq '':u then
+           or pEncodedString eq '':u 
+           then
             return pEncodedString.           
         
         if    pTargetCodepage eq ? 
-           or pTargetCodepage eq '':u then
+           or pTargetCodepage eq '':u 
+           then
             assign pTargetCodepage = session:cpinternal.
         
         assign startAt = 1
                pctPos  = index(pEncodedString, '%':u, startAt)
                .
         do while pctPos gt 0:
-            assign // chop off stuff before the %
-                   decodedString = decodedString + substring(pEncodedString, startAt, (pctPos - startAt))
-                   
-                   hexChar   = substring(pEncodedString, pctPos + 1, 2)
-                   rawChar   = hex-decode(hexChar)
-                   codepoint = get-byte(rawChar, 1)
+            assign hexChar = substring(pEncodedString, pctPos + 1, 2)
+                   rawChar = hex-decode(hexChar)
+                   no-error.
+            // If there's a % character that is somehow not a hex-encoded value, then just treat it as a string and try again
+            if error-status:error then
+            do:
+                assign decodedString = decodedString + substring(pEncodedString, startAt, (pctPos - startAt + 1))
+                       startAt       = pctPos + 1
+                       pctPos        = index(pEncodedString, '%':u, startAt)
+                       .
+                next.
+            end.
+            
+            // chop off stuff before the %
+            assign decodedString = decodedString + substring(pEncodedString, startAt, (pctPos - startAt))
+                   codepoint     = get-byte(rawChar, 1)
                    .
             // US-ASCII, excluding NULL
             // 0 < codepoint < 128
@@ -1222,8 +1279,8 @@ class OpenEdge.Net.URI:
             if numBytes gt 1 then
             do:
                 assign length(rawChar) = numBytes
-                       // we've got the first byte in codepoint already 
-                       pctPos   = pctPos + 3
+                       // we've got the first byte in codepoint already
+                       pctPos          = pctPos + 3
                        .
                 put-byte(rawChar, 1) = codepoint.
                 do loop = 2 to numBytes:
@@ -1255,7 +1312,7 @@ class OpenEdge.Net.URI:
         end.
         
         /* add anycharacters that appear after the last % */
-        return decodedString + substring(pEncodedString, startAt).
+        return decodedString + substring(pEncodedString, startAt).        
     end method.
     
     /** Returns an array of query names 

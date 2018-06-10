@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2015-2016 by Progress Software Corporation  */
+/* Copyright (c) 2015-2018 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -41,6 +41,8 @@ define temp-table ttCdcTablePolicy no-undo serialize-name "cdcTablePolicies" {1}
     field Level                  as integer   serialize-name "level" init ?
     field DataAreaName           as character serialize-name "dataAreaName"
     field IndexAreaName          as character serialize-name "indexAreaName"
+    field DataAreaNumber         as integer serialize-hidden
+    field IndexAreaNumber        as integer serialize-hidden
     field FieldName              as character serialize-hidden 
     field LastModified           as datetime-tz serialize-name "lastModified"
     field ObjectType             as character serialize-hidden 

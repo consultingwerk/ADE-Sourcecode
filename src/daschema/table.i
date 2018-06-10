@@ -22,12 +22,14 @@
      field IsPartitioned         as logical   serialize-name "isPartitioned"
      field IsCDCEnabled          as logical   serialize-name "isCDCEnabled"
      field IsChangeTable         as logical   serialize-name "isChangeTable"
-     field HasType1Area          as logical   serialize-hidden
+     /* serves as flag to identify lazy when ? */
+     field HasType1Area          as logical   init ? serialize-hidden
      field PartitionPolicyName   as character serialize-name "partitionPolicyName"
      field CdcTablePolicyName   as character serialize-name "cdcTablePolicyName"
      field KeepDefaultArea as logical   serialize-name "keepDefaultArea"
      field tRowid          as rowid     serialize-hidden
      field AreaName        as character serialize-name "areaName"
+     field AreaNumber      as integer   serialize-hidden 
      field AreaUrl         as character serialize-name "area_url"
      field PartitionPolicyUrl   as character serialize-name "partitionPolicy_url"
      field CdcTablePolicyUrl   as character serialize-name "cdcTablePolicy_url"

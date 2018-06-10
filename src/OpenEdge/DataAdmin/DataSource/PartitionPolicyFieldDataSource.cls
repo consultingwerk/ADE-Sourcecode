@@ -41,7 +41,6 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyFieldDataSource inherits Data
         end. 
         set.
 	 
-/*DomainId,_sec-authentication-domain._domain-id,~*/
     
     
     constructor public PartitionPolicyFieldDataSource ():      
@@ -60,23 +59,19 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyFieldDataSource inherits Data
         TenantUrl = url + "/tenants/".
     end method.
     
-    method public final override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         SetCallBack(phBuffer).
-        lok  = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
-      
-        return lok.
     end method.
     
     method protected override logical PrepareQueryString (poQueryString as QueryString):         
         define variable isOk as logical no-undo.
         define variable cQuery as character no-undo.
-        /*
-        isOk = AddUniqueOrNone("_tenant",poQueryString).
-        if isOk = ? then 
-            undo, throw new IllegalArgumentError("UserDataSource prepare with non unique tenant reference. Use the tenant constructor.").
-        */
+        /* note that this query defined on PartitonPolicy and is used in the 
+           fill method.
+           if we have a parent policy source this query is not used and we 
+           grab the xtend from the parent table in the beforefill instead 
+         */
         cQuery = poQueryString:BuildQueryString(Tables).
         isOk = QueryHandle:query-prepare(cQuery).    
         return isOk.

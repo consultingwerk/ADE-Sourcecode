@@ -71,7 +71,7 @@ Size,_Extent-size"
     
 	constructor public ExtentDataSource ( ):	    
 		super ("_AreaExtent","dictdb._AreaExtent", mMapping). 
-		BaseQuery = "for each _AreaExtent no-lock".
+		BaseQueryTemplate = "for each _AreaExtent&1no-lock".
     end constructor.
     
     method public void Save(pArea as handle,pExtent as handle):
@@ -322,27 +322,31 @@ Size,_Extent-size"
              skip.   
     end method.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
         FillFiles().
     end method.
     
     method public override void AfterRow(dataset-handle hds):
-        define variable hbuffer as handle    no-undo.
         define variable hbufferArea as handle    no-undo.
         define variable iunix as integer no-undo.
         define variable idos as integer no-undo.
         define variable iPathPos as integer no-undo.
         define variable cfile as character no-undo.
         
+        hbufferArea = hds:get-buffer-handle("ttArea").
+        
+        if valid-handle(hBufferArea) then 
+            mBuffer::AreaName  =  hbufferArea::Name.
+        else do:
+            find dictdb._area where dictdb._area._Area-number = mBuffer::AreaNumber no-lock.
+            mBuffer::AreaName = dictdb._area._Area-name.
+        end.   
+      
         assign
-            hbufferArea = hds:get-buffer-handle("ttArea")
-            hBuffer = hds:get-buffer-handle("ttExtent")
-            hBuffer::IsFixed  = hbuffer::Size <> 0
-            hBuffer::AreaName  =  hbufferArea::Name
-            cfile = hBuffer::FileName
+            mBuffer::IsFixed  = mbuffer::Size <> 0
+            cfile = mBuffer::FileName
             iunix = r-index(cfile,"/")
             idos = r-index(cfile,"~\")
             iPathPos = max(iunix,idos).
@@ -350,13 +354,13 @@ Size,_Extent-size"
         find ttFile where ttFile.name = cfile no-error.
         if avail ttfile then 
         do:
-           hbuffer::SizeUsed = ((ttFile.LogSize * ttFile.blockSize) / 1024) .
-           if hbuffer::Size = 0 then
-               hbuffer::Size = ttfile.Size. 
+           mbuffer::SizeUsed = ((ttFile.LogSize * ttFile.blockSize) / 1024) .
+           if mbuffer::Size = 0 then
+               mbuffer::Size = ttfile.Size. 
         end.
         
         if iPathPos > 0 then
-             hBuffer::Path = substr(cfile,1,iPathPos - 1).
+             mBuffer::Path = substr(cfile,1,iPathPos - 1).
          
     end method.     
     
@@ -389,5 +393,23 @@ Size,_Extent-size"
            return substr(cfile,1,ipos).
         return cfile.   
     end method.    
+        
+    method public override character ColumnExpression (pcColumn as char,pcoperator as char, pcValue as char):
+        
+        if pcColumn = "_AreaExtent.AreaName" then do:
+            if lookup(pcoperator,"=,EQ,<>,NE") = 0 then  
+                undo, throw new UnsupportedOperationError(subst("Extent request on AreaName with &1 operator",pcOperator)).
+            find dictdb._area where dictdb._area._Area-name = pcValue no-lock no-error.
+            
+            return "_AreaExtent._Area-number " + pcOperator + " " + quoter(if avail dictdb._area then dictdb._area._area-number else 0). 
+        end.    
+        return super:ColumnExpression(pcColumn,pcOperator,pcValue). 
+    end.      
+    
+    method public override character ColumnSource (pcColumn as char):
+        if pcColumn = "ttExtent.AreaName" then 
+            return "_AreaExtent.AreaName". 
+        return super:ColumnSource(pccolumn).
+    end.      
     
 end class.

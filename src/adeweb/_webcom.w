@@ -3,8 +3,8 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
+* Copyright (C) 2005-2018 by Progress Software Corporation. All      *
+* rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -911,13 +911,31 @@ PROCEDURE post_data :
   DEFINE INPUT PARAMETER p_section  AS CHARACTER NO-UNDO.
   
   DEFINE VARIABLE p_newline AS CHARACTER NO-UNDO.
+  
+  DEFINE VARIABLE apacheVersion AS CHARACTER NO-UNDO.
+  DEFINE VARIABLE apacheMajorVersion AS CHARACTER NO-UNDO.
     
   /*  IIS 6 requires the use of \r\n terminator characters for each new line in
      the header, so verify the web server type and set the newline control 
      properly. This is backward compatible with IIS 5 and earlier.
   */     
-  IF cWebServer BEGINS "Microsoft-IIS":U THEN
+  IF cWebServer BEGINS "Microsoft-IIS":U  THEN
       p_newline = CHR(13) + CHR(10).
+      /* PSC00361090-apache httpd server has issue with white space characters(CRLF) 
+         for request header information. from the version apache 2.4 CRLF is expected in header information.
+         affected apache versions: 2.4.23, 2.4.20, 2.4.18, 2.4.17, 2.4.16, 2.4.12, 2.4.10, 2.4.9, 2.4.7, 2.4.6, 2.4.4, 2.4.3, 2.4.2, 2.4.1
+      */
+  else if cWebServer BEGINS "Apache":U  then do:
+      apacheVersion = SUBSTRING(cWebServer,index(cWebServer,"/") + 1, INDEX(cWebServer," ") - INDEX(cWebServer,"/"),"character").
+      apacheMajorVersion = SUBSTRING(apacheVersion,INDEX(apacheVersion,".") - 1, R-INDEX(apacheVersion,".") - 1,"character").
+      /* In coming future this may be fixed by apache community. so we may need minor version info.
+         use below substring to fetch the minor version.
+         SUBSTRING(apacheVer,R-INDEX(apacheVer,".") + 1, INDEX(apacheVer," "),"character").
+         NOTE: if this issue is fixed in latest version of apache then below condition must be changed to exclude it.
+      */       
+      if apacheMajorVersion GE "2.4":U then
+          p_newline = CHR(13) + CHR(10).
+  end.
   ELSE
       p_newline = CHR(10).
 

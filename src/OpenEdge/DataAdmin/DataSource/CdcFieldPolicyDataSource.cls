@@ -72,19 +72,16 @@ Misc,_Misc"
     
     constructor public CdcFieldPolicyDataSource ():      
          super ("_Cdc-Field-Policy,_Field","dictdb._Cdc-Field-Policy,dictdb._Field", FieldMap). 
-         BaseQuery = "for each _Cdc-Field-Policy use-index _Policy-Id no-lock, " + mAreaQuery.    
+         BaseQueryTemplate = "for each _Cdc-Field-Policy&1use-index _Policy-Id no-lock, " + mAreaQuery.    
      end constructor.
      
     method protected logical SetCallBack(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
     end method.
     
-    method public final override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         SetCallBack(phBuffer).
-        lok  = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
-        return lok.
     end method.
     
     method protected override logical PrepareQueryString (poQueryString as QueryString):    

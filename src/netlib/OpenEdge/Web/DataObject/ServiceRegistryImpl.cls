@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryImpl
@@ -160,17 +160,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
     method public logical HasService(input pServiceName as character):
         define buffer lbService for Service.
         
-        find first lbService where
-                   lbService.ServiceName eq pServiceName
-                   no-error. 
-        if available lbService then
+        if can-find(first lbService where lbService.ServiceName eq pServiceName) then
             return true.
         
-        find first lbService where
-                   lbService.ServiceName eq trim(pServiceName, '/':u)
-                   no-error. 
+        if can-find(first lbService where lbService.ServiceName eq trim(pServiceName, '/':u)) then
+            return true.
         
-        return (available lbService).
+        return false.
     end method.
     
     /* Indicates whether a named service is available in the registry.  
@@ -240,8 +236,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         
         open query qryService preselect each lbService.
         
-        assign extent(services) = query qryService:num-results
-               no-error.
+        if query qryService:num-results gt 0 then
+            assign extent(services) = query qryService:num-results.
         
         get first qryService.
         do while available lbService:
@@ -393,12 +389,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         if not available lbService then
             undo, throw new AppError(substitute('Unable to find service "&1 v&2"', pServiceName, string(pVersion)), 0).
         
-        find first lbOperation where
-                   lbOperation.Service eq lbService.Id and
-                   lbOperation.Name    eq pOperationName
-                   no-error.
-        
-        return (available lbOperation).
+        return can-find(first lbOperation where
+                              lbOperation.Service eq lbService.Id and
+                              lbOperation.Name    eq pOperationName).
     end method.
     
     /* Indicates whether a mapped operation exists with a given name  
@@ -418,12 +411,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         if not available lbService then
             undo, throw new AppError(substitute('Unable to find service "&1"', pServiceName), 0).
         
-        find first lbOperation where
-                   lbOperation.Service eq lbService.Id and
-                   lbOperation.Name    eq pOperationName
-                   no-error.
-        
-        return (available lbOperation).                                           
+        return can-find(first lbOperation where
+                              lbOperation.Service eq lbService.Id and
+                              lbOperation.Name    eq pOperationName).
     end method.
     
     /* Indicates whether a mapped operation exists  
@@ -539,7 +529,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         
         do on error undo, throw:
             open query qryOps preselect each lbOperation where lbOperation.Service eq lbService.Id.
-            assign extent(operations) = query qryOps:num-results no-error.
+            if query qryOps:num-results gt 0 then
+                assign extent(operations) = query qryOps:num-results.
             get first  qryOps.
             do while available lbOperation:
                 assign operations[query qryOps:current-result-row] = cast(lbOperation.MappedOperation, MappedOperation).
@@ -578,10 +569,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         if not available lbService then
             undo, throw new AppError(substitute('Unable to find service "&1 v&2"', pServiceName, pVersion), 0).
         
-        find first lbOperation where
-                   lbOperation.Service eq lbService.Id and
-                   lbOperation.Name    eq pOperationName
-                   no-error.
+        if can-find(first lbOperation where
+                          lbOperation.Service eq lbService.Id and
+                          lbOperation.Name    eq pOperationName) then
+            find first lbOperation where
+                       lbOperation.Service eq lbService.Id and
+                       lbOperation.Name    eq pOperationName
+                       .
         if available lbOperation then
             assign oOperation = cast(lbOperation.MappedOperation, MappedOperation).
         
@@ -608,10 +602,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         if not available lbService then
             undo, throw new AppError(substitute('Unable to find service "&1"', pServiceName), 0).
         
-        find first lbOperation where
-                   lbOperation.Service eq lbService.Id and
-                   lbOperation.Name    eq pOperationName
-                   no-error.
+        if can-find(first lbOperation where
+                          lbOperation.Service eq lbService.Id and
+                          lbOperation.Name    eq pOperationName) then
+            find first lbOperation where
+                       lbOperation.Service eq lbService.Id and
+                       lbOperation.Name    eq pOperationName
+                       .
         if available lbOperation then
             assign oOperation = cast(lbOperation.MappedOperation, MappedOperation).
         
@@ -734,7 +731,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         
         if available lbSchema then
         do:
-            delete object lbSchema.DataStructure no-error.            
+            delete object lbSchema.DataStructure no-error.
             delete lbSchema.
             assign error-status:error = false.
             
@@ -816,7 +813,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         
         do on error undo, throw:
             open query qrySchema preselect each lbSchema where lbSchema.Service eq lbService.Id.
-            assign extent(schemaName) = query qrySchema:num-results no-error.
+            if query qrySchema:num-results gt 0 then
+                assign extent(schemaName) = query qrySchema:num-results.
             get first qrySchema.
             do while available lbSchema:
                 assign schemaName[query qrySchema:current-result-row] = lbSchema.SchemaName.
@@ -825,7 +823,6 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
             
             finally:
                 close query qrySchema.
-                assign error-status:error = no.
             end finally.
         end.
         
@@ -943,9 +940,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
                                           buffer pService for Service):
         define variable latestVersion as rowid no-undo.
         
+        // 'let go' of the record so that the AVAILABLE status is always correct
+        release pService.
+        
         if not valid-object(pMinVersion) then
             assign pMinVersion = new SemanticVersion(0, 0, 0).
         
+        assign latestVersion = ?.
         VERSION-LOOP:
         for each pService where
                  pService.ServiceName eq pServiceName and
@@ -977,7 +978,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         end.    //VERSION-LOOP
         
         // find/reposition explicitly. this is so we can clear the buffer if nothing found
-        find pService where rowid(pService) eq latestVersion no-error.
+        if not latestVersion eq ? then 
+            find pService where rowid(pService) eq latestVersion.
     end method.
     
     /* Helper method to find and position the Service buffer to a given service. Caller must check 
@@ -996,6 +998,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
                                           input  pSemVer as SemanticVersion,
                                           buffer pService for Service):
         if valid-object(pSemVer) then
+        do:
             find pService where
                  pService.ServiceName eq pServiceName  and
                  pService.Major       eq pSemVer:Major and
@@ -1003,23 +1006,22 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
                  pService.Patch       eq pSemVer:Patch and
                  pService.PreRelease  eq pSemVer:PreRelease
                  no-error.
-        if not available pService 
-           and valid-object(pSemVer)
-           then
-        do:
-            find pService where
-                 // don't assign trimmed value to variable in case we don't find a record
-                 pService.ServiceName eq trim(pServiceName, '/':u) and
-                 pService.Major       eq pSemVer:Major             and
-                 pService.Minor       eq pSemVer:Minor             and
-                 pService.Patch       eq pSemVer:Patch             and
-                 pService.PreRelease  eq pSemVer:PreRelease 
-                 no-error.
-        end.
+            if not available pService then 
+                find pService where
+                     // don't assign trimmed value to variable in case we don't find a record
+                     pService.ServiceName eq trim(pServiceName, '/':u) and
+                     pService.Major       eq pSemVer:Major             and
+                     pService.Minor       eq pSemVer:Minor             and
+                     pService.Patch       eq pSemVer:Patch             and
+                     pService.PreRelease  eq pSemVer:PreRelease 
+                     no-error.
+            // reset from the FIND...NO-ERROR above
+            assign error-status:error = false.
+        end.    // valid semver
         
         if not available pService
            and not valid-object(pSemVer)
-           then
+        then
         do:
             assign pSemVer = new SemanticVersion(0, 0, 0).
             FindServiceLatest(pServiceName, pSemVer, buffer pService).
@@ -1040,11 +1042,19 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
                                             input  pcServiceURI as character,
                                             input  poMethod as MethodEnum,
                                             buffer pbOperation for Operation):
-        find pbOperation where
-             pbOperation.Service eq pcServiceId and
-             pbOperation.URI     eq pcServiceURI and
-             pbOperation.Method  eq string(poMethod) 
-             no-error.
+        // 'let go' of the record so that the AVAILABLE status is always correct
+        release pbOperation.
+        
+        if can-find(pbOperation where
+                    pbOperation.Service eq pcServiceId and
+                    pbOperation.URI     eq pcServiceURI and
+                    pbOperation.Method  eq string(poMethod)) 
+        then 
+            find pbOperation where
+                 pbOperation.Service eq pcServiceId and
+                 pbOperation.URI     eq pcServiceURI and
+                 pbOperation.Method  eq string(poMethod) 
+                 .
         if available pbOperation then
             return.
         
@@ -1052,11 +1062,16 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         if pcServiceURI eq '':u then
             assign pcServiceURI = ServiceRegistry:ROOT_SERVICE_URI.
         
-        find pbOperation where
-             pbOperation.Service eq pcServiceId and
-             pbOperation.URI     eq pcServiceURI and
-             pbOperation.Method  eq string(poMethod) 
-             no-error.
+        if can-find(pbOperation where
+                    pbOperation.Service eq pcServiceId and
+                    pbOperation.URI     eq pcServiceURI and
+                    pbOperation.Method  eq string(poMethod))
+        then 
+            find pbOperation where
+                 pbOperation.Service eq pcServiceId and
+                 pbOperation.URI     eq pcServiceURI and
+                 pbOperation.Method  eq string(poMethod) 
+                 .
     end method.
     
     /* Helper method to find and position the Service buffer to a given service. Caller must check 
@@ -1068,10 +1083,16 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
     method  private void FindSchemaRecord(input  pcServiceId as character,
                                           input  pcSchemaName as character,
                                           buffer pbSchema for DataSchema):
-        find pbSchema where 
-             pbSchema.Service    eq pcServiceId and
-             pbSchema.SchemaName eq pcSchemaName   
-             no-error.
+        // 'let go' of the record so that the AVAILABLE status is always correct
+        release pbSchema.
+        
+        if can-find(pbSchema where
+                    pbSchema.Service    eq pcServiceId and
+                    pbSchema.SchemaName eq pcSchemaName) then   
+            find pbSchema where 
+                 pbSchema.Service    eq pcServiceId and
+                 pbSchema.SchemaName eq pcSchemaName   
+                 .
     end method.
     
     /* Publishes the ServiceRegistered event

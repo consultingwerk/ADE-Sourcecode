@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017  by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderBuilder
@@ -13,6 +13,7 @@ Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.ConfigBuilder.
@@ -22,6 +23,7 @@ using OpenEdge.Net.HTTP.DefaultHeaderBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.SemicolonParamHeaderBuilder.
+using OpenEdge.Net.HTTP.AuthorizationHeaderBuilder.
 
 class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder 
             abstract: 
@@ -52,6 +54,9 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
         poRegistry:Put('Content-Type':u, get-class(ContentTypeHeaderBuilder)).
         poRegistry:Put('Content-Disposition':u, get-class(ContentDispositionHeaderBuilder)).
         poRegistry:Put('Cookie':u, get-class(SemicolonParamHeaderBuilder)).
+        
+        poRegistry:Put('WWW-Authentication':u, get-class(AuthorizationHeaderBuilder)).
+        poRegistry:Put('Authorization':u, get-class(AuthorizationHeaderBuilder)).
         
         /* default builder */
         poRegistry:Put('*':u, get-class(DefaultHeaderBuilder)).
@@ -102,7 +107,10 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
        @param character The delimter to use between parameters
        @return HttpHeaderBuilder The current builder object. */
     method public HttpHeaderBuilder ParametersDelimitedBy(input pcDelim as character):
-        Assert:NotNullOrEmpty(pcDelim, 'Parameter delimiter').
+        Assert:NotNull(pcDelim, 'Parameter delimiter').
+        // we allow spaces as delimiters (length > 0)
+        if length(pcDelim) eq 0 then
+            undo, throw new AssertionFailedError('Parameter delimiter cannot be empty', 0).
         
         SetOption('paramDelimiter':u, pcDelim).
         

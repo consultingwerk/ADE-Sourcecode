@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartEntity
@@ -21,10 +21,15 @@ using Progress.Lang.Object.
 class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
     
     /** The character string delimiting the parts. Excludes the leading and trailing -- */
-    define public property Boundary as character no-undo get. set.
+    define public property Boundary as character no-undo
+        get.
+        set(input pBoundary as character):
+            Assert:NotNullOrEmpty(pBoundary, 'Multipart boundary').
+            assign this-object:Boundary = pBoundary.
+        end set.
     
     /** The number of parts */
-    define public property Size     as integer no-undo get. private set.
+    define public property Size as integer no-undo get. private set.
     
     /** Preamble text to be discarded/ignored. Kept for info purposes */
     define public property Prologue as character no-undo
@@ -81,19 +86,21 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         Assert:IsPositive(piPartNum, 'Part num').
         Assert:NotNull(poEntity, 'Entity').
         
-        find ttPart where
-             ttPart.ParentEntity eq integer(this-object) and
-             ttPart.PartNum eq piPartNum 
-             no-error.
-        assign lExists = available ttPart.
-        
-        if not lExists then
+        assign lExists = can-find(ttPart where
+                                  ttPart.ParentEntity eq integer(this-object) and
+                                  ttPart.PartNum eq piPartNum). 
+        if lExists then
+            find ttPart where
+                 ttPart.ParentEntity eq integer(this-object) and
+                 ttPart.PartNum eq piPartNum
+                 no-error.
+        else
         do:
             create ttPart.
             assign ttPart.ParentEntity = integer(this-object)
-                   ttPart.PartNum = piPartNum
+                   ttPart.PartNum     = piPartNum
                    
-                   this-object:Size = this-object:Size + 1.
+                   this-object:Size   = this-object:Size + 1.
         end. 
         
         assign ttPart.Entity = poEntity.
@@ -110,7 +117,7 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         
         assign iPartNum = this-object:Size + 1.
         SetPart(iPartNum, poEntity).
-        
+            
         return iPartNum.
     end method.
 
@@ -122,11 +129,14 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         define buffer ttPart for ttPart.
         
         Assert:IsPositive(piPartNumber, 'Part num').
-
-        find ttPart where
-             ttPart.ParentEntity eq integer(this-object) and
-             ttPart.PartNum eq piPartNumber
-             no-error.
+        
+        if can-find(ttPart where
+                    ttPart.ParentEntity eq integer(this-object) and
+                    ttPart.PartNum eq piPartNumber) then 
+            find ttPart where
+                 ttPart.ParentEntity eq integer(this-object) and
+                 ttPart.PartNum eq piPartNumber
+                 no-error.
         if available ttPart then
             return cast(ttPart.Entity, MessagePart).
         
@@ -153,7 +163,7 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         for each ttPart where ttPart.ParentEntity eq integer(this-object):
             if cast(ttPart.Entity, MessagePart):ContentID eq pcContentId then
                 assign cParts = cParts + cDelimiter + string(ttPart.PartNum)
-                       cDelimiter = ',':u.                        
+                       cDelimiter = ',':u.
         end.
         
         assign iMax = num-entries(cParts, cDelimiter)
@@ -165,7 +175,7 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
             find ttPart where
                  ttPart.ParentEntity eq integer(this-object) and
                  ttPart.PartNum eq integer(entry(iLoop, cParts)).
-
+            
             assign oPart[iLoop] = cast(ttPart.Entity, MessagePart).
         end.
         
@@ -182,14 +192,17 @@ class OpenEdge.Net.MultipartEntity implements ISupportMultipartEntity:
         define query qryParts for ttPart.
         
         Assert:IsPositive(piPartNumber, 'Part num').
-        
-        find ttPart where
-             ttPart.ParentEntity eq integer(this-object) and
-             ttPart.PartNum eq piPartNumber 
-             no-error.
-        assign lExists = available ttPart.
+                    
+        assign lExists = can-find(ttPart where
+                                  ttPart.ParentEntity eq integer(this-object) and
+                                  ttPart.PartNum eq piPartNumber). 
         if lExists then
         do:
+            find ttPart where
+                 ttPart.ParentEntity eq integer(this-object) and
+                 ttPart.PartNum eq piPartNumber
+                 no-error.
+            
             delete ttPart.
             assign this-object:Size = this-object:Size - 1.
             

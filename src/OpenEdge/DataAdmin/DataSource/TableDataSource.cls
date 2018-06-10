@@ -18,12 +18,13 @@
 
 routine-level on error undo, throw.
 
-using OpenEdge.DataAdmin.DataAccess.DataAccessError.
-using OpenEdge.DataAdmin.DataAccess.DataMapper.
-using OpenEdge.DataAdmin.DataSource.DataSource.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError.
-using OpenEdge.DataAdmin.Lang.QueryString.
-using Progress.Lang.*.
+using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
+using OpenEdge.DataAdmin.DataAccess.DataMapper from propath.
+using OpenEdge.DataAdmin.DataSource.DataSource from propath.
+using OpenEdge.DataAdmin.DataSource.DatabaseInfo from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Lang.QueryString from propath.
+using OpenEdge.DataAdmin.Lang.WebUtil from propath.
 
 class OpenEdge.DataAdmin.DataSource.TableDataSource inherits DataSource: 
     define protected variable AreaUrl as char no-undo init "/areas/".
@@ -99,34 +100,35 @@ ValidationMessage,_Valmsg"  no-undo.
     
     constructor public TableDataSource (hchanges as handle ):     
         super (hchanges,"_File","dictdb._File", mMapping).
-        BaseQuery = "for each ttTablechange, each _file where _file._file-name = ttTableChange.Tablename and " + DatabaseInfo:FileExpression + " no-lock".
+        BaseTableExpression = "_file._file-name = ttTableChange.Tablename and " + DatabaseInfo:FileExpression.
+        BaseQueryTemplate = "for each ttTablechange, each _file&1no-lock". 
     end constructor.
     
     constructor protected TableDataSource ( alltables as log):     
         super ("_File","dictdb._File", mMapping).   
-/*      BaseQuery = "for each _file  no-lock".*/
-        BaseQuery = "for each _file" 
-                   + (if alltables then "" 
-                      else " where " + DatabaseInfo:FileExpression) + " no-lock".
+        if not alltables then 
+           BaseTableExpression = DatabaseInfo:FileExpression.
+        BaseQueryTemplate = "for each _file&1no-lock".
         
     end constructor.
     
     constructor public TableDataSource (htt as handle,cquery as char):     
         super (htt,"_File","dictdb._File", mMapping).   
-/*      BaseQuery = "for each _file  no-lock".*/
-        BaseQuery = "for each  " + htt:name  
-                    + ", each _file where " + DatabaseInfo:FileExpression  + " no-lock".
+        BaseTableExpression = DatabaseInfo:FileExpression.
+        BaseQueryTemplate = "for each  " + htt:name  
+                    + ", each _file&1no-lock".
         
     end constructor.
 	constructor public TableDataSource ( ):	    
-		this-object (no).	
+		super().
     end constructor.
     
     constructor public TableDataSource (pJoinTables as char, pJoinPhysTables as char ):     
         define variable i as integer no-undo.
         define variable cTable as char no-undo. 
         super ("_File," + pJoinTables,"dictdb._File," + pJoinPhysTables, mMapping).
-        BaseQuery = "for each _file where " + DatabaseInfo:FileExpression + " no-lock".
+        BaseTableExpression = DatabaseInfo:FileExpression.
+        BaseQueryTemplate   = "for each _file&1no-lock".
         /* add the join tables to basequery - the client is expected to pass the 
           actual join as part of the query  */
         do i = 1 to num-entries(pJoinTables) :
@@ -137,11 +139,41 @@ ValidationMessage,_Valmsg"  no-undo.
         end. 
     end constructor.
     
-     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        phBuffer:set-callback("After-Row-fill","AfterTableRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
-        mBuffer = phBuffer.
+     method override protected void DefineSource(  ):
+        if Lazy then do:
+             /* lazy request are used for filename and number 
+                avoiding db-recid to utilize the faster index   
+              */
+                
+             assign 
+                Tables            = "_File"
+                PhysicalTables    = "dictdb._File"
+                FieldMapping      = mMapping 
+                BaseQueryTemplate = "for each _File&1no-lock" 
+                BaseTableExpression = "_file._owner = 'PUB' and _file._hidden = 'false' and _file._File-Attributes[6] = 'false'"
+                .
+        end.    
+        else do:
+            assign 
+                Tables              = "_File"
+                PhysicalTables      = "dictdb._File"
+                FieldMapping        = mMapping
+                BaseQueryTemplate   = "for each _File&1no-lock" 
+                BaseTableExpression = DatabaseInfo:FileExpression
+                .
+        end.     
+        Defined = true.
+    end method.
+    
+    
+    method protected override void PrepareBuffer(phBuffer as handle):
+        mBuffer = phBuffer.  
+        /*
+          NOTE  This requires a refreshRow in AbstractSchemaElement:Area to 
+                fill the areanumber/name before calling GetArea    
+        */
+        if not lazy then
+            phBuffer:set-callback("After-Row-fill","AfterTableRow").
     end method.
     
         /** override to sort on the internal value that defines the true order of the partitions  */
@@ -220,8 +252,6 @@ ValidationMessage,_Valmsg"  no-undo.
         end.
         
         cQuery = poQueryString:BuildQueryString(Tables).
-/*          message cQuery  */
-/*        view-as alert-box.*/
         isOk = QueryHandle:query-prepare(cQuery).  
         return isOk.
     end method.
@@ -246,60 +276,70 @@ ValidationMessage,_Valmsg"  no-undo.
     method public void AfterTableRow(dataset-handle hds):
         define variable cArea as character no-undo.
         define variable cAreaRef as character no-undo.
-        define variable iTbl as integer no-undo.
         define variable iFile as integer no-undo.
         define variable istype1 as logical no-undo.
-        assign 
-            cArea = ""
-            cAreaRef = ""
-            iTbl = lookup("_File",Tables).
+        define variable rid as recid no-undo.
        
-        find dictdb._file where recid(dictdb._file) = DataSourceHandle:get-source-buffer(itbl):recid no-lock.
+        /* cannot use in whhere clause*/        
+        rid = DatabaseInfo:DatabaseRecid.
        
-        find dictdb._storage where dictdb._storage._db-recid = dictdb._file._db-recid
-                             and dictdb._storage._object-type = 1                                     
-                             and dictdb._storage._object-number = dictdb._file._file-number 
+        find dictdb._storage where dictdb._storage._db-recid = rid
+                             and dictdb._storage._object-type = 1
+                             and dictdb._storage._object-number = mBuffer::id
                              and dictdb._storage._Partitionid = 0
                              no-lock no-error.
-        if mbuffer::isPartitioned then
+        if Lazy = false and mbuffer::isPartitioned then
         do:
             /* this table is only present if the db is enabled for table partitioning*/
             if not valid-handle (mPolicyBuffer) then
                 create buffer mPolicyBuffer for table "dictdb._Partition-Policy".
             if valid-handle(mPolicyBuffer) then 
             do:
-                iFile = dictdb._file._File-number.
+                iFile = mBuffer::id.
                 mPolicyBuffer:find-unique ("where _Partition-Policy._Object-Number = " + string(dictdb._file._File-number)) no-error.
                 if mPolicyBuffer:avail  then
                 do:
                     assign
-                        mBuffer::PartitionPolicyUrl  = url + "/partitionpolicies/" + WebUtil:UrlEncode(mPolicyBuffer::_Partition-Policy-Name)
+                        mBuffer::PartitionPolicyUrl  = url + "/partitionpolicies/" + WebUtil:UrlEncode(mPolicyBuffer::_Partition-Policy-Name) when url > ""
                         mBuffer::PartitionPolicyName = mPolicyBuffer::_Partition-Policy-Name.
                 end.
             end.
         end.                         
+        /* Note - important to  NOT set HasType1Area when lazy 
+           since HAsType1Area = ?  is used as a flag on the client to identify lazy */
         if avail dictdb._storage and dictdb._storage._Area-number > 0 then
         do:
-            find dictdb._area where dictdb._Area._Area-number
-                                  =  dictdb._storage._Area-number no-lock.   
-            assign
-               cArea    = dictdb._area._area-name       
-               cAreaRef =  url +  AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default"). 
-               isType1 =  dictdb._area._Area-clustersize <> 8 
-                          and         
-                          dictdb._area._Area-clustersize <> 64 
-                          and         
-                          dictdb._area._Area-clustersize <> 512. 
+            if Lazy then
+               mBuffer::AreaNumber = dictdb._storage._Area-number.
+            else do:
+                find dictdb._area where dictdb._Area._Area-number  =  dictdb._storage._Area-number no-lock.   
+                assign
+                   cArea    = dictdb._area._area-name       
+                   isType1 =  dictdb._area._Area-clustersize <> 8 
+                              and         
+                              dictdb._area._Area-clustersize <> 64 
+                              and         
+                              dictdb._area._Area-clustersize <> 512
+                   .            
+            end.
         end. 
-        else isType1 = false.
-        assign
-            mBuffer::AreaName = cArea
-            mBuffer::AreaURL  = cAreaRef 
-            mBuffer::HasType1Area = isType1
-            mBuffer::Url  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) 
-            mBuffer::IndexURL  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/indexes" 
-            mBuffer::FieldURL  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/fields" 
-            mBuffer::PartitionsUrl = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/partitions".
+        else if Lazy = false then
+            isType1 = false.
+
+        /* hastype1area = ? is used to check if read was lazy - do NOT set when lazy */
+        if not Lazy then do:
+            assign
+                mBuffer::AreaName = cArea
+                mBuffer::HasType1Area = isType1.
+                
+            if Url > "" then
+                assign    
+                    mBuffer::AreaURL   = url + AreaURL + WebUtil:UrlEncode(cArea,"default") when cArea > "" 
+                    mBuffer::Url       = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) 
+                    mBuffer::IndexURL  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/indexes" 
+                    mBuffer::FieldURL  = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/fields" 
+                    mBuffer::PartitionsUrl = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::name) +  "/partitions".
+        end.        
     end method.
     
     method private void DeleteTable(rid as rowid):

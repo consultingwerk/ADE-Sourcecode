@@ -1,9 +1,9 @@
 /************************************************
-Copyright (c)  2013,2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013,2014,2017-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
- /*------------------------------------------------------------------------
+/*------------------------------------------------------------------------
     File        : Set
-    Purpose     : 
+    Purpose     : A collection that contains no duplicate elements.
     Syntax      : 
     Description : 
     @author hdaniels
@@ -12,60 +12,65 @@ Copyright (c)  2013,2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.Collections.ISet.
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.Collections.AbstractTTCollection.
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.AbstractTTCollection. 
+using OpenEdge.Core.Collections.ISet.
 using Progress.Lang.Object.
  
 class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISet : 
-    /*------------------------------------------------------------------------------
-            Purpose:                                                                        
-            Notes:                                                                        
-    ------------------------------------------------------------------------------*/
     /* temp-table  */ 
     define private temp-table ttSet no-undo
       field objectref as Object 
       index objidx as unique primary objectref.
         
+    /* Default constructor */
     constructor public Set (  ):
         super (temp-table ttSet:handle,"objectref").        
     end constructor.
     
+    /* Constructor 
+    
+       @param ISet Initial set */
     constructor public Set (copyset as ISet):
         super (cast(copyset,ICollection),temp-table ttSet:handle,"objectref").        
     end constructor.    
-
-    method public override logical Contains( checkObject as Object):
-        define variable lContains as logical no-undo.
-        
+    
+     method public override logical Contains( checkObject as Object):
         if not valid-object(checkObject) then
             return false.
         
-        /* try by-reference first */
-        lContains = can-find(first ttSet where ttSet.ObjectRef = checkObject). 
-        for each ttSet while lContains = false:
-            lContains = ttSet.ObjectRef:Equals(checkObject).
-        end.
-        
-        return lContains.
+        FindBufferUseObject(checkObject).
+        return (available ttSet).
     end method.
        
     method protected override void FindBufferUseObject (obj as Object):
-        find ttSet where ttSet.objectref eq obj no-error.
+        define variable itemRowid as rowid no-undo.
+        
+        assign itemRowid = ?. 
+        
+        if can-find(ttSet where ttSet.objectref eq obj) then
+            find ttSet where ttSet.objectref eq obj.
         if available ttSet then 
             return.
         
-        for each ttSet:
+        for each ttSet 
+                 while itemRowid eq ?:
             if ttSet.objectref:Equals(obj) then
-                return.
+                assign itemRowid = rowid(ttSet).
         end.
+        
+        if not itemRowid eq ? then
+            find ttSet where rowid(ttSet) eq itemRowid.
     end.
    
-    method public override logical Add(obj as Object):    
-        find ttSet where ttSet.objectref = obj no-error.
-        if not avail ttSet then     
-            return super:add(obj).
+    method public override logical Add(obj as Object):
+        Assert:NotNull(obj, 'Object to add').
+        
+        FindBufferUseObject(obj).
+        if not avail ttSet then
+            return super:Add(obj).
         else
             return false.
     end method.
@@ -73,13 +78,15 @@ class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISe
     method public override logical AddAll(collection as ICollection):
         define variable iterator as IIterator no-undo.
         define variable anyAdded as logical   no-undo.
-
-        iterator = collection:Iterator().
+        
+        assign iterator = collection:Iterator()
+               anyAdded = false
+               .
         do while iterator:HasNext():
-            if this-object:add(Iterator:Next()) then
+            if this-object:Add(Iterator:Next()) then
                anyAdded = true.
         end.
-        delete object iterator.
+        
         return anyAdded.
     end method.
     
@@ -87,6 +94,7 @@ class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISe
     method public override logical Equals(o as Object):
         define buffer btSet for ttSet.
         define variable oSet as ISet no-undo.
+        
         if super:Equals(o) then 
             return true.
         if type-of(o,ISet) then

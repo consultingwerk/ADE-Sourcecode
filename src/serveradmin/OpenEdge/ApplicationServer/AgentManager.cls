@@ -44,6 +44,11 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:stopAgent().
     end method.
     
+    method public logical stopAgent(input waitToFinish as int,
+                                    input waitAfterStop as int):
+        return pasam:stopAgent(waitToFinish, waitAfterStop).
+    end method.
+    
     method public logical InitiateDebugger(input connectstring as character):
         return pasam:InitiateDebugger(connectstring).
     end method.
@@ -77,6 +82,23 @@ class OpenEdge.ApplicationServer.AgentManager:
     method public logical GetABLObjectsReport(INPUT AgentSessId AS Integer,
                                               OUTPUT jsonrpt AS Longchar):
         return pasam:GetABLObjectsReport(AgentSessId, OUTPUT jsonrpt).
+    end method.
+
+    method public logical TrackMemoryUse(INPUT toggle AS Logical):
+        return pasam:TrackMemoryUse(toggle).
+    end method.
+
+    method public logical TrackingMemoryUse():
+        return pasam:TrackingMemoryUse().
+    end method.
+
+    method public logical GetMemoryUseReport(OUTPUT jsonrpt AS Longchar):
+        return pasam:GetMemoryUseReport(OUTPUT jsonrpt).
+    end method.
+
+    method public logical GetMemoryUseReport(INPUT AgentSessId AS Integer,
+                                             OUTPUT jsonrpt AS Longchar):
+        return pasam:GetMemoryUseReport(AgentSessId, OUTPUT jsonrpt).
     end method.
 
     constructor public AgentManager():

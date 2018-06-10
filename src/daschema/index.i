@@ -21,6 +21,9 @@
      field TableName     as character serialize-name "tableName"
      field Description   as character serialize-name "description"
      field AreaName      as character serialize-name "areaName"
+      /* areanumber is optional and not in use as of current 
+      - can be used to avoid find of area in datasource if Lazy support for index */
+     field AreaNumber    as integer   serialize-hidden  
      field AreaUrl       as character serialize-name "area_url"
      field IsMultitenant as logical   serialize-name "isMultitenant"
      field tRowid        as rowid     serialize-hidden

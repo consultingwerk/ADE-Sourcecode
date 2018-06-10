@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : AbstractTTCollection
@@ -17,15 +17,15 @@ Copyright (c)  2013-2016 by Progress Software Corporation. All rights reserved.
 ------------------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.Iterator.
 using Progress.Lang.Object.
  
- 
 class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable 
         implements ICollection: 
-
+    
    /*---------------------------------------------------------------------------
     Purpose: Abstract collection class                                                                
     Notes:   All temp-table operations are dynamic
@@ -37,6 +37,7 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
     define private variable mhTempTable     as handle no-undo. 
     define private variable mhDefaultBuffer as handle no-undo.      
     define private variable mhField         as handle no-undo. 
+    define private variable mhDefaultQry    as handle no-undo.
 
     define public property Size as integer no-undo get. private set.
     
@@ -64,7 +65,12 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
             mhDefaultBuffer = phtt:default-buffer-handle
             mhField         = hField.
     end constructor.
-     
+    
+    destructor AbstractTTCollection():
+        if valid-handle(mhDefaultQry) then
+            delete object mhDefaultQry no-error.
+    end destructor.
+    
     method public logical Add( newObject as Object):
         if valid-object(newObject) then
         do:
@@ -117,39 +123,34 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
     end method.
     
     method public logical ContainsAll(input poCollection as ICollection):
-        define variable lContains as logical no-undo.
         define variable oIterator as IIterator.
-        define variable oCheckObject as Object no-undo.
         
-        /* if both are empty collections then true */        
-        lContains = poCollection:IsEmpty() and this-object:IsEmpty().
+        Assert:NotNull(poCollection, 'Collection to check').
+        
+        /* if the 'check' collection is empty, then true */  
+        if poCollection:IsEmpty() then
+            return true.
         
         /* if the passed in collection is larger than this collection,
            this cannot be true. */
-        if poCollection:size lt this-object:size then
+        if poCollection:Size gt this-object:Size then
             return false.
         
         /* one or both collections has data */
-        if not lContains then
-        do:
-            oIterator = poCollection:Iterator().
-        
-            do while oIterator:HasNext():
-                oCheckObject = oIterator:Next().
-                lContains = this-object:Contains(oCheckObject).
-                if not lContains then
-                    leave.
-            end.
+        oIterator = poCollection:Iterator().
+        do while oIterator:HasNext():
+            if not this-object:Contains(oIterator:Next()) then
+                return false.
         end.
         
-        return lContains.
+        return true.
     end method.
     
     /* Returns a new IIterator over the collection. */
     method public IIterator Iterator( ):    
         return new Iterator(this-object,mhTempTable,mhField:name).
     end method.
-     
+    
     method public logical IsEmpty(  ):
         return not (mhTempTable:has-records).
     end method.
@@ -207,20 +208,22 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
         define variable i as integer no-undo.
         define variable oObjArray as Object extent no-undo.
         define variable iterator as IIterator no-undo.   
-         
+        
         if Size eq 0 then
             return oObjArray.
         
-        extent(oObjarray) = Size.
-        iterator = Iterator(). 
+        assign extent(oObjarray) = Size
+               iterator          = Iterator()
+               . 
         do while iterator:hasNext():
-           i = i + 1.
-           oObjArray[i] = iterator:Next().  
-        end.                                     
+           assign i = i + 1
+                  oObjArray[i] = iterator:Next().
+        end.
+        
         return oObjArray.
     end method.
     
-    /* override this in subclass - used by remove   */      
+    /* override this in subclass - used by remove(obj) and others   */
     method abstract protected void FindBufferUseObject (obj as Object).
     
     /* Deep clone. or rather deep enough since we don't know what the elements' Clone()
@@ -241,6 +244,27 @@ class OpenEdge.Core.Collections.AbstractTTCollection abstract serializable
         do while oIterator:HasNext():
            poClone:Add(oIterator:Next():Clone()).
         end.
+    end method.
+    
+    /** Recalculates the Size of this collections.
+        
+        Used particularly by Lists since there are operations
+        like Remove() that are index-based and not item-based. */
+    method protected void Resize():
+        if not valid-handle(mhDefaultQry) then
+        do:
+            create query mhDefaultQry.
+            mhDefaultQry:set-buffers(mhDefaultBuffer).
+            mhDefaultQry:query-prepare(substitute('preselect each &1 no-lock', mhDefaultBuffer:name)).
+        end.
+        
+        mhDefaultQry:query-open().
+        assign this-object:Size = mhDefaultQry:num-results. 
+        
+        finally:
+            mhDefaultQry:query-close().
+            // the mhDefaultQry handle is deleted in the destructor
+        end finally.
     end method.
     
 end class.

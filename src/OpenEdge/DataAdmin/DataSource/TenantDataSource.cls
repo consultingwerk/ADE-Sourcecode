@@ -52,29 +52,50 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
     
     /* for attach */
     define protected property FieldMapNoArea as char no-undo 
-        init "Id,_Tenantid,Name,_Tenant-name,Description,_Tenant-Description,ExternalId,_Tenant-Extid,isDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2],DefaultAllocation,_Tenant-Allocation-default"
+        init "Id,_Tenantid,Name,_Tenant-name,Description,_Tenant-Description,ExternalId,_Tenant-Extid,isDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2],DefaultAllocation,_Tenant-Allocation-default,DefaultDataAreaNumber,_Tenant-DataArea-default,DefaultIndexAreaNumber,_Tenant-IndexArea-default,DefaultLobAreaNumber,_Tenant-LobArea-default"
         get.
-        set.
+        set. /* is set from some subclasses in Attach override*/
         
     define protected property FieldMap as char no-undo 
         init "Id,_Tenantid,Name,_Tenant-name,Description,_Tenant-Description,ExternalId,_Tenant-Extid,isDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2],DefaultAllocation,_Tenant-Allocation-default,DefaultDataAreaName,b_dataarea._Area-name,DefaultIndexAreaName,b_indexarea._Area-name,DefaultLobAreaName,b_lobarea._Area-name"
         get.
      
 	constructor public TenantDataSource ( ):	    
-		this-object (FieldMap).
+		super().
     end constructor.
     
     constructor public TenantDataSource (pfieldmap as char ):        
         super ("_Tenant,b_dataArea,b_indexArea,b_LobArea","dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area", pFieldMap). 
-        BaseQuery = "for each _Tenant no-lock," + mAreaQuery.    
+        BaseQueryTemplate = "for each _Tenant&1no-lock," + mAreaQuery.
     end constructor.
    
     constructor public TenantDataSource (phChild as handle,pfieldmap as char ):        
         super ("_Tenant,b_dataArea,b_indexArea,b_LobArea","dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area",phchild, pFieldMap). 
-        BaseQuery = "for each _Tenant no-lock," 
+        BaseQueryTemplate = "for each _Tenant&1no-lock," 
                   +  mAreaQuery
                   + ", each " + phChild:name + " no-lock".       
     end constructor.
+
+    method override protected void DefineSource(  ):
+        if Lazy then do:
+             assign 
+                Tables            = "_Tenant"
+                PhysicalTables    = "dictdb._Tenant"
+                FieldMapping      = FieldMapNoArea
+                BaseQueryTemplate = "for each _Tenant&1no-lock" 
+                .
+        end.    
+        else do:
+            assign 
+                Tables            = "_Tenant,b_dataArea,b_indexArea,b_LobArea"
+                PhysicalTables    = "dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area"
+                FieldMapping      = FieldMap
+                BaseQueryTemplate = "for each _Tenant&1no-lock," + mAreaQuery
+                .
+        end.     
+        Defined = true.
+    end method.
+
     /* keep
     constructor public TenantDataSource (phParent as handle,pcJoin as char,pfieldmap as char ):        
         super (phParent, "_Tenant,b_dataArea,b_indexArea,b_LobArea","dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area",pFieldMap). 
@@ -86,20 +107,18 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
     end constructor.
     */
    
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
         mBuffer = phBuffer.      
        
-        lok = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
-       
-        return lok.
     end method.
     
     method override protected void AfterSetUrl(): 
-        TenantURL = url + "/tenants/".
-        AreaURL = url + "/areas/".
-        AreasURL = url + "/areas".
+        if url > "" then
+           assign
+             TenantURL = url + "/tenants/"
+             AreaURL = url + "/areas/"
+             AreasURL = url + "/areas".
     end method.
     
     method protected override logical PrepareQueryString (poQueryString as QueryString):    
@@ -410,6 +429,12 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
         do:
             hBuffer::IsAllocated =  dictdb._tenant._Tenant-attributes[2].
         end.
+        
+        if hBuffer::Type = "Regular" then
+            hbuffer::DefaultAllocation = caps(substr(hbuffer::DefaultAllocation,1,1)) 
+                                       + lc(substr(hbuffer::DefaultAllocation,2)). 
+               
+        if url > "" then do:
         assign
             cEncodeTenant = WebUtil:UrlEncode(hBuffer::Name)  
             hBuffer::Url  = TenantURL + cEncodeTenant.
@@ -420,8 +445,7 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
                 hBuffer::DefaultDataAreaUrl  = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultDataAreaName)                   
                 hBuffer::DefaultIndexAreaUrl = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultIndexAreaName)
                 hBuffer::DefaultLobAreaUrl   = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultLobAreaName)
-                hbuffer::DefaultAllocation   = caps(substr(hbuffer::DefaultAllocation,1,1)) 
-                        + lc(substr(hbuffer::DefaultAllocation,2)). 
+                    .
         end.
         assign
             hBuffer::PartitionsUrl     = TenantURL + cEncodeTenant + "/partitions"
@@ -430,7 +454,7 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
             hBuffer::SequenceValuesUrl = TenantURL + cEncodeTenant + "/sequencevalues"
             hBuffer::TenantGroupMembersURL = Tenanturl + cEncodeTenant + "/tenantgroupmembers"
             hBuffer::AreasUrl      = AreasUrl.
- 
+        end.
     end method.  
     
     /* convert type char value in query to the integer value in the db */
@@ -511,10 +535,5 @@ class OpenEdge.DataAdmin.DataSource.TenantDataSource inherits DataSource:
      
         return pccolumn.
     end method.     
-    
-    method public override logical Attach(bufferHandle as handle).
-        FieldMapping = FieldMapNoArea.
-        return super:Attach(bufferHandle).
-    end method.
     
 end class.

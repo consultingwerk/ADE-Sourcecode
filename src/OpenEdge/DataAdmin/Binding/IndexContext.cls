@@ -80,6 +80,7 @@ class OpenEdge.DataAdmin.Binding.IndexContext inherits DataAdminContext implemen
         super ("Index",pscope).   
         AddChild(pscope:IndexFieldContext).
         AddChild(pscope:PartitionContext).
+        AddChild(pscope:LocalIndexContext).
         ContextFactory = pscope.
         ExportWithRoot = false.
     end constructor.    

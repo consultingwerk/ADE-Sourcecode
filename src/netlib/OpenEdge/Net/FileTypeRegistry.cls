@@ -1,12 +1,6 @@
-/*
- * Copyright (c) 2016 by Progress Software Corporation.
- * 14 Oak Park Bedford, MA 01730.  All rights reserved.
- *
- * No part of this program or document may be reproduced
- * in  any form or by any means without permission in
- * writing from Progress Software Corporation.
- */
-  
+/************************************************
+Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
+*************************************************/ 
 /*------------------------------------------------------------------------
    File        : FileTypeRegistry
    Purpose     : Stores mappings from file extension to mime type
@@ -16,47 +10,47 @@
    Created     : Thu May 19 16:01:33 EDT 2016
    Notes       : 
  ----------------------------------------------------------------------*/
-
 block-level on error undo, throw.
 
-using OpenEdge.Core.Assert from propath.
-using OpenEdge.Net.FileTypeRegistry from propath.
+using OpenEdge.Core.Assert.
+using OpenEdge.Net.FileTypeRegistry.
 
 /** Registry for mapping file extensions to their Mime types*/
 class OpenEdge.Net.FileTypeRegistry: 
     /* Returns the number of mappings in this map.*/
-    define public property Size as integer no-undo get. 
+    define public property Size as integer no-undo 
+        get. 
         private set.
     
     define static private temp-table Registry no-undo
         field ParentRegistry as int64
         field ExtensionKey   as character 
         field MimeType       as character
-        index idx1 as primary unique ParentRegistry ExtensionKey.
-        
+        index idx1 as primary unique ParentRegistry ExtensionKey
+        index idx2                   ParentRegistry MimeType
+        .
+    
     /** Default constructor */
-    constructor public FileTypeRegistry():
+    constructor private FileTypeRegistry():
     end constructor.
-
+    
     destructor FileTypeRegistry():
         this-object:Clear().
     end destructor.
     
     define static public property Registry as FileTypeRegistry no-undo
         get():
-            define variable oRegistry as FileTypeRegistry no-undo.
+            define variable registry as FileTypeRegistry no-undo.
             if not valid-object(FileTypeRegistry:Registry) then
             do:
-                assign 
-                    oRegistry = new FileTypeRegistry().
-                FileTypeRegistry:InitializeRegistry(oRegistry).                
-                assign 
-                    FileTypeRegistry:Registry = oRegistry.
+                assign registry = new FileTypeRegistry().
+                FileTypeRegistry:InitializeRegistry(registry).
+                assign FileTypeRegistry:Registry = registry.
             end.
             return FileTypeRegistry:Registry.
         end get.
         private set.
-     
+    
     /** Adds initial values into the registry 
         
         @param BuilderRegistry The registry to populate */
@@ -1079,29 +1073,29 @@ class OpenEdge.Net.FileTypeRegistry:
         @param character The mime type of the file content for a file with the extension
         @return logical True if the type was previously registered */
     method logical Put(input pcExtensionKey as character,
-        input pcMimeType as character):
+                       input pcMimeType as character):
         define variable lExists as logical no-undo.
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcExtensionKey, 'Extension key':u).
-        Assert:NotNull(pcMimeType, 'Mime type':u).
-                
-        find lbRegistry where
-            lbRegistry.ParentRegistry eq int64(this-object) and
-            lbRegistry.ExtensionKey eq pcExtensionKey
-            no-error.
-        assign 
-            lExists = available lbRegistry.
-        if not lExists then
+        Assert:NotNullOrEmpty(pcExtensionKey, 'Extension key':u).
+        Assert:NotNullOrEmpty(pcMimeType, 'Mime type':u).
+        
+        assign lExists = can-find(lbRegistry where
+                                  lbRegistry.ParentRegistry eq int64(this-object) and
+                                  lbRegistry.ExtensionKey   eq pcExtensionKey         ).
+        if lExists then        
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.ExtensionKey   eq pcExtensionKey.
+        else
         do:
             create lbRegistry.
-            assign 
-                lbRegistry.ParentRegistry = int64(this-object)
-                lbRegistry.ExtensionKey   = pcExtensionKey
-                this-object:Size          = this-object:Size + 1.
+            assign lbRegistry.ParentRegistry = int64(this-object)
+                   lbRegistry.ExtensionKey   = pcExtensionKey
+                   this-object:Size          = this-object:Size + 1.
         end.
-        assign 
-            lbRegistry.MimeType = pcMimeType.
+        
+        assign lbRegistry.MimeType = pcMimeType.
         
         return lExists.                                       
     end method.
@@ -1114,20 +1108,22 @@ class OpenEdge.Net.FileTypeRegistry:
         define variable lExists as logical no-undo.
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcExtensionKey, 'Extension key':u).
+        Assert:NotNullOrEmpty(pcExtensionKey, 'Extension key':u).
         
-        find lbRegistry where
-            lbRegistry.ParentRegistry eq int64(this-object) and
-            lbRegistry.ExtensionKey eq pcExtensionKey
-            no-error.
-        assign 
-            lExists = available lbRegistry.
+        assign lExists = can-find(lbRegistry where
+                                  lbRegistry.ParentRegistry eq int64(this-object) and
+                                  lbRegistry.ExtensionKey   eq pcExtensionKey         ).
+        if lExists then        
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.ExtensionKey   eq pcExtensionKey.
+        
         if lExists then
         do:
             delete lbRegistry.
-            assign 
-                this-object:Size = this-object:Size - 1.
+            assign this-object:Size = this-object:Size - 1.
         end.
+        
         return lExists.                                       
     end method.    
 
@@ -1138,14 +1134,11 @@ class OpenEdge.Net.FileTypeRegistry:
     method logical Has(input pcExtensionKey as character):
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcExtensionKey, 'Extension key':u).
+        Assert:NotNullOrEmpty(pcExtensionKey, 'Extension key':u).
         
-        find lbRegistry where
-            lbRegistry.ParentRegistry eq int64(this-object) and
-            lbRegistry.ExtensionKey eq pcExtensionKey
-            no-error.
-        
-        return available lbRegistry.
+        return can-find(lbRegistry where
+                        lbRegistry.ParentRegistry eq int64(this-object) and
+                        lbRegistry.ExtensionKey   eq pcExtensionKey         ).
     end method.
     
     /** Returns a registered type, if it exists. returns null otherwise.
@@ -1157,11 +1150,14 @@ class OpenEdge.Net.FileTypeRegistry:
         
         Assert:NotNull(pcExtensionKey, 'Extension key':u).
         
-        find lbRegistry where
-            lbRegistry.ParentRegistry eq int64(this-object) and
-            lbRegistry.ExtensionKey eq pcExtensionKey
-            no-error.
-
+        if can-find(lbRegistry where
+                    lbRegistry.ParentRegistry eq int64(this-object) and
+                    lbRegistry.ExtensionKey   eq pcExtensionKey         ) then
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.ExtensionKey   eq pcExtensionKey
+                 no-error.
+        
         if available lbRegistry then
             return lbRegistry.MimeType.
         
@@ -1171,38 +1167,54 @@ class OpenEdge.Net.FileTypeRegistry:
     /** Clears all the entries from this registry */
     method public void Clear():
         define buffer lbRegistry for Registry.
-        for each lbRegistry where
-            lbRegistry.ParentRegistry eq int64(this-object):
+        
+        for each lbRegistry where lbRegistry.ParentRegistry eq int64(this-object):
             delete lbRegistry.
         end.
-        assign 
-            this-object:Size = 0.
+        assign this-object:Size = 0.
+    end method.
+    
+    /** Returns an array of the file extensions types in this registry, for the given mime type.
+        
+        @param character The mime-type. ? and * = all; empty = application/octet-stream; otherwise the input value is used
+        @return character[] The file extensions. Indeterminate array if empty. */
+    method public character extent GetKeys(input pMimeType as character):
+        define variable cKeys as character extent no-undo.
+        define buffer lbRegistry for Registry.
+        define query qryRegistry for lbRegistry.
+        
+        case pMimeType:
+            when ?     or
+            when '*':u then
+                 open query qryRegistry preselect each lbRegistry.
+            
+            when '':u then
+                open query qryRegistry preselect each lbRegistry where lbRegistry.MimeType eq 'application/octet-stream':u.
+            
+            otherwise
+                open query qryRegistry preselect each lbRegistry where lbRegistry.MimeType eq pMimeType.
+        end case.
+        
+        if query qryRegistry:num-results gt 0 then
+            assign extent(cKeys) = query qryRegistry:num-results.
+        
+        get first qryRegistry.
+        do while not query qryRegistry:query-off-end:
+            assign cKeys[query qryRegistry:current-result-row] = lbRegistry.ExtensionKey.
+            get next qryRegistry.
+        end. 
+        
+        return cKeys.
+        finally:
+            close query qryRegistry.
+        end finally.        
     end method.
     
     /** Returns an array of the key names in this registry.
         
         @return character[] The key values. Indeterminate array if empty. */
     method public character extent GetKeys():
-        define variable cKeys as character extent no-undo.
-        define buffer lbRegistry for Registry.
-        define query qryRegistry for lbRegistry.
-        
-        open query qryRegistry preselect each lbRegistry. 
-        extent(cKeys) = query qryRegistry:num-results.
-        
-        get first qryRegistry.
-        do while not query qryRegistry:query-off-end:
-            assign 
-                cKeys[query qryRegistry:current-result-row] = lbRegistry.ExtensionKey.
-            get next qryRegistry.
-        end. 
-        
-        return cKeys.
-        
-        finally:
-            close query qryRegistry.
-        end finally.
+        return GetKeys('*':u).
     end method.
     
 end class.
-

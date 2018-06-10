@@ -1114,6 +1114,11 @@ class OpenEdge.DataAdmin.Binding.Query.AbstractFilteredContext abstract inherits
     method public final void CreateRootRow(pReq as IRequestInfo).
         undo, throw new UnsupportedOperationError("NewEntity(IRequestInfo) in filtered context"). 
     end method.
+    
+    method public void RefreshRow(pFields as char, pValues as char extent).
+        Model:RefreshRow(pFields,pValues).
+    end. 
+    
     /*
     method protected void ExportQuery(pcfile as char):
         define variable hOrigBuffer as handle no-undo.

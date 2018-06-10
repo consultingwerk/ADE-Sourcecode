@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessagePart
@@ -130,7 +130,8 @@ class OpenEdge.Net.MessagePart:
     end constructor.                                       
     
     method override public character ToString():
-        return substitute('&1_&2':u, this-object:ContentType, integer(this-object)).
+        return substitute('&1_&2':u, 
+                    this-object:ContentType, 
+                    (if valid-object(this-object:Body) then this-object:Body:ToString() else string(int64(this-object)))).
     end method.
-    
 end class.

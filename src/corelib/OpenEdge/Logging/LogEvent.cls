@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LogEvent
@@ -122,8 +122,10 @@ class OpenEdge.Logging.LogEvent serializable:
         define variable cDelim as character no-undo.
         define variable cProgName as character no-undo.
         
-        // we want the line that did the logging
-        if this-object:LogLevel lt LogLevelEnum:DEBUG then
+        // we want the line that did the logging. If -debugalert is set, always show
+        if not session:debug-alert
+           and this-object:LogLevel lt LogLevelEnum:DEBUG 
+           then
             assign iMax = 1.
         
         assign cDelim = '':u

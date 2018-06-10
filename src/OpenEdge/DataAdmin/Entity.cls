@@ -10,14 +10,7 @@
     Description : 
     Author(s)   : hdaniels
     Created     : Wed Jun 23 22:17:38 EDT 2010
-    Notes       : Currently not in use as class. 
-                
-                  
-                 
-                 - adds 25% (with empty subclass) overhead to newing of subclass
-                  ... still very fast though ...
-                 if the content of the classes becomes large then 
-                 this may be useful
+    Notes       : 
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 
@@ -201,6 +194,22 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     
     /* return local contaxt if needed (if entity has child collections).  */ 
     method protected abstract IDataAdminModel CreateLocalContext().
+    /* override to return true if first request was lazy and some fields have 
+       not been retrieved  */
+    method protected logical NeedsRefresh():
+        return false.
+    end method.
+        
+    /* Refresh if necessary   */ 
+    method final protected void Refresh():
+        define variable cValues as character extent no-undo.
+        if valid-handle(mBuffer) and NeedsRefresh() then do:
+            cValues = getKeyValues().
+            Context:RefreshRow(Context:KeyFields,cValues).
+            mBuffer:find-unique ("where " + Context:GetKeyWhere(cValues)) no-error.
+            // throw error if not avail ?
+        end.    
+    end method.
     
     method protected logical SetProperty(pcPropName as char, pcValue as char):
          return context:SetProperty(mBuffer:rowid,pcPropName,pcValue).  
@@ -345,18 +354,12 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     end method.  
     
     method public integer Serialize(phHandle as handle). 
-        define variable model as IDataAdminModel no-undo.
-        if type-of(Context,IDataAdminModel) then
-        do:
-            cast(Context,IDataAdminModel):SerializeRow(mBuffer,phHandle).
+        Context:SerializeRow(mBuffer,phHandle).
             return 1.
-        end.
-        else
-            undo, throw new IllegalArgumentError("Cannot serialize entity " + ShortTypeName + "  to stream with context " + ShortContextName).
     end method.
     
     method public void Export():
-        export(lc(this-object:Context:name) + ".json").
+        Export(lc(this-object:Context:name) + ".json").
     end method.          
      
     method public void Export(pcFile as char):
@@ -381,6 +384,7 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     
     method protected void ExportData(pcFile as char):
        define variable hst as handle no-undo. 
+       Refresh().
        output stream exportstream to value(pcFile).   
        hst = stream exportstream:handle.
        this-object:Serialize(hst).
@@ -394,6 +398,8 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     method private void ExportToJson(cFile as char):
         /* create buffer to export one record  */
         define variable htbl as handle no-undo.
+        
+        Refresh().
         create temp-table htbl.
         htbl:create-like(mDefaultBuffer).
         htbl:temp-table-prepare (mDefaultBuffer:name).
@@ -408,12 +414,14 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     
     method public void ExportAsProcedure(pcfile as char ):
         define variable writer as IDataAdminExporter no-undo.
+        Refresh().
         writer = GetCodeExporter().
         writer:WriteToFile(this-object,pcfile,"all").
     end method. 
     
     method public void ExportAsProcedure(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
+        Refresh().
         writer = GetCodeExporter().
         writer:WriteToFile(this-object,pcfile,pcCollectionList).
     end method. 
@@ -422,12 +430,14 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     /** override to handle collections for this */
     method public void ExportTree(pcfile as char ):
         define variable writer as IDataAdminExporter no-undo.
+        Refresh().
         writer = GetExporter(pcfile).
         writer:WriteToFile(this-object,pcfile,"all").
     end method.       
     
     method public void ExportTree(pcfile as char,pcCollectionlist as char):
         define variable writer as IDataAdminExporter no-undo.
+        Refresh().
         writer = GetExporter(pcfile).
         writer:WriteToFile(this-object,pcfile,pcCollectionList).
     end method.     
@@ -464,26 +474,16 @@ class OpenEdge.DataAdmin.Entity abstract implements IDataAdminElement use-widget
     end method.
     
     method public void WriteTree(tree as IContextTree):
-        Context:AddRowTo(tree,mDefaultBuffer:rowid).
+        Context:AddRowTo(tree,mBuffer:rowid).
         Context:AddChildrenTo(tree,RequestInfo).
     end method.
   
     method public void WriteTree(tree as IContextTree,pcCollections as char):
-        Context:AddRowTo(tree,mDefaultBuffer:rowid).
+        Context:AddRowTo(tree,mBuffer:rowid).
         Context:AddChildrenTo(tree,pcCollections,RequestInfo).
     end method.
     
     
-    /** currently trying to avoid single element integer keys 
-        (ok in multiple keys)
-    method protected char GetKeyType():
-        return "character".
-    end method.
-     
-    method protected char GetKeyIntValue():
-        return this-object:Name.
-    end method.
-    **/
     
     method protected character extent GetKeyValues():
         define variable cKey as character no-undo.

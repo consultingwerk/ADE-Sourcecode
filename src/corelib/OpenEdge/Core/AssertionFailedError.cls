@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    File        : AssertionFailedError
@@ -10,27 +10,21 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
    Created     : Wed Jul 18 16:10:35 IST 2012
    Notes       : 
  ----------------------------------------------------------------------*/
-
-USING Progress.Lang.*.
-
-
-ROUTINE-LEVEL ON ERROR UNDO, THROW.
+BLOCK-LEVEL ON ERROR UNDO, THROW.
 
 CLASS OpenEdge.Core.AssertionFailedError INHERITS Progress.Lang.AppError: 
     DEFINE VARIABLE exceptionMessage AS CHARACTER NO-UNDO.    
 		
-    CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER ):
-        SUPER(failMessage).
-        exceptionMessage = failMessage.
+    CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER):
+        this-object(failMessage, 0).
     END CONSTRUCTOR.
     
     CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER, INPUT val AS INTEGER):
         SUPER(failMessage, val).
         exceptionMessage = failMessage.
     END CONSTRUCTOR.
-
-
-    METHOD PUBLIC CHARACTER GetMessage(  ):
+    
+    METHOD PUBLIC CHARACTER GetMessage():
         RETURN exceptionMessage.
     END METHOD.
     

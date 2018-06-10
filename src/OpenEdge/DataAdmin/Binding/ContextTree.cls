@@ -322,7 +322,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree inherits AbstractDataTree implement
                 end.
                 if btable.rid <> ? then
                 do: 
-                    jsonarray = GetJSOArrayFromRow (hbuffer,btable.name,btable.rid ).
+                    jsonarray = GetJsonArrayFromRow (hbuffer,btable.name,btable.rid ).
                 end.
                 else if btable.joinfields > "" then 
                 do:
@@ -360,7 +360,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree inherits AbstractDataTree implement
         end.
     end method.
     
-    method private JsonArray GetJSOArrayFromRow(pBuffer as handle,pcname as char,prid as rowid):
+    method private JsonArray GetJsonArrayFromRow(pBuffer as handle,pcname as char,prid as rowid):
         define variable jsonArray as JsonArray no-undo.
         define variable hBuffer as handle no-undo.
         create buffer hBuffer for table pBuffer.
@@ -368,7 +368,7 @@ class OpenEdge.DataAdmin.Binding.ContextTree inherits AbstractDataTree implement
         if hBuffer:avail then
         do:
             jsonArray = new JsonArray().
-            jsonArray:Add(GetJSONRow(hBuffer,pcname,"")).
+            jsonArray:Add(GetJsonRow(hBuffer,pcname,"")).
         end.
         return jsonArray.
         finally: 

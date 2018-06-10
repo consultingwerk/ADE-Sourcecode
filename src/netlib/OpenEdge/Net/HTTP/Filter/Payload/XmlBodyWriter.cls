@@ -16,11 +16,12 @@ block-level on error undo, throw.
 using Ccs.Common.Support.ICharacterHolder.
 using Ccs.Common.Support.IHandleHolder.
 using Ccs.Common.Support.ILongcharHolder.
+using Ccs.Common.Support.IMemptrHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.DataTypeEnum.
+using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.ISupportEncoding.
-using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.IO.FileInputStream.
 using Progress.Lang.AppError.
@@ -43,6 +44,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
     end method.
     
     method override public int64 Write(input pmData as memptr):
+        define variable xmlDecl as character no-undo.
+        
+        if get-size(pmData) eq 0 then
+            return 0.
+        
+        assign xmlDecl = get-string(pmData, 1 , min(5, get-size(pmData))).
+        // simple/dumb validation 
+        if not xmlDecl begins '<?xml':u then
+            return error new AppError(substitute('Character data does not appear to be XML; starts with "&1"',
+                                                    xmlDecl)
+                                    , 0).
+        
         // Best guess
         run adecomm/convcp.p (input  session:cpinternal,
                               input  'toMime':u,
@@ -50,11 +63,17 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
         
         cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(pmData), get-size(pmData)).
         
-        return get-size(pmData).        
+        return get-size(pmData).
     end method.
     
     method override public int64 Write(input pData as longchar):
         Assert:NotNull(pData, 'XML data').
+        
+        // simple/dumb validation 
+        if not pData begins '<?xml':u then
+            return error new AppError(substitute('Character data does not appear to be XML; starts with "&1" ',
+                                        substring(pData, 1, 5))
+                                      , 0).
         
         /* convert to ISO format from ABL */
         run adecomm/convcp.p (input  get-codepage(pData),
@@ -66,49 +85,76 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
         return length(pData, 'raw':u).
     end method.
     
+    method override public int64 Write(input pData as handle):
+        define variable mXml as memptr no-undo.
+        
+        if valid-handle(pData) then
+        case pData:type:
+            when DataTypeHelper:GetMask(DataTypeEnum:XmlDocument) then
+            do:
+                pData:save('memptr':u, mXml).
+                
+                // Do this _after_ the Write(memptr) call, since that call sets the Encoding too
+                run adecomm/convcp.p (input  pData:encoding,
+                                      input  'toMime':u,
+                                      output /*THIS-OBJECT:*/ Encoding ).
+            end.    //XML
+            
+            when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
+            when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
+            when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+            do:
+                pData:write-xml(DataTypeEnum:Memptr:ToString(), mXml, session:debug-alert).
+                // default, per the doc
+                assign this-object:Encoding = 'utf-8':u.
+            end.
+            
+            otherwise
+                return error new AppError(substitute('Unsupported handle type: &1', pData:type), 0).
+        end case.
+        
+        cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(mXml), get-size(mXml)).
+        
+        return get-size(mXml).
+        
+        // Don't clean up the hDocument handle - that should be managed by either
+        // the holder-object or whoever created it, not this code
+        finally:
+            if get-size(mXml) gt 0 then
+                set-size(mXml) = 0.
+        end finally.        
+    end method.
+    
     method override public int64 Write(input poData as Object):
-        define variable hDocument as handle no-undo.
         define variable mXml as memptr no-undo.
         define variable lcXml as longchar no-undo.
         define variable fileStream as FileInputStream no-undo.
-        define variable bytesWritten as int64 no-undo.
         
         case true:
             when not valid-object(poData) then
                 return 0.
             
-            when type-of(poData, IHandleHolder) or
-            when type-of(poData, WidgetHandle)  then
-            do:
-                // they all have a Value property
-                assign hDocument = dynamic-property(poData, 'Value':u).
-                Assert:IsType(hDocument, DataTypeEnum:XmlDocument).
-                
-                hDocument:save('memptr':u, mXml).
-                
-                assign bytesWritten = this-object:Write(mXml).
-                
-                // Do this _after_ the Write(memptr) call, since that call sets the Encoding too
-                run adecomm/convcp.p (input  hDocument:encoding,
-                                      input  'toMime':u,
-                                      output /*THIS-OBJECT:*/ Encoding ).
-                
-                return bytesWritten.
-                
-                // Don't clean up the hDocument handle - that should be managed by either
-                // the holder-object or whoever created it, not this code
-            end.    // handle
+            when type-of(poData, IMemptrHolder) then
+                return this-object:Write(cast(poData, IMemptrHolder):Value).
             
-            when type-of(poData, OpenEdge.Core.String) or
+            when type-of(poData, IHandleHolder) then
+                return this-object:Write(cast(poData, IHandleHolder):Value).
+            
             when type-of(poData, ICharacterHolder) or
             when type-of(poData, ILongcharHolder) then
             do:
                 // coerce into using the LONGCHAR version
-                assign lcXml                = dynamic-property(poData, 'Value':u)
-                       this-object:Encoding = get-codepage(lcXml)
+                assign lcXml = dynamic-property(poData, 'Value':u).
+                // simple/dumb validation 
+                if not lcXml begins '<?xml':u then
+                    return error new AppError(substitute('Character data does not appear to be XML; starts with "&1" ',
+                                                    substring(lcXml, 1, 5))
+                                    , 0).
+                
+                assign this-object:Encoding = get-codepage(lcXml).
                        .
                 // longchars are passed by-value, so don't do that
-                cast(this-object:Entity, ByteBucket):PutString(lcXml).                
+                cast(this-object:Entity, ByteBucket):PutString(lcXml).
                 return length(lcXml, 'raw':u).
             end.    // characters
             

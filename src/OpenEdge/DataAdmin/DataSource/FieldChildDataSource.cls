@@ -26,7 +26,7 @@ class OpenEdge.DataAdmin.DataSource.FieldChildDataSource inherits FieldDataSourc
      /* child of index - this is already filtered by parent so DatabaseInfo:FileExpression is not really necessary   */
     constructor public FieldChildDataSource ():
         super ("_Field,_File","dictdb._Field,dictdb._File",GetMappingHack()).  
-        BaseQuery = "for each _field no-lock, each _file of _field where " + DatabaseInfo:FileExpression  +  " no-lock".
+        BaseQueryTemplate = "for each _field&1no-lock, each _file of _field where " + DatabaseInfo:FileExpression  +  " no-lock".
     end constructor.
 
     /* The dataset gives error if the paret join is mapped across multiple source tables when 
@@ -56,9 +56,9 @@ class OpenEdge.DataAdmin.DataSource.FieldChildDataSource inherits FieldDataSourc
     end method.
     
     /* override to set replaced false in case prepare is called again (not very common... ) */
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         mreplaced = false.
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
+        super:PrepareBuffer(phBuffer).
     end method.
 
     method public override void AfterFieldRow(dataset-handle hds):

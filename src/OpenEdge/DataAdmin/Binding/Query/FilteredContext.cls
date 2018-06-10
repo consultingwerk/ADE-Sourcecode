@@ -460,10 +460,6 @@ class OpenEdge.DataAdmin.Binding.Query.FilteredContext inherits AbstractFiltered
     /** TableRefreshed  
     **/          
     method public override void TableRefreshed(msg as ITableResponse):    
-/*        message "tablerefreshed" this-object skip*/
-/*       "mess " msg:Name skip                     */
-/*       QueryHandle:prepare-string                */
-/*        view-as alert-box.                       */
         Reopen().
     end method.   
     

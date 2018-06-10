@@ -488,9 +488,13 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /*  method public ISchemaSet GetSchemas(filter as char).*/
     
     /** Get a table 
-        @param tableName name of sequence  */
+        @param tableName name of table  */
     method public ITable GetTable(tableName as char).
-
+    
+     /** Get a table 
+        @param id (_field-number)  */
+    method public ITable GetTable(id as int).
+    
     /** Get a table 
         @param tableName name of table  
         @param owner name of the table owner*/    
@@ -558,6 +562,10 @@ interface OpenEdge.DataAdmin.IDataAdminService :
     /** Get a PartitionPolicy  
         @param  name char of PartitionPolicy*/ 
     method public IPartitionPolicy GetPartitionPolicy(pname as char).
+    
+    /** Get a PartitionPolicy  
+        @param  object number int of PartitionPolicy*/ 
+    method public IPartitionPolicy GetPartitionPolicy(pid as int).
     
     /** Get a PartitionPolicy  
          @param  request IRequestInfo*/ 

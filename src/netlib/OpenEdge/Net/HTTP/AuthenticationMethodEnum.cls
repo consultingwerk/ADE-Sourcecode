@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AuthenticationMethodEnum
@@ -18,5 +18,6 @@ enum OpenEdge.Net.HTTP.AuthenticationMethodEnum:
                       Digest
                       Form
                       Other
+                      Bearer
                       .
 end enum.

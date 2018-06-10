@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RequestBuilder
@@ -26,6 +26,7 @@ using OpenEdge.Net.HTTP.AuthenticatedRequest.
 using OpenEdge.Net.HTTP.AuthenticationMethodEnum.
 using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.ConfigBuilder.
+using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.DefaultRequestBuilder.
 using OpenEdge.Net.HTTP.Filter.Auth.AuthFilterEventHandlerWrapper.
@@ -105,6 +106,10 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                        
     end method.
     
+    /** Constructor.
+    
+       @param character The HTTP method
+       @param URI The target URI    */
     constructor protected RequestBuilder(input pcMethod as character,
                                          input poURI as URI):
         super().
@@ -222,7 +227,23 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
                     :Build(string(MethodEnum:PUT), poURI)
                     :WithData(poEntity, pcContentType).
     end method.
+    
+    /** Returns a request builder for an empty POST request 
+        
+        @param  character The target URI
+        @return RequestBuilder The request builder being constructed. */
+    method static public RequestBuilder Post(input pcURI as character):
+        return RequestBuilder:Post(OpenEdge.Net.URI:Parse(pcURI)).
+    end method.
 
+    /** Returns a request builder for an empty POST request 
+        
+        @param  URI    The target URI
+        @return RequestBuilder The request builder being constructed. */
+    method static public RequestBuilder Post(input poURI as URI):
+        return RequestBuilder:Build(string(MethodEnum:POST), poURI).
+    end method.
+    
     /** Returns a request builder for a default POST request 
         
         @param  character The target URI
@@ -479,6 +500,19 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         return this-object.
     end method.
     
+    /** Adds (or replaces) a cookie
+        
+        @param  Cookie The cookie 
+        @return RequestBuilder The request builder being constructed. */
+    method public RequestBuilder AddCookie(input pCookie as Cookie):
+        Assert:NotNull(pCookie, 'Http cookie').
+        
+        /* Requests are not allowed mutiple cookies with the same name. */
+        SetOption('cookie+':u + pCookie:Name, pCookie).
+        
+        return this-object.
+    end method.
+    
     /** Adds (or replaces) a header
         
         @param  character The header name 
@@ -653,9 +687,12 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         @param Credentials The credentials for the basic auth
         @return RequestBuilder This builder object */
     method public RequestBuilder UsingDigestAuthentication(input poCredentials as Credentials):
-        return UsingCredentials(poCredentials,
-                                string(AuthenticationMethodEnum:Digest),
-                                'realm=""':u).
+        Assert:NotNull(poCredentials, 'Credentials').
+        
+        SupportsAuthentication().
+        SetOption('credentials':u, poCredentials).
+        
+        return this-object.
     end method.
 
     /** Add credentials to the HTTP Request 

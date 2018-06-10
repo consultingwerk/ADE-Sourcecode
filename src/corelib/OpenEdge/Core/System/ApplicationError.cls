@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge.Core.System.ApplicationError
@@ -54,9 +54,10 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
     method protected static void AddError(input poType as Progress.Lang.Class,
                                           input pcShortMessage as character,
                                           input pcMessage as longchar):
-        find ApplicationErrorText where 
-             ApplicationErrorText.ErrorType = poType:TypeName
-             no-error.
+        define buffer ApplicationErrorText for ApplicationErrorText.
+         
+        if can-find(ApplicationErrorText where ApplicationErrorText.ErrorType eq poType:TypeName) then
+            find ApplicationErrorText where ApplicationErrorText.ErrorType eq poType:TypeName.
         if not available ApplicationErrorText then
         do:
             create ApplicationErrorText.
@@ -108,14 +109,13 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
     method public character GetShortMessage():
         define buffer ApplicationErrorText for ApplicationErrorText.
         
-        find ApplicationErrorText where
-             ApplicationErrorText.ErrorType = this-object:GetClass():TypeName
-             no-error.
+        if can-find(ApplicationErrorText where ApplicationErrorText.ErrorType eq this-object:GetClass():TypeName) then
+            find ApplicationErrorText where ApplicationErrorText.ErrorType = this-object:GetClass():TypeName.
         
-        if not available ApplicationErrorText then
-            find ApplicationErrorText where
-                 ApplicationErrorText.ErrorType = get-class(ApplicationError):TypeName
-                 no-error.
+        if not available ApplicationErrorText 
+           and can-find(ApplicationErrorText where ApplicationErrorText.ErrorType eq get-class(ApplicationError):TypeName)
+        then
+            find ApplicationErrorText where ApplicationErrorText.ErrorType eq get-class(ApplicationError):TypeName.
         
         return substitute(ApplicationErrorText.ShortMessage,
                                GetMessage(1),
@@ -137,14 +137,14 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
         define variable cMessage as longchar no-undo.
         define buffer ApplicationErrorText for ApplicationErrorText.
         
-        find ApplicationErrorText where
-             ApplicationErrorText.ErrorType = this-object:GetClass():TypeName
-             no-error.
+        if can-find(ApplicationErrorText where 
+                    ApplicationErrorText.ErrorType eq this-object:GetClass():TypeName) then
+        find ApplicationErrorText where ApplicationErrorText.ErrorType = this-object:GetClass():TypeName.
         
-        if not available ApplicationErrorText then
-            find ApplicationErrorText where
-                 ApplicationErrorText.ErrorType = get-class(ApplicationError):TypeName
-                 no-error.
+        if not available ApplicationErrorText 
+           and can-find(ApplicationErrorText where ApplicationErrorText.ErrorType eq get-class(ApplicationError):TypeName)
+        then
+            find ApplicationErrorText where ApplicationErrorText.ErrorType = get-class(ApplicationError):TypeName.
         
         assign cMessage = ApplicationErrorText.ErrorMessage.
         return substitute(cMessage,

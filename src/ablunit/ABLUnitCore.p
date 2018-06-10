@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLUnitCore
@@ -58,6 +58,9 @@ DEFINE VARIABLE updateFile AS CHARACTER NO-UNDO.
 DEFINE VARIABLE quitOnEnd AS LOGICAL NO-UNDO INIT FALSE.
 
 /* ***************************  Main Block  *************************** */
+// Supress the warnings
+SESSION:SUPPRESS-WARNINGS = YES.
+
 commandParams = SESSION:PARAM.
 
 commandParams = TRIM(commandParams, "~"").

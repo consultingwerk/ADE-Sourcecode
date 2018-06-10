@@ -48,12 +48,11 @@ Comments,_Custom-detail"
     
     constructor public AuthenticationSystemDataSource ( ):        
         super ("_sec-authentication-system","dictdb._sec-authentication-system", mMapping). 
-        BaseQuery = "for each _sec-authentication-system no-lock".
+        BaseQueryTemplate = "for each _sec-authentication-system&1no-lock".
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):    
         phBuffer:set-callback("After-Row-fill","AfterRow").       
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     

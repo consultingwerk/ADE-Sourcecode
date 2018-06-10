@@ -277,14 +277,25 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
                     
         return lExists.
     end method.
-
+    
+    /** Stores an object value as an option
+        
+        @param Progress.Lang>Class The option name (as a type)
+        @param Object the value 
+        @return logical True is the option was overwritten    */
+    method protected logical SetOption(input pName as class Progress.Lang.Class,
+                                       input pValue as Object):
+        Assert:NotNull(pName, 'Config name').
+        return SetOption(pName:TypeName, pValue).
+    end method.
+    
     /** Stores an object value as an option
         
         @param character The option name
         @param Object the value 
         @return logical True is the option was overwritten    */
     method protected logical SetOption(input pcName as character,
-                                    input poValue as Object):
+                                       input poValue as Object):
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
          

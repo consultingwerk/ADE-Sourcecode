@@ -121,8 +121,11 @@ class OpenEdge.DataAdmin.Binding.RowBuffer implements IRow:
         
         if not valid-handle(pBuffer) then
             undo, throw new UnknownValueError("RowImpl constructor","buffer-handle").
+        if pBuffer:avail = false or pBuffer:rowid <> pRowid then do:
+            pBuffer:find-by-rowid(prowid) no-error.
         if pBuffer:avail = false then 
             undo, throw new IllegalArgumentError("Buffer passed to RowImpl is not available.").
+        end.
         KeyFields = pKeyFields. 
         if pmodel:name eq "AllTable" then
             SetKeyValues(pBuffer,pKeyFields,"").

@@ -40,6 +40,7 @@ using OpenEdge.DataAdmin.User.
 using OpenEdge.DataAdmin.UserSet.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 
 class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -503,6 +504,33 @@ class OpenEdge.DataAdmin.Binding.UserContext inherits DataAdminContext implement
         return  "ttUser.DomainName = " + quoter(cDomain) 
               + " and "
               + "ttUser.Name = " + quoter(cUserid) .
+    end method.
+    
+       /* Override to deal with the fact that id is split into namer and domain on client  */ 
+    method public override IDataAdminElement GetEntity(pKey as char).
+        define variable msg      as IFetchRequest no-undo.
+        define variable h        as handle no-undo.
+        define variable hDs      as handle no-undo.
+        define variable lok      as logical no-undo.
+        define variable cField   as character no-undo.
+        define variable cFindExp as character no-undo.
+        if not this-object:Find(pKey) then
+        do:
+            cField = KeyFields.
+            hDs = getRequestDataset().
+            if hDs:num-buffers = 1 and IsDatasetLoaded and DatasetHandle = hDs then do:
+                FetchRow(hDs, cField ,pkey, Lazy).
+            end.
+            else do:
+                msg = GetRequest(). 
+                msg:SetTableKeyValue(Tablehandle:name, cField ,pKey).
+                msg:SetTableLazy(Tablehandle:name,Lazy).
+                FetchData(msg). 
+            end.
+        end.  
+        
+        return FindEntity(pKey).
+       
     end method.
     
     /* Override to split id in name and domain  

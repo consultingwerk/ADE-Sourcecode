@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConfigFileLoggerBuilder
@@ -20,6 +20,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Util.BuilderRegistry.
+using OpenEdge.Logging.ConfigFileLoggerBuilder.
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
 using OpenEdge.Logging.Filter.LoggerFilterList.
@@ -28,12 +29,12 @@ using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Logging.VoidLogger.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
-using Progress.Lang.AppError.
-using OpenEdge.Logging.ConfigFileLoggerBuilder.
 using Progress.Json.ObjectModel.ObjectModelParser.
+using Progress.Lang.AppError.
 
 class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder: 
     // Monitors the time at which the config was last loaded
@@ -124,7 +125,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         assign lastTouch = add-interval(datetime(file-info:file-mod-date), file-info:file-mod-time, 'seconds':u).
         
         // Load config file if it exists and the file MOD timestamp is after the last value
-        if lastTouch gt CONFIG_FILE_TIMESTAMP then
+        if    CONFIG_FILE_TIMESTAMP eq ?
+           or lastTouch gt CONFIG_FILE_TIMESTAMP
+           then
         do:
             ClearConfig().
             assign CONFIG_FILE_TIMESTAMP = lastTouch. 
@@ -314,10 +317,14 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                     filterList:InsertLast(new LoggerFilterNode(filter)).
             end.
             
-            assign logWriter = new Logger(lbLogger.LoggerName, logLevel, filterList).
+            // If there are no filters, this is a void logger
+            if valid-object(filterList:First) then
+                assign logWriter = new Logger(lbLogger.LoggerName, logLevel, filterList).
+            else
+                assign logWriter = new VoidLogger(lbLogger.LoggerName).
         end.
-        
-        if not valid-object(logWriter) then
+        else
+            // if we don't have config for it, try the default (which is typically log-manager-based) 
             assign logWriter = super:GetLoggerInstance().
         
         return logWriter.

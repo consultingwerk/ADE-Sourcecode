@@ -41,6 +41,7 @@ using OpenEdge.DataAdmin.Support.IndexFieldSet.
 using OpenEdge.DataAdmin.Support.PartitionPolicyFieldList.
 using OpenEdge.DataAdmin.Support.TableFieldSet.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 
 class OpenEdge.DataAdmin.Binding.FieldContext inherits DataAdminContext : 
@@ -85,7 +86,6 @@ class OpenEdge.DataAdmin.Binding.FieldContext inherits DataAdminContext :
     
     constructor public FieldContext (pscope as ISchemaScope):
         super ("Field",pscope).
-        AddChild(pScope:PartitionContext).
         SchemaScope = pscope.
     end constructor.
     
@@ -95,9 +95,17 @@ class OpenEdge.DataAdmin.Binding.FieldContext inherits DataAdminContext :
    
     constructor protected FieldContext (pname as char,pScope as ISchemaScope):      
         super (pname,pscope).
-        AddChild(pScope:PartitionContext).
         SchemaScope = pscope.
    end constructor.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,ISchemaScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as ISchemaScope):
+        AddChild(pScope:PartitionContext).
+        AddChild(pscope:PartitionPolicyFieldContext).
+    end method.
             
     /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():

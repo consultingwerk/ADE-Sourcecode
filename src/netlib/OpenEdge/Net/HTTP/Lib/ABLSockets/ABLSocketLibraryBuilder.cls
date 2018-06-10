@@ -72,7 +72,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
         else
         do:
             assign oConnectionParams = new ClientSocketConnectionParameters().
-
+            
             /* assume a passed-in object is useable as-is. These options only apply to defaults. */            
             if HasOption(PROP_SSL_HOSTVERIFY) then
                 assign oConnectionParams:VerifyHost = GetOptionLogicalValue(PROP_SSL_HOSTVERIFY).
@@ -86,6 +86,10 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLi
             if HasOption(PROP_SSL_CIPHERS) then
                 assign oConnectionParams:SslCiphers = GetOptionStringArrayValue(PROP_SSL_CIPHERS).
             
+            if HasOption(PROP_SERVERNAME) then
+                assign oConnectionParams:ServerNameIndicator = GetOptionStringValue(PROP_SERVERNAME).
+            
+            // Finally, initialise the parmas if needed
             if type-of(oConnectionParams, ISupportInitialize) then
                 cast(oConnectionParams, ISupportInitialize):Initialize().
         end.

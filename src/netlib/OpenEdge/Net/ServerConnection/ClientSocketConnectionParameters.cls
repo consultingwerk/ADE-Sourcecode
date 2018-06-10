@@ -12,17 +12,18 @@ Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
+using OpenEdge.Core.ServerConnection.FormatMaskEnum.
+using OpenEdge.Core.ServerConnection.IConnectionParameters.
+using OpenEdge.Core.String.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
-using OpenEdge.Core.ServerConnection.IConnectionParameters.
-using OpenEdge.Core.ServerConnection.FormatMaskEnum.
-using OpenEdge.Core.Assert.
 using Progress.Lang.AppError.
-using OpenEdge.Core.String.
 
 class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters 
                 implements IConnectionParameters:
-     
+    
     define public property FormatMask as FormatMaskEnum no-undo
        get():
            return FormatMaskEnum:Custom.
@@ -45,9 +46,15 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
     
     /** (optional) An array of SSL protocols for this connection to use */
     define public property SslProtocols as character extent no-undo get. set.
-
+    
     /** (optional) An array of SSL ciphers for this connection to use */
     define public property SslCiphers as character extent no-undo get. set.
+    
+    /** (optional) The Server name indicator for TLS. Server Name Indication (SNI)
+        is an extension to the TLS computer networking protocol. 
+        
+        This value is set for the -servername connection property iff HTTPS is used */
+    define public property ServerNameIndicator as character  no-undo get. set.
     
     /* Constructor
        
@@ -89,10 +96,11 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         define variable iPort as integer no-undo.
         define variable cSSL as character no-undo.
         
+        Assert:NotNull(this-object:URI, 'URI').
         assign cHost = this-object:URI:Host
                iPort = this-object:URI:Port
-               cSSL  =  '':u.
-        
+               cSSL  = '':u
+               .
         /* double check for safety */
         Assert:NotNullOrEmpty(cHost, 'Host name').
         
@@ -110,19 +118,17 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         /* SSL connections only ... */
         if this-object:URI:Scheme eq string(UriSchemeEnum:https) then
             assign cSSL = substitute('-ssl &1 &2 &3 &4 &5':u,
-                            (if this-object:VerifyHost   eq false then '-nohostverify':u else '':u),
-                            (if this-object:ReuseSession eq false then '-nosessionreuse':u else '':u),
-                            (if extent(this-object:SslProtocols) eq ? then '':u else '-sslprotocols':u),
-                            String:Join(this-object:SslProtocols, ',':u),
-                            (if extent(this-object:SslCiphers) eq ? then '':u else '-sslciphers':u),
-                            String:Join(this-object:SslCiphers, ',':u)).
+                            /*1*/ (if this-object:VerifyHost           eq true     then '':u else '-nohostverify':u),
+                            /*2*/ (if this-object:ReuseSession         eq true     then '':u else '-nosessionreuse':u),
+                            /*3*/ (if extent(this-object:SslProtocols) eq ?        then '':u else '-sslprotocols':u + StringConstant:SPACE + String:Join(this-object:SslProtocols, ',':u)),
+                            /*4*/ (if extent(this-object:SslCiphers)   eq ?        then '':u else '-sslciphers':u   + StringConstant:SPACE + String:Join(this-object:SslCiphers, ',':u)),
+                            /*5*/ (if String:IsNullOrEmpty(ServerNameIndicator)    then '':u else '-servername':u   + StringConstant:SPACE + this-object:ServerNameIndicator)  
+                            ).
         
-        return substitute('-H &1 -S &2 &3':u, 
-                               cHost, 
-                               iPort,
-                               cSSL).
+        return substitute('-H &1 -S &2 &3':u,
+                          cHost, iPort, cSSL).
     end method.
-
+    
     method public character GetConnectionString( input pcFormatMask as character ):
         return GetConnectionString().
     end method.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultRequestBuilder
@@ -14,10 +14,10 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 using OpenEdge.Net.HTTP.HttpHeader.
-using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
@@ -83,6 +83,13 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
                  ConfigOption.ParentBuilder eq integer(this-object) and
                  ConfigOption.ConfigName begins 'header+':u:
             oRequest:SetHeader(cast(ConfigOption.ObjectValue, HttpHeader)).
+        end.
+        
+        /* cookies */
+        for each ConfigOption where
+                 ConfigOption.ParentBuilder eq integer(this-object) and
+                 ConfigOption.ConfigName begins 'cookie+':u:
+            oRequest:SetCookie(cast(ConfigOption.ObjectValue, Cookie)).
         end.
         
         /* data/entity */

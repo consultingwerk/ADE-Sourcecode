@@ -21,6 +21,7 @@ using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
 using OpenEdge.DataAdmin.DataAccess.DataMapper from propath. 
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Lang.QueryString from propath. 
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 
 
 routine-level on error undo, throw.
@@ -57,19 +58,25 @@ TenantGroupDescription,_Partition-Set._Pset-Description".
         end.
                
     constructor public TenantGroupMemberDataSource (pcFirstTable as char,pcLastTable as char):
+        define variable cQuery as character no-undo.
         super (pcFirstTable + ",_Partition-Set-Detail," + pcLastTable,
                "dictdb." + pcFirstTable + ",dictdb._Partition-Set-Detail,dictdb." + pcLastTable, 
                mMap). 
         
-        BaseQuery = "for each " + pcFirstTable + " no-lock,"
-                  + " each _Partition-Set-Detail where &1 no-lock,"
-                  + " each " + pcLastTable + " where &2 no-lock".
+        BaseQueryTemplate = "for each " + pcFirstTable + " no-lock,"
+                          + " each _Partition-Set-Detail&1no-lock".
                      
-        if pcFirstTable = "_Tenant" then 
-            BaseQuery = substitute(BaseQuery,TenantEqDetail,GroupEqDetail).
-        else 
-            BaseQuery = substitute(BaseQuery,GroupEqDetail,TenantEqDetail).
-     
+        if pcFirstTable = "_Tenant" then do:
+            BaseTableExpression = TenantEqDetail.
+            BaseQueryTemplate   = BaseQueryTemplate  
+                                + substitute(", each " + pcLastTable + " where &1 no-lock",GroupEqDetail).
+            
+        end.
+        else do:
+            BaseTableExpression = GroupEqDetail.
+            BaseQueryTemplate   = BaseQueryTemplate  
+                                + substitute(", each " + pcLastTable + " where &1 no-lock",TenantEqDetail).
+        end.
        
     end constructor.
     
@@ -83,11 +90,18 @@ TenantGroupDescription,_Partition-Set._Pset-Description".
         BaseQuery = cQuery.    
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override logical Prepare(phBuffer as handle,pcBaseQuery as char,pcTargetQuery as char,pcJoin as char):
         define variable oQueryString as class QueryString.
         define variable lOk          as logical    no-undo.
         define variable hParentRel   as handle     no-undo.
         define variable cQuery       as character no-undo.
+       
+        /* this override was added before we supported the optional basequery 
+           It is not needed here since it currently only handle single key, but add an error for protection 
+           (it is easy to add if needed)*/  
+        
+        if pcBaseQuery > "" then
+            undo, throw new UnsupportedOperationError("Prepare query with key is not supported").
         
         DataBuffer = phBuffer.    
         
@@ -98,7 +112,6 @@ TenantGroupDescription,_Partition-Set._Pset-Description".
         /* fieldmapping is set from constructor */
         DataBuffer:attach-data-source(DataSourceHandle:handle,FieldMapping) .
         
-/*        hParentRel = ParentRelation.*/
         
         if pcTargetQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
         do:

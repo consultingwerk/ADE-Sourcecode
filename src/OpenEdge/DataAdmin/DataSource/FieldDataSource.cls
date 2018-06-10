@@ -92,9 +92,8 @@ IsMultiTenant,_File-attributes[1]"
 /*            return cfieldFile + "," + cfieldField.                     */
 /*    end method.                                                        */
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterFieldRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     
@@ -102,16 +101,18 @@ IsMultiTenant,_File-attributes[1]"
         define variable cArea as character no-undo.
         define variable cAreaRef as character no-undo.
         define variable iSource as integer no-undo.
+        
+        if mBuffer::DataType = "clob" or mBuffer::DataType = "blob" then 
+        do:
         assign 
-            cArea = ""
-            cAreaRef = ""
-            iSource = lookup("_Field",Tables).
+        	mBuffer::IsLob = true
+            iSource = lookup("_Field",Tables)
+            .
         
         find dictdb._field where recid(dictdb._field) = DataSourceHandle:get-source-buffer(iSource):recid no-lock.
         find dictdb._file of _field no-lock.
         
-        if dictdb._file._file-attributes[1] = false 
-        or dictdb._file._file-attributes[2] = true then
+            if dictdb._file._file-attributes[1] = false or dictdb._file._file-attributes[2] = true then
         do:
             find dictdb._storage where dictdb._storage._db-recid = dictdb._file._db-recid
                                    and dictdb._storage._object-type = 3                                     
@@ -124,11 +125,14 @@ IsMultiTenant,_File-attributes[1]"
                 find dictdb._area where dictdb._Area._Area-number =  dictdb._storage._Area-number no-lock.   
                 assign
                     cArea    = dictdb._area._area-name       
-                    cAreaRef = url + AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default"). 
+                        cAreaRef = url + AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default") when url > "".
           end.
         end. 
+        end. /* if clob or blob  */
+        else 
+            mBuffer::IsLob = false.
+        
         assign
-            mBuffer::IsLob = mBuffer::DataType = "clob" or mBuffer::DataType = "blob"
             mBuffer::AreaName = cArea
             mBuffer::AreaURL  = cAreaRef.
     end method.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BuilderRegistry
@@ -34,7 +34,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
     constructor public BuilderRegistry():
         this-object(get-class(Progress.Lang.Object)).
     end constructor.
-
+    
     /** Constructor 
     
         Creates clone of the input registry into the current one.
@@ -46,7 +46,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         
         PutAll(poRegistry).        
     end constructor.
-
+    
     /** Constructor
     
         @param Progress.Lang.Class The type that the registered value must conform to
@@ -93,17 +93,20 @@ class OpenEdge.Core.Util.BuilderRegistry:
         Assert:NotNull(pcTypeKey, 'Type key').
         Assert:IsType(poType, this-object:ValueType).
                 
-        find lbRegistry where
-             lbRegistry.ParentRegistry eq int64(this-object) and
-             lbRegistry.TypeKey eq pcTypeKey
-             no-error.
-        assign lExists = available lbRegistry.
-        if not lExists then
+        assign lExists = can-find(lbRegistry where
+                                  lbRegistry.ParentRegistry eq int64(this-object) and
+                                  lbRegistry.TypeKey        eq pcTypeKey).
+        
+        if lExists then
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.TypeKey        eq pcTypeKey.
+        else
         do:
             create lbRegistry.
             assign lbRegistry.ParentRegistry = int64(this-object)
-                   lbRegistry.TypeKey = pcTypeKey
-                   this-object:Size = this-object:Size + 1.
+                   lbRegistry.TypeKey        = pcTypeKey
+                   this-object:Size          = this-object:Size + 1.
         end.
         assign lbRegistry.Type = poType.
         
@@ -120,13 +123,16 @@ class OpenEdge.Core.Util.BuilderRegistry:
         
         Assert:NotNull(pcTypeKey, 'Type key').
         
-        find lbRegistry where
-             lbRegistry.ParentRegistry eq int64(this-object) and
-             lbRegistry.TypeKey eq pcTypeKey
-             no-error.
-        assign lExists = available lbRegistry.
+        assign lExists = can-find(lbRegistry where
+                                  lbRegistry.ParentRegistry eq int64(this-object) and
+                                  lbRegistry.TypeKey        eq pcTypeKey).
+        
         if lExists then
         do:
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.TypeKey        eq pcTypeKey
+                 .
             delete lbRegistry.
             assign this-object:Size = this-object:Size - 1.
         end.
@@ -141,13 +147,10 @@ class OpenEdge.Core.Util.BuilderRegistry:
         define buffer lbRegistry for Registry.
         
         Assert:NotNull(pcTypeKey, 'Type key').
-        
-        find lbRegistry where
-             lbRegistry.ParentRegistry eq int64(this-object) and
-             lbRegistry.TypeKey eq pcTypeKey
-             no-error.
-        
-        return available lbRegistry.
+
+        return can-find(lbRegistry where
+                        lbRegistry.ParentRegistry eq int64(this-object) and
+                        lbRegistry.TypeKey        eq pcTypeKey).
     end method.
     
     /** Returns a registered type, if it exists. returns null otherwise.
@@ -159,13 +162,16 @@ class OpenEdge.Core.Util.BuilderRegistry:
         
         Assert:NotNull(pcTypeKey, 'Type key').
         
-        find lbRegistry where
-             lbRegistry.ParentRegistry eq int64(this-object) and
-             lbRegistry.TypeKey eq pcTypeKey
-             no-error.
-
-        if available lbRegistry then
-            return cast(lbRegistry.Type, Progress.Lang.Class).
+        if can-find(lbRegistry where
+                    lbRegistry.ParentRegistry eq int64(this-object) and
+                    lbRegistry.TypeKey        eq pcTypeKey) then
+        do:                    
+            find lbRegistry where
+                 lbRegistry.ParentRegistry eq int64(this-object) and
+                 lbRegistry.TypeKey eq pcTypeKey
+                 .
+                return cast(lbRegistry.Type, Progress.Lang.Class).
+        end.
         
         return ?.
     end method.

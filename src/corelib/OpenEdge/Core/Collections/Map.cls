@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2015, 2017-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Map
@@ -12,22 +12,22 @@ Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-using OpenEdge.Core.Collections.ICollection.
-using OpenEdge.Core.Collections.IMap.
-using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.ISet.
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.EntrySet.
+using OpenEdge.Core.Collections.ICollection.
+using OpenEdge.Core.Collections.IIterator.
+using OpenEdge.Core.Collections.IMap.
+using OpenEdge.Core.Collections.ISet.
 using OpenEdge.Core.Collections.KeySet.
 using OpenEdge.Core.Collections.Map.
 using OpenEdge.Core.Collections.ValueCollection.
-
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.Collections.Map serializable
         implements IMap:
     
-    define temp-table ttMap no-undo 
+    define protected temp-table ttMap no-undo 
       field KeyRef      as Object 
       field ValueRef    as Object
       index validx ValueRef
@@ -35,8 +35,8 @@ class OpenEdge.Core.Collections.Map serializable
     
     /* The size of the Map, being the number of keys */
     define public property Size as integer no-undo 
-    get.
-    private set. 
+        get.
+        private set. 
     
     /* A collection of only the values in the Map */
     define public property Values as ICollection no-undo 
@@ -143,32 +143,27 @@ class OpenEdge.Core.Collections.Map serializable
        @param ICollection The collection of keys
        @return logical TRUE if all of the keys in the input collection are in the map */
     method public logical ContainsAllKeys(input poKeys as ICollection):
-        define variable lContains as logical no-undo.
         define variable oIterator as IIterator.
-        define variable oCheckObject as Object no-undo.
         
-        /* if both are empty collections then true */
-        lContains = poKeys:IsEmpty() and this-object:IsEmpty().
+        Assert:NotNull(poKeys, 'Check keys').
+        
+        /* if the 'check' collection is empty, then true */  
+        if poKeys:IsEmpty() then
+            return true.
         
         /* if the passed in collection is larger than this collection,
-           this cannot be true. */        
-        if not lContains then
-            lContains = poKeys:size le this-object:size.
+           this cannot be true. */
+        if poKeys:Size gt this-object:Size then
+            return false.
         
         /* one or both collections has data */
-        if not lContains then
-        do:
-            oIterator = poKeys:Iterator().
-        
-            do while oIterator:HasNext():
-                oCheckObject = oIterator:Next().
-                lContains = this-object:ContainsKey(oCheckObject).
-                if not lContains then
-                    leave.
-            end.
+        oIterator = poKeys:Iterator().
+        do while oIterator:HasNext():
+            if not this-object:ContainsKey(oIterator:Next()) then
+                return false.
         end.
         
-        return lContains.
+        return true.
     end method.
     
     /* Returns true if this map contains all of the values passed in. 
@@ -176,31 +171,27 @@ class OpenEdge.Core.Collections.Map serializable
        @param ICollection The collection of values 
        @return logical TRUE if all of the values in the input collection are in the map */
     method public logical ContainsAllValues(input poValues as ICollection):
-        define variable lContains as logical no-undo.
         define variable oIterator as IIterator.
-        define variable oCheckObject as Object no-undo.
         
-        /* if both are empty collections then true */
-        lContains = poValues:IsEmpty() and this-object:IsEmpty().
+        Assert:NotNull(poValues, 'Check values').
+        
+        /* if the 'check' collection is empty, then true */  
+        if poValues:IsEmpty() then
+            return true.
         
         /* if the passed in collection is larger than this collection,
-           this cannot be true. */        
-        lContains = poValues:size le this-object:size.
+           this cannot be true. */
+        if poValues:Size gt this-object:Size then
+            return false.
         
         /* one or both collections has data */
-        if not lContains then
-        do:
-            oIterator = poValues:Iterator().
-        
-            do while oIterator:HasNext():
-                oCheckObject = oIterator:Next().
-                lContains = this-object:ContainsValue(oCheckObject).
-                if not lContains then
-                    leave.
-            end.
+        oIterator = poValues:Iterator().
+        do while oIterator:HasNext():
+            if not this-object:ContainsValue(oIterator:Next()) then
+                return false.
         end.
         
-        return lContains.
+        return true.
     end method.
     
     /* Returns true if this map contains the value passed in. 
@@ -234,13 +225,14 @@ class OpenEdge.Core.Collections.Map serializable
         if not valid-object(poKey) then
             return oValue.
         
-        find lbMap where lbMap.KeyRef = poKey no-error.
+        if can-find(lbMap where lbMap.KeyRef eq poKey) then
+            find lbMap where lbMap.KeyRef = poKey.
         if avail lbMap then
-            oValue = lbMap.ValueRef.
+            assign oValue = lbMap.ValueRef.
         
         for each lbMap while not valid-object(oValue):
             if lbMap.KeyRef:Equals(poKey) then
-                oValue = lbMap.ValueRef.
+                assign oValue = lbMap.ValueRef.
         end.
         
         return oValue.
@@ -255,31 +247,35 @@ class OpenEdge.Core.Collections.Map serializable
     method public Object Put(poKey as Object, poValue as class Object):
         define variable oOld as Object no-undo.
         define buffer lbMap for ttMap.
-    
+        define buffer putMap for ttMap.
+        
         if poKey:Equals(this-object) then 
              undo, throw new AppError("A Map cannot have itself as key.").
         /* not a real transaction, but scoping of updates 
           (not tested without, so not sure if it is really needed... )  */
         do transaction:
             /* try by-reference first */
-            find ttMap where ttMap.KeyRef = poKey no-error.
-            if not available ttMap then        
-            for each lbMap while not available ttMap:
-                if lbMap.KeyRef:Equals(poKey) then
-                    find ttMap where rowid(ttMap) = rowid(lbMap) no-error.
+            if can-find(lbMap where lbMap.KeyRef eq poKey) then
+                find putMap where putMap.KeyRef eq poKey.
+            if not available putMap then        
+            for each lbMap while not available putMap:
+                if lbMap.KeyRef:Equals(poKey) then 
+                    find putMap where rowid(putMap) eq rowid(lbMap).
             end.
-                        
-            if not avail ttMap then
+            // Add an entry
+            if not avail putMap then
             do:
-                create ttMap.
-                assign ttMap.KeyRef = poKey
+                create putMap.
+                assign putMap.KeyRef = poKey
                        Size = Size + 1.
             end.
-            else 
-                oOld = ttMap.ValueRef.
+            else
+                // Update an entry
+                assign oOld = putMap.ValueRef.
             
-            ttMap.ValueRef = poValue.
+            assign putMap.ValueRef = poValue.
         end.
+        
         return oOld.
     end method.
     
@@ -296,7 +292,7 @@ class OpenEdge.Core.Collections.Map serializable
             this-object:Put(oKey,poMap:Get(oKey)).
         end.
     end method.
-        
+    
     /* Removes an entry
      
        @param Object The key for the entry to remove
@@ -305,23 +301,26 @@ class OpenEdge.Core.Collections.Map serializable
     method public Object Remove(input poKey as Object):
         define variable oOld as Object no-undo.
         define buffer lbMap for ttMap.
+        define buffer removeMap for ttMap.
         
         if not valid-object(poKey) then
             return ?.
         
         /* try by-reference first */
-        find ttMap where ttMap.KeyRef = poKey no-error.
-        if not available ttMap then
-        for each lbMap while not available ttMap:
+        if can-find(removeMap  where removeMap.KeyRef eq poKey) then
+            find removeMap where removeMap.KeyRef eq poKey.
+        
+        if not available removeMap then
+        for each lbMap while not available removeMap:
             if lbMap.KeyRef:Equals(poKey) then
-                find ttMap where rowid(ttMap) = rowid(lbMap) no-error.
+                find removeMap where rowid(removeMap) eq rowid(lbMap).
         end.
         
-        if avail ttMap then
+        if avail removeMap then
         do:
-            oOld = ttMap.ValueRef.
-            delete ttMap.
-            Size = Size - 1.
+            assign oOld = removeMap.ValueRef
+                   Size = Size - 1.
+            delete removeMap.
         end.
         
         return oOld.
@@ -332,26 +331,27 @@ class OpenEdge.Core.Collections.Map serializable
         @param ICollection A collection of keys to remove */
     method public void RemoveAll(input poKeys as ICollection).
         define variable oIterator as IIterator no-undo.
-        define variable oRemove  as Object. 
-
+        define variable oRemove  as Object.
+        define buffer removeMap for ttMap. 
+        
         oIterator = poKeys:iterator().
         do while oIterator:HasNext():
             oRemove = oIterator:Next().
-            for each ttMap where ttMap.KeyRef eq oRemove:
-                delete ttMap.
+            for each removeMap where removeMap.KeyRef eq oRemove:
+                delete removeMap.
                 Size = Size - 1.
             end.
             
-            for each ttMap:
-                if ttMap.KeyRef:Equals(oRemove) then
+            for each removeMap:
+                if removeMap.KeyRef:Equals(oRemove) then
                 do:
-                    delete ttMap.
+                    delete removeMap.
                     Size = Size - 1.
                 end.
             end.
         end.
     end method.
-                    
+    
     /* Constructor. Creates a new map an populates with with a set of values.
     
        @param IMap Contains values to add to this map */
@@ -374,5 +374,5 @@ class OpenEdge.Core.Collections.Map serializable
     destructor public Map ( ):
         this-object:Clear().
     end destructor.
-      
+
 end class.

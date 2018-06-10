@@ -28,10 +28,9 @@ define  temp-table ttUser no-undo  serialize-name "users" {1} before-table ttUse
     field IsSqlOnly     as logical        serialize-name "isSqlOnly"  
     field Number        as integer        serialize-name "number"
     field DomainName    as character      serialize-name "domainName" format "x(25)"
-    field DomainId      as integer        serialize-hidden 
     field DomainUrl     as character      serialize-name "domain_url"  
     field TenantName    as character      serialize-name "tenantName" format "x(20)"
-    /* currently used for query mapping */
+    /* currently used for query mapping and lazy logic */
     field TenantId      as integer        serialize-hidden init ?
     field TenantUrl     as character      serialize-name "tenant_url"
     field UserPermissionUrl as character  serialize-name "userPermission_url"

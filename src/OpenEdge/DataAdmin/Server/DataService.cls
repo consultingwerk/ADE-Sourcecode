@@ -34,6 +34,9 @@ using OpenEdge.DataAdmin.Message.IUtilityResponse from propath.
 using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
 using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.ConnectionError from propath.
+using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
+using OpenEdge.DataAdmin.Message.TableRequest from propath.
 
 class OpenEdge.DataAdmin.Server.DataService: 
     define public event RequestCompleted signature void (name as char). 
@@ -123,6 +126,37 @@ class OpenEdge.DataAdmin.Server.DataService:
     method public void FetchData(msg as IFetchRequest):
         RetrieveData(msg).
     end method.     
+    
+    /* short circuit and go straight to datasource request for single row in single table dataset  */ 
+    method public void FetchRow(pEntity as char,pId as char,pUrl as char,pDataset as handle,pField as char, pvalue as char, plazy as logical):
+        define variable pMsg        as IFetchREquest no-undo.
+        define variable hBuffer     as handle        no-undo.
+        define variable oDataSource as IDataSource   no-undo.
+        
+        assign
+            hBuffer     = pDataset:get-buffer-handle(1)
+            oDataSource = DataAccessFactory:GetDataSource(pEntity)
+            .
+
+        if valid-object(oDataSource) then do on error undo, throw:
+            assign
+                oDataSource:Url = pUrl 
+                oDataSource:fillMode = "append".
+            	oDataSource:Prepare(hBuffer,new TableRequest(hBuffer:table-handle:name,pfield,pValue,pLazy)).
+            	pDataset:fill().
+            	finally:
+                	/* datasources have dataset events and will not be picked up by garbage collection */
+                	if valid-object(oDataSource) then
+                    	delete object oDataSource.        
+            	end finally.            	
+        end.
+        else do:
+            pMsg = new FetchRequest(pEntity,pId,pDataset,true).
+            pMsg:SetTableKeyValue(hBuffer:table-handle:name,pField,pValue).
+            pMsg:SetTableLazy(hBuffer:table-handle:name,plazy).
+            RetrieveData(pmsg).
+        end.
+    end method. 
    
     method private void RetrieveData(msg as IFetchRequest):
         /* 1 dummy compiler bug workaround e 
@@ -130,7 +164,6 @@ class OpenEdge.DataAdmin.Server.DataService:
         define variable da as IDataAccess no-undo. 
         da = GetDataAccess(msg:EntityName).
         da:FetchData(msg). 
-/*        this-object:GetDataAccess(msg:EntityName):FetchData(msg).*/
         RequestComplete:Publish(msg:SerializeName,msg:ContextId).  
     end method.
  
@@ -141,60 +174,15 @@ class OpenEdge.DataAdmin.Server.DataService:
         
         util:Execute(msg).
         response = util:GetResponse().
-        /* currently no response */
          
         return response. 
-/*        this-object:GetDataAccess(msg:EntityName):FetchData(msg).*/
     end method. 
- 
-  /*  
-    method private void xxRetrieveData(name as char, datasetHdl as handle, url as char, filter as char):
-        define var hCopy as handle no-undo.
-       
-        if name = "SchemaChanges" then 
-            GetDataAccess(name):FetchData(datasetHdl,url,filter).
-        else 
-        do:
-            create dataset hCopy.
-            hCopy:create-like(datasetHdl).
-            
-            if filter > "" then 
-                GetDataAccess(name):FetchData(hCopy,url,filter).
-            else
-                GetDataAccess(name):FetchData(hCopy, url).
-         
-            datasetHdl:copy-dataset(hCopy,yes,yes).
-
-        end.
-        RequestCompleted:Publish(name).  
-    end method.
-*/
     method public ISaveRequest SaveData(  msg as ISaveRequest):
        define variable da as IDataAccess no-undo. 
        da = GetDataAccess(msg:EntityName).
        return da:SaveData(msg).
  
     end method.   
-    /*
-    method public handle SaveData(name as char, datasetHdl as handle, url as char):
-        define variable da as IDataAccess no-undo. 
-        da = GetDataAccess(name).
-        return da:SaveData(datasetHdl,url). 
-        /* compiler confused:
-        return GetDataAccess(name):SaveData(datasetHdl,url).*/
- 
-    end method.   
-    
-    method public handle SaveRow(name as char, bufferHdl as handle, url as char):
-        define variable da as IDataAccess no-undo. 
-        da = GetDataAccess(name).
-        return da:SaveData(bufferHdl:handle,url). 
- 
-     /* compiler confused       
-          return GetDataAccess(name):SaveData(bufferHdl:handle,url).*/
- 
-    end method. 
-    */
     method private void ValidateConnection(  ): 
          define variable cpath as character no-undo. 
          define variable cFullName as character no-undo.

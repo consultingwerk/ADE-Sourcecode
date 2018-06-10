@@ -42,9 +42,8 @@ IsAscending,_Ascending"
 		BaseQuery = "for each _file where " + DatabaseInfo:FileExpression  +  " no-lock, each _index of _file no-lock, each _index-field of _index no-lock, first _Field of _index-field no-lock".
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterIndexFieldRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     

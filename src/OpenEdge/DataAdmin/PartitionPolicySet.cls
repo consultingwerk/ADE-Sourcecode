@@ -103,8 +103,6 @@ class OpenEdge.DataAdmin.PartitionPolicySet inherits DataAdminCollection impleme
     end method. 
          
     method public override void ExportTree(pcfile as char,pcCollectionlist as char):
-        define variable writer as IDataAdminExporter no-undo.
-        define variable codewriter as CodeWriter no-undo.
         define variable fileext as character no-undo.
         define variable iPos as integer no-undo.
         fileExt = GetFileExtension(pcFile).
@@ -125,10 +123,10 @@ class OpenEdge.DataAdmin.PartitionPolicySet inherits DataAdminCollection impleme
             end.
             otherwise 
             do:
-               iPos = lookup("Fields",pcCollectionList).
-               if iPos > 0 then
+               if lookup("Fields",pcCollectionList) > 0 then
                     undo, throw new UnsupportedOperationError("Export of Fields collection. Use PartitionPolicyFields instead.").
-               
+               if lookup("Indexes",pcCollectionList) > 0 then
+                   undo, throw new UnsupportedOperationError("Export of Indexes collection. Use LocalIndexes instead.").
             end.
         end.
             

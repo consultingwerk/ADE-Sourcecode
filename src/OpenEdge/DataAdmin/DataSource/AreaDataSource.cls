@@ -48,12 +48,11 @@ NumExtents,_area-extents"
    
 	constructor public AreaDataSource ( ):	    
 		super ("_Area","dictdb._Area", mMapping). 
-		BaseQuery = "for each _Area no-lock".
+		BaseQueryTemplate = "for each _Area&1no-lock".
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterAreaRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     
@@ -77,9 +76,6 @@ NumExtents,_area-extents"
             hBuffer = hds:get-buffer-handle("ttArea")
             isource = lookup("_Area",Tables)
             iType   = DataSourceHandle:get-source-buffer(isource)::_Area-type
-            hBuffer::url = url + "/areas/" + WebUtil:URLEncode(hBuffer::name)   
-            hBuffer::PartitionsURL = hBuffer::url + "/partitions"
-            hBuffer::ExtentsURL    = hBuffer::url + "/extents"   
             hBuffer::IsType2       = hBuffer::clustersize = 8 
                                      or
                                      hBuffer::clustersize = 64 
@@ -90,6 +86,12 @@ NumExtents,_area-extents"
                                        then 1
                                        else exp(2,hbuffer::RecordsPerBlock)
             hBuffer::type = AreaTypeNames[iType].                           
+        if url > "" then
+            assign
+                hBuffer::url = url + "/areas/" + WebUtil:URLEncode(hBuffer::name)   
+                hBuffer::PartitionsURL = hBuffer::url + "/partitions"
+                hBuffer::ExtentsURL    = hBuffer::url + "/extents"   
+                .                         
     end method.     
     
     method private char RecordsPerBlockExpression( pcOperator as char,pcValue as char):

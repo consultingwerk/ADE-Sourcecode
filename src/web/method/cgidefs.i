@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2016 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2016, 2018 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -130,6 +130,10 @@ DEFINE NEW GLOBAL SHARED VARIABLE SelDelim          AS character FORMAT "x":U
    function has not been run yet which should imply no other output has
    been sent either. */
 DEFINE NEW GLOBAL SHARED VARIABLE output-content-type AS character NO-UNDO.
+
+/* Flag to indicate whether the HTTP status line has already been written. Used by PASOE/WEB mainly,
+   which will set it to false at the appropriate time. */
+define new global shared variable http-status-written as logical no-undo.
 
 /* Newline characters to use for the output-http-header() function.
    Some web servers do not allow the CR, LF combination but only support

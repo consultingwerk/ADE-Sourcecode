@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2016 by Progress Software Corporation. All rights*
+* Copyright (C) 2005-2016, 2018 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -45,12 +45,9 @@ procedure process-web-request :
         
     output {&WEBSTREAM} TO "WEB":U.
     
-    /* This MUST be the first thing written */
-    output-http-header("", "HTTP/1.1 200 OK":U).
-      
     /* Parse the request/CGI from the web server. */
     run init-cgi in web-utilities-hdl.
-
+    
     /* Initialize for web-request. */
     run init-request in web-utilities-hdl.
 
@@ -82,8 +79,6 @@ procedure process-web-request :
                  (if AppProgram = "ping":U  then "webutil/ping.p":U  else
                  (if AppProgram = "reset":U then "webutil/reset.p":U else
                   AppProgram))).
-  
-    
     run run-web-object in web-utilities-hdl (AppProgram) no-error. 
 
     /* Run clean up and maintenance code */

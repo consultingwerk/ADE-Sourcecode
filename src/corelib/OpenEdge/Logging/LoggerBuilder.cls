@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LoggerBuilder
@@ -30,16 +30,24 @@ using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.VoidLogger.
 
 class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
+    /* Private variable with the enum (int64) vaues in the OpenEdge.Logging.LogLevelEnum type. Used
+       when we get the default log-manager-based logger */
+    define static private variable mLogLevels as character no-undo.
+    
+    /* Holds the maximum log level in the OpenEdge.Logging.LogLevelEnum type. Used
+       when we get the default log-manager-based logger*/
+    define static private variable mMaxLogLevel as int64 no-undo.
+    
     /* returns a logger instance */
     define public property Logger as ILogWriter no-undo 
         get():
             return GetLoggerInstance(). 
         end get.
     
-    // (mandatory) The logger type that we want to build 
+    /* (mandatory) The logger type that we want to build */ 
     define public property LoggerType as character no-undo get. private set.
     
-    // The name of the default logger to use in the GetLogger() method.
+    /* The name of the default logger to use in the GetLogger() method. */
     define static public property DefaultLogger as character no-undo get. set.
     
     /** Registry for mapping builder types to their implementations
@@ -57,6 +65,18 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             return LoggerBuilder:Registry.
         end get.
         private set.
+    
+    /* Static constructor */
+    constructor static LoggerBuilder():
+        define variable cnt as integer no-undo.
+        
+        assign mLogLevels   = get-class(LogLevelEnum):GetEnumValues()
+               mMaxLogLevel = 0
+               .
+        do cnt = num-entries(mLogLevels) to 1 by -1:
+            assign mMaxLogLevel = max(mMaxLogLevel, int64(entry(cnt, mLogLevels))).
+        end.
+    end constructor.
     
     /* Constructor
        
@@ -191,11 +211,27 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
        @return ILogWriter A new or cached logged */
     method protected ILogWriter GetLoggerInstance():
         define variable logWriter as ILogWriter no-undo.
+        define variable logAt as LogLevelEnum no-undo.
         
         if log-manager:logfile-name ne ? then
         do:
+            // use the specified/configured value first 
             if not HasOption('logLevel':u) then
-                LogAt(LogLevelEnum:GetEnum(log-manager:logging-level)) no-error.
+            do:
+                if log-manager:logging-level gt mMaxLogLevel then
+                    assign logAt = LogLevelEnum:GetEnum(mMaxLogLevel).
+                else
+                if lookup(string(log-manager:logging-level), mLogLevels) gt 0 then
+                    assign logAt = LogLevelEnum:GetEnum(log-manager:logging-level).
+                else
+                    assign logAt = LogLevelEnum:DEFAULT.
+                
+                LogAt(logAt).
+            end.
+            
+            // If the debug-alert flag is set, then write the log stack
+            if session:debug-alert then
+                AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
             
             AddFilter(LoggerFilterRegistry:ABL_SUBSTITUTE_FORMAT).
             AddFilter(LoggerFilterRegistry:ERROR_FORMAT).

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Memptr
@@ -169,7 +169,7 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         @param  int64 The start potision
         @return longchar The character/string data requested     */
     method public longchar GetString(input piStartPos as int64):
-        return GetString(piStartPos, this-object:Size - piStartPos).
+        return GetString(piStartPos, this-object:Size - piStartPos + 1).
     end.
 
     /** Returns a string/character representation a particular number of bytes,

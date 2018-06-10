@@ -28,7 +28,6 @@ using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.KeyValuePair.
-using OpenEdge.Core.Session.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
@@ -683,14 +682,15 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                        writer = EntityWriterBuilder:Build(poArg:Operation:ContentType)
                                     :WriteTo(oJson)
                                     :Writer.
-                writer:Open().
-                
-                // single write
-                writer:Write(new KeyValuePair(
-                                    poArg:Parameter:OutputElementName[piIdx],
-                                    poArg:ArgumentValue)).
-                
-                writer:Close().
+                if valid-object(writer) then
+                do:
+                    writer:Open().
+                    // single write
+                    writer:Write(new KeyValuePair(
+                                        poArg:Parameter:OutputElementName[piIdx],
+                                        poArg:ArgumentValue)).
+                    writer:Close().
+                end.
             end.    /* json */
             
             when MimeTypeHelper:IsFormEncoded(poArg:Operation:ContentType) then

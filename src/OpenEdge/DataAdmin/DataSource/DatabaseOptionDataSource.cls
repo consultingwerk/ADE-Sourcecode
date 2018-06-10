@@ -49,15 +49,14 @@ OptionValue,_Db-option-value"
         super ("_db-option":u,
                "dictdb._db-option":u,
                mMapping).
-		BaseQuery = "for each _db-option where ":u 
-		          + substitute(" _db-option._db-recid eq &1 no-lock ":u, this-object:DatabaseInfo:DatabaseRecid).
+		BaseTableExpression = substitute("_db-option._db-recid eq &1":u, this-object:DatabaseInfo:DatabaseRecid).
+		BaseQueryTemplate  = "for each _db-option&1no-lock". 
         
         run prodict/_dctadmn.p ( input userid('dictdb':u), output mIsAdmin).
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill":u, "AfterDbOptionRow":u).
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
     end method.
     
     /** Save all  
@@ -281,7 +280,7 @@ OptionValue,_Db-option-value"
         assign hBuffer      = hds:get-buffer-handle("ttDbOption":u)
                hBuffer::Url = substitute('&1/dboptions/&2':u,
                                             this-object:Url,
-                                            WebUtil:UrlEncode(hBuffer::Code))
+                                            WebUtil:UrlEncode(hBuffer::Code)) when url > ""
                .        
         /* we cannot create a builtin so the value is always correct on save (false if new, from read if update) */    
         if not mSave then

@@ -762,7 +762,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                 assign oCatalog     = new JsonObject()
                        
                        operationURL      = new URI(poRequest:URI:Scheme, poRequest:URI:Host, poRequest:URI:Port)
-                       operationURL:Path = poRequest:TransportPath + '/' + poRequest:PathInfo
+                       operationURL:Path = trim(poRequest:WebAppPath, '/':u)  + '/':u + trim(poRequest:TransportPath, '/':u) + '/' + trim(poRequest:PathInfo, '/':u)
                        .
                 oCatalog:Add('uri':u, regdOps[opsCnt]:ServiceURI).
                 oCatalog:Add('method':u, string(regdOps[opsCnt]:Method)).
@@ -772,7 +772,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                     operationURL:AddPathSegment(regdSvc[svcCnt]:Name).
                 if not regdOps[opsCnt]:ServiceURI eq ServiceRegistry:ROOT_SERVICE_URI then
                     operationURL:AddPathSegment(regdOps[opsCnt]:ServiceURI).
-                      
+                
                 oCatalog:Add('url':u, operationURL:ToString()).
                 
                 svcOps:Add(oCatalog). 
@@ -1098,18 +1098,31 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
            We will have either a JsonObject, a WidgetHandle(XML) or Memptr (everything else). */
         if type-of(oBody, Memptr) then
         do:
-            assign oEntityWriter = EntityWriterBuilder:Build(poRequest):Writer.
-            if valid-object(oEntityWriter) then
+            if poRequest:ContentType eq '':u then
+                Logger:Warn(substitute('Request "&1 &2" has no Content-Type header. The &3 may not be able to process the request properly.',
+                                poRequest:Method,
+                                poRequest:URI:ToString(),
+                                this-object:GetClass():TypeName )).
+            else
             do:
-                oEntityWriter:Open().
-                oEntityWriter:Write(oBody).
-                oEntityWriter:Close().
-                
-                assign oBody = oEntityWriter:Entity.
-                
-                Logger:Trace(substitute('Request body written as &1 for Content-Type &2',
-                                oBody:GetClass():TypeName,
-                                poRequest:ContentType)).
+                assign oEntityWriter = EntityWriterBuilder:Build(poRequest):Writer.
+                if valid-object(oEntityWriter) then
+                do:
+                    oEntityWriter:Open().
+                    oEntityWriter:Write(oBody).
+                    oEntityWriter:Close().
+                    
+                    assign oBody = oEntityWriter:Entity.
+                    
+                    Logger:Trace(substitute('Request body written as &1 for Content-Type &2',
+                                    oBody:GetClass():TypeName,
+                                    poRequest:ContentType)).
+                end.
+                else
+                    Logger:Warn(substitute('Unable to find entity writer for Content-Type &3 header for request &1 &2',
+                                    poRequest:Method,
+                                    poRequest:URI:ToString(),
+                                    poRequest:ContentType)).
             end.
         end.
         

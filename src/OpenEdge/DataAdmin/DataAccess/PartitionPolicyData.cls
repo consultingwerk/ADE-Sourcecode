@@ -112,6 +112,7 @@ class OpenEdge.DataAdmin.DataAccess.PartitionPolicyData inherits DataAccess :
         define variable lChildBatch  as logical no-undo.
         define variable i as integer no-undo.
         define variable hBuff as handle no-undo.
+        define variable cc as character no-undo.
         hPolicyDetail = msg:DataHandle:get-buffer-handle ("ttPartitionPolicyDetail").
         
         if valid-handle(hPolicyDetail) then
@@ -206,7 +207,12 @@ class OpenEdge.DataAdmin.DataAccess.PartitionPolicyData inherits DataAccess :
         hPolicyField = msg:DataHandle:get-buffer-handle ("ttPartitionPolicyField").
         if valid-handle(hPolicyField) then
         do:
-  
+            /* The field list needed to build the partitionPolictfields are
+               stored in an extent in the partitionpolicy table. (nice...)
+               if the partitionpolicy is in this request there is a 
+               beforefill method that will grab the fields from the the ttPartitioPolicyfield
+            */
+
             PartitionPolicyFieldSource = new PartitionPolicyFieldDataSource().   
             PartitionPolicyFieldSource:FillMode = "Append".
             PartitionPolicyFieldSource:Url = URL.
@@ -216,6 +222,16 @@ class OpenEdge.DataAdmin.DataAccess.PartitionPolicyData inherits DataAccess :
                 PartitionPolicyFieldSource:Prepare(hPolicyField,tableRequest).         
             else
                 PartitionPolicyFieldSource:Prepare(hPolicyField).            
+            /* if the partitionpolicy is not part of this request the 
+               partitionpolicyfieldsource query is actually defined on PartitionPolicy table ]
+               (there is no partitionpolicyfield table - only an extent in the partitionpolicy )
+               and there is a fill method that will open the query and then build the fields from the 
+               field extent  */
+            
+            if not valid-object(PartitionPolicySource) then do:
+                PartitionPolicyFieldSource:Fill().
+                PartitionPolicyFieldSource:fillMode = "no-fill".
+            end.     
         end.                                   
         
         hPartition = msg:DataHandle:get-buffer-handle ("ttPartition").

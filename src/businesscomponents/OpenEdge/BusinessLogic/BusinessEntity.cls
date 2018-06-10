@@ -1,7 +1,7 @@
  
  
 /**********************************************************************************************
-*    Copyright (C) 2014-2017 by Progress Software Corporation. All rights reserved.           *
+*    Copyright (C) 2014-2018 by Progress Software Corporation. All rights reserved.           *
 *    Prior versions of this work may contain portions contributed by participants of Possenet.*
 ***********************************************************************************************/
 
@@ -213,9 +213,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             THIS-OBJECT:CommitData(ROW-CREATED).
         END.
         
-        CATCH e AS CLASS Progress.Lang.ProError:
-           ProcessTransactionalError(e:GetMessage(1)).
-       END.
+        CATCH e AS CLASS Progress.Lang.Error:
+           ProcessTransactionalError(e).
+        END.
                                  
         FINALLY:
             THIS-OBJECT:DetachDataSources().
@@ -260,8 +260,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             THIS-OBJECT:CommitData(ROW-MODIFIED).
          END.
          
-         CATCH e AS CLASS Progress.Lang.ProError:
-           ProcessTransactionalError(e:GetMessage(1)).
+         CATCH e AS CLASS Progress.Lang.Error:
+           ProcessTransactionalError(e).
          END.
                                  
          FINALLY: 
@@ -308,8 +308,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             THIS-OBJECT:CommitData(ROW-DELETED).
         END.
         
-        CATCH e AS CLASS Progress.Lang.ProError:
-           ProcessTransactionalError(e:GetMessage(1)).
+        CATCH e AS CLASS Progress.Lang.Error:
+           ProcessTransactionalError(e).
         END.
                                  
         FINALLY: 
@@ -476,9 +476,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
            THIS-OBJECT:CommitData(ROW-MODIFIED). 
        END.
        
-       CATCH e AS CLASS Progress.Lang.ProError:
-           ProcessTransactionalError(e:GetMessage(1)).
-       END.
+       CATCH e AS CLASS Progress.Lang.Error:
+           ProcessTransactionalError(e).
+        END.
  
        FINALLY:
             THIS-OBJECT:DetachDataSources().
@@ -501,23 +501,27 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             Notes:    If there is no bi data being sent between client and server (CUD_NOBI), 
                       then we throw the error (resulting in http 500 error),
                       and we also must back out all changes.                                    
-     ------------------------------------------------------------------------------------------*/
-    METHOD PROTECTED VOID ProcessTransactionalError(INPUT errMessage AS CHAR):  
-                                         
+     ------------------------------------------------------------------------------------------*/  
+    METHOD PROTECTED VOID ProcessTransactionalError(INPUT err AS Progress.Lang.Error):  
+                                           
         DEFINE VAR iIndex AS INTEGER NO-UNDO.  
         DEFINE VAR hBuffer AS HANDLE NO-UNDO.
         DEFINE VAR hBeforeBuffer AS HANDLE NO-UNDO.
-        DEFINE VARIABLE lReturnValue AS LOGICAL NO-UNDO.
+        DEFINE VAR lReturnValue AS LOGICAL NO-UNDO.
         DEFINE VAR lAvailable AS LOGICAL NO-UNDO.
         DEFINE VAR hBeforeQuery AS HANDLE EXTENT NO-UNDO.
+        DEFINE VAR cErrMessage AS CHAR NO-UNDO.
+        DEFINE VAR appError AS Progress.Lang.AppError NO-UNDO.
         
         EXTENT(hBeforeQuery) = ProDataSet:NUM-BUFFERS.
+        
+        cErrMessage = err:GetMessage(1).
+        // Check to see if ReturnValue set
+        IF (cErrMessage EQ ? OR LENGTH(cErrMessage) EQ 0) AND TYPE-OF(err, Progress.Lang.AppError) THEN DO:
+            appError = CAST(err, Progress.Lang.AppError).
+            cErrMessage = appError:ReturnValue.
+        END.
 
-        /* If RETURN-VALUE is set, use it.
-         * This would be set if error was returned from DB trigger */
-        IF LENGTH(RETURN-VALUE) > 0 THEN
-           errMessage = RETURN-VALUE.
-               
         // If UpdateMode was never set, don't bother setting REJECTED attributes.
         // Error happened before we got a chance to call SAVE-ROW-CHANGES()
         IF UpdateMode NE UpdateModeEnum:UNDEFINED THEN DO:
@@ -537,7 +541,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                     DO WHILE lAvailable:
                         hBeforeBuffer:REJECTED = TRUE.
                         IF hBeforeBuffer:ERROR EQ TRUE THEN DO:
-                            hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, errMessage).
+                           hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, cErrMessage).
                         END.
                         lAvailable = hBeforeQuery[iIndex]:GET-NEXT().     
                     END.     
@@ -545,11 +549,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             END.
         END.
         ELSE DO:
-            errMessage = "Unable to call SAVE-ROW-CHANGES(). " + errMessage.
+          cErrMessage = "Unable to call SAVE-ROW-CHANGES(). " + cErrMessage.
         END.
         
         IF UpdateMode EQ UpdateModeEnum:CUD_NOBI OR UpdateMode EQ UpdateModeEnum:UNDEFINED THEN DO:
-            UNDO, THROW NEW Progress.Lang.AppError(errMessage, 0).
+            UNDO, THROW NEW Progress.Lang.AppError(cErrMessage, 0).
         END.
         
         FINALLY:
@@ -568,7 +572,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
     METHOD PRIVATE CHAR GetRowErrorMessage(INPUT hBeforeBuffer AS HANDLE, INPUT errMessage AS CHAR):
         // Want to ensure that we always return an error message when a create, update, or delete record fails
         // when calling SAVE-ROW-CHANGES
-        IF LENGTH(errMessage) EQ 0 THEN
+        
+        IF errMessage EQ ? OR LENGTH(errMessage) EQ 0 THEN
             errMessage = 'Unable to ' + GetRowState(hBeforeBuffer:ROW-STATE) +
                                    ' record in the database during SAVE-ROW-CHANGES().'.
         
@@ -807,6 +812,8 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
         DEFINE VARIABLE hAfterQuery AS HANDLE NO-UNDO.
         DEFINE VARIABLE lAvailable AS LOGICAL NO-UNDO.
         DEFINE VARIABLE lReturnValue AS LOGICAL NO-UNDO.
+        DEFINE VARIABLE cErrMessage AS CHAR NO-UNDO.
+        DEFINE VARIABLE appError AS Progress.Lang.AppError NO-UNDO.
        
         hBeforeBuffer = hBuffer:BEFORE-BUFFER.
         
@@ -834,29 +841,30 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 hBeforeBuffer:SAVE-ROW-CHANGES(1, cSkip).
                 lAvailable = hBeforeQuery:GET-NEXT().
             END.
-        END.
+        END. 
         /* For BULK_SUBMIT mode, each row change is processed as a separate transaction */
-        ELSE DO:   
-            DO WHILE lAvailable:
-                hBeforeBuffer:SAVE-ROW-CHANGES(1, cSkip) NO-ERROR .
-                   
-                IF hBeforeBuffer:ERROR THEN DO:
-                    hBeforeBuffer:REJECTED = TRUE.
-                    IF ERROR-STATUS:NUM-MESSAGES >= 1 THEN DO:
-                        hBeforeBuffer:ERROR-STRING = ERROR-STATUS:GET-MESSAGE(1).
-                    END.
+        ELSE DO:
+            DO WHILE lAvailable ON ERROR UNDO, LEAVE:
+                DO TRANSACTION:
+                    hBeforeBuffer:SAVE-ROW-CHANGES(1, cSkip).
                     
-                    /* But if RETURN-VALUE is set, use it. This is possible if error 
-                     * was returned from DB trigger */
-                    IF LENGTH(RETURN-VALUE) > 0 THEN DO:
-                        hBeforeBuffer:ERROR-STRING = RETURN-VALUE.
+                    CATCH e AS CLASS Progress.Lang.Error:
+                        hBeforeBuffer:ERROR = TRUE.
+                        hBeforeBuffer:REJECTED = TRUE.
+                        
+                        cErrMessage = e:GetMessage(1).
+                        // Check to see if ReturnValue set
+                        IF (cErrMessage EQ ? OR LENGTH(cErrMessage) EQ 0) AND TYPE-OF(e, Progress.Lang.AppError) THEN DO:
+                            appError = CAST(e, Progress.Lang.AppError).
+                            cErrMessage = appError:ReturnValue.
+                        END.
+                        hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, cErrMessage).
                     END.
-                    // Now verify that we are sending back an error message
-                    hBeforeBuffer:ERROR-STRING = GetRowErrorMessage(hBeforeBuffer, hBeforeBuffer:ERROR-STRING).
                 END.
-           
+        
                 lAvailable = hBeforeQuery:GET-NEXT().
             END.
+             
         END.
         
         FINALLY:
@@ -1004,5 +1012,6 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
 
 
 END CLASS.
+
 
 

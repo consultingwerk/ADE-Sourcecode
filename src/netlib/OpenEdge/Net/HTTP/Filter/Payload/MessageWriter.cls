@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriter
@@ -26,17 +26,17 @@ using Progress.IO.FileInputStream.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStream
             implements ISupportLogging:
-
+    
     // A reference to the Logger in use by an implementer
     define public property Logger as ILogWriter no-undo 
         get():
             if not valid-object(this-object:Logger) then
-                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(MessageWriter)).
-
+                assign this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass()).
+            
             return this-object:Logger.
         end get.
         set.
-	
+    
     /** (mandatory) The type that the entity this writer can write to. */
     define public property EntityType as class Progress.Lang.Class no-undo get. private set.
     
@@ -115,9 +115,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStr
     
     /** Logs a message 
         
-        @param character A message subtype to use
         @param character The message to log
-        @param integer  The level this message should be logged at */
+        @param LogLevelEnum  The level this message should be logged at */
+    @deprecated(since="11.7.0", use="this-object:Logger:<LogLevel>" ).
     method protected void LogMessage(input pcMessage as character,
                                      input poLogLevel as LogLevelEnum):
         if valid-object(poLogLevel) then
@@ -126,6 +126,11 @@ class OpenEdge.Net.HTTP.Filter.Payload.MessageWriter abstract inherits OutputStr
             Logger:Warn(pcMessage).
     end method.
     
+    /** Logs a message.
+        
+        @param character The message to log
+        @param integer  The level this message should be logged at */
+    @deprecated(since="11.7.0", use="this-object:Logger:<LogLevel>" ).
     method protected void LogMessage(input pcMessage as character,
                                      input piLogLevel as integer):
         case piLogLevel:

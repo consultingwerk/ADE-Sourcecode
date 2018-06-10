@@ -38,10 +38,13 @@ define temp-table ttPartitionPolicy no-undo serialize-name "partitionPolicies" {
      field PartitionPolicyDetailsUrl as character   serialize-name "partitionPolicyDetails_url" 
      /* link to list ALL areas for lookup purposes doen't belong here*/ 
 /*     field AreasUrl as character  serialize-name "areas_url"*/
+     field DefaultDataAreaNumber as integer  serialize-hidden   
      field DefaultDataAreaName as character  serialize-name "defaultDataAreaName" /* Must be valid TII area */
      field DefaultDataAreaUrl as character  serialize-name "defaultDataArea_url"  
+     field DefaultIndexAreaNumber as integer  serialize-hidden   
      field DefaultIndexAreaName as character  serialize-name "defaultIndexAreaName" /* Must be valid TII area */
      field DefaultIndexAreaUrl as character  serialize-name "defaultIndexArea_url"  
+     field DefaultLobAreaNumber as integer  serialize-hidden   
      field DefaultLobAreaName as character  serialize-name "defaultLobAreaName" /* Must be valid TII area */
      field DefaultLobAreaUrl as character  serialize-name "defaultLobArea_url"  
      field DefaultAllocation as character  serialize-name "defaultAllocation" init "None"  

@@ -123,6 +123,27 @@ class OpenEdge.DataAdmin.Message.FetchDefinitions inherits DataDefinitionOptions
         undo, throw new UnsupportedOperationError("GetTableRequest in FetchDefinitions"). 
     end.
     
+    method public char GetTableKeyField (pcname as char):
+        undo, throw new UnsupportedOperationError("GetTableKeyField in FetchDefinitions"). 
+    end.
+    
+    method public char GetTableKeyValue (pcname as char):
+        undo, throw new UnsupportedOperationError("GetTableKeyValue in FetchDefinitions"). 
+    end.
+    
+    method public logical GetTableLazy (pcname as char):
+        undo, throw new UnsupportedOperationError("GetTableLazy in FetchDefinitions"). 
+    end.
+    
+    method public void SetTableKeyValue (pcname as char,pcField as char, pcValue as char):
+        /* nothing needed -  this is called to set name = PUB, but this is default */  
+    end.
+    
+    method public void SetTableLazy (pcname as char, pLazy as logical):
+        //  allow caller to set this - will not be needed or used    
+    end. 
+    
+    
     method public ITableResponse GetTableResponse(pcName as char):
         define variable h as handle no-undo.
         h = DataHandle:get-buffer-handle (pcName) no-error.

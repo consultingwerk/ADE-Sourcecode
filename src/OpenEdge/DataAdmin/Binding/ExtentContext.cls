@@ -94,29 +94,6 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
              return "Name,AreaName".
         return "".     
     end.
-	
-	/** DataRefreshed from server cannot use copy-temp-table since the primary index
-	    is on areanumber */
-	method private void RefreshTable(input table copyTable):
-	    define variable lTrack as logical no-undo.
-        define buffer bExtent for ttExtent. 
-        lTrack = temp-table ttExtent:tracking-changes.
-        temp-table ttExtent:tracking-changes = FALSE.
-        
-        for each copytable on error undo, throw:  
-            find bextent where bextent.Areaname = copytable.Areaname 
-                           and bExtent.number  = copytable.Number no-error.
-            if not avail bExtent then 
-            do: 
-                create bextent.   
-            end.
-            buffer-copy copytable to bextent.    
-            
-        end.
-        finally:
-            temp-table ttExtent:tracking-changes = lTrack.
-        end finally.
-    end method.
 	 
     method private void CopyTable(input table copyTable):
         define variable dataerror as DataContextError no-undo.      
@@ -331,16 +308,6 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
         super:CreateFilteredContext(pParent,pReq).
     end method. 
     
-/*    method override protected FilteredContext CreateFilteredContext(pparent as char,pkey as char,pReq as IRequestInfo):*/
-/*         case pparent:                                                                                                 */
-/*/*             when "areas" then                                     */                                                */
-/*/*             do:                                                   */                                                */
-/*/*                 return new AreaExtentQuery(this-object,pkey,pReq).*/                                                */
-/*/*             end.                                                  */                                                */
-/*        otherwise                                                                                                      */
-/*                 return super:CreateFilteredContext(pparent,pkey,pReq).                                                */
-/*         end.                                                                                                          */
-/*    end method.                                                                                                        */
 
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):     
         return new ExtentList(cntxt).
@@ -349,23 +316,50 @@ class OpenEdge.DataAdmin.Binding.ExtentContext inherits DataAdminContext impleme
     method protected override IDataAdminElement CreateEntity(preq as IRequestInfo):
         return new Extent(this-object,preq).
     end method.
-    
-    /** override to deal with unique key on number */
+
     method public override void DataRefreshed(pResponse as IFetchResponse):
-        define variable TblResponse as OpenEdge.DataAdmin.Message.ITableResponse no-undo.
-        define variable hNewBuffer as handle no-undo.
-        define variable hTable as handle no-undo.
+        define variable i           as integer no-undo.
+        define variable TblResponse as ITableResponse no-undo.
+        define variable hNewBuffer  as handle no-undo.
+        define variable hNewTable   as handle no-undo. 
+        
         TblResponse = pResponse:GetTableResponse(TableHandle:name).
+        
         if valid-object(TblResponse) then
         do:
-            hNewBuffer = pResponse:DataHandle:get-buffer-handle(TableHandle:name).
-            hTable = hNewBuffer:table-handle.
-            RefreshTable(input table-handle hTable by-reference).
-/*            this-object:Total = TblResponse:Total.*/
-        end.
-        else 
-            super:DataRefreshed(pResponse).
-    end method.
+            hNewBuffer = pResponse:DataHandle:get-buffer-handle (TableHandle:name).       
+            hNewTable  = hNewBuffer:table-handle.    
+            if hNewTable <> Tablehandle then
+            do:
+                /* keep client changes  - remove corresponding records in received new table */
+                if HasChanges() then 
+                do:
+                    RemoveBeforeChanges(hNewBuffer).
+                end.    
+                RefreshTable(table-handle hNewTable by-reference).
+              // does not work - Bug? Tablehandle:copy-temp-table(hNewBuffer,yes,yes).
+            end.
+            
+            /* refresh queries */
+            FireContextRefreshed(TblResponse).
+            
+            if valid-handle(TableHandle:before-table) then
+                TableHandle:tracking-changes = true.                    
+                    
+        end.            
+    end method.   
     
+    /* copy-temp-table replace does not work (unique index on non primary ?) 
+       so do it record by record */
+    method private void RefreshTable(input table copyTable):
+        for each copytable:  
+            find bextent where bextent.Areaname = copytable.Areaname 
+                         and bExtent.number  = copytable.Number no-error.
+            if not avail bExtent then 
+                create bextent.
+                
+            buffer-copy copyTable to bextent.
+        end.
+    end method.      
         
 end class.

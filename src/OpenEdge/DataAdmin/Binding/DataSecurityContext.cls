@@ -32,6 +32,7 @@ using OpenEdge.DataAdmin.Binding.Factory.IServiceContextFactory from propath.
 using OpenEdge.DataAdmin.Error.* from propath.
 using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.DataSecurityContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -71,14 +72,19 @@ class OpenEdge.DataAdmin.Binding.DataSecurityContext inherits DataAdminContext i
                                                             
     constructor public DataSecurityContext ( pscope as IServiceContextFactory):
         super ("DataSecurity",pscope).
-        pscope:TablePermissionContext:Lazy = false.
-        AddChild(pscope:TablePermissionContext). 
         define variable hField as handle no-undo.
         hField = TableHandle:default-buffer-handle:buffer-field("TablesUrl").
         hfield:serialize-hidden = true. 
     end constructor.
-                         
+  
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,IServiceContextFactory)).
+    end method.
     
+    method protected void InitChildren (pscope as IServiceContextFactory):
+        pscope:TablePermissionContext:Lazy = false.
+        AddChild(pscope:TablePermissionContext). 
+    end method.
     
 	method public override character GetJoinFields(parentid as char):
 	   

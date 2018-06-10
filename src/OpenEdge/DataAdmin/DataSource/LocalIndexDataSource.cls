@@ -42,9 +42,8 @@ SchemaName,_File._owner"
 	    BaseQuery = "for each _Partition-Policy no-lock, each _file  where " + DatabaseInfo:FileExpression + " and _file._file-number = _Partition-Policy._object-number no-lock, each _index of _file where _index._index-attributes[1] = 'true' no-lock".
     end constructor.
     
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     

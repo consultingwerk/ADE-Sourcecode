@@ -28,10 +28,13 @@
      field SchemaName      as character serialize-name "schemaName"
      field TableName       as character serialize-name "tableName"
      field TableUrl        as character serialize-name "table_url"
-     field DefaultDataAreaName as character serialize-name "defaultDataAreaName"
-     field DefaultIndexAreaName  as character serialize-name "defaultIndexAreaName"
-     field DefaultLobAreaName    as character serialize-name "defaultLobAreaName"
-     field DefaultAllocation     as character serialize-name "defaultAllocation"
+     field DefaultDataAreaNumber  as integer serialize-hidden
+     field DefaultDataAreaName    as character serialize-name "defaultDataAreaName"
+     field DefaultIndexAreaNumber as integer serialize-hidden
+     field DefaultIndexAreaName   as character serialize-name "defaultIndexAreaName"
+     field DefaultLobAreaNumber  as integer serialize-hidden
+     field DefaultLobAreaName     as character serialize-name "defaultLobAreaName"
+     field DefaultAllocation      as character serialize-name "defaultAllocation"
      field PartitionsUrl   as character serialize-hidden /* name "partitions_url" */
      field DeallocateUrl        as character serialize-name "deallocate_url"
      

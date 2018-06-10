@@ -68,7 +68,27 @@ interface OpenEdge.DataAdmin.DataSource.IDataSource inherits IQueryMap:
     method public logical Fill().
    
     method public logical Prepare(bufferHandle as handle).
+     
+     /* prepare the query with a client query expression
+       @DEPRECATED - The DataAccess should now use Prepare (handle,ITableRequest)
+                     The IFetchMessage has a GetTableRequest that always returns a
+                     an object also for blank query 
+                      
+       Parameters 
+        @param buffer      - client temp-table buffer in dataset
+        @param clientquery - query from client expressed on the temp-table buffer 
+                             must in principle be passed if active parent relation or builtquery is empty,
+                             but an empty query is valid when requesting all data  
+        @param pcjoin      - optional join to a parent 
+    */
     method public logical Prepare(bufferHandle as handle, queryString as char, parentJoin as char).
+   
+       /* prepare the query with cliionet request infor for the table
+                      
+       Parameters 
+        @param buffer       - client temp-table buffer in dataset
+        @param tableRequest - ITableRequest with query and batching info   
+    */
     method public logical Prepare(phBuffer as handle,req as ITableRequest).
           
 /*    method public logical AddFieldMap(input-output table-handle bufferHandle).*/

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartEntityWriter
@@ -17,6 +17,8 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Memptr.
+using OpenEdge.Core.StringConstant.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
@@ -25,10 +27,9 @@ using OpenEdge.Net.MessagePart.
 using OpenEdge.Net.MultipartEntity.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
-using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWriter
-        implements ISupportMultipartEntity: 
+        implements ISupportMultipartEntity:
     
     /** The character string delimiting the parts. Excludes the leading and trailing -- */
     define public property Boundary as character no-undo get. set.
@@ -36,25 +37,35 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
     constructor public MultipartEntityWriter():
         super (get-class(MultipartEntity)).
     end constructor.
-
+    
     method override public int64 Write(input poData as Object):
         define variable oBody as class Memptr no-undo.
         
-        Assert:NotNull(poData).
+        case true:
+            when not valid-object(poData) then
+                return 0.
+            
+            when type-of(poData, Memptr) then
+                assign oBody = cast(poData, Memptr).
+            
+            when type-of(poData, ByteBucket) then
+                assign oBody = cast(poData, ByteBucket):GetBytes().
+            
+            otherwise
+                return error new AppError(
+                                substitute('Unsupported object type: &1', poData:GetClass():TypeName)
+                                , 0).
+        end case.
         
-        if type-of(poData, Memptr) then
-            assign oBody = cast(poData, Memptr).
-        else
-        if type-of(poData, ByteBucket) then
-            assign oBody = cast(poData, ByteBucket):GetBytes().
-        else        
-            return error new AppError(
-                            substitute('Unsupported object type: &1', poData:GetClass():TypeName)
-                            , 0).
-        
-        return this-object:Write(oBody:Value).
+        if valid-object(oBody) then
+                return this-object:Write(oBody:Value).
+        return 0.
     end method.
-
+    
+    /* Writes a multipart entity byte-by-byte. 
+       
+       @param memptr The multipart message body 
+       @return int64 The number of bytes written */
     method override public int64 Write(input pmData as memptr):
         define variable oMPE as MultipartEntity no-undo.
         define variable oPart as MessagePart no-undo.
@@ -78,6 +89,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         define variable lHeadersRead as logical no-undo.
         define variable oPartData as ByteBucket no-undo.
         define variable iStartDataPos as int64 no-undo.
+        define variable startAt as datetime no-undo.
         
         assign iSize = get-size(pmData).
         
@@ -91,22 +103,21 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                iStartPos          = 1
                iPartNum           = 0
                lHeadersRead       = false
-               oPartData          = ByteBucket:Instance().
-               
-        _Debug(pmData).
-                   
+               oPartData          = ByteBucket:Instance()
+               startAt            = now
+               .
         MAIN-LOOP:
         do iLoop = 1 to iSize:
-            assign iByte = get-byte(pmData, iLoop).
-            
-               /* double hyphen/dash -- or end-of-data */
+            assign iByte = get-byte(pmData, iLoop). 
+                
+                /* double hyphen/dash -- or end-of-data */
             if (iByte eq 45 and iPrevByte eq 45) or
                (iLoop eq iSize) then
             do:
                 assign cPotentialBoundary = get-string(pmData, iLoop + 1, iBoundaryLength).
                 if cPotentialBoundary eq this-object:Boundary then
                 do:
-                    /* postition of last byte of part, excluding boundaries */                                             
+                    /* postition of last byte of part, excluding boundaries */
                     assign iEndPos           = (iLoop - 2 /* for the -- */ - 2 /* for CRLF */)
                            lHeadersRead      = false
                            oPartWriter       = ?
@@ -117,7 +128,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                     case iPartNum:
                         when 0 then
                             assign oMPE:Prologue = get-string(pmData, iStartPos, max(0, iEndPos - iStartPos + 1)).
-                        otherwise 
+                        otherwise
                         do:
                             assign oPart     = new MessagePart()
                                    iPrevByte = 0.  /* reset */
@@ -145,7 +156,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                                cName   = substring(cHeader, 1, iPos - 1)
                                                cValue  = left-trim(substring(cHeader, iPos + 1))
                                                .
-                                        oPart:Headers:Put(HttpHeaderBuilder:Build(cName):Value(cValue):Header).                                               
+                                        oPart:Headers:Put(HttpHeaderBuilder:Build(cName):Value(cValue):Header).
                                                /* reset counters/temps */
                                         assign cHeader = '':u
                                                iNumBytes = 0.
@@ -160,12 +171,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                        get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (StringConstant:CRLF + StringConstant:CRLF) then
                                         assign lHeadersRead  = true
                                                iStartDataPos = iPartLoop.
-                                                                                                               
+                                    
                                 end. /* headers not yet read */
                                 else
                                 if lHeadersRead then
                                 do on error undo, throw:
-                                    assign mPartData   = get-bytes(pmData, iStartDataPos + 1, iEndPos - iStartDataPos)                                        
+                                    assign mPartData   = get-bytes(pmData, iStartDataPos + 1, iEndPos - iStartDataPos)
                                            oPartWriter = EntityWriterBuilder:Build(oPart)
                                                             :Writer.
                                     Assert:NotNull(oPartWriter, 'Part writer').
@@ -177,7 +188,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                     oPartWriter:Open().
                                     oPartWriter:Write(oPartData).
                                     oPartWriter:Close().
-                                    
                                     assign oPart:Body = oPartWriter:Entity.
                                     
                                     /* Only add the part to the entity once done, with success. */
@@ -197,7 +207,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                     
                     assign iStartPos = iLoop + 1 + iBoundaryLength.
                     
-                    /* if this is the last boundary, mark it as such */                            
+                    /* if this is the last boundary, mark it as such */
                     if get-string(pmData, iStartPos, 2) eq '--':u then
                     do:
                         if iSize ge (iStartPos + 4) then
@@ -208,7 +218,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
 
                         if oMPE:Epilogue eq StringConstant:CRLF then
                             assign oMPE:Epilogue = '':u. 
-                                                       
+                        
                         leave MAIN-LOOP.
                     end.
                     else
@@ -216,7 +226,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                     
                     assign iStartPos = iStartPos + 2 /* CRLF */
                            iLoop     = iStartPos - 1 /* AVM will add 1 on the next iteration of this loop*/
-                           iByte     = get-byte(pmData, iLoop)
+                           //iLoop     = iEndPos - 1 /* AVM will add 1 on the next iteration of this loop*/
                            .
                 end. /* we're at a boundary */
             end.    /* MAIN-LOOP: */
@@ -224,38 +234,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
             assign iPrevByte = iByte.
         end.
         
+        Logger:Trace(substitute('Multipart data of &1 bytes parsed in &2ms',
+                            iSize, interval(now, startAt, 'milliseconds':u))).
+        
         return iSize.
     end method.
-
-    method private void _Debug(input mmValue as memptr):
-        define variable iLoop as integer no-undo.
-        define variable iMax as integer no-undo.
-        define variable iByte as integer no-undo.
-        define variable cDumpFile as character no-undo.
-        
-        if not log-manager:logging-level gt 4 then
-            return.
-        
-        assign iMax = get-size(mmValue)
-               cDumpFile = session:temp-directory + 'mpe-'+ string(integer(this-object)) + '.txt':u.
-        
-        if log-manager:logfile-name ne ? then
-            log-manager:write-message('DEBUG FILE=':u + cDumpFile, 'MPARTENT':u).
-        
-        output to value(cDumpFile).
-        do iLoop = 1 to iMax:
-            iByte = get-byte(mmValue, iLoop).
-            
-            put unformatted 
-                iByte '~t':u .
-                
-            if iByte <> 10 and iByte <> 13 then
-                put unformatted
-                 '~t~t':u chr(iByte).
-                  
-             put unformatted skip. 
-        end.
-        output close.
-
-    end method.    
+    
 end class.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderCollection
@@ -18,14 +18,14 @@ using OpenEdge.Net.HTTP.HttpHeaderCollection.
 using OpenEdge.Net.HTTP.NullHeader.
 using Progress.Lang.Object.
 
-class OpenEdge.Net.HTTP.HttpHeaderCollection:
+class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
     /* Stores header name/value pairs */
     define static protected temp-table Headers no-undo
         field ParentClass as int64
         field HeaderName  as character
         field HttpHeader  as Object
         index idx1 as primary unique ParentClass HeaderName. 
-
+    
     constructor public HttpHeaderCollection():
     end method.
     
@@ -74,26 +74,25 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
         UpdateHeaderRecord(poHeader).
     end method.
 
-    /** Internal helper method to perform the find. 
+    /** Internal helper method to perform the find. This method attempts to find a record using
+        the input buffer.
     
         @param buffer    The buffer of the Headers table.
         @param character The header name
         @return logical True if a header record was found. */ 
     method private logical FindHeaderRecord(buffer pbHeader for Headers, input pcName as character):
-        find pbHeader where 
-             pbHeader.ParentClass eq int64(this-object) and
-             pbHeader.HeaderName  eq pcName
-             no-error.
-
-        return available pbHeader.
-    end method.
-    
-    /** Internal helper method to perform the find. 
-    
-        @param character The header name
-        @return logical True if a header record was found. */ 
-    method private logical FindHeaderRecord(input pcName as character):
-        return FindHeaderRecord(buffer Headers, pcName).
+        // Don't leave any 'trailing finds' around: RELEASE clears the AVAILABLE state
+        release pbHeader.
+        
+        if can-find(pbHeader where
+                    pbHeader.ParentClass eq int64(this-object) and
+                    pbHeader.HeaderName  eq pcName) 
+        then
+            find pbHeader where
+                 pbHeader.ParentClass eq int64(this-object) and
+                 pbHeader.HeaderName  eq pcName
+                 .
+        return (available pbHeader).
     end method.
     
     /** Private method for updating the value of a header record
@@ -103,13 +102,12 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
         define buffer lbHeader for Headers.
         
         // Ignore NullHeader instances
-        if valid-object(poHeader) and type-of(poHeader, NullHeader) then
+        if     valid-object(poHeader) 
+           and type-of(poHeader, NullHeader) 
+        then
             return.
         
-        find lbHeader where
-             lbHeader.ParentClass eq int64(this-object) and
-             lbHeader.HeaderName eq poHeader:Name
-             no-error.
+        FindHeaderRecord(buffer lbHeader, poHeader:Name).
         if not available lbHeader then
         do:
             create lbHeader.
@@ -172,15 +170,17 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection:
             close query qryHeader.
         end finally.
     end method.
-        
+    
     /** Indicates whether a header exists for this message or not. 
         
         @param character The name of a header to check
         @return logical True if this message contains the header */
     method public logical Has(input pcName as character):
+        define buffer hdr for Headers.
+        
         Assert:NotNullOrEmpty(pcName, 'Header name').
         
-        return FindHeaderRecord(pcName).
+        return FindHeaderRecord(buffer hdr, pcName).
     end method.
     
     /** Removes a header from the collection of message headers.

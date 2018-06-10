@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BodyWriterRegistry
@@ -23,6 +23,7 @@ using OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry.
 using OpenEdge.Net.HTTP.Filter.Payload.FormDataBodyWriter.
+using OpenEdge.Net.HTTP.Filter.Payload.MultipartFormBodyWriter.
 
 class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry: 
     /** Registry for mapping build types to their implementations */
@@ -73,6 +74,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.BodyWriterRegistry:
         poRegistry:Put('video/*':u, get-class(BinaryBodyWriter)).
         
         /* Multipart */
+        poRegistry:Put('multipart/form-data':u, get-class(MultipartFormBodyWriter)).
         poRegistry:Put('multipart/*':u, get-class(MultipartBodyWriter)).
         
         /* In case all else fails ... we use application/octet-stream */

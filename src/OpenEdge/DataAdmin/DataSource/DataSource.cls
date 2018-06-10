@@ -115,13 +115,23 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         get. 
         /* restrict set as it has to be set before attachDataSource*/
         protected set.
-   
+    
+    /* optional - passed from ITableRequest -  see explanation in ITableRequest  */
+    define protected property Lazy as logical no-undo 
+        get. 
+        set.
+    
     define private   variable mcClientPosition  as character no-undo.
    
     define private   variable mcClientRequest   as character no-undo.
   
     define private   variable mlIgnoreLastBatch as logical    no-undo.
 
+    /* Expects DefineSource to be overridden with assign of Tables and PhysicalTables */
+    constructor public DataSource () :
+        super().
+    end constructor.
+  
     constructor public DataSource (pcTables    as char,
                                    pcMapping   as char) :
 
@@ -229,12 +239,14 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
              QueryHandle:get-next(). 
              AfterRow(dataset-handle hds by-reference).
          end.
-          
+         return true.  
     end method.
     
     method protected handle CreateMapSource():
         define variable ibuffer     as integer no-undo.
         define variable hbuffer     as handle no-undo.
+        if Defined = false then 
+            DefineSource().
         
         create data-source DataSourceHandle.
         do iBuffer = 1 to num-entries(PhysicalTables):
@@ -246,18 +258,60 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
     end method.
     
     method public logical Prepare(phBuffer as handle):
-        Prepare(phBuffer,"","").
+        Prepare(phBuffer,"","","").
     end method. 
     
     method public logical Prepare(phBuffer as handle,req as ITableRequest):
         define variable cQuery as character no-undo.
+        define variable cBaseQuery as character no-undo.
+        define variable cWhere     as character no-undo.
+        define variable cDbKey     as character no-undo.
         define variable iStart as integer no-undo.
         define variable iPageSize as integer no-undo.
         define variable lok as logical no-undo.
+        define variable iKey       as integer no-undo.
+        
+        assign         
+            iStart = req:Start 
+            iPageSize = req:PageSize 
+            Lazy = req:Lazy /* set flag for optional lazy load of subclass */
+            . 
+     
+        /* DefineSource of subclass may define different table props and query 
+           props if Lazy is true and Defined is false (default from empty constructor) */      
+        if Defined = false then 
+            DefineSource().
+            
+        if req:KeyField > "" and BaseQueryTemplate > "" and not valid-handle(phBuffer:parent-relation) then do:
+            iKey = lookup(req:KeyField,FieldMapping).
+            if iKey > 0 then do:
+                assign
+                    /* there is no risk for looking up the wrong entry since the data source field all has underscore
+                        (So this would need to be improved for general dataaccess) 
+                    */
+                    cDbKey = entry(iKey + 1,FieldMapping)
+                    cWhere = subst(' where &1.&2 = "&3" &4 ',
+                                   this-object:Table,
+                                   cDbKey,
+                                   req:KeyValue,
+                                   if BaseTableExpression > "" then " and " + BaseTableExpression else "")
+                    cBaseQuery = subst(BaseQueryTemplate,cWhere)
+                    .
+             end.
+             else do:
+                 cWhere = ColumnExpression(subst("&1.&2",this-object:Table,req:KeyField),"=",req:KeyValue).
+
+                 if cWhere <> ? then do:
+                     cWhere = " where " + cWhere
+                            + if BaseTableExpression > "" then " and " + BaseTableExpression else "" .
+                     cBaseQuery = subst(BaseQueryTemplate,cWhere + " ").
+                 end.
+             end.
+        end.    
+        if cBaseQuery = "" then do:
         cQuery = req:QueryString.
-        iStart = req:Start. 
-        iPageSize = req:PageSize. 
-        lok = Prepare(phBuffer,cQuery,"").
+        end.    
+        lok = Prepare(phBuffer,cBaseQuery,cQuery,"").
         /* if paging we need total */
         if iPageSize > 0 then
         do: 
@@ -274,13 +328,25 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         return lok.          
     end method. 
     
-    method public logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    /* prepare the query 
+       Parameters 
+        @param buffer      - client temp-table buffer in dataset
+        @param builtquery  - optional final built query 
+                             Caller may build a query from key information instead of from querystring
+                             for performance  (queryparsing is the single most expensive operation of the source) 
+        @param clientquery - query from client expressed on the temp-table buffer 
+                             must in principle be passed if active parent relation or builtquery is empty,
+                             but an empty query is valid when requesting all data  
+        @param pcjoin      - optional join to a parent 
+    */
+    
+    method protected logical Prepare(phBuffer as handle,pcBuiltQuery as char, pcClientQuery as char,pcJoin as char):
         define variable oQueryString as class QueryString.
         define variable lOk          as logical    no-undo.
         define variable hParentRel   as handle     no-undo.
               
         DataBuffer = phBuffer.
-     
+        PrepareBuffer(phBuffer).
         CreateQuery().    
  
         /* fieldmapping is set from constructor */
@@ -288,9 +354,12 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
         DataBuffer:attach-data-source(DataSourceHandle:handle,FieldMapping).
    
         hParentRel = ParentRelation.
-        if pcTargetQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
+        if pcBuiltQuery > "" and not valid-handle(hParentRel) then do:
+            lok = QueryHandle:Query-prepare(pcBuiltQuery). 
+        end.   
+        else if pcClientQuery > "" or pcJoin > '' or valid-handle(hParentRel) then
         do:
-            oQueryString = new QueryString(pcTargetQuery,this-object).
+            oQueryString = new QueryString(pcClientQuery,this-object).
             if pcJoin > '' then 
                 oQueryString:addExpression(pcJoin).
             
@@ -317,6 +386,27 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
             if valid-object(oQueryString) then
                  delete object oQueryString.
         end.
+    end method. 
+       
+    /* prepare the query with a client query expression
+       @DEPRECATED - The DataAccess should now use Prepare (handle,ITableRequest)
+                     The IFetchMessage has a GetTableRequest that always returns a
+                     an object also for blank query 
+                   - This is kept for backwards compatibility 
+                   - There may be cases that uses the join parameter, which 
+                     has no replacement in the new prepare. 
+                     This should likely be handled by an override an dedicated 
+                     constructor. if this complicates stuff and join really is 
+                     needed add a prepare(buffer,ITableRequest,join) 
+       Parameters 
+        @param buffer      - client temp-table buffer in dataset
+        @param clientquery - query from client expressed on the temp-table buffer 
+                             must in principle be passed if active parent relation or builtquery is empty,
+                             but an empty query is valid when requesting all data  
+        @param pcjoin      - optional join to a parent 
+    */
+    method public final logical Prepare(phBuffer as handle,pcClientQuery as char,pcJoin as char):
+        return Prepare(phBuffer,"",pcClientQuery,pcjoin).
     end method. 
     
     method protected handle CreateSaveSource(cKey as char):
@@ -653,17 +743,8 @@ class OpenEdge.DataAdmin.DataSource.DataSource inherits DBQuery implements IData
      end catch.  
   end method.                   
   
-  
-  
-  /* not in use - could allow an external procedure like the DAO to register call back events */
-  method public void SetCallBack(pcEvent   as char,
-                                 pcMethod  as char,
-                                 phTarget  as handle):
-    /*  if 
-    DataBuffer:SET-CALLBACK(pcEvent, pcMethod, phTarget).
-       else
-    DataBuffer:SET-CALLBACK(pcEvent, pcMethod, this-object).
-      */
+  /* override to set callback - define binding etc.. */
+  method protected void Preparebuffer(phBuffer as handle):
   end method.
    
   /** Purpose: compare two CLOB buffer-fields  

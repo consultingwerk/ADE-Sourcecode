@@ -1,14 +1,15 @@
 /************************************************
-Copyright (c) 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : TokenResolverEventArgs
-    Purpose     : Arguments for events published when an individual token is resolved
+    Purpose     : Arguments for events published when an individual token is resolved.
+                  Wraps the general OpenEdge.Core.Util.TokenResolverEventArgs 
     Syntax      : 
     Description : 
     Author(s)   : pjudge
     Created     : 2017-02-15
-    Notes       : * See OE.Logging.TokenResolver for info about the type and args
+    Notes       : * See OE.Core.Util.TokenResolver for info about the type and args
                   * Token substitutions are allowed for file names
                     the token format is ${<token>}, where
                         token = group "." arg
@@ -23,31 +24,12 @@ block-level on error undo, throw.
 using OpenEdge.Core.EventArgs.
 using OpenEdge.Core.Assert.
 
-class OpenEdge.Logging.TokenResolverEventArgs inherits EventArgs:
-    /* (mandatory) The token group being resolved */
-    define public property TokenGroup as character no-undo get. private set.
-    /* (optional) The token arguments being resolved */
-    define public property TokenArg  as character no-undo get. private set.
-    /* The resolved value */
-    define public property TokenValue as character initial ? no-undo get. set.
-
-    /* (optional) The complete original token being resolved */
-    define public property BaseToken as character no-undo get. private set.
-    /* (optional) Some tokens may be resolved via input values (name, user, cp). This property holds the 
-       input/base value */
-    define public property SourceValue as Progress.Lang.Object no-undo get. set.
-    
+class OpenEdge.Logging.TokenResolverEventArgs inherits OpenEdge.Core.Util.TokenResolverEventArgs :
     /* Constructor
        
        @param character The base token (mandatory) */
     constructor public TokenResolverEventArgs(input pToken as character):
-        Assert:NotNull(pToken, 'Base token').
-        
-        assign this-object:TokenArg   = substring(pToken, index(pToken, '.':u) + 1)
-               this-object:TokenGroup = entry(1, pToken, '.':u)
-               this-object:BaseToken  = pToken
-               this-object:TokenValue = ?
-               .
+        super(pToken).
     end constructor.
     
     /* Constructor
@@ -56,7 +38,7 @@ class OpenEdge.Logging.TokenResolverEventArgs inherits EventArgs:
        @param character The token arguments (if any) */
     constructor public TokenResolverEventArgs(input pGroup as character,
                                               input pArg as character):
-        this-object(pGroup, pArg, ?).
+        super(pGroup, pArg, ?).
     end constructor.
     
     /* Constructor
@@ -67,13 +49,7 @@ class OpenEdge.Logging.TokenResolverEventArgs inherits EventArgs:
     constructor public TokenResolverEventArgs(input pGroup as character,
                                               input pArg as character,
                                               input pValue as character):
-        Assert:NotNullOrEmpty(pGroup, 'Token group').
-        Assert:NotNull(pArg, 'Token argument').
-        
-        assign this-object:TokenGroup = pGroup
-               this-object:TokenArg   = pArg
-               this-object:TokenValue = pValue
-               .
+        super(pGroup, pArg, pValue).
     end constructor.
          
 end class.

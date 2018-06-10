@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultMessageWriterBuilder
@@ -58,10 +58,14 @@ class OpenEdge.Net.HTTP.Filter.Writer.DefaultMessageWriterBuilder inherits Messa
                                           GetOptionStringValue('entityType':u))                                          
                    oWriter:Entity = oEntity.
         
-        if HasOption('encodedAs':u) and type-of(oWriter, ISupportEncoding) then
+        if     HasOption('encodedAs':u) 
+           and type-of(oWriter, ISupportEncoding) 
+        then
             assign cast(oWriter, ISupportEncoding):Encoding = GetOptionStringValue('encodedAs':u). 
         
-        if type-of(oWriter, ISupportMultipartEntity) then
+        if     type-of(oWriter, ISupportMultipartEntity)
+           and HasOption('multipartBoundary':u)
+        then
             assign cast(oWriter, ISupportMultipartEntity):Boundary = GetOptionStringValue('multipartBoundary':u).
         
         if type-of(oWriter, ISupportInitialize) then

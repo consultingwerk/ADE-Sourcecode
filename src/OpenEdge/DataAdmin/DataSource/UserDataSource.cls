@@ -51,8 +51,9 @@ Email,_Email"
     
     constructor public UserDataSource (cParent as char,cWhere as char):      
         super (cParent + ",_user","dictdb." + cparent + ",dictdb.user", mMapping). 
-        BaseQuery = "for each " + cParent + " no-lock, "
-                  + " each _user where " + cWhere + " no-lock".
+        BaseTableExpression = cWhere.
+        BaseQueryTemplate = "for each " + cParent + " no-lock, "
+                          + " each _user&1no-lock".
     end constructor.
      
 	constructor public UserDataSource ( ):	    
@@ -61,7 +62,7 @@ Email,_Email"
     
     constructor public UserDataSource (pcMapping as char):      
         super ("_user","dictdb._user", pcMapping). 
-        BaseQuery = "for each _user no-lock".
+        BaseQueryTemplate = "for each _user&1no-lock".
     end constructor.
     
     constructor public UserDataSource (pcJoinTables as char,pcPhysicalJoinTables as char, pcQuery as char):      
@@ -71,7 +72,7 @@ Email,_Email"
                + if lookup("_Domain",pcJoinTables) > 0 
                  then ",DomainId,_Domain._Domain-id"
                  else ""). 
-        BaseQuery = "for each _user no-lock, " + pcQuery.
+        BaseQueryTemplate = "for each _user&1no-lock, " + pcQuery.
     end constructor.
     
     
@@ -81,13 +82,10 @@ Email,_Email"
         TenantUrl = url + "/tenants/".
     end method.
     
-    method public final override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         SetCallBack(phBuffer).
-        lok  = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
       
-        return lok.
     end method.
     
     method protected override logical PrepareQueryString (poQueryString as QueryString):         
@@ -169,17 +167,9 @@ Email,_Email"
                     dictdb._user._userid = phBuffer::Name. 
                 end. 
                 else do:
-                    find dictdb._user where dictdb._user._domain-name = phBuffer::DomainName 
-                                      and   dictdb._user._userid = phBuffer::name exclusive no-wait.
+                    find dictdb._user where dictdb._user._domain-name = hBeforeBuff::DomainName 
+                                      and   dictdb._user._userid      = hBeforeBuff::name exclusive no-wait.
                 end.                                 
-                
-                /* use DomainId if modified since a parent rename in same transaction 
-                   is doen after the child for modifify - 
-                   (we know the Dominid is ok imn thia case ) */
-                if pistate = row-modified then
-                    find dictdb._sec-authentication-domain where _sec-authentication-domain._domain-id = phBuffer::DomainId no-lock. 
-                else
-                    find dictdb._sec-authentication-domain where _sec-authentication-domain._domain-name = phBuffer::Domainname no-lock. 
                 
                 assign        
                     dictdb._user._domain = phBuffer::DomainName  
@@ -202,17 +192,20 @@ Email,_Email"
                 
                 if isMultiTenant then 
                 do:   
+                    /* user._tenantid is assigned by the ABL */
                     find dictdb._tenant where dictdb._tenant._tenantid = dictdb._user._tenantId no-lock . 
                     assign phBuffer::TenantName = dictdb._tenant._tenant-name     
                            phBuffer::TenantId   = dictdb._user._tenantid.  
                 end.
                        
                 hdataset = phBuffer:dataset.
-                    
+                mBuffer = phBuffer.    
                 AfterUserRow (dataset-handle hdataset  by-reference).
             end. /* else (not ddelete) */
         end.
         catch e as Progress.Lang.Error :    
+            if e:GetMessageNum(1) = 16000 then
+                undo, throw new DataAccessError(replace(replace(replace(e:GetMessage(1),"_Domain-Name","Name"),"table _sec-authentication-domain","Domain Table"),"(16000)",""),e).
             undo, throw new DataAccessError(
                 new DataMapper("User,_user",
                 mMapping),
@@ -231,54 +224,48 @@ Email,_Email"
         define variable husersrc as handle no-undo. 
       
       
-        hBuffer = hds:get-buffer-handle("ttUser").
       
         if mSave = false then 
         do:
-            if hBuffer::DomainId = 0 or hBuffer::DomainId = ? then 
-            do:
-                /* use fields to speed up for remote connections */
-                for each b_domain fields (_domain-name _domain-id) where b_domain._domain-name = hBuffer::DomainName  : 
-                    hBuffer::DomainId = b_domain._domain-id.   
-                    leave. 
-                end.    
-                    
-            end.    
                        
-            if hBuffer::TenantId <> ? then 
+            if not Lazy and mBuffer::TenantId <> ? then 
             do:           
                 /* use fields to speed up for remote connections */
-                for each b_tenant fields( _tenant-name _tenantid) where b_tenant._tenantid = hBuffer::TenantId no-lock: 
+                for each b_tenant fields( _tenant-name _tenantid) where b_tenant._tenantid = mBuffer::TenantId no-lock: 
                     assign
-                        hBuffer::TenantName = b_tenant._tenant-name     
-                        hBuffer::TenantId   = b_tenant._tenantid.     
+                        mBuffer::TenantName = b_tenant._tenant-name.
                     leave.                    
                 end.
             end.
         end. 
         
         assign
-            hBuffer::DomainUrl  = url + "/domains/"
-                                + if hBuffer::DomainName = ""
+            mBuffer::DomainUrl  = url + "/domains/"
+                                + if mBuffer::DomainName = ""
                                   then WebUtil:UrlEncode(" ")
-                                  else WebUtil:UrlEncode(hBuffer::DomainName)  when url > ''
+                                  else WebUtil:UrlEncode(mBuffer::DomainName)  when url > ''
         
-            hBuffer::Id        = hbuffer::Name  
-                                 + if hBuffer::DomainName > "" 
-                                   then "@" + hBuffer::DomainName 
+            mBuffer::Id        = mbuffer::Name  
+                                 + if mBuffer::DomainName > "" 
+                                   then "@" + mBuffer::DomainName 
                                    else ""            
-            hBuffer::Password  = "********"
-            hBuffer::url = url + "/users/" + WebUtil:UrlEncode(hBuffer::Id) when url > ''
-            hBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(hBuffer::Id) when url > ''
+            mBuffer::Password  = "********"
+            mBuffer::url = url + "/users/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
+            mBuffer::UserPermissionUrl = url + "/userpermissions/" + WebUtil:UrlEncode(mBuffer::Id) when url > ''
              .  
          
-        if hBuffer::TenantName > "" and url > '' then
-            hBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(hBuffer::TenantName).
+        if mBuffer::TenantName > "" and url > '' then
+            mBuffer::TenantUrl  = TenantURL + WebUtil:UrlEncode(mBuffer::TenantName).
        
-        if hbuffer::Description = ? then       
-            hbuffer::Description = "".
-        if hbuffer::MiddleInitial = ? then       
-            hbuffer::MiddleInitial = "".
+        if mbuffer::Description = ? then       
+            mbuffer::Description = "".
+        if mbuffer::MiddleInitial = ? then       
+            mbuffer::MiddleInitial = "".
+         catch e as Progress.Lang.Error :
+               
+                message "error afgter" skip e:GetMessage(1)
+                view-as alert-box. 
+         end catch.   
     end method.                   
     
     /* This is the call back for the QueryString parsing. There is currently no mapping, but we override it in 

@@ -36,6 +36,7 @@ using OpenEdge.DataAdmin.Message.IFetchRequest from propath.
 using OpenEdge.DataAdmin.Message.IFetchResponse from propath.
 using OpenEdge.DataAdmin.Message.ITableResponse from propath.
 using OpenEdge.DataAdmin.Message.FetchRequest from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -89,12 +90,19 @@ class OpenEdge.DataAdmin.Binding.SchemaContext inherits DataAdminContext impleme
     
     constructor public SchemaContext ( pScope as ISchemaScope):
         super ("Schema",pScope).
+    end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
+        initChildren(cast(pScope,ISchemaScope)).
+    end method.  
+    
+    method protected void initChildren(pScope as ISchemaScope):
         AddChild(pScope:Tablecontext). 
         AddChild(pScope:SequenceContext). 
         mPartitionContext = pScope:PartitionContext.
         AddChild(mPartitionContext). 
         SkipList = "partitions". 
-    end constructor.
+    end method.   
     /*
     method public override IDataAdminContext GetChild(pname as char):
         if pname = "partitions" then 

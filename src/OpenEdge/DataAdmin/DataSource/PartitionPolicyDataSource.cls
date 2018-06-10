@@ -51,17 +51,22 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
                    + " each b_indexArea outer-join no-lock where b_indexArea._area-number = _Partition-Policy._IndexArea-default,"
                    + " each b_LobArea outer-join no-lock where b_LobArea._area-number = _Partition-Policy._LobArea-default".   
         end.
+    
+    define protected property BaseFieldMap as char no-undo 
+        init "Name,_Partition-Policy-name,ObjectNumber,_Object-Number,TableName,_File._File-Name,SchemaName,_File._Owner,FieldNames,_Column-Name,HasRange,_Has-Range,NumFields,_Num-Columns,Description,_Description,DefaultAllocation,_Allocation-default"
+        get.
         
     define protected property FieldMapNoArea as char no-undo 
           /*isDataEnabled,_Tenant-attributes[1],isAllocated,_Tenant-attributes[2], */
 /*        init "Name,_Partition-Policy-name,Table-Name,_File._Field-Name,Field-Names,_Column-Name,HasRange,_Has-Range,NumField,_Num-Columns,Description,_Description,DefaultAllocation,_Allocation-default,DefaultDataAreaName"*/
-         init "Name,_Partition-Policy-name,TableName,_File._File-Name,SchemaName,_File._Owner,ObjectNumber,_Object-Number,FieldNames,_Column-Name,HasRange,_Has-Range,NumFields,_Num-Columns,Description,_Description,DefaultAllocation,_Allocation-default"
-       get. 
+       get():
+          return BaseFieldMap +  ",DefaultDataAreaNumber,_DataArea-default,DefaultIndexAreaNumber,_IndexArea-default,DefaultLobAreaNumber,_LobArea-default".
+       end. 
          
        /* for attach */
     define protected property FieldMap as char no-undo 
         get().
-            return FieldMapNoArea + ",DefaultDataAreaName,b_dataarea._Area-name,DefaultIndexAreaName,b_indexarea._Area-name,DefaultLobAreaName,b_lobarea._Area-name".
+            return BaseFieldMap + ",DefaultDataAreaName,b_dataarea._Area-name,DefaultIndexAreaName,b_indexarea._Area-name,DefaultLobAreaName,b_lobarea._Area-name".
         end. 
                 
     define protected variable mBuffer as handle no-undo.
@@ -79,39 +84,45 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
         private set.
    
 	constructor public PartitionPolicyDataSource ( ):	    
-		this-object (FieldMap).
+		super().
 		/* order is important = policyfield source creates local index if noin eexists  */
 		SaveChildNames = "ttLocalIndex,ttPartitionPolicyField".
     end constructor.
     
     constructor public PartitionPolicyDataSource (pfieldmap as char ):        
         super ("_Partition-Policy,_File,b_dataArea,b_indexArea,b_LobArea","dictdb._Partition-Policy,dictdb._File,dictdb._Area,dictdb._Area,dictdb._Area", pFieldMap). 
-        BaseQuery = "for each _Partition-Policy no-lock, " + mAreaQuery.    
+        BaseQueryTemplate = "for each _Partition-Policy&1no-lock, " + mAreaQuery.    
     end constructor.
-   
-/*    constructor public PartitionPolicyDataSource (phChild as handle,pfieldmap as char ):                                              */
-/*        super ("_Tenant,b_dataArea,b_indexArea,b_LobArea","dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area",phchild, pFieldMap).*/
-/*        BaseQuery = "for each _Tenant no-lock,"                                                                                       */
-/*                  +  mAreaQuery                                                                                                       */
-/*                  + ", each " + phChild:name + " no-lock".                                                                            */
-/*    end constructor.                                                                                                                  */
-    /* keep
-    constructor public TenantDataSource (phParent as handle,pcJoin as char,pfieldmap as char ):        
-        super (phParent, "_Tenant,b_dataArea,b_indexArea,b_LobArea","dictdb._Tenant,dictdb._Area,dictdb._Area,dictdb._Area",pFieldMap). 
-        BaseQuery = "for each " + phParent:name + " no-lock,"
-                  + " each _Tenant" 
-                  + (if pcjoin > "" then " where " + pcjoin else "")
-                  + " no-lock, " 
-                  + mAreaQuery + " no-lock".       
-    end constructor.
-    */
-   
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    
+    method override protected void DefineSource(  ):
+        if Lazy then do:
+             /* @TODO - remove _File 
+                Tablename is used directly in   
+                PartitionPolicyContext:FetchTableName (pPartitionPolicyName):
+                This would need to be fixed to refresh if lazy and tablenamke is blank   
+                PartitionPolicy:Table is already prepared to use objectnumber of no tablename
+              */
+             assign 
+                Tables            = "_Partition-Policy,_File"
+                PhysicalTables    = "dictdb._Partition-Policy,dictdb._file"
+                FieldMapping      = FieldMapNoArea
+                BaseQueryTemplate = "for each _Partition-Policy&1no-lock, each _file no-lock where _file._file-number = _Partition-Policy._Object-number". 
+                .
+        end.    
+        else do:
+            assign 
+                Tables            = "_Partition-Policy,_File,b_dataArea,b_indexArea,b_LobArea"
+                PhysicalTables    = "dictdb._Partition-Policy,dictdb._file,dictdb._Area,dictdb._Area,dictdb._Area"
+                FieldMapping      = FieldMap
+                BaseQueryTemplate = "for each _Partition-Policy&1no-lock," + mAreaQuery
+                .
+        end.     
+        Defined = true.
+    end method.
+    
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterRow").
         mBuffer = phBuffer.      
-        lok = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
-        return lok.
     end method.
     
     method override protected void AfterSetUrl(): 
@@ -571,7 +582,12 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
         do:
             hBuffer::IsCompositeReadOnly = partitionobj:readOnly.
         end. 
-                           
+        assign 
+            hbuffer::DefaultAllocation   = caps(substr(hbuffer::DefaultAllocation,1,1)) 
+                                         + lc(substr(hbuffer::DefaultAllocation,2))
+            hBuffer::type = if hBuffer::HasRange then if hBuffer::NumFields > 1 then "List-range" else "Range" else "List" 
+            .
+        if url > "" then                    
         assign
             cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  
             hBuffer::Url  = PolicyURL + cEncodeName
@@ -580,10 +596,7 @@ class OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource inherits DataSourc
             hBuffer::DefaultDataAreaUrl  = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultDataAreaName)                   
             hBuffer::DefaultIndexAreaUrl = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultIndexAreaName)
             hBuffer::DefaultLobAreaUrl   = AreaUrl + WebUtil:UrlEncode(hBuffer::DefaultLobAreaName)
-            hbuffer::DefaultAllocation   = caps(substr(hbuffer::DefaultAllocation,1,1)) 
-                    + lc(substr(hbuffer::DefaultAllocation,2))
             hBuffer::PartitionPolicyDetailsURL = PolicyURL + cEncodeName + "/partitionpolicydetails"
-            hBuffer::type = if hBuffer::HasRange then if hBuffer::NumFields > 1 then "List-range" else "Range" else "List" 
             .
 /*            hBuffer::AreasUrl      = AreasUrl.*/
     end method.  

@@ -47,22 +47,19 @@ trowid,rowid(_Field)"
     
     constructor protected FieldPermissionDataSource (hParent as handle,pcMapping as char ):      
         super (hParent,"_Field,_File","dictdb._Field,dictdb._File", pcMapping).  
-/*      BaseQuery = "for each _file no-lock, each _field of _file  no-lock ".*/
         BaseQuery = "for each _field no-lock, each _file of _field  where " + FileQueryExpression +  " no-lock".
     end constructor.
 
     constructor protected FieldPermissionDataSource (hParent as handle,pcTableJoin as char,pcFieldJoin as char,pcMapping as char ):      
         super (hParent,"_File,_Field","dictdb._File,dictdb._Field", pcMapping).  
-/*      BaseQuery = "for each _file no-lock, each _field of _file  no-lock ".*/
         BaseQuery = "for each " + hParent:name + "," 
-                  + " each _file where " + FileQueryExpression +  " and " + pctablejoin + " no-lock," 
-                  + " each _field of _file where "  + pcFieldjoin + " no-lock".
+                  + " each _file where " + FileQueryExpression +  " and " + pctablejoin + " no-lock,"
+                  + " each _field of _file where "  + pcFieldjoin + " no-lock". 
      end   constructor.
   
     constructor public FieldPermissionDataSource (pcMapping as char ):      
         super ("_File,_Field","dictdb._File,dictdb._Field", pcMapping).  
-/*      BaseQuery = "for each _file no-lock, each _field of _file  no-lock ".*/
-        BaseQuery = "for each _file where " + FileQueryExpression +  " no-lock, each _field of _file no-lock ".
+        BaseQuery = "for each _file where " + FileQueryExpression +  " no-lock, each _field of _file  no-lock ".
     end constructor.
   
     /* allow subclasses to override to set call back even if we don't have call back here */
@@ -70,12 +67,9 @@ trowid,rowid(_Field)"
 /*         phBuffer:set-callback("After-Row-fill","AfterFieldRow").*/
     end method.
   
-    method public override final logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         SetCallback(phBuffer).
-        lok = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
-        return lok.       
     end method.
     /*
     method public void AfterFieldRow(dataset-handle hds):

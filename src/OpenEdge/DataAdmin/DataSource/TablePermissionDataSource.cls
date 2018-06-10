@@ -54,12 +54,14 @@ Hidden,_Hidden"
  
     constructor protected TablePermissionDataSource (hParent as handle,pmap as char ):       
         super (hParent,"_File","dictdb._File", pmap).   
-        BaseQuery = "for each _file where " + FileQueryExpression + " no-lock". 
+        BaseTableExpression = FileQueryExpression .
+        BaseQueryTemplate   = "for each _file&1no-lock". 
     end constructor.
     
     constructor public TablePermissionDataSource (pmap as char ):       
         super ("_File","dictdb._File", pmap).   
-        BaseQuery = "for each _file where " + FileQueryExpression + " no-lock". 
+        BaseTableExpression = FileQueryExpression .
+        BaseQueryTemplate   = "for each _file&1no-lock".  
     end constructor.
     
 	constructor public TablePermissionDataSource ( ):	    
@@ -72,14 +74,10 @@ Hidden,_Hidden"
 /*         phBuffer:set-callback("After-Row-fill","AfterTableRow").*/
     end method.
   
-    method public override final logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         define variable lok as logical no-undo.
         SetCallback(phBuffer).
-        lok = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.    
-/*        message queryhandle:prepare-string*/
-/*        view-as alert-box.                */
-        return lok.
     end method.
     
     method public override logical Save(phbuffer as handle):

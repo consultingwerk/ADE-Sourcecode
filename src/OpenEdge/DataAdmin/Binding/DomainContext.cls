@@ -38,6 +38,7 @@ using OpenEdge.DataAdmin.IDomain.
 using OpenEdge.DataAdmin.IRequestInfo.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
 
@@ -77,15 +78,25 @@ class OpenEdge.DataAdmin.Binding.DomainContext inherits DataAdminContext :
 
     constructor public DomainContext ():
         super ("Domain"). 
-        AddChild(new UserContext()).
     end constructor.
     
     constructor public DomainContext (pscope as IIdentityScope):
         super ("Domain",pscope). 
-        AddChild(pscope:UserContext).
         CanEditKey = true.
     end constructor.
-            
+    
+    method override protected void InitChildren ():
+        AddChild(new UserContext()).
+    end method.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,IIdentityScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as IIdentityScope):
+        AddChild(pscope:UserContext).
+    end method.
+             
     /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():
         return dataset dsDomain:handle. 

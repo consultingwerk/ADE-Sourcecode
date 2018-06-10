@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : ABLRunner
@@ -743,7 +743,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             Runs the corresponding method based on the type of the testcase.                                                                       
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestEntity populateTestModel(INPUT testCase AS CHARACTER, INPUT testCount AS INTEGER):
-        DEFINE VARIABLE serializedtree AS CHARACTER  NO-UNDO.
+        DEFINE VARIABLE serializedtree AS LONGCHAR  NO-UNDO.
         populateTestModel(testCase, testCount, testModel).
         serializedtree = loadSerializedTree(testModel).
        RETURN testModel.
@@ -752,11 +752,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     /*------------------------------------------------------------------------------
             load serialized tree                                                                       
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC CHARACTER loadSerializedTree(INPUT testEntity AS TestEntity):
+    METHOD PUBLIC LONGCHAR loadSerializedTree(INPUT testEntity AS TestEntity):
     DEFINE VARIABLE testEntities AS Array NO-UNDO.
     DEFINE VARIABLE newTestEntity AS TestEntity NO-UNDO.
     DEFINE VARIABLE i AS INTEGER NO-UNDO.
-    DEFINE VARIABLE serializedtree AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE serializedtree AS LONGCHAR NO-UNDO.
     DEFINE VARIABLE isTestSuite AS CHARACTER NO-UNDO INIT "false".
     testEntities = testEntity:getTestEntities().
    
@@ -1257,16 +1257,14 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
      /*------------------------------------------------------------------------------
            writes to the update file the given content. If override is true, the file is overwritten.                                                        
     ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID updateFile(INPUT updateFile AS CHARACTER, INPUT content AS CHARACTER, INPUT override AS LOGICAL):
+    METHOD PUBLIC VOID updateFile(INPUT updateFile AS CHARACTER, INPUT content AS LONGCHAR, INPUT override AS LOGICAL):
         IF NOT updateFile = "" THEN
            DO:
+                content = content + "~n".
                    IF override THEN
-                    OUTPUT TO VALUE(updateFile) .
+                    COPY-LOB content TO FILE updateFile. 
                    ELSE
-                    OUTPUT TO VALUE(updateFile) append.
-                   
-                   PUT UNFORMATTED content SKIP.
-                   OUTPUT close.
+                    COPY-LOB content TO FILE updateFile APPEND.
            END.
     END METHOD.
     

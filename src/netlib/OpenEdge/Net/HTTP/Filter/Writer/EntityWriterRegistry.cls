@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : EntityWriterRegistry
@@ -18,6 +18,7 @@ using OpenEdge.Net.HTTP.Filter.Payload.BinaryEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter.
+using OpenEdge.Net.HTTP.Filter.Payload.MultipartFormEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.StringEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.XmlEntityWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry.
@@ -53,7 +54,6 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry inherits BuilderRegis
         poRegistry:Put('application/x-www-form-urlencoded':u, get-class(FormDataEntityWriter)).
         */
         
-        
         /* XML */
         poRegistry:Put('text/xml':u,                               get-class(XmlEntityWriter)).
         poRegistry:Put('text/xml-external-parsed-entity':u,        get-class(XmlEntityWriter)).
@@ -73,7 +73,10 @@ class OpenEdge.Net.HTTP.Filter.Writer.EntityWriterRegistry inherits BuilderRegis
         poRegistry:Put('video/*':u, get-class(BinaryEntityWriter)).
         
         /* Multipart */
-        poRegistry:Put('multipart/*':u, get-class(MultipartEntityWriter)).
+        poRegistry:Put('multipart/form-data':u, get-class(MultipartFormEntityWriter)).
+        /* Fastest form-data writer
+          poRegistry:Put('multipart/form-data':u, get-class(MultipartFormSimpleEntityWriter)). */
+        poRegistry:Put('multipart/*':u,         get-class(MultipartEntityWriter)).
         
         /* In case all else fails ... we use application/octet-stream */
     end method.

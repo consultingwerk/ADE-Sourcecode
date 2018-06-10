@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2015-2016 by progress Software Corporation       */
+ /* Copyright (c) 2015-2018 by Progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -47,6 +47,8 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Error. 
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext.
 
 block-level on error undo, throw.
 
@@ -90,24 +92,19 @@ class OpenEdge.DataAdmin.Binding.CdcFieldPolicyContext inherits DataAdminContext
         end get. 
         
     constructor public CdcFieldPolicyContext():
-        define variable partitionContext as PartitionContext no-undo.
         super ("CdcFieldPolicy").
-        partitionContext = new PartitionContext().
-        //AddChild(partitionContext).
         ExportWithRoot = false.
     end constructor.
         
     constructor public CdcFieldPolicyContext (pscope as ISchemaScope):
         super ("CdcFieldPolicy",pscope).
         SchemaScope = pscope.
-       // AddChild(pscope:PartitionContext).
         ExportWithRoot = false.
     end constructor.
     
     constructor protected CdcFieldPolicyContext ( pScope as ISchemaScope,plLocal as log):
         super ("CdcFieldPolicy",pScope,plLocal).
         SchemaScope = pscope.
-        //AddChild(pscope:PartitionContext).
         ExportWithRoot = false.
     end constructor.
     

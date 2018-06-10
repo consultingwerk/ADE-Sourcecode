@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : CookieJar
@@ -215,11 +215,13 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         @return logical True if the cookie was deleted from the store. */
     method private logical DeleteCookie(input phStore as handle,
                                         input poCookie as Cookie):
-        phStore:find-unique(substitute('where &1.CookieName eq &2 and &1.Domain eq &3 and &1.Path eq &4':u,
+        phStore:find-unique(substitute('where &1.CookieName eq "&2" and &1.Domain eq "&3" and &1.Path eq "&4"':u,
                         phStore:name,
-                        quoter(poCookie:Name),
-                        quoter(poCookie:Domain),
-                        quoter(poCookie:Path))) no-error.
+                        poCookie:Name,
+                        poCookie:Domain,
+                        poCookie:Path)) no-error.
+        // for not available records
+        assign error-status:error = false.
         if phStore:available then
         do:
             phStore:buffer-delete().
@@ -413,11 +415,13 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         if pcPath eq '':u then
             assign pcPath = '/':u.
         
-        phStore:find-unique(substitute('where &1.CookieName eq &2 and &1.Domain eq &3 and &1.Path eq &4':u,
+        phStore:find-unique(substitute('where &1.CookieName eq "&2" and &1.Domain eq "&3" and &1.Path eq "&4"':u,
                     phStore:name,
-                    quoter(poCookie:Name),
-                    quoter(pcDomain),
-                    quoter(pcPath))) no-error.
+                    poCookie:Name,
+                    pcDomain,
+                    pcPath)) no-error.
+        // for not available records
+        assign error-status:error = false.
         if not phStore:available then
         do:
             phStore:buffer-create().

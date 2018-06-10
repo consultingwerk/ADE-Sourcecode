@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2010-2016 by progress Software Corporation  */
+ /* Copyright (c) 2010-2016,2018 by progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -15,9 +15,35 @@
   ----------------------------------------------------------------------*/
 routine-level on error undo, throw.
 
-using Progress.Lang.* from propath.
-using OpenEdge.DataAdmin.DataAccess.* from propath.
-using OpenEdge.DataAdmin.Error.* from propath.
+using OpenEdge.DataAdmin.DataAccess.AllFieldData from propath.
+using OpenEdge.DataAdmin.DataAccess.AllFileData from propath.
+using OpenEdge.DataAdmin.DataAccess.AreaData from propath.
+using OpenEdge.DataAdmin.DataAccess.AuthenticationSystemData from propath.
+using OpenEdge.DataAdmin.DataAccess.CdcTablePolicyData from propath.
+using OpenEdge.DataAdmin.DataAccess.DatabaseOptionData from propath.
+using OpenEdge.DataAdmin.DataAccess.FileData from propath.
+using OpenEdge.DataAdmin.DataAccess.FileDataChanges from propath.
+using OpenEdge.DataAdmin.DataAccess.GrantedRoleData from propath.
+using OpenEdge.DataAdmin.DataAccess.IDataAccess from propath.
+using OpenEdge.DataAdmin.DataAccess.MetaData from propath.
+using OpenEdge.DataAdmin.DataAccess.PartitionPolicyData from propath.
+using OpenEdge.DataAdmin.DataAccess.RoleData from propath.
+using OpenEdge.DataAdmin.DataAccess.SequenceValueData from propath.
+using OpenEdge.DataAdmin.DataAccess.TenantGroupData from propath.
+using OpenEdge.DataAdmin.DataAccess.TenantGroupMemberData from propath.
+using OpenEdge.DataAdmin.DataAccess.UserData from propath.
+using OpenEdge.DataAdmin.DataSource.AreaDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.IDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.TableDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.TenantDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.TenantGroupDataSource from propath.
+using OpenEdge.DataAdmin.DataSource.UserDataSource from propath.
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using Progress.Lang.Error from propath.
+using Progress.Lang.Object from propath.
+USING OpenEdge.DataAdmin.DataSource.CdcTablePolicyDataSource FROM PROPATH.
+using OpenEdge.DataAdmin.DataSource.TablePermissionDataSource from propath.
 
 class OpenEdge.DataAdmin.DataAccess.DataAccessFactory: 
     define variable ServiceName as character no-undo.
@@ -42,6 +68,59 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
 		super ().	
         this-object:ServiceName =  name. 
 	end constructor.
+    
+    /* to be used for single table and row requests using keyvalues
+       instead of querty 
+       This is optional and returns ? if no source is found 
+       (note that ideally all classes should return something 
+         the dynamic code tries to cover as much as possible 
+        The dynamic resolution for classes with multiple camle cases in name 
+        like TenantGroup may work in windows and not on unix, so should be hard coded   ) */ 
+    method public IDataSource GetDataSource(pName as char):
+        create alias dictdb for database value(ServiceName).
+      
+        define variable oSrc as IDataSource no-undo. 
+        
+        case pName:
+            when "Area" then
+                return new AreaDataSource().
+            when "PartitionPolicy" then do:
+                /* does not compile in non-partitioned database 
+                  (we cannot really rely on correct casing in parameter (on unix) 
+                   so do this dynamic, but hardcoded)*/
+                oSrc = dynamic-new "OpenEdge.DataAdmin.DataSource.PartitionPolicyDataSource" ().
+                return oSrc.
+            end.
+            when "Table" then 
+                return new TableDataSource().
+            when "Tenant" then
+                return new TenantDataSource().
+            when "TenantGroup" then
+                return new TenantGroupDataSource().
+            when "User" then
+                return new UserDataSource().
+            /* user permission relies on DataAccess to create dummy user when user not in _user */  
+            when "UserPermission" then
+                return ?.    
+            when "TablePermission" then
+                return new TablePermissionDataSource().        
+            when "CdcTablePolicy" then do:
+                 /* does only compile in a cdc enabled database 
+                  (we cannot really rely on correct casing in parameter (on unix) 
+                   so do this dynamic, but hardcoded)*/
+                oSrc = dynamic-new "OpenEdge.DataAdmin.DataSource.CdcTablePolicyDataSource" ().
+                return oSrc.
+            end.    
+            otherwise do on error undo, throw:
+                oSrc = dynamic-new "OpenEdge.DataAdmin.DataSource." + pName + "DataSource" ().
+                return oSrc.
+                catch e as Error :
+                    /* no complain - this is optional */ 
+                    return ?.   
+                end catch. 
+            end.           
+        end case.            
+    end method.
         
     method public IDataAccess GetDataAccess(name as char):
         define variable da as IDataAccess no-undo.
@@ -63,9 +142,7 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                     or name = "LocalIndex"  then
                 da = new PartitionPolicyData().
             else if name = "CdcTablePolicy" 
-                    or name = "CdcFieldPolicy"   
-                    //or name = "CdcTablePolicyField"   
-                    //or name = "Index" 
+                    or name = "CdcFieldPolicy" 
                      then
                 da = new CdcTablePolicyData().    
             else if name = "AllTable" then
@@ -80,7 +157,8 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                  or name = "DataSecurity"
                  or name = "Administrator"
                  or name = "SecurityOptions"    
-                 or name = "TablePermission" then 
+                 or name = "TablePermission" 
+                 or name = "FieldPermission" then 
                 da = new FileData().    
             else if name = "UserPermission" 
                  or name = "UserTablePermission" then 
@@ -99,6 +177,8 @@ class OpenEdge.DataAdmin.DataAccess.DataAccessFactory:
                 da = new RoleData().
             else if name eq 'GrantedRole':u then
                 da = new GrantedRoleData().
+            else if name eq 'Extent':u then
+                da = new AreaData().            
             else
             do on error undo, throw:
                 name = caps(substr(name,1,1)) + lc(substr(name,2)).

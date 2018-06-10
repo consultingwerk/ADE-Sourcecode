@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2015-2017 by progress Software Corporation  */
+/* Copyright (c) 2015-2018 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -53,6 +53,7 @@ using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
 using Progress.Lang.*.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope.
 
 routine-level on error undo, throw.
 
@@ -107,18 +108,8 @@ class OpenEdge.DataAdmin.Binding.CdcTablePolicyContext inherits DataAdminContext
     define public property CreateReadOnlyError as char 
           init "The property can only be edited after the policy has been created." no-undo get.  
     
-    constructor public CdcTablePolicyContext ():
-        //define variable cdctablefieldcontext  as CdcTablePolicyFieldContext no-undo.
-        define variable fieldpolicycontext as CdcFieldPolicyContext no-undo. 
-        define variable localIndexContext   as LocalIndexContext no-undo.
-         super ("CdcTablePolicy").
-        //cdctablefieldcontext = new CdcTablePolicyFieldContext().
-        fieldpolicycontext = new CdcFieldPolicyContext().
-        //localIndexContext = new LocalIndexContext().
-        //AddChild(cdctableFieldcontext).
-        //AddChild(localIndexContext).
-        //SkipList = "cdcFieldPolicies,partitions".
-        AddChild(fieldpolicycontext).
+    constructor public CdcTablePolicyContext ():         
+        super ("CdcTablePolicy").
         ExportWithRoot = false.
         CanGenerateCode = true.
 
@@ -126,14 +117,28 @@ class OpenEdge.DataAdmin.Binding.CdcTablePolicyContext inherits DataAdminContext
 
     constructor public CdcTablePolicyContext (pScope as ISchemaScope):
         super ("CdcTablePolicy",pScope).
-        //AddChild(pScope:CdcTablePolicyFieldContext).
-        //AddChild(pScope:LocalIndexContext).
-        //SkipList = "cdcFieldPolicies,partitions".
-        AddChild(pScope:CdcFieldPolicyContext).
         SchemaScope = pScope.
         ExportWithRoot = false.
         CanGenerateCode = true.
-     
+    end method.
+    
+    method override protected void InitChildren ():
+        define variable fieldpolicycontext as CdcFieldPolicyContext no-undo.  
+        fieldpolicycontext = new CdcFieldPolicyContext().       
+        AddChild(fieldpolicycontext).
+    end method.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,ISchemaScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as ISchemaScope):        
+        AddChild(pScope:CdcFieldPolicyContext).
+    end method.
+    
+    /* temporary until all sub classes are using createDataset  */
+    method override protected handle InitDataset ():
+        return dataset dsPolicy:handle. 
     end method.
     
     method public override void CreateRow(entity as IDataAdminElement):
@@ -145,11 +150,12 @@ class OpenEdge.DataAdmin.Binding.CdcTablePolicyContext inherits DataAdminContext
         return "".
     end.
     
+    /*
     /* detail has different join on server */
     method protected override handle GetRequestDataset():
         /* way too much data to load up front - just load the fields */
         return CreateServerDataset("").  /* final - calls createDataset true */
-    end method.
+    end method. */
     
        method public void FillNewFieldPolicies (pcPolicyname as char) :
         define variable request as IFetchRequest   no-undo.
@@ -569,7 +575,31 @@ class OpenEdge.DataAdmin.Binding.CdcTablePolicyContext inherits DataAdminContext
     method public override logical Find(name as character):
         find ttCdcTablePolicy where ttCdcTablePolicy.Name = name no-error.
         return avail ttCdcTablePolicy.            
-    end.    
+    end.   
+    
+    method public character FetchTableName (pCdcPolicyName as character):
+        define variable lFound as logical no-undo.
+        lfound = this-object:Find(pCdcPolicyName).
+        if not lFound then do:
+             this-object:Fetch(pCdcPolicyName).  
+             lfound = this-object:Find(pCdcPolicyName).
+        end.    
+        
+        if lFound then 
+            return ttCdcTablePolicy.TableName.
+
+        return ?.                        
+    end. 
+    
+    method protected logical Fetch(pCdcPolicyName as character):
+        define variable oMsg as IFetchRequest no-undo.
+        oMsg = GetRequest(). 
+        omsg:SetTableQuery(Tablehandle:name,
+                           subst( " for each ttCdcTablePolicy where ttCdcTablePolicy.name = '&1'", 
+                                    pCdcPolicyName)
+                          ).
+        FetchData(oMsg). 
+    end.
  
     method protected override IDataAdminCollection CreateCollection(cntxt as IDataAdminContext):
         return new CdcTablePolicySet(cntxt). 

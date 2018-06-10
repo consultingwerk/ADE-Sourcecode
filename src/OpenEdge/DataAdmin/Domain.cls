@@ -196,7 +196,7 @@ class OpenEdge.DataAdmin.Domain inherits Entity implements IDomain, IDataAdminEl
              do:
                  if valid-handle(mBuffer) and mBuffer::AuthenticationSystemName > "" 
                  and valid-object(Service) then
-                     AuthenticationSystem = Service:GetAuthenticationSystem(mBuffer::AuthenticationSystemName).            
+                     return Service:GetAuthenticationSystem(mBuffer::AuthenticationSystemName).            
              end.
              return AuthenticationSystem.
         end.

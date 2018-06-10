@@ -96,7 +96,7 @@ isDataEnabled,_Attributes[1],~
     
      constructor public PartitionPolicyDetailDataSource ():      
          super ("_Partition-Policy-Detail,b_dataArea,b_indexArea,b_LobArea","dictdb._Partition-Policy-Detail,dictdb._Area,dictdb._Area,dictdb._Area", FieldMap). 
-         BaseQuery = "for each _Partition-Policy-Detail use-index _Partition-obj-IValue  no-lock, " + mAreaQuery.    
+         BaseQueryTemplate = "for each _Partition-Policy-Detail use-index _Partition-obj-IValue&1no-lock, " + mAreaQuery.    
      end constructor.
      
         /* allow subclasses to override to not set call back even if we  have call back here */
@@ -104,12 +104,9 @@ isDataEnabled,_Attributes[1],~
         phBuffer:set-callback("After-Row-fill","AfterRow").
     end method.
     
-    method public final override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
-        define variable lok as logical no-undo.
+    method protected override void PrepareBuffer(phBuffer as handle):
         SetCallBack(phBuffer).
-        lok  = super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
-        return lok.
     end method.
     
     /** override to sort on the internal value that defines the true order of the partitions  */
@@ -480,11 +477,11 @@ isDataEnabled,_Attributes[1],~
                 hBuffer::IsReadOnly = partitionobj:ReadOnly
                 hBuffer::IsAllocated = partitionobj:AllocationState = "Allocated".
         end. 
-        
+        hBuffer::InternalSort = mcount.
+        if url > "" then 
         assign
             cAreaUrl = url + "/areas/"
             cEncodeName = WebUtil:UrlEncode(hBuffer::Name)  
-            hBuffer::InternalSort = mcount
 /*            hBuffer::Url  = url + "/partitionpolicydetails/" + cEncodeName*/
             hBuffer::DefaultDataAreaUrl  = cAreaUrl + WebUtil:UrlEncode(hBuffer::DefaultDataAreaName)                   
             hBuffer::DefaultIndexAreaUrl = cAreaUrl + WebUtil:UrlEncode(hBuffer::DefaultIndexAreaName)

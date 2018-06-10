@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MessageWriterBuilder
@@ -19,6 +19,7 @@ using OpenEdge.Net.HTTP.ConfigBuilder.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.DefaultMessageWriterBuilder.
 using OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder.
+using OpenEdge.Net.HTTP.Filter.Writer.VoidMessageWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IHttpMessage.
 using Progress.Lang.Object.
@@ -35,7 +36,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
     
     /** Each concrete builder will implement this differently */
     define abstract public property Writer as MessageWriter no-undo get. 
-
+    
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
         get():
@@ -45,8 +46,6 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
                 assign oRegistry = new BuilderRegistry(get-class(MessageWriterBuilder)).
                 oRegistry:Put(get-class(MessageWriterBuilder):TypeName,
                               get-class(DefaultMessageWriterBuilder)).
-                /* oRegistry:Put(get-class(MessageWriterBuilder):TypeName,
-                              get-class(DebugMessageWriterBuilder)). */                              
                 
                 assign MessageWriterBuilder:Registry = oRegistry.
             end.
@@ -65,7 +64,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
         
         assign oHeader = poMessage:GetHeader('Content-Type':u).
         return MessageWriterBuilder
-                            :Build(poMessage:ContentType, poRegistry)                    
+                            :Build(poMessage:ContentType, poRegistry)
                             :Option('encodedAs':u, oHeader:GetParameterValue('charset':u))
                             :Option('multipartBoundary':u, oHeader:GetParameterValue('boundary':u)).
     end method.
@@ -84,6 +83,9 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
         Assert:NotNull(poRegistry, 'Writer registry').
         
         assign oBuilderType = MessageWriterBuilder:Registry:Get(get-class(MessageWriterBuilder):TypeName).
+        if not valid-object(oBuilderType) then
+            assign oBuilderType = get-class(VoidMessageWriterBuilder). 
+        
         Assert:IsType(oBuilderType, get-class(MessageWriterBuilder)).
 
         oBuilder = dynamic-new string(oBuilderType:TypeName) (pcContentType, poRegistry).

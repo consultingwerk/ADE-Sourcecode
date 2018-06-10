@@ -71,14 +71,17 @@ class OpenEdge.DataAdmin.Binding.RoleContext inherits DataAdminContext :
     
     constructor public RoleContext (pscope as IContextScope):
         super ("Role",pScope).
-        AddChild(new GrantedRoleContext(pscope)).
     end constructor.
 
     constructor public RoleContext (grants as GrantedRoleContext):
         super ("Role").
         AddChild(grants).
     end constructor.
-            
+    
+    method protected override void initChildren(pScope as IContextScope):
+        AddChild(new GrantedRoleContext(pscope)).
+    end method.    
+    
     /*   temporary until all sub classes are using createDataset  */
     method override protected handle InitDataset ():
         return dataset dsRole:handle. 

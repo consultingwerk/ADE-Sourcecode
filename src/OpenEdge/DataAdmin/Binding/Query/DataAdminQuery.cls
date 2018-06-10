@@ -26,7 +26,29 @@ class OpenEdge.DataAdmin.Binding.Query.DataAdminQuery abstract  :
   define public abstract property Tables   as character no-undo get.   
   
   define public    property Table          as char      no-undo get. set.
-  define public    property BaseQuery      as character no-undo get. set.
+  /* set to "for each <table>&1no-lock" to utilize faster query building for key 
+     fields. If defined the query can be built from this and optionally 
+     BaseTableExpression instead of using the BaseQuery for example in cases 
+     where a field name and value is known. This avoids the need to for query 
+     parsing. The default BaseQuery will also use this if defined */
+  define protected property BaseQueryTemplate   as character no-undo get. set.
+  /* A fixed expression that is a mandatory part of the source Query 
+    - used when BaseQueryTemplate is defined, separated out to ensure  
+      will/must be substituted with &1 token in the BaseQueryTemplate with 
+      spaces on both sides  */ 
+  define protected property BaseTableExpression as character no-undo get. set.
+  
+  define public    property BaseQuery          as character no-undo 
+     get():
+         if BaseQuery = "" and BaseQueryTemplate > "" then do:
+             if BaseTableExpression > "" then
+                 BaseQuery = subst(BaseQueryTemplate," where " + BaseTableExpression + " ").
+             else
+                 BaseQuery = subst(BaseQueryTemplate," ").
+         end.    
+         return BaseQuery.
+     end. 
+     set.
   define public    property KeyFields      as character no-undo get. set.    
   define public    property UseRowid       as logical   no-undo get. set.
   define public    property PhysicalTables as character no-undo  get. set.

@@ -40,10 +40,12 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         end get.
         private set.
     
+    // 'magic names' for properties
     define protected property PROP_SSL_PROTOCOLS  as character init 'sslprotocols':u no-undo get.
     define protected property PROP_SSL_CIPHERS    as character init 'sslciphers':u   no-undo get.
     define protected property PROP_SSL_HOSTVERIFY as character init 'sslhostverify':u no-undo get.
     define protected property PROP_REUSESESSION   as character init 'reusesession':u no-undo get.
+    define protected property PROP_SERVERNAME     as character init 'servername':u no-undo get.
     
     /** Each concrete builder will implement this differently */
     define abstract public property Library as IHttpClientLibrary no-undo get.
@@ -70,14 +72,25 @@ class OpenEdge.Net.HTTP.Lib.ClientLibraryBuilder abstract inherits ConfigBuilder
         
         assign oBuilderType = ClientLibraryBuilder:Registry:Get(get-class(ClientLibraryBuilder):TypeName).
         Assert:IsType(oBuilderType, get-class(ClientLibraryBuilder)).
-
+    
         /* Issue PSC00326382 means that we must use dynamic-new instead of New() */
         oCLB = dynamic-new string(oBuilderType:TypeName) ().
-
+    
         if type-of(oCLB, ISupportInitialize) then
             cast(oCLB, ISupportInitialize):Initialize().
         
         return oCLB.
+    end method.
+    
+    /** Sets the server name indicator for TLS.
+        
+        @param  character The server name indicator
+        @return ClientLibraryBuilder This builder object */
+    method public ClientLibraryBuilder ServerNameIndicator(input pServerName as character):
+        Assert:NotNullOrEmpty(pServerName, 'Server name').
+        
+        SetOption(PROP_SERVERNAME, pServerName).
+        return this-object.
     end method.
     
     /** Add an array of SSL protocols to the config. Replaces any existing

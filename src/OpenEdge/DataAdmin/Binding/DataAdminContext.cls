@@ -56,6 +56,10 @@ using Progress.Json.ObjectModel.JsonArray from propath.
 using Progress.Json.ObjectModel.JsonObject from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
 using Progress.Lang.* from propath.
+using OpenEdge.DataAdmin.Binding.ModelList from propath.
+using OpenEdge.DataAdmin.Error.IllegalOperationError from propath.
+using OpenEdge.DataAdmin.Util.CompareHelper from propath.
+using OpenEdge.Core.Collections.StringStringMap from propath.
 
 /*using OpenEdge.DataAdmin.Binding.IContextWriter from propath.*/
 /** default implementation IDataAdminContextData implements IDataAdminModel */ 
@@ -137,7 +141,6 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         get. 
         set.     
     
-    define private variable mChildContextList as IDataAdminModel extent no-undo. 
     
     define protected variable SaveDataset as handle no-undo.
   
@@ -164,6 +167,19 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     define public property ContextScope as IContextScope no-undo
         get.
         private set.
+    
+    define private property ChildList as ModelList no-undo
+        get():
+            if not valid-object(ChildList) then do:
+                ChildList = new ModelList().
+                if valid-object(ContextScope) then 
+                    initChildren(ContextScope).
+                else    
+                    initChildren().
+            end.    
+            return ChildList.
+        end.
+        set.              
     
     define protected property ServiceAdapter as ServiceAdapter no-undo
         protected get.
@@ -202,8 +218,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         get():
             return "for each " + TableHandle:name.
         end.      
-        set.
-	
+        set(cQuery as char): /* IQueryMap has setter */
+	        undo, throw new IllegalOperationError("Set of BaseQuery in " + this-object:GetClass():TypeName).
+	    end.
 	define public property RootId as rowid no-undo 
         get.      
         private set.
@@ -322,6 +339,14 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                              
     end constructor.
     
+    /* override to initialize child context for local context */ 
+    method protected void initChildren():
+    end method.
+        
+    /* override to initialize child context for scope */ 
+    method protected void initChildren(pscope as IContextScope):
+    end method.
+        
     method protected void OnRowCreated():
         RowCreated:Publish().
     end method.    
@@ -415,7 +440,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         CreateRow(pEntity).   
     end method.    
        
-    /* Called from DatasetHandle getter temporary until all sub classes are using this   */
+    /* Called from DatasetHandle getter temporary until all sub classes are using this 
+       This is now overidden by almost all classes .. se comment in getRequestDataset
+      */
     method protected handle InitDataset ():
         return CreateDataset().
     end method.
@@ -702,14 +729,16 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         define variable i as int no-undo.
         define variable cname as character no-undo.
         define variable childcntxt as IDataAdminModel no-undo.
-        do i = 1 to extent(mChildContextList):       
-            cName = mChildContextList[i]:SerializeName.
+        define variable iCount as integer no-undo.
+        iCount = ChildList:Count.
+        do i = 1 to iCount:       
+            cName = ChildList:Get(i):SerializeName.
             if lookup(cName,SkipList) = 0 then
             do:  
                 childcntxt = cntxt:GetChild(cName).
             
                 if valid-object(childcntxt)   then
-                    mChildContextList[i]:Copy(childcntxt).
+                    ChildList:Get(i):Copy(childcntxt).
             end.
         end. 
         Loaded = false. 
@@ -879,10 +908,15 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         return CreateDataset(pcCollections,yes).
     end method.
     
-      /* Daaset used by getRequest - ideally this should use CreateServerDataset, but this was the default 
-      so this needs to be overridden to use CreateServerDataset or create one entirely different   
-      @todo - future - remove this and make getRequest use CreateServerDataset(). 
-       - when all context have overrides..  or when it can be tested properly. */
+      /* Dataset used by getRequest -
+         Some programs overrides this to call CreateServerDataset,
+         This was recommended at some point, but since then DatasetHandle has been 
+         fixed to have only a single table to support lazy load in most classes.
+         This is accomplished by overriding initDataset to have the default 
+         dataset with a single table.  
+         initDataset is called from datasetHandle getter.   
+      @todo - this is all very convoluted and could be cleaned up ... 
+              but with care */
     method protected handle GetRequestDataset():
         return DatasetHandle. 
     end method.
@@ -969,12 +1003,14 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     method public final void AddChildrenTo(tree as IContextTree,pReq as IRequestInfo).
         define variable i as integer no-undo.
         define variable childReq as IRequestInfo no-undo.
-        do i = 1 to extent(mChildContextList):
-            if lookup(mChildContextList[i]:SerializeName,SkipList) = 0 then
+        define variable iCount as integer no-undo.
+        iCount = ChildList:Count.
+        do i = 1 to iCount:
+            if lookup(ChildList:Get(i):SerializeName,SkipList) = 0 then
             do:
                 if valid-object (preq) then
-                    childReq = preq:Get(mChildContextList[i]:Serializename).
-                mChildContextList[i]:AddTreeTo(tree,this-object,childReq).
+                    childReq = preq:Get(ChildList:Get(i):Serializename).
+                ChildList:Get(i):AddTreeTo(tree,this-object,childReq).
             end.  
         end.
     end method.    
@@ -1004,8 +1040,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
             cChild = entry(i,pcCollections).
             childReq = ?.
             if valid-object (preq) then
-            do:
-                childReq = preq:Get(mChildContextList[i]:Serializename).
+            do on error undo, throw:
+                childReq = preq:Get(ChildList:Get(i):Serializename).
+                catch e as Progress.Lang.Error :
+                    /*  suppress error from childlist:Get - thrown if out of range */   
+                end catch.
             end.
             childContext = GetChildWithRequestInfo(cChild,input-output childReq). 
             if valid-object(childContext) then
@@ -1727,7 +1766,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     end method.    
     
     /** keep client changes  - remove corresponding records in received new table */             
-    method private void RemoveBeforeChanges(hNewBuffer as handle):
+    method protected void RemoveBeforeChanges(hNewBuffer as handle):
         define variable hq as handle no-undo.
         define variable hBefore as handle no-undo.
         define variable cWhere as character no-undo.
@@ -1768,8 +1807,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         define variable i as integer no-undo.
         define variable TblResponse as ITableResponse no-undo.
         define variable hNewBuffer  as handle no-undo.
-        
+        define variable iCount as integer no-undo.
         TblResponse = pResponse:GetTableResponse(TableHandle:name).
+/*KEEP */
 /*        message                                                 */
 /*          "response:entity"                                     */
 /*         pResponse:entityname skip                              */
@@ -1798,8 +1838,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
             AfterTableRefreshed().
             
             /* pass message on to children */
-            do i = 1 to extent(mChildContextList): 
-                mChildContextList[i]:DataRefreshed(pResponse).
+            iCount = ChildList:Count. 
+            do i = 1 to iCount: 
+/*                message ChildList:Get(i):name*/
+/*                view-as alert-box.           */
+                ChildList:Get(i):DataRefreshed(pResponse).
             end.
             
             /* refresh queries */
@@ -1992,10 +2035,154 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     end method.
     
     method protected abstract IDataAdminElement CreateEntity(req as IRequestInfo).
+   
+    method public void RefreshRow(pFields as char, pValues as char extent):
+        define variable hDataset as handle no-undo.
+        define variable hBuffer  as handle no-undo.
+        define variable lDynamic as logical no-undo.
+        define variable cValues  as character no-undo extent.
+        define variable cWhere   as character no-undo.
+        define variable lKeep    as logical no-undo.
+        define variable oRequest as IFetchRequest no-undo.
+        define variable hBefore  as handle no-undo.
+        define variable oChanges as StringStringMap  no-undo.
+        define variable ltrack   as logical no-undo.
+        define variable cChanged as character no-undo.
+        define variable iFld     as integer no-undo.
+        define variable hFld     as handle no-undo.
+        define variable cLong    as longchar  no-undo.
         
-    /** override in context with integer key */
+        If DatasetHandle:num-buffers = 1 then do: 
+            assign 
+                hDataset = DatasetHandle
+                hBuffer  = hDataset:get-buffer-handle(1)
+                .
+        end.    
+        else do:
+            lDynamic = true.
+            create dataset hDataset.
+            create buffer hBuffer for table TableHandle buffer-name TableHandle:name.
+            hDataset:add-buffer(hBuffer).    
+        end.    
+        
+        cWhere  = GetWhere(pFields,pValues).
+        hBuffer:find-unique ("where " + cWhere) no-error.
+        if hbuffer:avail then do:
+            /* if record is updated - store backup */
+            if hBuffer:before-rowid <> ? then do:
+                hBefore = hBuffer:before-buffer.
+                hBefore:find-by-rowid(hBuffer:before-rowid).
+                cChanged = CompareHelper:CompareBuffers(hBefore,hBuffer,"","case-sensitive"). 
+                ochanges = new StringStringMap().
+                do iFLd = 1 to num-entries(cChanged):
+                    hFLd = hBuffer:buffer-field(entry(iFld,cChanged)).
+                    if hFld:data-type = "character" then
+                        oChanges:Put(hFld:name,hFld:buffer-value).
+                    else if hfld:data-type = "clob" then do:
+                        copy-lob from hfld:buffer-value to clong .
+                        oChanges:Put(hFld:name,clong).
+                    end.    
+                    else
+                        oChanges:Put(hFld:name,string(hFld:buffer-value)).
+                end.  
+            end.    
+            hBuffer:buffer-delete().
+        end.    
+        if num-entries(pFields) = 1 then do:
+            assign
+                cValues = pValues
+                lTrack = TableHandle:tracking-changes
+                TableHandle:tracking-changes = false.
+             
+            ServiceAdapter:FetchRow(Name,Id,Service:Url,hDataSet,pfields,cValues[1],false).
+            if lTrack then 
+                TableHandle:tracking-changes = true.
+        end.
+        else do:
+            assign
+                lkeep    = not lDynamic
+                oRequest = new FetchRequest(Name,Id,hDataset,lkeep)    
+                . 
+            oRequest:SetTableQuery(Tablehandle:name,"for each " + Tablehandle:name + " where " + cWhere).
+            FetchData(oRequest).
+        end.
+        if valid-object(oChanges) then do:
+            hBuffer:find-unique ("where " + cWhere) no-error.
+            if hBuffer:avail then do:
+                do iFLd = 1 to num-entries(cChanged):
+                    hFLd = hBuffer:buffer-field(entry(iFld,cChanged)).
+                    case hFld:data-type:
+                        when "character" then
+                            hFld:buffer-value = oChanges:Get(entry(iFld,cChanged)).
+                        when "integer" then
+                            hFld:buffer-value = int(oChanges:Get(entry(iFld,cChanged))).
+                        when "int64" then
+                            hFld:buffer-value = int64(oChanges:Get(entry(iFld,cChanged))).    
+                        when "decimal" then
+                            hFld:buffer-value = dec(oChanges:Get(entry(iFld,cChanged))).
+                        when "logical" then
+                            hFld:buffer-value = logical(oChanges:Get(entry(iFld,cChanged))).
+                        when "date" then
+                            hFld:buffer-value = date(oChanges:Get(entry(iFld,cChanged))).
+                        when "datetime-tz" then
+                            hFld:buffer-value = datetime-tz(oChanges:Get(entry(iFld,cChanged))).
+                        when "datetime" then
+                            hFld:buffer-value = datetime(oChanges:Get(entry(iFld,cChanged))).
+                        when "clob" then do:
+                            clong = oChanges:Get(entry(iFld,cChanged)).
+                            copy-lob from clong to hfld:buffer-value.
+                        end.
+                    end.       
+                end.
+            end.
+        end.
+        
+        finally:
+             if valid-object(ochanges) then        
+                 delete object oChanges.
+               
+            if lDynamic then do:
+                delete object hBuffer no-error.
+                delete object hDataset no-error.
+            end.    
+        end.     
+    end method.
+ 
+    method protected void FetchRow(pDataset as handle,pField as char, pValue as char,pLazy as logical):
+        define variable lTrack as logical no-undo.
+        define variable hTable as handle  no-undo.
+        
+        hTable = pdataset:get-buffer-handle(1):table-handle.
+        
+        /* set tracking unconditionally ifd this is first request 
+           (this is normally done in DataRefreshed */ 
+        if not TableHandle:has-records and valid-handle(hTable:before-table) then
+            lTrack = true.
+        else
+            lTrack =  hTable:tracking-changes. 
+        hTable:tracking-changes = false.    
+        /* no point in lazy fetch if url is set since data will be exported */
+        ServiceAdapter:FetchRow(Name,Id,Service:Url,pDataSet,pfield,pValue,pLazy and Service:url = "").
+        /* current usage should not need to refresh queries as there should not be any */
+        /*   ContextRefreshed:Publish(new TableResponse(hTable:name)). */
+        
+        finally:
+            if lTrack and valid-handle(hTable) then       
+                hTable:tracking-changes = true.    
+        end.    
+ 
+    end method.
+        
+    /** override GetIntegerKey in context with integer key 
+       There are also many overrides of FindExpression since GetIntegerKey is
+       new (11.7.3)
+    */
     method protected char FindExpression(i as int):
+        define variable cField as character no-undo.
+        cField = GetIntegerKey().
+        if cfield = "" then
         undo, throw new UnsupportedOperationError("FindExpression with integer").
+        return subst("&1.&2 = &3",TableHandle:name,cField,quoter(i)).
     end method.
     
     /** default find expression assumes there is a name field 
@@ -2006,7 +2193,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         if not valid-handle(h) then 
             undo, throw new UnsupportedOperationError("FindExpression with character").
         
-        return TableHandle:name + ".Name = " + quoter(c).
+        return subst("&1.&2 = &3",TableHandle:name,"Name",quoter(c)).
     end method.
     
     /** Create filtered context for parent row    */
@@ -2108,16 +2295,98 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         return cntxt:GetCollection(pRow, pReq).         
     end method.    
     
-    method public IDataAdminElement GetEntity(i as int):
+    /* Override for more efficient GetEntity and to not overide FindExpression(int)
+       This exists bcause we do not have a consistent naming of integer keys 
+        (mostly Number or Id) */
+    method protected character GetIntegerKey():
+        return "".
+    end method.
+    
+    /* Note that there is no GetCharKey to deal with temp-tables with no name field  
+       the way it is for integer key with GetIntegerKey 
+       The reason is that all tables that supports Get with char should have an indexed
+       name field.  
+       The ones that don't should override this method to pass
+       correct field to SetTableKeyValue  */ 
+    method public IDataAdminElement GetEntity(pKey as char).
         define variable msg as IFetchRequest no-undo.
-        if not this-object:Find(i) then
+        define variable h        as handle no-undo.
+        define variable hDs      as handle no-undo.
+        define variable lok      as logical no-undo.
+        define variable cField   as character no-undo.
+        define variable cFindExp as character no-undo.
+        if not this-object:Find(pKey) then
         do:
+            /* all tables that support get on char fields should have a name field, 
+               but unfortunately some does not  - override getentity in those cases */
+            if KeyFields = "name" then 
+                h = TableHandle:default-buffer-handle:buffer-field ("name") no-error.
+            if not valid-handle(h) then do:
+                /* FindExpression is overriden if the key is not name  */
+                cFindExp = FindExpression(pKey).
+                /* use substr - value may have period */
+                cFindExp = substr(cfindExp,index(cfindExp,".") + 1).
+                if index(cFindExp,"=") > 0 then
+                   cField = right-trim(entry(1,cFindExp,"=")).
+                else 
+                   cField = right-trim(entry(1,cFindExp," ")). /* eq cannot be used as delimiter*/   
+            end. 
+            else 
+                cField = "name".
+                
+            if cfield = "" then
+                undo, throw new UnsupportedOperationError("GetEntity with char key. The table has no character key field.").
+ 
+            hDs = getRequestDataset().
+            if hDs:num-buffers = 1 and IsDatasetLoaded and DatasetHandle = hDs then do:
+                FetchRow(hDs, cField ,pkey, Lazy).
+                
+            end.
+            else do:
             msg = GetRequest(). 
-            msg:SetTableQuery(Tablehandle:name,
-               "for each " + Tablehandle:name + " where " + FindExpression(i)).
+                msg:SetTableKeyValue(Tablehandle:name, cField ,pKey).
+                msg:SetTableLazy(Tablehandle:name,Lazy).
             FetchData(msg).   
+            end.
+        end.  
+        
+        return FindEntity(pKey).
+       
+    end method.    
+    
+    method public IDataAdminElement GetEntity(pKey as int):
+        define variable oMsg      as IFetchRequest no-undo.
+        define variable cFindExp  as character no-undo.
+        define variable cfield    as character no-undo.
+        define variable hDs       as handle no-undo.
+        if not this-object:Find(pKey) then
+        do:
+            cField = GetIntegerKey().
+            if cfield = "" then do:
+                /* default behavior for old code with no GetIntegerKey 
+                   FindExpression throws error if not overriden 
+                   */
+                cFindExp = FindExpression(pKey).
+                /* use substr - value may have period */
+                cFindExp = substr(cfindExp,index(cfindExp,".") + 1).
+                if index(cFindExp,"=") > 0 then
+                   cField = right-trim(entry(1,cFindExp,"=")).
+                else 
+                   cField = right-trim(entry(1,cFindExp," ")).   
+            end. 
+            
+            hDs = getRequestDataset().
+            if hDs:num-buffers = 1 and IsDatasetLoaded and DatasetHandle = hDs then do:
+                FetchRow(hDs,cField,string(pKey),Lazy).
+            end.
+            else do:
+                oMsg = GetRequest(). 
+                oMsg:SetTableKeyValue(Tablehandle:name,cField,string(pKey)). 
+                oMsg:SetTableLazy(Tablehandle:name,Lazy).   
+                FetchData(oMsg). 
+            end.
         end.   
-        return FindEntity(i). 
+        return FindEntity(pKey). 
     end method.
     
     method public IDataAdminElement GetEntity(preq as IRequestInfo):
@@ -2125,38 +2394,48 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         define variable cWhere as character no-undo.
         define variable cError as character no-undo.
         define variable lok as logical no-undo.
+        define variable cValues  as character extent no-undo.
+        define variable hDs as handle no-undo.
+        define variable oReqChildren as IRequestInfo extent no-undo.
         
         lok = this-object:Find(pReq).      
         if not lok then 
         do:
-            msg = GetRequest(). 
             if preq:KeyFields = ""  or preq:KeyFields = ? then
                 undo, throw new IllegalArgumentError("RequestInfo with no key expression passed to GetEntity."). 
+            
+            hDs = getRequestDataset().
+            oReqChildren = pReq:GetChildren().
+            
+            /* no child requesinfo, single row, single table and single key then use the fastest track */
+            if num-entries(preq:KeyFields) = 1 
+            and extent(oReqChildren) = ? 
+            and hDs:num-buffers = 1 
+            and IsDatasetLoaded 
+            and DatasetHandle = hDs then do:
+                cValues = pReq:GetKeyValues().
+                FetchRow(hDs,preq:KeyFields,cValues[1],Lazy).
+            end.
+            else do:
+                msg = GetRequest(). 
+                /* if single key then utilize optimized query for key on server   */
+                if num-entries(preq:KeyFields) = 1 then do:
+                    cValues = pReq:GetKeyValues().
+                    msg:SetTableKeyValue(Tablehandle:name,preq:KeyFields,cValues[1]).
+                end.
+                else do:
             cWhere = GetWhere(preq:KeyFields,preq:GetKeyValues()). 
             msg:SetTableQuery(Tablehandle:name,"for each " + Tablehandle:name + " where " + cWhere).
+                end.
+                msg:SetTableLazy(Tablehandle:name,Lazy).
             TransferMatchingRequests(pReq:GetChildren(),msg).
             FetchData(msg). 
-    
+            end. 
         end.  
         /* find again in case it became ambiguous after fetch (non unique key) */
         lok = this-object:Find(pReq).
         if lok then      
             return RealizeEntity(pReq).  
-    end method. 
-    
-    method public IDataAdminElement GetEntity(cKey as char).
-        define variable msg as IFetchRequest no-undo.
-        if not this-object:Find(cKey) then
-        do:
-            msg = GetRequest(). 
-            msg:SetTableQuery(Tablehandle:name,
-               "for each " + Tablehandle:name + " where " + FindExpression(cKey)).
-                       
-            FetchData(msg). 
-        end.  
-        
-        return FindEntity(cKey).
-       
     end method.    
 
     method public logical Remove(phdl as handle):
@@ -2326,8 +2605,9 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     end method.
     
     method public IDataAdminElement FindEntity(c as char).
-        if this-object:Find(c) then
+        if this-object:Find(c) then do:
             return RealizeEntity().
+        end.
         return ?.
     end method.
     
@@ -2379,9 +2659,11 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     /** final overridw with getNamedChild */
     method final public IDataAdminModel GetChild(pname as char):
         define variable i as integer no-undo.
-        do i = 1 to extent(mChildContextList):
-            if  mChildContextList[i]:serializename = pname then
-                return mChildContextList[i].
+        define variable iCount as integer no-undo.
+        iCount = ChildList:Count.
+        do i = 1 to iCount:
+            if  ChildList:Get(i):serializename = pname then
+                return ChildList:Get(i).
         end.
         /** check if there is an override that provides a named child */
         return GetNamedChild(pname).
@@ -2392,14 +2674,16 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         define variable i      as integer no-undo.
         define variable cQuery as character no-undo.
         define variable model  as IDataAdminModel no-undo.
-        do i = 1 to extent(mChildContextList):
-            if  mChildContextList[i]:serializename = pname then
+        define variable icount as integer no-undo.
+        iCount = ChildList:Count.
+        do i = 1 to iCount:
+            if  ChildList:Get(i):serializename = pname then
             do:
-                return mChildContextList[i].
+                return ChildList:Get(i).
             end.
-            else if type-of(mChildContextList[i],IDataAdminModel) then 
+            else if type-of(ChildList:Get(i),IDataAdminModel) then 
             do:    
-                model = cast(mChildContextList[i],IDataAdminModel).
+                model = cast(ChildList:Get(i),IDataAdminModel).
                 cQuery = model:GetNamedQuery(pname).
                 if cQuery > "" then
                 do:
@@ -2418,26 +2702,17 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
                                              + cQuery
                             pReq:IsNameChecked = true.  
                     end.
-                    return mChildContextList[i].
+                    return ChildList:Get(i).
                 end.                    
             end.
-        end. /*  do i = 1 to extent(mChildContextList)  */
+        end. /*  do i = 1 to ChildList:Count  */
         /* lastly - return a named child if override exists */
         return getNamedChild(pname).
     end method.
     
     method protected void AddChild(cntxt as IDataAdminModel):
-        define variable i as integer no-undo.
-        define variable oldcntxt as IDataAdminModel extent no-undo.
-        extent(oldcntxt) = extent(mChildContextList).
-        oldcntxt = mChildContextList.
-        extent(mChildContextList) = ?.
-        extent(mChildContextList) = if extent(oldcntxt) = ? then 1 else extent(oldcntxt) + 1.
-        do i = 1 to extent(oldcntxt):
-            mChildContextList[i] = oldcntxt[i].
-        end.
+        ChildList:Add(cntxt).
         KeyChanged:Subscribe(cntxt:ForeignKeyChanged).
-        mChildContextList[i] = cntxt.        
     end method.    
    
 /*    method protected void FetchEntityData():                                      */
@@ -2485,7 +2760,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
 /*        message this-object skip                       */
 /*              "message" skip msg                       */
 /*            skip "has changes" this-object:HasChanges()*/
-/*        view-as alert-box.                             */
+/*        view-as alert-box.                 
+             */
         pAdapter:FetchData(pmsg).
         Count = ?.
         TrackTables(hTbls,true).    
@@ -3087,12 +3363,12 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         rowInfo = new RowBuffer(this-object,TableHandle:default-buffer-handle,KeyFields).
   
         /* loop through children and call ReadChild */
-        do i = 1 to extent(mChildContextList):       
-            if valid-object(mChildContextList[i]) then 
+        do i = 1 to ChildList:Count:       
+            if valid-object(ChildList:Get(i)) then 
             do:
-                if json:Has(mChildContextList[i]:SerializeName) then
+                if json:Has(ChildList:Get(i):SerializeName) then
                 do:
-                    mChildContextList[i]:ReadChild(rowInfo, json).
+                    ChildList:Get(i):ReadChild(rowInfo, json).
                 end.
             end.   
         end.
@@ -3922,8 +4198,8 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
             delete object DatasetHandle no-error.  
         if IsLocal then 
         do:
-            do i = 1 to extent(mChildContextList):
-               delete object mChildContextList[i] no-error.
+            do i = 1 to ChildList:Count:
+               delete object ChildList:Get(i) no-error.
             end.
             if valid-object(ContextScope)
             and ContextScope:IsLocal /* and not ContextScope:IsLocalShared */ then

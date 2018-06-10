@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Standard interface for PASOE/Web requests
@@ -48,6 +48,9 @@ interface OpenEdge.Web.IWebRequest inherits IHttpRequest:
     /* Portion of request URI that indicates the web application. */
     define public property WebAppPath as character no-undo get.
         
+    /* The real path to the web application. */
+    define public property ResolvedWebAppPath as character no-undo get.
+    
     /* Returns the default cookie path   */
     define public property DefaultCookiePath as character no-undo get.
     

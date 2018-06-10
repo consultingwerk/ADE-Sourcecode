@@ -40,6 +40,7 @@ using OpenEdge.DataAdmin.Message.SaveRequest.
 using OpenEdge.DataAdmin.TableImpl.
 using OpenEdge.DataAdmin.TableSet.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext : 
     
@@ -93,17 +94,32 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext :
     constructor protected TableContext (pname as char,pScope as ISchemaScope):
       
         super (pname,pScope).
-        mPartitions = pScope:PartitionContext.
-        AddChild(pScope:IndexContext).
-        if pname eq "AllTable" then 
-            AddChild(pScope:AllFieldContext).
-        else AddChild(pScope:FieldContext).
    end constructor.
         
  	constructor public TableContext ( pScope as ISchemaScope): 
         this-object("Table",pScope).                        
     end constructor.    
-                                       
+    
+    method protected override void initChildren(pScope as IContextScope):
+         initchildren(cast(pScope,ISchemaScope)).
+    end method.  
+    
+    method protected void initChildren(pScope as ISchemaScope):
+        mPartitions = pScope:PartitionContext.
+        AddChild(pScope:IndexContext).
+        if this-object:name eq "AllTable" then 
+            AddChild(pScope:AllFieldContext).
+        else AddChild(pScope:FieldContext).
+    end method.  
+    
+    method override protected handle InitDataset ():
+        return dataset dsTable:handle. 
+    end method.
+                
+    method protected override character GetIntegerKey():
+        return "id".
+    end.                                       
+	
 	method public override void CopyTable(cntxt as IDataAdminModel).
         undo, throw new UnsupportedOperationError("Copy Schema").
     end method. 
@@ -357,6 +373,11 @@ class OpenEdge.DataAdmin.Binding.TableContext inherits DataAdminContext :
      
     method public override logical Find(name as character):
         find ttTable where ttTable.name = name no-error.
+        return avail ttTable.            
+    end.  
+    
+    method public override logical Find(pid as integer):
+        find ttTable where ttTable.id = pid no-error.
         return avail ttTable.            
     end.  
     

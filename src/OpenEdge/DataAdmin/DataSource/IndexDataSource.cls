@@ -65,9 +65,8 @@ IsUnique,_Unique"
          
     end constructor.
       
-    method public override logical Prepare(phBuffer as handle,pcTargetQuery as char,pcJoin as char):
+    method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterIndexRow").
-        super:Prepare(phBuffer,pcTargetQuery,pcJoin).
         mBuffer = phBuffer.
     end method.
     
@@ -255,13 +254,14 @@ IsUnique,_Unique"
                                           =  dictdb._storage._Area-number no-lock.   
                     assign
                        cArea    = dictdb._area._area-name       
-                       cAreaRef = url + AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default"). 
+                       cAreaRef = url + AreaURL + WebUtil:UrlEncode(dictdb._Area._Area-name,"default") when url > "". 
                 end. 
             end.
             assign
                 mBuffer::AreaName = cArea
                 mBuffer::AreaURL  = cAreaRef.
         end. 
+        if url > "" then
         assign
             mBuffer::IndexFieldURL = url + "/schemas/PUB/tables/" + WebUtil:UrlEncode(mBuffer::TableName) 
                                          +  "/indexes/" + WebUtil:UrlEncode(mBuffer::Name)

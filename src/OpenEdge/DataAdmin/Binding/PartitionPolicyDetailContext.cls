@@ -45,6 +45,8 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
+using OpenEdge.DataAdmin.Binding.Query.FilteredContext from propath.
 
 class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdminContext implements IDataAdminContext,IJsonRowListener,IStreamFieldHandler: 
      
@@ -89,27 +91,36 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
         protected set.
     
     constructor public PartitionPolicyDetailContext():
-        define variable partitionContext as PartitionContext no-undo.
         super ("PartitionPolicyDetail").
-        partitionContext = new PartitionContext().
-        AddChild(partitionContext).
         ExportWithRoot = false.
     end constructor.
         
     constructor public PartitionPolicyDetailContext (pscope as ISchemaScope):
         super ("PartitionPolicyDetail",pscope).
         SchemaScope = pscope.
-        AddChild(pscope:PartitionContext).
         ExportWithRoot = false.
     end constructor.
 	
 	constructor protected PartitionPolicyDetailContext ( pScope as ISchemaScope,plLocal as log):
         super ("PartitionPolicyDetail",pScope,plLocal).
         SchemaScope = pscope.
-        AddChild(pscope:PartitionContext).
         ExportWithRoot = false.
     end constructor.
-	
+    
+    method override protected void InitChildren ():
+        define variable partitionContext as PartitionContext no-undo.
+        partitionContext = new PartitionContext().
+        AddChild(partitionContext).
+    end method.
+    
+    method override protected void InitChildren (pscope as IContextScope):
+        initChildren(cast(pScope,ISchemaScope)).
+    end method.
+    
+    method protected void InitChildren (pscope as ISchemaScope):
+        AddChild(pscope:PartitionContext).
+    end method.
+    
     method public override character GetChildQuery(pparent as IRow).
         define variable cQuery  as character no-undo.  
         define variable iNum as integer no-undo.
@@ -137,7 +148,7 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
         
         end.  
          
-        return cQuery + cSort. 
+        return cQuery + if csort = ? then "" else cSort. 
     end method.
     
     method public override character GetJoinFields(parentid as char):
@@ -590,33 +601,29 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
         end catch.
     end.    
     
-    method public int GetPolicyNumFields(pcPolicyName as char):
-        if not valid-object(SchemaScope) then
-            return ?. 
-        if SchemaScope:PartitionPolicyContext:Find(pcPolicyName) then
-            return SchemaScope:PartitionPolicyContext:TableHandle:default-buffer-handle::NumFields.
-        return ?.      
-    end.
-    
-    
     method public char GetPolicyTableName(pcPolicyName as char):
         if not valid-object(SchemaScope) then
             return ?. 
-        if SchemaScope:PartitionPolicyContext:Find(pcPolicyName) then
-            return SchemaScope:PartitionPolicyContext:TableHandle:default-buffer-handle::TableName.
-        return ?.      
+        return  SchemaScope:PartitionPolicyContext:FetchTableName(pcPolicyName).
+    end.
+    
+    
+    method public int GetPolicyNumFields(pcPolicyName as char):
+        if not valid-object(SchemaScope) then
+            return ?. 
+        return SchemaScope:PartitionPolicyContext:FetchNumFields(pcPolicyName).   
+    end.
+        
+    method public int GetPolicyFieldNumber(pcPolicyName as char, pcTable as char, pcfield as char):
+        return SchemaScope:PartitionPolicyFieldContext:FetchFieldNumber(pcPolicyName,pcTable,pcfield).
     end.
     
     method public char GetPolicyFieldDataType(pcPolicyName as char,  pinum as int):
-        if SchemaScope:PartitionPolicyFieldContext:Find(pcPolicyName,pinum) then
-            return SchemaScope:PartitionPolicyFieldContext:TableHandle:default-buffer-handle::DataType.
-        return ?.
+        return SchemaScope:PartitionPolicyFieldContext:FetchField(pcPolicyName,pinum,"dataType") .
     end.
     
     method public char GetPolicyFieldName(pcPolicyName as char,  pinum as int):
-        if SchemaScope:PartitionPolicyFieldContext:Find(pcPolicyName,pinum) then
-            return SchemaScope:PartitionPolicyFieldContext:TableHandle:default-buffer-handle::FieldName.
-        return ?.
+        return SchemaScope:PartitionPolicyFieldContext:FetchField(pcPolicyName,pinum,"fieldName") .
     end.
     
 /*    method protected IFetchRequest GetNewRequest(pcPolicyname as char) :                                          */
@@ -713,23 +720,6 @@ class OpenEdge.DataAdmin.Binding.PartitionPolicyDetailContext inherits DataAdmin
             partitionContext:UpdatePolicyDetailDefault(ttPartitionPolicyDetail.name,pFieldName,pcOldValue,pNewValue).
         end.
     end method.
-/*                                                                                                         */
-/*    method public logical HasPartitionChanges(pcPolicyName as char):                                     */
-/*        define variable partitionContext as PartitionContext no-undo.                                    */
-/*        partitionContext = cast(getChild("partitions"),PartitionContext).                                */
-/*        for each bPartitionPolicyDetail where bPartitionPolicyDetail.PartitionPolicyName = pcPolicyName :*/
-/*             if cntxt:HasPolicyChanges(ttPartitionPolicyDetail.name) then                                */
-/*                                                                                                         */
-/*        end.                                                                                             */
-/*        return true.                                                                                     */
-/*    end.                                                                                                 */
-    
-    method public int GetPolicyFieldNumber(pcPolicyName as char, pcTable as char, pcfield as char):
-        if SchemaScope:PartitionPolicyFieldContext:Find(pcPolicyName,pcTable,pcfield) then
-            return SchemaScope:PartitionPolicyFieldContext:TableHandle:default-buffer-handle::Number.
-        return 0.
-    end.
-    
     method public void UpdatePartitionPolicyName(pcOldname as char, pcNewname as char):
         define variable lTrack as logical no-undo.
         define buffer bPartitionPolicyDetail for ttPartitionPolicyDetail.

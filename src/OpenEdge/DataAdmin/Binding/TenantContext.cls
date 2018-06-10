@@ -49,6 +49,7 @@ using OpenEdge.DataAdmin.Support.TenantGroupTenantSet.
 using OpenEdge.DataAdmin.Tenant.
 using OpenEdge.DataAdmin.TenantSet.
 using Progress.Lang.*.
+using OpenEdge.DataAdmin.Binding.Factory.IContextScope from propath.
 
 class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext implements IDataAdminContext: 
     
@@ -98,12 +99,22 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
     define private variable TenantGroupContext as TenantGroupContext no-undo.
     
     constructor public TenantContext ():
+        super ("Tenant").
+        CanGenerateCode = true.
+    end constructor.
+  
+    constructor public TenantContext (pScope as IMultiTenantScope):
+        super ("Tenant",pScope).
+        CanGenerateCode = true.
+        ContextFactory = pScope.
+        CanEditKey = true.
+    end method.
+    
+    method protected override void initChildren():
         define variable users as UserContext no-undo.
         define variable partitioncntxt as PartitionContext no-undo.
         define variable tenantgroupmembercntxt as TenantGroupMemberContext no-undo.
         
-        super ("Tenant").
-        CanGenerateCode = true.
         users = new UserContext().
         /* users is not part of default tree (users on domain is) */
         SkipList = "users".
@@ -113,17 +124,15 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         AddChild(partitioncntxt).
         tenantgroupmembercntxt = new TenantGroupMemberContext().
         AddChild(tenantgroupmembercntxt).
-        /*  */
+    end method.  
                 
-        
-/*        DatasetHandle = CreateDataset().*/
-        
-    end constructor.
+    
+    method protected override void initChildren(pScope as IContextScope):
+         initchildren(cast(pScope,IMultiTenantScope)).
+    end method.  
     
   
-    constructor public TenantContext (pScope as IMultiTenantScope):
-        super ("Tenant",pScope).
-        CanGenerateCode = true.
+    method protected void initChildren(pScope as IMultiTenantScope):
         AddChild(pScope:DomainContext).
         AddChild(pScope:UserContext).
         AddChild(pScope:PartitionContext).
@@ -138,8 +147,6 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
         else
              /* users is not part of default tree (users on domain is) */
             SkipList = "users".
-        ContextFactory = pScope.
-        CanEditKey = true.
     end method.
     
         /*   temporary until all sub classes are using createDataset  */
@@ -769,7 +776,10 @@ class OpenEdge.DataAdmin.Binding.TenantContext inherits DataAdminContext impleme
    
     end method.    
     */
-     
+    
+    method protected override char GetIntegerKey():
+        return "Id".       
+    end method.
     
     method protected override char FindExpression(i as int):
         return "ttTenant.Id = " + quoter(i).

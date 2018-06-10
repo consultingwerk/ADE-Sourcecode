@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : BackedTTAbstractCollection
@@ -14,8 +14,8 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.Iterator.
 using OpenEdge.Core.Collections.IMap.
+using OpenEdge.Core.Collections.Iterator.
 using OpenEdge.Core.System.UnsupportedOperationError.
 using Progress.Lang.Object.
 
@@ -101,6 +101,6 @@ class OpenEdge.Core.Collections.MapBackedCollection abstract serializable
     
     method public void ToTable( output table-handle tt):
         tt = this-object:OwningBuffer.
-    end method. 
-    
+    end method.
+     
 end class. 

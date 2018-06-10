@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : NamedFileWriter
@@ -21,20 +21,17 @@ using OpenEdge.Logging.Writer.IFileWriter.
 using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWriter:
-    // The file we're writing to
-
+    /* The file we're writing to */
     define private variable moFileOutputStream as FileOutputStream  no-undo.
 
-    // (mandatory) The output location 
-
+    /* (mandatory) The output location */
     define public property FileName as character no-undo
         get():
             if valid-object(moFileOutputStream) then
                 return moFileOutputStream:FileName.
         end get.
         
-    // TRUE if we are appending to an existing file
-
+    /* TRUE if we are appending to an existing file */
     define public property Append as logical no-undo get. private set. 
     
     /* Constructor
@@ -68,12 +65,9 @@ class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWri
         moFileOutputStream:Close().
     end destructor.
     
-    /* Writes a log message
-       
-       @param LogMessage the message to be written */    
     /** Performs implementation-specific filtering for a logger type
         
-        @param LogMessage The message to log. */
+        @param LogEvent The event to log. */
     method public void ExecuteFilter(input poEvent as LogEvent):
         define variable mLine as memptr no-undo.
         define variable iSize as integer no-undo.
@@ -88,7 +82,6 @@ class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWri
         moFileOutputStream:Write(mLine, 1, iSize - 1).
         
         // force a write 
-
         moFileOutputStream:Flush().
         finally:
             set-size(mLine) = 0.

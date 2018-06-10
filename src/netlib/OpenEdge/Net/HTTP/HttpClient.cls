@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
@@ -15,11 +15,12 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.IAdaptable.
 using OpenEdge.Core.ISupportInitialize.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.ClientBuilder.
 using OpenEdge.Net.HTTP.ClientOptions.
+using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.Filter.Writer.StatusCodeWriterBuilder.
 using OpenEdge.Net.HTTP.HttpClient.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
@@ -30,7 +31,6 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
-using OpenEdge.Logging.LoggerBuilder.
 
 class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, ISupportLogging:
     /** (mandatory) A free-text name for this http client. Used for the USER-AGENT
@@ -176,22 +176,32 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
     method protected logical ProcessStatusAction(input poRequest  as IHttpRequest,
                                                  input poResponse as IHttpResponse):
         define variable oStatusCodeWriter as IHttpMessageWriter no-undo.
+        define variable cookies as Cookie extent no-undo.
+        define variable cnt as integer no-undo.
         
-        assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).
+        assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).    
         if valid-object(oStatusCodeWriter) then
         do:
+            // Copy any cookies from the response into the request. This is typically some 
+            // form of session cookie (JSESSIONID) or similar
+            poResponse:GetCookies(output cookies).
+            do cnt = extent(cookies) to 1 by -1:
+                poRequest:SetCookie(cookies[cnt]).
+            end.
+            
+            // Now apply the response to the request
             oStatusCodeWriter:Open().
             oStatusCodeWriter:Write(poResponse).
             oStatusCodeWriter:Close().
             
-            /* the writer may have changed the message (auth in particular), so use the
+            /* The writer may have changed the message (auth in particular), so use the
                writer's message in place of the input message. */
             assign poRequest = cast(oStatusCodeWriter:Message, IHttpRequest).
-                        
+            
             /* status changes will require a retry */
             return false.
         end.
-
+        
         /* with no status code processing, all done */
         return true.
     end method.

@@ -329,7 +329,7 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess implements IQue
                    hLocalIndex = msg:DataHandle:get-buffer-handle ("ttLocalIndex").
                    if valid-handle(hLocalIndex) then
                    do:
-                      /* The query for policyFieldDataSource is passed with ttfield 
+                      /* The query for policyFieldDataSource is passed with ttlocalindex
                       
                          auto fill join cannot be generated for join to _index since tablename is mapped to _file
                          so we use fill the policy fields first and pass it as parent to a dedicated fieldsource 
@@ -386,13 +386,21 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess implements IQue
             if valid-handle(hBuffer) then
             do:
                 fieldPermissionDataSource = new FieldPermissionDataSource(). 
-    /*            cQuery = msg:GetTableQuery("ttFieldPermission").*/
-                mindexrel = hbuffer:parent-relation.
-                mindexRel:active = false.         
-                PrepareSource(FieldPermissionDataSource,hBuffer,"","Append").
+                cQuery = msg:GetTableQuery("ttFieldPermission").       
+                PrepareSource(FieldPermissionDataSource,hBuffer,cQuery,"Append").
             end. 
             
             msg:DataHandle:Fill().
+
+/*            do i = 1 to  msg:DataHandle:num-buffers:                   */
+/*               htbl = msg:DataHandle:get-buffer-handle(i):table-handle.*/
+/*               if htbl:name = "ttindex" then                           */
+/*                   foreachindex(table-handle htbl).                    */
+/*               if htbl:name = "ttlocalindex" then                      */
+/*                   foreachlocalindex(table-handle htbl).               */
+/*                                                                       */
+/*           end.                                                        */
+            
             if valid-handle(hAreaTT) then
             do:
                  hAreaTT:find-unique ("where ttArea.Number = 0"). 
@@ -515,4 +523,32 @@ class OpenEdge.DataAdmin.DataAccess.FileData inherits DataAccess implements IQue
                         + pcColumn + " "  + " " + pcOperator + " " + quoter(pcValue).
         return ?.
     end method. 
+  
+  /***
+  
+  {daschema/index.i}
+  {daschema/localindex.i}
+    
+    method void foreachindex(table ttindex):
+        for each ttindex with title "index":
+            display 
+                    ttindex.TableName format "x(30)"
+                  ttindex.Name format "x(30)" 
+                    ttindex.SchemaName  .
+            .
+        end.    
+    end.
+    
+    method void foreachlocalindex(table ttlocalindex):
+        current-window:width = 200. 
+        for each ttlocalindex with title "localindex" with width 120:
+            display ttlocalindex.PartitionPolicyName format "x(30)"
+                    ttLocalindex.TableName format "x(30)"
+                    ttlocalindex.indexname format "x(20)"
+                    ttLocalindex.schemaname .
+            .
+        end.    
+    end.
+   **/  
+    
 end class.

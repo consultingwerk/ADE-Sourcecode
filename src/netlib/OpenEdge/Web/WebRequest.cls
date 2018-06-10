@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    Purpose     : An HttpRequest that adds request context information
@@ -150,7 +150,6 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             define variable cHost   as character no-undo.
             define variable iPort   as integer no-undo.
             define variable cPath   as character no-undo.
-            define variable cQueryString as character no-undo.
             
             /* use a private member so that set can throw readonly error */
             if not valid-object(mURI) then
@@ -161,7 +160,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                     /** PAS will always have a port number */
                     iPort = int(web-context:get-cgi-value("ENV":U, "SERVER_PORT":U))
                     cPath = web-context:get-cgi-value("ENV":U, "REQUEST_URI":U).         
-            
+                
                 mURI = new URI(cScheme,cHost,iPort,cPath,createQueryMapFromContext(),?).
             end.
             return mURI.
@@ -236,6 +235,12 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
             return web-context:get-cgi-value("ENV":U, "CONTEXT_PATH":U).
         end get.
     
+    /* The real (file) path to the web application. */
+    define public property ResolvedWebAppPath as character no-undo
+        get():
+            return web-context:get-cgi-value("ENV":U, "BASE_PATH":U).
+        end get.
+    
     /** Returns a list of all context property names  */
     define public property ContextNames as character no-undo
         get():
@@ -259,20 +264,19 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                 define variable iMax as integer no-undo.
                 define variable cDelimiter as character no-undo.
                 
-                assign cNames     = web-context:get-cgi-list("ENV":U)
-                       iMax       = num-entries(cNames)
-                       cDelimiter = '':u
+                assign cNames             = web-context:get-cgi-list("ENV":U)
+                       iMax               = num-entries(cNames)
+                       cDelimiter         = '':u
+                       PathParameterNames = '':u
                        .
                 do iLoop = 1 to iMax:
                     assign cEntry = entry(iLoop, cNames).
                     if cEntry begins 'URI_':u then
-                        assign cNames = cNames
-                                      + cDelimiter 
-                                      + replace(cEntry, 'URI_':u, '':u)
+                        assign PathParameterNames = PathParameterNames
+                                                    + cDelimiter
+                                                    + replace(cEntry, 'URI_':u, '':u)
                                cDelimiter = ',':u.
                 end.
-                
-                assign this-object:PathParameterNames = cNames.
             end.
             
             return this-object:PathParameterNames.
@@ -304,16 +308,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         
         cList = web-context:get-cgi-list("ENV":U).
         do i = 1 to num-entries(cList):
-            cEntry = entry(i,cList).
-            if cEntry begins "HTTP_":U and
-               HasHeader(substr(cEntry,6)) then
-                assign cHeaderNames = cHeaderNames + ",":U + substr(cEntry,6).    
+            assign cEntry = entry(i,cList).
+            if cEntry begins "HTTP_":U then
+                assign cHeaderNames = cHeaderNames + ",":U 
+                                    + replace(substring(cEntry, 6), '_':u, '-':u).
         end.
         
-        assign cHeaderNames = left-trim(cHeaderNames,",":U)
-               iNumHeaders = num-entries(cHeaderNames)
-               extent(poHeaders) = iNumHeaders.
-        
+        assign cHeaderNames      = left-trim(cHeaderNames, ",":U)
+               iNumHeaders       = num-entries(cHeaderNames)
+               extent(poHeaders) = iNumHeaders
+               .
         do i = 1 to iNumHeaders:
             assign poHeaders[i] = GetHeader(entry(i,cHeaderNames)).
         end.
@@ -351,7 +355,6 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
                 if cValue eq ? then
                     assign cValue = '':u.
             end.
-                        
             stringMap:Put(OpenEdge.Net.URI:Decode(cProp),
                           OpenEdge.Net.URI:Decode(cValue)).
         end. 
@@ -369,40 +372,49 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
+    /** Adds header info to this message's collection of headers.
+        
+        @param character The header name
+        @param character The header value
+        @return HttpHeader The header actual header */
+    method public HttpHeader SetHeader(input pName as character,
+                                       input pValue as character):
+        undo, throw new AppError(GetMethodNotImplementedMessage(),?).
+    end method.
+    
     /** Remove all headers is not implemented .  */    
     method public void ClearHeaders():
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
-  
+    
     /** Indicates whether a header exists for this message or not. 
                             
         @param character The name of a header to check
         @return logical True if this message contains the header */
     method public logical HasHeader(pcName as character):
-        define variable headerValue as character no-undo.
-        headerValue = GetHeaderValue(pcname).
-        return headerValue > "":U.
+        return lookup(substitute('HTTP_&1':u, caps(replace(pcName, '-':u, '_':u))), web-context:get-cgi-list("ENV":U)) gt 0.
     end method.
     
     /** Returns a named header
-        @param  The name of the header to retrieve
+    
+        @param  character  The name of the header to retrieve
         @return HttpHeader The header object. Null if not exists. */
     method public HttpHeader GetHeader(pcName as character):
-        define variable headerValue as character no-undo.
-        headerValue = GetHeaderValue(pcname).
-        if(headerValue > "":U) then
-            return HttpHeaderBuilder:Build(pcName):Value(headerValue):Header.
-        else
-            return OpenEdge.Net.HTTP.HttpHeader:NullHeader.    
+        return HttpHeaderBuilder:Build(pcName)
+                        :Value(GetHeaderValue(pcname))
+                        :Header.
     end method.
     
-    /* get the heder value as string - used by GetHeader and HasHeader */
+    /** Gets a character header value
+    
+        @param character The name of the header 
+        @return character the value of the header. */
     method private character GetHeaderValue(pcName as character):
         define variable cgiName     as character no-undo.
         define variable headerValue as character no-undo.
         
         cgiName = replace( pcName, "-":U, "_":U ).
-        cgiName = "HTTP_":U + caps( cgiName ).
+        cgiName = "HTTP_":U + caps(cgiName ).
         headerValue = web-context:get-cgi-value( "ENV":U, cgiName ).
         return headerValue.
     end method.
@@ -430,7 +442,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     method public integer GetCookies(output poCookies as Cookie extent):
         if not valid-object(mCookies) then
             LoadCookies().
-          
+        
         assign poCookies = cast(mCookies:Values:ToArray(), Cookie).
         
         return mCookies:Size.
@@ -444,7 +456,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         Assert:NotNull(poCookie, 'Cookie').
         return HasCookie(poCookie:Name).
     end method.
- 
+    
      /** Indicates whether a cookie exists for this message
         
         @param character The cookie's name to check 
@@ -540,6 +552,7 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         define variable cAttribute as character no-undo.
         define variable cName as character no-undo.
         define variable cValue as character no-undo.
+        define variable chrPos as integer no-undo.
         
         assign defaultDomain = this-object:DefaultCookieDomain.
         if defaultDomain eq ?  then 
@@ -551,15 +564,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         
         assign mCookies = new StringKeyedMap()
                cCookie  = web-context:get-cgi-value( "ENV":U,"HTTP_COOKIE":U)
-               iMax     = num-entries(cCookie,";":u).
-        if iMax ne ? then
-            
+               iMax     = num-entries(cCookie,";":u)
+               .
         do iLoop = 1 to iMax:
-            assign cAttribute = entry(1, cCookie, ';':u)
-                   cName = entry(1, cAttribute, '=':u)
-                   cValue = entry(2, cAttribute, '=':u).
-            mCookies:Put(cName,  new Cookie(cName,defaultDomain,defaultPath,cValue)).                  
+            assign cAttribute = entry(iLoop, cCookie, ';':u)
+                   // Don't use NUM-ENTRIES('=') for the name/value split since it's legal to have = in the value of a cookie
+                   chrPos     = index(cAttribute, '=':u)
+                   cName      = trim(substring(cAttribute, 1, chrPos - 1))
+                   cValue     = substring(cAttribute, chrPos + 1)
+                   .
+            mCookies:Put(cName,  new Cookie(cName,defaultDomain,defaultPath,cValue)).
         end.
-    end method.        
-   
+    end method.
 end class.
