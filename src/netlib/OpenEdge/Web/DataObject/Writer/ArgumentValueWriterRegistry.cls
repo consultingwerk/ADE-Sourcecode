@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterRegistry
@@ -12,6 +12,7 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 block-level on error undo, throw.
 
 using Ccs.Common.Support.ICharacterArrayHolder.
+using Ccs.Common.Support.ICharacterHolder.
 using Ccs.Common.Support.IDateArrayHolder.
 using Ccs.Common.Support.IDateHolder.
 using Ccs.Common.Support.IDateTimeArrayHolder.
@@ -33,10 +34,12 @@ using Ccs.Common.Support.ILongcharHolder.
 using Ccs.Common.Support.IMemptrArrayHolder.
 using Ccs.Common.Support.IMemptrHolder.
 using Ccs.Common.Support.IRowidArrayHolder.
-using OpenEdge.Core.ObjectArrayHolder.
+using OpenEdge.Core.Collections.ICollection.
+using OpenEdge.Core.IObjectArrayHolder.
 using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry.
+using OpenEdge.Web.DataObject.Writer.CollectionValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateTimeArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateTimeTzArrayValueWriter.
@@ -49,17 +52,21 @@ using OpenEdge.Web.DataObject.Writer.HandleArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.HandleValueWriter.
 using OpenEdge.Web.DataObject.Writer.IntegerArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.IntegerValueWriter.
+using OpenEdge.Web.DataObject.Writer.JsonArrayValueWriter.
+using OpenEdge.Web.DataObject.Writer.JsonObjectValueWriter.
 using OpenEdge.Web.DataObject.Writer.LogicalArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.LogicalValueWriter.
 using OpenEdge.Web.DataObject.Writer.LongcharArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.MemptrArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.MemptrValueWriter.
+using OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.ObjectValueWriter.
 using OpenEdge.Web.DataObject.Writer.RowidArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.StringValueWriter.
-using OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter.
+using Progress.Json.ObjectModel.JsonArray.
+using Progress.Json.ObjectModel.JsonObject.
 
-class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry inherits BuilderRegistry:
+class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry:
 
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
@@ -76,12 +83,13 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry inherits Builde
         private set.
     
     /** Adds initial values into the registry 
-         
+        
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         /* primitive scalars */
         poRegistry:Put(get-class(ILogicalHolder):TypeName,      get-class(LogicalValueWriter)).
         poRegistry:Put(get-class(ILongcharHolder):TypeName,     get-class(StringValueWriter)).
+        poRegistry:Put(get-class(ICharacterHolder):TypeName,    get-class(StringValueWriter)).
         poRegistry:Put(get-class(IInt64Holder):TypeName,        get-class(IntegerValueWriter)).
         poRegistry:Put(get-class(IIntegerHolder):TypeName,      get-class(IntegerValueWriter)).
         poRegistry:Put(get-class(IDecimalHolder):TypeName,      get-class(DecimalValueWriter)).
@@ -107,8 +115,10 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry inherits Builde
         
         /* objects */
         poRegistry:Put(get-class(Progress.Lang.Object):TypeName,    get-class(ObjectValueWriter)).
-        poRegistry:Put(get-class(ObjectArrayHolder):TypeName,       get-class(ObjectArrayValueWriter)).
-        
+        poRegistry:Put(get-class(IObjectArrayHolder):TypeName,      get-class(ObjectArrayValueWriter)).
+        poRegistry:Put(get-class(JsonObject):TypeName,              get-class(JsonObjectValueWriter)).
+        poRegistry:Put(get-class(JsonArray):TypeName,               get-class(JsonArrayValueWriter)).
+        poRegistry:Put(get-class(ICollection):TypeName,             get-class(CollectionValueWriter)).
     end method.
-
-end class.
+    
+end class. 

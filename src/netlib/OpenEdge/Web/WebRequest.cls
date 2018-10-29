@@ -372,6 +372,11 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
+    /** Set header is not implemented  */
+    method public void SetHeaders(poHeader as HttpHeader extent):
+        undo, throw new AppError(GetMethodNotImplementedMessage(),?).
+    end method.
+    
     /** Adds header info to this message's collection of headers.
         
         @param character The header name
@@ -424,6 +429,11 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
         undo, throw new AppError(GetMethodNotImplementedMessage(),?).
     end method.
     
+    /** Set cookie is not implemented  */
+    method public void SetCookies(poCookie as Cookie extent):
+        undo, throw new AppError(GetMethodNotImplementedMessage(),?).
+    end method.
+        
     /** Remove cookie is not implemented 
         @param Cookie The cookie to remove. */
     method public void RemoveCookie(poCookie as Cookie):

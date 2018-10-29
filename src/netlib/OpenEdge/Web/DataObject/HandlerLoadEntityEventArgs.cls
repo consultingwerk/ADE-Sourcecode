@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : HandlerLoadEntityEventArgs
@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Web.DataObject.DataObjectEventArgs.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
 
@@ -28,12 +29,15 @@ class OpenEdge.Web.DataObject.HandlerLoadEntityEventArgs inherits DataObjectEven
        @param IWebRequest (Mandatory) The request being serviced
        @param MappedOperation (mandatory) the operation for which to start the entity */
     constructor public HandlerLoadEntityEventArgs(input poRequest as IWebRequest,
+                                                  input pService as DataObjectService,
                                                   input poOperation as MappedOperation):
         super(poRequest).
         
+        Assert:NotNull(pService, 'Service').
         Assert:NotNull(poOperation, 'Mapped operation').
         
-        assign this-object:Operation  = poOperation
+        assign this-object:Service    = pService
+               this-object:Operation  = poOperation
                this-object:EntityType = poOperation:EntityType
                .
     end constructor.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConfigBuilder
@@ -19,7 +19,7 @@ using Progress.Lang.Object.
 class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract: 
     /* single static tt for perf */
     define static protected temp-table ConfigOption no-undo
-        field ParentBuilder as integer
+        field ParentBuilder as int64
         field ConfigName as character
         field ValueType as character        /* object|string|numeric|logical */
         field ObjectValue as Progress.Lang.Object
@@ -38,7 +38,7 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         define buffer ConfigOption for ConfigOption.
         
         for each ConfigOption where
-                 ConfigOption.ParentBuilder eq integer(this-object):
+                 ConfigOption.ParentBuilder eq int64(this-object):
             delete ConfigOption.
         end.
     end method.
@@ -51,21 +51,19 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     method protected logical SetOption(input pcName as character,
                                        input pdValue as decimal):
         define buffer ConfigOption for ConfigOption.
-         
         define variable lExists as logical no-undo.
         
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName
-             no-error.
-        assign lExists = available ConfigOption.
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
         if not lExists then
         do:
             create ConfigOption.
-            assign ConfigOption.ParentBuilder = integer(this-object)
-                   ConfigOption.ConfigName = pcName
-                   ConfigOption.ValueType = 'number':u.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'number':u.
         end.
         
         Assert:Equals(ConfigOption.ValueType, 'number':u).
@@ -81,12 +79,10 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     method protected Object GetOptionObjectValue(input pcName as character):
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName
-             no-error.
+        if HasOption(pcName) then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
         if available ConfigOption then
         do:
             Assert:Equals(ConfigOption.ValueType, 'object':u).
@@ -103,12 +99,10 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     method protected decimal GetOptionNumericValue(input pcName as character):
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
+        if HasOption(pcName) then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName. 
         if available ConfigOption then
         do:
             Assert:Equals(ConfigOption.ValueType, 'number':u).
@@ -125,34 +119,30 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     method protected character extent GetOptionStringArrayValue(input pcName as character):
         define variable cValue as character extent no-undo.
         define variable oArray as JsonArray no-undo.
-        define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         
         define buffer ConfigOption for ConfigOption.
-         
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        if available ConfigOption then
+        
+        if HasOption(pcName) then
         do:
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName. 
+            
             Assert:Equals(ConfigOption.ValueType, 'object':u).
             Assert:IsType(ConfigOption.ObjectValue, get-class(JsonArray)).
             
             assign oArray = cast(ConfigOption.ObjectValue, JsonArray).
             if valid-object(oArray) then
-                assign iMax = oArray:Length
-                       extent(cValue) = iMax.
-            do iLoop = 1 to iMax:
-                assign cValue[iLoop] = oArray:GetCharacter(iloop).
-            end.
+                assign iMax = oArray:Length.
+            
+            if iMax gt 0 then     
+                assign cValue = oArray:GetCharacter(1, iMax).
         end.
         
         return cValue.
     end method.
-
+    
     /** Returns an option's character value
     
         @param character The option name
@@ -160,37 +150,32 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
     method protected character GetOptionStringValue(input pcName as character):
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        if available ConfigOption then
+        if HasOption(pcName) then
         do:
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName. 
+            
             Assert:Equals(ConfigOption.ValueType, 'string':u).
             return ConfigOption.StringValue.
         end.
         
         return ?.
     end method.
-
+    
     /** Returns an option's longchar value
     
         @param character The option name
         @return longchar the value    */
     method protected longchar GetOptionLongcharValue(input pcName as character):
-
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        if available ConfigOption then
+        if HasOption(pcName) then
         do:
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+            
             Assert:Equals(ConfigOption.ValueType, 'string':u).
             return ConfigOption.StringValue.
         end.
@@ -204,15 +189,13 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         @return logical the value    */
     method protected logical GetOptionLogicalValue(input pcName as character):
         define buffer ConfigOption for ConfigOption.
-         
-        Assert:NotNullOrEmpty(pcName, 'Config name').
         
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        if available ConfigOption then
+        if HasOption(pcName) then
         do:
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+            
             Assert:Equals(ConfigOption.ValueType, 'logical':u).
             return ConfigOption.LogicalValue.
         end.
@@ -226,15 +209,13 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         @return datetime-tz the value    */
     method protected datetime-tz GetOptionDateTimeValue(input pcName as character):
         define buffer ConfigOption for ConfigOption.
-         
-        Assert:NotNullOrEmpty(pcName, 'Config name').
         
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        if available ConfigOption then
+        if HasOption(pcName) then
         do:
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName. 
+            
             Assert:Equals(ConfigOption.ValueType, 'datetime':u).
             return ConfigOption.DateTimeValue.
         end.
@@ -251,11 +232,9 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
          
         Assert:NotNullOrEmpty(pcConfigName, 'Config name').
 
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcConfigName 
-             no-error.
-        return available ConfigOption.
+        return can-find(ConfigOption where
+                        ConfigOption.ParentBuilder eq int64(this-object) and
+                        ConfigOption.ConfigName    eq pcConfigName). 
     end method.
     
     /** Removes an option
@@ -265,16 +244,14 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName eq pcName
-             no-error.
-        assign lExists = available ConfigOption.
+        assign lExists = HasOption(pcName).
         if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        if available ConfigOption then
             delete ConfigOption.
-                    
+        
         return lExists.
     end method.
     
@@ -298,28 +275,26 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
                                        input poValue as Object):
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
-         
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        assign lExists = available ConfigOption.
-        if not lExists then
+        
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        else
         do:
             create ConfigOption.
-            assign ConfigOption.ParentBuilder = integer(this-object)
-                   ConfigOption.ConfigName = pcName
-                   ConfigOption.ValueType = 'object':u.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'object':u.
         end.
         
         Assert:Equals(ConfigOption.ValueType, 'object':u).
-        assign ConfigOption.ObjectValue = poValue.                                                        
-    
+        assign ConfigOption.ObjectValue = poValue.
+        
         return lExists.
     end method.
-
+    
     /** Stores a logical value as an option
         
         @param character The option name
@@ -330,24 +305,23 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        assign lExists = available ConfigOption.
-        if not lExists then
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        else
         do:
             create ConfigOption.
-            assign ConfigOption.ParentBuilder = integer(this-object)
-                   ConfigOption.ConfigName = pcName
-                   ConfigOption.ValueType = 'logical':u.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'logical':u.
         end.
         
         Assert:Equals(ConfigOption.ValueType, 'logical':u).
         assign ConfigOption.LogicalValue = plValue. 
-
-        return lExists.                                                      
+        
+        return lExists.
     end method.
 
     /** Stores a datetime-tzvalue as an option
@@ -360,18 +334,17 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        assign lExists = available ConfigOption.
-        if not lExists then
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        else
         do:
             create ConfigOption.
-            assign ConfigOption.ParentBuilder = integer(this-object)
-                   ConfigOption.ConfigName = pcName
-                   ConfigOption.ValueType = 'datetime':u.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'datetime':u.
         end.
         
         Assert:Equals(ConfigOption.ValueType, 'datetime':u).
@@ -390,23 +363,53 @@ class OpenEdge.Core.Util.ConfigBuilder use-widget-pool abstract:
         define variable lExists as logical no-undo.
         define buffer ConfigOption for ConfigOption.
          
-        Assert:NotNullOrEmpty(pcName, 'Config name').
-        
-        find ConfigOption where
-             ConfigOption.ParentBuilder eq integer(this-object) and
-             ConfigOption.ConfigName    eq pcName 
-             no-error.
-        assign lExists = available ConfigOption.
-        if not lExists then
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        else
         do:
             create ConfigOption.
-            assign ConfigOption.ParentBuilder = integer(this-object)
-                   ConfigOption.ConfigName = pcName
-                   ConfigOption.ValueType = 'string':u.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'string':u.
         end.
         
         Assert:Equals(ConfigOption.ValueType, 'string':u).
         assign ConfigOption.StringValue = pcValue.
+        
+        return lExists.
+    end method.
+    
+    /** Stores an value as an option
+        
+        @param character The option name
+        @param character the value     
+        @return logical True is the option was overwritten */
+    method protected logical SetOption(input pcName as character,
+                                       input pcValue as character extent):
+        define variable lExists as logical no-undo.
+        define buffer ConfigOption for ConfigOption.
+        
+        assign lExists = HasOption(pcName).
+        if lExists then
+            find ConfigOption where
+                 ConfigOption.ParentBuilder eq int64(this-object) and
+                 ConfigOption.ConfigName    eq pcName.
+        else
+        do:
+            create ConfigOption.
+            assign ConfigOption.ParentBuilder = int64(this-object)
+                   ConfigOption.ConfigName    = pcName
+                   ConfigOption.ValueType     = 'object':u.
+        end.
+        
+        Assert:Equals(ConfigOption.ValueType, 'object':u).
+        if extent(pcValue) eq ? then
+            assign ConfigOption.ObjectValue = ?.
+        else
+            assign ConfigOption.ObjectValue = new JsonArray(pcValue).
         
         return lExists.
     end method.

@@ -135,6 +135,20 @@
         "PATCH"
       ]
     },
+    "headerSet": {
+      "type": ["object", "null"],
+      "patternProperties": {
+        "[A-Za-z0-9!#\\$%&'*+-.^_`|~]*": {
+          "type": "string"
+        }
+      }
+    },
+    "cookieSet": {
+      "type": ["array", "null"],
+      "items": [
+        {"type":"string"}
+      ]
+    },
     "operationOptions": {
       "type": "object",
       "additionalProperties": false,
@@ -157,17 +171,24 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "typeWriters":{
+            "description": "Classes that write arguments to service-specific types from HTTP messages or entity calls. Must inherit from OpenEdge.Web.DataObject.Writer.ArgumentValueWriter",
+            "type": "object",
+            "patternProperties": {
+                "^[A-Za-z$0-9-/&#%.]+*$": {
+                    "description": "The OOABL type (class or interface) name of the target obejct",
+                    "anyOf": [
+                        {"$ref": "#/definitions/ablTypeName"},
+                        {"$ref": "#/definitions/ablClass"}
+                    ]
+                }
+            }
+        },
         "eventHandler": {
+          "description": "The class name that handlers the operation events. Must implement OpenEdge.Web.DataObject.IOperationEventHandler",
           "anyOf": [
             {"$ref": "#/definitions/ablTypeName"},
-            {"$ref": "#/definitions/ablClass"},
-            {
-              "type": "array",
-              "items": [
-                {"$ref": "#/definitions/ablTypeName"},
-                {"$ref": "#/definitions/ablClass"}
-              ]
-            }
+            {"$ref": "#/definitions/ablClass"}
           ]
         }
       }
@@ -195,17 +216,22 @@
           ]
         },
         "name": {
-          "type": ["string","null"]
+          "type": ["string","null"],
+          "description": "For body, headerSet, queryMap types this can be null. Must be a non-null/-empty value otherwise."
         },
         "ioMode": {
           "type": "string",
           "description": "For cases where we use an array of msgElems for an argument, this tells us whether it's an array and how the values are split",
           "enum": [
-            "input",
-            "output",
-            "input-output",
-            "return"
+            "INPUT",
+            "OUTPUT",
+            "INPUT-OUTPUT",
+            "RETURN"
           ]
+        },
+        "ablRef": {
+          "type": ["string", "number"],
+          "description": "When a msgElem is to be mapped to/from an array index or an object property, this contains either the property name or the index"
         }
       },
       "required": [
@@ -249,12 +275,29 @@
                 }
               }
             },
-            "catalog": {"type": "object"}
+            "catalog": {"type": "object"},
+            "writers": {
+              "description": "Classes that write arguments to service-specific types from HTTP messages or entity calls. Must inherit from OpenEdge.Web.DataObject.Writer.ArgumentValueWriter",
+              "type": ["array", "null"],
+              "items": [{
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "type": {
+                    "oneOf": [
+                      {"$ref": "#/definitions/ablClass"},
+                      {"$ref": "#/definitions/ablTypeName"},
+                      {"type": "null"}
+                    ]
+                  }
+                 },
+                 "required": ["name","type"]
+               }
+             ]
+           }
           }
         },
-        "required": [
-          "operations"
-        ]
+        "required": ["operations"]
       }
     },
     "mapValue": {
@@ -267,6 +310,14 @@
         "contentType": {
           "$ref": "#/definitions/mimeType",
           "description": "The content-type of the response payload, if any"
+        },
+        "headers": {
+          "$ref": "#/definitions/headerSet",
+          "description": "An optional set of HTTP headers (name+value) to add to responses"
+        },
+        "cookies": {
+          "$ref": "#/definitions/cookieSet",
+          "description": "An optional set of HTTP cookies to add to responses"
         },
         "statusCode": {
           "type": "number",
@@ -329,11 +380,12 @@
                         {
                           "type": "array",
                           "description": "An array is used for INPUT-OUTPUT or OUTPUT ioModes. In the IN-OUT case the first element is the input argument",
-                          "minItems": 1,
+                          "minItems": 0,
                           "items": {
                             "$ref": "#/definitions/msgElemValue"
                           }
-                        }
+                        },
+                        {"type": "null"}
                       ]
                     }
                   },
@@ -364,7 +416,5 @@
       }
     ]
   },
-  "required": [
-    "services"
-  ]
+  "required": ["services"]
 }

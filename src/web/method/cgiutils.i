@@ -116,7 +116,7 @@ Global Variables: utc-offset
 
   /* Set time adjustment depending on conversion option */
   CASE p_conversion:
-    WHEN "LOCAL":U THEN
+        WHEN "LOCAL":U THEN
       ASSIGN p_itime = p_itime - utc-offset.
     WHEN "UTC":U THEN
       ASSIGN p_itime = p_itime + utc-offset.
@@ -865,22 +865,26 @@ Input Parameters: HTTP Header name (less colon), associated header value.
     /* If the HTTP return status has not yet been written and */
     if not http-status-written then
     do:
-        // if the status line is not being specified, then use 200/OK
-        put {&webstream} control
-            'HTTP/1.1 200 OK':u
-            http-newline.
-        
+        if p_header eq 'Status:':u then
+            put {&webstream} control
+                substitute('HTTP/1.1 &1':u, p_value )
+                http-newline.
+        else
+            // if the status line is not being specified, then use 200/OK
+            put {&webstream} control
+                'HTTP/1.1 200 OK':u 
+                http-newline.
         assign http-status-written  = true.
     end.
-    
+  
   /* Output the header and associated value to the output stream */
   PUT {&WEBSTREAM} CONTROL
-    p_header
-    p_value 
-    /* Newline must have both CR and LF even on UNIX.   
-       Bug: 97-03-04-008  Some web servers such as Netscape-Fasttrack 2.01
-       don't like the CR character so allow the newline to be changed. */
-    http-newline.
+        p_header
+        p_value 
+        /* Newline must have both CR and LF even on UNIX.   
+           Bug: 97-03-04-008  Some web servers such as Netscape-Fasttrack 2.01
+           don't like the CR character so allow the newline to be changed. */
+        http-newline.
 END FUNCTION. /* output-http-header */
 &ANALYZE-RESUME
 

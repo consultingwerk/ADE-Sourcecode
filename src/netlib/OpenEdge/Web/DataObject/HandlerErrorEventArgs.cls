@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationErrorEventArgs
@@ -15,8 +15,9 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Web.DataObject.DataObjectEventArgs.
-using OpenEdge.Web.IWebRequest.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
+using OpenEdge.Web.IWebRequest.
 
 class OpenEdge.Web.DataObject.HandlerErrorEventArgs inherits DataObjectEventArgs:
     /* Constructor.
@@ -70,6 +71,13 @@ class OpenEdge.Web.DataObject.HandlerErrorEventArgs inherits DataObjectEventArgs
        @param MappedOperation A n operation to add to the args */
     method public void SetOperation(input poOperation as MappedOperation):
         assign this-object:Operation = poOperation.
+    end method.
+
+    /* Add a service to the args
+       
+       @param DataObjectService An operation to add to the args */
+    method public void SetService(input pService as DataObjectService):
+        assign this-object:Service = pService.
     end method.
     
 end class.

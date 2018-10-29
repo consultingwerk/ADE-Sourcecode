@@ -13,6 +13,7 @@ Copyright (c) 2013, 2016-2018 by Progress Software Corporation. All rights reser
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Assertion.AssertArray.
 using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Collections.AbstractTTCollection.
 using OpenEdge.Core.Collections.ICollection.
@@ -62,52 +63,73 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
        
        @param Progress.Lang.Object The search object */
     method protected override void FindBufferUseObject(findObject as Object):
+        FindBufferUseObject(findObject, buffer ttList).
+    end method.
+    
+    /* Find the FIRST reference of the search object; the search order 
+       is by the List's Sequence. This means that if there are 2 instances
+       of this object, a dev will need to iterate over the collection to 
+       determine which ones match. 
+       
+       The input buffer is RELEASED (so that we don't leak scope).
+       
+       @param Progress.Lang.Object The search object 
+       @param buffer ttList The buffer to search    */
+    method protected void FindBufferUseObject(findObject as Object,
+                                              buffer pbList for ttList):
         define variable listItem as rowid no-undo.
         
         assign listItem = ?. 
-        for each ttList where 
-                 ttList.objectref eq findObject 
-                 by ttList.sequence
+        release pbList.         // RELEASE THE LISTS
+        
+        for each pbList  where 
+                 pbList.objectref eq findObject 
+                 by pbList.sequence
                  while listItem eq ?:
             // we won't get in here unless there's the identical reference 
-            assign listItem = rowid(ttList).
+            assign listItem = rowid(pbList).
         end.
         
-        for each ttList 
-                 by ttList.sequence
+        for each pbList
+                 by pbList.sequence
                  while listItem eq ?:
-            if ttList.objectref:Equals(findObject) then
-                assign listItem = rowid(ttList).
+            if pbList.objectref:Equals(findObject) then
+                assign listItem = rowid(pbList).
         end.
         
         if not listItem eq ? then
-            find ttList where rowid(ttList) eq listItem.
+            find pbList where rowid(pbList) eq listItem.
     end method.
     
     method public logical Add(seq as integer, obj as Object ):    
         define buffer btList for ttList.
         
         Assert:IsPositive(seq, 'List index').
+        if seq gt this-object:Size then
+            return error new AssertionFailedError(substitute('List index &1 is larger than the list size &2', seq, this-object:Size)).
         
         if super:Add(obj) then
         do:
-            for each btList where btList.sequence >= seq by btList.sequence desc:
-                btList.sequence = btList.sequence + 1. 
+            for each btList where
+                     btList.sequence ge seq
+                     by btList.sequence descending:
+                assign btList.sequence = btList.sequence + 1.
             end.
             
             // Don't use, in case we have the same item more than once: FindBufferUseObject(obj)
             // The just-added item, with the default Sequence
-            find ttList where ttList.sequence eq 0.
-            assign ttList.Sequence = seq.
+            find btList where btList.sequence eq 0.
+            assign btList.Sequence = seq.
+            
             return true.
         end.
         return false.
     end method.
     
-    method public override logical Add(obj as Object ):    
+    method public override logical Add(obj as Object ):
         if super:Add(obj) then
         do:
-            // Don't use, in case we have the same item more than once: FindBufferUseObject(obj)
+            // Don't use, in case we have the same item more than once: FindBufferUseObject(obj[iLoop])
             // The just-added item, with the default Sequence
             find ttList where ttList.sequence eq 0.
             assign ttList.Sequence = this-object:Size.
@@ -150,14 +172,14 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         for each btList where btList.sequence >= seq by btList.sequence desc:
             assign btList.sequence = btList.sequence + c:Size.
         end.
+        
         assign iterator = c:Iterator(). 
         do while iterator:HasNext():
             super:Add(iterator:Next()).
-            
             // Don't use, in case we have the same item more than once: FindBufferUseObject(oItem)
             // The just-added item, with the default Sequence
-            find ttList where ttList.sequence eq 0.
-            assign ttList.sequence = seq
+            find btList where btList.sequence eq 0.
+            assign btList.sequence = seq
                    seq             = seq + 1
                    .
         end.
@@ -170,11 +192,11 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         define buffer btList for ttList.
         
         Assert:IsPositive(seq, 'List index').
+        AssertArray:HasDeterminateExtent(obj, 'Items array').
         
-        iMax = extent(obj).
-        
+        assign iMax = extent(obj).
         for each btList where btList.sequence >= seq by btList.sequence desc:
-            btList.sequence = btList.sequence + iMax + 1. 
+            assign btList.sequence = btList.sequence + iMax + 1. 
         end.
         
         do iLoop = 1 to iMax:
@@ -182,47 +204,59 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
             
             // Don't use, in case we have the same item more than once: FindBufferUseObject(obj[iLoop])
             // The just-added item, with the default Sequence
-            find ttList where ttList.sequence eq 0.
-            ttList.Sequence = Seq.
-            seq = seq + 1.
+            find btList where btList.sequence eq 0.
+            assign btList.Sequence = seq
+                   seq             = seq + 1.
         end.
         
-        return true.         
+        return true.
     end method.
      
-    /* two lists are defined to be equal if they contain the same elements in the same order */
+    /* Two Lists  are defined to be equal if they are the same size and
+       all of the elements in this collection are in the to-compare List and 
+       in the same sequence.
+       
+       @param P.L.Object
+       @return logical TRUE if the Lists are equal. FALSE otherwise */
     method public override logical Equals(o as Object):
         define buffer btList for ttList.
-        define variable oList as List no-undo.
+        define variable list as IList no-undo.
         
         if super:Equals(o) then 
             return true.
         
-        if type-of(o,List) then
+        if type-of(o, IList) then
         do:
-            assign oList = cast(o,List).
-            if not oList:Size eq Size then
+            assign list = cast(o, IList).
+            if not list:Size eq this-object:Size then
                 return false.
+            
             for each btList:
-                // This method uses the ttList buffer
-                FindBufferUseObject(oList:Get(btList.Sequence)).
-                if not available ttList then
+                if not btlist.objectref:Equals(list:Get(btList.sequence)) then
                     return false.
             end.
             return true.
         end.
-        return false.    
-    end method.    
+        
+        return false.
+    end method.
     
+    /* Returns the object represented by the index
+       
+       @param integer The sequence to find. Must be positive and <= the Size.  
+       @return Object The object represented by the sequence. May be ? */
     method public Object Get(i as integer):
+        define buffer bList for ttList.
+         
         Assert:IsPositive(i, 'List index').
         if i gt this-object:Size then
             undo, throw new AssertionFailedError(substitute('Index &1 is larger than List size &2', i, this-object:Size)).
         
-        if can-find(ttList where ttList.sequence eq i) then
-            find ttList where ttList.sequence = i no-error.
-        if avail ttList then 
-            return ttList.objectref.
+        if can-find(bList where bList.sequence eq i) then
+            find bList where bList.sequence eq i.
+        
+        if avail bList then 
+            return bList.objectref.
         else
             return ?.
     end method.
@@ -255,7 +289,7 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
     end method.
     
     /* Returns a new IListIterator over the collection.  */
-    method public IListIterator ListIterator(  ):        
+    method public IListIterator ListIterator(  ):
         return new ListIterator(this-object,temp-table ttList:handle,"objectref","sequence").
     end method.
     
@@ -290,15 +324,18 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
     method override public logical Remove(oldObject as Object ):
         define variable iStart as integer no-undo.
         define buffer btList for ttList.
-        findBufferUseObject(oldObject). 
-        if avail ttList then
+        
+        findBufferUseObject(oldObject, buffer btList). 
+        if avail btList then
         do:
-            iStart = ttList.sequence.
+            iStart = btList.sequence.
             if super:remove(oldobject) then
             do:
-                for each btList where btList.Sequence > iStart:
-                    btList.sequence = btList.Sequence - 1.     
+                // reorder incl the one we removed
+                for each btList where btList.Sequence >= iStart:
+                    assign btList.sequence = btList.Sequence - 1.
                 end.
+                
                 return true.
             end. 
         end.    
@@ -311,23 +348,27 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         @return Progress.Lang.Object The item that was removed. */
     method public Object Remove(i as integer):
         define variable oldObject as Object.
-        define buffer btList for ttList.
+        define buffer bList for ttList.
         
         Assert:IsPositive(i, 'List index').
         if i gt this-object:Size then
             undo, throw new AppError(substitute('Index &1 is larger than the collection size of &2', i, this-object:Size), 0).
         
-        // Get() finds the ttList record
-        assign oldObject = this-object:Get(i).
-        delete ttList.
+        if can-find(bList where bList.sequence eq i) then
+            find bList where bList.sequence eq i.
         
-        //Only the parent can set the Size
-        Resize().
-        
-        for each btList where 
-                 btList.sequence gt i 
-                 by btList.sequence:
-            assign btList.sequence = btList.sequence - 1. 
+        if available bList then
+        do:
+            assign oldObject = bList.objectref.
+            delete bList.
+            
+            // reorder incl the one we removed
+            for each bList where bList.Sequence >= i:
+                assign bList.sequence = bList.Sequence - 1.
+            end.
+            
+            //Only the parent can set the Size
+            Resize().
         end.
         
         return oldObject.
@@ -335,18 +376,19 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
     
     method public Object Set(input i as integer, input poReplacement as Object ):
         define variable oldObject as Object.
+        define buffer bList for ttList.
         
         Assert:IsPositive(i, 'List index').
         if i gt this-object:Size then
             undo, throw new AppError(substitute('Index &1 is larger than the collection size of &2', i, this-object:Size), 0).
-         
-        if can-find(ttList where ttList.sequence eq i) then
-        do: 
-            find ttList where ttList.sequence = i no-error.
-            assign 
-                oldObject        = ttList.objectref  
-                ttList.objectref = poReplacement.
-        end.
+        
+        if can-find(bList where bList.sequence eq i) then
+            find bList where bList.sequence eq i.
+        
+        if available bList then
+            assign oldObject       = bList.objectref
+                   bList.objectref = poReplacement
+                   .
         return oldObject.
     end method.
     
@@ -371,12 +413,13 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
            oObject = get(fromIndex).
            if valid-object(oObject) then
               list:add(oObject).  
-           else do: 
+           else
+           do: 
               delete object list. 
               return ?. 
-           end.     
+           end.
         end.
         return list.
     end method.
-     
+    
 end class.

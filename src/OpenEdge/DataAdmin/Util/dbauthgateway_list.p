@@ -32,6 +32,7 @@ using OpenEdge.DataAdmin.IDatabaseOption.
 /* ********************  Definitions  ******************** */
 define variable oDAS as IDataAdminService no-undo.
 define variable oDbOpt as IDatabaseOption no-undo.
+define variable oDbOpt1 as IDatabaseOption no-undo.
 define variable cFolder as character no-undo.
 define variable cRunLog as character no-undo.
 define variable cEntry as character no-undo.
@@ -44,6 +45,7 @@ define stream strDump.
 
 /* ************************** UDFs & procedures  *************************** */
 &scoped-define DB-OPTION-CODE _db.sts.url
+&scoped-define DB-OPTION-CODE1 _db.sts.sniHostName
 
 {OpenEdge/DataAdmin/Util/dboptionutils_fn.i
     &EXPORT-LOG-GROUP='DBSTSURL'
@@ -82,6 +84,7 @@ put stream strDump unformatted
 do iLoop = 1 to num-dbs:
     assign oDAS      = new DataAdminService(ldbname(iLoop))
            oDbOpt    = oDAS:GetDatabaseOption('{&DB-OPTION-CODE}':u)
+           oDbOpt1   = oDAS:GetDatabaseOption('{&DB-OPTION-CODE1}':u)
            .
     /* if not enabled, log that and goto next db */
     if valid-object(oDbOpt) then
@@ -92,6 +95,18 @@ do iLoop = 1 to num-dbs:
     export stream strDump delimiter ',':u
         //'#DbName,STSUrl':u
         oDAS:Name
+        "stsurl"
+        cValue
+        .
+    if valid-object(oDbOpt1) then
+        assign cValue = oDbOpt1:OptionValue.
+    else
+        assign cValue = ?.
+    
+    export stream strDump delimiter ',':u
+        //'#DbName,STSUrl':u
+        oDAS:Name
+        "sniHostName"
         cValue
         .
 end.

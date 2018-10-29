@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : DataObjectError
@@ -12,18 +12,21 @@ Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiari
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Web.DataObject.DataObjectEventArgs.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
-using OpenEdge.Web.DataObject.DataObjectEventArgs.
-using OpenEdge.Core.Assert.
-
 
 class OpenEdge.Web.DataObject.DataObjectError inherits ApplicationError: 
-    /* (mandatory) The operation for which to instantiate the entity */
+    /* (optional) The service affected by this error */
+    define public property Service as DataObjectService no-undo get. set.
+    
+    /* (optional) The operation  affected by this error */
     define public property Operation as MappedOperation no-undo get. set.
-
+    
     /* (mandatory) The request being serviced */
     define public property Request as IWebRequest no-undo get. set.
     
@@ -41,13 +44,17 @@ class OpenEdge.Web.DataObject.DataObjectError inherits ApplicationError:
     /* Default Constructor */    
     constructor public DataObjectError ():
     end constructor.
-
+    
+    /* Constructor
+       
+       @param DataObjectEventArgs The event args related to this error (typically from an event). */
     constructor public DataObjectError (input pOperationArgs as DataObjectEventArgs):
         this-object().
         
         Assert:NotNull(pOperationArgs, 'Operation args').
         
-        assign this-object:Operation      = pOperationArgs:Operation
+        assign this-object:Service        = pOperationArgs:Service
+               this-object:Operation      = pOperationArgs:Operation
                this-object:Request        = pOperationArgs:Request
                this-object:Response       = pOperationArgs:Response
                this-object:Error          = pOperationArgs:Error

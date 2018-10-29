@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceMappingFileSchemaEnum
@@ -12,17 +12,21 @@ Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiari
 enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
     define enum
         ablName
+        ablRef
         ablType
         arg
+        argumentWriters
         attr
         catalog
         contentType
+        cookies
         entity
         errorEnvelope
         extent
         fields
         file
         function
+        headers
         indexes
         ioMode
         msgElem
@@ -32,11 +36,12 @@ enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
         primary
         requestEnvelope
         responseEnvelope
-        schemas        
+        schemas
         serializeHidden
         serializeName
         services
         statusCode
+        tables
         timeout
         trackChanges
         type

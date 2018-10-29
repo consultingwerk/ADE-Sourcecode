@@ -1,3 +1,6 @@
+/************************************************
+Copyright ( c) 2013, 2018 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /** ------------------------------------------------------------------------
     File        : RulesServerConnectionParameters
     Purpose     : Purposed connection parameters for connecting to a Rules Server
@@ -88,6 +91,21 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
         ShadowConstructor(oOptions).
     end constructor.
     
+    /* Constructor.
+       
+       @param IConnectionParameters Connection parameters for the Corticon ADMIN service
+       @param IConnectionParameters Connection parameters for the Corticon decusion service */
+    constructor public RulesServerConnectionParameters(input pAdminServiceParams as IConnectionParameters,
+                                                       input pDecisionServiceParams as IConnectionParameters ):
+        Assert:IsType(pAdminServiceParams,    get-class(WebServiceConnectionParameters)).
+        Assert:IsType(pDecisionServiceParams, get-class(WebServiceConnectionParameters)).
+        
+        assign this-object:AdminServiceConnectionParameters    = pAdminServiceParams
+               this-object:DecisionServiceConnectionParameters = pDecisionServiceParams
+               this-object:FormatMask                          = FormatMaskEnum:Custom
+               .
+    end constructor.
+    
     constructor public RulesServerConnectionParameters(input poOptions as JsonObject):
         Assert:NotNull(poOptions, 'Options').        
         ShadowConstructor(poOptions).
@@ -150,7 +168,7 @@ class OpenEdge.BusinessRules.RulesServerConnectionParameters implements IConnect
                 oAdminOptions:Add('PortName', 'CcServerMessagingAxis').
             else
                 oAdminOptions:Set('PortName', 'CcServerMessagingAxis').
-
+            
             /* URL. If this is true for admin, it will be true for decision service, because
                we cloned the options. */
             if not oAdminOptions:Has('URL') then

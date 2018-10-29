@@ -33,8 +33,10 @@ Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiari
                   * Group args for T (T= time).
                     - Values are taken from the time at which the file name is being built.
                     - The args are based on http://en.cppreference.com/w/c/chrono/strftime
-                    TODAY: An ISO-DATE formated DATE value is used
-                    NOW  : An ISO-DATE formated datetime-tz value is used
+                    TODAY: An ISO-DATE formatted DATE value is used
+                    NOW  } An ISO-DATE formatted DATETIME-TZ value is used
+                    ISO  } 
+                    HTTP : The datetime formatted as per https://tools.ietf.org/html/rfc7231#section-7.1.1.1
                     YYYY : The current year, incl century
                     YY   : The current year, sans century
                     BB   : The full month name (from the MONTH_LONG property)
@@ -80,6 +82,8 @@ Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiari
                        UID    : The current user id
                        QUID   : The qualified user id (user@domain) 
                        DOMAIN : The domain name of the current user
+                       PROP "." property-name   : Returns the value of a property in the CP
+                        property-name : The name of a property to return
                    db-name
                         An optional logical db name from which to extract the CP. If none is set, use the security-policy
                    
@@ -270,12 +274,17 @@ class OpenEdge.Core.Util.TokenResolver:
             assign formatString = '>9':u.
         
         case pTokenArg:
-            // predefined 
-            when 'now':u then
+            // predefined
+            when 'now':u or
+            when 'iso':u then
                 assign tokenValue = iso-date(pTimestamp).
+            
+            when 'http':u then
+                assign tokenValue = TimeStamp:ToHttpDateFromABL(pTimestamp). 
             
             when 'today':u then
                 assign tokenValue = iso-date(date(pTimestamp)).
+            
             // years
             when 'YYYY':u then
                 assign tokenValue = string(year(pTimestamp), '9999':u).
@@ -417,6 +426,8 @@ class OpenEdge.Core.Util.TokenResolver:
                 assign tokenValue = pUser:qualified-user-id.
             when 'domain':u then
                 assign tokenValue = pUser:domain-name.
+            when 'prop':u then
+                assign tokenValue = pUser:get-property(args[2]).
             otherwise
             do:
                 create call dynCall.
@@ -530,7 +541,7 @@ class OpenEdge.Core.Util.TokenResolver:
                 when 'req':u then
                 case tokenEventArgs:TokenArg:
                     when 'tpt':u then
-                        assign tokenEventArgs:TokenValue = string(session:current-request-info:AdapterType). 
+                        assign tokenEventArgs:TokenValue = string(session:current-request-info:AdapterType).
                    when 'ccid':u then
                         assign tokenEventArgs:TokenValue = session:current-request-info:ClientContextId.
                     when 'id':u then
@@ -539,6 +550,10 @@ class OpenEdge.Core.Util.TokenResolver:
                         assign tokenEventArgs:TokenValue = string(session:current-request-info:SessionId).
                     when 'thread':u then
                         assign tokenEventArgs:TokenValue = string(session:current-request-info:ThreadId).
+                    when 'agent':u then
+                        assign tokenEventArgs:TokenValue = string(session:current-request-info:AgentId).
+                    when 'proc':u then
+                        assign tokenEventArgs:TokenValue = session:current-request-info:ProcedureName.
                 end case.
                 
                 when 'web':u then

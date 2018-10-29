@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpRequestDecorator
@@ -113,7 +113,14 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
     method public void SetHeader( input poHeader as HttpHeader ):
         DecoratedHttpRequest:SetHeader(poHeader).
     end method.
-
+    
+    /** Adds a set of header info to this message's collection of headers.
+        
+        @param HttpHeader[] An array of headers */
+    method public void SetHeaders(input poHeader as HttpHeader extent):
+        DecoratedHttpRequest:SetHeaders(poHeader).
+    end method.
+    
     method public HttpHeader GetHeader( input pcName as character ):
         return DecoratedHttpRequest:GetHeader(pcName).
     end method.
@@ -137,7 +144,14 @@ class OpenEdge.Net.HTTP.HttpRequestDecorator
     method public void SetCookie( input poCookie as OpenEdge.Net.HTTP.Cookie ):
         DecoratedHttpRequest:SetCookie(poCookie).
     end method.
-
+    
+    /** Adds cookies to this message
+        
+        @param Cookie[] An array of cookies to add. */
+    method public void SetCookies(input poCookies as Cookie extent):
+        DecoratedHttpRequest:SetCookies(poCookies).
+    end method.
+    
     method public integer GetCookies( output poCookies as Cookie extent):
         return     DecoratedHttpRequest:GetCookies(output poCookies).
     end method.

@@ -57,6 +57,7 @@
                                 Supported batch mode delta SQL Utility.
               09/18/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
               12/11/13 sdash    OE Initial Value not propagated w/"Include Defaults" on delta.sql (PSC00247036)
+			  08/20/18 vprasad ODIA-1951 -  ODBC Driver 17 for SQL Server certification
 
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -208,7 +209,6 @@ DEFINE VARIABLE renmae-index   AS LOGICAL        NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE old-idx-name   AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE new-idx-name   AS CHARACTER             NO-UNDO.
 FUNCTION findShadow RETURNS INTEGER (INPUT fldRecid AS RECID) FORWARD.
-
 batch_mode = SESSION:BATCH-MODE.
 
 DEFINE TEMP-TABLE con-index NO-UNDO
@@ -859,7 +859,7 @@ PROCEDURE write-con-sql:
             fldcon = FALSE.      
            
 END.    
-    
+
 PROCEDURE write-idx-sql:
   IF idxline = ? OR idxline = "" THEN LEAVE.
   
@@ -2547,7 +2547,8 @@ IF AVAILABLE(_Db) THEN DO:
                 then ""
                 else quote
           ).
-  IF ( _Db._db-misc2[1] BEGINS "SQLNCLI") THEN 
+	/* Added ODBC17 Driver check */	  
+  IF (( _Db._db-misc2[1] BEGINS "SQLNCLI") OR ( _Db._db-misc2[1] BEGINS "MSODBCSQL")) THEN 
       ASSIGN isSQLNCLI = YES.
 
   IF NOT mapMSSDatetime THEN DO:
@@ -5470,16 +5471,17 @@ DO ON STOP UNDO, LEAVE:
           ASSIGN ilin = ?.
         END. /* End of other attributes of add index */       
       END. /* End of add index */
-      
+
       /* Rename Index */
       ELSE IF imod = "r" THEN DO:     
+
         RUN write-tbl-sql.
-        
-        IF idxline <> ? AND idxname <> ilin[5] THEN 
+                    
+        IF idxline <> ? AND  idxname <> ilin[5] THEN 
           RUN write-idx-sql.
         ELSE
           ASSIGN renmae-index = TRUE. 
-        
+	 
         IF seq-line <> ? THEN
           RUN write-seq-sql.
       
@@ -5530,6 +5532,7 @@ DO ON STOP UNDO, LEAVE:
                    t-name = ilin[7]
                    old-name = ilin[3]
                    rename-obj.new-name = ilin[5].
+
           IF renmae-index = TRUE THEN DO:
             ASSIGN old-idx-name = DICTDB._Index._For-Name.
 
@@ -6041,7 +6044,7 @@ DO ON STOP UNDO, LEAVE:
 
           ASSIGN transname = ilin[3]
                  conname = ilin[3].
-          IF xlate THEN DO:          
+          IF xlate THEN DO: 
             ASSIGN transname = transname  + "," + idbtyp + "," + user_env[28].          
             RUN "prodict/misc/_resxlat.p" (INPUT-OUTPUT transname).
           END. 

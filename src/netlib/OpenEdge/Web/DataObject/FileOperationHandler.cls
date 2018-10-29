@@ -25,12 +25,12 @@ using OpenEdge.Net.HTTP.Filter.Writer.BodyWriterBuilder.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
-using OpenEdge.Web.DataObject.FileOperationHandler.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.IOperationHandler.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
 using OpenEdge.Web.SendExceptionError.
-using Progress.Lang.AppError.
+using OpenEdge.Web.DataObject.FileOperationHandler.
 
 class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, IOperationHandler:
     /* A reference to the Logger in use by an implementer */
@@ -44,19 +44,21 @@ class OpenEdge.Web.DataObject.FileOperationHandler implements ISupportLogging, I
                .
     end constructor.
     
-    /* Executes the operation.  
+    /* Executes the operation.
        
        @param IWebRequest The request that resulting in the exception
        @param P.L.Object The message body of the incoming request. Typically 
                          will be transformed from bytes into something useful; may also have an envelope removed. 
        @param IHttpResponse The current response object, if any
+       @param DataObjectService The service being operated on
        @param MappedOperation The mapped operation
        @param P.L.Object The business entity (business logic service)  
        @return integer A non-null status code use to deal with errors */
-    method public integer Execute(input poRequest  as IWebRequest,
-                                  input poMessageBody as Progress.Lang.Object,
+    method public integer Execute(input poRequest as IWebRequest, 
+                                  input poMessageBody as Progress.Lang.Object, 
                                   input poResponse as IHttpResponse,
-                                  input poOperation as MappedOperation,
+                                  input pService as DataObjectService,
+                                  input poOperation as MappedOperation, 
                                   input poBusinessEntity as Progress.Lang.Object):
         /* default behaviour is to handle this ourselves */
         define variable iStatusCode as integer no-undo initial 0.

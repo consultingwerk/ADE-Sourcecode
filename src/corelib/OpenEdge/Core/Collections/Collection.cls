@@ -45,23 +45,66 @@ class OpenEdge.Core.Collections.Collection serializable inherits AbstractTTColle
             return false.
         
         /* try by-reference first */
-        lContains = can-find(lbCollection where lbCollection.ObjectRef = checkObject). 
+        assign lContains = can-find(lbCollection where lbCollection.ObjectRef = checkObject). 
         for each lbCollection while lContains = false:
-            lContains = lbCollection.ObjectRef:Equals(checkObject).
+            assign lContains = lbCollection.ObjectRef:Equals(checkObject).
         end.
         
         return lContains.
     end method.
-
-    method protected override void FindBufferUseObject ( o as Object ):
-        find ttCollection where ttCollection.objectref eq o no-error.
-        if available ttCollection then 
+    
+    method protected override void FindBufferUseObject (obj as Object):
+        FindBufferUseObject(obj, buffer ttCollection).
+    end method.
+    
+    method protected void FindBufferUseObject(obj as Object,
+                                              buffer pbCollection for ttCollection):
+        define variable itemRowid as rowid no-undo.
+        
+        release pbCollection.      // As Elsa said, Let it go!
+        assign itemRowid = ?. 
+        
+        if can-find(pbCollection where pbCollection.objectref eq obj) then
+            find pbCollection where pbCollection.objectref eq obj.
+        if available pbCollection then 
             return.
         
-        for each ttCollection:
-            if ttCollection.objectref:Equals(o) then
-                return.
+        for each pbCollection
+                 while itemRowid eq ?:
+            if pbCollection.objectref:Equals(obj) then
+                assign itemRowid = rowid(pbCollection).
         end.
+        
+        if not itemRowid eq ? then
+            find pbCollection where rowid(pbCollection) eq itemRowid.
     end.
+    
+    /* Two Collections are defined to be equal if they are the same size and
+       all of the elements in this collection are in the to-compare collection
+       
+       @param P.L.Object
+       @return logical TRUE if the collections are equal. FALSE otherwise */
+    method public override logical Equals(o as Object):
+        define buffer lbCollection for ttCollection.
+        define variable coll as ICollection no-undo.
+        
+        if super:Equals(o) then 
+            return true.
+        
+        if type-of(o, ICollection) then
+        do:
+            assign coll = cast(o, ICollection).
+            if not coll:Size eq this-object:Size then
+                return false.
+            
+            for each lbCollection:
+                if not coll:Contains(lbCollection.objectref) then
+                    return false.
+            end.
+            return true.
+        end.
+        
+        return false.
+    end method.
      
 end class.

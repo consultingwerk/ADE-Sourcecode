@@ -27,7 +27,7 @@ using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibraryBuilder inherits ClientLibraryBuilder:
     /* constants. private and properties to make immutable */
     define private property LIB_NAME as character init 'Lib-ABLSockets':u no-undo get.
-    define private property LIB_VERSION as character init '0.4.0':u no-undo get.
+    define private property LIB_VERSION as character init '0.5.0':u no-undo get.
     
     /* A useable, built instance of a IHttpClientLibrary */
     define override public property Library as IHttpClientLibrary no-undo

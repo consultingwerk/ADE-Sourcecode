@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -10,6 +10,7 @@ Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.Memptr.
@@ -31,7 +32,22 @@ using Progress.Lang.Object.
 class OpenEdge.Net.ServerConnection.ClientSocket
         implements IServerConnection, ISupportLogging:
     
-    // A reference to the Logger in use by an implementer
+    /* Corresponds to the socket's LOCAL-HOST attribute */
+    define public property LocalHost as character no-undo get. private set.
+    
+    /* Corresponds to the socket's LOCAL-PORT attribute*/
+    define public property LocalPort as integer no-undo get. private set.
+     
+    /* Corresponds to the socket's REMOTE-HOST attribute */ 
+    define public property RemoteHost as character no-undo get. private set.
+
+    /* Corresponds to the socket's REMOTE-PORT attribute */
+    define public property RemotePort as integer no-undo get. private set.
+    
+    /* Corresponds to the socket's SSL-SERVER-NAME attribute  */
+    define public property SslServerName as character no-undo get. private set.
+    
+    /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo
         get():
             if not valid-object(this-object:Logger) then
@@ -49,7 +65,16 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     /* debug only */
     define private variable miTotalBytesRead as int64 no-undo.
         
-    define public property Server as Object no-undo get. private set.
+    /** A reference to the actual server. Must be an instance of an Ccs.Common.Support.IHandleHolder */
+    define public property Server as Object no-undo
+        get.
+        private set(input pServer as Progress.Lang.Object):
+            Assert:IsType(pServer, get-class(IHandleHolder)).
+            
+            assign this-object:Server = pServer.
+        end set.
+    
+    /** Parameters for this connection */
     define public property ConnectionParameters as IConnectionParameters no-undo get. private set.
     
     /** Event fired when a chunk of data is received from the socket */
@@ -171,10 +196,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         Logger:Debug(substitute('Connect: &1':u, this-object:ConnectionParameters:GetConnectionString())).
         
-        mhSocket = cast(this-object:Server, WidgetHandle):Value.
-        
-        mhSocket:sensitive = yes.
-
+        assign mhSocket           = cast(this-object:Server, IHandleHolder):Value
+               mhSocket:sensitive = yes
+               .
         if this-object:Connected then
             return.
         
@@ -187,22 +211,38 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         
         assign iStartTime = mtime.
         mhSocket:connect(this-object:ConnectionParameters:GetConnectionString()).
-        
+                
         SetSocketOptions(mhSocket).
-
+        
         Logger:Debug(substitute('Connect: TIME(ms)=&1':u, mtime - iStartTime)).
+        
+        assign this-object:LocalHost     = mhSocket:local-host
+               this-object:LocalPort     = mhSocket:local-port
+               this-object:RemoteHost    = mhSocket:remote-host
+               this-object:RemotePort    = mhSocket:remote-port
+               this-object:SslServerName = mhSocket:ssl-server-name
+               .
     end method.
     
     /** Disconnect from the server, if connected */    
     method public void Disconnect():
         if this-object:Connected then
             cast(Server, WidgetHandle):Value:disconnect().
-            
+        
         delete object mhHelperProc no-error.
-        assign mhHelperProc = ? 
+        assign mhHelperProc              = ? 
+               this-object:LocalHost     = ?
+               this-object:LocalPort     = ?
+               this-object:RemoteHost    = ?
+               this-object:RemotePort    = ?
+               this-object:SslServerName = ?
                // reset the error-status:error flag
                no-error. 
-        Logger:Debug(substitute('Disconnect: &1', this-object:ConnectionParameters:GetConnectionString())).
+        
+        if valid-object (this-object:ConnectionParameters) then
+            Logger:Debug(substitute('Disconnect: &1', this-object:ConnectionParameters:GetConnectionString())).
+        else
+            Logger:Debug('Disconnect').
     end method.
 
     /** Creates a server object (ie this-object:Server). This is separated
@@ -211,20 +251,19 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     method public void CreateServer():
         create socket mhSocket.
         
-        this-object:Server = new WidgetHandle(mhSocket).
+        assign this-object:Server = new WidgetHandle(mhSocket, true /*autodestroy*/ ).
     end method.
-
+    
     /** Destroys the server object (ie this-object:Server). This is separated
         from the Connect/Disconnect pair of methods so that one server can 
         be connected and disconnected multiple time. */
     method public void DestroyServer():
         if this-object:Connected then   
             this-object:Disconnect().
-
-        delete object mhSocket no-error.
-        assign this-object:Server = ?
-               // reset the error-status:error flag
-               no-error.
+        
+        // the socket handle is deleted/destroyed along with the object        
+        if valid-object(this-object:Server) then
+            delete object this-object:Server.
     end method.
     
     /** Waits for a response from a write event on the socket with a 
@@ -672,6 +711,21 @@ class OpenEdge.Net.ServerConnection.ClientSocket
        @return logical TRUE is the socket is connected; false otherwise */
     method protected logical IsConnected():
         return valid-handle(mhSocket) and mhSocket:connected().
-    end method.        
+    end method.
+    
+    /* Starts a new TLS (for insecure connections), or changes (for already-secure)
+       connections, the certificates used to decrypt the traffic. Used primarily
+       for HTTP proxy tunnelling. 
+       
+       @param character The certificate subject (host) name */
+    method public void StartTls(input pCertificatSubjectName as character):
+        define variable optionName as character no-undo.
+        
+        Assert:NotNullOrEmpty(pCertificatSubjectName, 'Certificate subject name').
+        assign optionName = 'TCP-STARTTLS':u.
+        
+        Logger:Debug(substitute('Subject name for TCP-STARTTLS: &1':u, pCertificatSubjectName)).
+        mhSocket:set-socket-option(optionName, pCertificatSubjectName).
+    end method.
     
 end class.

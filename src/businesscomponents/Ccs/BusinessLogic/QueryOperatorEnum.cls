@@ -43,6 +43,7 @@ ENUM Ccs.BusinessLogic.QueryOperatorEnum:
                 Gt
                 Le
                 Lt
+                Ne      // ad-hoc added
 
                 /* Operators requiring a list of values */
                 InList

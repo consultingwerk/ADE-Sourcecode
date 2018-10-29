@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SemanticVersion
@@ -40,7 +40,7 @@ class OpenEdge.Core.SemanticVersion serializable:
     
     /* Default constructor */
     constructor public SemanticVersion():
-        this-object(1, 0, 0).
+        this-object(0, 0, 0).
     end method.
     
     /* Constructor
@@ -126,7 +126,9 @@ class OpenEdge.Core.SemanticVersion serializable:
         Assert:NotNull(pVersion, 'Version string').
         
         // Use a simple default version
-        assign semVer = new SemanticVersion(1, 0, 0).
+        assign semVer = new SemanticVersion(0, 0, 0).
+        if pVersion eq '':u then
+            return semVer.
         
         // BUILD METADATA
         assign chrPos = index(pVersion, '+':u). 

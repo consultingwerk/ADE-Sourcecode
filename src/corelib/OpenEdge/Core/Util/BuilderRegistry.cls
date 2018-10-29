@@ -12,10 +12,10 @@ Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
     Notes       : * this is technically a typed Map, but will be kept separate
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
- 
+
 using OpenEdge.Core.Assert.
-using Progress.Lang.Object.
 using OpenEdge.Core.Util.BuilderRegistry.
+using Progress.Lang.Object.
 
 class OpenEdge.Core.Util.BuilderRegistry:
     /* Returns the number of mappings in this map.*/
@@ -25,7 +25,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
     define public property ValueType as Progress.Lang.Class no-undo get. private set.
     
     define static private temp-table Registry no-undo
-        field ParentRegistry as integer
+        field ParentRegistry as int64
         field TypeKey as character 
         field Type as Object
         index idx1 as primary unique ParentRegistry TypeKey.
@@ -44,7 +44,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         Assert:NotNull(poRegistry, 'Source registry').
         assign this-object:ValueType = poRegistry:ValueType.
         
-        PutAll(poRegistry).        
+        PutAll(poRegistry).
     end constructor.
     
     /** Constructor
@@ -82,6 +82,30 @@ class OpenEdge.Core.Util.BuilderRegistry:
     
     /** Registers type for a key 
     
+        @param Progress.Lang.Class The key of the type to register
+        @param Class The type of the writer used to process that type
+        @return logical True if the type was previously registered */
+    method public logical Put(input pTypeKey as Progress.Lang.Class,
+                              input pType as class Progress.Lang.Class):
+        Assert:NotNull(pTypeKey, 'Type key').
+        
+        return this-object:Put(pTypeKey:TypeName, pType).
+    end method.
+        
+    /** Registers type for a key 
+    
+        @param Progress.Lang.Enum The key of the type to register
+        @param Class The type of the writer used to process that type
+        @return logical True if the type was previously registered */
+    method public logical Put(input pTypeKey as Progress.Lang.Enum,
+                              input pType as class Progress.Lang.Class):
+        Assert:NotNull(pTypeKey, 'Type key').
+        
+        return this-object:Put(string(pTypeKey), pType).
+    end method.
+    
+    /** Registers type for a key 
+    
         @param character The key of the type to register
         @param Class The type of the writer used to process that type
         @return logical True if the type was previously registered */
@@ -90,13 +114,9 @@ class OpenEdge.Core.Util.BuilderRegistry:
         define variable lExists as logical no-undo.
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcTypeKey, 'Type key').
         Assert:IsType(poType, this-object:ValueType).
-                
-        assign lExists = can-find(lbRegistry where
-                                  lbRegistry.ParentRegistry eq int64(this-object) and
-                                  lbRegistry.TypeKey        eq pcTypeKey).
         
+        assign lExists = Has(pcTypeKey).
         if lExists then
             find lbRegistry where
                  lbRegistry.ParentRegistry eq int64(this-object) and
@@ -110,7 +130,7 @@ class OpenEdge.Core.Util.BuilderRegistry:
         end.
         assign lbRegistry.Type = poType.
         
-        return lExists.                                       
+        return lExists.
     end method.
     
     /** Deregisters a content type writer 
@@ -118,27 +138,41 @@ class OpenEdge.Core.Util.BuilderRegistry:
         @param character The name of the content type to register
         @return logical True if the content type was previously registered */
     method public logical Remove(input pcTypeKey as character):
-        define variable lExists as logical no-undo.
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcTypeKey, 'Type key').
+        if not Has(pcTypeKey) then
+            return false.
+            
+        find lbRegistry where
+             lbRegistry.ParentRegistry eq int64(this-object) and
+             lbRegistry.TypeKey        eq pcTypeKey
+             .
+        delete lbRegistry.
+        assign this-object:Size = this-object:Size - 1.
         
-        assign lExists = can-find(lbRegistry where
-                                  lbRegistry.ParentRegistry eq int64(this-object) and
-                                  lbRegistry.TypeKey        eq pcTypeKey).
-        
-        if lExists then
-        do:
-            find lbRegistry where
-                 lbRegistry.ParentRegistry eq int64(this-object) and
-                 lbRegistry.TypeKey        eq pcTypeKey
-                 .
-            delete lbRegistry.
-            assign this-object:Size = this-object:Size - 1.
-        end.
-        return lExists.                                       
+        return true.
     end method.    
-
+    
+    /** Indicates whether a key is registered or not. 
+        
+        @param Progress.Lang.Class The name of the key
+        @return logical True if the content type is registered */
+    method public logical Has(input pTypeKey as Progress.Lang.Class):
+        Assert:NotNull(pTypeKey, 'Type key').
+        
+        return Has(pTypeKey:TypeName).
+    end method.
+    
+    /** Indicates whether a key is registered or not. 
+        
+        @param Progress.Lang.Enum The name of the key
+        @return logical True if the content type is registered */
+    method public logical Has(input pTypeKey as Progress.Lang.Enum):
+        Assert:NotNull(pTypeKey, 'Type key').
+        
+        return Has(string(pTypeKey)).
+    end method.
+    
     /** Indicates whether a content type is registered or not. 
         
         @param character The name of the content type to register
@@ -147,10 +181,32 @@ class OpenEdge.Core.Util.BuilderRegistry:
         define buffer lbRegistry for Registry.
         
         Assert:NotNull(pcTypeKey, 'Type key').
-
+        
         return can-find(lbRegistry where
                         lbRegistry.ParentRegistry eq int64(this-object) and
                         lbRegistry.TypeKey        eq pcTypeKey).
+    end method.
+    
+    /** Returns a registered type, if it exists. returns null otherwise.
+        
+        @param  Progress.Lang.Class  The name of the key
+        @return Progress.Lang.Class A valid value if it exists. Null otherwise .*/
+    method public class Progress.Lang.Class Get(input pTypeKey as Progress.Lang.Class):
+        if not valid-object(pTypeKey) then
+            return ?.
+        
+        return Get(pTypeKey:TypeName). 
+    end method.
+    
+    /** Returns a registered type, if it exists. returns null otherwise.
+        
+        @param  Progress.Lang.Enum The name of the key
+        @return Progress.Lang.Class A valid value if it exists. Null otherwise .*/
+    method public class Progress.Lang.Class Get(input pTypeKey as Progress.Lang.Enum):
+        if not valid-object(pTypeKey) then
+            return ?.
+        
+        return Get(string(pTypeKey)). 
     end method.
     
     /** Returns a registered type, if it exists. returns null otherwise.
@@ -160,29 +216,24 @@ class OpenEdge.Core.Util.BuilderRegistry:
     method public class Progress.Lang.Class Get(input pcTypeKey as character):
         define buffer lbRegistry for Registry.
         
-        Assert:NotNull(pcTypeKey, 'Type key').
+        if not Has(pcTypeKey) then
+            return ?.
         
-        if can-find(lbRegistry where
-                    lbRegistry.ParentRegistry eq int64(this-object) and
-                    lbRegistry.TypeKey        eq pcTypeKey) then
-        do:                    
-            find lbRegistry where
-                 lbRegistry.ParentRegistry eq int64(this-object) and
-                 lbRegistry.TypeKey eq pcTypeKey
-                 .
-                return cast(lbRegistry.Type, Progress.Lang.Class).
-        end.
-        
-        return ?.
+        find lbRegistry where
+             lbRegistry.ParentRegistry eq int64(this-object) and
+             lbRegistry.TypeKey eq pcTypeKey
+             .
+        return cast(lbRegistry.Type, Progress.Lang.Class).
     end method.
     
     /** Clears all the entries from this registry */
     method public void Clear():
         define buffer lbRegistry for Registry.
-        for each lbRegistry where
-                 lbRegistry.ParentRegistry eq int64(this-object):
+        
+        for each lbRegistry where lbRegistry.ParentRegistry eq int64(this-object):
             delete lbRegistry.
         end.
+        
         assign this-object:Size = 0.
     end method.
     
@@ -197,6 +248,9 @@ class OpenEdge.Core.Util.BuilderRegistry:
         open query qryRegistry 
             preselect each lbRegistry where
                            lbRegistry.ParentRegistry eq int64(this-object).
+        
+        if query qryRegistry:num-results eq 0 then
+            return cKeys.
         
         extent(cKeys) = query qryRegistry:num-results.
         

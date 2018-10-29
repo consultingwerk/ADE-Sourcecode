@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappedOperation
@@ -14,10 +14,13 @@ block-level on error undo, throw.
 
 using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Collections.IIterator.
 using OpenEdge.Core.Collections.IList.
 using OpenEdge.Core.Collections.IStringKeyedMap.
+using OpenEdge.Core.Collections.List.
 using OpenEdge.Core.Collections.StringKeyedMap.
-using OpenEdge.Core.SemanticVersion.
+using OpenEdge.Net.HTTP.CookieCollection.
+using OpenEdge.Net.HTTP.HttpHeaderCollection.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Web.DataObject.DataObjectHandler.
 using OpenEdge.Web.DataObject.FileOperationHandler.
@@ -25,23 +28,10 @@ using OpenEdge.Web.DataObject.OperationOptions.
 using OpenEdge.Web.DataObject.OperationParameter.
 using OpenEdge.Web.DataObject.TargetTypeEnum.
 using OpenEdge.Web.DataObject.VoidOperationHandler.
-using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry.
 using Progress.Lang.AppError.
 
 class OpenEdge.Web.DataObject.MappedOperation:
-    // Use a variable since we need the value to be CASE-SENSITIVE
-    define private variable mServiceName as character case-sensitive no-undo.
-    
-    /* (key value) The Service name this operation. */
-    define public property ServiceName as character no-undo
-        get():
-            return mServiceName.
-        end get.
-    
-    /* (key value) The Version of this operation. */
-    define public property ServiceVersion as SemanticVersion no-undo get. private set.
-    
     // Use a variable since we need the value to be CASE-SENSITIVE
     define private variable mServiceUri as character case-sensitive no-undo.
     
@@ -56,6 +46,11 @@ class OpenEdge.Web.DataObject.MappedOperation:
     
     /* (data value) The MIME type of the response */
     define public property ContentType as character no-undo get. private set.
+    
+    /* (optional) A collection of HTTP headers to set for this operation. */
+    define public property Headers as HttpHeaderCollection no-undo
+        get.
+        private set.
     
     /* (data value) The HTTP status code to use for the response */
     define public property StatusCode as integer no-undo get. private set.
@@ -87,9 +82,45 @@ class OpenEdge.Web.DataObject.MappedOperation:
     /* (optional) An easy/human-readable name for this operation */
     define public property Name as character no-undo get. set.
     
+    /* (optional) A collection of HTTP cookies to set for this operation. */
+    define public property Cookies as CookieCollection no-undo
+        get.
+        private set.
+    
     /* Constructor
        
-       @param character The service name
+       @param character The service URI
+       @param MethodEnum  The HTTP method
+       @param character The content-type to return
+       @param character The ABL target of the operation
+       @param character The name of the target (class/procedure/etc)
+       @param character The entity type (what type of object should this be)
+       @param character The name of the function (method/internal-proc/etc)
+       @param OperationOptions Any options pertaining to this operatiion
+       @param integer The HTTP status code to return in case of success */
+    constructor public MappedOperation(input pcServiceURI as character,
+                                       input poMethod as MethodEnum,
+                                       input pcContentType as character,
+                                       input pTargetType as character,
+                                       input pcTargetName as character,
+                                       input pEntityType as character,
+                                       input pcTargetFunction as character,
+                                       input poOptions as OperationOptions,
+                                       input piStatusCode as integer):
+        this-object(pcServiceURI,
+                    poMethod,
+                    pcContentType,
+                    pTargetType,
+                    pcTargetName,
+                    pEntityType,
+                    pcTargetFunction,
+                    poOptions,
+                    piStatusCode,
+                    new List() ).
+    end constructor.
+    
+    /* Constructor
+       
        @param character The service URI
        @param MethodEnum  The HTTP method
        @param character The content-type to return
@@ -100,9 +131,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
        @param OperationOptions Any options pertaining to this operatiion
        @param integer The HTTP status code to return in case of success
        @param IList The parameter definitions for this operation */
-    constructor public MappedOperation(input pcServiceName as character,
-                                       input pVersion as SemanticVersion,
-                                       input pcServiceURI as character,
+    constructor public MappedOperation(input pcServiceURI as character,
                                        input poMethod as MethodEnum,
                                        input pcContentType as character,
                                        input pTargetType as character,
@@ -112,18 +141,16 @@ class OpenEdge.Web.DataObject.MappedOperation:
                                        input poOptions as OperationOptions,
                                        input piStatusCode as integer,
                                        input poParams as IList):
-        Assert:NotNullOrEmpty(pcServiceName, 'Service name').
-        Assert:NotNull(pVersion, 'Service version').
-        Assert:NotNullOrEmpty(pcServiceURI, 'Service URI').
+        Assert:NotNull(pcServiceURI, 'Service URI').
         Assert:NotNull(poMethod, 'Operation method').
         Assert:NotNull(pcContentType, 'Content type').
         Assert:NotNullOrEmpty(pTargetType, 'Target type').
         Assert:NotNull(pcTargetName, 'Target name').
+        Assert:NotNull(poParams, 'Operation parameters').
         
         if not OperationHandlerRegistry:Registry:Has(pTargetType) then
-            undo, throw new AppError(substitute('Unsupported target type "&1" for service "&2" operation "&4 &3"',
+            undo, throw new AppError(substitute('Unsupported target type "&1" for operation "&3 &2"',
                                         pTargetType,
-                                        pcServiceName,
                                         pcServiceURI,
                                         string(poMethod) ), 
                                     0).
@@ -139,9 +166,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
         Assert:NotNull(poParams, 'Operation parameters').
         Assert:IsPositive(piStatusCode, 'Status code').
         
-        assign this-object:mServiceName   = pcServiceName
-               this-object:ServiceVersion = pVersion
-               this-object:mServiceURI    = pcServiceURI
+        assign this-object:mServiceURI    = '/':u + trim(pcServiceURI, '/':u)
                this-object:Method         = poMethod
                this-object:ContentType    = pcContentType
                this-object:TargetType     = pTargetType 
@@ -150,6 +175,8 @@ class OpenEdge.Web.DataObject.MappedOperation:
                this-object:StatusCode     = piStatusCode
                this-object:Parameters     = poParams
                this-object:Schemas        = new StringKeyedMap()
+               this-object:Headers        = new HttpHeaderCollection()
+               this-object:Cookies        = new CookieCollection()
                .
         if valid-object(poOptions) then
             assign this-object:Options = poOptions.
@@ -159,33 +186,64 @@ class OpenEdge.Web.DataObject.MappedOperation:
         // Set the target type. Default to PLO or IHandleHolder
         if OpenEdge.Core.String:IsNullOrEmpty(pEntityType) then
         case pTargetType:
-            when string(TargetTypeEnum:Procedure)   then assign this-object:EntityType = get-class(IHandleHolder).
-            when string(TargetTypeEnum:File)        then assign this-object:EntityType = get-class(FileOperationHandler).
-            when string(TargetTypeEnum:Self)        then assign this-object:EntityType = get-class(DataObjectHandler).
-            when string(TargetTypeEnum:Void)        then assign this-object:EntityType = get-class(VoidOperationHandler).
-            // incl. TargetTypeEnum:Class
-            otherwise                                    assign this-object:EntityType = get-class(Progress.Lang.Object).
+            when string(TargetTypeEnum:Procedure) then assign this-object:EntityType = get-class(IHandleHolder).
+            when string(TargetTypeEnum:File)      then assign this-object:EntityType = get-class(FileOperationHandler).
+            when string(TargetTypeEnum:Self)      then assign this-object:EntityType = get-class(DataObjectHandler).
+            when string(TargetTypeEnum:Void)      then assign this-object:EntityType = get-class(VoidOperationHandler).
+            when string(TargetTypeEnum:Class)     then assign this-object:EntityType = Progress.Lang.Class:GetClass(pcTargetName).
+            otherwise                                  assign this-object:EntityType = get-class(Progress.Lang.Object).
         end case.
         else
             assign this-object:EntityType = Progress.Lang.Class:GetClass(pEntityType).
     end method.
     
     method override public character ToString():
-        return substitute('&1_&2: &3 svc:&4 v&5 uri:&6: type:&7 ; name:&9, type-of:&9':u,
+        define variable params as character no-undo.
+        define variable delim as character no-undo.
+        define variable iter as IIterator no-undo.
+        
+        assign iter  = this-object:Parameters:Iterator()
+               delim = '':u
+               .
+        do while iter:HasNext():
+            assign params = params
+                          + delim 
+                          + '[':u + iter:Next():ToString() + ']':u
+                   delim  = ',':u.
+        end.
+        
+        return substitute('&1_&2: &3 &4: ;target: &5 name:&6, type-of:&7':u,
                     this-object:GetClass():TypeName,
                     int64(this-object),
-                    string(this-object:Method), 
-                    this-object:mServiceName,
-                    string(this-object:ServiceVersion),
+                    string(this-object:Method),
                     this-object:ServiceURI,
                     this-object:TargetType,
                     this-object:TargetName,
                     this-object:EntityType:TypeName )
-            + substitute(', fn:&7, numargs:&2, num-schemas:&1, name:&3':u,
+               + substitute(', fn:&4, args(&2): &6, num-schemas:&1, num-hdr:&5, name:&3, num-cookies:&7':u,
                     this-object:Schemas:Size,
                     this-object:Parameters:Size,
-                    this-object:Name, 
-                    this-object:TargetFunction  ).
+                    this-object:Name,
+                    this-object:TargetFunction,
+                    this-object:Headers:Size,
+                    params,
+                    this-object:Cookies:Size ).
     end method.
+    
+    /* Returns a schema handle for a named schema for this operation (only).
+       
+       @param character The schema name
+       @return handle A schema handle. UNKNOWN if the schema cannot be found */
+    method public handle GetSchema(input pSchemaName as character):
+        define variable hSchema as handle no-undo.
+        
+        Assert:NotNull(pSchemaName, 'Schema name').
+        
+        // is there an operation schema already?
+        if this-object:Schemas:ContainsKey(pSchemaName) then
+            assign hSchema = cast(this-object:Schemas:Get(pSchemaName), IHandleHolder):Value.
+        
+        return hSchema.
+    end method.     // GetSchema()
     
 end class.

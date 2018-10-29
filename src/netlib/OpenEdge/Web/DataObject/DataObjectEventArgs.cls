@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectEventArgs
@@ -13,14 +13,21 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
 block-level on error undo, throw.
 
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.HandleRequestEventArgs.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
 
 class OpenEdge.Web.DataObject.DataObjectEventArgs inherits HandleRequestEventArgs:
+    /* (mandatory) The service for which to instantiate the entity */
+    define public property Service as DataObjectService no-undo
+        get.
+        protected set.
     
     /* (mandatory) The operation for which to instantiate the entity */
-    define public property Operation as MappedOperation no-undo get. protected set.
+    define public property Operation as MappedOperation no-undo
+        get.
+        protected set.
     
     /* (mandatory but mutable) The response to the request */
     define public property Response as IHttpResponse no-undo get. set.

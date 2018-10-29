@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : SchemaOption
@@ -19,8 +19,8 @@ using OpenEdge.Core.Collections.IStringKeyedMap.
 using OpenEdge.Core.Collections.StringKeyedMap.
 using OpenEdge.Web.DataObject.SchemaOption.
 
-class OpenEdge.Web.DataObject.SchemaOption:
-    /** (mandatory) The name of this schema element */    
+class OpenEdge.Web.DataObject.SchemaOption serializable:
+    /** (mandatory) The name of this schema element */
     define public property SchemaName    as character no-undo get. private set.   //ABL name
     
     /** (optional) TRUE is this element is hidden when for the operation */    
@@ -132,6 +132,14 @@ class OpenEdge.Web.DataObject.SchemaOption:
         end.
         
         return schemaNames.
+    end method.
+
+    method override public character ToString():
+        return substitute('name: &1; serialize-name:&3; is-hidden:&3; num-children:&4',
+                  this-object:SchemaName,
+                  this-object:SerializeName,
+                  this-object:Hidden,
+                  this-object:mChildSchema:Size).
     end method.
     
 end class.

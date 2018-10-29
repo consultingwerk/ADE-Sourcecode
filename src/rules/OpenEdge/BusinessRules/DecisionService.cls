@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : DecisionService
@@ -19,12 +19,14 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
 routine-level on error undo, throw.
 
 using OpenEdge.BusinessRules.DecisionServiceSelectorEnum.
-using OpenEdge.BusinessRules.SeverityEnum.
-using OpenEdge.BusinessRules.RulesServerConnection.
 using OpenEdge.BusinessRules.PayloadBuilder.
-using OpenEdge.Core.XML.SaxReader.
+using OpenEdge.BusinessRules.RulesServerConnection.
+using OpenEdge.BusinessRules.RulesServerConnectionParameters.
+using OpenEdge.BusinessRules.SeverityEnum.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.ServerConnection.WebServiceConnectionParameters.
 using OpenEdge.Core.TimeStamp.
+using OpenEdge.Core.XML.SaxReader.
 using Progress.Lang.AppError.
 
 class OpenEdge.BusinessRules.DecisionService use-widget-pool:
@@ -363,6 +365,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
     method protected void InvokeService(input dataset-handle phAppData,
                                         input dataset-handle phResponseData ):
         define variable lcResponseData as longchar no-undo.
+        define variable requestData as longchar no-undo.
         define variable cSelectorValue as character no-undo.
         
         Assert:NotNull(phAppData, 'Application Data container').
@@ -382,17 +385,37 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         case moDecisionServiceSelector:
             when DecisionServiceSelectorEnum:Default then cSelectorValue = ?.
             when DecisionServiceSelectorEnum:Version then cSelectorValue = string(this-object:Version).
-            when DecisionServiceSelectorEnum:Date    then cSelectorValue = TimeStamp:ToISODateFromABL(this-object:EffectiveOn).
+            when DecisionServiceSelectorEnum:Date    then cSelectorValue = iso-date(this-object:EffectiveOn).
         end case.
         
         /* Do the work */
-        lcResponseData = this-object:ServerConnection:InvokeDecisionService(
-                            moPayloadBuilder:BuildPayload(
-                                this-object:Name,
-                                moDecisionServiceSelector,
-                                cSelectorValue,
-                                phAppData)).
+        assign requestData = moPayloadBuilder:BuildPayload(
+                                    this-object:Name,
+                                    moDecisionServiceSelector,
+                                    cSelectorValue,
+                                    phAppData).
         
+        // ADAS7228: "Somewhat" hacky fix for the Corticon 5.7+ WSDL
+        // The invoke message input part changed names 
+        // FROM 
+        //   <wsdl:message name="executeRequest">
+        //      <wsdl:part element="tns1:execute" name="part" />
+        //   </wsdl:message>
+        // TO
+        //  <wsdl:message name="invoke">
+        //      <wsdl:part element="ns1:CorticonRequest" name="CorticonRequest">
+        //      </wsdl:part>
+        //  </wsdl:message>
+        // The SOAP-OUT functionality requires that the top-level element of the input XML doc and the
+        // message part name match.
+        // The message created by the PayloadBuilder has a top-level element of <CorticonRequest>; for earlier 
+        // versions of the WSDL it needs to add a top-level <execute> element
+        if cast(cast(this-object:ServerConnection:ConnectionParameters, RulesServerConnectionParameters)
+                :DecisionServiceConnectionParameters, WebServiceConnectionParameters):PortName eq 'CcServerMessagingAxis':u 
+        then
+            assign requestData = '<execute>':u + requestData + '</execute>':u.
+        
+        lcResponseData = this-object:ServerConnection:InvokeDecisionService(requestData).
         /* Convert XML response into application data and (linked) Rule Messages */
         LoadResponseDocument(lcResponseData, dataset-handle phResponseData by-reference).
     end method.
@@ -401,7 +424,7 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         data to the input data.
         
         @param handle The input dataset */
-    method private void CacheAppDataSchema(input phAppData as handle):
+    method protected void CacheAppDataSchema(input phAppData as handle):
         define variable iLoop as integer no-undo.
         define variable hBuffer as handle no-undo.
         define variable iMax as integer no-undo.
@@ -438,8 +461,8 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         @param longchar An XML document containing the service response
         @param dataset-handle The dataset into which to load the data from the
                               response document. */
-    method private void LoadResponseDocument(input pcResponseDocument as longchar,
-                                             input dataset-handle phResponseData):
+    method protected void LoadResponseDocument(input pcResponseDocument as longchar,
+                                               input dataset-handle phResponseData):
         /** DATA **/
         assign mhAppData = phResponseData:handle.
         
@@ -582,13 +605,19 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                 
                 if not lIsBufferNode and valid-handle(phAttributes) then
                 do:
+                    // the SOAP changes in Corticon 5.7 removed the xsi namespace from the response
+                    assign iIdx = phAttributes:get-index-by-qname('nil':u).
+                    if iIdx eq ? then
+                        assign iIdx = phAttributes:get-index-by-qname('xsi:nil':u).
+                    
                     /* is this a unknown/nil value? */
-                    if phAttributes:get-index-by-qname('xsi:nil') gt 0 and
-                       logical(phAttributes:get-value-by-qname('xsi:nil')) and
-                       valid-handle(mhBufferField) then
+                    if     not iIdx eq ? 
+                       and logical(phAttributes:get-value-by-index(iIdx))
+                       and valid-handle(mhBufferField) 
+                    then
                         assign mhBufferField:buffer-value = ?
-                               mcCurrentFieldValue = ?
-                               mhBufferField = ?.
+                               mcCurrentFieldValue        = ?
+                               mhBufferField              = ?.
                 end.    /* has attributes */
             end.    /* not boilerplate node */
         end case.

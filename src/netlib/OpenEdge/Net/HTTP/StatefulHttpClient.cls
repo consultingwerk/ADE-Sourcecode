@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StatefulHttpClient
@@ -24,8 +24,13 @@ using OpenEdge.Net.HTTP.ISupportCookies.
 class OpenEdge.Net.HTTP.StatefulHttpClient inherits HttpClientDecorator
         implements ISupportCookies:
     
-	define public property CookieJar as ICookieJar no-undo get. set. 
-
+    /* The state maintained by this client */
+    define public property CookieJar as ICookieJar no-undo get. set. 
+    
+    /* Constructor
+       
+       @param IHttpClient The client to be decorated
+       @param ICookieJar The state maintained by this client */
     constructor public StatefulHttpClient(input poClient    as IHttpClient,
                                           input poCookieJar as ICookieJar):
         this-object(poClient).
@@ -34,6 +39,9 @@ class OpenEdge.Net.HTTP.StatefulHttpClient inherits HttpClientDecorator
         assign this-object:CookieJar = poCookieJar.
     end constructor.
     
+    /* Constructor
+       
+       @param IHttpClient The client to be decorated */
     constructor public StatefulHttpClient(input poClient    as IHttpClient):
         super(poClient).
     end constructor.
@@ -47,10 +55,8 @@ class OpenEdge.Net.HTTP.StatefulHttpClient inherits HttpClientDecorator
         define variable cPath as character no-undo.
         
         assign iNumCookies = this-object:CookieJar:GetCookies(poRequest:URI, output oCookies).
-
-        do iLoop = 1 to iNumCookies:
-            poRequest:SetCookie(oCookies[iLoop]).
-        end.
+        
+        poRequest:SetCookies(oCookies).
         
         super:Execute(poRequest, poResponse).
         

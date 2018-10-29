@@ -35,41 +35,51 @@ class OpenEdge.Core.Collections.Set inherits AbstractTTCollection implements ISe
        @param ISet Initial set */
     constructor public Set (copyset as ISet):
         super (cast(copyset,ICollection),temp-table ttSet:handle,"objectref").        
-    end constructor.    
+    end constructor.
     
      method public override logical Contains( checkObject as Object):
+        define buffer lbSet for ttSet. 
+         
         if not valid-object(checkObject) then
             return false.
         
-        FindBufferUseObject(checkObject).
-        return (available ttSet).
+        FindBufferUseObject(checkObject, buffer lbSet).
+        return (available lbSet).
     end method.
-       
+    
     method protected override void FindBufferUseObject (obj as Object):
+        FindBufferUseObject(obj, buffer ttSet).
+    end method.
+    
+    method protected void FindBufferUseObject(obj as Object,
+                                              buffer pbSet for ttSet):
         define variable itemRowid as rowid no-undo.
         
+        release pbSet.      // As Elsa said, Let it go!
         assign itemRowid = ?. 
         
-        if can-find(ttSet where ttSet.objectref eq obj) then
-            find ttSet where ttSet.objectref eq obj.
-        if available ttSet then 
+        if can-find(pbSet where pbSet.objectref eq obj) then
+            find pbSet where pbSet.objectref eq obj.
+        if available pbSet then 
             return.
         
-        for each ttSet 
+        for each pbSet
                  while itemRowid eq ?:
-            if ttSet.objectref:Equals(obj) then
-                assign itemRowid = rowid(ttSet).
+            if pbSet.objectref:Equals(obj) then
+                assign itemRowid = rowid(pbSet).
         end.
         
         if not itemRowid eq ? then
-            find ttSet where rowid(ttSet) eq itemRowid.
+            find pbSet where rowid(pbSet) eq itemRowid.
     end.
    
     method public override logical Add(obj as Object):
+        define buffer lbSet for ttSet.
+        
         Assert:NotNull(obj, 'Object to add').
         
-        FindBufferUseObject(obj).
-        if not avail ttSet then
+        FindBufferUseObject(obj, buffer lbSet).
+        if not avail lbSet then
             return super:Add(obj).
         else
             return false.

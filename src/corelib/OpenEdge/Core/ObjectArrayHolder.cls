@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ObjectArrayHolder
@@ -12,18 +12,25 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-class OpenEdge.Core.ObjectArrayHolder : 
-	define public property Value as Progress.Lang.Object extent no-undo get. set. 
-		
-	constructor public ObjectArrayHolder (  ):
-		super ().
-	end constructor.
+using OpenEdge.Core.IObjectArrayHolder.
+
+class OpenEdge.Core.ObjectArrayHolder implements IObjectArrayHolder:
+    /* An array of obejcts to hold. */
+    define public property Value as Progress.Lang.Object extent no-undo get. set. 
     
+    /* Default constructor */
+    constructor public ObjectArrayHolder():
+        super ().
+    end constructor.
+    
+    /* Constructor 
+    
+       @param Object[] An array of objects to 'hold' */
     constructor public ObjectArrayHolder(input pValue as Progress.Lang.Object extent):
         this-object().
         assign this-object:Value = pValue.
     end constructor.
-
+    
     method override public character ToString():
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
@@ -31,16 +38,16 @@ class OpenEdge.Core.ObjectArrayHolder :
         define variable cDelim as character no-undo.
         
         assign iMax = extent(this-object:Value)
-               cDelim = '':u. 
+               cDelim = '':u.
         do iLoop = 1 to iMax:
             assign cValue = substitute('&1&2&3':u,
                                 cValue,
                                 cDelim,
-                                this-object:Value[iLoop]:ToString())
+                                (if valid-object(this-object:Value[iLoop]) then this-object:Value[iLoop]:ToString() else ?) )
                    cDelim = ',':u.
         end.
         
         return cValue.
     end method.
-
+    
 end class.

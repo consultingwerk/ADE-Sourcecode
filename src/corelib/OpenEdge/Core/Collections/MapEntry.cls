@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : MapEntry
@@ -46,7 +46,7 @@ class OpenEdge.Core.Collections.MapEntry serializable
     
     method public override logical Equals(o as Object):
          define variable oMapEntry as IMapEntry no-undo.
-         if o:Equals(this-object) then
+         if super:Equals(o) then
              return true.
          if type-of(o,IMapEntry) then
          do: 

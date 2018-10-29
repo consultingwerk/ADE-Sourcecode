@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationParameter
@@ -35,26 +35,19 @@ using Ccs.Common.Support.IPrimitiveArrayHolder.
 using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.IOModeEnum.
-using OpenEdge.Core.ObjectArrayHolder.
 using OpenEdge.Core.StringConstant.
-using OpenEdge.Web.DataObject.ElementTypeEnum.
+using OpenEdge.Web.DataObject.MessageElement.
 using Progress.Lang.AppError.
 
 class OpenEdge.Web.DataObject.OperationParameter:
     /* (mandatory) The IO mode of this parameter */
     define public property IOMode as IOModeEnum no-undo get. private set.
     
-    /* (mandatory) The http/message element type */
-    define public property InputElementType as ElementTypeEnum extent no-undo get. set.
+    /* (mandatory) The INPUT http/message element type */
+    define public property InputElement as MessageElement extent no-undo get. set.
     
-    /* (optional, depends on type) The name of the element */
-    define public property InputElementName as character extent no-undo get. set.
-
-    /* (mandatory) The http/message element type */
-    define public property OutputElementType as ElementTypeEnum extent no-undo get. set.
-    
-    /* (optional, depends on type) The name of the element */
-    define public property OutputElementName as character extent no-undo get. set.
+    /* (mandatory) The OUTPUT http/message element type */
+    define public property OutputElement as MessageElement extent no-undo get. set.
     
     /* (optional) Name of the ABL paramater - usually for info */
     define public property ABLName as character no-undo get. set.
@@ -64,30 +57,35 @@ class OpenEdge.Web.DataObject.OperationParameter:
     
     /* (mandatory) Indication of whether this is a complex/data type */
     define public property HasSchema as logical no-undo get. private set.
+    
+    /* (mandatory) TRUE if the argument an array (trailing EXTENT) */
     define public property IsArray as logical no-undo get. private set.
+    
+    /* (mandatory) TRUE if the argument a primtive value (non-CLASS) */
     define public property IsPrimitive as logical no-undo get. private set.
+    
+    /* (mandatory) The ABL type (CLASS, CHARACTER etc) */
     define public property DataType as character no-undo get. private set.
     
-    /* The default argument type into which the value is stored; based on the ABL type. May end up being overridden
+    /* (mandatory) The default argument type into which the value is stored; based on the ABL type. May end up being overridden
        in the argument value (eg a dataset-handle may be stored in JSON form */
     define public property ArgumentType  as class Progress.Lang.Class no-undo get. private set.
     
     /* Constructor
        
        @param IOModeEnum (mandatory) The IO mode of this parameter
-       @param ElementTypeEnum  (mandatory) The http/message element type
-       @param character  (optional, depends on type) The name of the http message element
        @param character (mandatory) The ABL data type
-       @param character (optional) The ABL name of the parameter, mainly for info */
+       @param character (mandatory) The ABL name of the parameter 
+       @param integer (mandatory) The index of this parameter in the operation */
     constructor public OperationParameter(input poIOMode as IOModeEnum,
                                           input pcABLType as character,
-                                          input pcABLName as character):
+                                          input pcABLName as character ):
         Assert:NotNull(poIOMode, 'IO Mode').
         Assert:NotNull(pcABLName, 'ABL name').
         Assert:NotNullOrEmpty(pcABLType, 'ABL type').
         
-        assign this-object:IOMode    = poIOMode
-               this-object:ABLName   = pcABLName
+        assign this-object:IOMode         = poIOMode
+               this-object:ABLName        = pcABLName
                .
         SetArgumentType(pcABLType).
     end constructor.
@@ -107,7 +105,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
                .
         Assert:HasDeterminateExtent(ablTypeToken, 'ABL type tokens').
         
-        assign this-object:IsPrimitive = not (ablTypeToken[1] eq 'class':u) 
+        assign this-object:IsPrimitive = not (ablTypeToken[1] eq 'class':u)
                this-object:DataType    = ablTypeToken[1]
                this-object:IsArray     = (ablTypeToken[extent(ablTypeToken)] eq 'extent':u) 
                .
@@ -142,7 +140,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
                 assign this-object:ArgumentType = get-class(IHandleArrayHolder)
                        this-object:HasSchema    = true.
             when 'class':u then
-                assign this-object:ArgumentType = get-class(ObjectArrayHolder).
+                assign this-object:ArgumentType = Progress.Lang.Class:GetClass(ablTypeToken[2]).
             otherwise
                 undo, throw new AppError(substitute('Invalid ABL type &1 for operation &2', pABLType), 0).
         end case.
@@ -181,7 +179,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
                        this-object:DataType     = substitute('&1-handle':u, ablTypeToken[1])
                        this-object:HasSchema    = true
                        .
-                // INPUT and IN-OUT parameters must be BY-REF. RETURN is left alone                
+                // INPUT and IN-OUT parameters must be BY-REF. RETURN is left alone
                 // in OUTPUT mode we don't know what the ABL code is doing - or rather can't control 
                 // it particularly well - so we force a deep copy out :(
                 case true:
@@ -205,7 +203,7 @@ class OpenEdge.Web.DataObject.OperationParameter:
                 undo, throw new AppError(substitute('Invalid ABL type &1', pABLType), 0).
         end case.
         
-        // Validate         
+        // Validate
         Assert:NotNull(this-object:ArgumentType, 'Argument type').
         if this-object:IsPrimitive then
             if this-object:IsArray then
@@ -214,4 +212,19 @@ class OpenEdge.Web.DataObject.OperationParameter:
                 Assert:IsType(this-object:ArgumentType, get-class(IPrimitiveHolder)).
     end method.
     
-end class.
+    method override public character ToString():
+        return substitute('abl-name:&1 data-type:&2 io-mode:&7 has-schema:&3 arg-type:&4 is-array:&5 is-primitive:&6 num-elem-in:&8 num-elem-out:&9':u,
+                            this-object:ABLName,
+                            this-object:DataType,
+                            this-object:HasSchema,
+                            this-object:ArgumentType:TypeName,
+                            this-object:IsArray,
+                            this-object:IsPrimitive,
+                            this-object:IOMode:ToString(),
+                            extent(InputElement),
+                            extent(OutputElement) ).
+    end method.
+    
+end class
+
+.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Session
@@ -97,15 +97,19 @@ class OpenEdge.Core.Session:
                        there's no running instance of that name. */
     method static public Object GetFirstClassInstance(input poType as Progress.Lang.Class):
         define variable oInstance as Object no-undo.
+        define variable firstInstance as Progress.Lang.Object no-undo.
         
         Assert:NotNull(poType, 'type').
         
-        oInstance = session:first-object.
-        do while valid-object(oInstance) and oInstance:GetClass():IsA(poType):
-            oInstance = oInstance:next-sibling. 
+        assign oInstance = session:first-object.
+        do while valid-object(oInstance) and not valid-object(firstInstance):  
+            if not oInstance:GetClass():IsA(poType) then
+                assign firstInstance = oInstance. 
+            
+            assign oInstance = oInstance:next-sibling. 
         end.
         
-        return oInstance.
+        return firstInstance.
     end method.
     
     /** Returns all the object instances found that are of the type given.

@@ -1,5 +1,5 @@
 /*************************************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2018 by Progress Software Corporation. All rights reserved.
 **************************************************************************/ 
 /*------------------------------------------------------------------------
    Purpose     : Provide dispatching for WebSpeed for the PAS Web transport
@@ -26,25 +26,45 @@ block-level on error undo, throw.
 using OpenEdge.Net.HTTP.IHttpRequest from propath.
 using OpenEdge.Net.HTTP.IHttpResponse from propath.
 using Progress.Lang.AppError from propath.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 
-class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler:
+class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler, ISupportLogging:
+    /* A reference to the Logger in use by an implementer. Should ALWAYS return a valie value, even if its the VoidLogger */
+    define public property Logger as OpenEdge.Logging.ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(OpenEdge.Web.CompatibilityHandler)).
+            
+            return this-object:Logger.
+        end get.
+        set.
+    
     define protected property AllowedMethods as char no-undo init "POST,GET":U get. set.
     
-    /* use private var for destructor */
+    /* Private variable for lazy-load */
     define private variable mProcHandle as handle no-undo.
-  
+    
     /* Keep track of web-handler.p  */
     define protected property ProcedureHandle as handle no-undo
         get ().
-            if not valid-handle(ProcedureHandle) then 
-                ProcedureHandle = StartProcedure().
-            return ProcedureHandle. 
+            if not valid-handle(mProcHandle) then 
+                assign mProcHandle = StartProcedure().
+            
+            return mProcHandle. 
         end. 
-        set.
+        set(input pProcHandle as handle):
+            // if there's an already-running procedure, delete it. By default we want this to act as a singleton
+            StopProcedure().
+            
+            assign mProcHandle = pProcHandle.
+        end set.
     
+    /* default constructor */
     constructor public CompatibilityHandler():
     end constructor.
-   
+    
     /**
      * Handle a web request. 
      */
@@ -53,11 +73,15 @@ class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler:
         
         cMethod = web-context:get-cgi-value ("ENV":U,"REQUEST_METHOD":U).
         if lookup(cMethod,AllowedMethods) = 0 then
-            /* throwing errors to the client is not supported */
-            /* undo, throw new AppError("Method " + cMethod + " is not supported by WebSpeed compatibility handler."). */
-            return error "Method " + cMethod + " is not supported by WebSpeed compatibility handler.". 
+        do:
+            this-object:Logger:Info(substitute('HTTP Method &1 is is not supported by WebSpeed compatibility handler (&2)',
+                                        cMethod, string(this-object) )).
+            
+            return integer(StatusCodeEnum:MethodNotAllowed).
+        end.
         
         run process-web-request in ProcedureHandle.
+        
         return 0.
     end method.
 
@@ -67,17 +91,28 @@ class OpenEdge.Web.CompatibilityHandler implements Progress.Web.IWebHandler:
       extention of webstart, from the main block) 
       @todo read procedure name from config */
     method protected handle StartProcedure():
-        run web/objects/web-handler.p persistent set mProcHandle.
-        return mProcHandle.
+        define variable procHdl as handle no-undo.
+        
+        run web/objects/web-handler.p persistent set procHdl.
+        
+        return procHdl.
     end method.
-
-	/* Clean up the persistent procedure */
-	destructor public CompatibilityHandler ( ):
+    
+    /* Stops any running web-handler procedure. */ 
+    method protected void StopProcedure():
         if valid-handle(mProcHandle) then
         do:
-	        apply "close":U to mProcHandle.
-            delete procedure mProcHandle no-error. 
+            apply "close":U to mProcHandle.
+            delete procedure mProcHandle no-error.
+            
+            assign mProcHandle = ?
+                   no-error. 
         end.
-	end destructor.
-
+    end method.
+    
+    /* Clean up the persistent procedure */
+    destructor public CompatibilityHandler ( ):
+        StopProcedure().
+    end destructor.
+    
 end class.

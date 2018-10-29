@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
@@ -31,14 +31,18 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ISupportProxy.
-using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 using OpenEdge.Net.HTTP.MethodEnum.
+using OpenEdge.Net.HTTP.RequestBuilder.
+using OpenEdge.Net.HTTP.ResponseBuilder.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.ServerConnection.ClientSocket.
 using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
+using OpenEdge.Net.URI.
+using OpenEdge.Net.UriSchemeEnum.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
+using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 
 class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary 
         implements IHttpClientLibrary, ISupportLogging:
@@ -65,11 +69,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     /** (mandatory) A free-text name for this library. Used for the USER-AGENT
         string. */
     define public property LibraryName as character no-undo get. private set.
-
+    
     /** (mandatory) A free-text semantic version string for this library. Used for the USER-AGENT
         string. */
     define public property LibraryVersion as character no-undo get. private set.
-
+    
     /** Miscellanous options (like timeouts) for this client. May be used to set underlying timeouts */
     define public property Options as ClientOptions no-undo get. private set.
     
@@ -190,7 +194,155 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         /* Process the number of bytes read chunk */        
         moResponseWriter:Write(poEventArgs).
     end method.
-  
+    
+    /* Creates an HTTPS tunnel (using CONNECT) for the proxy request
+       
+       @param IHttpRequest The request to proxy */
+    method protected void CreateTunnel(input pProxyReq as ISupportProxy):
+        define variable baseRequest as IHttpRequest no-undo.
+        define variable connectRequest as IHttpRequest no-undo.
+        define variable connectResponse as IHttpResponse no-undo.
+        
+        if type-of(pProxyReq, IAdaptable) then
+            assign baseRequest = cast(cast(pProxyReq, IAdaptable):GetAdapter(get-class(IHttpRequest)), IHttpRequest).
+        else
+        if type-of(pProxyReq, IHttpRequest) then
+            assign baseRequest = cast(pProxyReq, IHttpRequest).
+        
+        Assert:IsType(pProxyReq, get-class(IHttpRequest)).
+        
+        // only HTTPS servers are proxied.
+        if not baseRequest:URI:Scheme    eq string(UriSchemeEnum:https)
+        //If the connection to the proxy is HTTPS, then no need for a tunnel
+           or  pProxyReq:ProxyURI:Scheme eq string(UriSchemeEnum:https)
+        then
+            return.
+        
+        Logger:Debug(substitute('Creating HTTP tunnel via CONNECT to &1', baseRequest:URI:ToString())).
+        
+        assign connectRequest  = RequestBuilder:Build('CONNECT':u, baseRequest:URI)
+                                        :ViaProxy(pProxyReq:ProxyURI)
+                                        :AddHeader(baseRequest:GetHeader('User-Agent':u))
+                                        :Request
+               connectResponse = ResponseBuilder:Build():Response
+               .
+        if baseRequest:HasHeader('Proxy-Authorization':u) then
+            connectRequest:SetHeader(baseRequest:GetHeader('Proxy-Authorization':u)).
+        
+        MakeSyncRequest(moSocketLib, connectRequest, connectResponse).
+        
+        // Per https://tools.ietf.org/html/rfc2817 section 5.3, any 2xx status code is good
+        if (200 <= connectResponse:StatusCode and connectResponse:StatusCode < 300) then
+        do on error undo, throw:
+            // On success, we need to tell the socket connection to upgrade to TLS
+            moSocketLib:StartTls(baseRequest:URI:Host). 
+        
+            catch sockErr as Progress.Lang.Error:
+                Logger:Error(substitute('Unable to create HTTP tunnel to &1', baseRequest:URI:ToString()),
+                             sockErr).
+                undo, throw sockErr.
+            end catch.
+        end.
+        else
+            return error new AppError(
+                                substitute('Connection failure for proxy server &1 on port &2',
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port),
+                                miErrorNo_ConnectionFailure).
+    end method.
+    
+    /* Executes a synchronous request against the currently-connected server.
+       
+       This method SHOULD NOT perform Connect() and Disconnect() operations.
+       
+       @param ClientSocket The server/socket on which to make the request
+       @param HttpRequest The request to execute
+       @param HttpResponse The response from the server for that request    */    
+    method protected void MakeSyncRequest(input pServer as ClientSocket, 
+                                          input pRequest as IHttpRequest,
+                                          input pResponse as IHttpResponse ):
+        define variable oMessageBody as ByteBucket no-undo.
+        define variable dTimeout as decimal no-undo.
+        define variable startTime as datetime-tz no-undo.
+        
+        Assert:NotNull(pServer, 'Server connection').
+        Assert:NotNull(pRequest, 'HTTP request').
+        Assert:NotNull(pResponse, 'HTTP response').
+        
+        // return a useful error when the server is not connect. This method is NOT responsible for making connections
+        if not pServer:Connected then
+            return error new AppError(substitute('Connection failure for server &1 on port &2 ',
+                                            moSocketConnectionParam:URI:Host,
+                                            moSocketConnectionParam:URI:Port),
+                                      miErrorNo_ConnectionFailure).
+        
+        /* Construct the complete HTTP request. */
+        assign oMessageBody = ByteBucket:Instance().
+        ExtractBody(pRequest, oMessageBody).
+        
+        
+        if Logger:LogLevel ge LogLevelEnum:DEBUG then
+        do:
+            Logger:Debug(substitute('REQUEST: FILE= &1':u, session:temp-dir + 'request-raw.txt':u)).
+            copy-lob from oMessageBody:GetBytes():Value 
+                     to   file session:temp-dir + 'request-raw.txt':u.
+            
+            Logger:Debug(substitute('RESPONSE: FILE= &1':u, session:temp-dir + 'response-data-received.txt':u)).
+            assign miChunkNumber = 0.
+            output to value(session:temp-dir + 'response-data-received.txt':u).
+            output close.
+        end.
+        
+        /* GO! */
+        assign startTime = now.
+        do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
+                                    moSocketConnectionParam:URI:Host,
+                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
+           stop-after dTimeout: 
+            pServer:WriteData(oMessageBody:GetBytes()).
+        end.
+        
+        
+        /* we can reuse the bytebucket */
+        assign moResponseWriter = new ClientSocketResponseWriter(pResponse, oMessageBody).
+        moResponseWriter:Open().
+        
+        /* set the request  for context */
+        moResponseWriter:Write(pRequest).
+        
+        /* the socket object works on callbacks. these will
+           populate the HttpResponse object 
+           
+           Do NOT use the STOP-AFTER modifier; let the socket's wait-for deal
+           with its own timeouts */
+        assign startTime = now.
+        do on error undo, throw:
+            /* for cases where we re-use the socket object, we need to handle subscriptions, and not
+               as previously in Initialize()/Destroy() */
+            pServer:DataReceived:Subscribe(DataReceivedHandler).
+            pServer:ReadTimeout:Subscribe(ReadTimeoutHandler).
+            pServer:ReadTerminated:Subscribe(ReadTerminatedHandler).
+            
+            pServer:WaitForResponse(dTimeout).
+            
+            finally:
+                pServer:DataReceived:Unsubscribe(DataReceivedHandler).
+                pServer:ReadTimeout:Unsubscribe(ReadTimeoutHandler).
+                pServer:ReadTerminated:Unsubscribe(ReadTerminatedHandler).
+            end finally.
+        end.
+        
+        moResponseWriter:Close().
+        
+        // HEAD requests have no bodies, so don't bother
+        if pRequest:Method ne MethodEnum:HEAD:ToString() then 
+            ExtractEntity(pResponse, oMessageBody).
+        
+        finally:
+            assign moResponseWriter = ?.
+        end finally.
+    end method.
+    
     /** Executes an HTTP request, and returns a response
         
         Timeouts:
@@ -201,13 +353,14 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         @param HttpResponse The response from the server for that request. */    
     method public void Execute(input poRequest as IHttpRequest,
                                input poResponse as IHttpResponse):        
-        define variable oMessageBody as ByteBucket no-undo.
         define variable dTimeout as decimal no-undo.
         define variable cUserAgent as character no-undo.
         define variable oProxyRequest as ISupportProxy no-undo.
+        define variable startTime as datetime-tz no-undo.
+        define variable proxyURI as URI no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
-        Assert:NotNull(poResponse, 'Http response'). 
+        Assert:NotNull(poResponse, 'Http response').
         
         assign dTimeout = this-object:Options:RequestTimeout.
         Logger:Info(substitute('REQUEST: TIMEOUT(s)=&1':u, dTimeout)).
@@ -222,38 +375,24 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                 cUserAgent,
                                 this-object:LibraryName,
                                 this-object:LibraryVersion).
-        poRequest:SetHeader(
-            HttpHeaderBuilder:Build('User-Agent':u):Value(cUserAgent):Header).
+        poRequest:SetHeader(HttpHeaderBuilder:Build('User-Agent':u):Value(cUserAgent):Header).
         
         /* Ready! */
-        /* Construct the complete HTTP request. */
-        assign oMessageBody = ByteBucket:Instance().
-        ExtractBody(poRequest, oMessageBody).
-        
-        if Logger:LogLevel ge LogLevelEnum:DEBUG then
-        do:
-            Logger:Debug(substitute('REQUEST: FILE= &1':u, session:temp-dir + 'request-raw.txt':u)).
-            copy-lob from oMessageBody:GetBytes():Value 
-                     to   file session:temp-dir + 'request-raw.txt':u.
-            
-            Logger:Debug(substitute('RESPONSE: FILE= &1':u, session:temp-dir + 'response-data-received.txt':u)).
-            assign miChunkNumber = 0.
-            output to value(session:temp-dir + 'response-data-received.txt':u).
-            output close.
-        end.
-        
-        /* Steady! */
         if type-of(poRequest, IAdaptable) then
             assign oProxyRequest = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ISupportProxy)), ISupportProxy).
         else
         if type-of(poRequest, ISupportProxy) then
             assign oProxyRequest = cast(poRequest, ISupportProxy).
         
-        if valid-object(oProxyRequest) and valid-object(oProxyRequest:ProxyURI) then
+        if     valid-object(oProxyRequest)
+           and valid-object(oProxyRequest:ProxyURI) 
+        then
             assign moSocketConnectionParam:URI = oProxyRequest:ProxyURI.
         else
             assign moSocketConnectionParam:URI = poRequest:URI.
         
+        /* Steady! */
+        assign startTime = now.
         do on stop undo, return error new AppError(substitute('Connection timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
                                     moSocketConnectionParam:URI:Port), miErrorNo_ConnectionTimeout)
@@ -269,50 +408,31 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                     moSocketConnectionParam:URI:Port),
                                 miErrorNo_ConnectionFailure).
         
-        /* GO! */
-        do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
-                                    moSocketConnectionParam:URI:Host,
-                                    moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
-           stop-after dTimeout: 
-            moSocketLib:WriteData(oMessageBody:GetBytes()).
+        // for HTTPS servers over a proxy, tunnel
+        if     valid-object(oProxyRequest)
+           and valid-object(oProxyRequest:ProxyURI)
+        then
+        do:
+            CreateTunnel(oProxyRequest).
+            
+            // Don't use the proxy URI to build the request for tunnels. The ProxyURI is used to 
+            // determine some stuff; from here on, we need to treat the request as 
+            if poRequest:URI:Scheme eq string(UriSchemeEnum:https) then
+                assign proxyURI               = oProxyRequest:ProxyURI
+                       oProxyRequest:ProxyURI = ?
+                       .
         end.
         
-        /* we can reuse the bytebucket */
-        assign moResponseWriter = new ClientSocketResponseWriter(poResponse, oMessageBody).
-        moResponseWriter:Open().
         
-        /* set the request  for context */
-        moResponseWriter:Write(poRequest).
+        MakeSyncRequest(moSocketLib, poRequest, poResponse).
         
-        /* the socket object works on callbacks. these will
-           populate the HttpResponse object 
-           
-           Do NOT use the STOP-AFTER modifier; let the socket's wait-for deal
-           with its own tiemouts */
-        do on error undo, throw :
-            /* for cases where we re-use the socket object, we need to handle subscriptions, and not
-               as previously in Initialize()/Destroy() */
-            moSocketLib:DataReceived:Subscribe(DataReceivedHandler).
-            moSocketLib:ReadTimeout:Subscribe(ReadTimeoutHandler).
-            moSocketLib:ReadTerminated:Subscribe(ReadTerminatedHandler).
-            
-            moSocketLib:WaitForResponse(dTimeout).
-            
-            finally:
-                moSocketLib:DataReceived:Unsubscribe(DataReceivedHandler).
-                moSocketLib:ReadTimeout:Unsubscribe(ReadTimeoutHandler).
-                moSocketLib:ReadTerminated:Unsubscribe(ReadTerminatedHandler).
-            end finally.
-        end.
+        // Reset the ProxyURI for tunnelled requests 
+        if valid-object(proxyURI) then
+            assign oProxyRequest:ProxyURI = proxyURI.
         
-        moResponseWriter:Close().
-        
-        // HEAD requests have no bodies, so don't bother
-        if poRequest:Method ne MethodEnum:HEAD:ToString() then 
-            ExtractEntity(poResponse, oMessageBody).
-                        
         finally:
-            moResponseWriter = ?.
+            // Only disconnect here because we want to keep the connect open for 
+            // HTTPS tunnels
             if valid-object(moSocketLib) then
                 moSocketLib:Disconnect().
         end finally.
@@ -326,7 +446,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                     input poMessageBody as ByteBucket):
         define variable oBodyWriter as MessageWriter no-undo.
         
-        assign oBodyWriter = RequestWriterBuilder:Build()
+        assign oBodyWriter = RequestWriterBuilder:Build(poRequest)
                                     :WriteTo(poMessageBody)
                                     :Writer.
         if not valid-object(oBodyWriter) then
@@ -348,7 +468,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable oEntityWriter as MessageWriter no-undo.
         define variable iBytesWritten as int64 no-undo.
         
-        case true:
+        case true:  
             /* populate the entity if there's content (signalled by content-type) */
             when poResponse:ContentType ne '':u then
             do:
@@ -382,13 +502,17 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end case.
         
         catch oError as Error:
-            Logger:Error('EXTRACT ENTITY ERROR':u, oError).
-            Logger:Error('EXTRACT ENTITY: Response entity contains raw message body':u).
+            Logger:Error('EXTRACT ENTITY ERROR: Response entity contains raw message body':u, oError).
             Logger:Error(substitute('EXTRACT ENTITY: Response Content-Type changed from &1 to application/octet-stream':u, poResponse:ContentType)).
+            Logger:Info('EXTRACT ENTITY: Original Content-Type stored as a X-Orig-Content-Type header in the response').
+            
+            // Keep the former/old Content-Type value
+            poResponse:SetHeader(HttpHeaderBuilder:Build('X-Orig-Content-Type':u):Value(poResponse:ContentType):Header).
             
             assign poResponse:Entity        = poMessageBody:GetBytes()
                    poResponse:ContentType   = 'application/octet-stream':u
-                   poResponse:ContentLength = poMessageBody:Size.
+                   poResponse:ContentLength = poMessageBody:Size
+                   .
         end catch.
     end method.
     

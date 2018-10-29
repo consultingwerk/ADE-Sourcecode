@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
@@ -19,12 +19,16 @@ using OpenEdge.Core.TimeStamp.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.TimeStamp serializable : 
+    /* (mandatory) The format of the data as passed into the constructor. One of DATE, DATETIME or DATETIME-TZ */
     define public property Format as character no-undo get. private set.
     
     define private variable mtDate as date no-undo.
     define private variable miTime as integer no-undo.
     define private variable miTZOffset as integer no-undo.
     
+    /* Constructor 
+       
+       @param date A timestamp. Timezone is inferred from the session */
     constructor public TimeStamp(ptTimeStamp as date):
         super().
         
@@ -32,6 +36,9 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'Date'.
     end constructor.
     
+    /* Constructor 
+       
+       @param datetime A timestamp. Timezone is inferred from the session */
     constructor public TimeStamp(ptTimeStamp as datetime):
         super().
         
@@ -39,7 +46,10 @@ class OpenEdge.Core.TimeStamp serializable :
                miTime = mtime(ptTimeStamp)
                this-object:Format = 'DateTime'.
     end constructor.
-
+    
+    /* Constructor 
+       
+       @param datetime-tz A 'complete' timestamp */
     constructor public TimeStamp(ptTimeStamp as datetime-tz):
         super().
         
@@ -49,6 +59,9 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'DateTime-TZ'.
     end constructor.
 
+    /* Constructor 
+       
+       @param character An ISO-DATE representation of a timestamp */
     constructor public TimeStamp(input pcTimeStamp as character):
         define variable tTimeStamp as datetime-tz no-undo.
         
@@ -62,6 +75,7 @@ class OpenEdge.Core.TimeStamp serializable :
                this-object:Format = 'DateTime-TZ'.
     end constructor.
     
+    /* Default Constructor */
     constructor public TimeStamp():
         this-object(now).
     end constructor.
@@ -77,62 +91,38 @@ class OpenEdge.Core.TimeStamp serializable :
         else
             return super:Equals(p0).
     end method.
-
-    /** Converts an ABL datetime into a correct ISO date. The ISO-DATE()
-        function requires the session's date format to be YMD before
-        performing the conversion; this method wraps that.
+    
+    /** Converts an ABL datetime into a correct ISO date.
         
         @return character An ISO date.      */
     method public character ToISODate():
-        define variable cDateFormat as character no-undo.
-        
-        cDateFormat = session:date-format.
-        session:date-format = 'ymd'.
-        
         return iso-date(ToDateTimeTz()).
-        finally:
-            session:date-format = cDateFormat.        
-        end finally.
     end method.
-
-    /** Converts an ABL datetime into a correct ISO date. The ISO-DATE()
-        function requires the session's date format to be YMD before
-        performing the conversion; this method wraps that.
+    
+    /** Converts an ABL datetime into a correct ISO date.
         
         @param date The date value to convert
         @return character An ISO date.      */
     method static public character ToISODateFromABL(input ptValue as date):
-        return TimeStamp:ToISODateFromABL(datetime-tz(ptValue)).
+        return iso-date(datetime-tz(ptValue)).
     end method.
     
-    /** Converts an ABL datetime into a correct ISO date. The ISO-DATE()
-        function requires the session's date format to be YMD before
-        performing the conversion; this method wraps that.
+    /** Converts an ABL datetime into a correct ISO date.
         
         @param datetime The date value to convert
         @return character An ISO date.      */
     method static public character ToISODateFromABL(input ptValue as datetime):
-        return TimeStamp:ToISODateFromABL(datetime-tz(ptValue)).
+        return iso-date(datetime-tz(ptValue)).
     end method.
-            
-    /** Converts an ABL datetime into a correct ISO date. The ISO-DATE()
-        function requires the session's date format to be YMD before
-        performing the conversion; this method wraps that.
+    
+    /** Converts an ABL datetime into a correct ISO date.
         
         @param datetime-tz The date value to convert
         @return character An ISO date.      */
     method static public character ToISODateFromABL(input ptValue as datetime-tz):
-        define variable cDateFormat as character no-undo.
-        
-        cDateFormat = session:date-format.
-        session:date-format = 'ymd'.
-        
         return iso-date(ptValue).
-        finally:
-            session:date-format = cDateFormat.        
-        end finally.
     end method.
-
+    
     /** Converts an ISO date into an ABL DATE. The ISO-DATE()
         requires the session's date format to be YMD before
         performing the conversion; this method wraps that.
@@ -142,7 +132,7 @@ class OpenEdge.Core.TimeStamp serializable :
     method static public date ToABLDateFromISO(input pcValue as character):
         return date(TimeStamp:ToABLDateTimeTzFromISO(pcValue)).
     end method.
-
+    
     /** Converts an ISO date into an ABL DATETIME. The ISO-DATE()
         requires the session's date format to be YMD before
         performing the conversion; this method wraps that.
@@ -246,7 +236,7 @@ class OpenEdge.Core.TimeStamp serializable :
         
         if timezone(ptValue) eq 0 then
             assign tUTCValue = ptValue.
-        else
+        else    
             assign tUTCValue = datetime-tz(ptValue, 0).
         
         /* Sun, 06 Nov 1994 08:49:37 GMT  */
@@ -258,22 +248,41 @@ class OpenEdge.Core.TimeStamp serializable :
                 string(integer(mtime(tUTCValue) / 1000), 'HH:MM:SS') ).
     end method.
     
+    /** Converts this TimeStamp into an HTTP 'sane date', according to RFC 822, as 
+        defined at http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.3
+        
+        One of the following formats will be used:
+            Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
+        
+        @return datetime-tz The date value to convert.      */
     method public character ToHttpDate():
         return TimeStamp:ToHttpDateFromABL(ToDateTimeTz()).
     end method.
     
+    /* Converts the current TimeStamp to an ABL datetime-tz value
+       
+       @return datetime-tz The datetime-tz represented by this TimeStamp */
     method public datetime-tz ToDateTimeTz():
         return datetime-tz(mtDate, miTime, miTZOffset).
     end method.
-        
+    
+    /* Converts the current TimeStamp to an ABL datetime value
+       
+       @return datetime The datetime represented by this TimeStamp */
     method public datetime ToDateTime():
         return datetime(mtDate, miTime).
     end method.
 
+    /* Converts the current TimeStamp to an ABL date value
+       
+       @return date The datetime-tz represented by this TimeStamp */
     method public date ToDate():
         return mtDate.
     end method.
-    
+
+    /* Returns the current TimeStamp's time in milliseconds since midnight.
+       
+       @return integer The milliseconds represented by this TimeStamp */
     method public integer ToTime():
         return miTime.
     end method.

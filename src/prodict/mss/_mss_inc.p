@@ -20,6 +20,7 @@
    Nagaraju   11/12/09 Remove numbers for radio-set options in MSSDS
       sdash   05/07/13 Added Logical DB validation in a Schema Holder.
                        Added logging mechanism.
+	vprasad	08/20/2018 ODIA-1951 -  ODBC Driver 17 for SQL Server certification				   
 */   
 
 { prodict/user/uservar.i NEW }
@@ -196,9 +197,9 @@ DO:
      IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 9 THEN 
          hasCompColSupport = YES.
 
-     /* if SQL 2008 and above and native Driver 10, let user select 2008 types */
+     /* if SQL 2008 and above and native Driver 10 or ODBC Driver 17 , let user select 2008 types */
      IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 10 THEN DO:
-       IF (DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
+       IF ((DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") OR (DICTDB._Db._db-misc2[1] BEGINS "MSODBCSQL")) AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
             has2008Support = YES.
      END.
   END. 
@@ -302,9 +303,9 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 9 THEN 
           hasCompColSupport = YES.
 
-      /* if SQL 2008 and above and native Driver 10, let user select 2008 types */
+      /* if SQL 2008 and above and native Driver 10 or ODBC Driver 17, let user select 2008 types */
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 10 THEN DO:
-         IF (DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
+         IF ((DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") OR (DICTDB._Db._db-misc2[1] BEGINS "MSODBCSQL")) AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
              has2008Support = YES.
       END.
     END.

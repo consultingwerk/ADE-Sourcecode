@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : IHttpMessage
@@ -40,7 +40,7 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
     
     /**  The length (in bytes/characters) of the payload/entity. */    
     define public property ContentLength as integer no-undo get. set.
-
+    
     /** The message's Transfer-Encoding. For more detail, see
         http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6 */  
     define public property TransferEncoding as character no-undo get. set.
@@ -49,6 +49,11 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
         
         @param HttpHeader The header */
     method public void SetHeader(input poHeader as HttpHeader).
+    
+    /** Adds a set of header info to this message's collection of headers.
+        
+        @param HttpHeader[] An array of headers */
+    method public void SetHeaders(input poHeader as HttpHeader extent).
     
     /** Returns all the headers
 
@@ -61,7 +66,7 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
         @param  character The name of the header to retrieve
         @return HttpHeader The header object. Null if not exists. */
     method public HttpHeader GetHeader(input pcName as character).
-
+    
     /** Removes all headers with a given name from the set of message headers.
         No-op if none exists.
                 
@@ -81,6 +86,11 @@ interface OpenEdge.Net.HTTP.IHttpMessage:
         
         @param Cookie The cookie to add. */
     method public void SetCookie(input poCookie as Cookie).
+    
+    /** Adds cookies to this message
+        
+        @param Cookie[] An array of cookies to add. */
+    method public void SetCookies(input poCookies as Cookie extent).
     
     /** Returns all the cookies for this message
         

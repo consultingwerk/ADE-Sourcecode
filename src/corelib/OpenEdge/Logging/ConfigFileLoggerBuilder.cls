@@ -108,7 +108,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
     method static private void LoadFromFile(input pFileName as character):
         define variable lastTouch as datetime no-undo.
         
-        Assert:NotNullOrEmpty(pFileName, 'Config file').
+        Assert:NotNullOrEmpty(pFileName, 'Config file name').
         
         assign file-info:file-name = pFileName.
         
@@ -127,12 +127,17 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         // Load config file if it exists and the file MOD timestamp is after the last value
         if    CONFIG_FILE_TIMESTAMP eq ?
            or lastTouch gt CONFIG_FILE_TIMESTAMP
-           then
+        then
         do:
             ClearConfig().
             assign CONFIG_FILE_TIMESTAMP = lastTouch. 
             LoadConfig(cast(new ObjectModelParser():ParseFile(file-info:full-pathname), JsonObject)).
         end.
+        
+        catch loadError as Progress.Lang.Error:
+            LoggerBuilder:LogMessage(substitute('Error loading &1 : &2', pFileName, loadError:GetMessage(1)),
+                                     LogLevelEnum:ERROR).
+        end catch.
     end method.
     
     /* Constructor
@@ -159,7 +164,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         define variable iMax as integer no-undo.
         define variable iInnerLoop as integer no-undo.
         define variable iInnerMax as integer no-undo.
-        define variable cNames as character extent no-undo.
+        // LONGCHAR arrays don't suffer from certain size constraints
+        define variable cNames as longchar extent no-undo.
+        define variable propertyName as character no-undo.
         define variable oConfig as JsonObject no-undo.
         define variable oData as JsonObject no-undo.
         define variable oType as JsonObject no-undo.
@@ -181,16 +188,17 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                    iMax    = extent(cNames)
                    .
             do iLoop = 1 to iMax:
-                if not oConfig:GetType(cNames[iLoop]) eq JsonDataType:OBJECT then
+                assign propertyName = string(cNames[iLoop]).
+                if not oConfig:GetType(propertyName) eq JsonDataType:OBJECT then
                     next.
                 
                 // first in wins
-                if can-find(lbLogger where lbLogger.LoggerName eq cNames[iLoop]) then
+                if can-find(lbLogger where lbLogger.LoggerName eq propertyName) then
                     next.
                 
                 create lbLogger.
-                assign oData               = oConfig:GetJsonObject(cNames[iLoop])
-                       lbLogger.LoggerName = cNames[iLoop]
+                assign oData               = oConfig:GetJsonObject(propertyName)
+                       lbLogger.LoggerName = propertyName
                        .
                 if oData:Has(PROP_LEVEL) and oData:GetType(PROP_LEVEL) eq JsonDataType:STRING then
                     assign lbLogger.LogLevel = oData:GetCharacter(PROP_LEVEL).
@@ -233,21 +241,25 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                    .
             do iLoop = 1 to iMax:
                 // this will give us the filter's type 
-                assign resolvedType = GetABLType(oConfig, cNames[iLoop]).                    
+                assign resolvedType = GetABLType(oConfig, propertyName).                    
                 if valid-object(resolvedType) then
-                    ConfigFileLoggerBuilder:Filters:Put(cNames[iLoop], resolvedType).
+                    ConfigFileLoggerBuilder:Filters:Put(propertyName, resolvedType).
                 
                 // is there a builder for the filter?
-                if oConfig:GetType(cNames[iLoop]) eq JsonDataType:OBJECT then
+                if oConfig:GetType(propertyName) eq JsonDataType:OBJECT then
                 do:
-                    assign oData        = oConfig:GetJsonObject(cNames[iLoop])
+                    assign oData        = oConfig:GetJsonObject(propertyName)
                            resolvedType = GetABLType(oData, PROP_BUILDER)
                            .                    
                     if valid-object(resolvedType) then
-                        ConfigFileLoggerBuilder:FilterBuilders:Put(cNames[iLoop], resolvedType).
+                        ConfigFileLoggerBuilder:FilterBuilders:Put(propertyName, resolvedType).
                 end.    // is an Object
            end.
-       end.
+        end.
+        catch loadError as Progress.Lang.Error:
+            LoggerBuilder:LogMessage(substitute('Error loading JSON : &1', loadError:GetMessage(1)),
+                                     LogLevelEnum:ERROR).
+        end catch.
     end method.
     
     /* Constructs the actual logger instance
@@ -263,7 +275,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         
         define buffer lbLogger for Logger.
         define buffer lbFilter for LogFilter.
-
+        
         // reload on every logger request. Will no-op if the file hasn't changed
         LoadFromFile(ConfigFileLoggerBuilder:CONFIG_FILE_NAME).
         
@@ -345,23 +357,21 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         
         define buffer lbLogger for Logger.
         
-        find lbLogger where
-             lbLogger.LoggerName eq pcLoggerType
-             no-error.
+        if can-find(lbLogger where lbLogger.LoggerName eq pcLoggerType) then
+            find lbLogger where lbLogger.LoggerName eq pcLoggerType.
         if available lbLogger then
             assign logLevel = LogLevelEnum:GetEnum(lbLogger.LogLevel)
                    no-error.
         if valid-object(logLevel) then
             return logLevel.
-
+        
         assign dotPos = r-index(pcLoggerType, '.':u).
         // if there's only one entry then we've checked already
         do while not valid-object(logLevel) and dotPos gt 0:
             assign pcLoggerType = substring(pcLoggerType, 1, dotPos - 1)
                    dotPos       = r-index(pcLoggerType, '.':u).
-            find lbLogger where
-                 lbLogger.LoggerName eq pcLoggerType
-                 no-error.
+            if can-find(lbLogger where lbLogger.LoggerName eq pcLoggerType) then
+                find lbLogger where lbLogger.LoggerName eq pcLoggerType.
             if available lbLogger then
                 assign logLevel = LogLevelEnum:GetEnum(lbLogger.LogLevel)
                        no-error.
@@ -369,13 +379,18 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         
         if not valid-object(logLevel) 
            // don't loop forever
-           and ConfigFileLoggerBuilder:DefaultLogger ne pcLoggerType then 
+           and ConfigFileLoggerBuilder:DefaultLogger ne pcLoggerType 
+        then 
             assign logLevel = FindLevel(ConfigFileLoggerBuilder:DefaultLogger).
         
         if not valid-object(logLevel) then
             assign logLevel = LogLevelEnum:DEFAULT.
         
         return logLevel.
+        finally:
+            // for cases where the LogLevelEnum:GetEnum() fails
+            assign error-status:error = no.
+        end finally.
     end method.
     
     /* Returns a type name from a property we expect to have a type. Basically resolving the
@@ -415,7 +430,8 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         
         if    pcPropName eq '':u 
            or pcPropName eq ? 
-           or not valid-object(poParent) then
+           or not valid-object(poParent)
+        then
             return ?.
         
         if poParent:Has(pcPropName) then
@@ -459,9 +475,8 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                                       buffer pbLogger for Logger):
         define variable dotPos as integer no-undo.
         
-        find pbLogger where
-             pbLogger.LoggerName eq pcLoggerType
-             no-error.
+        if can-find(pbLogger where pbLogger.LoggerName eq pcLoggerType) then
+            find pbLogger where pbLogger.LoggerName eq pcLoggerType.
         if available pbLogger then
             return true.
         
@@ -470,9 +485,8 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         do while dotPos gt 0:
             assign pcLoggerType = substring(pcLoggerType, 1, dotPos - 1)
                    dotPos       = r-index(pcLoggerType, '.':u).
-            find pbLogger where
-                 pbLogger.LoggerName eq pcLoggerType
-                 no-error.
+            if can-find(pbLogger where pbLogger.LoggerName eq pcLoggerType) then
+                find pbLogger where pbLogger.LoggerName eq pcLoggerType.
             if available pbLogger then
                 return true.
         end.
@@ -480,7 +494,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         // don't recurse
         if ConfigFileLoggerBuilder:DefaultLogger ne pcLoggerType then
             return FindLogger(ConfigFileLoggerBuilder:DefaultLogger, buffer pbLogger).
-            
+        
         return false.
     end method.
     

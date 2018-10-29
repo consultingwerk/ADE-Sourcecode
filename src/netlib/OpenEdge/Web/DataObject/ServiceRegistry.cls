@@ -1,9 +1,9 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistry
-    Purpose     : Static implementation of the service registry 
+    Purpose     : Static implementation wrappeter around a service registry 
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -28,7 +28,7 @@ using Progress.Json.ObjectModel.JsonObject.
 class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     
     /* Holds the class that does loads from JSON into the registry */
-    define static private property Loader as ServiceRegistryLoader no-undo
+    define static public property Loader as ServiceRegistryLoader no-undo
         get():
             // Use a CCS Service Manager if extant, and let it control this object's lifecycle
             if valid-object(Ccs.Common.Application:ServiceManager) then
@@ -41,7 +41,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
             
             return ServiceRegistry:Loader.
         end get.
-        set.
+        private set.
     
     // Holds the class that does the actual work/maintains the actual registry
     define static public property Registry as IServiceRegistry no-undo
@@ -60,10 +60,16 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
         private set.
     
     // The default name for the root (unnamed) service
-    define static public property ROOT_SERVICE_NAME as character init 'ROOT':u no-undo get.
+    define static public property ROOT_SERVICE_NAME as character no-undo
+        get():
+            return DataObjectService:ROOT_SERVICE_NAME.
+        end get.
     
     // The root uri (ie / ) 
-    define static public property ROOT_SERVICE_URI  as character init '/':u no-undo get.
+    define static public property ROOT_SERVICE_URI as character
+        get():
+            return DataObjectService:ROOT_SERVICE_URI.
+        end get.
     
     /* Default constructor. Private to prevent instantiation */
     constructor private ServiceRegistry():
@@ -118,13 +124,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @param character The name of the service to remove from the registry
        @return DataObjectService  A data service 'header' */
     method static public DataObjectService GetService(input pServiceName as character):
-        define variable svc as DataObjectService no-undo.
-        
-        assign svc = Registry:GetService(pServiceName).
-        if valid-object(svc) then
-            assign svc:Registry = Registry.
-        
-        return svc. 
+        return Registry:GetService(pServiceName).
     end method.
             
     /* Returns a service object
@@ -134,31 +134,14 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
        @return DataObjectService  A data service 'header' */
     method static public DataObjectService GetService(input pServiceName as character,
                                                       input pVersion as character).
-        define variable svc as DataObjectService no-undo.
-        
-        assign svc = Registry:GetService(pServiceName, pVersion).
-        if valid-object(svc) then
-            assign svc:Registry = Registry.
-        
-        return svc. 
+        return Registry:GetService(pServiceName, pVersion).
     end method.
     
     /* Returns all registered services
        
        @return DataObjectService[] extent An array of registered services. indeterminate if none. */
     method static public DataObjectService extent GetServices().
-        define variable svc as DataObjectService extent no-undo.
-        define variable cnt as integer no-undo.
-        define variable maxSvc as integer no-undo.
-                
-        assign svc    = Registry:GetServices()
-               maxSvc = extent(svc)
-               .
-        do cnt = 1 to maxSvc:
-            if valid-object(svc[cnt]) then
-                assign svc[cnt]:Registry = Registry.
-        end.
-        return svc. 
+        return Registry:GetServices().
     end method.
     
     /* Returns the service options for a named service 
@@ -190,7 +173,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     method static public logical HasOperation(input pcServiceName as character,
                                               input pcServiceURI as character,
                                               input poMethod as MethodEnum ):
-        return Registry:HasOperation(pcServiceName, pcServiceURI, poMethod).                                                  
+        return Registry:HasOperation(pcServiceName, pcServiceURI, poMethod).
     end method.
     
     /* Returns details about the operation  
@@ -202,7 +185,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     method static public MappedOperation GetOperation(input pcServiceName as character,
                                                       input pcServiceURI as character,
                                                       input poMethod as MethodEnum ):
-        return Registry:GetOperation(pcServiceName, pcServiceURI, poMethod).                                                          
+        return Registry:GetOperation(pcServiceName, pcServiceURI, poMethod).
     end method.
               
     /* Returns an array or operations for the service 

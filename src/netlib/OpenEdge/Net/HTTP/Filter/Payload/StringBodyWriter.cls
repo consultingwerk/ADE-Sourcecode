@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018  by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StringBodyWriter
@@ -13,12 +13,19 @@ Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using Ccs.Common.Support.ICharacterHolder.
+using Ccs.Common.Support.IDateHolder.
+using Ccs.Common.Support.IDateTimeHolder.
+using Ccs.Common.Support.IDateTimeTzHolder.
 using Ccs.Common.Support.ILongcharHolder.
+using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.ByteBucket.
+using OpenEdge.Core.TimeStamp.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.IO.FileInputStream.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
+using Ccs.Common.Support.IMemptrHolder.
+using OpenEdge.Core.Memptr.
 
 class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter: 
         
@@ -38,7 +45,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
         
         copy-lob from pData to lcText.
         
-        return this-object:Write(lcText).        
+        return this-object:Write(lcText).
     end method.
     
     method override public int64 Write(input pData as longchar):
@@ -62,7 +69,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
                 assign lcText = dynamic-property(poData, 'Value':u).
                 
                 // longchars are passed by-value, so don't do that
-                cast(this-object:Entity, ByteBucket):PutString(lcText).                
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
                 return length(lcText, 'raw':u).
             end.    // characters
             
@@ -78,13 +85,59 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
                                         , 0).
                 end case.
             end.    // file stream
-                        
+            
+            // Date/time types need to be formatted
+            when type-of(poData, IDateHolder) or
+            when type-of(poData, IDateTimeHolder) or
+            when type-of(poData, IDateTimeTzHolder) then
+            do:
+                assign lcText = iso-date(dynamic-property(poData, 'Value':u)).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.
+            
+            // Keep the primitive holders separate from the 'string' holders, since we will "string" the Value, which may 
+            // truncate data for the String and ILongcharHolder types
+            when type-of(poData, IPrimitiveHolder) then
+            do:
+                assign lcText = string(dynamic-property(poData, 'Value':u)).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.
+            
+            when type-of(poData, ByteBucket) then
+            do:
+                assign lcText = cast(poData, ByteBucket):GetString().
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.
+            
+            when type-of(poData, Memptr) then
+            do: 
+                assign lcText = cast(poData, Memptr):GetString(1).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.
+            
+            // make sure it's AFTER the Memptr since the Memptr is also a IMemptrHolder
+            // we want to use GetString() from the Memptr
+            when type-of(poData, IMemptrHolder) then
+                return this-object:Write(cast(poData, IMemptrHolder):Value).
+            
             otherwise 
             do:
                 assign lcText = poData:ToString().
                 
                 // longchars are passed by-value, so don't do that
-                cast(this-object:Entity, ByteBucket):PutString(lcText).                
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
                 return length(lcText, 'raw':u).
             end.
         end case.

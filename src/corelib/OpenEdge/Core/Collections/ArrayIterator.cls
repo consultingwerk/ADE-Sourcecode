@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ArrayIterator
@@ -26,28 +26,23 @@ class OpenEdge.Core.Collections.ArrayIterator implements IIterator:
     constructor public ArrayIterator(input poIteratedArray as Array):
         Assert:NotNull(poIteratedArray, 'Iterated Array').
         
-        CurrentExtent = 0.
-        IteratedArray = poIteratedArray.
+        assign CurrentExtent = 0
+               IteratedArray = poIteratedArray
+               .
     end method.
     
-	method public logical HasNext():
-		define variable lHasNext as logical no-undo.
-		
-		lHasNext = (CurrentExtent + 1) le IteratedArray:Size.
-		
-		return lHasNext.
-	end method.
-
-	method public Object Next():
-	    define variable iGetExtent as integer no-undo.
-	    
-	    assign iGetExtent = CurrentExtent
-	           CurrentExtent = CurrentExtent + 1.        
-		return IteratedArray:GetValue(iGetExtent).
-	end method.
-	
-	method public logical Remove():
+    method public logical HasNext():
+        return ((CurrentExtent + 1) le IteratedArray:Size).
+    end method.
+    
+    method public Object Next():
+        assign CurrentExtent = CurrentExtent + 1.
+        return IteratedArray:GetValue(CurrentExtent).
+    end method.
+    
+    method public logical Remove():
+        Assert:NotZero(CurrentExtent, 'Current iterator position').
         return IteratedArray:Remove(IteratedArray:GetValue(CurrentExtent)).
-	end method.
-
+    end method.
+    
 end class.

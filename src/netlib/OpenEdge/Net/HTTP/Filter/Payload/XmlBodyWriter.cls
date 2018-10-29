@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : XmlBodyWriter
@@ -49,11 +49,11 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
         if get-size(pmData) eq 0 then
             return 0.
         
-        assign xmlDecl = get-string(pmData, 1 , min(5, get-size(pmData))).
-        // simple/dumb validation 
-        if not xmlDecl begins '<?xml':u then
-            return error new AppError(substitute('Character data does not appear to be XML; starts with "&1"',
-                                                    xmlDecl)
+        assign xmlDecl = trim(get-string(pmData, 1 , min(1024, get-size(pmData)))).
+        // simple/dumb validation
+        if not xmlDecl begins '<':u then
+            return error new AppError(substitute('Data does not appear to be XML; starts with "&1"',
+                                                    substring(xmlDecl, 1, 10))
                                     , 0).
         
         // Best guess
@@ -67,13 +67,20 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
     end method.
     
     method override public int64 Write(input pData as longchar):
+        define variable chrPos as integer no-undo.
+        define variable checkString  as character no-undo.
+        
         Assert:NotNull(pData, 'XML data').
         
         // simple/dumb validation 
-        if not pData begins '<?xml':u then
-            return error new AppError(substitute('Character data does not appear to be XML; starts with "&1" ',
-                                        substring(pData, 1, 5))
-                                      , 0).
+        assign chrPos      = index(pData, '<':u)
+               checkString = trim(substring(pData, 1, chrPos)) 
+               .
+        if    chrPos eq 0
+           or not checkString begins '<':u
+        then
+            return error new AppError(substitute('Character data does not appear to be XML; starts with "&1"', checkString)
+                                    , 0).
         
         /* convert to ISO format from ABL */
         run adecomm/convcp.p (input  get-codepage(pData),
@@ -129,6 +136,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
         define variable mXml as memptr no-undo.
         define variable lcXml as longchar no-undo.
         define variable fileStream as FileInputStream no-undo.
+        define variable chrPos as integer no-undo.
+        define variable checkString  as character no-undo.
         
         case true:
             when not valid-object(poData) then
@@ -144,11 +153,16 @@ class OpenEdge.Net.HTTP.Filter.Payload.XmlBodyWriter inherits MessageWriter
             when type-of(poData, ILongcharHolder) then
             do:
                 // coerce into using the LONGCHAR version
-                assign lcXml = dynamic-property(poData, 'Value':u).
+                assign lcXml       = dynamic-property(poData, 'Value':u)
+                       chrPos      = index(lcXml, '<':u)
+                       checkString = trim(substring(lcXml, 1, chrPos)) 
+                       .
                 // simple/dumb validation 
-                if not lcXml begins '<?xml':u then
+                if    chrPos eq 0
+                   or not checkString begins '<':u
+                then
                     return error new AppError(substitute('Character data does not appear to be XML; starts with "&1" ',
-                                                    substring(lcXml, 1, 5))
+                                                    checkString)
                                     , 0).
                 
                 assign this-object:Encoding = get-codepage(lcXml).

@@ -593,8 +593,9 @@ PROCEDURE init-request :
   Output:      Sets global variables defined in src/web/method/cgidefs.i
 ---------------------------------------------------------------------------*/
     // indicate that we need to write the HTTP status line first. This flag will be
-    // set on each request so set to FALSE for each requests 
-    assign http-status-written = false.
+    // set on each request so set to FALSE for each requests
+    // ONLY do this for PASOE since there are CGI servers that do not expect the response Status-Line  
+    assign http-status-written = not multi-session-agent().
   
   IF glStateAware THEN  
     RUN SUPER.

@@ -1,5 +1,5 @@
 /**************************************************************************
-Copyright (c) 2014,2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014,2017-2018 by Progress Software Corporation. All rights reserved.
 **************************************************************************/
  /*------------------------------------------------------------------------
     File        : AgentInfo.cls
@@ -18,16 +18,37 @@ class OpenEdge.ApplicationServer.AgentInfo :
         setArchiveAgentStats(true).
     end constructor.
     
-    /* Toggles the agent stats archive on and off
+    /* Destructor */
+    destructor AgentInfo():
+        setArchiveAgentStats(false).
+    end.
+    
+    /* Empties the cached agent stats */
+    method public void clearAgentStatData():
+        define variable statsData as handle no-undo.
+        
+        Progress.ApplicationServer.AgentInfo:getAgentstatTableHandle(output statsData).
+        // this should always be valid, but it doesn't hurt to be defensive
+        if valid-handle(statsData) then
+            statsData:empty-temp-table().
+    end method.
+    
+    /* Toggles the agent stats archive on and off.
+       
+       If we turn gathering stats OFF (a FALSE parameter) then we also
+       empty the cached stats
        
        @param logical TRUE to enabled archiving; FALSE to disable
        @return logical TRUE when stats are archived, false otherwise */
     method public logical setArchiveAgentStats (input setValue as logical):
         Progress.ApplicationServer.AgentInfo:archiveAgentStats = setValue.
         
+        if not Progress.ApplicationServer.AgentInfo:archiveAgentStats then
+            clearAgentStatData().
+        
         return Progress.ApplicationServer.AgentInfo:archiveAgentStats.
     end method.
-
+    
     method public logical getAgentStatData (output table-handle pasThandle):
         Progress.ApplicationServer.AgentInfo:getAgentstatTableHandle(output pasThandle).
         

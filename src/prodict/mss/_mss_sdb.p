@@ -20,6 +20,7 @@
              nagaraju   10/20/09  computed column support - MSS 2005 and up
              nagaraju   10/29/09  report error if computed column with MSS 2005 or earlier
              sgarg      08/18/11  OE00198733: Bug[17] should be OFF for MSS drivers
+			 vprasad	08/20/2018 ODIA-1951 -  ODBC Driver 17 for SQL Server certification
 */   
 
 &SCOPED-DEFINE DATASERVER YES
@@ -36,6 +37,7 @@ DEFINE VARIABLE i	             AS INTEGER   NO-UNDO.
 
 FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.  
 RUN STORED-PROC DICTDBG.GetInfo (0).
+
 
 FOR EACH DICTDBG.GetInfo_buffer:
    IF (LENGTH(DICTDBG.GetInfo_buffer.escape_char,"character") < 1)
@@ -57,9 +59,11 @@ FOR EACH DICTDBG.GetInfo_buffer:
        /* must be version 10 (SQL Server 2008) */
        IF INTEGER(SUBSTRING(DICTDBG.GetInfo_buffer.dbms_version,1,2)) < 10 THEN
            RETURN "wrg-ver".
-
-       /* and using the SQL Native driver version 10 */
-       IF (NOT DICTDBG.GetInfo_buffer.driver_name BEGINS "SQLNCLI") OR 
+       /* NOT using the SQL Native driver version 10 */
+       /* NOT using the ODBC Driver 17 for SQL Server */
+       IF 	((NOT DICTDBG.GetInfo_buffer.driver_name BEGINS "SQLNCLI") AND
+			(NOT DICTDBG.GetInfo_buffer.driver_name BEGINS "MSODBCSQL")) 
+			OR 
            INTEGER(ENTRY(1,DICTDBG.GetInfo_buffer.driver_version,".")) < 10 THEN
            RETURN "wrg-ver".
    END.

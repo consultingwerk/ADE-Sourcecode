@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocketConnectionParameters
@@ -94,12 +94,10 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
     method public character GetConnectionString():
         define variable cHost as character no-undo.
         define variable iPort as integer no-undo.
-        define variable cSSL as character no-undo.
         
         Assert:NotNull(this-object:URI, 'URI').
         assign cHost = this-object:URI:Host
                iPort = this-object:URI:Port
-               cSSL  = '':u
                .
         /* double check for safety */
         Assert:NotNullOrEmpty(cHost, 'Host name').
@@ -115,18 +113,15 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
                                 substitute('Port is too large: &1', iPort),
                                 0).
         
-        /* SSL connections only ... */
-        if this-object:URI:Scheme eq string(UriSchemeEnum:https) then
-            assign cSSL = substitute('-ssl &1 &2 &3 &4 &5':u,
+        return trim(substitute('-H &7 -S &8 &6 &1 &2 &3 &4 &5':u,
                             /*1*/ (if this-object:VerifyHost           eq true     then '':u else '-nohostverify':u),
                             /*2*/ (if this-object:ReuseSession         eq true     then '':u else '-nosessionreuse':u),
                             /*3*/ (if extent(this-object:SslProtocols) eq ?        then '':u else '-sslprotocols':u + StringConstant:SPACE + String:Join(this-object:SslProtocols, ',':u)),
                             /*4*/ (if extent(this-object:SslCiphers)   eq ?        then '':u else '-sslciphers':u   + StringConstant:SPACE + String:Join(this-object:SslCiphers, ',':u)),
-                            /*5*/ (if String:IsNullOrEmpty(ServerNameIndicator)    then '':u else '-servername':u   + StringConstant:SPACE + this-object:ServerNameIndicator)  
-                            ).
-        
-        return substitute('-H &1 -S &2 &3':u,
-                          cHost, iPort, cSSL).
+                            /*5*/ (if String:IsNullOrEmpty(ServerNameIndicator)    then '':u else '-servername':u   + StringConstant:SPACE + this-object:ServerNameIndicator),
+                            /*6*/ (if this-object:URI:Scheme eq string(UriSchemeEnum:https) then '-ssl':u else '':u),
+                            /*7*/ cHost,
+                            /*8*/ iPort     )).
     end method.
     
     method public character GetConnectionString( input pcFormatMask as character ):

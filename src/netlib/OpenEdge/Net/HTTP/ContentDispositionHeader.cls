@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ContentDispositionHeader
@@ -12,6 +12,7 @@ Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.HttpHeader.
 
 class OpenEdge.Net.HTTP.ContentDispositionHeader inherits HttpHeader:
@@ -34,9 +35,10 @@ class OpenEdge.Net.HTTP.ContentDispositionHeader inherits HttpHeader:
     
     method override public logical SetParameterValue( input pcParamName as character, input pcParamValue as character ):
         case pcParamName:
-            when 'filename':u then
+            when 'filename':u or
+            when 'name':u then
                if not OpenEdge.Core.String:IsQuoted(pcParamValue) then
-                   assign pcParamValue = quoter(pcParamValue).
+                   assign pcParamValue = StringConstant:DOUBLE_QUOTE + pcParamValue + StringConstant:DOUBLE_QUOTE.
         end case.
         
         return super:SetParameterValue(input pcParamName, input pcParamValue).

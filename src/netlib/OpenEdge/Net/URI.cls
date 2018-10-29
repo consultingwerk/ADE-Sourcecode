@@ -642,7 +642,24 @@ class OpenEdge.Net.URI:
         
         return string(val). 
     end method.
+    
+    /** Gets the complete set of query names and values.
+        
+        @return IStringStringMap A map of query names and values */
+    method public IStringStringMap GetQueryMap():
+        return new StringStringMap(this-object:QueryMap). 
+    end method.
 
+    /** Sets (merges) a set of query names and values into this URI
+        
+        @param IStringStringMap A map of query names and values */
+    method public void SetQueryMap(input pQueryMap as IStringStringMap ):
+        if     valid-object(pQueryMap)
+           and pQueryMap:Size gt 0
+        then
+            this-object:QueryMap:PutAll(pQueryMap).
+    end method.
+    
     /* constructs a string representation */
     method private void BuildUri():
         define variable cRootURI     as character no-undo.
@@ -1313,6 +1330,14 @@ class OpenEdge.Net.URI:
         
         /* add anycharacters that appear after the last % */
         return decodedString + substring(pEncodedString, startAt).        
+    end method.
+
+    /** Returns an array of query names
+        
+        @param character The query name,.
+        @return logical TRUE if the URI has the given query string */
+    method public logical HasQueryName(input pName as character):
+        return QueryMap:ContainsKey(pName).
     end method.
     
     /** Returns an array of query names 

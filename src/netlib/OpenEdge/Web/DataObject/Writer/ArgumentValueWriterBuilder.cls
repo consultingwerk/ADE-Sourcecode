@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterBuilder 
@@ -23,6 +23,7 @@ using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.DataObject.Writer.DefaultArgumentValueWriterBuilder.
 using Progress.Lang.Object.
+using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry.
 
 class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigBuilder
             abstract:
@@ -47,16 +48,6 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
             return ArgumentValueWriterBuilder:Registry.
         end get.
         private set.
-        
-    /** Returns an argument value writer for a parameter
-        
-        @param  OperationParameter The operation parameter for which to build the writer
-        @return ArgumentValueWriterBuilder The entity writer builder to use  */
-    method static public ArgumentValueWriterBuilder Build(input pParam as OperationParameter):
-        Assert:NotNull(pParam, 'Operation parameter').
-        
-        return ArgumentValueWriterBuilder:Build(pParam:ArgumentType).
-    end method.
     
     /** Returns an argument value writer for a argument
         
@@ -65,28 +56,40 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
     method static public ArgumentValueWriterBuilder Build(input poArg as OperationArgument):
         Assert:NotNull(poArg, 'Operation argument').
         
-        return ArgumentValueWriterBuilder:Build(poArg:ArgumentType).
+        return ArgumentValueWriterBuilder:Build(poArg:ArgumentType)
+                    :FromRegistry(poArg:Service:ArgumentWriters).
+    end method.
+    
+    /** Returns an argument value writer for a argument type.
+        
+        @param  P.L.Class The argument type for which to build the writer
+        @return ArgumentValueWriterBuilder The entity writer builder to use  */
+    method static public ArgumentValueWriterBuilder Build(input poArgType as class Progress.Lang.Class):
+        return ArgumentValueWriterBuilder:Build(poArgType, ArgumentValueWriterBuilder:Registry).
     end method.
     
     /** Returns an argument value writer for a argument type
         
-        @param  OperationArgument The operation for which to build the writer
+        @param  P.L.Class The argument type for which to build the writer
+        @param  BuilderRegistry The registry from which to find the writer 
         @return ArgumentValueWriterBuilder The entity writer builder to use  */
-    method static public ArgumentValueWriterBuilder Build(input poArgType as class Progress.Lang.Class):
-        define variable oBuilderType as Progress.Lang.Class no-undo.
-        define variable oBuilder as ArgumentValueWriterBuilder no-undo.
+    method static public ArgumentValueWriterBuilder Build(input pArgType as class Progress.Lang.Class,
+                                                          input pRegistry as BuilderRegistry):
+        define variable builderType as Progress.Lang.Class no-undo.
+        define variable builder as ArgumentValueWriterBuilder no-undo.
         
-        Assert:NotNull(poArgType, 'Argument type').
+        Assert:NotNull(pArgType, 'Argument type').
+        Assert:NotNull(pRegistry, 'Argument writer builder registry').
         
-        assign oBuilderType = ArgumentValueWriterBuilder:Registry:Get(get-class(ArgumentValueWriterBuilder):TypeName).
-        Assert:IsType(oBuilderType, get-class(ArgumentValueWriterBuilder)).
+        assign builderType = pRegistry:Get(get-class(ArgumentValueWriterBuilder):TypeName).
+        Assert:IsType(builderType, get-class(ArgumentValueWriterBuilder)).
         
-        oBuilder = dynamic-new string(oBuilderType:TypeName) (poArgType).
+        builder = dynamic-new string(builderType:TypeName) (pArgType).
         
-        if type-of(oBuilder, ISupportInitialize) then
-            cast(oBuilder, ISupportInitialize):Initialize().
+        if type-of(builder, ISupportInitialize) then
+            cast(builder, ISupportInitialize):Initialize().
         
-        return oBuilder.
+        return builder.
     end method.
 
     /* Constructor */
@@ -97,17 +100,33 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
     
     /** Specifies the Entity object to use for the message body   
         
-        @param  ByteBucket The bucket to use
+        @param  Progress.Lang.Object The argument value into which to write
+        @param  Progress.Lang.Class The type of the argument (actual type or maybe interface)        
         @return ArgumentValueWriterBuilder The writer used */
-    method public ArgumentValueWriterBuilder WriteTo(input poValue as Object):
-        Assert:NotNull(poValue, 'Argument value').
+    method public ArgumentValueWriterBuilder WriteTo(input pArgValue as Object,
+                                                     input pArgType as class Progress.Lang.Class):
+        if not valid-object(pArgValue)
+           or  not valid-object(pArgType)
+        then
+            return this-object.
         
-        SetOption('arg':u,     poValue).
-        SetOption('argType':u, poValue:GetClass():TypeName).
-    
+        SetOption('arg':u,     pArgValue).
+        SetOption('argType':u, pArgType:TypeName).
+        
         return this-object.
     end method.
-
+    
+    /** Specifies the Entity object to use for the message body   
+        
+        @param  Progress.Lang.Object The argument value into which to write
+        @return ArgumentValueWriterBuilder The writer used */
+    method public ArgumentValueWriterBuilder WriteTo(input poValue as Object):
+        if not valid-object(poValue) then
+            return this-object.
+        
+        return WriteTo(poValue, poValue:GetClass()).
+    end method.
+    
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
@@ -120,8 +139,8 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         SetOption(pcName, pcValue).
         
         return this-object.
-    end method.                                                     
-
+    end method.
+    
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
@@ -148,7 +167,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         
         return this-object.
     end method.                                                     
-
+    
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
@@ -158,10 +177,10 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
                                                     input piValue as int64):
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, piValue).
-
+    
         return this-object.
     end method.                                                     
-
+    
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
@@ -172,10 +191,10 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, pdValue).
-
+    
         return this-object.
     end method.                                                     
-
+        
     /** Adds or overwrites an option for the client library.
         
         @param  character The name of the option
@@ -183,22 +202,35 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         @return ArgumentValueWriterBuilder This builder object. */
     method public ArgumentValueWriterBuilder Option(input pcName as character,
                                                     input plValue as logical):
-        
         Assert:NotNullOrEmpty(pcName, 'Option name').
         SetOption(pcName, plValue).
-
+        
+        return this-object.
+    end method.
+    
+    /** Adds a custom/service-level registry for ArgumentValueWriters
+        
+        @param  BuilderRegistry The registry
+        @return ArgumentValueWriterBuilder This builder object. */
+    method public ArgumentValueWriterBuilder FromRegistry(input pValue as BuilderRegistry):
+        Assert:NotNull(pValue, 'Writer Registry').
+        Assert:IsType(pValue:ValueType, get-class(ArgumentValueWriter)).
+        
+        SetOption(get-class(ArgumentValueWriterRegistry), pValue).
+        
         return this-object.
     end method.
     
     /** Returns a value writer from a particular registry
         
         The search alogrithm is
+        0. Empty registry returns nothing
         1. Equality match  - identical type name
         2. IsA / Inherits match. This may be slow, so if one is found, it's registered
-
+        
         @param Progress.Lang.Class The current argument type for which we are trying to find a writer
         @param BuilderRegistry The registry in which to look 
-        @return Progress.Lang.Class The type of the writer. It's the caller's responsibility to invoke and use the writer */        
+        @return Progress.Lang.Class The type of the writer. It's the caller's responsibility to invoke and use the writer */
     method protected class Progress.Lang.Class GetWriter(input poArgType as class Progress.Lang.Class,
                                                          input poRegistry as BuilderRegistry):
         define variable writerType as Progress.Lang.Class no-undo.
@@ -209,6 +241,10 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         
         Assert:NotNull(poArgType, 'Argument type').
         Assert:NotNull(poRegistry, 'Value writer registry').
+        
+        /* 0. Empty */
+        if poRegistry:Size eq 0 then
+            return writerType.
         
         /* 1. Equality */
         assign writerType = poRegistry:Get(poArgType:TypeName).
@@ -232,6 +268,6 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder inherits ConfigB
         end.
         
         return writerType.
-    end method.                                                                  
-
+    end method.
+    
 end class.

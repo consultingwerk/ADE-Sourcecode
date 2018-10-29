@@ -52,18 +52,22 @@ define variable cFolder as character no-undo.
 define variable cRunLog as character no-undo.
 define variable cEntry as character no-undo.
 define variable lHasUrl as logical no-undo.
+define variable lHasServername as logical no-undo.
 define variable cSslOptions as character no-undo.
+define variable cServerName as character no-undo.
 define variable lTestUrl as logical no-undo.
 
 /* ************************** UDFs & procedures  *************************** */
 &scoped-define DB-OPTION-CODE _db.sts.url
+&scoped-define DB-OPTION-CODE1 _db.sts.sniHostName
 
 {OpenEdge/DataAdmin/Util/dboptionutils_fn.i
     &EXPORT-LOG-GROUP='DBSTSURL'
     &EXPORT-LOG=cRunLog}
 
 function CanConnect returns logical (input pcURI as character,
-                                     input pcSSLOptions as character):
+                                     input pcSSLOptions as character,
+									 input pcServerName as character):
     define variable hSocket as handle no-undo.
     define variable cHost as character no-undo.
     define variable iPort as integer no-undo.
@@ -109,12 +113,29 @@ function CanConnect returns logical (input pcURI as character,
     
     if pcSSLOptions eq ? then
         assign pcSSLOptions = '':u.
+	
+	if pcServerName eq "" then
+       lHasServername = false.
         
     create socket hSocket.
-    return hSocket:connect(substitute('-H &1 -S &2 -ssl &3':u, 
+	if lHasServername then
+	do:
+		return hSocket:connect(substitute('-H &1 -S &2 -ssl &3 -servername &4':u, 
+                               cHost, 
+                               iPort,
+                               pcSSLOptions,
+							   pcServerName)).
+		
+							   
+	end.
+	else
+	do:
+		return hSocket:connect(substitute('-H &1 -S &2 -ssl &3':u, 
                                cHost, 
                                iPort,
                                pcSSLOptions)).
+		
+	end.
     finally:
         if valid-handle(hSocket) then
             hSocket:disconnect() no-error.
@@ -142,6 +163,9 @@ do iLoop = 1 to iMax:
         when 'SSL-OPTIONS':u then
             assign cSslOptions =  substring(cEntry, 13)
                    no-error.
+		when 'SERVERNAME':u then
+            assign cServerName =  substring(cEntry, 12)
+                   no-error.
         when 'TEST-URL':u then
             assign lTestUrl = logical(entry(2, cEntry, ':':u)) 
                    no-error.
@@ -160,10 +184,12 @@ do:
     PutMessage(substitute('URL: &1', cUrl), LogLevelEnum:INFO).
     PutMessage(substitute('TEST-URL? &1', lTestUrl), LogLevelEnum:INFO).
     PutMessage(substitute('SSL-OPTIONS: &1', cSslOptions), LogLevelEnum:INFO).
+	PutMessage(substitute('SERVERNAME: &1', cServerName), LogLevelEnum:INFO).
     
     Assert:NotNullOrEmpty(cUrl, 'STS URL').
+	assign lHasServername = true.
     if lTestUrl and 
-       not CanConnect(cUrl, cSslOptions) then
+       not CanConnect(cUrl, cSslOptions,cServerName) then
         undo, throw new AppError(substitute('Unable to connect to STS URL &1 with options &2',
                                     cUrl,
                                     cSslOptions), 
@@ -216,6 +242,31 @@ do iLoop = 1 to num-dbs:
                         quoter(cDB)),
                    LogLevelEnum:INFO).
     end.
+	if lHasServername then
+	do:
+		oDbOpt = oDAS:GetDatabaseOption('{&DB-OPTION-CODE1}':u).
+		if not valid-object(oDbOpt) then
+		do:
+			assign oDbOpt             = oDAS:NewDatabaseOption('{&DB-OPTION-CODE1}':u)
+				oDbOpt:Description = 'Specifies the SNIHostName for the OE authentication gateway'
+				oDbOpt:OptionType  = integer(DatabaseOptionTypeEnum:AuthenticationGateway)
+				oDbOpt:OptionValue = cServerName.
+			oDAS:CreateDatabaseOption(oDbOpt).
+		
+			PutMessage(substitute('STS sniHostName created for &1', 
+							quoter(cDB)),
+					LogLevelEnum:INFO).
+		end.
+		else
+		do:
+			assign oDbOpt:OptionValue = cServerName.
+			oDAS:UpdateDatabaseOption(oDbOpt).
+		
+			PutMessage(substitute('STS sniHostName updated for &1', 
+							quoter(cDB)),
+					LogLevelEnum:INFO).
+		end.
+	end.
 end.
 
 {OpenEdge/DataAdmin/Util/dboptionutils_eof.i

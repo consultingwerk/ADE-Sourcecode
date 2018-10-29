@@ -275,7 +275,9 @@ IF SESSION:BATCH-MODE AND logfile_open THEN DO:
 
 ASSIGN
   s_name-hlp   = "*"
-  s_owner-hlp  = "%%%" + mss_username
+  /* in case of batch pull s_owner-hlp is not neded */
+  /* This is also not used in case of regular pull */
+  /* s_owner-hlp  = "%%%" + mss_username */
   s_qual-hlp   = "*"
   s_type-hlp   = "*".
 

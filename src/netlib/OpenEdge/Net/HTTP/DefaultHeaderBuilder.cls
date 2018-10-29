@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : DefaultHeaderBuilder
@@ -42,6 +42,8 @@ class OpenEdge.Net.HTTP.DefaultHeaderBuilder inherits HttpHeaderBuilder:
         define variable oHeader as HttpHeader no-undo.
         define variable oHeaderType as class Progress.Lang.Class no-undo.
         
+        define buffer opt for ConfigOption.
+        
         if HasOption(get-class(HttpHeader):TypeName) then
             assign oHeaderType = cast(GetOptionObjectValue(get-class(HttpHeader):TypeName), Progress.Lang.Class).
         else
@@ -59,6 +61,14 @@ class OpenEdge.Net.HTTP.DefaultHeaderBuilder inherits HttpHeaderBuilder:
         
         if HasOption('hdrValue':u) then
             assign oHeader:Value = GetOptionStringValue('hdrValue':u).
+        
+        // Length since spaces are allowed as delimiters. Nulls aren't
+        if length(oHeader:ParamDelimiter, 'raw':u) gt 0 then
+        for each opt where
+                 opt.ParentBuilder eq int64(this-object) and
+                 opt.ConfigName begins 'param+':u:
+            oHeader:SetParameterValue(substring(opt.ConfigName, 7), opt.StringValue).
+        end.
         
         return oHeader.        
     end method.

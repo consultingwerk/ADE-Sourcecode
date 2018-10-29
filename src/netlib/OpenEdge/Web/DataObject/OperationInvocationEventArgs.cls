@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationInvocationEventArgs
@@ -15,8 +15,9 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Web.DataObject.DataObjectEventArgs.
-using OpenEdge.Web.IWebRequest.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
+using OpenEdge.Web.IWebRequest.
 
 class OpenEdge.Web.DataObject.OperationInvocationEventArgs inherits DataObjectEventArgs:
     /* Constructor.
@@ -40,12 +41,15 @@ class OpenEdge.Web.DataObject.OperationInvocationEventArgs inherits DataObjectEv
     constructor public OperationInvocationEventArgs(input poRequest as IWebRequest,
                                                     input poEntity as Progress.Lang.Object,
                                                     input poResponse as IHttpResponse,
+                                                    input pService as DataObjectService,
                                                     input poOperation as MappedOperation):
         this-object(poRequest, poEntity).
         
         Assert:NotNull(poResponse, 'Web response').
         assign this-object:Response  = poResponse
-               this-object:Operation = poOperation.
+               this-object:Operation = poOperation
+               this-object:Service   = pService
+               .
     end constructor.
 
     /* Constructor.

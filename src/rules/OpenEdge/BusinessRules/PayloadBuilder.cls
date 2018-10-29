@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : PayloadBuilder
@@ -52,7 +52,6 @@ class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
         mhSaxWriter:set-output-destination('longchar', lcPayload).
         mhSaxWriter:encoding = 'utf-8'.
         mhSaxWriter:start-document().
-        mhSaxWriter:start-element('execute').
           mhSaxWriter:start-element('CorticonRequest').
             mhSaxWriter:declare-namespace('urn:Corticon').
             mhSaxWriter:declare-namespace('http://www.w3.org/2001/XMLSchema-instance', 'xsi').
@@ -83,7 +82,6 @@ class OpenEdge.BusinessRules.PayloadBuilder use-widget-pool:
         
               mhSaxWriter:end-element('ns1:WorkDocuments').
             mhSaxWriter:end-element('CorticonRequest').
-          mhSaxWriter:end-element('execute').
         mhSaxWriter:end-document().
         
         if session:debug-alert then

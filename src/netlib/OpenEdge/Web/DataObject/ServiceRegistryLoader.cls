@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryImpl
@@ -14,36 +14,33 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertFile.
-using OpenEdge.Core.Collections.IList.
-using OpenEdge.Core.Collections.List.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.SemanticVersion.
 using OpenEdge.Core.StringConstant.
-using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Net.HTTP.Cookie.
+using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.ElementTypeEnum.
 using OpenEdge.Web.DataObject.IServiceRegistry.
 using OpenEdge.Web.DataObject.MappedOperation.
+using OpenEdge.Web.DataObject.MessageElement.
 using OpenEdge.Web.DataObject.OperationOptions.
 using OpenEdge.Web.DataObject.OperationParameter.
 using OpenEdge.Web.DataObject.SchemaOption.
 using OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum.
 using OpenEdge.Web.DataObject.ServiceOptions.
-using OpenEdge.Web.DataObject.ServiceRegistry.
 using OpenEdge.Web.DataObject.ServiceRegistryImpl.
 using OpenEdge.Web.DataObject.TargetTypeEnum.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
-using OpenEdge.Web.DataObject.ServiceRegistryLoader.
-using OpenEdge.Web.DataObject.Writer.OperationHandlerRegistry.
-using Progress.Lang.AppError.
 
 class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
     
@@ -89,7 +86,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         assign mJsonParser    = new ObjectModelParser()
                mcInstanceRoot = replace(os-getenv ('CATALINA_BASE':u), StringConstant:BACKSLASH, '/':u)
                // Note that it's NOT the ServiceRegistry type
-               this-object:Logger = LoggerBuilder:GetLogger(get-class(ServiceRegistryLoader))
+               this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass())
                .
     end constructor.
     
@@ -111,7 +108,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         if this-object:Registry:HasService(pcServiceName) then
             return true.
         
-        return TryFindService(pcServiceName, '', pcWebAppPath).
+        return TryFindService(pcServiceName, '':u, pcWebAppPath).
     end method.
     
     /* Indicates whether a named service is available. Will attempt to 
@@ -132,14 +129,13 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                          input pWebAppPath as character):                                             
         define variable cFilename as character no-undo.
         define variable lRegistered  as logical no-undo.
-        define variable semVer as SemanticVersion no-undo.
         
         Assert:NotNull(pServiceName, 'Service name').
         Assert:NotNull(pVersion, 'Service version').
         Assert:NotNull(pWebAppPath, 'Web app path').
         
-        if pServiceName eq '':u then
-            assign pServiceName = ServiceRegistry:ROOT_SERVICE_NAME.
+        assign pServiceName = DataObjectService:NormaliseServiceName(pServiceName).
+        
         if pWebAppPath eq '':u then
             assign pWebAppPath = 'ROOT':u.
         
@@ -149,9 +145,6 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         if this-object:Registry:HasService(pServiceName, pVersion) then
             return true.
         
-        assign lRegistered = false
-               semVer      = SemanticVersion:Parse(pVersion)
-               .
         // 1. Look in the webapps' WEB-INF/openedge folder first
         // -----------------------------------------------------
         // GEN file first 
@@ -224,62 +217,58 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
        @param character  (mandatory) The service name.
        @param JsonObject (recommended) An operation map for the service.
        @param JsonObject (optional) A catalog for the service. Optional since it may exist on disk */
-    method public void RegisterService(input pcServiceName  as character,
-                                       input pcVersion as character,
-                                       input poOperations as JsonObject,
-                                       input poCatalog as JsonObject,
-                                       input poSchemas as JsonObject ):
+    method public DataObjectService RegisterService(input pcServiceName  as character,
+                                                    input pcVersion as character,
+                                                    input poOperations as JsonObject,
+                                                    input poCatalog as JsonObject,
+                                                    input poSchemas as JsonObject ):
         define variable numSchemas as integer no-undo.
         define variable numOperations as integer no-undo.
         define variable registerTime as datetime-tz extent 2 no-undo.
+        define variable svc as DataObjectService no-undo.
         
         Assert:NotNullOrEmpty(pcServiceName, 'Service name').
         Assert:NotNull(pcVersion, 'Service version').
         
-        assign registerTime[1] = now 
-               pcServiceName   = trim(pcServiceName, '/':u)
+        assign registerTime[1] = now
+               // service registration
+               svc = this-object:Registry:RegisterService(pcServiceName, SemanticVersion:Parse(pcVersion), ?, poCatalog)
                .
-        if pcServiceName eq '':u then
-            assign pcServiceName = ServiceRegistry:ROOT_SERVICE_NAME.
-        
-        // service registration
-        this-object:Registry:RegisterService(pcServiceName, SemanticVersion:Parse(pcVersion), ?, poCatalog).
-        
         // load schemas first since when we create the operation, we'd like to create any schema holders
         if valid-object(poSchemas) then
-            assign numSchemas = LoadSchemas(pcServiceName, SemanticVersion:Parse(pcVersion), poSchemas).
+            assign numSchemas = LoadSchemas(svc, poSchemas).
         
         if valid-object(poOperations) then
-            assign numOperations = LoadOperations(pcServiceName, SemanticVersion:Parse(pcVersion), poOperations).
+            assign numOperations = LoadOperations(svc, poOperations).
         
         assign registerTime[2] = now.
-        Logger:Info(substitute('Service &1 version &4 registered with &2 operations and &3 schemas',
-                        quoter(pcServiceName),
+        Logger:Info(substitute('Service "&1 v&4" registered with &2 operations and &3 schemas',
+                        svc:Name,
                         numOperations,
                         numSchemas,
-                        pcVersion )).
+                        string(svc:Version) )).
         Logger:Trace(substitute('Service "&1" registered in &2ms',
                         pcServiceName,
                         interval(registerTime[2], registerTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
         
+        return svc.
         catch oError as Progress.Lang.Error:
-            Logger:Error(substitute('Error registering service "&1" &2 ', pcServiceName, pcVersion), oError).
+            Logger:Error(substitute('Error registering service "&1 v&2"', svc:Name, string(svc:Version)), oError).
             this-object:Registry:DeregisterService(pcServiceName, SemanticVersion:Parse(pcVersion)).
         end catch.
     end method.
-
+    
     /* Converts a JSON map into internal structures 
        
-       @param character The service name
-       @param character The service version
+       @param DataObjectService The service
        @param JsonObject The set of schema
        @return integer The number of schemas loaded */
-    method private integer LoadSchemas(input pcServiceName as character,
-                                       input pVersion as SemanticVersion,
+    method private integer LoadSchemas(input pService as DataObjectService,
                                        input poSchemas as JsonObject):
         define variable iSchemaLoop as integer no-undo.
         define variable iSchemaMax as integer no-undo.
-        define variable cSchemaName as character extent no-undo.
+        define variable cSchemaName as longchar extent no-undo.
+        define variable schemaName as character no-undo.
         define variable iInnerLoop as integer no-undo.
         define variable iInnerMax as integer no-undo.
         define variable cTTName as character extent no-undo.
@@ -292,21 +281,24 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         Assert:NotNull(poSchemas, 'Schemas').
         
         assign cSchemaName = poSchemas:GetNames()
-               iSchemaMax = extent(cSchemaName).
+               iSchemaMax  = extent(cSchemaName)
+               .
         do iSchemaLoop = 1 to iSchemaMax:
-            if not poSchemas:GetType(cSchemaName[iSchemaLoop]) eq JsonDataType:OBJECT then
+            assign schemaName = string(cSchemaName[iSchemaLoop]).   
+            if not poSchemas:GetType(schemaName) eq JsonDataType:OBJECT then
                 next.
             
-            assign oSchema = poSchemas:GetJsonObject(cSchemaName[iSchemaLoop]).
+            assign oSchema = poSchemas:GetJsonObject(schemaName).
             if oSchema:Has(string(ServiceMappingFileSchemaEnum:fields)) then
-                assign hSchema = CreateTempTable(cSchemaName[iSchemaLoop], oSchema ).
+                assign hSchema = CreateTempTable(schemaName, oSchema ).
             else
             do:
                 create dataset hSchema.
-                assign hSchema:name    =  cSchemaName[iSchemaLoop]
+                assign hSchema:name    = schemaName
                        extent(cTTName) = ?
                        cTTName         = oSchema:GetNames()
-                       iInnerMax       = extent(cTTName) 
+                       iInnerMax       = extent(cTTName)
+                       attribs         = ?
                        .
                 do iInnerLoop = 1 to iInnerMax:
                     if cTTName[iInnerLoop] eq string(ServiceMappingFileSchemaEnum:attr) then
@@ -320,28 +312,24 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                     assign oTable     = oSchema:GetJsonObject(cTTName[iInnerLoop])
                            hTempTable = CreateTempTable(cTTName[iInnerLoop], oTable)
                            .
-                    /* register the temp-tables individually too, since the business logic
-                       may use the temp-tables independently of the dataset */
-                    this-object:Registry:PutSchema(pcServiceName, pVersion, cTTName[iInnerLoop], hTempTable).
-                    
                     hSchema:add-buffer(hTempTable:default-buffer-handle).
                 end.
                 
-                if valid-object(attribs) then
+                if valid-object(attribs) then                
                 do:
                     if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeHidden)) 
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
-                       then
+                    then
                         assign hSchema:serialize-hidden = attribs:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
                     
                     if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeName)) 
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
-                       then
-                        assign hSchema:serialize-name = attribs:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).                        
+                    then
+                        assign hSchema:serialize-name = attribs:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
                 end.
             end.    //datasets
             
-            this-object:Registry:PutSchema(pcServiceName, pVersion, cSchemaName[iSchemaLoop], hSchema).
+            pService:PutSchema(schemaName, hSchema).
         end.
         
         return iSchemaMax.
@@ -448,35 +436,33 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                and oField:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
                then 
                 assign hField:serialize-hidden = oField:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
-                                        
+            
             if     oField:Has(string(ServiceMappingFileSchemaEnum:serializeName)) 
                and oField:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
                then
-                assign hField:serialize-name = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).                        
-        end.        
+                assign hField:serialize-name = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
+        end.
         
         return hTable.
     end method.
     
     /* Converts a JSON map into internal structures 
        
-       @param character The service name
-       @param character The service version
+       @param DataObjectService The service 
        @param JsonObject The operation map
        @return integer The number of operations loaded */
-    method private integer LoadOperations(input pcServiceName as character,
-                                          input pVersion as SemanticVersion,
+    method private integer LoadOperations(input pService as DataObjectService,
                                           input poOperations as JsonObject):
         define variable numOperations as integer no-undo.
         define variable oUri as JsonObject no-undo.
         define variable oVerb as JsonObject no-undo.
         define variable oSvc as JsonObject no-undo.
         define variable oElem as JsonObject no-undo.
-        define variable oElemArr as JsonArray no-undo.
+        define variable propArray as JsonArray no-undo.
         define variable oOperationArg as JsonObject no-undo.
         define variable oArgs as JsonArray no-undo.
-        define variable cPropertyName as character extent no-undo.
-        define variable cMethod as character extent no-undo.
+        define variable cMethod as longchar extent no-undo.
+        define variable methodName as character no-undo.
         define variable oMethod as MethodEnum no-undo.
         define variable iSvcLoop as integer no-undo.
         define variable iSvcMax as integer no-undo.
@@ -490,36 +476,43 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable iElemMax as integer no-undo.
         define variable iInputCnt as integer no-undo.
         define variable iOutputCnt as integer no-undo.
-        define variable cIoElement as character extent no-undo.
-        define variable oParams as IList no-undo.
+        define variable ioMode as IOModeEnum no-undo.
         define variable oMappedOperation as MappedOperation no-undo.
         define variable oParam as OperationParameter no-undo.
         define variable targetType as character no-undo.
+        define variable propNames as longchar extent no-undo.
+        define variable propLoop as integer no-undo.
+        define variable propMax as integer no-undo.
+        define variable propData as JsonObject no-undo.
+        define variable msgElem as MessageElement extent no-undo.
+        define variable propertyName as character no-undo.
+        define variable relativeUris as longchar extent no-undo.
         
+        Assert:NotNull(pService, 'Service').
         Assert:NotNull(poOperations, 'Operations').
         
-        assign cPropertyName = poOperations:GetNames()
-               iUriMax = extent(cPropertyName).
-        
+        assign relativeUris = poOperations:GetNames()
+               iUriMax      = extent(relativeUris)
+               .
         URI-LOOP:
         do iUriLoop = 1 to iUriMax:
-            assign extent(cMethod) = ? 
-                   oUri     = poOperations:GetJsonObject(cPropertyName[iUriLoop])
-                   cMethod  = oUri:GetNames()
-                   iVerbMax = extent(cMethod)
-                   cPropertyName[iUriLoop] = trim(cPropertyName[iUriLoop], '/':u)
-                   
-                   // add here instead of incrementing so that we have fewer LoC  
-                   numOperations = numOperations + iVerbMax
+            assign extent(cMethod) = ?
+                   propertyName    = string(relativeUris[iUriLoop])
+                   oUri            = poOperations:GetJsonObject(propertyName)
+                   cMethod         = oUri:GetNames()
+                   iVerbMax        = extent(cMethod)
+                   // add here instead of incrementing so that we have fewer LoC
+                   numOperations   = numOperations + iVerbMax
+                   propertyName    = right-trim(propertyName, '/':u)
                    .
-            if cPropertyName[iUriLoop] eq '':u then
-                assign cPropertyName[iUriLoop] = ServiceRegistry:ROOT_SERVICE_URI.
-                            
+            if propertyName eq '':u then
+                assign propertyName = DataObjectService:ROOT_SERVICE_URI.
+            
             VERB-LOOP:
             do iVerbLoop = 1 to iVerbMax:
-                assign oMethod = MethodEnum:GetEnum(cMethod[iVerbLoop])
-                       oVerb = oUri:GetJsonObject(cMethod[iVerbLoop])
-                       oParams                 = new List()
+                assign methodName = string(cMethod[iVerbLoop])
+                       oMethod    = MethodEnum:GetEnum(methodName)
+                       oVerb      = oUri:GetJsonObject(methodName)
                        .
                 case true:
                     when oVerb:Has(string(ServiceMappingFileSchemaEnum:entity)) then
@@ -531,7 +524,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                .
                         if oSvc:Has(string(ServiceMappingFileSchemaEnum:type)) then
                             assign targetType = oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:type)).
-                        // backward-compat and un-set
+                        // backward-compat and values not set in JSON 
                         case targetType:
                             when 'cls':u  or
                             when '':u     then
@@ -540,124 +533,124 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                 assign targetType = string(TargetTypeEnum:Procedure).
                         end case.
                         
-                        assign oMappedOperation = new MappedOperation(pcServiceName,
-                                                                      pVersion,
-                                                                      cPropertyName[iUriLoop],
+                        assign oMappedOperation = new MappedOperation(propertyName,
                                                                       oMethod,
                                                                       oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
                                                                       targetType,
                                                                       oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
                                                                       (if oSvc:Has(string(ServiceMappingFileSchemaEnum:typeof)) then oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:typeof)) else '':u),
                                                                       oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:function)),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),                                                                      
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK)),
-                                                                      oParams).
+                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
+                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
+                                                                      ).
                         
                         ARGS-LOOP:
                         do iArgLoop = 1 to iArgMax:
-                            assign oOperationArg     = oArgs:GetJsonObject(iArgLoop)
-                                   extent(cIoElement) = ?
-                                   iInputCnt  = 0
-                                   iOutputCnt = 0
+                            assign oOperationArg   = oArgs:GetJsonObject(iArgLoop)
+                                   extent(msgElem) = ?
+                                   iInputCnt       = 0
+                                   iOutputCnt      = 0
                                    
                                    oParam = new OperationParameter(
                                                     IOModeEnum:GetEnum(oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:ioMode))),
                                                     oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:ablType)),
-                                                    (if oOperationArg:Has(string(ServiceMappingFileSchemaEnum:ablName)) then oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:ablName)) else '':u) 
-                                                ).
-                                                    
-                            // from the Param's ABLType we know that this is a dataset/temp-table, and we can create an empty schema
-                            CreateParameterSchema(oMappedOperation, oParam).
-                            
-                            if oParam:IOMode eq IOModeEnum:Return then
-                                oMappedOperation:ReturnValue = oParam. 
+                                                    (if oOperationArg:Has(string(ServiceMappingFileSchemaEnum:ablName)) then oOperationArg:GetCharacter(string(ServiceMappingFileSchemaEnum:ablName)) else '':u)
+                                                )
+                                   .
+                            if oParam:IOMode:IsFlagSet(IOModeEnum:Return) then
+                                assign oMappedOperation:ReturnValue = oParam. 
                             else
-                                oParams:Add(oParam).
+                                oMappedOperation:Parameters:Add(oParam).
                             
                             case oOperationArg:GetType(string(ServiceMappingFileSchemaEnum:msgElem)):
-                                when JsonDataType:ARRAY then
-                                do:
-                                    assign oElemArr = oOperationArg:GetJsonArray(string(ServiceMappingFileSchemaEnum:msgElem))
-                                           iElemMax = oElemArr:Length
-                                           extent(cIoElement) = iElemMax
-                                           .
-                                    /* we end up with 2 loops because ABL arrays are not dynamically resizable */
-                                    ELEM-CNT-LOOP:
-                                    do iElemLoop = 1 to iElemMax:
-                                        assign oElem = oElemArr:GetJsonObject(iElemLoop).
-                                        
-                                        if oElem:Has(string(ServiceMappingFileSchemaEnum:ioMode)) then
-                                            assign cIoElement[iElemLoop] = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:ioMode)).
-                                        else
-                                            assign cIoElement[iElemLoop] = oParam:IOMode:ToString().
-                                        
-                                        if cIoElement[iElemLoop] eq IOModeEnum:Input:ToString() or 
-                                           cIoElement[iElemLoop] eq IOModeEnum:Input-Output:ToString() then
-                                            assign iInputCnt = iInputCnt + 1. 
-                                        
-                                        if cIoElement[iElemLoop] eq IOModeEnum:Output:ToString() or
-                                           cIoElement[iElemLoop] eq IOModeEnum:Return:ToString() or
-                                           cIoElement[iElemLoop] eq IOModeEnum:Input-Output:ToString() then
-                                            assign iOutputCnt = iOutputCnt + 1.
-                                    end.    /* ELEM-CNT-LOOP */
-                                    
-                                    if iInputCnt gt 0 then
-                                        assign extent(oParam:InputElementType) = iInputCnt
-                                               extent(oParam:InputElementName) = iInputCnt
-                                               .
-                                    if iOutputCnt gt 0 then
-                                        assign extent(oParam:OutputElementType) = iOutputCnt
-                                               extent(oParam:OutputElementName) = iOutputCnt
-                                               .
-                                    ELEM-ADD-LOOP:
-                                    do iElemLoop = 1 to iElemMax:
-                                        assign oElem = oElemArr:GetJsonObject(iElemLoop).
-                                        if cIoElement[iElemLoop] eq IOModeEnum:Input:ToString() or 
-                                           cIoElement[iElemLoop] eq IOModeEnum:Input-Output:ToString() then
-                                            assign oParam:InputElementType[iElemLoop] = ElementTypeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type)))
-                                                   oParam:InputElementName[iElemLoop] = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name))
-                                                   . 
-                                        if cIoElement[iElemLoop] eq IOModeEnum:Output:ToString() or
-                                           cIoElement[iElemLoop] eq IOModeEnum:Return:ToString() or
-                                           cIoElement[iElemLoop] eq IOModeEnum:Input-Output:ToString() then
-                                            assign oParam:OutputElementType[iElemLoop] = ElementTypeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type)))
-                                                   oParam:OutputElementName[iElemLoop] = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name))
-                                                   .
-                                    end.    /* ELEM-ADD-LOOP */
-                                end.    /* array */
                                 when JsonDataType:OBJECT then
                                 do:
-                                    assign oElem = oOperationArg:GetJsonObject(string(ServiceMappingFileSchemaEnum:msgElem)).
-                                    
-                                    /* for single msgElem's we ignore the 'ioMode' */
-                                    if oParam:IOMode:IsFlagSet(IOModeEnum:Input) then
-                                        assign extent(oParam:InputElementType) = 1
-                                               extent(oParam:InputElementName) = 1
-                                               
-                                               oParam:InputElementType[1] = ElementTypeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type)))
-                                               oParam:InputElementName[1] = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name)). 
-
-                                    if    oParam:IOMode:IsFlagSet(IOModeEnum:Output)
-                                       or oParam:IOMode:IsFlagSet(IOModeEnum:Return)
-                                       then
-                                        assign extent(oParam:OutputElementType) = 1
-                                               extent(oParam:OutputElementName) = 1
-                                               
-                                               oParam:OutputElementType[1] = ElementTypeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type)))
-                                               oParam:OutputElementName[1] = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
-                                end.    /* OBJECT */
+                                    assign propArray = new JsonArray().
+                                    propArray:Add(oOperationArg:GetJsonObject(string(ServiceMappingFileSchemaEnum:msgElem))).
+                                end.
+                                
+                                when JsonDataType:ARRAY then
+                                    assign propArray = oOperationArg:GetJsonArray(string(ServiceMappingFileSchemaEnum:msgElem)).
+                                
                                 otherwise
                                 do:
-                                    Logger:Error(substitute('Unnsupported msgElem type &1', oOperationArg:GetType(string(ServiceMappingFileSchemaEnum:msgElem)))).
+                                    Logger:Error(substitute('Unsupported msgElem type &1',
+                                                    oOperationArg:GetType(string(ServiceMappingFileSchemaEnum:msgElem)))).
                                     next ARGS-LOOP.
                                 end.
                             end case.
+                            
+                            assign iElemMax        = propArray:Length
+                                   extent(msgElem) = iElemMax
+                                   .
+                            // we end up with 2 loops because ABL arrays are not dynamically resizable
+                            ELEM-CNT-LOOP:
+                            do iElemLoop = 1 to iElemMax:
+                                assign oElem = propArray:GetJsonObject(iElemLoop).
+                                // The splitting of msgElems into INPUT and OUTPUT only makes sense for IN-OUT params
+                                if     oElem:Has(string(ServiceMappingFileSchemaEnum:ioMode))
+                                   and oParam:IOMode:IsFlagSet(IOModeEnum:Input-Output)
+                                then
+                                    assign ioMode = IOModeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:ioMode))).
+                                else
+                                    assign ioMode = oParam:IOMode.
+                                
+                                if ioMode:IsFlagSet(IOModeEnum:Input) then
+                                    assign iInputCnt = iInputCnt + 1.
+                                
+                                if    ioMode:IsFlagSet(IOModeEnum:Output)
+                                   or ioMode:IsFlagSet(IOModeEnum:Return)
+                                then
+                                    assign iOutputCnt = iOutputCnt + 1.
+                                
+                                assign msgElem[iElemLoop] = new MessageElement(
+                                                                    ElementTypeEnum:GetEnum(oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:type))),
+                                                                    oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
+                                                                    ioMode  ).
+                                //If this is an ARRAY of any type or a CLASS then we can set the ablRef
+                                if oElem:Has(string(ServiceMappingFileSchemaEnum:ablRef)) then
+                                do:
+                                    if     oParam:IsArray
+                                       and oElem:GetType(string(ServiceMappingFileSchemaEnum:ablRef)) eq JsonDataType:NUMBER
+                                    then
+                                        assign msgElem[iElemLoop]:ABLReference = string(oElem:GetInteger(string(ServiceMappingFileSchemaEnum:ablRef))).
+                                    else
+                                    if not oParam:IsPrimitive
+                                       and oElem:GetType(string(ServiceMappingFileSchemaEnum:ablRef)) eq JsonDataType:STRING
+                                    then
+                                        assign msgElem[iElemLoop]:ABLReference = oElem:GetCharacter(string(ServiceMappingFileSchemaEnum:ablRef)).
+                                end.
+                            end.    // ELEM-CNT-LOOP 
+                            
+                            if iInputCnt gt 0 then
+                                assign extent(oParam:InputElement) = iInputCnt
+                                       // for the ELEM-ADD-LOOP
+                                       iInputCnt = 1
+                                       .
+                            if iOutputCnt gt 0 then
+                                assign extent(oParam:OutputElement) = iOutputCnt
+                                       // for the ELEM-ADD-LOOP
+                                       iOutputCnt = 1
+                                       .
+                            ELEM-ADD-LOOP:
+                            do iElemLoop = 1 to iElemMax:
+                                // Covers INPUT and INPUT-OUTPUT parameters
+                                if msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Input) then
+                                    assign oParam:InputElement[iInputCnt] = msgElem[iElemLoop]
+                                           iInputCnt                      = iInputCnt + 1
+                                           .
+                                // Covers INPUT-OUTPUT, OUTPUT and RETURN parameters
+                                if    msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Output) 
+                                   or msgElem[iElemLoop]:IoMode:IsFlagSet(IOModeEnum:Return) 
+                                then
+                                    assign oParam:OutputElement[iOutputCnt] = msgElem[iElemLoop]
+                                           iOutputCnt                       = iOutputCnt + 1
+                                           .
+                            end.    /* ELEM-ADD-LOOP */
                         end.    /* ARGS-LOOP: */
                     end.    /* entity */
                     when oVerb:Has(string(ServiceMappingFileSchemaEnum:file)) then
-                        assign oMappedOperation = new MappedOperation(pcServiceName,
-                                                                      pVersion,
-                                                                      cPropertyName[iUriLoop],
+                        assign oMappedOperation = new MappedOperation(propertyName,
                                                                       oMethod,
                                                                       oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
                                                                       string(TargetTypeEnum:File),
@@ -665,12 +658,11 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       '':u,     /* type-of */
                                                                       '':u,     /* function */
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK)),
-                                                                      oParams).
-                    when oVerb:Has(string(ServiceMappingFileSchemaEnum:void)) then
-                        assign oMappedOperation = new MappedOperation(pcServiceName,
-                                                                      pVersion,
-                                                                      cPropertyName[iUriLoop],
+                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK)) 
+                                                                      ).
+                    // defaults  to VOID
+                    otherwise
+                        assign oMappedOperation = new MappedOperation(propertyName,
                                                                       oMethod,
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:contentType)) then oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)) else '':u),
                                                                       string(TargetTypeEnum:Void),
@@ -678,17 +670,51 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       '':u,     /* type-of */
                                                                       '':u,     /* function */
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:NotFound)),
-                                                                      oParams).
+                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:NotFound))
+                                                                      ).
                 end case.
+                
+                // Add the operation to the service 
+                pService:PutOperation(oMappedOperation).
                 
                 // If there's a 'name' property, add it to the options for the operation
                 if     oVerb:Has(string(ServiceMappingFileSchemaEnum:name))
                    and oVerb:GetType(string(ServiceMappingFileSchemaEnum:name)) eq JsonDataType:STRING
-                   then
+                then
                     assign oMappedOperation:Name = oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
                 
-                this-object:Registry:PutOperation(pcServiceName, pVersion, oMappedOperation).
+                // If there are a set of headers defined to return, then add them
+                if     oVerb:Has(string(ServiceMappingFileSchemaEnum:headers)) 
+                   and oVerb:GetType(string(ServiceMappingFileSchemaEnum:headers)) eq JsonDataType:OBJECT
+                then
+                do:
+                    assign extent(propNames) = ?
+                           propData  = oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:headers))
+                           propNames = propData:GetNames()
+                           propMax   = extent(propNames)
+                           .
+                    do propLoop = 1 to propMax:
+                        assign propertyName = string(propNames[propLoop]). 
+                        if propData:GetType(propertyName) eq JsonDataType:STRING then
+                            oMappedOperation:Headers:Put( HttpHeaderBuilder:Build(propertyName)
+                                                            :Value(propData:GetCharacter(propertyName))
+                                                            :Header ).
+                    end.
+                end.
+                
+                // If there are a set of cookies defined to return, then add them
+                if     oVerb:Has(string(ServiceMappingFileSchemaEnum:cookies))
+                   and oVerb:GetType(string(ServiceMappingFileSchemaEnum:cookies)) eq JsonDataType:ARRAY
+                then
+                do:
+                    assign propArray = oVerb:GetJsonArray(string(ServiceMappingFileSchemaEnum:cookies))
+                           propMax    = propArray:Length
+                           .
+                    do propLoop = 1 to propMax:
+                        if propArray:GetType(propLoop) eq JsonDataType:STRING then
+                            oMappedOperation:Cookies:Add(Cookie:Parse(propArray:GetCharacter(propLoop))).
+                    end.
+                end.
             end.    /* VERB-LOOP: */
         end.    /* URI-LOOP: */
         
@@ -723,7 +749,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         assign oServiceList = oMap:GetJsonObject(string(ServiceMappingFileSchemaEnum:services))
                cServiceName = oServiceList:GetNames()
-               iMax = extent(cServiceName).
+               iMax         = extent(cServiceName)
+               .
         do iLoop = 1 to iMax:
             case oServiceList:GetType(cServiceName[iLoop]):
                 when JsonDataType:OBJECT then
@@ -769,7 +796,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         Logger:Debug(substitute('Loading map: &1', phFile:full-pathname)).
         
-        assign oMap = cast(mJsonParser:ParseFile(file-info:full-pathname), JsonObject).
+        assign oMap = cast(mJsonParser:ParseFile(phFile:full-pathname), JsonObject).
         
         if not oMap:Has(string(ServiceMappingFileSchemaEnum:services)) or
            not oMap:GetType(string(ServiceMappingFileSchemaEnum:services)) eq JsonDataType:OBJECT then
@@ -826,6 +853,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable oSchemas as JsonObject no-undo.
         define variable oCatalog as JsonObject no-undo.
         define variable semVer as SemanticVersion no-undo.
+        define variable svc as DataObjectService no-undo.
         
         /* service info */
         if pService:Has(string(ServiceMappingFileSchemaEnum:version)) then
@@ -836,7 +864,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         // If we passed a non-empty version in, then compare         
         if not pVersion eq '':u
            and not string(semVer) eq pVersion  
-           then
+        then
             return.
         
         if     pService:Has(string(ServiceMappingFileSchemaEnum:operations)) 
@@ -853,18 +881,21 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
           and pService:GetType(string(ServiceMappingFileSchemaEnum:catalog)) eq JsonDataType:OBJECT then
             assign oCatalog = pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:catalog)).
         
-        RegisterService(pServiceName,
-                        semVer:ToString(), 
-                        oOperations,
-                        oCatalog,
-                        oSchemas        ).
+        assign svc = RegisterService(pServiceName,
+                                     semVer:ToString(),
+                                     oOperations,
+                                     oCatalog,
+                                     oSchemas        ).
         
         if     pService:Has(string(ServiceMappingFileSchemaEnum:options)) 
            and pService:GetType(string(ServiceMappingFileSchemaEnum:options)) eq JsonDataType:OBJECT 
-           then
-            this-object:Registry:PutServiceOptions(pServiceName,
-                              semVer, 
-                              LoadServiceOptions(pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:options)))).
+        then
+            LoadServiceOptions(svc, pService:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))).
+        
+        if     pService:Has(string(ServiceMappingFileSchemaEnum:argumentWriters)) 
+           and pService:GetType(string(ServiceMappingFileSchemaEnum:argumentWriters)) eq JsonDataType:ARRAY
+        then
+            LoadServiceWriters(svc, pService:GetJsonArray(string(ServiceMappingFileSchemaEnum:argumentWriters))).
     end method.
      
     /* Registers all services found in a given file. Can be used at agent startup
@@ -928,11 +959,12 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
        @return OperationOptions A usable options object. */
     method private OperationOptions CreateOperationOptions(input pData as JsonObject):
         define variable options as OperationOptions no-undo.
-        define variable maxSchema as integer no-undo.
+        define variable maxProps as integer no-undo.
         define variable loop as integer no-undo.
         define variable childLoop as integer no-undo.
-        define variable schemaName as character extent no-undo.
+        define variable propName as character extent no-undo.
         define variable jsonData as JsonObject no-undo.
+        define variable arrayData as JsonArray no-undo.
         define variable schemaOption as SchemaOption no-undo.
         
         assign options = new OperationOptions().
@@ -942,14 +974,14 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         if     pData:Has(string(ServiceMappingFileSchemaEnum:writeBI))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:writeBI)) eq JsonDataType:BOOLEAN
-           then
+        then
             assign options:WriteBI = pData:GetLogical(string(ServiceMappingFileSchemaEnum:writeBI)).
-
+        
         if     pData:Has(string(ServiceMappingFileSchemaEnum:timeout))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:timeout)) eq JsonDataType:NUMBER
-           then
+        then
             assign options:Timeout = pData:GetInteger(string(ServiceMappingFileSchemaEnum:timeout)).
-
+        
         if pData:Has(string(ServiceMappingFileSchemaEnum:requestEnvelope)) then
         case pData:GetType(string(ServiceMappingFileSchemaEnum:requestEnvelope)):
             when JsonDataType:BOOLEAN then 
@@ -982,19 +1014,18 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         if     pData:Has(string(ServiceMappingFileSchemaEnum:schemas)) 
            and pData:GetType(string(ServiceMappingFileSchemaEnum:schemas)) eq JsonDataType:OBJECT
-           then
+        then
         do:
-            assign jsonData   = pData:GetJsonObject(string(ServiceMappingFileSchemaEnum:schemas))
-                   schemaName = jsonData:GetNames()
-                   maxSchema  = extent(schemaName)
+            assign jsonData  = pData:GetJsonObject(string(ServiceMappingFileSchemaEnum:schemas))
+                   propName = jsonData:GetNames()
+                   maxProps = extent(propName)
                    .
-            do loop = 1 to maxSchema:
-                if not jsonData:GetType(schemaName[loop]) eq JsonDataType:OBJECT then
+            do loop = 1 to maxProps:
+                if not jsonData:GetType(propName[loop]) eq JsonDataType:OBJECT then
                     next.
                 
-                assign schemaOption = new SchemaOption(schemaName[loop]).
-                LoadSchemaOptions(input schemaOption,
-                                  input jsonData:GetJsonObject(schemaName[loop])).
+                assign schemaOption = new SchemaOption(propName[loop]).
+                LoadSchemaOptions(schemaOption, jsonData:GetJsonObject(propName[loop])).
                 
                 options:SchemaOptions:Put(schemaOption:SchemaName, schemaOption).
             end.
@@ -1013,6 +1044,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable numProps as integer no-undo.
         define variable loop as integer no-undo.
         define variable childOption as SchemaOption no-undo.
+        define variable childData as JsonObject no-undo.
         
         // nothing to load
         if not valid-object(pData) then
@@ -1020,20 +1052,28 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         
         if     pData:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
-           then
+        then
             assign pSchemaOption:Hidden = pData:GetLogical(string(ServiceMappingFileSchemaEnum:serializeHidden)).
-
+        
         if     pData:Has(string(ServiceMappingFileSchemaEnum:serializeName))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
-           then
+        then
             assign pSchemaOption:SerializeName = pData:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
         
+        // Can have FIELDS or TABLES as children 
         if     pData:Has(string(ServiceMappingFileSchemaEnum:fields))
            and pData:GetType(string(ServiceMappingFileSchemaEnum:fields)) eq JsonDataType:OBJECT
-           then
+        then
+            assign childData = pData:GetJsonObject(string(ServiceMappingFileSchemaEnum:fields)).
+        else
+        if     pData:Has(string(ServiceMappingFileSchemaEnum:tables))
+           and pData:GetType(string(ServiceMappingFileSchemaEnum:tables)) eq JsonDataType:OBJECT
+        then
+            assign childData = pData:GetJsonObject(string(ServiceMappingFileSchemaEnum:tables)).
+        
+        if valid-object(childData) then
         do:
-            assign pData         = pData:GetJsonObject(string(ServiceMappingFileSchemaEnum:fields))
-                   propertyNames = pData:GetNames()
+            assign propertyNames = childData:GetNames()
                    numProps      = extent(propertyNames)
                    .
             do loop = 1 to numProps:
@@ -1041,145 +1081,55 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                 pSchemaOption:PutChildSchema(childOption).
                 
                 LoadSchemaOptions(input childOption,
-                                  input pData:GetJsonObject(propertyNames[loop])).
+                                  input childData:GetJsonObject(propertyNames[loop])).
             end.
         end.
     end.
     
-    /* Creates a schema holder for this parameter for this operation.
-       
-       @param MappedOperation The operation to which this parameter applies
-       @param OperationParameter The parameter for which to create a schema holder 
-       @param handle An empty schema for this operation/parameter */
-    method private void CreateParameterSchema(input pOperation as MappedOperation,
-                                              input pParam as OperationParameter):
-        define variable serviceSchema as handle no-undo.
-        define variable operationSchema as handle no-undo.
-        define variable cloneTime as datetime extent 2 no-undo.
-        define variable excludeElements as character no-undo.
-        define variable mapElements as character no-undo.
+    /** Loads service writers from JSON.
         
-        Assert:NotNull(pOperation, 'Mapped operation').
-        Assert:NotNull(pParam, 'Operation parameter').
-        
-        // if there's no schema, or we have a valid schema, return
-        if not pParam:HasSchema
-           or  valid-object(pOperation:Schemas:Get(pParam:ABLName))
-           then
-            return.
-        
-        assign serviceSchema = this-object:Registry:GetSchema(pOperation:ServiceName, pParam:ABLName).
-        if not valid-handle(serviceSchema) then
-        do:
-            Logger:Warn(substitute('Unable to find schema &2 for service &1',
-                            pOperation:ServiceName, 
-                            pParam:ABLName)).
-            return.
-        end.
-        
-        assign cloneTime[1] = now.
-        case pParam:DataType:
-            when 'dataset-handle':u then
-                create dataset operationSchema.
-            when 'table-handle':u then
-            do:
-                /* If the TT is part of a dataset, clone the DATASET - we'll only use the
-                   temp-table but we want it to be part of a whole */
-                if valid-handle(serviceSchema:default-buffer-handle:dataset) then
-                do:
-                    create dataset operationSchema.
-                    assign serviceSchema = serviceSchema:default-buffer-handle:dataset.
-                end.
-                else
-                    create temp-table operationSchema.
-            end.
-        end case.
-        
-        operationSchema:create-like(serviceSchema).
-        case operationSchema:type:
-            when 'table':u then
-            do:
-                // The BEFORE-TABLE does NOT come along for the ride ...
-                operationSchema:temp-table-prepare(serviceSchema:name,
-                                                   valid-handle(serviceSchema:before-table) ).
-                
-                // apply serialize-* settings to TT
-                ApplySchemaOptions(operationSchema:default-buffer-handle,
-                                   cast(pOperation:Options:SchemaOptions:Get(pParam:ABLName), SchemaOption)).
-            end.    // TT
-            when 'dataset' then
-                // apply serialize-* settings to TT
-                ApplySchemaOptions(operationSchema,
-                                   cast(pOperation:Options:SchemaOptions:Get(pParam:ABLName), SchemaOption)).
-        end case.
-        
-        assign cloneTime[2] = now.
-        Logger:Trace(substitute('Schema &1 clone time &2ms',
-                        pParam:ABLName,
-                        interval(cloneTime[2], cloneTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        
-        /* we want to keep the schema around for the duration of this call and destroy it when we're done */
-        pOperation:Schemas:Put(pParam:ABLName, new WidgetHandle(operationSchema, true)).
-    end method.
-    
-    /** Applies schema-related options (serialize-*) to a buffer
-        
-        @param handle The buffer handle to which to apply the option
-        @param SchemaOption The schema option to apply to the input schema structure */        
-    method private void ApplySchemaOptions (input pSchema as handle,
-                                            input pOptions as SchemaOption):
-        define variable childSchemaNames as character extent no-undo.
-        define variable numChildren as integer no-undo.
+        @param DataObjectService The service
+        @param JsonObject The service options */
+    method private void LoadServiceWriters(input pService as DataObjectService,
+                                           input pData as JsonArray):
+        define variable cnt as integer no-undo.
         define variable loop as integer no-undo.
-        define variable childOption as SchemaOption no-undo.
-        define variable schemaElement as handle no-undo.
+        define variable writerMap as JsonObject no-undo.
+        define variable writerName as character no-undo.
+        define variable writerType as class Progress.Lang.Class no-undo.
         
-        // we may have no options
-        if not valid-object(pOptions) then
-            return.
+        Assert:NotNull(pData, 'Writer data').
+        assign cnt = pData:Length.
+        do loop = 1 to cnt
+        on error undo, throw:
+            if not pData:GetType(loop) eq JsonDataType:OBJECT then
+                next.
             
-        Assert:NotNull(pSchema, 'Service Schema').
-        
-        // this schema 
-        if not pOptions:SerializeName eq ? then
-            assign pSchema:serialize-name = pOptions:SerializeName.
-        
-        if     pOptions:Hidden
-           and not (    pSchema:type eq 'buffer':u
-                     or pSchema:type eq 'temp-table':u )
-           then
-            assign pSchema:serialize-hidden = pOptions:Hidden.
-        
-        // Child schemas are only for tables/buffers
-        if     pOptions:HasChildSchema()
-           and (   pSchema:type eq 'buffer':u
-                or pSchema:type eq 'temp-table':u)
-           then 
-            assign childSchemaNames = pOptions:GetChildSchemas()
-                   numChildren      = extent(childSchemaNames)
-                   .
-        do loop =  1 to numChildren:
-            assign childOption = pOptions:GetChildSchema(childSchemaNames[loop])
-                   schemaElement = pSchema:buffer-field(childSchemaNames[loop])
-                   
-                   schemaElement:serialize-hidden = childOption:Hidden
-                   schemaElement:serialize-name   = childOption:SerializeName
-                   .
-            //recurse
-            ApplySchemaOptions(schemaElement, childOption).
+            assign writerMap = pData:GetJsonObject(loop).
+            if     writerMap:Has(string(ServiceMappingFileSchemaEnum:name))
+               and writerMap:GetType(string(ServiceMappingFileSchemaEnum:name)) eq JsonDataType:STRING
+            then
+                assign writerName = writerMap:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
+
+            if     writerMap:Has(string(ServiceMappingFileSchemaEnum:type))
+               and writerMap:GetType(string(ServiceMappingFileSchemaEnum:type)) eq JsonDataType:STRING
+            then
+                assign writerType = Progress.Lang.Class:GetClass(writerMap:GetCharacter(string(ServiceMappingFileSchemaEnum:type))).
+            
+            pService:ArgumentWriters:Put(writerName, writerType).
+            catch loadError as Progress.Lang.Error :
+                next.
+            end catch. 
         end.
-    end.
+    end method.
     
     /** Loads service options from JSON.
         
-        @param JsonObject The service options
-        @return ServiceOptions The service options */
-    method private ServiceOptions LoadServiceOptions(input pData as JsonObject):
-        define variable svcOptions as ServiceOptions no-undo.
-        
-        assign svcOptions = new ServiceOptions().
-        
-        return svcOptions. 
+        @param DataObjectService The service
+        @param JsonObject The service options */
+    method private void LoadServiceOptions(input pService as DataObjectService,
+                                           input pData as JsonObject):
+        assign pService:Options = new ServiceOptions().
     end method.
     
 end class.

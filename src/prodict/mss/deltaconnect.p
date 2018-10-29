@@ -7,6 +7,7 @@
 
 /* Procedure deltaconnect.p - sdash
    Created 03/13/13 Initial procedure for the MSS Incremental Df Utility
+   vprasad	08/20/18 ODIA-1951 -  ODBC Driver 17 for SQL Server certification
 */
 
 { prodict/user/uservar.i  }
@@ -49,9 +50,9 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
       /* To support computed columns, check for MSS 2005 or higher */
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 9 THEN 
           hasCompColSupport = YES.
-      /* if SQL 2008 and above and native Driver 10, let user select 2008 types */
+      /* if SQL 2008 and above and native Driver 10 or ODBC17 driver, let user select 2008 types */
       IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 10 THEN DO:
-         IF (DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
+         IF ((DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") OR (DICTDB._Db._db-misc2[1] BEGINS "MSODBCSQL")) AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
              has2008Support = YES.
       END.
      END.
@@ -90,9 +91,9 @@ IF LDBNAME("DICTDB") <> ? THEN DO:
          /* To support computed columns, check for MSS 2005 or higher */
           IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 9 THEN 
              hasCompColSupport = YES.
-         /* if SQL 2008 and above and native Driver 10, let user select 2008 types */
+         /* if SQL 2008 and above and native Driver 10 or ODBC17 driver, let user select 2008 types */
           IF INTEGER(SUBSTRING(ENTRY(NUM-ENTRIES(DICTDB._Db._Db-misc2[5], " ":U),_Db._Db-misc2[5], " ":U),1,2)) >= 10 THEN DO:
-             IF (DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
+             IF ((DICTDB._Db._db-misc2[1] BEGINS "SQLNCLI") OR (DICTDB._Db._db-misc2[1] BEGINS "MSODBCSQL")) AND INTEGER(ENTRY(1,DICTDB._Db._db-misc2[2],".")) >= 10 THEN
              has2008Support = YES.
            END.
        END.

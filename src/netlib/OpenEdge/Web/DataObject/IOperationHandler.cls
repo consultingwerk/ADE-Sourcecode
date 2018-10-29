@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : IOperationHandler
@@ -13,9 +13,9 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
   ----------------------------------------------------------------------*/
 
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.IWebRequest.
-using OpenEdge.Web.DataObject.TargetTypeEnum.
 
 interface OpenEdge.Web.DataObject.IOperationHandler:
     /* Executes the operation.  
@@ -24,12 +24,14 @@ interface OpenEdge.Web.DataObject.IOperationHandler:
        @param P.L.Object The message body of the incoming request. Typically 
                          will be transformed from bytes into something useful; may also have an envelope removed. 
        @param IHttpResponse The current response object, if any
+       @param DataObjectService The service being run
        @param MappedOperation The mapped operation
        @param P.L.Object The business entity (business logic service)  
        @return integer A non-null status code use to deal with errors */
     method public integer Execute(input poRequest  as IWebRequest,
                                   input poMessageBody as Progress.Lang.Object,
                                   input poResponse as IHttpResponse,
+                                  input pService as DataObjectService,
                                   input poOperation as MappedOperation,
                                   input poBusinessEntity as Progress.Lang.Object).
     

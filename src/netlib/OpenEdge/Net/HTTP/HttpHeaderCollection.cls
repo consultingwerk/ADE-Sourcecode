@@ -26,9 +26,16 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         field HttpHeader  as Object
         index idx1 as primary unique ParentClass HeaderName. 
     
+    /* The number of headers in this collection */
+    define public property Size as integer no-undo
+        get.
+        private set.
+    
+    /* Default constructor */
     constructor public HttpHeaderCollection():
     end method.
     
+    /* Destructor */
     destructor HttpHeaderCollection():
         this-object:Clear().
     end destructor.
@@ -101,9 +108,9 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
     method private void UpdateHeaderRecord(input poHeader as HttpHeader):
         define buffer lbHeader for Headers.
         
-        // Ignore NullHeader instances
-        if     valid-object(poHeader) 
-           and type-of(poHeader, NullHeader) 
+        // Ignore unknown or NullHeader instances
+        if not valid-object(poHeader) 
+           or  type-of(poHeader, NullHeader) 
         then
             return.
         
@@ -112,7 +119,9 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         do:
             create lbHeader.
             assign lbHeader.ParentClass = int64(this-object)
-                   lbHeader.HeaderName  = poHeader:Name.
+                   lbHeader.HeaderName  = poHeader:Name
+                   this-object:Size     = this-object:Size - 1
+                   .
         end.
         assign lbHeader.HttpHeader = poHeader.
     end method.
@@ -124,7 +133,10 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         define buffer lbHeader for Headers.
         
         if FindHeaderRecord(buffer lbHeader, pcName) then
+        do:
             delete lbHeader.
+            assign this-object:Size = this-object:Size - 1.
+        end.
     end method.
     
     /** Returns a named header
@@ -196,7 +208,7 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         
         DeleteHeaderRecord(pcName).
     end method.
-
+    
     /** Removes all headers from this message */ 
     method public void Clear().
         define buffer lbHeader for Headers.
@@ -204,6 +216,8 @@ class OpenEdge.Net.HTTP.HttpHeaderCollection serializable:
         for each lbHeader where lbHeader.ParentClass eq int64(this-object):
             delete lbHeader.
         end.
+        
+        assign this-object:Size = 0.
     end method.
     
 end class.

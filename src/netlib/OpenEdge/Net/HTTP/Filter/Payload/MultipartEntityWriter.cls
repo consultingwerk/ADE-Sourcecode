@@ -36,6 +36,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
     
     constructor public MultipartEntityWriter():
         super (get-class(MultipartEntity)).
+        
+        //pick a default, any default
+        assign this-object:Boundary = 'X-OPENEDGE-BOUNDARY':u.
     end constructor.
     
     method override public int64 Write(input poData as Object):
@@ -51,6 +54,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
             when type-of(poData, ByteBucket) then
                 assign oBody = cast(poData, ByteBucket):GetBytes().
             
+            when type-of(poData, MessagePart) then
+                return this-object:Write(cast(poData, MessagePart)).
+            
             otherwise
                 return error new AppError(
                                 substitute('Unsupported object type: &1', poData:GetClass():TypeName)
@@ -58,7 +64,31 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         end case.
         
         if valid-object(oBody) then
-                return this-object:Write(oBody:Value).
+            return this-object:Write(oBody:Value).
+        
+        return 0.
+    end method.
+    
+    /* Writes a message part into this entity
+       
+       @param MessagePart The new part to add
+       @return int64 The number of bytes written   */
+    method protected int64 Write(input pData as MessagePart):
+        define variable mpEntity as MultipartEntity no-undo.
+        
+        if not valid-object(pData) then
+            return 0.
+        
+        if valid-object(this-object:Entity) then
+            assign mpEntity = cast(this-object:Entity, MultipartEntity).
+        else
+            assign mpEntity           = new MultipartEntity()
+                   mpEntity:Boundary  = this-object:Boundary
+                   this-object:Entity = mpEntity
+                   .
+        
+        mpEntity:AddPart(pData).
+        
         return 0.
     end method.
     

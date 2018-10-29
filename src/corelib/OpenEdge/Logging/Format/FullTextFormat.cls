@@ -39,12 +39,11 @@ class OpenEdge.Logging.Format.FullTextFormat implements ILoggerFilter, ISupportF
         else
             assign messageGroup = poEvent:Message:GroupName.
         
-        assign poEvent:Message:Message = substitute('[&1] &3 &2: &4&5':U,
+        assign poEvent:Message:Message = substitute('[&1] &3 &2: &4':U,
                             /*1*/ iso-date(poEvent:TimeStamp),
                             /*2*/ string(poEvent:LogLevel),
                             /*3*/ messageGroup,
-                            /*4*/ poEvent:Message:Message,
-                            /*5*/ StringConstant:CRLF).
+                            /*4*/ poEvent:Message:Message).
         end method.
         
 end class.

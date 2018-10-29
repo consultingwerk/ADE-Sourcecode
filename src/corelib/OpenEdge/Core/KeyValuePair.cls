@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : KeyValuePair
@@ -40,12 +40,30 @@ class OpenEdge.Core.KeyValuePair serializable:
     end constructor.
     
     /* Constructor
+       
+       @param character A key value */
+    constructor public KeyValuePair (input pKey as character):
+        Assert:NotNull(pKey, 'Key').
+        
+        assign this-object:Key = new String(pKey).
+    end constructor.
+    
+    /* Constructor
     
        @param character A String key value
        @param P.L.Object A value associated with the key */
     constructor public KeyValuePair(input pcKey as character,
                                     input pValue as Progress.Lang.Object):
         this-object(new String(pcKey), pValue).
+    end constructor.
+
+    /* Constructor
+    
+       @param character A String key value
+       @param longchar A value associated with the key */
+    constructor public KeyValuePair(input pcKey  as character,
+                                    input pValue as longchar):
+        this-object(new String(pcKey), new String(pValue)).
     end constructor.
     
     /* Constructor
@@ -70,9 +88,9 @@ class OpenEdge.Core.KeyValuePair serializable:
     method public override logical Equals(o as Progress.Lang.Object):
          define variable kvp as KeyValuePair no-undo.
          
-         if o:Equals(this-object) then
+         if super:Equals(o) then
              return true.
-             
+         
          if type-of(o, KeyValuePair) then
          do: 
              kvp = cast(o, KeyValuePair).

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DecimalValueWriter
@@ -56,9 +56,10 @@ class OpenEdge.Web.DataObject.Writer.DecimalValueWriter inherits ArgumentValueWr
     end method.
         
     method override public void Write(input pData as Progress.Lang.Object):
-        Assert:NotNull(pData, 'Input data'). 
-        
         case true:
+            when not valid-object(pData) then
+                assign this-object:Value = new OpenEdge.Core.Decimal(?).
+            
             when type-of(pData, ILongcharHolder) then
                this-object:Write(cast(pData, ILongcharHolder):Value).
 

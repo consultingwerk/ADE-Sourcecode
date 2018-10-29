@@ -24,7 +24,6 @@ using OpenEdge.Logging.Filter.LoggerFilterList.
 using OpenEdge.Logging.Filter.LoggerFilterNode.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogLevelEnum.
-using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.VoidLogger.
@@ -70,8 +69,8 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     constructor static LoggerBuilder():
         define variable cnt as integer no-undo.
         
-        assign mLogLevels   = get-class(LogLevelEnum):GetEnumValues()
-               mMaxLogLevel = 0
+        assign mLogLevels    = get-class(LogLevelEnum):GetEnumValues()
+               mMaxLogLevel  = 0
                .
         do cnt = num-entries(mLogLevels) to 1 by -1:
             assign mMaxLogLevel = max(mMaxLogLevel, int64(entry(cnt, mLogLevels))).
@@ -202,7 +201,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         Assert:NotNullOrEmpty(pcFilterName, 'Log filter name').
         
         AppendArrayCharacterValue('filterName':u, pcFilterName).
-                        
+        
         return this-object.
     end method.
         
@@ -246,6 +245,11 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             assign logWriter = new VoidLogger(this-object:LoggerType).
         
         return logWriter.
+
+        catch loadError as Progress.Lang.Error:
+            LoggerBuilder:LogMessage(substitute('Error building logger &1 : &2', this-object:LoggerType, loadError:GetMessage(1)),
+                                     LogLevelEnum:ERROR).
+        end catch.
     end method.
     
     /* Creates a default logger based that uses the config in this class
@@ -279,10 +283,48 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         do loop = 1 to numFilters:
             assign filter = LogFilterBuilder:Build(filterNames[loop])
                                 :Filter.
+            
+            if filterNames[loop] eq LoggerFilterRegistry:ERROR_FORMAT then
+                assign session:error-stack-trace = true.
+            
             filterList:InsertLast(new LoggerFilterNode(filter)).
         end.
         
         return new OpenEdge.Logging.Logger(this-object:LoggerType, logLevel, filterList).
+    end method.
+    
+    /* Logs error/messages that are written before a logger instance is successfully built.
+       ONLY for use by the LoggerBuilder (hence protected). This is intentionally a very 
+       primitive log writer.
+       
+       Messages are written to the first location found by the algorithm below 
+       1. If a log-manager exists, write there. This will always be the case on a server (PASOE or Classic A/S & WS) 
+       2. The session's temp-dir in a file called loggerbuilder.log
+       
+       Messages are APPENDED to the output file
+       
+       @param character    The message to write
+       @param LogLevelEnum The level of the message */
+    method static protected void LogMessage(input pMessage as character,
+                                            input pLevel as LogLevelEnum):
+        define variable logfile as character no-undo.
+        
+        if not valid-object(pLevel) then
+            assign pLevel = LogLevelEnum:DEFAULT.
+        
+        assign pMessage = substitute('[&1] &2':u, string(pLevel), pMessage).
+        
+        if log-manager:logfile-name eq ? then
+        do:
+            assign logfile = substitute('&1/loggerbuilder.log':u, session:temp-dir).
+            
+            output to value(logfile) append.
+                put unformatted '[':u iso-date(now) '] ':u pMessage skip.
+            output close.
+        end.
+        else
+            // Running on an OE server (PASOE)
+            log-manager:write-message(pMessage, 'LoggerBldr':u).
     end method.
     
 end class.

@@ -826,7 +826,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             DEFINE VARIABLE fileInput AS File.
             fileInput= CAST(testFiles:GetValue(i), File).
             IF (fileInput:fileN MATCHES "*.cls" OR fileInput:fileN MATCHES "*.p") THEN
-               populateTestModelForTestCase(testFolder + "~\" + fileInput:fileN, "", testEnity).
+               populateTestModelForTestCase(testFolder + "~/" + fileInput:fileN, "", testEnity).
         END.
         INPUT CLOSE.
     END METHOD.

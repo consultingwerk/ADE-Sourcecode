@@ -1,6 +1,6 @@
 &if false &then
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : doh_execute_setparam_scalar.i
@@ -43,7 +43,7 @@ do:
 &endif
     {&PARAM-LIST}:SetParameter({&PARAM-IDX},
 &if '{&SWITCH-VALUE}' eq 'class' &then
-                                'class ':u + {&OPER-ARG}:ArgumentType:TypeName,
+                                'class ':u + {&OPER-ARG}:Parameter:ArgumentType:TypeName,
 &else
                                 {&OPER-ARG}:Parameter:DataType,
 &endif

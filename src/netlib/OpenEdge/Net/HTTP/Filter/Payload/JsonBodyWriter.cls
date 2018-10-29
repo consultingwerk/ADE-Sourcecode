@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : JsonBodyWriter
@@ -12,10 +12,23 @@ Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.ICharacterArrayHolder.
 using Ccs.Common.Support.ICharacterHolder.
+using Ccs.Common.Support.IDateArrayHolder.
+using Ccs.Common.Support.IDateTimeArrayHolder.
+using Ccs.Common.Support.IDateTimeTzArrayHolder.
+using Ccs.Common.Support.IDecimalArrayHolder.
+using Ccs.Common.Support.IHandleArrayHolder.
 using Ccs.Common.Support.IHandleHolder.
+using Ccs.Common.Support.IInt64ArrayHolder.
+using Ccs.Common.Support.IIntegerArrayHolder.
+using Ccs.Common.Support.ILogicalArrayHolder.
+using Ccs.Common.Support.ILongcharArrayHolder.
 using Ccs.Common.Support.ILongcharHolder.
+using Ccs.Common.Support.IMemptrArrayHolder.
 using Ccs.Common.Support.IMemptrHolder.
+using Ccs.Common.Support.IPrimitiveArrayHolder.
+using Ccs.Common.Support.IRowidArrayHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Collections.IIterator.
@@ -34,7 +47,6 @@ using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
-using Progress.Reflect.DataType.
 
 class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter: 
     constructor public JsonBodyWriter():
@@ -48,10 +60,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
         super:Open().
     end method.
     
-    method override public int64 Write(input pmData as memptr):       
+    method override public int64 Write(input pmData as memptr):
         cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(pmData), get-size(pmData)).
         
-        return get-size(pmData).        
+        return get-size(pmData).
     end method.
 
     method override public int64 Write(input pData as longchar):       
@@ -121,6 +133,34 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 
                 return this-object:Write(oJson).
             end.
+            
+            when type-of(poData, IPrimitiveArrayHolder) then
+            case true:
+                when type-of(poData, ICharacterArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, ICharacterArrayHolder):Value)).
+                when type-of(poData, IDateArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IDateArrayHolder):Value)).
+                when type-of(poData, IDateTimeArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IDateTimeArrayHolder):Value)). 
+                when type-of(poData, IDateTimeTzArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IDateTimeTzArrayHolder):Value)).
+                when type-of(poData, IDecimalArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IDecimalArrayHolder):Value)).
+                when type-of(poData, IHandleArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IHandleArrayHolder):Value)).
+                when type-of(poData, IInt64ArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IInt64ArrayHolder):Value)).
+                when type-of(poData, IIntegerArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IIntegerArrayHolder):Value)).
+                when type-of(poData, ILogicalArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, ILogicalArrayHolder):Value)).
+                when type-of(poData, ILongcharArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, ILongcharArrayHolder):Value)).
+                when type-of(poData, IMemptrArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IMemptrArrayHolder):Value)).
+                when type-of(poData, IRowidArrayHolder) then
+                    return this-object:Write(new JsonArray(cast(poData, IRowidArrayHolder):Value)).
+            end case.   // individual primitive array types
             
             when type-of(poData, OpenEdge.Core.String) or
             when type-of(poData, ICharacterHolder) or

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015, 2017, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BasicAuthenticationFilter
@@ -32,7 +32,6 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits Authentic
         define variable cRealm as character no-undo.
         define variable cCredentials as character no-undo.
         define variable mCredentials as memptr no-undo.
-        define variable mShortCredentials as memptr no-undo.
         define variable oCredentials as Credentials no-undo.
         define variable ilength as integer no-undo.
         
@@ -50,20 +49,15 @@ class OpenEdge.Net.HTTP.Filter.Auth.BasicAuthenticationFilter inherits Authentic
                                 oCredentials:Password)
                iLength = length(cCredentials, 'RAW':u)
                .
-        set-size(mCredentials) = iLength + 1. /* for the null terminator */
-        put-string(mCredentials, 1) = cCredentials.
-        /* jiggery-pokery with lengths because there's a null at the end of the 
-           memptr, which we do not want */
-        set-size(mShortCredentials) = iLength.
-        put-bytes(mShortCredentials, 1) = get-bytes(mCredentials, 1, iLength). 
+        set-size(mCredentials) = iLength.   // do NOT add a byte for the null terminator
+        put-string(mCredentials, 1, iLength ) = cCredentials.
         
-        assign cCredentials = substitute('Basic &1':u, base64-encode(mShortCredentials)).
+        assign cCredentials = substitute('Basic &1':u, base64-encode(mCredentials)).
         /* add to the request */
         this-object:Message:SetHeader(
             HttpHeaderBuilder:Build('Authorization':u):Value(cCredentials):Header).
         
         finally:
-            set-size(mShortCredentials) = 0.
             set-size(mCredentials) = 0.
         end finally.
     end method.

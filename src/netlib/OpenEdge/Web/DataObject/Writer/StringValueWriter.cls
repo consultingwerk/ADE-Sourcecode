@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : StringValueWriter
@@ -13,13 +13,12 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 block-level on error undo, throw.
 
 using Ccs.Common.Support.ILongcharHolder.
-using OpenEdge.Core.Assert.
+using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 
 class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWriter:
-    
     constructor public StringValueWriter ():
         super(get-class(ILongcharHolder)).
     end constructor. 
@@ -27,7 +26,7 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
     method override public void Write(input pcData as character):
         assign this-object:Value = new OpenEdge.Core.String(pcData).
     end method.
-
+    
     method override public void Write(input pcData as longchar):
         assign this-object:Value = new OpenEdge.Core.String(pcData).
     end method.
@@ -37,11 +36,11 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
     end method.
 
     method override public void Write(input pcData as datetime):
-        assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
+        assign this-object:Value = new OpenEdge.Core.String(iso-date(pcData)).
     end method.
 
     method override public void Write(input pcData as date):
-        assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
+        assign this-object:Value = new OpenEdge.Core.String(iso-date(pcData)).
     end method.
 
     method override public void Write(input pcData as decimal):
@@ -55,11 +54,15 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
     method override public void Write(input pcData as integer):
         assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
     end method.
-
+    
+    method override public void Write(input pData as logical):
+        assign this-object:Value = new OpenEdge.Core.String(string(pData)).
+    end method.
+    
     method override public void Write(input pcData as memptr):
         assign this-object:Value = new OpenEdge.Core.String(get-string(pcData, 1)).
-    end method.        
-
+    end method.
+    
     method override public void Write(input pcData as rowid):
         assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
     end method.
@@ -67,7 +70,7 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
     method override public void Write(input pcData as recid):
         assign this-object:Value = new OpenEdge.Core.String(string(pcData)).
     end method.
-        
+    
     method override public void Write(input poData as Progress.Lang.Object):
         case true:
             when not valid-object(poData) then
@@ -79,9 +82,9 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
             when type-of(poData, HttpHeader) then
                this-object:Write(cast(poData, HttpHeader):Value).
             
-            when type-of(poData, ILongcharHolder) then
-               this-object:Write(cast(poData, ILongcharHolder):Value).
-
+            when type-of(poData, IPrimitiveHolder) then
+               this-object:Write(dynamic-property(poData, 'Value':u)).
+            
             otherwise 
                 this-object:Write(poData:ToString()).
         end case.

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : ArgumentValueWriter
@@ -18,22 +18,28 @@ using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
 using Progress.Lang.Object.
-using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 
-class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISupportLogging:
+class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract 
+            implements ISupportLogging:
     
-    // A reference to the Logger in use by an implementer
+    /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo 
         get(): 
             if not valid-object(this-object:Logger) then
-                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(ArgumentValueWriter)).
+                assign this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass()).
             
             return this-object:Logger.
         end get.
-        set.    
+        set.
     
     /** (mandatory) The type that the entity this writer can write to. */
-    define public property ArgumentType as class Progress.Lang.Class no-undo get. private set.
+    define public property ArgumentType as class Progress.Lang.Class no-undo
+        get.
+        protected set(input pType as class Progress.Lang.Class):
+            Assert:NotNull(pType, 'Argument type').
+            
+            assign ArgumentType = pType.
+        end set.
     
     /** (mandatory) The message entity that's being written to. The values passed 
         in to the Write() methods will be parsed/processed and written to this entity. */  
@@ -45,7 +51,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISu
             
             assign this-object:Value = poValue.
         end set.
-        
+    
     /** Constructor.
         
         @param Class  The type of the entity - pseudo-generics here.
@@ -57,13 +63,22 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISu
         Assert:NotNull(poValue, 'Value holder').
         assign this-object:Value = poValue.
     end method.
-
+    
+    /** Constructor.
+        
+        @param Object The target object to write to */
+    constructor protected ArgumentValueWriter (input pValue as Progress.Lang.Object):
+        Assert:NotNull(pValue, 'Argument value').
+        
+        assign this-object:ArgumentType = pValue:GetClass()
+               this-object:Value        = pValue
+               .
+    end constructor.
+    
     /** Constructor.
         
         @param Class  The type of the entity - pseudo-generics here. */
     constructor protected ArgumentValueWriter (input poType as class Progress.Lang.Class):
-        Assert:NotNull(poType, 'Entity type').
-        
         assign ArgumentType = poType.
     end constructor.
     
@@ -89,156 +104,156 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract implements ISu
     
         @param Object Data to write */
     method abstract public void Write(input poData as Object).
-
+    
     /** Write data to/from the entity  
     
         @param Object[] Data to write */
     method public void Write(input poData as Object extent):
         /* no-op */
-        Logger:Warn('Write (Object[])'). 
+        Logger:Warn(substitute('Write (Object[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     /** Write data to/from the entity
-
+        
         @param handle Data to write */
     method public void Write(input phData as handle):
         /* no-op */
-        Logger:Warn('Write (handle)').
+        Logger:Warn(substitute('Write (handle) method not implemented in &1', this-object:GetClass():TypeName)).
     end method.
-
+    
     method public void Write(input phData as handle extent):
         /* no-op */
-        Logger:Warn('Write (handle[])').
+        Logger:Warn(substitute('Write (handle[]) method not implemented in &1', this-object:GetClass():TypeName)).
     end method.
-
+    
     method public void Write(input p0 as memptr ):
         /* no-op */
-        Logger:Warn('Write (memptr)').
+        Logger:Warn(substitute('Write (memptr) method not implemented in &1', this-object:GetClass():TypeName)).
     end method.
-
+    
     method public void Write(input p0 as memptr extent):
         /* no-op */
-        Logger:Warn('Write (memptr[])').
+        Logger:Warn(substitute('Write (memptr[]) method not implemented in &1', this-object:GetClass():TypeName)).
     end method.
     
     method public void Write(input p0 as longchar ):
         /* no-op */
-        Logger:Warn('Write (longchar)'). 
+        Logger:Warn(substitute('Write (longchar) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as longchar extent):
         /* no-op */
-        Logger:Warn('Write (longchar[])'). 
+        Logger:Warn(substitute('Write (longchar[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
     method public void Write(input p0 as character ):
         /* no-op */
-        Logger:Warn('Write (character'). 
+        Logger:Warn(substitute('Write (character) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as character extent):
         /* no-op */
-        Logger:Warn('Write (character[])'). 
+        Logger:Warn(substitute('Write (character[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as raw):
         /* no-op */
-        Logger:Warn('Write (raw)'). 
+        Logger:Warn(substitute('Write (raw) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as raw extent):
         /* no-op */
-        Logger:Warn('Write (raw[])'). 
+        Logger:Warn(substitute('Write (raw[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as int64):
         /* no-op */
-        Logger:Warn('Write (int64[])'). 
+        Logger:Warn(substitute('Write (int64[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as int64 extent):
         /* no-op */
-        Logger:Warn('Write (int64[])'). 
+        Logger:Warn(substitute('Write (int64[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as integer):
         /* no-op */
-        Logger:Warn('Write (int[])'). 
+        Logger:Warn(substitute('Write (int[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as integer extent):
         /* no-op */
-        Logger:Warn('Write (int[])'). 
+        Logger:Warn(substitute('Write (int[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as logical):
         /* no-op */
-        Logger:Warn('Write (logical)'). 
+        Logger:Warn(substitute('Write (logical) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as logical extent):
         /* no-op */
-        Logger:Warn('Write (logical[])'). 
+        Logger:Warn(substitute('Write (logical[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
     method public void Write(input p0 as decimal):
         /* no-op */
-        Logger:Warn('Write (decimal)'). 
+        Logger:Warn(substitute('Write (decimal) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as decimal extent):
         /* no-op */
-        Logger:Warn('Write (decimal[])'). 
+        Logger:Warn(substitute('Write (decimal[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as date):
         /* no-op */
-        Logger:Warn('Write (date)'). 
+        Logger:Warn(substitute('Write (date) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as date extent):
         /* no-op */
-        Logger:Warn('Write (date[])'). 
+        Logger:Warn(substitute('Write (date[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as datetime):
         /* no-op */
-        Logger:Warn('Write (datetime)'). 
+        Logger:Warn(substitute('Write (datetime) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as datetime extent):
         /* no-op */
-        Logger:Warn('Write (datetime[])'). 
+        Logger:Warn(substitute('Write (datetime[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as datetime-tz):
         /* no-op */
-        Logger:Warn('Write (datetime-tz)'). 
+        Logger:Warn(substitute('Write (datetime-tz) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
     method public void Write(input p0 as datetime-tz extent):
         /* no-op */
-        Logger:Warn('Write (datetime-tz[])'). 
+        Logger:Warn(substitute('Write (datetime-tz[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as rowid):
         /* no-op */
-        Logger:Warn('Write (rowid)'). 
+        Logger:Warn(substitute('Write (rowid) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as rowid extent):
         /* no-op */
-        Logger:Warn('Write (rowid[])'). 
+        Logger:Warn(substitute('Write (rowid[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
-
+    
     method public void Write(input p0 as recid):
         /* no-op */
-        Logger:Warn('Write (recid)'). 
+        Logger:Warn(substitute('Write (recid) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
     method public void Write(input p0 as recid extent):
         /* no-op */
-        Logger:Warn('Write (recid[])'). 
+        Logger:Warn(substitute('Write (recid[]) method not implemented in &1', this-object:GetClass():TypeName)). 
     end method.
     
 end class.

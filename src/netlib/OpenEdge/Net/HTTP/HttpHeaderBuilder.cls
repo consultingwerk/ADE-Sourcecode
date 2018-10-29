@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017  by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017-2018  by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpHeaderBuilder
@@ -113,6 +113,21 @@ class OpenEdge.Net.HTTP.HttpHeaderBuilder inherits ConfigBuilder
             undo, throw new AssertionFailedError('Parameter delimiter cannot be empty', 0).
         
         SetOption('paramDelimiter':u, pcDelim).
+        
+        return this-object.
+    end method.
+    
+    /* Adds a header parameter name and value 
+       
+       @param character The parameter name
+       @param character The parameter value
+       @return HttpHeaderBuilder The current builder object. */
+    method public HttpHeaderBuilder AddParameter(input pName as character,
+                                                 input pValue as character):
+        Assert:NotNullOrEmpty(pName, 'Parameter name').
+        Assert:NotNull(pValue, 'Parameter value').
+        
+        SetOption('param+':u + pName, pValue).
         
         return this-object.
     end method.

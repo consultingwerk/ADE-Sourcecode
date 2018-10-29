@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : PushNotificationMessageBuilder
@@ -25,6 +25,9 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Mobile.ApplicationPlatformEnum.
 using OpenEdge.Mobile.PushNotificationFilterOperandEnum.
 using OpenEdge.Mobile.PushNotificationMessageBuilder.
@@ -32,12 +35,21 @@ using OpenEdge.Mobile.PushNotificationService.
 using OpenEdge.Net.HTTP.ConfigBuilder.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
-using Progress.Json.ObjectModel.JsonObject.
-using Progress.Lang.AppError.
 using Progress.Json.ObjectModel.JsonDataType.
-using OpenEdge.Net.HTTP.ConfigBuilder.
+using Progress.Json.ObjectModel.JsonObject.
 
-class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBuilder:
+class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBuilder
+        implements ISupportLogging:
+    
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                return LoggerBuilder:GetLogger(this-object:GetClass()).
+            
+            return this-object:Logger.
+        end get.
+        set.
+    
     /* List of operands that the message need. A property to keep it read-only.
        The index of this array matches the Value of the 
        PushNotificationFilterOperandEnum property in question. */
@@ -306,7 +318,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         Assert:NotNull(poChannels, 'Channels').
         
         SetOption('channels.':u + string(PushNotificationFilterOperandEnum:Includes), poChannels).
-
+        
         return this-object.
     end method.
     
@@ -360,7 +372,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         SetOption('match.operand':u, PushNotificationFilterOperandEnum:Or).
         return this-object.
     end method.
-
+    
     /** General method to add string/character filters to the payload.
     
         Supported operands: Equals/NotEqual/Includes/NotIncludes            
@@ -369,10 +381,13 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param character  The value to add
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddStringFilter(input pcFilterName as character,
-                                                                          input pcFilterValue as character,
-                                                                          input poOperand as PushNotificationFilterOperandEnum).
-                                                                         
+    method public PushNotificationMessageBuilder AddStringFilter(input pcFilterName as character,
+                                                                 input pcFilterValue as character,
+                                                                 input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddStringFilter: Filter is not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
+    
     /** General method to add array filters to the payload.
     
         Supported operands: Includes/NotIncludes/Matches            
@@ -382,11 +397,13 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
                               or array (Includes/NotIncludes)
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddArrayFilter(input pcFilterName as character,
-                                                                         input poFilterValue as JsonConstruct,
-                                                                         input poOperand as PushNotificationFilterOperandEnum).
-
-
+    method  public PushNotificationMessageBuilder AddArrayFilter(input pcFilterName as character,
+                                                                 input poFilterValue as JsonConstruct,
+                                                                 input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddArrayFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
+    
     /** General method to add object filters to the payload. Note that the
         objects required by the Pointer type must have particular properties, 
         but this method validates some of the properties.
@@ -397,11 +414,12 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param JsonObject     The value to add. 
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddPointerFilter(input pcFilterName as character,
+    method public PushNotificationMessageBuilder AddPointerFilter(input pcFilterName as character,
                                                                   input poFilterValue as JsonObject,
                                                                   input poOperand as PushNotificationFilterOperandEnum).
-                                                                      
-
+        Logger:Warn(substitute('AddPointerFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
     
     /** General method to add Geolocations filters to the payload. Note that the
         objects required by the GEO type must have particular properties, 
@@ -413,11 +431,12 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param JsonObject     The value to add. 
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddGeoFilter(input pcFilterName as character,
-                                                                       input poFilterValue as JsonObject,
-                                                                       input poOperand as PushNotificationFilterOperandEnum).    
-     
-
+    method public PushNotificationMessageBuilder AddGeoFilter(input pcFilterName as character,
+                                                              input poFilterValue as JsonObject,
+                                                              input poOperand as PushNotificationFilterOperandEnum).    
+        Logger:Warn(substitute('AddGeoFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
     
 /** General method to add object filters to the payload. Note that the
         arrays required by Includes/NotIncludes must contain objects themselves,
@@ -431,10 +450,12 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
                               or array (Includes/NotIncludes)
         @param PushNotificationFilterOperandEnum The operand (eq/ne/etc) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddObjectFilter(input pcFilterName as character,
-                                                                          input poFilterValue as JsonConstruct,
-                                                                          input poOperand as PushNotificationFilterOperandEnum).
-                                                                     
+    method public PushNotificationMessageBuilder AddObjectFilter(input pcFilterName as character,
+                                                                 input poFilterValue as JsonConstruct,
+                                                                 input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddObjectFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
     
     /** Returns an object for the property, even if another value was previously
         set.
@@ -452,7 +473,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         
         return poParent:GetJsonObject(pcPropertyName).
     end method.
-
+    
     /** Returns an Array for the property, even if another value was previously
         set.
         
@@ -469,7 +490,7 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         
         return poParent:GetJsonArray(pcPropertyName).
     end method.
-
+    
     /** A general method to add numeric(decimal) filter values to the notification
         query/filter. 
         
@@ -479,10 +500,13 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param decimal The filter value
         @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddNumericFilter(input pcFilterName as character,
-                                                                           input pdFilterValue as decimal,
-                                                                           input poOperand as PushNotificationFilterOperandEnum).
-                                                                  
+    method public PushNotificationMessageBuilder AddNumericFilter(input pcFilterName as character,
+                                                                  input pdFilterValue as decimal,
+                                                                  input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddNumericFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
+    
     /** A general method to add Date filter values to the notification
         query/filter. 
         
@@ -492,10 +516,13 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param datetime The filter value
         @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddDateFilter(input pcFilterName as character,
-                                                                        input ptFilterValue as datetime,
-                                                                        input poOperand as PushNotificationFilterOperandEnum).
-
+    method public PushNotificationMessageBuilder AddDateFilter(input pcFilterName as character,
+                                                               input ptFilterValue as datetime,
+                                                               input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddDateFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method.
+    
     /** A general method to add logical/boolean filter values to the notification
         query/filter. Only Equals and NotEqual supported
         
@@ -503,7 +530,11 @@ class OpenEdge.Mobile.PushNotificationMessageBuilder abstract inherits ConfigBui
         @param logical The filter value
         @param PushNotificationFilterOperandEnum The operand (eg Equals or NotEqual) 
         @return PushNotificationMessageBuilder This builder object */
-    method abstract public PushNotificationMessageBuilder AddLogicalFilter(input pcFilterName as character,
-                                                                           input plFilterValue as logical,
-                                                                           input poOperand as PushNotificationFilterOperandEnum).
+    method public PushNotificationMessageBuilder AddLogicalFilter(input pcFilterName as character,
+                                                                  input plFilterValue as logical,
+                                                                  input poOperand as PushNotificationFilterOperandEnum).
+        Logger:Warn(substitute('AddLogicalFilter: Filter is Not supported in &1', this-object:GetClass():TypeName)).
+        return this-object.
+    end method. 
+    
 end class.

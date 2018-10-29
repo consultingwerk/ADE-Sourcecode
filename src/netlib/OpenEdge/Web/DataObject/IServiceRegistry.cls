@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : IServiceRegistry
@@ -44,11 +44,12 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
        @param character  (mandatory) The service name
        @param SemanticVersion  (mandatory) The service version
        @param ServiceOptions (optional) A set of options for the service
-       @param JsonObject (optional) A catalog for the service. Not all services have catalogs */
-    method public void RegisterService(input pServiceName  as character,
-                                       input pVersion as SemanticVersion,
-                                       input pOptions as ServiceOptions,
-                                       input pCatalog as JsonObject).
+       @param JsonObject (optional) A catalog for the service. Not all services have catalogs 
+       @return DataObjectService  The registered data service */
+    method public DataObjectService RegisterService(input pServiceName  as character,
+                                                    input pVersion as SemanticVersion,
+                                                    input pOptions as ServiceOptions,
+                                                    input pCatalog as JsonObject).
     
     /* Removes a service registration  - the specified version
        
@@ -70,6 +71,14 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
        @return DataObjectService  A data service  */
     method public DataObjectService GetService(input pServiceName as character,
                                                input pVersion as character).
+    
+    /* Returns a versioned service 
+       
+       @param character The name of the service to remove from the registry
+       @param SemanticVersion The service version to retrieve
+       @return DataObjectService  A data service  */
+    method public DataObjectService GetService(input pServiceName as character,
+                                               input pVersion as SemanticVersion).
     
     /* Returns details about the operation, for the latest version of the service
        
@@ -137,13 +146,13 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
                                    input pVersion as SemanticVersion,
                                    input pSchemaName as character).
     
-    /* Returns all of the schema names associated with the latest version of a service.
+    /* Returns all of the schemas associated with the latest version of a service.
        
        @param character The service name
        @param SemanticVersion The service version 
-       @return character[] An array of service schemas */
-    method public character extent GetSchemaNames(input pServiceName as character,
-                                                  input pVersion as SemanticVersion).
+       @return handle[] An array of service schemas */
+    method public handle extent GetSchemas(input pServiceName as character,
+                                           input pVersion as SemanticVersion).
     
     /* Returns a catalog for the latest version of a service 
        
@@ -182,7 +191,7 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
     method public logical HasOperation(input pcServiceName as character,
                                        input pcServiceURI as character,
                                        input poMethod as MethodEnum ).
-
+    
     /* Indicates whether a mapped operation exists for a specific version of a service  
        
        @param character the service name
@@ -205,6 +214,24 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
                                        input pVersion as SemanticVersion,
                                        input pOperationName as character).
     
+    /* Indicates whether a schema exists with a given name  
+       
+       @param character the service name
+       @param SemanticVersion The service version 
+       @param character The schema name
+       @return logical TRUE if the schema exists */
+    method public logical HasSchema(input pServiceName as character,
+                                    input pVersion as SemanticVersion,
+                                    input pSchemaName as character).
+    
+    /* Indicates whether a schema exists with a given name  
+       
+       @param character the service name
+       @param character The schema name
+       @return logical TRUE if the schema exists */
+    method public logical HasSchema(input pServiceName as character,
+                                    input pSchemaName as character).
+    
     /* Indicates whether a mapped operation exists with a given name for the latest version of a service  
        
        @param character the service name
@@ -218,6 +245,14 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
        @param character The name of the mapped service
        @return logical TRUE if the service exists */
     method public logical HasService(input pcServiceName as character).
+    
+    /* Indicates whether a named, versioned service is available in the registry.  
+       
+       @param character The name of the mapped service
+       @param SemanticVersion The service version
+       @return logical TRUE if the service exists */
+    method public logical HasService(input pServiceName as character,
+                                     input pVersion as SemanticVersion).
     
     /* Indicates whether a named, versioned service is available in the registry.  
        
@@ -290,6 +325,5 @@ interface OpenEdge.Web.DataObject.IServiceRegistry:
     method public void RemoveSchema(input pServiceName as character,
                                     input pVersion as SemanticVersion,
                                     input pSchemaName as character).
-
     
 end interface.

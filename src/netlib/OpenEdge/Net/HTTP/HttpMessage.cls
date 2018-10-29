@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2016, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpMessage
@@ -203,6 +203,20 @@ class OpenEdge.Net.HTTP.HttpMessage
             this-object:Headers:Put(poHeader).
     end method.
     
+    /** Adds a set of header info to this message's collection of headers.
+        
+        @param HttpHeader[] An array of headers */
+    method public void SetHeaders(input poHeader as HttpHeader extent):
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        
+        assign cnt = extent(poHeader).
+        do loop = 1 to cnt:
+            if valid-object(poHeader[loop]) then
+                SetHeader(poHeader[loop]).
+        end.
+    end method.
+    
     /** Returns a named header
 
         @param  character The name of the header to retrieve
@@ -304,6 +318,20 @@ class OpenEdge.Net.HTTP.HttpMessage
     method public void SetCookie(input poCookie as Cookie):
         Assert:NotNull(poCookie, 'Cookie').
         this-object:Cookies:Put(poCookie:Name, poCookie).
+    end method.
+    
+    /** Adds cookies to this message
+        
+        @param Cookie[] An array of cookies to add. */
+    method public void SetCookies(input poCookies as Cookie extent):
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        
+        assign cnt = extent(poCookies).
+        do loop = 1 to cnt:
+            if valid-object(poCookies[loop]) then
+                SetCookie(poCookies[loop]).
+        end.
     end method.
     
     /** Removes all cookies from this message */ 

@@ -24,12 +24,12 @@ class OpenEdge.Web.DataObject.OperationOptions serializable:
     define public property HasRequestEnvelope as logical no-undo get. set.
     /* (optional) The value of the envelope. Defaults to "request" */
     define public property RequestEnvelope as character no-undo get. set.
-
+    
     /* (optional) True if the outgoing response should have an envelope/wrapper. */
     define public property HasResponseEnvelope as logical no-undo get. set.
     /* (optional) The value of the envelope. Defaults to "response" */
     define public property ResponseEnvelope as character no-undo get. set.
-
+    
     /* (optional) True if an errors returned should have an envelope/wrapper. */
     define public property HasErrorEnvelope as logical no-undo get. set.
     /* (optional) The value of the envelope. Defaults to "error" */
@@ -51,7 +51,7 @@ class OpenEdge.Web.DataObject.OperationOptions serializable:
                this-object:HasResponseEnvelope = false
                this-object:ResponseEnvelope    = 'response':u
                this-object:HasErrorEnvelope    = false
-               this-object:ErrorEnvelope       = 'error':u               
+               this-object:ErrorEnvelope       = 'error':u
                .
     end constructor.
     
@@ -62,9 +62,9 @@ class OpenEdge.Web.DataObject.OperationOptions serializable:
                     int64(this-object),
                     this-object:WriteBI,
                     this-object:Timeout,
-                    substitute('&1 &2', this-object:HasRequestEnvelope, this-object:RequestEnvelope),
-                    substitute('&1 &2', this-object:HasResponseEnvelope, this-object:ResponseEnvelope),
-                    substitute('&1 &2', this-object:HasErrorEnvelope, this-object:ErrorEnvelope),
+                    substitute('&1 &2':u, this-object:HasRequestEnvelope, this-object:RequestEnvelope),
+                    substitute('&1 &2':u, this-object:HasResponseEnvelope, this-object:ResponseEnvelope),
+                    substitute('&1 &2':u, this-object:HasErrorEnvelope, this-object:ErrorEnvelope),
                     this-object:SchemaOptions:Size  ).
     end method.
     

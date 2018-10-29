@@ -152,25 +152,12 @@ class OpenEdge.Net.HTTP.HttpHeader:
                               hdrParam.ParentHeader eq int64(this-object) and
                               hdrParam.ParamName    eq pcParamName).
     end method.
-
-
-    /** Returns a parameter from a (for example, 'charset' from Content-Type) header value 
-        
-        @param character The name of the parameter value to retrieve
-        @param character The charset paremeter value; blank/empty otherwise 
-        @param logical TRUE If the value is to be quoted in a header
-        @return logical  TRUE when the parameter was replaced/previously existed. */
-    method public logical SetParameterValue(input pParamName as character,
-                                            input pParamValue as character,
-                                            input pQuoteValue as character):
-    end method.
     
-    /** Returns a parameter from a (for example, 'charset' from Content-Type) header value 
+    /** Saves a parameter value for a header.
         
-        @param character The name of the parameter value to retrieve
-        @param character The charset paremeter value; blank/empty otherwise 
-        @param character The character used to separate param name/value pairs
-        @return logical  True when the parameter was replaced/previously existed. */
+        @param character (mandatory) The name of the parameter value to retrieve
+        @param character (mandatory) The parameter value; blank/empty otherwise 
+        @return logical  TRUE when the parameter was replaced/previously existed. */
     method public logical SetParameterValue(input pcParamName as character,
                                             input pcParamValue as character):
         define variable lExists as logical no-undo.

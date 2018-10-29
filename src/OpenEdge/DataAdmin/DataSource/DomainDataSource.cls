@@ -159,7 +159,7 @@ SystemPath,_PAM-library-path"
                              hBeforeBuff::Name exclusive no-wait .
                     
                     if (mlIsAdmin and phBuffer::AccessCode ne b_domain._Domain-access-code) or
-                       phBuffer::AccessCode <> mAccessDisp then
+                       (mlIsAdmin = false and phBuffer::AccessCode <> mAccessDisp) then
                     do:
                         assign
                             preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */

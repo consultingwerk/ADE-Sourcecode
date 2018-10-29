@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2015, 2018 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : PushNotificationService
@@ -11,19 +11,17 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Mobile.KinveyPushNotificationMessageBuilder.
+using OpenEdge.Mobile.KinveyPushNotificationService.
 using OpenEdge.Mobile.PushNotificationMessageBuilder.
 using OpenEdge.Mobile.PushNotificationService.
-using OpenEdge.Mobile.ApperyPushNotificationService.
-using OpenEdge.Mobile.TelerikPushNotificationService.
-using OpenEdge.Mobile.PushNotificationMessageBuilder.
-using OpenEdge.Mobile.ApperyPushNotificationMessageBuilder.
-using OpenEdge.Mobile.TelerikPushNotificationMessageBuilder.
+using OpenEdge.Net.HTTP.BuilderRegistry.
 using OpenEdge.Net.HTTP.ClientBuilder.
+using OpenEdge.Net.HTTP.Credentials.
 using OpenEdge.Net.HTTP.IHttpClient.
 using OpenEdge.Net.URI.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
-using OpenEdge.Net.HTTP.BuilderRegistry.
 
 class OpenEdge.Mobile.PushNotificationService abstract 
                 implements ISupportInitialize:
@@ -45,6 +43,9 @@ class OpenEdge.Mobile.PushNotificationService abstract
     /** (mandatory) The API key for the push notification */
     define public property ApiKey as character no-undo get. private set.
     
+    /** (mandatory) The API key for the push notification */
+    define public property ServerCredentials as Credentials no-undo get. private set.
+
     /** (mandatory) The host/URI of the notification service */
     define public property ServerUri as URI no-undo get. private set.
     
@@ -55,16 +56,23 @@ class OpenEdge.Mobile.PushNotificationService abstract
     
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
-        /* default notification service is now Telerik. */
+        /* default notification service is now Kinvey. */
         poRegistry:Put(get-class(PushNotificationService):TypeName,
-                       get-class(TelerikPushNotificationService)).
+                       get-class(KinveyPushNotificationService)).
         
         poRegistry:Put(get-class(PushNotificationMessageBuilder):TypeName,
-                       get-class(TelerikPushNotificationMessageBuilder)).
-
-
-        /* If you want to use the Appery/Rollbase notification service,
+                       get-class(KinveyPushNotificationMessageBuilder)).
+        
+        /* If you want to use the Appery/Rollbase or Telerik PLatform notification service,
            add these lines before you call the PushNotificationService or ~MessageBuilder 
+        PushNotificationService:Registry
+            :Put(get-class(PushNotificationService):TypeName,
+                 get-class(TelerikPushNotificationService)).
+        
+        PushNotificationService:Registry
+            :Put(get-class(PushNotificationMessageBuilder):TypeName,
+                 get-class(TelerikPushNotificationMessageBuilder)).
+        
         PushNotificationService:Registry
             :Put(get-class(PushNotificationService):TypeName,
                  get-class(ApperyPushNotificationService)).
@@ -74,7 +82,7 @@ class OpenEdge.Mobile.PushNotificationService abstract
                  get-class(ApperyPushNotificationMessageBuilder)).
         */
     end method.
-
+    
     /** Constructor.
         
         @param URI A URI representing the notification server
@@ -85,6 +93,19 @@ class OpenEdge.Mobile.PushNotificationService abstract
         Assert:NotNull(poURI, 'Server URI').
         
         assign this-object:ApiKey = pcApiKey
+               this-object:ServerUri = poURI.
+    end constructor.
+    
+    /** Constructor.
+        
+        @param URI A URI representing the notification server
+        @param character The (mandatory) Credenatials to authenticate */
+    constructor public PushNotificationService(input poURI as URI,
+                                               input oCredentials as Credentials):
+        // Assert:NotNullOrEmpty(pcApiKey, 'API Key').
+        Assert:NotNull(poURI, 'Server URI').
+        
+        assign this-object:ServerCredentials = oCredentials
                this-object:ServerUri = poURI.
     end constructor.
     
@@ -100,7 +121,7 @@ class OpenEdge.Mobile.PushNotificationService abstract
                                                           input pcApiKey as character):
         define variable oNotificationSvc as PushNotificationService no-undo.
         define variable oPNSType as Progress.Lang.Class no-undo.
-
+        
         assign oPNSType = PushNotificationService:Registry:Get(get-class(PushNotificationService):TypeName).
         Assert:IsType(oPNSType, get-class(PushNotificationService)).
         
@@ -110,6 +131,27 @@ class OpenEdge.Mobile.PushNotificationService abstract
         else
             oNotificationSvc = dynamic-new string(oPNSType:TypeName) (pcApiKey).
             
+        if type-of(oNotificationSvc, ISupportInitialize) then
+            cast(oNotificationSvc, ISupportInitialize):Initialize().
+        
+        return oNotificationSvc.
+    end method.
+    
+    /** Factory method for retrieving an instance of the server.
+    
+        @param URI A URI representing the notification server
+        @param Credentials The (mandatory) Credentials to authenticate */
+    method static public PushNotificationService Instance(input poURI as URI, 
+                                                          input pCredentials as Credentials):
+        define variable oNotificationSvc as PushNotificationService no-undo.
+        define variable oPNSType as Progress.Lang.Class no-undo.
+        
+        assign oPNSType = PushNotificationService:Registry:Get(get-class(PushNotificationService):TypeName).
+        Assert:IsType(oPNSType, get-class(PushNotificationService)).
+        
+        /* Issue PSC00326382 means that we must use dynamic-new instead of New() */
+        oNotificationSvc = dynamic-new string(oPNSType:TypeName) (poUri, pCredentials).
+        
         if type-of(oNotificationSvc, ISupportInitialize) then
             cast(oNotificationSvc, ISupportInitialize):Initialize().
         
