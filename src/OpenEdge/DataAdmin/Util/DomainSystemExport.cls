@@ -202,6 +202,7 @@ class OpenEdge.DataAdmin.Util.DomainSystemExport:
         define variable oPolicyProvider as StsProvider no-undo.
         define variable oStsDomain as StsDomain no-undo.                                     
         define variable cEnumNames as character no-undo.
+        define variable cDAC as character no-undo.
         
         Assert:NotNullOrEmpty(pcDbName, 'Db name').
         Assert:NotNull(poConfig, 'Domain config object').
@@ -375,10 +376,24 @@ class OpenEdge.DataAdmin.Util.DomainSystemExport:
                                quoter(cDomainName)),
                                LogLevelEnum:ERROR).
                 
+                /* If the domain access code already contains a prefix, don't add one. If no prefix is
+                   specified,it defaults to oech1:: */                
+                IF INDEX(oDomain:AccessCode, "::") > 0 THEN
+                DO:                    
+                    cDAC = oDomain:AccessCode.
+                END.
+                ELSE IF oDomain:AccessCode EQ "" THEN
+                DO:
+                    cDAC = "". /* leave blank alone */               
+                END.
+                ELSE DO:
+                    cDAC = substitute('oech1::&1':u, oDomain:AccessCode).
+                END.
+                
                 export stream strKeys delimiter ',':u
-                    cDomainName
-                    substitute('oech1::&1':u, oDomain:AccessCode)
-                    .
+                           cDomainName
+                           cDAC.
+                           
                 LogMessage(substitute('Domain &1 keys dumped', quoter(cDomainName)), LogLevelEnum:DEBUG).
             end.
             

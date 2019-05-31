@@ -1460,6 +1460,7 @@ PROCEDURE importLog :
                   cInput BEGINS 'SUPER' OR
                   cInput BEGINS 'INVOKE' OR
                   cinput BEGINS 'DELETE' OR
+				  cinput BEGINS 'PERSISTENT TRIGGER' OR
                   cinput BEGINS 'PERSTRIG') AND 
                  NUM-ENTRIES(cInput,'|') GE 7 ).
 

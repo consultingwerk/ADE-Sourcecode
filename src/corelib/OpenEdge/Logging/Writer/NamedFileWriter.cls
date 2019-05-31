@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : NamedFileWriter
@@ -8,7 +8,9 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
     Description : 
     Author(s)   : pjudge
     Created     : 2016-08-23
-    Notes       : 
+    Notes       : * Using OUTPUT TO and EXPORT because of OCTA-9310 
+                  * This writer always uses LF as a line terminator, regardless 
+                    of OS/platform
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -21,9 +23,12 @@ using OpenEdge.Logging.Writer.IFileWriter.
 using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWriter:
+    // stream for the output
+    define private stream sFileOutput.
+    
     /* The file we're writing to */
     define private variable moFileOutputStream as FileOutputStream  no-undo.
-
+    
     /* (mandatory) The output location */
     define public property FileName as character no-undo
         get():
@@ -45,10 +50,15 @@ class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWri
         assign moFileOutputStream = poFile
                this-object:Append = moFileOutputStream:Append
                .
+        if not this-object:Append then
+        do:
+            output stream sFileOutput to value(moFileOutputStream:FileName).
+            output stream sFileOutput close.
+        end.
     end constructor.
     
     /* Constructor
-    
+       
        @param character The file name to write into
        @param logical  TRUE if we are to append to this file */
     constructor public NamedFileWriter(input pcFileName as character,
@@ -69,22 +79,26 @@ class OpenEdge.Logging.Writer.NamedFileWriter implements ILoggerFilter, IFileWri
         
         @param LogEvent The event to log. */
     method public void ExecuteFilter(input poEvent as LogEvent):
-        define variable mLine as memptr no-undo.
-        define variable iSize as integer no-undo.
-
+        define variable mData as memptr no-undo.
+        define variable msgLen as integer no-undo.
+        
         if moFileOutputStream:Closed then
             return.
-            
-        assign iSize = length(poEvent:Message:Message, 'raw':u) + 2.
-        set-size(mLine) = iSize.
-        put-string(mLine, 1) = poEvent:Message:Message + StringConstant:LF.
         
-        moFileOutputStream:Write(mLine, 1, iSize - 1).
+        // We use a MEMPTR to preserve trailing blanks etc, that are removed by the PUT UNFORMATTED
+        assign msgLen = length(poEvent:Message:Message, 'raw':u) + 1.
+        set-size(mData) = msgLen.
+        put-string(mData, 1, msgLen) = poEvent:Message:Message + StringConstant:LF.
         
-        // force a write 
-        moFileOutputStream:Flush().
+        // always write-append here; the Append property applies to the opening of the output stream
+        output stream sFileOutput to value(moFileOutputStream:FileName) append.
+            export stream sFileOutput mData.
+        output stream sFileOutput close.
+        
         finally:
-            set-size(mLine) = 0.
+            // covers 0 and ?. negative values will have barfed earlier 
+            if not msgLen eq 0 then
+                set-size(mData) = 0.
         end finally.
     end method.
     

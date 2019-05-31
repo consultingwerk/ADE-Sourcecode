@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------
 /*************************************************************/  
-/* Copyright (c) 1984-2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2007,2017 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -25,7 +25,7 @@
   History: kmcintos May 26, 2005 Changed feature codes in featureEnabled
                                  bug # 20050525-025.
            fernando 11/30/07     Check if read-only mode.
-                                 
+           rkumar   09/08/17     Add support for CDC UserID                   
 ------------------------------------------------------------------------*/
 
 DEFINE VARIABLE ronly  AS LOGICAL NO-UNDO.
@@ -86,6 +86,8 @@ Parameters: INPUT pcFeature - Name, or number of the feature
                                      in the database.
                         "2"     =    Check to see if any security tables exist
                                      in the database.
+                        "3"     =    Check to see if any CDC tables exist
+                                     in the database.
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE hFile  AS HANDLE      NO-UNDO.
@@ -99,6 +101,9 @@ Parameters: INPUT pcFeature - Name, or number of the feature
       lFound = hFile:FIND-FIRST("WHERE _file._file-name BEGINS ~'_aud~'",NO-LOCK) NO-ERROR.
     WHEN "2" THEN
       lFound = hFile:FIND-FIRST("WHERE _file._file-name BEGINS ~'_sec~'",NO-LOCK) NO-ERROR.
+    WHEN "3" THEN DO:
+      lFound = hFile:FIND-FIRST("WHERE _file._file-name BEGINS ~'_cdc~'",NO-LOCK) NO-ERROR.
+	END.  
     OTHERWISE
       lFound = hFile:FIND-FIRST("WHERE _file._file-name BEGINS ~'" + 
                                 pcFeature + "~'",NO-LOCK) NO-ERROR.

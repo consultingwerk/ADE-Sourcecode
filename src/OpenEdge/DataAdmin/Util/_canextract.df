@@ -1,0 +1,199 @@
+ADD TABLE "CanExtract"
+  AREA "Info Area"
+  DUMP-NAME "canextract"
+
+ADD FIELD "DB-Guid" OF "CanExtract" AS character 
+  DESCRIPTION "Database Guid of the extracted CAN permissions"
+  FORMAT "x(28)"
+  INITIAL ""
+  POSITION 2
+  MAX-WIDTH 56
+  COLUMN-LABEL "DB Guid"
+  ORDER 10
+  MANDATORY
+
+ADD FIELD "FilNum" OF "CanExtract" AS integer 
+  DESCRIPTION "File Number of the file resource.
+A Negative File Number is the number of a sequence resource"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 3
+  MAX-WIDTH 4
+  COLUMN-LABEL "File Number"
+  ORDER 20
+  MANDATORY
+
+ADD FIELD "FldNum" OF "CanExtract" AS integer 
+  DESCRIPTION "Field Number=0 is a file or sequence resource"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 4
+  MAX-WIDTH 4
+  COLUMN-LABEL "Field Number"
+  ORDER 30
+  MANDATORY
+
+ADD FIELD "StateFlag" OF "CanExtract" AS integer 
+  DESCRIPTION "0=Extracted, 1=Processed, 2=Executed, 3=Cleaned"
+  FORMAT "9"
+  INITIAL "0"
+  POSITION 5
+  MAX-WIDTH 4
+  COLUMN-LABEL "Can Permission Code"
+  ORDER 40
+  MANDATORY
+
+ADD FIELD "Can-Code" OF "CanExtract" AS integer 
+  DESCRIPTION "1=Read,2=Write,3=Create,4=Delete,5=Dump,6=Load"
+  FORMAT "9"
+  INITIAL "0"
+  POSITION 6
+  MAX-WIDTH 4
+  COLUMN-LABEL "State Flag"
+  ORDER 50
+  MANDATORY
+
+ADD FIELD "Cmd-PropSeq" OF "CanExtract" AS integer 
+  DESCRIPTION "Proposed Role Command Sequence"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 7
+  MAX-WIDTH 4
+  ORDER 60
+  MANDATORY
+
+ADD FIELD "Cmd-CanSeq" OF "CanExtract" AS integer 
+  DESCRIPTION "Can Permission Command Sequence"
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 8
+  MAX-WIDTH 4
+  ORDER 70
+  MANDATORY
+
+ADD FIELD "Can-SubSeq" OF "CanExtract" AS integer 
+  DESCRIPTION "CAN Expression's sub-expression sequence within a CAN expression.
+NOTE: Can-SubSeq=0 reconstructs a replacement expression
+in a new separate record starting with StateFlag code = 1.
+Otherwise sub-expressions are sequenced 1 through n where n is the last subexpression. "
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 9
+  MAX-WIDTH 4
+  COLUMN-LABEL "Can Permission Sub-Expression Sequence"
+  ORDER 80
+  MANDATORY
+
+ADD FIELD "FilNam" OF "CanExtract" AS character 
+  DESCRIPTION "File Name or Sequence Name (if FilNum is negative)"
+  FORMAT "x(32)"
+  INITIAL ""
+  POSITION 10
+  MAX-WIDTH 64
+  COLUMN-LABEL "File Name"
+  ORDER 90
+  MANDATORY
+
+ADD FIELD "FldNam" OF "CanExtract" AS character 
+  DESCRIPTION "Field Name (where blank field name is a File/Sequence resource"
+  FORMAT "x(32)"
+  INITIAL "Field Name"
+  POSITION 11
+  MAX-WIDTH 64
+  ORDER 100
+
+ADD FIELD "Can-Expr" OF "CanExtract" AS character 
+  DESCRIPTION "The Full/Original Can Expression Field Extraction"
+  FORMAT "x(100)"
+  INITIAL ""
+  POSITION 12
+  MAX-WIDTH 200
+  COLUMN-LABEL "Can Expression"
+  ORDER 110
+
+ADD FIELD "Can-SubExpr" OF "CanExtract" AS character 
+  DESCRIPTION "One Extracted Can Sub-Expression"
+  FORMAT "x(30)"
+  INITIAL ""
+  POSITION 13
+  MAX-WIDTH 60
+  ORDER 120
+
+ADD FIELD "Can-Repl" OF "CanExtract" AS character 
+  DESCRIPTION "The Full Can Expression Replacement Value
+"
+  FORMAT "x(100)"
+  INITIAL ""
+  POSITION 14
+  MAX-WIDTH 200
+  COLUMN-LABEL "Can Expression Replacement"
+  ORDER 130
+
+ADD FIELD "Can-SubRepl" OF "CanExtract" AS character 
+  DESCRIPTION "The Can Sub-Expression Replacmenet Sub-Expression"
+  FORMAT "x(30)"
+  INITIAL ""
+  POSITION 15
+  MAX-WIDTH 60
+  COLUMN-LABEL "Can Sub-expression Replacement"
+  ORDER 140
+
+ADD FIELD "ExprAttrs" OF "CanExtract" AS integer 
+  FORMAT "->,>>>,>>9"
+  INITIAL "0"
+  POSITION 16
+  MAX-WIDTH 4
+  COLUMN-LABEL "Expression Attribute Flags"
+  ORDER 150
+
+ADD FIELD "Cmd-Can" OF "CanExtract" AS character 
+  DESCRIPTION "Can Permission Command Generation"
+  FORMAT "x(80)"
+  INITIAL ""
+  POSITION 17
+  MAX-WIDTH 160
+  COLUMN-LABEL "Can Commands"
+  ORDER 160
+
+ADD FIELD "Can-Prop" OF "CanExtract" AS character 
+  DESCRIPTION "Can Permission Role Proposal"
+  FORMAT "x(30)"
+  INITIAL ""
+  POSITION 18
+  MAX-WIDTH 60
+  COLUMN-LABEL "Can Role Proposal"
+  ORDER 170
+
+ADD FIELD "Cmd-Prop" OF "CanExtract" AS character 
+  DESCRIPTION "Can Permission Role Command Proposal"
+  FORMAT "x(80)"
+  INITIAL ""
+  POSITION 19
+  MAX-WIDTH 160
+  COLUMN-LABEL "Proposed Roles"
+  ORDER 180
+
+ADD INDEX "ICan" ON "CanExtract" 
+  AREA "Info Area"
+  PRIMARY
+  DESCRIPTION "CanExtract Primary Index"
+  INDEX-FIELD "DB-Guid" ASCENDING 
+  INDEX-FIELD "FilNum" ASCENDING 
+  INDEX-FIELD "FldNum" ASCENDING 
+  INDEX-FIELD "StateFlag" ASCENDING 
+  INDEX-FIELD "Can-Code" ASCENDING 
+  INDEX-FIELD "Cmd-PropSeq" ASCENDING 
+  INDEX-FIELD "Cmd-CanSeq" ASCENDING 
+  INDEX-FIELD "Can-SubSeq" ASCENDING 
+
+ADD INDEX "ICanRepl" ON "CanExtract" 
+  AREA "Info Area"
+  DESCRIPTION "Can Replacement Index"
+  INDEX-FIELD "Can-SubExpr" ASCENDING 
+  INDEX-FIELD "Can-SubRepl" ASCENDING 
+
+.
+PSC
+cpstream=ibm850
+.
+0000004941

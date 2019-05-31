@@ -71,7 +71,7 @@ for each s_ttb_db:
   assign
     cache_db#             = cache_db# + 1
     cache_db_e[cache_db#] = s_ttb_db.dbtyp
-                          + ( if INTEGER(s_ttb_db.vrsn) < 11 
+                          + ( if INTEGER(s_ttb_db.vrsn) < 12 
                                 then "/R" + s_ttb_db.vrsn
                                 else ""
                             )
@@ -86,10 +86,11 @@ for each s_ttb_db:
                                &from-type = "s_ttb_db.dbtyp"
                             }
     cache_db_t[cache_db#] = cache_db_t[cache_db#]
-                          + ( if integer(s_ttb_db.vrsn) < 11 
+                          + ( if integer(s_ttb_db.vrsn) < 12 
                                 then "/R" + s_ttb_db.vrsn
                                 else ""
                             ).
   end.
+
 
 

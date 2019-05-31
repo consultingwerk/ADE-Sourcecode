@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LoggerBuilder
@@ -232,8 +232,16 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
             if session:debug-alert then
                 AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
             
-            AddFilter(LoggerFilterRegistry:ABL_SUBSTITUTE_FORMAT).
             AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
+            // set the error stack to true to make the ERROR_FORMAT more useful
+            assign session:error-stack-trace = true.
+            
+            // resolves any of the standard tokens
+            AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).
+            // writes any resolved tokens into the message
+            AddFilter(LoggerFilterRegistry:REPLACE_TOKENS_FORMAT).
+            
+            // write to the log-manager
             AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
             AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         end.

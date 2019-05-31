@@ -4,37 +4,37 @@
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
  /* permission in writing from progress Software Corporation. */
- /*************************************************************/ 
+ /*************************************************************/
  /*------------------------------------------------------------------------
     File        : DomainDataSource
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : hdaniels
     Created     : nov 2010
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 
 using Progress.Lang.* from propath.
 using OpenEdge.DataAdmin.DataSource.DataSource from propath.
-using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath. 
+using OpenEdge.DataAdmin.DataAccess.DataAccessError from propath.
 using OpenEdge.DataAdmin.DataAccess.DataMapper from propath.
-using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath. 
-using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath. 
+using OpenEdge.DataAdmin.Error.UnsupportedOperationError from propath.
+using OpenEdge.DataAdmin.Error.IllegalArgumentError from propath.
 using OpenEdge.DataAdmin.Error.UnauthorizedOperationError.
 
 routine-level on error undo, throw.
 
-class OpenEdge.DataAdmin.DataSource.DomainDataSource inherits DataSource: 
+class OpenEdge.DataAdmin.DataSource.DomainDataSource inherits DataSource:
     define buffer b_domain for dictdb._Sec-Authentication-Domain.
     define buffer b_tenant for dictdb._Tenant.
     define private variable msave as logical no-undo.
     define private variable mAccessDisp as character no-undo init "********".
     /* Is the current user a security admin? */
     define private variable mlIsAdmin as logical no-undo init false.
-   
-	define private variable mMapping as char
-	   init  	
+
+    define private variable mMapping as char
+       init
 "Name,_Domain-name,~
 AuthenticationSystemName,_Domain-type,~
 Description,_Domain-description,~
@@ -49,42 +49,42 @@ TenantId,_Tenant._tenantId,~
 AuthenticationActions,_PAM-actions,~
 Comments,_Domain-custom-detail"
      no-undo.
-/* Names decided in discussions for 11.1 changes       
-Note: Consider removing Domain from the name. 
-Seems a bit weird to have IDomain:DomainActions. 
-DomainControl,_PAM-control~     
+/* Names decided in discussions for 11.1 changes
+Note: Consider removing Domain from the name.
+Seems a bit weird to have IDomain:DomainActions.
+DomainControl,_PAM-control~
 SystemPath,_PAM-library-path"
-*/        
-    constructor public DomainDataSource (pcurl as char):        
-        this-object ( ).   
-        url = pcURL. 
+*/
+    constructor public DomainDataSource (pcurl as char):
+        this-object ( ).
+        url = pcURL.
     end constructor.
-    
-	constructor public DomainDataSource ( ):	    
-		super ("_sec-authentication-domain,_tenant","dictdb._sec-authentication-domain,dictdb._tenant", mMapping). 
-		BaseQueryTemplate = "for each _sec-authentication-domain&1no-lock,"
-		                  + " each _tenant outer-join where _tenant._tenant-name = _sec-authentication-domain._tenant-name no-lock".
-        
+
+    constructor public DomainDataSource ( ):
+        super ("_sec-authentication-domain,_tenant","dictdb._sec-authentication-domain,dictdb._tenant", mMapping).
+        BaseQueryTemplate = "for each _sec-authentication-domain&1no-lock,"
+                          + " each _tenant outer-join where _tenant._tenant-name = _sec-authentication-domain._tenant-name no-lock".
+
         run prodict/_dctadmn.p ( input userid('dictdb':u), output mlIsAdmin ).
     end constructor.
-    
+
     method protected override void PrepareBuffer(phBuffer as handle):
         phBuffer:set-callback("After-Row-fill","AfterDomainRow").
     end method.
-    
-    /** Save all  
+
+    /** Save all
          @param buffer the temp-table buffer handle with data */
     method public override logical Save(bufferHandle as handle):
-        return this-object:Save(bufferHandle,?).  
-    end method.  
-    
-    /** Save changes of specified state 
+        return this-object:Save(bufferHandle,?).
+    end method.
+
+    /** Save changes of specified state
          @param buffer the temp-table buffer handle with data
-         @param state  the row-state to save (row-created, row-deleted or row-modified) 
+         @param state  the row-state to save (row-created, row-deleted or row-modified)
                       ? = all */
     method public override logical Save(phBuffer as handle,piState as int):
         define variable hBeforeBuff as handle    no-undo.
-        define variable lnew        as logical   no-undo. 
+        define variable lnew        as logical   no-undo.
         define variable hquery      as handle    no-undo.
         define variable iType       as integer   no-undo.
         define variable cType       as character no-undo.
@@ -96,102 +96,121 @@ SystemPath,_PAM-library-path"
         define variable cChanges     as character no-undo.
         define variable logged_in_domain as character no-undo.
         define variable preEncode    as logical no-undo.
+        define variable DACprefix    as character no-undo init "odeb0::".
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
-        
+
         create query hquery.
         hBeforeBuff = phBuffer:before-buffer.
         hquery:add-buffer(hBeforeBuff).
-        hQuery:query-prepare("for each ttDomainCopy"    
-                              + (if piState <> ? 
+        hQuery:query-prepare("for each ttDomainCopy"
+                              + (if piState <> ?
                                  then " where row-state(ttDomainCopy) = " + string(piState)
-                                 else "")  
-                             ).    
+                                 else "")
+                             ).
         hquery:query-open().
-        
+
         do while true on error undo, throw:
-            
+
             hquery:get-next.
-            if not hBeforebuff:avail then 
+            if not hBeforebuff:avail then
                 leave.
-        
-            if hBeforeBuff:row-state = row-deleted then 
+
+            if hBeforeBuff:row-state = row-deleted then
             do:
                 find b_domain where b_domain._domain-name = hBeforeBuff::Name exclusive no-wait.
                 delete  b_domain.
             end.
             else do:
                 phBuffer:find-by-rowid (hBeforeBuff:after-rowid).
-            
+
                 if DatabaseInfo:IsMultiTenant then
-                do: 
-                    /* if mod then use Id since parent may be renamed in same transaction 
-                       but the parent is updated after the this child 
+                do:
+                    /* if mod then use Id since parent may be renamed in same transaction
+                       but the parent is updated after the this child
                        (We know the id is set in this case, whihc is not the case with create) */
                     if pistate = row-modified then
-                        find b_tenant where b_tenant._tenantid = phBuffer::TenantId no-lock no-error. 
-                    else 
-                        find b_tenant where b_tenant._tenant-name = phBuffer::TenantName no-lock no-error. 
-                    
+                        find b_tenant where b_tenant._tenantid = phBuffer::TenantId no-lock no-error.
+                    else
+                        find b_tenant where b_tenant._tenant-name = phBuffer::TenantName no-lock no-error.
+
                     if not avail b_tenant then
                     do:
                         undo, throw new DataAccessError("Tenant " + quoter(phBuffer::Tenantname) + " does not exist").
-                    end.    
-                end.               
-                else if phBuffer::Tenantname > "" then 
-                    undo, throw new DataAccessError("Tenant " + quoter(phBuffer::Tenantname) + " is invalid." 
+                    end.
+                end.
+                else if phBuffer::Tenantname > "" then
+                    undo, throw new DataAccessError("Tenant " + quoter(phBuffer::Tenantname) + " is invalid."
                                                  + " The Domain cannot have a Tenant in a database that is not multi-tenant.").
-                
-                if hBeforeBuff:row-state = row-created then 
+
+                if hBeforeBuff:row-state = row-created then
                 do:
                     create b_domain.
                     assign
                         preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */
                         b_domain._Domain-name = phBuffer::Name
-                        cAccess = phBuffer::AccessCode
-                        b_domain._Domain-access-code = if preEncode = true then cAccess else AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess)
-                        phBuffer::PreEncodeAccessCode = false. /* turn off the flag */    .
-                end. 
+                        cAccess = phBuffer::AccessCode.
+
+                    if preEncode = true then do:
+                        if substring(cAccess,1,7) = DACprefix then
+                            assign b_domain._Domain-access-code = cAccess.
+                        else do:
+                            undo, throw new DataAccessError("Access Code" + quoter(phBuffer::Name) +
+                                " must be formatted with the correct prefix: " + quoter(DACprefix)).
+                        end.
+                    end.
+                    else
+                        assign b_domain._Domain-access-code = SECURITY-POLICY:ENCODE-DOMAIN-ACCESS-CODE(cAccess).
+                end.
                 else do:
-                    
+
                     find b_domain /* find using beforebuff::Name rather than Name */
                        where b_domain._domain-name = /*phbuffer::Name*/
                              hBeforeBuff::Name exclusive no-wait .
-                    
+
                     if (mlIsAdmin and phBuffer::AccessCode ne b_domain._Domain-access-code) or
                        (mlIsAdmin = false and phBuffer::AccessCode <> mAccessDisp) then
                     do:
                         assign
                             preEncode = phBuffer::PreEncodeAccessCode /* set from Service:PasswordPolicy */
-                            cAccess = phBuffer::AccessCode 
-                            b_domain._Domain-access-code = if preEncode = true then cAccess else AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(cAccess)
-                            phBuffer::PreEncodeAccessCode = false. /* turn off the flag */    .
-                    end.  
+                            b_domain._Domain-name = phBuffer::Name
+                            cAccess = phBuffer::AccessCode.
+
+                        if preEncode = true then do:
+                            if substring(cAccess,1,7) = DACprefix then
+                                assign b_domain._Domain-access-code = cAccess.
+                            else
+                            undo, throw new DataAccessError("Access Code for Domain " + quoter(phBuffer::Name) +
+                                " must be formatted with the correct prefix: " + quoter(DACprefix)).
+                        end.
+                        else
+                            assign b_domain._Domain-access-code = SECURITY-POLICY:ENCODE-DOMAIN-ACCESS-CODE(cAccess).
+                    end.
                 end.
-                 
-                /* You get "cannot change.." error if you assign any (some?) other field than 
-                   enabled for a builtin domain. This check ensures that we avoid the message 
-                   if this is the only change. Note that we intentionally assign other changes 
+
+                /* You get "cannot change.." error if you assign any (some?) other field than
+                   enabled for a builtin domain. This check ensures that we avoid the message
+                   if this is the only change. Note that we intentionally assign other changes
                    also if the record is a builtin to let core deal with the error message */
                 cChanges = CompareBuffers(phbuffer,hBeforeBuff,"Entity","case-sensitive").
                 /* rename a domain */
                 assign logged_in_domain = SUBSTRING(userid("dictdb"),INDEX(userid("dictdb"),'@') + 1).
                 if lookup("Name",cChanges) > 0 then do:
                     if b_domain._Domain-name EQ logged_in_domain then
-                       undo, throw new UnsupportedOperationError("Renaming the domain with which the user has logged in is not allowed.").        
+                       undo, throw new UnsupportedOperationError("Renaming the domain with which the user has logged in is not allowed.").
                     else
-                       b_domain._Domain-name = phBuffer::Name.         
+                       b_domain._Domain-name = phBuffer::Name.
                 end.
-                
+
                 if lookup('AuthenticationActions':u, cChanges) gt 0 then
                 do:
                     if mlIsAdmin then
                         assign b_domain._PAM-actions = phBuffer::AuthenticationActions.
                     else
-                        undo, throw new UnauthorizedOperationError('Only a Security Admin can change the authententication actions'). 
+                        undo, throw new UnauthorizedOperationError('Only a Security Admin can change the authententication actions').
                 end.
-                
-                if cChanges = "IsEnabled" then 
+
+                if cChanges = "IsEnabled" then
                     b_domain._Domain-enabled = phBuffer::IsEnabled.
                 else
                     assign
@@ -204,92 +223,92 @@ SystemPath,_PAM-library-path"
                         b_domain._Domain-runtime-options = phBuffer::RuntimeOptions
                         b_domain._Domain-custom-detail = phBuffer::Comments
                         .
-                             
+
                 hdataset = phBuffer:dataset.
-                buffer b_domain:buffer-validate ().    
+                buffer b_domain:buffer-validate ().
                 msave = true.
                 AfterDomainRow (dataset-handle hdataset  by-reference).
                 msave = false.
                 /* TODO   - save-row-changes? */
             end. /* else (not delete)*/
-        end. 
-        return true. 
+        end.
+        return true.
         catch e as Progress.Lang.Error :
-            cErrormap = replace(mMapping,"AuthenticationSystemName","Authentication System").    
+            cErrormap = replace(mMapping,"AuthenticationSystemName","Authentication System").
             undo, throw new DataAccessError(
                 new DataMapper("Domain,b_domain,Authentication System,_sec-authentication-system",
                 cErrormap),
-                e). 
-            
-        end catch.          
+                e).
+
+        end catch.
         finally:
-           delete object hQuery no-error. 		
+           delete object hQuery no-error.
         end finally.
-                
-    end method.    
-    
+
+    end method.
+
     method public void AfterDomainRow(dataset-handle hds):
         define variable hbuffer as handle no-undo.
         define variable iSource as integer no-undo.
-        
+
         hBuffer = hds:get-buffer-handle("ttDomain").
         if url > "" then
             assign
-                hBuffer::Url        = Url + "/domains/" + WebUtil:UrlEncode(hBuffer::Name) 
+                hBuffer::Url        = Url + "/domains/" + WebUtil:UrlEncode(hBuffer::Name)
                 hBuffer::UsersUrl   = hBuffer::Url + "/users".
-            
-        if not mlIsAdmin then 
+
+        if not mlIsAdmin then
             assign hBuffer::AccessCode = mAccessDisp.
-        
+
         /* we cannot create a builtin so the value is always correct on save
-           (false if new, from read if update)  */    
-        if not msave then   
+           (false if new, from read if update)  */
+        if not msave then
         do:
             isource = lookup("_sec-authentication-domain",Tables).
             hBuffer::IsBuiltin = DataSourceHandle:get-source-buffer(isource)::_Domain-category <> 0.
         end.
         if hBuffer::TenantName > "" and url > "" then
             hBuffer::TenantUrl = Url + "/tenants/" + WebUtil:UrlEncode(hBuffer::Tenantname ).
-        
+
         if hBuffer::TenantName = "?" then
             hBuffer::TenantName = "Default".
-    end method.                 
-    
+    end method.
+
     method private char IsBuiltInExpression(istrue as log):
         if istrue then
-            return  "(_sec-authentication-domain._Domain-category <> '0')". 
-        else  
-            return  "(_sec-authentication-domain._Domain-category = '0')". 
-    end method.  
-    
+            return  "(_sec-authentication-domain._Domain-category <> '0')".
+        else
+            return  "(_sec-authentication-domain._Domain-category = '0')".
+    end method.
+
     method public override character ColumnSortSource(pcColumn as char):
-        define variable iType as integer no-undo.      
+        define variable iType as integer no-undo.
         if pccolumn = "_sec-authentication-domain.IsBuiltIn" then
         do:
             return IsBuiltInExpression(true).
         end.
-        return super:ColumnSortSource(pccolumn).   
-    end. 
-    
+        return super:ColumnSortSource(pccolumn).
+    end.
+
      /* convert  values in query to the expression required in the db */
     method public override character ColumnExpression(pcColumn as char,pcOperator as char,pcValue as char):
         define variable iType as integer no-undo.
-       
+
         if pccolumn = "_sec-authentication-domain.IsBuiltIn" then
         do:
             return IsBuiltInExpression(logical(pcValue)).
         end.
-        return super:ColumnExpression(pccolumn,pcOperator,pcValue).   
-   
-    end. 
-    
+        return super:ColumnExpression(pccolumn,pcOperator,pcValue).
+
+    end.
+
     /* rename table to match to right table when building  */
     method public override character ColumnSource (pcColumn as char):
         if pccolumn = "ttDomain.IsBuiltIn" then
         do:
-            return "_sec-authentication-domain.IsBuiltIn".      
+            return "_sec-authentication-domain.IsBuiltIn".
         end.
         else return super:ColumnSource(pccolumn).
-    end method.     
-    
+    end method.
+
 end class.

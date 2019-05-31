@@ -3,8 +3,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _CODE-BLOCK _CUSTOM Definitions 
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
+* Copyright (C) 2000,2017 by Progress Software Corporation. All      *
+* rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
 *********************************************************************/
@@ -21,6 +21,7 @@
   Updated: 08/05/97 wood    Initial version
            06/18/01 adams   Check for no database connection.  This is
                             called from webtools/vstinfo.w.
+           07/07/17 rkumar  Use _dbparms instead of _Startup VST in 12.0 
 ------------------------------------------------------------------------*/
 /*           This .W file was created with WebSpeed Workshop.           */
 /*----------------------------------------------------------------------*/
@@ -1667,9 +1668,11 @@ PROCEDURE show-StartupParameters :
   Notes:       
 ------------------------------------------------------------------------------*/
     RUN report-head ("Other: Startup Parameters").
-    for each _Startup NO-LOCK:
+   /* for each _DbParams NO-LOCK:
       {&display}
-        _Startup-AiName       LABEL "After-image file name (-a)"
+         _DbParams-Desc _DbParams-Value
+                              COLON 44
+       /* _Startup-AiName       LABEL "After-image file name (-a)"
                               COLON 44
         _Startup-Buffs        LABEL "Number of database buffers (-B)"
                               COLON 44
@@ -1706,10 +1709,10 @@ PROCEDURE show-StartupParameters :
         _Startup-APWBuffs     LABEL "APW buffers to scan"
                               COLON 44
         _Startup-APWMaxWrites LABEL "APW max writes / scan"
-                              COLON 44
+                              COLON 44 */
                 with frame Startup-Frame
                      side-labels.
-    end.
+    end.  */
 
 END PROCEDURE.
 &ANALYZE-RESUME

@@ -36,7 +36,7 @@
                            20050921-017.
     fernando 11/30/07      Check if read-only mode.
     fernando 07/20/09      look at correct _db record
-    rkumar   09/11/17       support for CDC user ID feature                 
+    rkumar   09/11/17       support for CDC user ID feature                             
 ------------------------------------------------------------------------*/
 /*          This .p file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -169,6 +169,7 @@ DEFINE VARIABLE tbCDCUser AS CHARACTER
 	 &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN SIZE 40 BY 1
      &ELSE SIZE 40 BY 1.5 &ENDIF NO-UNDO.
 
+
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME Dialog-Frame
@@ -207,10 +208,10 @@ DEFINE FRAME Dialog-Frame
      txtSecurity
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 6 COL 2 COLON-ALIGNED
           &ELSE AT ROW 5.81 COL 2 COLON-ALIGNED &ENDIF NO-LABEL
-	 txtCDCAuditing
+     txtCDCAuditing
           &IF '{&WINDOW-SYSTEM}' = 'TTY':U &THEN AT ROW 12 COL 2 COLON-ALIGNED
           &ELSE AT ROW 10.41 COL 2 COLON-ALIGNED &ENDIF NO-LABEL
-  
+	  
      &IF "{&WINDOW-SYSTEM}" NE "TTY" &THEN
        RECT-1 AT ROW 11.81 COL 2 &ENDIF
      SPACE(1.19) SKIP(0.18)
@@ -276,6 +277,7 @@ ON VALUE-CHANGED OF tbTrustDomain IN FRAME {&FRAME-NAME}
 
 ON VALUE-CHANGED OF tbCDCUser IN FRAME {&FRAME-NAME} 
   glCDCUserID = tbCDCUser:SCREEN-VALUE.
+
 /* ***************************  Main Block  *************************** */
 
 /* Parent the dialog-box to the ACTIVE-WINDOW, if there is no parent.   */
@@ -339,10 +341,11 @@ PROCEDURE displayOptions :
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN "No Db".
   END.
-
+ 
   hField = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
 
   DO WHILE VALID-HANDLE(hField):
+  	  
     IF NOT hField:TYPE = "TOGGLE-BOX" THEN DO: 
       hField = hField:NEXT-SIBLING.
       NEXT.
@@ -405,6 +408,9 @@ PROCEDURE initializeUI :
   
   FRAME {&FRAME-NAME}:TITLE = FRAME {&FRAME-NAME}:TITLE + 
                               " (" + LDBNAME("DICTDB") + ")".
+  
+    
+  
 
   RUN displayOptions.
   IF RETURN-VALUE = "No Db" THEN
@@ -418,13 +424,12 @@ PROCEDURE initializeUI :
            glNoBlank     = tbNoBlank:CHECKED
            glRuntime     = tbRuntime:CHECKED.
 		   
-	FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Change Data Capture" NO-LOCK NO-ERROR.	
+    FIND dictdb._Database-feature WHERE dictdb._Database-feature._DBFeature_Name = "Change Data Capture" NO-LOCK NO-ERROR.	
     if dictdb._Database-feature._dbfeature_enabled EQ "1" and NOT ronly then 
-	    ASSIGN tbCDCUser:SENSITIVE = TRUE.
+	   ASSIGN tbCDCUser:SENSITIVE = TRUE.
 	ELSE 
-		ASSIGN tbCDCUser:SENSITIVE = FALSE.
+	   ASSIGN tbCDCUser:SENSITIVE = FALSE.		   
   END.
- 
   
   FIND FIRST _Db-option where _Db-option._Db-recid = drec_db AND _Db-option._db-option-code = "_pvm.CDCUserID"
 	                      AND _Db-option._db-option-type = 1 EXCLUSIVE-LOCK NO-ERROR.
@@ -432,7 +437,8 @@ PROCEDURE initializeUI :
 	 ASSIGN tbCDCUser:SCREEN-VALUE = _Db-option._db-option-value. 
   ELSE 	 
      ASSIGN tbCDCUser:SCREEN-VALUE = "None".
- 
+	 
+  
 END PROCEDURE.
 
 PROCEDURE saveOptions :
@@ -458,11 +464,11 @@ PROCEDURE saveOptions :
             "You must be connected to a database to acces this tool!"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     RETURN "No Db".
-  END.
- 
+  END.	
+
   hField = FRAME {&FRAME-NAME}:FIRST-CHILD:FIRST-CHILD.
   DO WHILE VALID-HANDLE(hField):
-    
+  
     /* If this is not a TOGGLE-BOX or it's not sensitive then skip it. */
     IF hField:TYPE      <> "TOGGLE-BOX" AND hField:TYPE <> "RADIO-SET" OR
        hField:SENSITIVE =  FALSE THEN DO:
@@ -477,18 +483,19 @@ PROCEDURE saveOptions :
                                   " AND _db-option-type = " +
                                   ENTRY(2,hField:PRIVATE-DATA,"|")) 
                                   NO-ERROR.
-
-
+								  
+								  
+							  
     /* If we couldn't find an option that matches this one (unlikely) or
        the value hasn't changed, skip it (don't attempt to change the value) */
     IF hField:TYPE EQ "TOGGLE-BOX" THEN DO:
-	  IF NOT (lFound = TRUE) OR
+    IF NOT (lFound = TRUE) OR
        hField:CHECKED = (IF hDbOption::_db-option-value EQ "yes" THEN
                            TRUE ELSE FALSE) THEN DO:
       hField = hField:NEXT-SIBLING.
       NEXT.
     END.
-	END.
+    END.    
 	
     DO TRANSACTION:
       lFound = hDbOption:FIND-FIRST("WHERE _db-option._db-recid = " +
@@ -499,28 +506,29 @@ PROCEDURE saveOptions :
                                     ENTRY(2,hField:PRIVATE-DATA,"|"),
                                     EXCLUSIVE-LOCK) NO-ERROR.
 
-		/* Rohit*/
-		if hField:TYPE EQ "RADIO-SET" THEN DO:
-		IF NOT (lFound = TRUE) THEN DO:
-	      CREATE _Db-option.
+      /* Rohit*/
+	  IF hField:TYPE EQ "RADIO-SET" THEN DO:
+	  IF NOT (lFound = TRUE) THEN DO:
+	  CREATE _Db-option.
           ASSIGN  _Db-option._db-option-code  = "_pvm.CDCUserID"
 				  _Db-option._db-recid = hDb:RECID
                   _Db-option._db-option-type  = 1
 				  _Db-option._db-option-description = "CDC User Identity"
                   _Db-option._db-option-value = tbCDCUser:SCREEN-VALUE.
-		END.
-		ELSE DO:
+	  END.
+	  ELSE DO:
 			ASSIGN  hDbOption::_db-option-value = tbCDCUser:SCREEN-VALUE.
-		END.
-		end.
-	    ELSE DO:			  	   /* not a radio-set- Rohit */
+	  END.
+	  END.
+	  ELSE DO:			  	   /* not a radio-set- Rohit */
 		hDbOption::_db-option-value = (IF hField:CHECKED THEN "yes" 
                                      ELSE "no").
-		END.
+	  END.
 
-		
       hDbOption:BUFFER-RELEASE().
     END. /* Transaction Block */
+	
+
     hField = hField:NEXT-SIBLING.
   END.
 END PROCEDURE.

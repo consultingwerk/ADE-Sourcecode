@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
@@ -145,8 +145,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                            CRLF
                            [ message-body ]          ; Section 7.2      */        
         assign iBytesRead  = poSocketArgs:BytesRead
-               iStartByte  = 1.
-
+               iStartByte  = 1
+               .
         /* first line is the status line */
         do while not mlStatusLineRead:
             /* we know that the first 14 character are a fixed format per the HTTP spec.
@@ -230,7 +230,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                    LF is another line ending (CR). */
                 if iByte eq CR and miPrevByte eq LF then
                     assign mlHeadersRead = true.
-                            
+                
                 assign miPrevByte = iByte.
             end. /* byte loop */
             
@@ -238,7 +238,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             assign iStartByte = iLoop + 1
                    miChunkBytesRemaining = 0
                    miChunkSize = 0.
-            moChunk:Clear().                   
+            moChunk:Clear().
         end.
         
         /* no else since we may have enough data to deal with all of this */
@@ -248,10 +248,21 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             /* HEAD requests have no bodies, so we know we're done now.
                If the caller of this writer has not set the Request via Write(IHTTPRequest)
                then the socket may end up timing out instead but it won't fail. */
-            if valid-object(this-object:Request) and
-               this-object:Request:Method eq MethodEnum:HEAD:ToString() then
+            if     valid-object(this-object:Request) 
+               and this-object:Request:Method eq MethodEnum:HEAD:ToString()
+            then
                 assign poSocketArgs:ReadComplete = true.
             else
+            // If there's otherwise no entity/message body, then we can consider ourselves done.
+            if Response:ContentLength eq 0
+                       // If there's a Content-Length header with a value of 0/zero, then we're done here. 
+               and (   Response:HasHeader('Content-Length':u) 
+                       // if there's no discernable content on this response
+                    or Response:ContentType   eq '':u ) 
+            then
+                assign poSocketArgs:ReadComplete = true.
+            else
+            // we have a body/entity and some content to process
             case Response:TransferEncoding:
                 when string(TransferEncodingEnum:Chunked) then
                 do:
@@ -359,25 +370,25 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         
                         assign miPrevByte = iByte.
                     end.    /* byte loop */
-                end.    /* TransferEncodingEnum:Chunked */         
+                end.    /* TransferEncodingEnum:Chunked */
                 otherwise
                 do:
                     /* we know this isn't chunked data. some responses have no body,
                        so stop right here. */
-                    assign poSocketArgs:ReadComplete = (Response:ContentLength eq 0) or (iBytesRead eq 0) 
+                    assign poSocketArgs:ReadComplete = (iBytesRead eq 0)
                            iNumBytes                 = iBytesRead - iStartByte + 1
                            .
                     /* There may be more bytes to read, but in not in this packet/socket chunk */
                     if not poSocketArgs:ReadComplete and iNumBytes gt 0 then
                     do:
                         /* get it all in one fell swoop (not chunked) */
-                        oTempData = poSocketArgs:Data:GetBytes(iStartByte, iNumBytes).
+                        assign oTempData = poSocketArgs:Data:GetBytes(iStartByte, iNumBytes).
                         
                         MessageBody:PutBytes(oTempData).
                         /* Done if the Message Body is at least as big as the ContentLength. This is for cases like 
                            PSC00359890 where the Content-Length header was 760 and the actual body 762 (2 trailing 
                            whitespace bytes). */
-                        poSocketArgs:ReadComplete = (MessageBody:Size ge Response:ContentLength).                                
+                        assign poSocketArgs:ReadComplete = (MessageBody:Size ge Response:ContentLength).
                     end.
                 end.    /* no Transfer-Encoding */
             end case.   /* non-HEAD */

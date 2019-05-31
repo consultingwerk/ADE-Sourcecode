@@ -24,7 +24,7 @@
                         "OpenEdge.Security.Provider.UserTableAuthProvider": {
                             "validateClient": true,
                             "requiredRoles": "STS_VALIDATE_USER",
-                            "sealKey": "oech1::20333c34252a2137",
+                            "sealKey": "<prefix>::<hash>",
                             "passwordProvider": "Sports.Security.PWProvider"
                         },
                         "OpenEdge.Security.STS.EventDispatcher":{
@@ -32,7 +32,7 @@
                             "requiredRoles": {
                                 "EmitEvent": ["STS_EMIT_EVENT"],
                                 "ApplyPolicy: ["STS_EMIT_EVENT"] },
-                            "sealKey": "oech1::20333c34252a2137"
+                            "sealKey": "<prefix>::<hash>"
                         }
                     }    
   ----------------------------------------------------------------------*/

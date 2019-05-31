@@ -38,7 +38,6 @@ DEFINE VARIABLE i	             AS INTEGER   NO-UNDO.
 FIND DICTDB._Db WHERE RECID(DICTDB._Db) = drec_db.  
 RUN STORED-PROC DICTDBG.GetInfo (0).
 
-
 FOR EACH DICTDBG.GetInfo_buffer:
    IF (LENGTH(DICTDBG.GetInfo_buffer.escape_char,"character") < 1)
      THEN  escape_char = " ".

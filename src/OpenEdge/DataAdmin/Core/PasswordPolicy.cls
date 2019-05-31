@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2014 by progress Software Corporation       */
+/* Copyright (c) 2014,2019 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -24,7 +24,7 @@ class OpenEdge.DataAdmin.Core.PasswordPolicy implements IPasswordPolicy:
     /** Set to true to avoid encoding of IUser password by service (data access) 
         If false (default) the User password will be encded using ENCODE
     */
-	define public property PreEncodeUserPassword as logical no-undo 
+	define public property PreEncodeUserPassword as logical init false no-undo 
 	get.
 	set. 
 
@@ -32,7 +32,7 @@ class OpenEdge.DataAdmin.Core.PasswordPolicy implements IPasswordPolicy:
     If false (default) the domain access code will be encded using 
     AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY()
     */
-    define public property PreEncodeDomainAccessCode as logical no-undo 
+    define public property PreEncodeDomainAccessCode as logical init false no-undo 
     get.
     set.
     

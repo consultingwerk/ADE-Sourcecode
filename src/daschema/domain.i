@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011 by progress Software Corporation       */
+/* Copyright (c) 2011,2019 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -31,8 +31,8 @@ define  temp-table ttDomain no-undo  serialize-name "domains" {1} before-table t
          field AuditingContext as character               serialize-name "auditingContext" format "x(16)" label "Auditing context"
          field AccessCode      as character               serialize-name "accessCode" label "Access code"
          /* Not a real property -  used to carry PasswordPolicy:PreEncodeDomainAccessCode to server
-            to be removed if a better mechansim is used to pass preferences */
-         field PreEncodeAccessCode as logical    serialize-hidden   
+            to be removed if a better mechanism is used to pass preferences */
+         field PreEncodeAccessCode as logical init false  serialize-hidden   
          field SystemOptions   as character               serialize-name "systemOptions"  format "x(13)" label "Runtime options"
          field RuntimeOptions  as character               serialize-name "runtimeOptions"  format "x(13)" label "Runtime options"
          field AuthenticationActions as character         serialize-name "authActions"  format "x(13)" label "Authentication actions"

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : Logger
@@ -16,14 +16,18 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
 // NO THROW EVAH
 //block-level on error undo, throw.
 
+using OpenEdge.Core.Collections.IList.
+using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Logging.Filter.LoggerFilterList.
 using OpenEdge.Logging.Format.ISupportFormatting.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogEvent.
-using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LogMessage.
-using OpenEdge.Logging.TokenResolver.
+using OpenEdge.Logging.Logger.
+using OpenEdge.Core.Util.Token.
+using OpenEdge.Core.ObjectArrayHolder.
+using OpenEdge.Core.Collections.List.
 
 class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     // (mandatory) Holds filters for formatting the messagesto this logger
@@ -31,7 +35,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     
     // (mandatory) The level being logged at
     define public property LogLevel as LogLevelEnum no-undo get. private set. 
-        
+    
     // (mandatory) Name for this logger
     define public property Name as character no-undo get. private set.
     
@@ -52,7 +56,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         end set.
     
     /* Constructor
-           
+       
        @param character The name of this logger implementation
        @param LogLevelEnum The level we're logging at
        @param LoggerFilterList A list of filters to format and write the log data */
@@ -78,6 +82,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:FATAL, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -90,6 +97,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:FATAL, new LogMessage( pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a simple message 
@@ -101,7 +111,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         
         WriteMessage(LogLevelEnum:FATAL, poMessage, ?).
     end method.
-        
+    
     /* Log for a group and a simple message
         
        @param character The message group for this message 
@@ -114,8 +124,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:FATAL, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
     /* Log for a message and error
        
        @param LogMessage The message to log. 
@@ -127,7 +140,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         
         WriteMessage(LogLevelEnum:FATAL, poMessage, poError).
     end method.
-
+    
     /* Log for a simple message 
        
        @param character The message to log. 
@@ -138,6 +151,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:FATAL, new LogMessage(this-object:Name, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
 
 /** ERROR **/
@@ -149,6 +165,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:ERROR, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -161,6 +180,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:ERROR, new LogMessage(pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a simple message 
@@ -185,8 +207,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:ERROR, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
     /* Log for a message and error
        
        @param LogMessage The message to log. 
@@ -198,7 +223,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         
         WriteMessage(LogLevelEnum:ERROR, poMessage, poError).
     end method.
-
+    
     /* Log for a simple message 
        
        @param character The message to log. 
@@ -209,8 +234,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:ERROR, new LogMessage(this-object:Name, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
 /** WARN **/
     /* Log for a simple message 
        
@@ -220,6 +248,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:WARN, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -232,6 +263,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:WARN, new LogMessage(pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a simple message 
@@ -256,6 +290,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:WARN, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
 
     /* Log for a message and error
@@ -291,6 +328,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:INFO, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -303,6 +343,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:INFO, new LogMessage(pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a simple message 
@@ -327,8 +370,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:INFO, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
     /* Log for a message and error
        
        @param LogMessage The message to log. 
@@ -351,6 +397,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:INFO, new LogMessage(this-object:Name, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
 /** DEBUG **/
@@ -362,6 +411,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:DEBUG, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -374,6 +426,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
             
         WriteMessage(LogLevelEnum:DEBUG, new LogMessage(pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a simple message 
@@ -385,7 +440,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         
         WriteMessage(LogLevelEnum:DEBUG, poMessage, ?).
     end method.
-
+    
     /* Log for a group and a simple message
         
        @param character The message group for this message 
@@ -398,8 +453,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:DEBUG, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
     /* Log for a message and error
        
        @param LogMessage The message to log. 
@@ -422,8 +480,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:DEBUG, new LogMessage(this-object:Name, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
 /** TRACE **/
     /* Log for a simple message 
        
@@ -433,6 +494,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
        
         WriteMessage(LogLevelEnum:TRACE, new LogMessage(this-object:Name, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Log for a group and a simple message
@@ -445,6 +509,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:TRACE, new LogMessage(pcMessageGroup, pcMessage), ?).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
        /* Log for a simple message 
@@ -469,8 +536,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:TRACE, new LogMessage(pcMessageGroup, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
-
+    
     /* Log for a message and error
        
        @param LogMessage The message to log. 
@@ -482,7 +552,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         
         WriteMessage(LogLevelEnum:TRACE, poMessage, poError).
     end method.
-
+    
     /* Log for a simple message 
        
        @param character The message to log. 
@@ -493,6 +563,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
             return.
         
         WriteMessage(LogLevelEnum:TRACE, new LogMessage(this-object:Name, pcMessage), poError).
+        catch logError as Progress.Lang.Error:
+            // CATCH & SWALLOW: errors from instantiating the LogMessage
+        end catch.
     end method.
     
     /* Writes a log message
@@ -508,21 +581,53 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         else
             assign oEvent = new LogEvent(poLogLevel, poMessage, now).
         
-        assign oEvent:Logger     = this-object
-               
+        assign oEvent:Logger          = this-object
                oEvent:LoggerName      = this-object:Name
                oEvent:ShortNameFormat = this-object:Format
                oEvent:LoggerShortName = this-object:ShortName
                
                oEvent:LoggedBy = security-policy:get-client()
                .
+        // Use the LogEvent's Message since we know it exists (the input poMessage may be ?)
+        ExtractMessageTokens(oEvent:Message).
+        // process the message with the filter chain
         moLogFilters:ExecuteFilter(oEvent).
         
         catch oError as Progress.Lang.Error :
-            // CATCH & SWALLOW. we can't have an error being logged so, yeah
+            // CATCH & SWALLOW: errors in the filter chain, or in this method
         end catch.
     end method.
-
+    
+    /* Extracts tokens from the message text and adds them to the message's context.
+       
+       @param LogMessage The current message to parse */
+    method private void ExtractMessageTokens(input pMessage as LogMessage):
+        define variable msgTokens as Token extent no-undo.
+        define variable ctxTokens as Progress.Lang.Object no-undo.
+        
+        if not valid-object(pMessage) then
+            return.
+        
+        // extract all the tokens from the message
+        assign msgTokens = TokenResolver:Parse(pMessage:Message).
+        if extent(msgTokens) eq ? then
+            return.
+        
+        assign ctxTokens = pMessage:GetContext('tokens':u).
+        if    not valid-object(ctxTokens)
+           or not type-of(ctxTokens, IList)
+        then
+        do:
+            assign ctxTokens = new List().
+            pMessage:AddContext('tokens':u, ctxTokens).
+        end.
+        
+        // if there's a list in the event context already, add the message tokens to it, even if the context 
+        // list is empty
+        if type-of(ctxTokens, IList) then
+            cast(ctxTokens, IList):AddArray(msgTokens).
+    end method.
+    
     /* Compares two instances
        
        Loggers are equal iff
@@ -535,11 +640,10 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     method override public logical Equals( input poRef as Progress.Lang.Object ):
         if super:Equals(poRef) then
             return true.
-          
+        
         if not type-of(poRef, Logger) then
             return false.
         
         return (cast(poRef, Logger):Name eq this-object:Name).             
     end method.
-    
 end class.

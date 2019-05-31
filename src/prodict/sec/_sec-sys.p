@@ -1,7 +1,7 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
 /*************************************************************/
-/* Copyright (c) 1984-2015 by Progress Software Corporation  */
+/* Copyright (c) 1984-2019 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -69,7 +69,7 @@ DEFINE VARIABLE hColumn AS HANDLE      NO-UNDO EXTENT 2.
 
 DEFINE VARIABLE gcSort  AS CHARACTER   NO-UNDO INITIAL "dType".
 DEFINE VARIABLE gcMods  AS CHARACTER   NO-UNDO.
-DEFINE VARIABLE MD5Checksum  AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE DigestChecksum  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE inbuild AS LOGICAL     NO-UNDO.
 DEFINE VARIABLE derr    AS LOGICAL     NO-UNDO.
 DEFINE TEMP-TABLE saSys NO-UNDO RCODE-INFORMATION
@@ -333,9 +333,9 @@ ON CHOOSE OF btnSave   IN FRAME {&frame_name} DO:
       IF RETURN-VALUE NE "" THEN
          RETURN RETURN-VALUE.
          
-      iLength = LENGTH(MD5Checksum).
+      iLength = LENGTH(DigestChecksum).
       SET-SIZE(mptr) = iLength + 1.
-      PUT-STRING(mptr,1) = MD5Checksum.
+      PUT-STRING(mptr,1) = DigestChecksum.
       
       Find first DICTDB._sec-authentication-system 
          WHERE DICTDB._sec-authentication-system._domain-type = fiType:SCREEN-VALUE no-error.
@@ -507,13 +507,13 @@ END.
 ON VALUE-CHANGED OF checksum IN FRAME {&FRAME-NAME} DO:
 
     if self:screen-value = "no" then
-       assign MD5Checksum = "".
+       assign DigestChecksum = "".
 
     if self:screen-value = "yes" then do:      
-       run checkMD5(fiType:HANDLE,callback:handle,checksum:handle).
+       run checkSignatureValue(fiType:HANDLE,callback:handle,checksum:handle).
        if return-value = "error" then
           assign SELF:screen-value = "no"
-                 MD5Checksum = "".
+                 DigestChecksum = "".
     end.
 
     if glCreateMode then leave.
@@ -538,12 +538,12 @@ ON VALUE-CHANGED OF checksum IN FRAME {&FRAME-NAME} DO:
       
 END.  
 
-procedure checkMD5:
+procedure checkSignatureValue:
    Define INPUT PARAMETER DomainType     as handle         NO-UNDO.
    Define INPUT PARAMETER callback     as handle         NO-UNDO.
    Define INPUT PARAMETER checksum     as handle         NO-UNDO.
    DEF VAR mPtr       AS MEMPTR NO-UNDO.
-   DEF VAR md5Value   AS CHAR   NO-UNDO.
+   DEF VAR digestValue   AS CHAR   NO-UNDO.
    DEF VAR cFileName   AS CHAR   NO-UNDO.
    DEF VAR iLength    AS INT    NO-UNDO.
 
@@ -557,13 +557,13 @@ procedure checkMD5:
       RETURN "error".
    END.
         
-   md5Value = RCODE-INFO:MD5-VALUE.
-   IF md5Value = ? THEN DO:
-      MESSAGE "ERROR - rcode does not have MD5 value:" cFileName view-as alert-box error.
+   digestValue = RCODE-INFO:SIGNATURE-VALUE.
+   IF digestValue = ? THEN DO:
+      MESSAGE "ERROR - rcode does not have signature value:" cFileName view-as alert-box error.
       RETURN "error".
    END.
 
-   MD5Checksum = md5Value.
+   DigestChecksum = digestValue.
    return "".
 end procedure.
 

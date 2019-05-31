@@ -209,10 +209,10 @@ class OpenEdge.DataAdmin.Binding.AuthenticationSystemContext inherits DataAdminC
                 undo, throw new UnsupportedOperationError("ERROR - did not find info for rcode in callback procedure").
             END.
         
-            md5Value = RCODE-INFO:MD5-VALUE.
+            md5Value = RCODE-INFO:SIGNATURE-VALUE.
             IF md5Value = ? THEN 
             DO:                                
-                undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have MD5 value").
+                undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have signature value").
             END.
         
             iLength = LENGTH(md5Value).

@@ -393,8 +393,7 @@ HIDE FRAME schema_stuff NO-PAUSE.
 
 
 FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
-
-  IF index(cache_db_t[pos],"/R10") <> 0  THEN  
+  IF index(cache_db_t[pos],"/R11") <> 0  THEN  
      RETURN YES.
    ELSE 
      RETURN NO.
@@ -402,3 +401,4 @@ FUNCTION isOlderDBVersion RETURNS LOGICAL (INPUT pos AS INTEGER):
 END FUNCTION.
 
 &ENDIF /*"{&WINDOW-SYSTEM}" <> "TTY"*/
+

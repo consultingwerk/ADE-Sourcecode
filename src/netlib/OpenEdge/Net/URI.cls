@@ -1,6 +1,6 @@
-/************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
-*************************************************/
+/**********************************************************************************
+Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.     
+************************************************************************************/
 /*------------------------------------------------------------------------
     File        : URI
     Purpose     : A generic URI object, useful for making request over a network
@@ -16,7 +16,7 @@ Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
         pchar       = unreserved / pct-encoded / sub-delims / ":" / "@"
                       ALPHA / DIGIT / "-" / "." / "_" / "~" /
                         "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "=" /
-                       R:" / "@"        
+                        ":" / "@"        
         unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
         
         Default  : unreserved
@@ -60,7 +60,13 @@ using OpenEdge.Net.UriEncodingTypeEnum.
 using OpenEdge.Net.UriSchemeEnum.
 using Progress.Lang.AppError.
 
-class OpenEdge.Net.URI:
+class OpenEdge.Net.URI serializable:
+    /* The _PART are the indexes for the URI parts produced by the SplitUri() method */
+    define static public property SCHEME_PART_IDX       as integer no-undo initial 1 get.
+    define static public property AUTHORITY_PART_IDX    as integer no-undo initial 2 get.
+    define static public property PATH_PART_IDX         as integer no-undo initial 3 get.
+    define static public property QUERY_PART_IDX        as integer no-undo initial 4 get.
+    define static public property FRAGMENT_PART_IDX     as integer no-undo initial 5 get.
     
     // true/false flags for the US-ASCII characters that must / not be percent-encoded
     define private static variable mEncFlag_Default  as logical extent 128 initial false no-undo.
@@ -71,6 +77,7 @@ class OpenEdge.Net.URI:
     define private static variable mEncFlag_Query    as logical extent 128 initial false no-undo.
     define private static variable mEncFlag_Fragment as logical extent 128 initial false no-undo.
     define private static variable mEncFlag_Cookie   as logical extent 128 initial false no-undo.
+    //define private static variable mEncFlag_Form     as logical extent 128 initial false no-undo.
     
     /* internal string representation of this object. we don't really want to build it 
        every time we need it */
@@ -148,6 +155,9 @@ class OpenEdge.Net.URI:
     define public property Fragment as character no-undo
         get. 
         set(input pcFragment as character):
+            if pcFragment eq ? then
+                assign pcFragment = '':u. 
+            
             /* flag URI as changed */
             assign mcUri                = ?
                    this-object:Fragment = pcFragment.
@@ -162,7 +172,7 @@ class OpenEdge.Net.URI:
             return this-object:BaseURI.
         end get.
         private set.
-
+    
     /** Returns a relative URI (path, QueryMap et al) */
     define public property RelativeURI as character no-undo 
         get():
@@ -271,7 +281,13 @@ class OpenEdge.Net.URI:
                // "&" = 38
                mEncFlag_Query[38 + 1]    = false
                .
-        
+        /*
+        // + is a commonly-used signal for space, so needs to be % encoded
+        // "+" = 43
+        assign mEncFlag_Form         = mEncFlag_Query
+               mEncFlag_Form[43 + 1] = false
+               . 
+        */
         // Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)       
         // 0-31 and 127+ are control or non-US-ASCII character; 32 is space               
         do chrLoop = 33 to 126:
@@ -298,8 +314,8 @@ class OpenEdge.Net.URI:
         @param character The scheme for this URI.
         @param character The host name. */
     constructor public URI(input pcScheme as character,
-        input pcHost as character):
-        this-object(pcScheme, pcHost, ?, '/':u, new StringStringMap(), ?).
+                           input pcHost as character):
+        this-object(pcScheme, pcHost, ?, '/':u, new StringStringMap(), '':u).
     end constructor.
 
     /** Constructor.
@@ -310,11 +326,38 @@ class OpenEdge.Net.URI:
     constructor public URI(input pcScheme as character,
                            input pcHost as character,
                            input piPort as integer):
-        this-object(pcScheme, pcHost, piPort, '/':u, new StringStringMap(), ?).
+        this-object(pcScheme, pcHost, piPort, '/':u, new StringStringMap(), '':u).
     end constructor.
+
+    /** Constructor.
+        
+        @param character The scheme for this URI
+        @param character The authority (contains at least host, and potentially port, user, passwd)
+        @param character The path
+        @param character The query string
+        @param character The fragment */
+    constructor public URI(input pScheme as character,
+                           input pAuthority as character,
+                           input pPath as character,
+                           input pQuery as character,
+                           input pFragment as character):
+        Assert:NotNullOrEmpty(pScheme, 'URI Scheme').
+        
+        assign this-object:Scheme      = pScheme
+               this-object:QueryMap    = new StringStringMap()
+               mcUri                   = ?
+               .
+        SetAuthority(pAuthority, true). //decode?
+        SetPath(pPath).
+        
+        // Finally add the fragment
+        assign this-object:Fragment = pFragment.
+        
+        AddQueryString(pQuery, true).   //Decode?
+    end method.
     
     /** Constructor.
-      
+       
         @param character The scheme for this URI.
         @param character The host name.
         @param integer The port to use.
@@ -353,6 +396,272 @@ class OpenEdge.Net.URI:
         return URI:Parse(pcURI, true).
     end method.
     
+    /* Parses this URI into its component parts.
+       
+       @return character[] An array of component parts
+                            [1] scheme (http/https)
+                            [2] authority (host:port) 
+                            [3] path
+                            [4] query
+                            [5] fragment        */
+    method public character extent Split():
+        define variable uriParts as character extent 5 no-undo.
+        
+        if mcUri eq ? then
+            BuildUri().
+        
+        assign uriParts[SCHEME_PART_IDX]    = string(this-object:Scheme)
+               uriParts[PATH_PART_IDX]      = this-object:Path
+               uriParts[QUERY_PART_IDX]     = substring(this-object:QueryString, 2) // has a leading ?
+               uriParts[FRAGMENT_PART_IDX]  = this-object:Fragment
+               .
+        // authority is a little more complex
+        if not this-object:User eq ? then
+        do: 
+            assign uriParts[AUTHORITY_PART_IDX] = uriParts[AUTHORITY_PART_IDX] + this-object:User.
+            if not this-object:Password eq ? then
+                assign uriParts[AUTHORITY_PART_IDX] = uriParts[AUTHORITY_PART_IDX] + substitute(':&1':u, this-object:Password).
+            assign uriParts[AUTHORITY_PART_IDX] = uriParts[AUTHORITY_PART_IDX] + '@':u.
+        end.
+        
+        case mcHostType:
+            when 'IPLIT':u then
+                assign uriParts[AUTHORITY_PART_IDX] = uriParts[AUTHORITY_PART_IDX] + '[':u + this-object:Host + ']':u.
+            otherwise
+                assign uriParts[AUTHORITY_PART_IDX] = uriParts[AUTHORITY_PART_IDX] + this-object:Host.
+        end case.
+        
+        if not this-object:Port eq ? then
+            assign uriParts[AUTHORITY_PART_IDX] = substitute('&1:&2':u, uriParts[AUTHORITY_PART_IDX], this-object:Port).
+        
+        return uriParts.
+    end method.
+    
+    /* Parses an potentially-URI-containing string into URI component parts.
+       
+       This method will not fail, and will return empty values for an element of the 
+       URI if the string cannot be parsed or fails to parse somehow. So if the string contains 
+            http//example.com
+       the auhority will be 'example.com' and the scheme empty (since there's no :).  
+       
+       @param  character A string URI (or part thereof)
+       @return character[] An array of component parts
+                            [1] scheme (http/https)
+                            [2] authority (host:port) 
+                            [3] path
+                            [4] query
+                            [5] fragment        */
+    method static public character extent SplitUri(input pData as character):
+        define variable uriParts as character extent 5 no-undo initial ['':u,'':u,'':u,'':u,'':u].
+        define variable chrPos as integer no-undo.
+        define variable chrPos2 as integer no-undo.
+        
+        if String:IsNullOrEmpty(pData) then
+            return uriParts.
+        
+        //extract the fragment and URI before processing the /-delimited stuff   the fragment is always the last element 
+        // of the URI per the spec: URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ] - so we cut that off first,
+        // then the query. The 'heir-part' consists of
+        // hier-part  = "//" authority path-abempty
+        //              / path-absolute
+        //              / path-rootless
+        //              / path-empty
+        assign chrPos = index(pData, '#':u).
+        if chrPos gt 0 then
+            assign uriParts[FRAGMENT_PART_IDX] = substring(pData, chrPos + 1)
+                   pData                       = substring(pData, 1,        chrPos - 1)
+                   .
+        // extract the query, if any
+        assign chrPos = index(pData, '?':u).
+        if chrPos gt 0 then
+            assign uriParts[QUERY_PART_IDX] = substring(pData, chrPos + 1)
+                   pData                    = substring(pData, 1,        chrPos - 1)
+                   .
+        // the colon indicates the scheme delimiter
+        assign chrPos = index(pData, ':':u).
+        if chrPos gt 0 then
+            assign uriParts[SCHEME_PART_IDX] = substring(pData, 1,    chrPos - 1)
+                   pData                     = substring(pData, chrPos + 1)
+                   .
+        // use double-slashes to get the authority
+        assign chrPos  = index(pData, '//':u)
+               chrPos2 = index(pData, '/':u, chrPos + 2)
+               .
+        if chrPos gt 0 then
+        do:
+            if chrPos2 eq 0 then
+                assign uriParts[AUTHORITY_PART_IDX] = substring(pData, chrPos + 2)
+                       pData                        = '':u
+                       .
+            else
+                assign uriParts[AUTHORITY_PART_IDX] = substring(pData, chrPos + 2, chrPos2 - (chrPos + 2))
+                       // keep the leading slash
+                       pData                        = substring(pData, chrPos2)
+                       .
+        end.
+        
+        //paths are what's left
+        assign uriParts[PATH_PART_IDX] = pData.
+        
+        return uriParts.
+    end method.
+    
+    /* Sets this URI's complete Path. This replaces the existing path.
+       
+       @param character The complete to add  */
+    method protected void SetPath(input pPath as character):
+        define variable delim as character no-undo.
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        define variable path as character no-undo.
+        define variable segment as character no-undo.
+        
+        if not String:IsNullOrEmpty(pPath) then
+            assign delim = '':u
+                   cnt   = num-entries(pPath, '/':u)
+                   path  = '':u 
+                   .
+        do loop = 1 to cnt:
+            assign segment = entry(loop, pPath, '/':u)
+                   path    = path + delim
+                             // encode the paths (especially for unicode chars); leave any %-encoding alone though
+                             + EncodeString(segment, ?, mEncFlag_Path, false)
+                   delim   = '/':u
+                   .
+        end.
+        
+        //we need at least a "/" in order to set the Path property
+        if path eq '':u then
+            assign this-object:Path = '/':u.
+        else
+            // if there's no leading / then the setting of the Path property will provide one
+            assign this-object:Path = path.
+    end method.
+    
+    /* Adds a URI's authority components to this instance
+       
+       @param character The authority to add
+       @param logical TRUE if the authority needs to be decoded */
+    method protected void SetAuthority(input pAuthority as character,
+                                       input pDecode as logical):
+        define variable port as integer no-undo.
+        define variable host as character no-undo.
+        define variable chrPos as integer no-undo.
+        define variable usr as character no-undo.
+        define variable passwd as character no-undo.
+        
+        Assert:NotNullOrEmpty(pAuthority, 'URI Authority').
+        
+        // default is to DECODE
+        if pDecode eq ? then
+            assign pDecode = true.
+        
+        if pDecode then
+            assign pAuthority = URI:Decode(pAuthority).
+        
+        /* get username/password out of real host */
+        assign chrPos = r-index(pAuthority, '@':u).
+        if chrPos eq 0 then
+            assign usr    = ?
+                   passwd = ?
+                   .
+        else
+        do:
+            assign usr        = substring(pAuthority, 1, chrPos - 1)
+                   passwd     = ?
+                   pAuthority = substring(pAuthority, chrPos + 1)
+                   chrPos     = index(usr, ':':u)
+                   .
+            if chrPos gt 0 then
+                assign passwd = substring(usr, chrPos + 1)
+                       usr    = substring(usr, 1, chrPos - 1)
+                       .
+        end.
+        
+        // IPv6 addesses contain : so look for the right-most after any ]
+        assign chrPos = r-index(pAuthority, ']':u)
+               chrPos = index(pAuthority, ':':u, max(1, chrPos))
+               .
+        if chrPos eq 0 then 
+            assign port = ?
+                   host = pAuthority
+                   .
+        else
+            /* port first, else we lose it */
+            assign port = integer(substring(pAuthority, chrPos + 1))
+                   host = substring(pAuthority, 1, chrPos - 1)
+                   .
+        
+        assign this-object:Host     = host
+               this-object:Port     = port
+               this-object:User     = usr
+               this-object:Password = passwd
+               .
+    end method.
+    
+    /** Parses a string containing a URI's QUERY and adds it to this URI
+        
+        @param character A query string
+        @param logical TRUE if the incoming strings should be URL-decoded */
+    method public void AddQueryString(input pQuery as character,
+                                      input pDecode as logical):
+        define variable qryPart as character no-undo.
+        define variable qryVal as character no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable chrPos as integer no-undo.
+        
+        // nothing here
+        if    pQuery eq ?
+           or pQuery eq '':u
+        then
+            return.
+        
+        // default is to DECODE
+        if pDecode eq ? then
+            assign pDecode = true.
+        
+        assign qryVal = '':u
+               cnt    = num-entries(pQuery, '&':u)
+               .
+        do loop = 1 to cnt:
+            assign qryPart = entry(loop, pQuery, '&':u)
+                   chrPos  = index(qryPart, '=':u)
+                   .
+            if qryPart eq '':u then
+                next.
+            
+            if chrPos eq 0 then
+                assign chrPos = index(qryPart, ';':u).
+            
+            if chrPos eq 0 then
+            do:
+                if pDecode then
+                    assign qryPart = URI:Decode(qryPart).
+                this-object:AddQuery(qryPart).
+            end.
+            else
+            do:
+                assign qryVal = substring(qryPart, chrPos + 1)
+                       no-error.
+                if qryVal eq ? then
+                    assign qryVal = '':u.
+                else
+                if pDecode then
+                    assign qryVal = URI:Decode(qryVal).
+                
+                // query-name
+                assign qryPart = substring(qryPart, 1, chrPos - 1). 
+                if pDecode then
+                    assign qryPart = URI:Decode(qryPart).
+                this-object:AddQuery(qryPart, qryVal).
+            end.
+        end.
+        finally:
+            assign error-status:error = false.
+        end finally.
+    end method.
+    
     /** Parses a string containing a URI and creates a URI object from it
         
         @param character a string URI (eg http://www.progress.com/)
@@ -360,175 +669,43 @@ class OpenEdge.Net.URI:
         @return URI A URI representation of the string. */
     method static public URI Parse(input pcURI as character,
                                    input pDecode as logical):
-        define variable oURI       as URI       no-undo.
-        define variable cScheme    as character no-undo.
-        define variable cHost      as character no-undo.
-        define variable iPort      as integer   no-undo.
-        define variable cPath      as character no-undo.
-        define variable cQuery     as character no-undo.
-        define variable iLoop      as integer   no-undo.
-        define variable iMax       as integer   no-undo.
-        define variable iPos       as integer   no-undo.
-        define variable cUser      as character no-undo.
-        define variable cPassword  as character no-undo.
-        define variable cDelimiter as character no-undo.
-        define variable cQueryPart as character no-undo.
-        define variable cValue     as character no-undo.
-        define variable cFragment  as character no-undo.
+        define variable uriParts as character extent 5 no-undo.
         
         Assert:NotNullOrEmpty(pcURI, 'URI string').
+        
         // default is to DECODE
         if pDecode eq ? then
-            assign pDecode = true. 
+            assign pDecode = true.
+        
+        // Missing parts are represented by empty/blank strings
+        assign uriParts = SplitUri(pcURI).
         
         /* No scheme. Default to HTTP */
-        if num-entries(pcURI, ':':u) eq 1 then
-            assign pcURI = substitute('&1://&2':u,
-                                string(UriSchemeEnum:http),
-                                left-trim(pcURI,'/':u)).  
+        if uriParts[SCHEME_PART_IDX] eq '':u then
+            assign uriParts[SCHEME_PART_IDX] = string(UriSchemeEnum:http).
         
-        //extract the fragment and URI before processing the /-delimited stuff   the fragment is always the last element 
-        // of the URI per the spec: URI = scheme ":" hier-part [ "?" query ] [ "#" fragment ] - so we cut that off first,
-        // then the query
-        assign iPos = index(pcURI, '#':u).
-        if iPos gt 0 then
-            assign cFragment = substring(pcURI, iPos + 1)
-                   pcURI     = substring(pcURI, 1,      iPos - 1)
-                   .
-        assign iPos = index(pcURI, '?':u).
-        if iPos gt 0 then
-            assign cQuery = substring(pcURI, iPos + 1)
-                   pcURI  = substring(pcURI, 1,      iPos - 1)
-                   .
-        // now the string contains scheme, host, path
-        assign iMax = num-entries(pcURI, '/':u).
-        /* we need at least 3 entries for this to be a decent URL:
-             1  - scheme (eg http:)
-             2  - the space between the 2 /'s
-             3  - the host, port amnd optionally user/password 
-             4+ - the path and other slugs */
-        if iMax lt 3 then
+        /* we need at least a schema and an authority/host for this to be a decent URL */ 
+        if    uriParts[SCHEME_PART_IDX] eq '':u
+           or uriParts[AUTHORITY_PART_IDX] eq '':u
+        then
             undo, throw new AppError(substitute('Unable to parse malformed URI: &1', pcURI), 0).
         
-        if iMax ge 3 then
-            assign cScheme = right-trim(entry(1, pcURI, '/':u), ':':u).
-        
-        Assert:NotNullOrEmpty(cScheme, 'URI scheme').
-        
-        /* entry 2 is the 'space' between the double slashes */
-        assign cHost = entry(3, pcURI, '/':u).
+        // don't decode the path and query as a whole, since we need to split those into their
+        // component parts first
+        // Don't decode the path , since the decoded values may contain slashes
         if pDecode then
-            assign cHost = URI:Decode(cHost).
-        assign iPos = r-index(cHost, '@':u).
-        
-        /* get username/password out of real host */
-        if iPos eq 0 then
-            assign cUser  = ?
-                   cPassword = ?
+            assign uriParts[SCHEME_PART_IDX]    = URI:Decode(uriParts[SCHEME_PART_IDX])
+                   uriParts[AUTHORITY_PART_IDX] = URI:Decode(uriParts[AUTHORITY_PART_IDX])
+                   uriParts[FRAGMENT_PART_IDX]  = URI:Decode(uriParts[FRAGMENT_PART_IDX])
                    .
-        else
-        do:
-            assign cUser     = substring(cHost, 1, iPos - 1)
-                   cPassword = ?
-                   cHost     = substring(cHost, iPos + 1)
-                   iPos      = index(cUser, ':':u)
-                   .
-            if iPos gt 0 then
-                assign cPassword = substring(cUser, iPos + 1)
-                       cUser     = substring(cUser, 1, iPos - 1)
-                       .
-        end.
-        
-        // IPv6 addesses contain : so look for the right-most after any ]
-        assign iPos = r-index(cHost, ']':u)
-               iPos = index(cHost, ':':u, max(1, iPos))
-               .
-        if iPos eq 0 then 
-            assign iPort = ?.
-        else
-            /* port first, else we lose it */
-            assign iPort = integer(substring(cHost, iPos + 1))
-                   cHost = substring(cHost, 1, iPos - 1)
-                   .
-        if pDecode then
-            assign cScheme = URI:Decode(cScheme)
-                   cHost   = URI:Decode(cHost)
-                   .
-        assign oURI = new URI(cScheme, cHost, iPort).
-        
-        if cUser ne ? then
-        do:
-            if pDecode then
-                assign cUser     = URI:Decode(cUser)
-                       cPassword = URI:Decode(cPassword)
-                       .
-            /* no domain string in the URL */
-            assign oURI:User     = cUser
-                   oURI:Password = cPassword
-                   .
-        end.
-        
-        /* get path, querystring, fragments */
-        /* entry 2 is the 'space' between the double slashes, so we start after the host, at 4 */
-        assign cDelimiter = '':u.
-        do iLoop = 4 to iMax:
-            assign cValue     = entry(iLoop, pcURI, '/':u)
-                   cPath      = '/':u when cPath eq '':u 
-                   cPath      = cPath + cDelimiter 
-                              // encode the paths (especially for unicode chars); leave any %-encoding alone though
-                              + URI:EncodeString(cValue, ?, mEncFlag_Path, false)
-                   cDelimiter = '/':u
-                   .
-        end.
-        
-        if cPath eq '':u then
-            assign cPath = '/':u.
-        
-        assign oURI:Path = cPath
-               cValue    = '':u
-               iMax      = 0
-               .
-        /* QueryMap and fragment */
-        if cQuery ne '':u then
-            assign iMax = num-entries(cQuery, '&':u).
-        do iLoop = 1 to iMax:
-            assign cQueryPart = entry(iLoop, cQuery, '&':u)
-                   iPos       = index(cQueryPart, '=':u)
-                   .
-            if cQueryPart eq '':u then
-                next.
-            
-            if iPos eq 0 then
-                assign iPos = index(cQueryPart, ';':u).
-            
-            if iPos eq 0 then
-                oURI:AddQuery(URI:Decode(cQueryPart)).
-            else
-            do:
-                assign cValue = substring(cQueryPart, iPos + 1)
-                       no-error.
-                if cValue eq ? then
-                    assign cValue = '':u.
-                else
-                if pDecode then
-                    assign cValue = URI:Decode(cValue).
-                
-                // query-name 
-                assign cQueryPart = substring(cQueryPart, 1, iPos - 1). 
-                if pDecode then
-                    assign cQueryPart = URI:Decode(cQueryPart).
-                oURI:AddQuery(cQueryPart, cValue).
-            end.
-        end.
-        
-        if cFragment ne '':u then
-            assign cFragment     = URI:Decode(cFragment) when pDecode
-                   oURI:Fragment = cFragment
-                   .
-        
-        return oURI.
+        // Build a URI from the component parts
+        return new URI(uriParts[SCHEME_PART_IDX],
+                       uriParts[AUTHORITY_PART_IDX],
+                       uriParts[PATH_PART_IDX],
+                       uriParts[QUERY_PART_IDX],
+                       uriParts[FRAGMENT_PART_IDX]).
     end method.
-   
+    
     /* Helper method to return the path as an array of segments.
        
        @return character[] An array of path segments. */
@@ -551,6 +728,7 @@ class OpenEdge.Net.URI:
        
        Will %-encode the segment values
        Empty/blank segments are ignored
+       Dotted paths are added as-is
        
        @param character[] An array of path segments. */
     method public void SetPath(input pcSegments as character extent):
@@ -566,16 +744,21 @@ class OpenEdge.Net.URI:
         do segmentLoop = 1 to segmentCnt:
             assign segment = URI:EncodePath(pcSegments[segmentLoop]).
             // Don't add empty segments
-            if segment ne '':u then
-                assign path      = '/':u when path eq '':u
-                       path      = path + pathDelim + segment
-                       pathDelim = '/':u
-                       .
+            case segment:
+                // skip empty paths
+                when '':u then
+                    next.
+                otherwise
+                    assign path      = '/':u when path eq '':u
+                           path      = path + pathDelim + segment
+                           pathDelim = '/':u
+                           .
+            end case.
         end.
         
         assign this-object:Path = path.
     end method.
-
+    
     /* Adds/appends a segment to the Path property 
        
        Will %-encode the segment value
@@ -610,7 +793,7 @@ class OpenEdge.Net.URI:
         
         /* flag URI as changed */
         assign mcUri   = ?
-               lcValue = pcValue
+               lcValue = EncodeQuery(pcValue)
                .
         this-object:QueryMap:Put(pcName, lcValue).
     end method.
@@ -649,7 +832,7 @@ class OpenEdge.Net.URI:
     method public IStringStringMap GetQueryMap():
         return new StringStringMap(this-object:QueryMap). 
     end method.
-
+    
     /** Sets (merges) a set of query names and values into this URI
         
         @param IStringStringMap A map of query names and values */
@@ -713,7 +896,7 @@ class OpenEdge.Net.URI:
         if cPath ne '':u or cQueryString ne '':u then 
             assign cRelativeURI = substitute('&1&2':u, cPath, cQueryString).
         
-        if this-object:Fragment ne ? then
+        if not this-object:Fragment eq '':u then
             assign cRelativeURI = substitute('&1#&2':u, cRelativeURI, this-object:Fragment).
         
         assign this-object:BaseURI     = cRootURI
@@ -775,7 +958,7 @@ class OpenEdge.Net.URI:
                           + poURI:EncodeQuery()
             .
         // Fragment
-        if poURI:Fragment ne ? then
+        if not poURI:Fragment eq '':u  then
             assign encodedUri = encodedUri + '#':u + URI:EncodeFragment(poUri:Fragment).
         
         return encodedUri.
@@ -1190,11 +1373,12 @@ class OpenEdge.Net.URI:
             when UriEncodingTypeEnum:Query    then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Query,    pReEncode).
             when UriEncodingTypeEnum:Fragment then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Fragment, pReEncode).
             when UriEncodingTypeEnum:Cookie   then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Cookie,   pReEncode).
+            //when UriEncodingTypeEnum:Form     then return URI:EncodeString(pString, session:cpinternal, mEncFlag_Form,     pReEncode).
             otherwise                              return URI:EncodeString(pString, session:cpinternal, mEncFlag_Default,  pReEncode).
         end case.
     end method.
     
-    /** Attempts to decode a previously-encoded URL.        
+    /** Attempts to decode a previously-encoded URL.
         
         @return character A decoded URL */
     method public character Decode():
@@ -1235,15 +1419,15 @@ class OpenEdge.Net.URI:
         define variable rawChar       as raw       no-undo.
         define variable decodedChar   as character no-undo.
         define variable codepoint     as integer   no-undo.
-
+        
         if    pEncodedString eq ? 
            or pEncodedString eq '':u 
-           then
-            return pEncodedString.           
+        then
+            return pEncodedString.
         
         if    pTargetCodepage eq ? 
            or pTargetCodepage eq '':u 
-           then
+        then
             assign pTargetCodepage = session:cpinternal.
         
         assign startAt = 1
@@ -1259,6 +1443,8 @@ class OpenEdge.Net.URI:
                 assign decodedString = decodedString + substring(pEncodedString, startAt, (pctPos - startAt + 1))
                        startAt       = pctPos + 1
                        pctPos        = index(pEncodedString, '%':u, startAt)
+                       // reset the flag
+                       error-status:error = false
                        .
                 next.
             end.
@@ -1329,7 +1515,7 @@ class OpenEdge.Net.URI:
         end.
         
         /* add anycharacters that appear after the last % */
-        return decodedString + substring(pEncodedString, startAt).        
+        return decodedString + substring(pEncodedString, startAt).
     end method.
 
     /** Returns an array of query names
@@ -1360,6 +1546,199 @@ class OpenEdge.Net.URI:
         end.
         
         return iCount.
+    end method.
+    
+    /* Resolve a relative URI reference to a base URI, as per RFC3986, at https://tools.ietf.org/html/rfc3986#section-5.2.2 .
+       
+       The relative URI reference does not have to be a complete URI - it may only have certain parts of a URI (like path only,
+       or query only). 
+       
+       @param URI The base URI 
+       @param character A string representation of a URI to merge/resolve into the base
+       @return URI A resolved URI */
+    method static public URI ResolveRelativeReference(input pBaseUri as URI,
+                                                      input pRelativeRef as character):
+        define variable baseURI as character extent no-undo.
+        define variable relativeURI as character extent no-undo.
+        define variable targetURI as character extent 5 no-undo.
+        
+        Assert:NotNull(pBaseUri, 'Base URI').
+        
+        assign baseURI     = pBaseUri:Split()
+               relativeURI = URI:SplitUri(pRelativeRef)
+               .
+        // not defined(R.scheme) 
+        if relativeURI[SCHEME_PART_IDX] eq '':u then
+        do:
+            assign targetURI[SCHEME_PART_IDX] = baseURI[SCHEME_PART_IDX].
+            // not defined(R.authority) 
+            if relativeURI[AUTHORITY_PART_IDX] eq '':u then
+            do:
+                assign targetURI[AUTHORITY_PART_IDX] = baseURI[AUTHORITY_PART_IDX].
+                //if (R.path == "") then
+                if relativeURI[PATH_PART_IDX] eq '':u then
+                do:
+                    assign targetURI[PATH_PART_IDX] = baseURI[PATH_PART_IDX].
+                    //not defined(R.query) 
+                    if relativeURI[QUERY_PART_IDX] eq '':u then
+                        assign targetURI[QUERY_PART_IDX] = baseURI[QUERY_PART_IDX].
+                    //if defined(R.query) then
+                    else
+                        assign targetURI[QUERY_PART_IDX] = relativeURI[QUERY_PART_IDX].
+                end.
+                else
+                do:
+                    if relativeURI[PATH_PART_IDX] begins '/':u then
+                        assign targetURI[PATH_PART_IDX] = URI:RemoveDotSegments(relativeURI[PATH_PART_IDX]).
+                    else
+                        assign targetURI[PATH_PART_IDX] = URI:MergePath(baseURI, relativeURI)
+                               targetURI[PATH_PART_IDX] = URI:RemoveDotSegments(targetURI[PATH_PART_IDX])
+                               .
+                    assign targetURI[QUERY_PART_IDX] = relativeURI[QUERY_PART_IDX].
+                end.
+            end.    //not defined authority
+            else
+            //if defined(R.authority) then
+                assign targetURI[AUTHORITY_PART_IDX] = relativeURI[AUTHORITY_PART_IDX]
+                       targetURI[PATH_PART_IDX]      = URI:RemoveDotSegments(relativeURI[PATH_PART_IDX])
+                       targetURI[QUERY_PART_IDX]     = relativeURI[QUERY_PART_IDX]
+                       .
+        end.    // not defined scheme
+        else
+        //if defined(R.scheme) then
+            assign targetURI[SCHEME_PART_IDX]    = relativeURI[SCHEME_PART_IDX]
+                   targetURI[AUTHORITY_PART_IDX] = relativeURI[AUTHORITY_PART_IDX]
+                   targetURI[PATH_PART_IDX]      = URI:RemoveDotSegments(relativeURI[PATH_PART_IDX]) 
+                   targetURI[QUERY_PART_IDX]     = relativeURI[QUERY_PART_IDX]
+                   .
+        
+        return new URI(targetURI[SCHEME_PART_IDX],
+                       targetURI[AUTHORITY_PART_IDX],
+                       targetURI[PATH_PART_IDX],
+                       targetURI[QUERY_PART_IDX],
+                       // always use the relative fragment
+                       relativeURI[FRAGMENT_PART_IDX]  ).
+    end method.
+    
+    /* Merges a relative path into a base path, as per https://tools.ietf.org/html/rfc3986#section-5.2.3 .
+       
+       @param character[5] The split base URI
+       @param character[5] The split relative URI
+       @return character The merged path */
+    method static private character MergePath (input pBaseURI as character extent 5,
+                                               input pRelURI as character extent 5):
+        define variable targetPath as character no-undo.
+        define variable chrPos as integer no-undo.
+        
+        //shouldn't be ? but make sure
+        if    pBaseURI[AUTHORITY_PART_IDX] eq ?
+           or pBaseURI[PATH_PART_IDX] eq ?
+           or pBaseURI[PATH_PART_IDX] eq ?
+        then
+            return targetPath.
+        
+        if not pBaseURI[AUTHORITY_PART_IDX] eq '':u
+           and pBaseURI[PATH_PART_IDX] eq '':u 
+        then
+            assign targetPath = '/':u + left-trim(pRelURI[PATH_PART_IDX], '/':u).
+        else
+        do:
+            /* return a string consisting of the reference's path component
+              appended to all but the last segment of the base URI's path (i.e.,
+              excluding any characters after the right-most "/" in the base URI
+              path, or excluding the entire base URI path if it does not contain
+              any "/" characters).*/
+            assign chrPos = r-index (pBaseURI[PATH_PART_IDX], '/':u).
+            if chrPos eq 0 then
+                assign targetPath = '/':u + left-trim(pRelURI[PATH_PART_IDX], '/':u).
+            else
+                assign targetPath = substring(pBaseURI[PATH_PART_IDX], 1, chrPos) + pRelURI[PATH_PART_IDX].
+        end.
+        
+        return targetPath.
+    end method.
+    
+    /* Removes any dot segments in a path string, per the rules at https://tools.ietf.org/html/rfc3986#section-5.2.4
+       
+       @param character The path string potentially containing "." or ".." segments
+       @return character The path with the "." and/or ".." segments removed and resolved */
+    method static private character RemoveDotSegments (input pInputBuffer as character):
+        define variable outputBuffer as character no-undo.
+        define variable chrPos as integer no-undo.
+        
+        assign outputBuffer = '':u.
+        
+        if pInputBuffer eq ? then
+            return outputBuffer.
+        
+        //2.  While the input buffer is not empty, loop as follows:
+        do while length(pInputBuffer) gt 0:
+            // the string may start with a slash; we want the next / , if any
+            assign chrPos = index(pInputBuffer, '/':u, 2).
+            
+            //A. If the input buffer begins with a prefix of "../" or "./",
+            //   then remove that prefix from the input buffer; otherwise,
+            if    pInputBuffer begins '../':u
+               or pInputBuffer begins './':u
+            then
+                assign pInputBuffer = substring(pInputBuffer, chrPos + 1).
+            else
+            // Process 2C _first_ since /.. also starts with /.
+            // 
+            //C. if the input buffer begins with a prefix of "/../" or "/..",
+            //   where ".." is a complete path segment, then replace that
+            //   prefix with "/" in the input buffer and remove the last
+            //   segment and its preceding "/" (if any) from the output
+            //   buffer; otherwise,
+            if    pInputBuffer begins '/../':u
+               or pInputBuffer eq '/..':u
+            then
+            do:
+                if chrPos eq 0 then
+                    assign pInputBuffer = '/':u.
+                else
+                    assign pInputBuffer = substring(pInputBuffer, chrPos).
+                
+                assign chrPos       = r-index(outputBuffer, '/':u)
+                       outputBuffer = substring(outputBuffer, 1, chrPos - 1) 
+                       .
+            end.
+            else
+            //B. if the input buffer begins with a prefix of "/./" or "/.",
+            //   where "." is a complete path segment, then replace that
+            //   prefix with "/" in the input buffer; otherwise,
+            if    pInputBuffer begins '/./':u
+               or pInputBuffer eq '/.':u
+            then
+            do:
+                if chrPos eq 0 then
+                    assign pInputBuffer = '/':u.
+                else
+                    assign pInputBuffer = substring(pInputBuffer, chrPos).
+            end.
+            else
+            //D. if the input buffer consists only of "." or "..", then remove
+            //   that from the input buffer; otherwise,
+            if    pInputBuffer eq '.':u
+               or pInputBuffer eq '..':u
+            then
+                assign pInputBuffer = '':u.
+            else
+            //E. move the first path segment in the input buffer to the end of
+            //   the output buffer, including the initial "/" character (if
+            //   any) and any subsequent characters up to, but not including,
+            //   the next "/" character or the end of the input buffer.
+            do:
+                assign outputBuffer = outputBuffer + substring(pInputBuffer, 1, chrPos - 1).
+                // remove the segment from the input buffer
+                if chrPos eq 0 then
+                    assign pInputBuffer = '':u.
+                else
+                    assign pInputBuffer = substring(pInputBuffer, chrPos).
+            end.
+        end.    //input buffer loop
+        
+        return outputBuffer.
     end method.
     
 end class.

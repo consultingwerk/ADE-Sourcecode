@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2016 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016,2018 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -42,7 +42,7 @@ class OpenEdge.DataAdmin.Rest.Connection:
     define public property ProgressVersion as char no-undo get. private set. 
     define public property DatabaseVersion as char no-undo get. private set. 
     define public property Version         as int  no-undo 
-       init 6 /* from 11.7 */
+       init 7 /* upgrade to 7 in 12.0 */
        get. 
     
     define variable ans as logical no-undo.

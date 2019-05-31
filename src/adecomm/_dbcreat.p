@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2018 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -56,6 +56,7 @@ Define var sysdb as char NO-UNDO INITIAL "Empty"
    radio-buttons "An &EMPTY Database",                 "Empty",
                  "A Copy of the &SPORTS Database",     "Sports",
                  "A Copy of the S&ports2000 Database", "sports2000",
+                 "A Copy of the Spo&rts2020 Database", "sports2020",
                  "A Copy of Some &Other Database",     "Other".
 
 Define var otherdb as char    NO-UNDO.

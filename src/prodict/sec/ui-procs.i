@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*************************************************************/
-/* Copyright (c) 1984-2015 by Progress Software Corporation  */
+/* Copyright (c) 1984-2019 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -439,7 +439,7 @@ PROCEDURE saveRecord :
   DEFINE VARIABLE lOk         AS LOGICAL     NO-UNDO.
   
   define variable mPtr       as memptr      no-undo.
-  define variable md5Value   as character   no-undo.
+  define variable digestValue   as character   no-undo.
   define variable cFileName  as character   no-undo.
   define variable iLength    as integer     no-undo.
   define variable mraw       as raw         no-undo.  
@@ -560,15 +560,15 @@ PROCEDURE saveRecord :
                RETURN "error".
             END.
         
-            md5Value = RCODE-INFO:MD5-VALUE.
-            IF md5Value = ? THEN DO:
-               MESSAGE "ERROR - rcode does not have MD5 value:" cFileName view-as alert-box error.
+            digestValue = RCODE-INFO:SIGNATURE-VALUE.
+            IF digestValue = ? THEN DO:
+               MESSAGE "ERROR - rcode does not have signature value:" cFileName view-as alert-box error.
                RETURN "error".
             END.
 		
-            iLength = LENGTH(md5Value).
+            iLength = LENGTH(digestValue).
             SET-SIZE(mptr) = iLength + 1.
-            PUT-STRING(mptr,1) = md5Value.
+            PUT-STRING(mptr,1) = digestValue.
 		    mraw = GET-BYTES(mptr,1, iLength).
 		 
 		    charvar = quoter(mraw).

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EventDispatcher
@@ -91,18 +91,18 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         
         ValidateProvider(pcEventProvider, pcProviderHash).
         
-        /* instantiate the provider */        
+        /* instantiate the provider */
         oProvider = dynamic-new pcEventProvider ().
         
         /* load context. pass empty context if none is provided.
            build the CP */
-        assign oCP = Principal:Import(prClientPrincipal)
-               oCtx = ParseContext(pcDomainCtx).
-        
-        /* Record the event */        
+        assign oCP  = Principal:Import(prClientPrincipal)
+               oCtx = ParseContext(pcDomainCtx)
+               .
+        /* Record the event */
         oProvider:RecordEvent(pcSender, pcEventName, oCP, oCtx).
     end method.
-
+    
     /* Applies some by an ABL provider. 
      
        @param character (optional) The name of the STS sending this event
@@ -224,7 +224,7 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         if valid-object(oErrorURI) then
             assign pcErrorURI = oErrorURI:ToString().
         
-        return lIncludeToken.        
+        return lIncludeToken.
     end method.
     
     /* Creates useful JSON from the input context string
@@ -241,7 +241,7 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
         /* need some default properties */
         if not oCtx:Has('domainContext':u) then
             oCtx:Add('domainContext':u, '':u).
-        if not oCtx:Has('refreshOptions':u) then            
+        if not oCtx:Has('refreshOptions':u) then
             oCtx:Add('refreshOptions':u, '':u).
         if not oCtx:Has('clientType':u) then
             oCtx:Add('clientType':u, '':u).
@@ -252,20 +252,30 @@ class OpenEdge.Security.STS.EventDispatcher implements ISupportLogging:
     end method.
     
     /* Ensures that a provider type is the one we were expecting. 
-        
+       
        @param character (mandatory) The ABL provider name used to process the event
        @param character (optional) A hash used to verify the provider's authenticity
        @throws AppError If a hash is passed and the provider type's hash does not match */
     method private void ValidateProvider(input pcProviderType as character,
                                          input pcProviderHash as character ):
+        define variable err as Progress.Lang.Error no-undo.
+        
         Assert:NotNullOrEmpty(pcProviderType, 'Provider type').
         
         if pcProviderHash eq '':u or pcProviderHash eq ? then
+        do:
+            Logger:Warn(substitute('Rcode hash for provider "&1" not specified', pcProviderType)).
             return.
-         
+        end.
+        
         assign rcode-info:file-name = replace(pcProviderType, '.':u, '/':u).
-        if rcode-info:md5-value ne pcProviderHash then
-            return error new AppError(substitute('Provider error: invalid provider &1', pcProviderType), 0).
+        // in 12.0.0+ the md5-value attribute _always_ returns ?
+        if not rcode-info:signature-value eq pcProviderHash then
+        do:
+            assign err = new AppError(substitute('Provider error: invalid signature for "&1"', pcProviderType), 0).
+            Logger:Error(err:GetMessage(1)).
+            undo, throw err. 
+        end.
     end method.
     
 end class.

@@ -212,8 +212,10 @@ PROCEDURE doDump:
     /*    b) concatenate these to the file according input-parameter */
     
     /* get a unique name, delete ev. existing source-file */
-    RUN adecomm/_tmpfile.p (l_tmp-file, ".df", OUTPUT l_tmp-file). 
-    if search(df-file-name) <> ? then OS-DELETE value(df-file-name).
+    RUN adecomm/_tmpfile.p (l_tmp-file, ".df", OUTPUT l_tmp-file).
+    
+    /* adas8656- delete without searching df-file-name; never append to existing file*/ 
+    OS-DELETE value(df-file-name).
       
     assign
       l_first-db               = TRUE

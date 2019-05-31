@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ContentTypeHeader
@@ -12,8 +12,8 @@ Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsi
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.StringConstant.
 using OpenEdge.Net.HTTP.HttpHeader.
+using OpenEdge.Core.Assert.
 using Progress.Lang.AppError.
 
 class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
@@ -62,26 +62,7 @@ class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
         
         if lookup(cType, mcValidType) eq 0 and
            not cType begins 'X-':u then
-            undo, throw new AppError(substitute('Invalid type: &1', cType), 0).
-    end method.
-    
-    /** Saves a parameter value for a header.
-        
-        @param character (mandatory) The name of the parameter value to retrieve
-        @param character (mandatory) The parameter value; blank/empty otherwise 
-        @return logical  TRUE when the parameter was replaced/previously existed. */
-    method override public logical SetParameterValue(input pcParamName as character,
-                                                     input pcParamValue as character ):
-        case pcParamName:
-            when 'boundary':u then
-                // we consume the boundary in an unquoted manner
-                if not OpenEdge.Core.String:IsNullOrEmpty(pcParamValue) 
-                   and OpenEdge.Core.String:IsQuoted(pcParamValue, StringConstant:DOUBLE_QUOTE)
-                then
-                    assign pcParamValue = substring(pcParamValue, 2, length(pcParamValue) - 2).
-        end case.
-        
-        return super:SetParameterValue(pcParamName, pcParamValue).
+            undo, throw new AppError(substitute('Invalid type: &1', cType), 0).           
     end method.
     
 end class.

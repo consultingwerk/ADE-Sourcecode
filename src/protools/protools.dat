@@ -25,4 +25,4 @@
 "XML Schema Mapping" "adexml/_xmlview.w" "adexml/images/xmlmap" yes yes 250 no
 "Widget Attr Help" "protools/widattrs.w" "adeicon/w-widattrs-sm" yes yes 260 no
 "Static Widget ID Assignment" "protools/_widgetidassign.p" "adeicon/widgidassign" no yes 270 no
-"Runtime Widget ID Assignment" "protools/_runtimewidgetid.p" "adeicon/assignwid.gif" no yes 280 no
+"Runtime Widget ID Assignment" "protools/_runtimewidgetid.p" "adeicon/wid-assignwid.bmp" no yes 280 no

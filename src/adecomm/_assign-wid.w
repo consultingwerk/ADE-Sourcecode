@@ -5,7 +5,7 @@
 &Scoped-define WINDOW-NAME C-Win
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS C-Win 
 /***********************************************************************
-* Copyright (C) 2007-2008 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2019 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -175,12 +175,12 @@ DEFINE MENU MENU-BAR-C-Win MENUBAR
 
 /* Definitions of the field level widgets                               */
 DEFINE BUTTON buAdd 
-     IMAGE-UP FILE "adeicon/add.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-add.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Add Containers" 
      SIZE 5 BY 1.14 TOOLTIP "Add Containers to XML file".
 
 DEFINE BUTTON buCancel 
-     IMAGE-UP FILE "adeicon/cancel.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-cancel.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Cancel" 
      SIZE 5 BY 1.14 TOOLTIP "Cancel Updates".
 
@@ -195,24 +195,24 @@ DEFINE BUTTON buOpen
      SIZE 5 BY 1.14 TOOLTIP "Open XML file".
 
 DEFINE BUTTON buRemove 
-     IMAGE-UP FILE "adeicon/delete.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-delete.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Remove Container" 
      SIZE 5 BY 1.14 TOOLTIP "Remove Container from XML file".
 
 DEFINE BUTTON buSave 
-     IMAGE-UP FILE "adeicon/save.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-save.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Save" 
      SIZE 5 BY 1.14 TOOLTIP "Save to XML file".
 
 DEFINE BUTTON buSync 
-     IMAGE-UP FILE "adeicon/synch.gif":U
-     IMAGE-INSENSITIVE FILE "adeicon/synchd.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-synch.bmp":U
+     IMAGE-INSENSITIVE FILE "adeicon/wid-synchd.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Synchronize" 
      SIZE 5 BY 1.14 TOOLTIP "Synchronize XML data with source object".
 
 DEFINE BUTTON buTree 
-     IMAGE-UP FILE "adeicon/collapseall.gif":U
-     IMAGE-INSENSITIVE FILE "adeicon/collapsealld.gif":U NO-FOCUS FLAT-BUTTON
+     IMAGE-UP FILE "adeicon/wid-collapseall.bmp":U
+     IMAGE-INSENSITIVE FILE "adeicon/wid-collapsealld.bmp":U NO-FOCUS FLAT-BUTTON
      LABEL "Collapse All" 
      SIZE 5 BY 1.14 TOOLTIP "Collapse All".
 
@@ -769,7 +769,7 @@ DO:
 
     END.
     ASSIGN SELF:TOOLTIP = "Collapse All":U.
-    SELF:LOAD-IMAGE("adeicon/collapseall.gif").
+    SELF:LOAD-IMAGE("adeicon/wid-collapseall.bmp").
     RUN updateSyncStatus.
 END.
 ELSE DO:
@@ -785,7 +785,7 @@ ELSE DO:
     END.
 
     ASSIGN SELF:TOOLTIP = "Expand All":U.
-    SELF:LOAD-IMAGE("adeicon/expandall.gif").
+    SELF:LOAD-IMAGE("adeicon/wid-expandall.bmp").
 END.
 
 {&browse-name}:SET-REPOSITIONED-ROW(iCurrentRow,"CONDITIONAL").

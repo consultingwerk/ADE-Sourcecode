@@ -1,6 +1,6 @@
 /**********************************************************************
-* Copyright (C) 2000-2011 by Progress Software Corporation. All rights*
-* reserved.  Prior versions of this work may contain portions         *
+* Copyright (C) 2000-2011,2018 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
 **********************************************************************/
@@ -16,7 +16,8 @@ Author: Laura Stern
 
 Date Created: 02/21/92 
     Modified: 07/14/98 D. McMann Added _Owner to _file finds.
-              05/25/06 fernando  Support for 64-bit sequences    
+              05/25/06 fernando  Support for 64-bit sequences   
+              11/15/18 rkumar    ADAS-11162 - fix issue with display of sequence properties			  
 ----------------------------------------------------------------------------*/
 
 
@@ -154,8 +155,8 @@ if NOT s_Seq_ReadOnly then
       s_Seq_ReadOnly = true.
    end.
 
-IF b_Sequence._Seq-misc[6] = ? THEN b_Sequence._Seq-misc[6] = "n/a" .
-IF b_Sequence._Seq-misc[7] = ? THEN b_Sequence._Seq-misc[7] = "n/a" .
+/*IF b_Sequence._Seq-misc[6] = ? THEN b_Sequence._Seq-misc[6] = "n/a" .
+IF b_Sequence._Seq-misc[7] = ? THEN b_Sequence._Seq-misc[7] = "n/a" . */
 
 display b_Sequence._Seq-Name  
         b_Sequence._Seq-Attributes[1]
@@ -163,8 +164,8 @@ display b_Sequence._Seq-Name
         b_Sequence._Seq-Incr
         s_Seq_Limit
         b_Sequence._Cycle-Ok
-        b_Sequence._Seq-misc[6]
-        b_Sequence._Seq-misc[7] 
+        IF b_Sequence._Seq-misc[6] = ? THEN "n/a" ELSE b_Sequence._Seq-misc[6] @ b_Sequence._Seq-misc[6]
+        IF b_Sequence._Seq-misc[7] = ? THEN "n/a" ELSE b_Sequence._Seq-misc[7] @ b_Sequence._Seq-misc[7]
         s_Seq_Current_Value
         (IF INDEX(capab,{&CAPAB_OWNER})    = 0 
           then "n/a" else b_Sequence._Seq-misc[2]) @ b_Sequence._Seq-misc[2]

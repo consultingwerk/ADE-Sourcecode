@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : StringConstant
@@ -45,6 +45,8 @@ class OpenEdge.Core.StringConstant abstract:
     define static public property UNICODE_ESC   as character no-undo get. private set.
     // An empty string (space)
     define static public property SPACE as character no-undo initial ' ':u get.
+    // The unknown value
+    define static public property UNKNOWN as character no-undo initial ? get.
     
     /* Static constructor */
     constructor static StringConstant():

@@ -44,7 +44,9 @@
     rkamboj  08/16/11      Added new terminology for security items and windows.  
     rkamboj  09/14/11      Added support for allowing edit of all fields 
                            except Domain name, Tenant Name and System Type.
-    rkmaboj  05/04/2012    Fixed default domain save problem.                       
+    rkmaboj  05/04/2012    Fixed default domain save problem.    
+    moloney  01/02/2019    Changed domain access encryption to use new 
+                           SECURITY-POLICY:ENCODE-DOMAIN-ACCESS-CODE    
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -1511,7 +1513,7 @@ PROCEDURE localSave :
       
       IF glCreateMode OR fiAccessCode:MODIFIED THEN
         fiAccessCode:SCREEN-VALUE = 
-          AUDIT-POLICY:ENCRYPT-AUDIT-MAC-KEY(fiAccessCode:SCREEN-VALUE).
+          SECURITY-POLICY:ENCODE-DOMAIN-ACCESS-CODE(fiAccessCode:SCREEN-VALUE).
     END. /* When Before */
     WHEN "After" THEN DO:
       RUN openQuery.

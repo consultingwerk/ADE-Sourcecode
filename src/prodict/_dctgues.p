@@ -64,7 +64,7 @@ define variable old_dbver   as character NO-UNDO.
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 define variable l_msg as character no-undo extent 11 initial [
   /* 1*/ "You have been automatically switched to database",
- /*2,3*/ "There are no R11", "databases connected. This tool cannot",
+ /*2,3*/ "There are no R12", "databases connected. This tool cannot",
   /* 4*/ "be used with a OpenEdge", 
   /* 5*/ "database. Use the tool under OpenEdge", 
   /* 6*/ "to access such a database.",
@@ -108,7 +108,6 @@ if NUM-DBS = 0
   
   RUN adecomm/_getdbs.p.
 
-
 /*----- 1. gues: try to use DICTDBG ---*/
 
   if LDBNAME("DICTDBG") <> ?
@@ -117,7 +116,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDBG")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn)  > 10
+     and INTEGER(s_ttb_db.vrsn)  > 11
      and LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
      then assign
       drec_db     = s_ttb_db.dbrcd
@@ -137,7 +136,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDB")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn)  > 10
+     and INTEGER(s_ttb_db.vrsn)  > 11
      and s_ttb_db.empty  = FALSE
      then assign
       drec_db     = s_ttb_db.dbrcd
@@ -153,7 +152,7 @@ if NUM-DBS = 0
   if   user_dbtype = ""
    then do:  /* take anything NON-empty */
     find first s_ttb_db
-      where INTEGER(s_ttb_db.vrsn) > 10
+      where INTEGER(s_ttb_db.vrsn) > 11
       and s_ttb_db.empty  = FALSE
       and   LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
       no-error.
@@ -168,7 +167,7 @@ if NUM-DBS = 0
     end.     /* take anything NON-empty */
 
 /*----- 4. gues: try to use DICTDB, even if empty ---*/
-
+          
   if   user_dbtype        = ""
    and LDBNAME("DICTDB") <> ?
    then do:  /* DICTDB set */
@@ -176,7 +175,7 @@ if NUM-DBS = 0
       where s_ttb_db.ldbnm = LDBNAME("DICTDB")
       no-error.
     if available s_ttb_db
-     and INTEGER(s_ttb_db.vrsn) > 10
+     and INTEGER(s_ttb_db.vrsn) > 11
      then assign
       drec_db     = s_ttb_db.dbrcd
       user_dbname = s_ttb_db.ldbnm
@@ -187,11 +186,11 @@ if NUM-DBS = 0
     end.     /* DICTDB set */
 
 /*----- 5. gues: try to use ANYTHING ---*/
-
+           
   if   user_dbtype = ""
    then do:  /* take anything */
     find first s_ttb_db
-      where INTEGER(s_ttb_db.vrsn)  > 10
+      where INTEGER(s_ttb_db.vrsn)  > 11
       and   LOOKUP(s_ttb_db.dbtyp,l_edbtyp) <> 0
       no-error.
     if available s_ttb_db
@@ -206,12 +205,12 @@ if NUM-DBS = 0
 
 
 /* reset aliases, cache_dirty and user_filename */
-
+           
   if user_dbtype = ""
    then do:  /* We need to determine the database version here
                  in order to display this message correctly when
                  no current version database is connected */
-     find first s_ttb_db where integer(s_ttb_db.vrsn) < 11 no-error.
+     find first s_ttb_db where integer(s_ttb_db.vrsn) < 12 no-error.
       repeat:
         if available s_ttb_db then do:
           old_dbver = "R" + s_ttb_db.vrsn.
@@ -220,7 +219,7 @@ if NUM-DBS = 0
                    l_msg[5] old_dbver skip
                    l_msg[6]
                    view-as alert-box. 
-          find next s_ttb_db where integer(s_ttb_db.vrsn) < 11 no-error.
+          find next s_ttb_db where integer(s_ttb_db.vrsn) < 12 no-error.
         end.
         else
           return.
@@ -252,4 +251,5 @@ if NUM-DBS = 0
 
 
 { prodict/user/usercon.i user_filename }
+
 

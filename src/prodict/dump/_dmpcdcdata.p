@@ -186,7 +186,7 @@ function dumpCDCCollection returns integer (policyName as longchar, usr_dbname a
             if valid-object(dictMonitor) then 
                 dictMonitor:StartTable(tablePolicy:Name,"cdcPolicies","",fil).
             //dump only single policy for a source table 
-            if lookup(tblName,tblList) = 0 then 
+            if lookup(tblName,tblList) = 0 then
             do: 
                 export stream dump    
                     "Table"
@@ -239,7 +239,7 @@ function dumpCDCCollection returns integer (policyName as longchar, usr_dbname a
             
             //fill in the error messages and write them to .e file at a time later after this loop    
                 errMsg = errMsg + "Failed to dump " + quoter(tablepolicy:Name) + " policy information for source table " + quoter(tablepolicy:Table:Name) + "." +
-                    " You can dump only single policy information for a specific source table into a .cd file.~n".
+                      " You can dump only single policy information for a specific source table into a .cd file.~n".
                 output stream dumperr to value(fil-e). 
                 put stream dumperr unformatted  errMsg. 
                 output stream dumperr close.          
@@ -258,17 +258,17 @@ function dumpCDCCollection returns integer (policyName as longchar, usr_dbname a
         end.
         if polStr > "" then polStr = "".         
     end.
-    
+        
     if derr or NonExistPolList > "" then 
-        do:
-            do j = 1 to num-entries (NonExistPolList):
-                derr = true.
-                errMsg = "CDC policy with name " + quoter(entry(j,NonExistPolList)) + " does not exist.~n".
-            end.        
-            errMsg = errMsg + "Found " + string(num-entries(policyName)) + " policy records, but " + string(polCnt) + " policy(s) dumped successfully.~n".         
-            output stream dumperr to value(fil-e) append. 
-            put stream dumperr unformatted  errMsg. 
-            output stream dumperr close.
+    do:
+        do j = 1 to num-entries (NonExistPolList):
+            derr = true.
+            errMsg = "CDC policy with name " + quoter(entry(j,NonExistPolList)) + " does not exist.~n".
+        end.        
+        errMsg = errMsg + "Found " + string(num-entries(policyName)) + " policy records, but " + string(polCnt) + " policy(s) dumped successfully.~n".          
+        output stream dumperr to value(fil-e) append. 
+        put stream dumperr unformatted  errMsg. 
+        output stream dumperr close.        
     end.
     
     /*

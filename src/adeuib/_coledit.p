@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2008,2017 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2008 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -1436,7 +1436,12 @@ procedure DoChooseEdit:
     RETURN NO-APPLY.
   END.
   RUN 
-       adeshar/_calcfld.p(pCurrentDB,
+    &if defined(IDE-IS-RUNNING) = 0 &then
+    adeshar/_calcfld.p  
+    &else
+    adeuib/ide/_dialog_calcfld.p 
+    &endif
+                         (pCurrentDB,
                           pTbl,
                           p_hSmartData,
                           pSelectedTables, 

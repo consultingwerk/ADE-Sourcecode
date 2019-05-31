@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogFilterBuilderRegistry
@@ -12,6 +12,7 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 block-level on error undo, throw.
 
 using OpenEdge.Core.Util.BuilderRegistry.
+using OpenEdge.Logging.AnonymizedTokenFormatBuilder.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
 using OpenEdge.Logging.LogFilterBuilderRegistry.
 using OpenEdge.Logging.LoggerFilterRegistry.
@@ -39,6 +40,7 @@ class OpenEdge.Logging.LogFilterBuilderRegistry:
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
         poRegistry:Put(LoggerFilterRegistry:LOG_MANAGER_WRITER, get-class(FileLogWriterBuilder)).
         poRegistry:Put(LoggerFilterRegistry:NAMED_FILE_WRITER,  get-class(FileLogWriterBuilder)).
+        poRegistry:Put(LoggerFilterRegistry:ANON_FORMAT,        get-class(AnonymizedTokenFormatBuilder)).
     end method.
     
 end class.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -84,7 +84,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
     /** Fired when a read times out (optional based on a timeout) */
     define public event ReadTimeout signature void (input poSender as ClientSocket,
                                                     input poEventArgs as SocketReadEventArgs).
-                                                    
+    
     /** Fired when a read is terminated for an reason (socket disconnect, no data etc) */
     define public event ReadTerminated signature void (input poSender as ClientSocket,
                                                        input poEventArgs as SocketReadEventArgs).
@@ -279,7 +279,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                        value means no timeout. */
     method public void WaitForResponse(input pdTimeout as decimal):
         define variable iStartTime as integer no-undo.
-        define variable socketTimeout as decimal no-undo.
+        define variable socketTimeout as integer no-undo.
         define variable timeoutLeft as decimal no-undo.
         
         Assert:IsZeroOrPositive(pdTimeout, 'Timeout').
@@ -291,7 +291,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                timeoutLeft        = pdTimeout
                .
         if pdTimeout gt 0 then
-            assign socketTimeout = decimal(mhSocket:get-socket-option('SO-RCVTIMEO':u)).
+            assign socketTimeout = integer(mhSocket:get-socket-option('SO-RCVTIMEO':u)).
         if socketTimeout gt 0 then
             assign timeoutLeft = min(pdTimeout, socketTimeout).
         
@@ -309,9 +309,14 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                     leave WAIT-LOOP.
                 end.
                 
-                assign timeoutLeft = decimal(interval(moReadEventArgs:TimeoutEnd,datetime-tz(now), 'milliseconds':u) / 1000).
-                mhSocket:set-socket-option('SO-RCVTIMEO':u, string(timeoutLeft)).
-                Logger:Trace(substitute('Socket timeout set to &1':u, timeoutLeft)).
+                // convert to seconds (or part thereof)
+                assign timeoutLeft = interval(moReadEventArgs:TimeoutEnd, datetime-tz(now), 'milliseconds':u) / 1000.
+                if timeoutLeft gt 0 then
+                do:
+                    // MUST be set as whole seconds 
+                    mhSocket:set-socket-option('SO-RCVTIMEO':u, string(integer(timeoutLeft))).
+                    Logger:Trace(substitute('Socket timeout set to &1':u, timeoutLeft)).
+                end.
             end.
             
             // manunally call the handler instead of from a callback
@@ -322,10 +327,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         Logger:Debug(substitute('WaitSync: total size(b)=&1':u,  miTotalBytesRead)).
         
         // if we have all the data then we've not timed out 
-        //if not moReadEventArgs:ReadComplete then
-
         if (pdTimeout gt 0 and moReadEventArgs:TimeoutEnd lt now) 
-           or moReadEventArgs:ReadTimeout then  
+           or moReadEventArgs:ReadTimeout then
         do:
             Logger:Debug('WaitSync: socket timed out':u).
             // we're done here 
@@ -337,8 +340,9 @@ class OpenEdge.Net.ServerConnection.ClientSocket
            issue PSC00322919 logged to avoid this. */
         if valid-object(moReadHandlerError) then
             return error moReadHandlerError.
-            
+        
         catch e as Progress.Lang.Error :
+            Logger:Trace('WaitSync: read error':u, e).
             return error e.
         end catch.
         finally:
@@ -389,7 +393,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         /* 'catch' the errors from the handler after the wait-for.
            issue PSC00322919 logged to avoid this. */
         if valid-object(moReadHandlerError) then
+        do:
+            Logger:Trace('WaitAsync: read error':u, moReadHandlerError).
             return error moReadHandlerError.
+        end.
     end method.
     
     /** Callback/event procedure fired on the READ-RESPONSE event of the 
@@ -526,7 +533,10 @@ class OpenEdge.Net.ServerConnection.ClientSocket
             /* Swallow any errors and use old-fashioned class-variables to
                pass the errors onwards & upwards :( */
             catch eError as Error:
-                assign moReadHandlerError = eError.
+                assign moReadHandlerError           = eError
+                       // We didn't timeout or terminate, but we _are_ all done
+                       moReadEventArgs:ReadComplete = true
+                       .
             end catch.
             finally:
                 /* more chicken soup (see above) */
@@ -569,8 +579,8 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         Assert:NotNull(poEventArgs, 'Socket Read Event Args').
         
         this-object:DataReceived:Publish(this-object, poEventArgs).
-    end method.     
-
+    end method.
+   
     /** Publishes the ReadTerminated event.
     
         @param EventArgs Arguments for this event */

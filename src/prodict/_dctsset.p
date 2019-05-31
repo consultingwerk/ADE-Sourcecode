@@ -87,23 +87,9 @@ if NOT CAN-DO(DATASERVERS, DICTDB._Db._Db-type)
 
 
 /* check if this is a 10.1B db at least, so that we complain about int64 and
-   int64 values. If the 'Large Keys' feature is not known by this db, then this
-   is a pre-101.B db 
+   int64 values. We know we can't connect to V10 dbs anymore.
 */
-ASSIGN  is-pre-101b-db = YES.
-
-IF INTEGER(DBVERSION("DICTDB")) >= 10 THEN DO:
-    /* use a dyn buffer since v9 db's don't have the feature tbl */
-    CREATE BUFFER hBuffer FOR TABLE "DICTDB._Code-feature" NO-ERROR.
-    IF VALID-HANDLE(hBuffer) THEN DO:
-       hBuffer:FIND-FIRST('where _Codefeature_Name = "Large Keys"',NO-LOCK) NO-ERROR.
-       IF hBuffer:AVAILABLE THEN
-           is-pre-101b-db = NO.
-       DELETE OBJECT hBuffer.
-    END.
-
-END.
-
+ASSIGN  is-pre-101b-db = NO.  
 
 /* -------------------- recreate file-list cache --------------------- */
 
@@ -120,4 +106,5 @@ run prodict/_dctcach.p
   ).
 
 /* ------------------------------------------------------------------- */
+
 

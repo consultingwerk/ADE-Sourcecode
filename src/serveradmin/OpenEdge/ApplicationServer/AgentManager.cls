@@ -66,7 +66,7 @@ class OpenEdge.ApplicationServer.AgentManager:
     method public logical dynamicPropertiesUpdate(input dynamicPropertiesString as character):
         return pasam:DynamicPropertiesUpdate(dynamicPropertiesString).
     end method.
-    
+
     method public logical TrackABLObjects(INPUT toggle AS Logical):
         return pasam:TrackABLObjects(toggle).
     end method.
@@ -100,6 +100,17 @@ class OpenEdge.ApplicationServer.AgentManager:
                                              OUTPUT jsonrpt AS Longchar):
         return pasam:GetMemoryUseReport(AgentSessId, OUTPUT jsonrpt).
     end method.
+
+    METHOD PUBLIC LOGICAL PushProfilerData (
+                                INPUT  Url               AS CHARACTER,
+                                INPUT  RequestCount      AS INTEGER,
+                                INPUT  SettingsJson      AS LONGCHAR):
+        return pasam:PushProfilerData(Url, RequestCount, SettingsJson).
+    END METHOD.
+
+    METHOD PUBLIC LOGICAL GetProfilerSettings (OUTPUT Settings as LONGCHAR):
+        return pasam:GetProfilerSettings(OUTPUT Settings).
+    END METHOD.
 
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().

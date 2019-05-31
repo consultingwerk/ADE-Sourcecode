@@ -194,6 +194,7 @@ isDataEnabled,_Attributes[1],~
         define variable partitionobj as Storage no-undo.
         define variable lAllocate    as logical no-undo.
         define variable lReadOnly    as logical no-undo.
+        
         if piState < 1 or pistate > 3 then
             undo, throw new IllegalArgumentError("Invalid state " + string(piState) + " passed to save." ).
       

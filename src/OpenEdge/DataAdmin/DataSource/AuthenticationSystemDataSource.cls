@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2015 by progress Software Corporation.      */
+/* Copyright (c) 2015,2019 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -138,7 +138,7 @@ Comments,_Custom-detail"
                     else 
                     do:
                         /* there is a chance of having same callback procedure but it might be re-coomplied. when callback procedure is recompiled, 
-                        the rcode information will change. the new rcode will have a new MD5 value. */   
+                        the rcode information will change. the new rcode will have a new value. */   
                         if phBuffer::ModuleChecksum then
                         do:
                             calculateMD5(phBuffer).
@@ -235,10 +235,10 @@ Comments,_Custom-detail"
             undo, throw new UnsupportedOperationError("ERROR - did not find info for rcode in callback procedure").
         END.
         
-        md5Value = RCODE-INFO:MD5-VALUE.
+        md5Value = RCODE-INFO:SIGNATURE-VALUE.
         IF md5Value = ? THEN 
         DO:                                
-            undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have MD5 value").
+            undo, throw new UnsupportedOperationError("ERROR - callback procedure's rcode does not have signature value").
         END.
         
         iLength = LENGTH(md5Value).

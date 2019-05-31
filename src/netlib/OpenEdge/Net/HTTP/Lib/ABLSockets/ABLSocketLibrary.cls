@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
@@ -134,7 +134,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         assign moSocketLib = ?
                moSocketConnectionParam = ?.
     end destructor.    
-
+    
     /** Event handler for dealing with read timeouts received from the ClientSocket
         
         @param ClientSocket The socket object receiving the response 
@@ -145,13 +145,13 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                           'read':u,
                                           moSocketConnectionParam:URI:ToString()).
     end method.
-
+    
     /** Event handler for dealing with ReadTerminated events received from the ClientSocket
         
         @param ClientSocket The socket object receiving the response 
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void ReadTerminatedHandler(input poSender as ClientSocket,
-                                          input poEventArgs as SocketReadEventArgs):
+                                             input poEventArgs as SocketReadEventArgs):
         return error new AppError('Read terminated for ' + moSocketConnectionParam:URI:ToString(),
                                   miErrorNo_RequestReadTerminated).
     end method.
@@ -163,11 +163,14 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     method public void DataReceivedHandler(input poSender as ClientSocket,
                                            input poEventArgs as SocketReadEventArgs):
         define variable cChunkFile as character no-undo.
+        define variable writeBytes as int64 no-undo.
         
         if Logger:LogLevel ge LogLevelEnum:DEBUG then 
         do:
-            assign miChunkNumber = miChunkNumber + 1.
-            
+            assign miChunkNumber = miChunkNumber + 1
+                   // we don't want to write less than 0 or more than the total bytes in the Data member
+                   writeBytes    = min(max(0, poEventArgs:BytesRead), poEventArgs:Data:Size)
+                   .
             Logger:Debug(substitute('CHUNK: NUM= &1':u, miChunkNumber)).
             Logger:Debug(substitute('CHUNK: SIZE(b)= &1':u, poEventArgs:Data:Size)).
             Logger:Debug(substitute('CHUNK: READ(b)= &1':u, poEventArgs:BytesRead)).
@@ -185,13 +188,17 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                     '================================':u skip.
                 output close.
                 
-                copy-lob poEventArgs:Data:Value to file cChunkFile append.
+                copy-lob from poEventArgs:Data:Value starting at 1 for writeBytes
+                         to file cChunkFile
+                         append.
             end.
             
-            copy-lob poEventArgs:Data:Value to file session:temp-dir + 'response-data-received.txt':u append.
+            copy-lob from poEventArgs:Data:Value starting at 1 for writeBytes
+                     to file session:temp-dir + 'response-data-received.txt':u
+                     append.
         end.
         
-        /* Process the number of bytes read chunk */        
+        /* Process the number of bytes read chunk */
         moResponseWriter:Write(poEventArgs).
     end method.
     
@@ -294,7 +301,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         end.
         
         /* GO! */
-        assign startTime = now.
+        assign startTime = now
+               dTimeout  = this-object:Options:RequestTimeout
+               .
         do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
                                     moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
@@ -422,7 +431,6 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                        oProxyRequest:ProxyURI = ?
                        .
         end.
-        
         
         MakeSyncRequest(moSocketLib, poRequest, poResponse).
         
