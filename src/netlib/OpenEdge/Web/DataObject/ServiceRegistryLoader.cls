@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryImpl
@@ -17,6 +17,7 @@ using OpenEdge.Core.Assertion.AssertFile.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.SemanticVersion.
+using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
@@ -393,6 +394,10 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                    cIdxName    = oIndexList:GetNames()
                    iNumIndexes = extent(cIdxName).
         do iIndexLoop = 1 to iNumIndexes:
+            // basically means there are no indexes
+            if cIdxName[iIndexLoop] eq 'default':u then
+                next.
+            
             assign oIndex = oIndexList:GetJsonObject(cIdxName[iIndexLoop]).
             hTable:add-new-index(cIdxName[iIndexLoop],
                                  oIndex:GetLogical(string(ServiceMappingFileSchemaEnum:unique)),   
@@ -533,16 +538,25 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                 assign targetType = string(TargetTypeEnum:Procedure).
                         end case.
                         
-                        assign oMappedOperation = new MappedOperation(propertyName,
-                                                                      oMethod,
-                                                                      oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
-                                                                      targetType,
-                                                                      oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
-                                                                      (if oSvc:Has(string(ServiceMappingFileSchemaEnum:typeof)) then oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:typeof)) else '':u),
-                                                                      oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:function)),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
-                                                                      (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
-                                                                      ).
+                        assign oMappedOperation = new MappedOperation(
+                                                              propertyName,
+                                                              oMethod,
+                                                              oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)),
+                                                              targetType,
+                                                              oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
+                                                              (if oSvc:Has(string(ServiceMappingFileSchemaEnum:typeof)) then oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:typeof)) else '':u),
+                                                              oSvc:GetCharacter(string(ServiceMappingFileSchemaEnum:function)),
+                                                              (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
+                                                              (if oVerb:Has(string(ServiceMappingFileSchemaEnum:statusCode)) then oVerb:GetInteger(string(ServiceMappingFileSchemaEnum:statusCode)) else integer(StatusCodeEnum:OK))
+                                                          ).
+                        
+                        // Load the ACLs, if defined
+                        if     oVerb:Has(string(ServiceMappingFileSchemaEnum:accessControl))
+                           and oVerb:GetType(string(ServiceMappingFileSchemaEnum:accessControl)) eq JsonDataType:ARRAY
+                        then
+                            assign propArray                      = oVerb:GetJsonArray(string(ServiceMappingFileSchemaEnum:accessControl))
+                                   oMappedOperation:AccessControl = propArray:GetCharacter(1, propArray:Length)
+                                   . 
                         
                         ARGS-LOOP:
                         do iArgLoop = 1 to iArgMax:
@@ -666,7 +680,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       oMethod,
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:contentType)) then oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)) else '':u),
                                                                       string(TargetTypeEnum:Void),
-                                                                      '',       /* target name */
+                                                                      // target name can be stringified JSON
+                                                                      (if oVerb:GetType(string(ServiceMappingFileSchemaEnum:void)) eq JsonDataType:NULL then '':u
+                                                                       else string(oVerb:GetJsonText(string(ServiceMappingFileSchemaEnum:void))) ),
                                                                       '':u,     /* type-of */
                                                                       '':u,     /* function */
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),
@@ -674,7 +690,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       ).
                 end case.
                 
-                // Add the operation to the service 
+                // Add the operation to the service
                 pService:PutOperation(oMappedOperation).
                 
                 // If there's a 'name' property, add it to the options for the operation

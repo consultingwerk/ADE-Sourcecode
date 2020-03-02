@@ -2225,13 +2225,24 @@ DO ON STOP UNDO, LEAVE
       PUT STREAM ddl UNFORMATTED
          "  AREA " '"' DICTDB._Area._Area-name '"' SKIP.
 
-      IF DICTDB._Index._Unique THEN DO:     
+      IF DICTDB._Index._Unique THEN DO:        
         PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
-        IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN
-        PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+        
+        IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:            
+            IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN                
+                PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.           
+        END.
+        ELSE IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN DO:       
+            PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+        END.
+      END. 
+      ELSE IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:              
+          IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN              
+              PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
       END.
-      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN
+      ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN DO:
           PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+      END.
       
       IF DICTDB._Index._Wordidx = 1 THEN 
         PUT STREAM ddl UNFORMATTED "  WORD" SKIP.

@@ -112,6 +112,14 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:GetProfilerSettings(OUTPUT Settings).
     END METHOD.
 
+    method public logical flushDeferredLog():
+        return pasam:flushDeferredLog().
+    end method.
+    
+    method public logical resetDeferredLog():
+        return pasam:resetDeferredLog().
+    end method.
+    
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

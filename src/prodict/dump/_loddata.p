@@ -23,7 +23,7 @@
 
 history
     D. McMann   03/03/03    Added support for LOB Directory and NO-LOBS
-    D. McMann   02/11/19    Turned off suppress-warinings so that if checkwidth is set to 1
+    D. McMann   02/11/19    Turned off suppress-warnings so that if checkwidth is set to 1
                             the code can catch warnings.
     D. McMann   00/06/30    Added assignement of load_size for Oracle
     D. McMann   00/02/07    Support for oracle bulk insert
@@ -134,6 +134,8 @@ define variable lImmediateDisplay  as logical no-undo.
 define variable cSearchFile        as character no-undo.
 define variable cFileType          as character no-undo.
 define variable cFileTypeSubdir    as character no-undo.
+define variable useSimpleFileName    as logical   no-undo.
+define variable simple-fil-d         as character no-undo.
 
 DEFINE STREAM dsfile.
 
@@ -379,6 +381,9 @@ end.
 if addfilename then 
     checkDirectory(user_env[2]).
 
+IF OS-GETENV("PRO_LOAD_SIMPLE_FILE_NAME") EQ "Y" THEN
+    useSimpleFileName = yes.
+
 stoploop:
 DO ON STOP UNDO, LEAVE:
   DO ix = 1 to numCount /*WHILE ENTRY(1,user_env[1]) <> ""*/ :
@@ -528,12 +533,19 @@ DO ON STOP UNDO, LEAVE:
                cFileType = "tenant"
                cFileTypeSubdir = user_env[32].
         end.
-        if addfilename then
+        if addfilename then do:
+           IF useSimpleFileName THEN
+               simple-fil-d = ( IF DICTDB._File._Dump-name = ?
+                                THEN DICTDB._File._File-name
+                                ELSE DICTDB._File._Dump-name
+                              ) + ".d".
+
             fil-d = fil-d             
                   + ( IF DICTDB._File._Dump-name = ?
                       THEN DICTDB._File._File-name
                       ELSE DICTDB._File._Dump-name
                   ) + ".d".    
+        end.
     end.
     else do: 
         if index(user_env[2],"/") > 0 then
@@ -571,12 +583,18 @@ DO ON STOP UNDO, LEAVE:
         else 
             lobdir = "".  
             
-        if addfilename then
+        if addfilename then do:
+           IF useSimpleFileName THEN
+              simple-fil-d = ( IF DICTDB._File._Dump-name = ?
+                               THEN DICTDB._File._File-name
+                               ELSE DICTDB._File._Dump-name
+                             ) + ".d".
             fil-d = fil-d 
                 + (IF DICTDB._File._Dump-name = ?
                    THEN DICTDB._File._File-name
                    ELSE DICTDB._File._Dump-name) 
                 + ".d".
+       end.
     
        cfileType = "shared".  
     end.
@@ -969,7 +987,9 @@ DO ON STOP UNDO, LEAVE:
 
     if user_env[6] NE "load-silent" then 
     do:
-        DISPLAY msg WITH FRAME loaddata NO-ERROR.
+        DISPLAY msg 
+               (IF useSimpleFileName THEN simple-fil-d else fil-d) @ fil-d			   
+         WITH FRAME loaddata NO-ERROR.
 
         IF addfilename THEN 
         DO:

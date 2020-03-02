@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -53,7 +53,7 @@ class OpenEdge.Security.Principal :
         assign this-object:Token = phClientPrincipal
                mlAutoDestroy     = plAutoDestroy.
     end constructor.
-        
+    
     destructor Principal():
         if     mlAutoDestroy 
            and valid-object(this-object:Token ) then
@@ -179,7 +179,7 @@ class OpenEdge.Security.Principal :
         create client-principal hCP.
         hCP:import-principal (prCP).
         
-        return new Principal(hCP, true).        
+        return new Principal(hCP, true).
     end method.
 
     /* Creates a new Principal from BASE64 data
@@ -192,23 +192,57 @@ class OpenEdge.Security.Principal :
         Assert:NotNullOrEmpty(pcCP, 'Input token').
         
         assign rCP = base64-decode(pcCP).
-                               
+        
         return Principal:Import(rCP).
+    end method.
+    
+    /* Creates a new Principal from the CP asserted in this session
+       
+       @return Principal A new object representing the input CP. May be null */
+    method static public Principal Import():
+        define variable hCP as handle no-undo.
+        
+        assign hCP = security-policy:get-client().
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
+        
+        return ?.
     end method.
     
     /* Creates a new Principal from the CP returned by a server. 
        
        @param OERequestInfo The request info containing the CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input poRequestInfo as OERequestInfo):
         define variable hCP as handle no-undo.
         
         Assert:NotNull(poRequestInfo, 'Server request info').
         assign hCP = poRequestInfo:GetClientPrincipal().
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
         
-        Assert:NotNull(hCP, 'Input token').
+        return ?.
+    end method.
+    
+    /* Creates a new Principal from the CP asserted against a database 
+       
+       @param integer The logical DB connection number
+       @return Principal A new object representing the input CP. May be null */
+    method static public Principal Import(input pDbNum as integer):
+        define variable hCP as handle no-undo.
+        define variable name as character no-undo.
         
-        return new Principal(hCP, true).
+        Assert:NotNull(pDbNum, 'Logical database number').
+        if pDbNum gt num-dbs then
+            undo, throw new AssertionFailedError(substitute('&1 is greater than the number of connected DBs &2', pDbNum, num-dbs)).
+        
+        assign name = ldbname(pDbNum)
+               hCP  = get-db-client(name)
+               .
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
+        
+        return ?.
     end method.
     
     /* Creates a new Principal from a object-wrapper memptr 
@@ -216,7 +250,7 @@ class OpenEdge.Security.Principal :
        CALLER IS RESPONSIBLE FOR MEMORY DEALLOCATION
        
        @param Memptr The OO wrapper containing the CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input poCP as class Memptr):
         Assert:NotNull(poCP, 'Client principal').
         
@@ -228,7 +262,7 @@ class OpenEdge.Security.Principal :
        CALLER IS RESPONSIBLE FOR MEMORY DEALLOCATION
        
        @param memptr The CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input pmCP as memptr):
         define variable rCP as raw no-undo.
         
@@ -236,7 +270,7 @@ class OpenEdge.Security.Principal :
         Assert:IsPositive(get-size(pmCP), 'Client principal size').
         
         assign rCP = pmCP.
-        return Principal:Import(rCP).        
+        return Principal:Import(rCP).
     end method.
     
 end class.

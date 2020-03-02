@@ -1,11 +1,7 @@
- 
- 
 /**********************************************************************************************
-*    Copyright (C) 2014-2018 by Progress Software Corporation. All rights reserved.           *
+*    Copyright (C) 2014-2019 by Progress Software Corporation. All rights reserved.           *
 *    Prior versions of this work may contain portions contributed by participants of Possenet.*
 ***********************************************************************************************/
-
-
 /*---------------------------------------------------------------------------------------------
     File        : BusinessEntity.cls
     Syntax      : 
@@ -209,7 +205,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                 UpdateMode = UpdateModeEnum:CUD.
             ELSE
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
-
+            
             THIS-OBJECT:CommitData(ROW-CREATED).
         END.
         
@@ -222,11 +218,11 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             
             // Reset undos to orig values
             SetUndos(saveUndos, ?).
-        
-             /* reset if we used a different PDS */
-             if valid-handle(hPDS) then
+            
+            /* reset if we used a different PDS */
+            if valid-handle(hPDS) then
                 assign this-object:ProDataSet = hPDS.
-        END FINALLY.      
+        END FINALLY.
     END METHOD. 
     
     /*------------------------------------------------------------------------------
@@ -297,14 +293,14 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
          
         THIS-OBJECT:AttachDataSources().
         
-        DO TRANSACTION ON ERROR UNDO, THROW:   
+        DO TRANSACTION ON ERROR UNDO, THROW:
             // ProcessBIData() determines if BI data was sent as part of request.
             // If not sent, it adds it. BI data is required when calling SAVE-ROW-CHANGES()
             IF ProcessBIData(ROW-DELETED) EQ TRUE THEN
                 UpdateMode = UpdateModeEnum:CUD.
             ELSE
                 UpdateMode = UpdateModeEnum:CUD_NOBI.
-
+            
             THIS-OBJECT:CommitData(ROW-DELETED).
         END.
         
@@ -385,12 +381,18 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
             
                       DO WHILE lAvailable:
                           /* Note: If a before-table row already exists, MARK-ROW-STATE() is a no-op */
-                          lReturnValue = hBuffer:MARK-ROW-STATE(iRowState).
-                
+                          lReturnValue = hBuffer:MARK-ROW-STATE(iRowState)
+                                         // NO-ERROR is required, otherwise this statement 'fails' like a FIND, aka not 
+                                         // properly/well
+                                         no-error.
+                          
                           IF NOT lReturnValue THEN 
                               UNDO, THROW NEW Progress.Lang.AppError('Unable to ' + GetRowState(iRowState) + 
                                    ' record. Cannot create corresponding row in BEFORE-TABLE.', 0).
-                          lAvailable = hAfterQuery[iIndex]:GET-NEXT().
+                          
+                          lAvailable = hAfterQuery[iIndex]:GET-NEXT()
+                                       // reset the ERROR-STATUS from above
+                                       no-error.
                       END.
                   END.
               END.  // END REPEAT
@@ -401,12 +403,9 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
                   IF VALID-HANDLE(hAfterQuery[iIndex]) THEN
                       DELETE OBJECT hAfterQuery[iIndex].
               END.
-          
               RETURN lHasBIData.
           END FINALLY.  
-  
     END METHOD.
-
 
     /*----------------------------------------------------------------------------------------
             Purpose:  Saves/Submits one or more changed rows (creates, updates, and/or deletes)
@@ -478,7 +477,7 @@ CLASS OpenEdge.BusinessLogic.BusinessEntity ABSTRACT:
        
        CATCH e AS CLASS Progress.Lang.Error:
            ProcessTransactionalError(e).
-        END.
+       END.
  
        FINALLY:
             THIS-OBJECT:DetachDataSources().

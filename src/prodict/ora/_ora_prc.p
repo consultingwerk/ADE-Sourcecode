@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2009 by Progress Software Corporation. All rights    *
+* Copyright (C) 2019 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,7 +39,9 @@ History:
     hutegger    95/03   created out of _ora_fun.p
     mcmann    09/30/02  Added THREE-D to frame to match the rest of the
                         utility.
-   fernando   06/11/07  Unicode and clob support
+	fernando   06/11/07  Unicode and clob support
+	hjivani	  24/04/19	Procedure without parameter is handled seperately
+						starting from oraversion >=12
 --------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------
@@ -111,7 +113,7 @@ DEFINE VARIABLE oraversion      AS INTEGER   NO-UNDO.
 define buffer over_file         for DICTDB._File.
 define buffer ds_columns        for DICTDBG.oracle_arguments.
 define buffer ds_comments       for DICTDBG.oracle_comment.
-
+define buffer ds_procedures     for DICTDBG.oracle_procinfo.
 
 /* LANGUAGE DEPENDENCIES START */ /*--------------------------------*/
 
@@ -136,6 +138,7 @@ define variable o-name        as character no-undo. /* local forgn-name */
 define variable o-prog        as character no-undo. /* local table-name */
 define variable o-type        as character no-undo. /* local forgn-type */
 define variable o-pckg        as character no-undo. /* local package-id */
+define variable reuse         as integer   no-undo. /* Whether to reuse the s_ttb_tbl*/
 /*------------------------------------------------------------------*/
 procedure error_handling:
 
@@ -188,16 +191,9 @@ END.
 /* 20041223-004 
    if this an empty package, with nothing in it, don't bother adding it to the schema, just return 
 */
-IF p_typevar = 9 THEN DO:
-    FIND FIRST ds_columns WHERE ds_columns.obj# = DICTDBG.oracle_objects.obj# NO-LOCK NO-ERROR.
-    IF NOT AVAILABLE ds_columns THEN
-        RETURN.
-END.
-
-
 find first DICTDB._Db
-  where DICTDB._Db._Db-name = LDBNAME("DICTDBG")
-  and   DICTDB._Db._Db-type = "ORACLE".
+    where DICTDB._Db._Db-name = LDBNAME("DICTDBG")
+    and   DICTDB._Db._Db-type = "ORACLE".
 ASSIGN oraversion = INTEGER(DICTDB._Db._Db-misc1[3]).
 
 /* just make sure the info in the schema holder isn't invalid */
@@ -209,6 +205,96 @@ IF oraversion > 8 THEN DO:
    IF oraversion = 0 THEN
        oraversion = INTEGER(DICTDB._Db._Db-misc1[3]). 
 END.
+
+onum = DICTDBG.oracle_objects.obj#.
+p_ttb_tbl = 0.
+reuse = 0.
+
+IF p_typevar = 9 THEN DO:
+
+    IF oraversion >= 12 THEN DO:
+        FOR EACH ds_procedures
+            WHERE ds_procedures.obj#=onum NO-LOCK:
+    
+            FIND FIRST ds_columns 
+                WHERE ds_columns.obj# = ds_procedures.obj# 
+                AND ds_columns.procedure$ = ds_procedures.PROCEDURENAME
+                AND ds_columns.overload# = ds_procedures.overload# NO-LOCK NO-ERROR.
+    
+            IF NOT AVAILABLE ds_columns THEN DO:
+                /*When a procedure is in procedureinfo table and not in arguemnt$ */
+                /*this is to handle the case when there is proc without parameter inside package*/
+                
+                assign
+                    overld = ds_procedures.overload#
+                    o-name = ds_procedures.PROCEDURENAME
+                    o-prog = o-name
+                           + ( if overld > 0 
+                                then "#" + STRING (overld, "999") 
+                               else ""
+                             )
+                    o-type = "PROCEDURE"        /*Only a procedure can be without any parameter*/
+                    o-pckg = p_namevar-s.
+        
+                find first DICTDB._File
+                    where DICTDB._File._db-recid     = drec_db
+                    and   DICTDB._File._fil-misc2[1] = o-pckg
+                    and   DICTDB._File._for-name     = o-name
+                    and   DICTDB._File._for-type     = o-type
+                    and ( overld = 0
+                           or DICTDB._File._file-name matches "*#" + STRING (overld, "999")
+                        )
+                    no-lock no-error.
+        
+                if not available DICTDB._File
+                then do:
+                    RUN prodict/gate/_gat_fnm.p 
+                        ( INPUT        "TABLE",
+                          INPUT        drec_db,
+                          INPUT-OUTPUT o-prog
+                        ).
+                end.
+                else assign
+                    o-prog = DICTDB._File._file-name.
+                
+                /***** adjust screen-protocol *****/
+                if TERMINAL <> "" and not batch_mode 
+                then display
+                  o-pckg @ msg[1] o-pckg @ msg[2]
+                  o-name @ msg[3] o-prog @ msg[4] 
+                  ""     @ msg[5] ""     @ msg[6]
+                  with frame ds_make.
+          
+                /***** create s_ttb_tbl record *****/
+                create s_ttb_tbl.
+        
+                if p_ttb_tbl = 0 then p_ttb_tbl = integer(RECID(s_ttb_tbl)).
+                else p_ttb_tbl = ? .
+        
+                assign
+                  s_ttb_tbl.gate-work    = p_gate-work
+                  s_ttb_tbl.ds_msc21     = o-pckg
+                  s_ttb_tbl.pro_name     = o-prog
+                  s_ttb_tbl.ds_name      = o-name
+                  s_ttb_tbl.ds_spcl      = ( if p_spclvar = ""
+                                             then ?
+                                             else p_spclvar
+                                           )
+                  s_ttb_tbl.ds_type      = o-type
+                  s_ttb_tbl.ds_user      = p_uservar
+                  stoff                  = 1
+                  rid                    = RECID (s_ttb_tbl).
+            
+            END.
+        END.
+    END.
+	
+/* If there is no more procedure/function than exit. */
+    FIND FIRST ds_columns WHERE ds_columns.obj# = DICTDBG.oracle_objects.obj# NO-LOCK NO-ERROR.
+    IF NOT AVAILABLE ds_columns THEN
+        RETURN.
+END.
+
 
 assign
   l_char-types  = "CHAR,VARCHAR,VARCHAR2,ROWID,NCHAR,NVARCHAR2"
@@ -222,9 +308,7 @@ assign
   l_i###-types  = "TIME"
   l_logi-types  = "LOGICAL"
 /*l_time-types  = ""*/
-  l_tmst-types  = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ"
-  onum          = DICTDBG.oracle_objects.obj#
-  p_ttb_tbl     = 0.
+  l_tmst-types  = "TIMESTAMP,TIMESTAMP_LOCAL,TIMESTAMP_TZ".
 
 /*------------------------------------------------------------------*/
 
@@ -260,9 +344,9 @@ if p_typevar = 9
 /***** create s_ttb_tbl record *****/
   create s_ttb_tbl.
   assign
-    p_ttb_tbl              = ( if p_typevar = 9
-                                then 0
-                                else integer(RECID(s_ttb_tbl))
+    p_ttb_tbl              = ( if p_ttb_tbl <> 0
+                               then ?
+                               else integer(RECID(s_ttb_tbl))
                              )
     s_ttb_tbl.gate-work    = p_gate-work
     s_ttb_tbl.pro_name     = o-prog
@@ -277,7 +361,7 @@ if p_typevar = 9
     stoff                  = 1
     rid                    = RECID (s_ttb_tbl).
 
-
+if p_typevar = 9 then reuse = 1.
 
 /* for each "item" of that object:                  */
 /*      procedure$ = name of that item              */
@@ -354,10 +438,15 @@ for each ds_columns
           with frame ds_make.
       
     /***** create/adjust s_ttb_tbl record *****/
-      if p_ttb_tbl = 0
+      /*if p_ttb_tbl = 0*/
+      if reuse = 1
        then do: /* use previously created s_ttb_tbl-record */
         assign
-          p_ttb_tbl              = RECID (s_ttb_tbl)
+          reuse = -1
+          p_ttb_tbl              = ( if p_ttb_tbl = RECID(s_ttb_tbl)
+                                     then RECID(s_ttb_tbl)
+                                     else ?
+                                    )
           s_ttb_tbl.pro_name     = o-prog
           s_ttb_tbl.ds_name      = o-name
           s_ttb_tbl.ds_type      = o-type
@@ -534,7 +623,7 @@ for each ds_columns
 
   end.     /* for each ds_columns */
 
-
+  
 if not batch_mode then
     hide frame ds_make no-pause.
 

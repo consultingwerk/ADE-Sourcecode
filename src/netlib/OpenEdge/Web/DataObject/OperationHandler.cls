@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationHandler
@@ -197,9 +197,12 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         /* The schema holder may be a dataset or temp-table. If the former, we may only want to
            pass a single table from the dataset, and so need to extract/write that. */
         if    poArg:Parameter:DataType eq 'dataset-handle':u
-           or hSchema:type eq 'temp-table':u
+           or hSchema:type eq string(DataTypeEnum:Temp-Table)
         then
             oValueWriter:Write(hSchema).
+        else
+        if hSchema:type eq string(DataTypeEnum:Buffer) then
+            oValueWriter:Write(hSchema:table-handle).
         else
             oValueWriter:Write(hSchema:get-buffer-handle(poArg:Parameter:ABLName)
                                       :table-handle).
@@ -229,9 +232,8 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         
         /* if we are working with a dataset or temp-table, write to MEMPTR now. This lets us
            apply the 'writeBI' option if set */
-        if    poArg:Parameter:DataType eq 'dataset-handle':u
-           or poArg:Parameter:DataType eq 'table-handle':u
-           or poArg:Parameter:DataType eq 'handle':u
+        if    poArg:Parameter:HasSchema
+           or poArg:Parameter:DataType eq string(DataTypeEnum:Handle)
         then
         do:
             assign extractTime[1] = now
@@ -247,11 +249,13 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 assign hData = cast(poArg:ArgumentValue, IHandleHolder):Value.
                 // only buffers, tables and datasets have data in them. it's no-op otherwise.
                 case hData:type:
-                    when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
-                    when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
-                    when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+                    when string(DataTypeEnum:TempTable) or
+                    when string(DataTypeEnum:Buffer) or
+                    when string(DataTypeEnum:Dataset) then
                     do on error undo, throw:
-                        if lWriteBI and hData:type ne 'dataset':u then
+                        if     lWriteBI 
+                           and not hData:type eq string(DataTypeEnum:Dataset)
+                        then
                         do:
                             Logger:Warn(substitute('writeBI:TRUE only supported for datasets, not &1 &2',
                                         hData:type, poArg:Parameter:ABLName)).
@@ -277,7 +281,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                             end.
                             
                             when MimeTypeHelper:IsXML(poArg:Operation:ContentType) then
-                                hData:write-xml('memptr':u, mData, (Logger:LogLevel ge LogLevelEnum:DEBUG), ?, ?, ?, ?, lWriteBI).
+                                hData:write-xml(string(DataTypeEnum:Memptr), mData, (Logger:LogLevel ge LogLevelEnum:DEBUG), ?, ?, ?, ?, lWriteBI).
                             
                             otherwise
                                 Logger:Trace(substitute('Unable to WRITE-* &1 into content-type &2 ',
@@ -1194,10 +1198,10 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         Assert:NotUnknown(plTrackChanges, 'Tracking changes').
         
         case hDataSet:type:
-            when 'buffer':u or
-            when 'temp-table':u then
+            when string(DataTypeEnum:Buffer) or
+            when string(DataTypeEnum:Temp-Table) then
             do:
-                if hDataSet:type eq 'buffer':u then
+                if hDataSet:type eq string(DataTypeEnum:Buffer) then
                     assign hDataset = hDataset:table-handle.
                 
                 /* If this temp-table is part of a dataset, then we can set the tracking-changes flag. 
@@ -1214,7 +1218,7 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 end.
             end.    //tt 
             
-            when 'dataset':u then 
+            when string(DataTypeEnum:Dataset) then
             do:
                 assign iMax = hDataset:num-buffers. 
                 do iLoop = 1 to iMax:

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2017 by Progress Software Corporation 
+Copyright (c) 2013-2019 by Progress Software Corporation 
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -344,9 +344,15 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(pcArgument as character, pcName as character):
+        /* 15578
         define variable cLongCharArg as longchar no-undo.
         cLongCharArg = pcArgument.
         Assert:NotNullOrEmpty(cLongCharArg, pcName).
+       */
+       IF pcArgument EQ ?
+       THEN
+         UNDO, THROW NEW AssertionFailedError(SUBSTITUTE('&1 cannot be null',pcName),0).
+
     end method.
 
     method public static void NotNullOrEmpty(pcArgument as character):
@@ -358,9 +364,6 @@ class OpenEdge.Core.Assert:
 
         if extent(pcArgument) eq ? then
             undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
-        
-        cLongCharArg = pcArgument[1].
-        Assert:NotNullOrEmpty(cLongCharArg, pcName).
     end method.
 
     method public static void NotNullOrEmpty(input pcArgument as character extent):

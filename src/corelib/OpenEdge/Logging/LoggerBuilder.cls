@@ -233,8 +233,6 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
                 AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
             
             AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
-            // set the error stack to true to make the ERROR_FORMAT more useful
-            assign session:error-stack-trace = true.
             
             // resolves any of the standard tokens
             AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).

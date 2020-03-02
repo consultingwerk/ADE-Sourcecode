@@ -226,8 +226,8 @@ DO WITH FRAME {&FRAME-NAME}:
 
  IF NOT SESSION:WINDOW-SYSTEM BEGINS "TTY":u THEN
   AboutText2 = AboutText2 +
-        "OpenEdge includes Infragistics NetAdvantage for .NET v2018 Vol 2. " +  
-        cCopyright + " 2018 Infragistics, Inc. " +  
+        "OpenEdge includes Infragistics NetAdvantage for .NET v2019 Vol 1. " +  
+        cCopyright + " 2019 Infragistics, Inc. " +  
         "All rights reserved." +
         CHR(10) + CHR(10).
 

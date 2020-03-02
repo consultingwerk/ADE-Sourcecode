@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : QueryGroup
@@ -18,6 +18,7 @@ using Ccs.BusinessLogic.JoinEnum.
 using OpenEdge.Core.Assert.
 
 class OpenEdge.BusinessLogic.QueryGroup implements IQueryGroup:
+
     /* Returns the array of query predicates and nested query groups */
     define public property Entries as IQueryEntry extent no-undo get. set.
     
@@ -38,5 +39,22 @@ class OpenEdge.BusinessLogic.QueryGroup implements IQueryGroup:
         Assert:IsPositive(pNumEntries, 'Num query entries '). 
         assign extent(Entries) = pNumEntries.
     end constructor.
+
+    method override public character ToString():
+        define variable queryString as character no-undo.
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+
+        assign cnt = extent(this-object:Entries).
+
+        do loop = 1 to cnt:
+            queryString = substitute('&1 &2 (&3)',
+                                     trim(queryString),
+                                     if queryString eq "" then "" else this-object:Join:ToString(),
+                                     trim(this-object:Entries[loop]:ToString())).
+        end.
+
+        return trim(queryString).
+    end method.
 
 end class.

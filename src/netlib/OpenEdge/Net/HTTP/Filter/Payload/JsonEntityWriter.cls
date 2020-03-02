@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : JsonEntityWriter
@@ -44,6 +44,7 @@ using OpenEdge.Core.Collections.IMapEntry.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.IObjectArrayHolder.
+using OpenEdge.Core.Json.IJsonSerializer.
 using OpenEdge.Core.KeyValuePair.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.StringConstant.
@@ -64,8 +65,13 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     
     /* Default constructor */    
     constructor public JsonEntityWriter():
-        super(get-class(JsonConstruct)).
+        this-object(get-class(JsonConstruct)).
     end constructor. 
+    
+    /** Default constructor. */
+    constructor protected JsonEntityWriter(input pType as class Progress.Lang.Class):
+        super(pType).
+    end constructor.
     
     /* Opens the writer */
     method override public void Open():       
@@ -107,7 +113,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
         
         assign hdr = new JsonObject().
         hdr:Add('name':u, pHeader:Name).
-        hdr:Add('value':u, pHeader:GetBaseValue() + pHeader:GetParameterValues()). 
+        hdr:Add('value':u, pHeader:GetBaseValue() + pHeader:GetParameterValues()).
     end method.
     
     /* Writes a tuple (key-value pair) as a JSON property & value
@@ -285,7 +291,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             do:
                 assign dayArray = cast(pValue, IDateArrayHolder):Value.
                 
-                if extent(ridArray) eq ? then
+                if extent(dayArray) eq ? then
                     dynamic-invoke(jsonData, methodName + 'Null':u, pKey:ToString()).
                 else
                     dynamic-invoke(jsonData, methodName, pKey:ToString(), new JsonArray(dayArray)).
@@ -295,7 +301,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             do:
                 assign dtArray = cast(pValue, IDateTimeArrayHolder):Value.
                 
-                if extent(ridArray) eq ? then
+                if extent(dtArray) eq ? then
                     dynamic-invoke(jsonData, methodName + 'Null':u, pKey:ToString()).
                 else
                     dynamic-invoke(jsonData, methodName, pKey:ToString(), new JsonArray(dtArray)).
@@ -305,7 +311,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             do:
                 assign dtzArray = cast(pValue, IDateTimeTzArrayHolder):Value.
                 
-                if extent(ridArray) eq ? then
+                if extent(dtzArray) eq ? then
                     dynamic-invoke(jsonData, methodName + 'Null':u, pKey:ToString()).
                 else
                     dynamic-invoke(jsonData, methodName, pKey:ToString(), new JsonArray(dtzArray)).
@@ -315,7 +321,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             do on error undo, throw:
                 assign memptrArray = cast(pValue, IMemptrArrayHolder):Value
                        maxCnt      = extent(memptrArray)
-                       jsonArray   = new JsonArray().
+                       jsonArray   = new JsonArray()
+                       .
                 do cnt = 1 to maxCnt on error undo, throw:
                     jsonArray:Add(base64-encode(memptrArray[cnt])).
                     finally:
@@ -328,13 +335,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             
             when type-of(pValue, IHandleArrayHolder) then
             do:
-                assign handleArray = cast(pValue, IHandleArrayHolder):Value
-                       maxCnt      = extent(handleArray)
-                       jsonArray   = new JsonArray().
-                do cnt = 1 to maxCnt:
-                    jsonArray:Add(handleArray[cnt]).
-                end.
-                dynamic-invoke(jsonData, methodName, pKey:ToString(), jsonArray).
+                assign handleArray = cast(pValue, IHandleArrayHolder):Value.
+                
+                if extent(handleArray) eq ? then
+                    dynamic-invoke(jsonData, methodName + 'Null':u, pKey:ToString()).
+                else
+                    dynamic-invoke(jsonData, methodName, pKey:ToString(), new JsonArray(handleArray)).
             end.    // HANDLE array
             
             /* JSON  */
@@ -435,17 +441,20 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
             end.
         end case.
         
+        // only send debug info if we want debug info sent.
         if session:debug-alert then
+        do:
             oResponse:Add('_type':u, poError:GetClass():TypeName).
             
-        if poError:CallStack ne ? then
-        do:
-            assign oErrorList = new JsonArray()
-                   iMax       = num-entries(poError:CallStack, StringConstant:LF)
-                   .
-            oResponse:Add('_stack':u, oErrorList).
-            do iLoop = 1 to iMax:
-                oErrorList:Add(entry(iLoop, poError:CallStack, StringConstant:LF)).
+            if poError:CallStack ne ? then
+            do:
+                assign oErrorList = new JsonArray()
+                       iMax       = num-entries(poError:CallStack, StringConstant:LF)
+                       .
+                oResponse:Add('_stack':u, oErrorList).
+                do iLoop = 1 to iMax:
+                    oErrorList:Add(entry(iLoop, poError:CallStack, StringConstant:LF)).
+                end.
             end.
         end.
         
@@ -468,9 +477,23 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
     method override public int64 Write(input poData as Object):
         define variable oBody as class Memptr no-undo.
         
-        Assert:NotNull(poData).
-        
         case true:
+            when not valid-object(poData) then
+            do:
+                assign this-object:Entity = new JsonObject().
+                return 0.
+            end.
+            
+            // first try the object's own serialization, then the hard-coded ones below
+            when type-of(poData, IJsonSerializer) then
+            do:
+                assign this-object:Entity = cast(poData, IJsonSerializer):ToJsonConstruct().
+                if not valid-object(this-object:Entity) then
+                    assign this-object:Entity = new JsonObject().
+                
+                return 0.
+            end.
+            
             when type-of(poData, Progress.Lang.Error) then
             do:
                 WriteError(cast(poData, Progress.Lang.Error)).
@@ -517,7 +540,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
                                        cast(poData, IMapEntry):Value).
                 return 0.
             end.
-
+            
             when type-of(poData, KeyValuePair) then
             do:
                 this-object:WriteTuple(cast(poData, KeyValuePair):Key,
@@ -558,17 +581,17 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
                 when type-of(poData, IRowidArrayHolder) then
                     assign this-object:Entity = new JsonArray(cast(poData, IRowidArrayHolder):Value).
             end case.   // individual primitive array types
-                       
+            
             when type-of(poData, IHandleHolder) then
                 return this-object:WriteHandle(cast(poData, IHandleHolder):Value).
             
             when type-of(poData, Cookie) then
                 return this-object:Write(this-object:Write(cast(poData, Cookie))).
-
+            
             when type-of(poData, HttpHeader) then
                 return this-object:Write(this-object:Write(cast(poData, HttpHeader))).
             
-            otherwise 
+            otherwise
                 return error new AppError(
                             substitute('Unsupported object type: &1', poData:GetClass():TypeName)
                             , 0).
@@ -642,7 +665,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonEntityWriter inherits MessageWriter:
                        .
             
             /* this should cater for WEB-CONTEXT and that only. */
-            when 'pseudo-widget':u then            
+            when 'pseudo-widget':u then
                 if lookup('HTML-CHARSET':u, list-query-attrs(phData)) gt 0 then
                     assign this-object:Entity = cast(moParser:Parse(phData), JsonConstruct).
         end case.

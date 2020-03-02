@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : DecisionService
@@ -413,7 +413,11 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         if cast(cast(this-object:ServerConnection:ConnectionParameters, RulesServerConnectionParameters)
                 :DecisionServiceConnectionParameters, WebServiceConnectionParameters):PortName eq 'CcServerMessagingAxis':u 
         then
-            assign requestData = '<execute>':u + requestData + '</execute>':u.
+            assign requestData = '<execute>':u + requestData + '</execute>':u
+                   // Because of the changed SOAP stack in Corticon 5.7 we need to muck about with the namespace for nils
+                   // Prior to 5.7 we can use xsi:nil
+                   requestData = replace(requestData, 'abl:nil':u, 'xsi:nil':u)
+                   .
         
         lcResponseData = this-object:ServerConnection:InvokeDecisionService(requestData).
         /* Convert XML response into application data and (linked) Rule Messages */
@@ -463,8 +467,23 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
                               response document. */
     method protected void LoadResponseDocument(input pcResponseDocument as longchar,
                                                input dataset-handle phResponseData):
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable trackChanges as logical extent no-undo.
+        define variable tbl as handle no-undo.
+        
         /** DATA **/
-        assign mhAppData = phResponseData:handle.
+        assign mhAppData            = phResponseData:handle
+               cnt                  = phResponseData:num-buffers
+               extent(trackChanges) = cnt
+               .
+        // reset tracking changes
+        do loop = 1 to cnt:
+            assign tbl                  = phResponseData:get-buffer-handle(loop):table-handle
+                   trackChanges[loop]   = tbl:tracking-changes
+                   tbl:tracking-changes = false
+                   .
+        end.
         
         /* Emplicitly empty the dataset, since the this may be the same dataset as 
            the AppData. In that case, it will contain the input data. We want to 
@@ -476,6 +495,11 @@ class OpenEdge.BusinessRules.DecisionService use-widget-pool:
         
         /* Ready? Go! */
         moSaxReader:ParseDocument(pcResponseDocument).
+        
+        // reset tracking changes
+        do loop = 1 to cnt:
+            assign phResponseData:get-buffer-handle(loop):table-handle:tracking-changes = trackChanges[loop].
+        end.
     end method.
     
     /** Returns the messages for the most recent decision service invocation. 

@@ -792,7 +792,12 @@ class OpenEdge.Net.URI serializable:
         Assert:NotNullOrEmpty(pcName, 'Query name').
         
         /* flag URI as changed */
-        assign mcUri   = ?
+        assign mcUri   = ?.
+        if pcValue eq ? 
+        then
+           assign lcValue = ?.
+        else
+           assign
                lcValue = EncodeQuery(pcValue)
                .
         this-object:QueryMap:Put(pcName, lcValue).

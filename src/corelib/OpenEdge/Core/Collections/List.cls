@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : List
@@ -29,7 +29,7 @@ using Progress.Lang.Object.
 class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         implements IList:
     /* default temp-table  */ 
-    define protected temp-table ttList no-undo
+    define serializable protected temp-table ttList no-undo
       field sequence as int
       field objectref as Object 
       index objidx objectref
@@ -392,33 +392,39 @@ class OpenEdge.Core.Collections.List serializable inherits AbstractTTCollection
         return oldObject.
     end method.
     
+    /* Returns a view of the portion of this list between the specified fromIndex, inclusive, and toIndex, exclusive.
+       
+       The fromIndex value must be positive and <= this list's Size
+       The toIndex value must be positive and <= this list's Size 
+       The fromIndex value must be <= toIndex value
+       If fromIndex and toIndex are equal, the returned list has 1 entry.
+       
+       @param integer fromIndex Low endpoint (INCLUSIVE) of the subList
+       @param integer toIndex   High endpoint (INCLUSIVE) of the subList
+       @return IList a List containing the items. Has at least 1 entry. */
     method public IList SubList(fromIndex as integer, toIndex as integer):
         define variable list as IList no-undo.
-        define variable oObject as Object no-undo.
+        define buffer lbList for ttList.
         
-        Assert:IsPositive(fromIndex, 'List start index').
-        Assert:IsPositive(toIndex, 'List end index').
+        Assert:IsPositive(fromIndex, 'List From-Index').
+        Assert:IsPositive(toIndex, 'List To-Index').
         
         if fromIndex gt this-object:Size then
-            undo, throw new AppError(substitute('From-Index &1 is larger than the collection size of &2', fromIndex, this-object:Size), 0).
+            undo, throw new AssertionFailedError(substitute('From-Index &1 is larger than the collection size of &2', fromIndex, this-object:Size)).
+        if toIndex gt this-object:Size then
+            undo, throw new AssertionFailedError(substitute('To-Index range &1 is larger than the collection size of &2', toIndex, this-object:Size)).
+        if fromIndex gt toIndex then
+            undo, throw new AssertionFailedError(substitute('From-Index &1 is larger To-Index &2', fromIndex, toIndex)).
         
-        if (fromIndex + toIndex) gt this-object:Size then
-            undo, throw new AppError(substitute('To-Index range &1 is larger than the collection size of &2', fromIndex + toIndex, this-object:Size), 0).
-        
-        if fromIndex ge toIndex then
-            undo, throw new AppError(substitute('From-Index &1 is larger To-Index &2', fromIndex, toIndex), 0).
-        
-        list = new List().
-        do fromIndex = fromIndex to toIndex - 1:
-           oObject = get(fromIndex).
-           if valid-object(oObject) then
-              list:add(oObject).  
-           else
-           do: 
-              delete object list. 
-              return ?. 
-           end.
+        assign list = new List().
+        for each lbList where
+                 lbList.sequence ge fromIndex and
+                 lbList.sequence le toIndex
+                 by lbList.sequence:
+            
+            list:Add(lbList.objectref).
         end.
+        
         return list.
     end method.
     

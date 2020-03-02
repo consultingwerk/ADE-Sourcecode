@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : HandleValueWriter
@@ -18,7 +18,6 @@ using Ccs.Common.Support.IInt64Holder.
 using Ccs.Common.Support.ILongcharHolder.
 using Ccs.Common.Support.IPrimitiveHolder.
 using OpenEdge.Core.DataTypeEnum.
-using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.ReadModeEnum.
 using OpenEdge.Logging.Logger.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
@@ -26,6 +25,7 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
+using Progress.Lang.SysError.
 
 class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWriter:
     
@@ -47,14 +47,28 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
         do:
             assign hData = cast(this-object:Value, IHandleHolder):Value.
             if valid-handle(hData) then
-            case hData:type:
-                when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
-                when DataTypeHelper:GetMask(DataTypeEnum:TempTable) then
-                    hData:empty-temp-table().
+            do on error undo, throw:
+                case hData:type:
+                    when string(DataTypeEnum:Buffer) or
+                    when string(DataTypeEnum:TempTable) then
+                        hData:empty-temp-table().
+                    
+                    when string(DataTypeEnum:Dataset) then
+                        hData:empty-dataset().
+                end case.
                 
-                when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
-                    hData:empty-dataset().
-            end case.
+                catch eSysError as SysError:
+                    case eSysError:GetMessageNum(1):
+                        // 12758=You may not EMPTY temp-table <table-name> when TRACKING-CHANGES is true.
+                        // We want to ignore the failure in this case, and simply report that it failed
+                        when 12758 then
+                            Logger:Warn(substitute('Unable to clear &1 "&2": &3',
+                                          hData:type, hData:name, eSysError:GetMessage(1))).
+                        otherwise
+                            undo, throw eSysError.
+                    end case.
+                end catch.
+            end.
         end.
     end method.
     
@@ -77,9 +91,9 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
             /* Use loose-copy-mode=true in case we've passed in data that doesn't quite match (missing fields from a client etc) */
             if valid-handle(hData) then
             case hData:type:
-                when DataTypeHelper:GetMask(DataTypeEnum:TempTable) then
+                when string(DataTypeEnum:TempTable) then
                     hData:copy-temp-table(pData, ?, ?, true).       // loose-copy-mode 
-                when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+                when string(DataTypeEnum:Dataset) then
                     hData:copy-dataset(pData, ?, ?, true).          // loose-copy-mode
                 otherwise
                     assign hData = ?.
@@ -124,9 +138,9 @@ class OpenEdge.Web.DataObject.Writer.HandleValueWriter inherits ArgumentValueWri
                     assign hData    = cast(this-object:Value, IHandleHolder):Value
                            lDestroy = false.
                     case hData:type:
-                        when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
-                        when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
-                        when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+                        when string(DataTypeEnum:TempTable) or
+                        when string(DataTypeEnum:Buffer) or
+                        when string(DataTypeEnum:Dataset) then
                             Logger:Trace(substitute('Using existing &1 &2', hData:type, hData:name)).
                         otherwise
                             assign hData    = ?

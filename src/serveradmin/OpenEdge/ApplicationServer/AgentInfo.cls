@@ -263,4 +263,61 @@ class OpenEdge.ApplicationServer.AgentInfo :
             end.
         end finally.
     end method.
+
+    /* Returns the active request for a given sessionID
+       @param character in session id 
+    */
+    method public void getAgentActiveRequestData (INPUT sessionId AS character, output table-handle hTTCopy):
+        
+        DEFINE VARIABLE hTTSrcBuffer  AS HANDLE NO-UNDO.
+        DEFINE VARIABLE hTTCopyBuffer AS HANDLE NO-UNDO.
+        DEFINE VARIABLE hQuery        AS HANDLE NO-UNDO.
+        def    var      pasThandle    as HANDLE NO-UNDO.
+        
+        Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output pasThandle).
+        
+        /* create dynamic temp-table */
+        CREATE TEMP-TABLE hTTCopy.
+    
+        /* Copy the schema from the one passed in */
+        hTTCopy:CREATE-LIKE (pasThandle).
+    
+        /* Get it ready and name it - in this case, AgentRequest is the new temp-table name */
+        hTTCopy:TEMP-TABLE-PREPARE("AgentActiveRequest").    
+    
+        /* Get the default buffer for both source and target tables */
+        ASSIGN 
+            hTTSrcBuffer  = pasThandle:DEFAULT-BUFFER-HANDLE 
+            hTTCopyBuffer = hTTCopy:DEFAULT-BUFFER-HANDLE. 
+    
+        /* First create query to fetch records from source table */      
+     
+        CREATE QUERY hQuery.
+        hQuery:SET-BUFFERS(hTTSrcBuffer).
+       /* hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME). */
+	hQuery:QUERY-PREPARE(SUBSTITUTE("FOR EACH &1 WHERE &1._Request-BrokerSessionId='&2'", pasThandle:NAME, sessionId)).
+     
+        hQuery:QUERY-OPEN().
+     
+        REPEAT:
+            hQuery:GET-NEXT().
+            IF hQuery:QUERY-OFF-END THEN LEAVE. 
+		
+           /* IF hTTSrcBuffer:BUFFER-FIELD("_Request-BrokerSessionId"):BUFFER-VALUE = sessionId THEN */
+                /* Create record and copy from source */
+                hTTCopyBuffer:BUFFER-CREATE().
+                hTTCopyBuffer:BUFFER-COPY(hTTSrcBuffer).
+                hTTCopyBuffer:BUFFER-RELEASE().
+
+        END.
+     
+        /* Done with query */
+        FINALLY:
+            hQuery:QUERY-CLOSE().
+            DELETE OBJECT hQuery.  
+            delete object hTTCopy. 
+        END FINALLY.
+        
+    end method.
+
 end class.

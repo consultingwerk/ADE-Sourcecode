@@ -377,6 +377,12 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
             assign logWriter = super:GetLoggerInstance().
         
         return logWriter.
+        catch err as Progress.Lang.Error:
+            LoggerBuilder:LogMessage(substitute('Error building logger &1: &2', lbLogger.LoggerName, err:GetMessage(1)),
+                                     LogLevelEnum:ERROR).
+            
+            return new VoidLogger(lbLogger.LoggerName).
+        end catch.        
     end method.
     
     /* Finds the log level for a logger to use, based on the logger type
@@ -511,6 +517,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
     method private logical FindLogger(input pcLoggerType as character,
                                       buffer pbLogger for Logger):
         define variable dotPos as integer no-undo.
+        
+        // so we don't end up with a previously-found buffer
+        release pbLogger.
         
         if can-find(pbLogger where pbLogger.LoggerName eq pcLoggerType) then
             find pbLogger where pbLogger.LoggerName eq pcLoggerType.

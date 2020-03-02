@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2019 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -139,7 +139,8 @@ ASSIGN
               + "oracle_idxcols,oracle_indexes,oracle_objects,"
               + "oracle_procedures,oracle_sequences,oracle_users,"
               + "oracle_links,oracle_synonyms,oracle_views,"
-              + "oracle_tablespace,oracle_constraint,oracle_cons,oracle_cons_fld".
+              + "oracle_tablespace,oracle_constraint,oracle_cons,"
+              + "oracle_cons_fld,oracle_procinfo".
   
 IF NOT batch_mode
   then assign SESSION:IMMEDIATE-DISPLAY = yes.

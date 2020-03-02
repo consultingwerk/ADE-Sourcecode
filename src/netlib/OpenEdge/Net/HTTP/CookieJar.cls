@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014-2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014-2016, 2018-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : CookieJar
@@ -40,7 +40,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         initial 'aero,asia,biz,cat,com,coop,edu,eu,gov,info,int,jobs,mil,mobi,museum,name,net,org,pro,tel,travel':u.
     define private variable mcGenericCountryTLDs as character no-undo
         initial 'ad,as,bz,cc,cd,co,dj,fm,io,la,me,ms,nu,sc,sr,su,tv,tk,ws':U.
-
+    
     // A reference to the Logger in use by an implementer
     define public property Logger as ILogWriter no-undo get. set.
     
@@ -64,25 +64,28 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
             CookieName Domain Path
         .
     
-    /* data store for persistent cookies */                    
+    /* data store for persistent cookies */
     define static private temp-table PersistentCookie no-undo
         like SessionCookie.
         
     /* static constructor */    
     constructor static CookieJar():
     end constructor.
-
+    
+    /* Default constructor */
     constructor public CookieJar():
-        assign this-object:Logger = LoggerBuilder:GetLogger(get-class(CookieJar)).
+        assign this-object:Logger        = LoggerBuilder:GetLogger(get-class(CookieJar))
+               // Set the path in the constructor, so that it can be potentially overridden before initialize() is called
+               this-object:CookieJarPath = session:temp-dir + 'cookies.json':u
+               .
     end constructor.
-
+    
     destructor CookieJar():
         Destroy().
     end destructor.
     
     /* Initializer/Startup */
     method public void Initialize():
-        assign this-object:CookieJarPath = session:temp-dir + 'cookies.json':u.
         CookieJar:LoadCookieJar(this-object:CookieJarPath).
     end method.
     
@@ -249,7 +252,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         assign file-info:file-name = pcCookieJarPath.
         if file-info:full-pathname eq ? then
             return.
-
+        
         oParser = new ObjectModelParser().
         oLoad = cast(oParser:ParseFile(pcCookieJarPath), JsonObject).
         
@@ -264,7 +267,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
                    lbCookie.Path = oCookie:GetCharacter('Path':u)
                    lbCookie.CreatedAt = oCookie:GetDatetimeTZ('CreatedAt':u) 
                    lbCookie.LastAccessedAt  = oCookie:GetDatetimeTZ('LastAccessedAt':u)
-                   lbCookie.WholeCookie = OpenEdge.Net.HTTP.Cookie:Parse(oCookie:GetCharacter('Cookie':u)).                   
+                   lbCookie.WholeCookie = OpenEdge.Net.HTTP.Cookie:Parse(oCookie:GetCharacter('Cookie':u)).
         end.
     end method.
     
@@ -293,7 +296,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         end.
         
         /* write cookie file. debug-alert param is for pretty formatting or not. */
-        oDump:WriteFile(pcCookieJarPath, log-manager:logging-level ge 5).
+        oDump:WriteFile(pcCookieJarPath, session:debug-alert).
     end method.
     
     /** Adds a collection of  cookies to the jar.
