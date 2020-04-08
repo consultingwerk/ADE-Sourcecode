@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : ArgumentValueWriter
@@ -47,7 +47,8 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriter abstract
         get.
         set(input poValue as Progress.Lang.Object):
             /* needs to match this type */
-            AssertObject:IsType(poValue, this-object:ArgumentType).
+            if valid-object(poValue) then
+                AssertObject:IsType(poValue, this-object:ArgumentType).
             
             assign this-object:Value = poValue.
         end set.

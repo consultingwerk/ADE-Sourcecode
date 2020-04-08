@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
@@ -131,7 +131,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         define variable cValue as character no-undo.
         
         Assert:NotNull(poSocketArgs, 'Socket read argument').
-
+        
         /* Parses a chunk of data that's received from the socket. May or not
             be a complete payload
             
@@ -143,7 +143,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                             | response-header        ; Section 6.2
                             | entity-header ) CRLF)  ; Section 7.1
                            CRLF
-                           [ message-body ]          ; Section 7.2      */        
+                           [ message-body ]          ; Section 7.2      */
         assign iBytesRead  = poSocketArgs:BytesRead
                iStartByte  = 1
                .
@@ -163,7 +163,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 /* don't count the CR/LF as bytes */
                 if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
-                                       
+                
                 /* if we're at the end of our chunk of data, or we have hit 
                    the carriage return */
                 if (miPrevByte eq CR and iByte eq LF ) or 
@@ -248,17 +248,21 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             /* HEAD requests have no bodies, so we know we're done now.
                If the caller of this writer has not set the Request via Write(IHTTPRequest)
                then the socket may end up timing out instead but it won't fail. */
-            if     valid-object(this-object:Request) 
+            if     valid-object(this-object:Request)
                and this-object:Request:Method eq MethodEnum:HEAD:ToString()
             then
                 assign poSocketArgs:ReadComplete = true.
-            else
+            // if the status is 204, there will not be a Content-Length header
+            // and also no content/message body, so we're all done
+            // Per https://tools.ietf.org/html/rfc7230#section-3.3.2
+            else if Response:StatusCode eq integer(StatusCodeEnum:NoContent) then
+                assign poSocketArgs:ReadComplete = true.
             // If there's otherwise no entity/message body, then we can consider ourselves done.
-            if Response:ContentLength eq 0
-                       // If there's a Content-Length header with a value of 0/zero, then we're done here. 
-               and (   Response:HasHeader('Content-Length':u) 
-                       // if there's no discernable content on this response
-                    or Response:ContentType   eq '':u ) 
+            else if Response:ContentLength eq 0
+                           // If there's a Content-Length header with a value of 0/zero, then we're done here. 
+                    and (   Response:HasHeader('Content-Length':u) 
+                            // if there's no discernable content on this response
+                         or Response:ContentType   eq '':u ) 
             then
                 assign poSocketArgs:ReadComplete = true.
             else

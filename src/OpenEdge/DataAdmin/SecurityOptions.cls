@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011-2017 by Progress Software Corporation  */
+ /* Copyright (c) 2011-2017,2019 by Progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -112,7 +112,22 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
             end.
             CDCUserid = pCDCUserid.
         end. 
-
+    define public property SafeUserid as character no-undo 
+        get():
+            if valid-handle(mBuffer) then
+                return mBuffer::SafeUserid.
+            else
+                return SafeUserid. 
+        end.
+        
+        set(pSafeUserid as character):
+            if valid-handle(mBuffer) then
+            do:
+                mDefaultBuffer:find-by-rowid(mBuffer:rowid).  
+                mdefaultbuffer::SafeUserid = pSafeUserid.
+            end.
+            SafeUserid = pSafeUserid.
+        end.
 
     /*------------------------------------------------------------------------------
             Purpose:                                                                      
@@ -143,7 +158,8 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
         RecordAuthenticatedSessions    = json:GetLogical("recordAuthenticatedSessions").  
         DisallowBlankUserid            = json:GetLogical("disallowBlankUserid").  
         UseRuntimePermissions          = json:GetLogical("useRuntimePermissions").
-        CDCUserid                      = json:GetCharacter("cdcUserid").            
+        CDCUserid                      = json:GetCharacter("cdcUserid"). 
+        SafeUserid                     = json:GetCharacter("safeUserid").            
     end method.
      
     method public override void Export(pcfile as char):
@@ -157,6 +173,7 @@ class OpenEdge.DataAdmin.SecurityOptions inherits Entity implements IDataAdminEl
         body:Add("disallowBlankUserid",DisallowBlankUserid).
         body:Add("useRuntimePermissions",UseRuntimePermissions).
         body:Add("cdcUserid",CDCUserid).        
+        body:Add("safeUserid",safeUserid). 
         root:WriteFile(pcFile,yes).
     end method.
 

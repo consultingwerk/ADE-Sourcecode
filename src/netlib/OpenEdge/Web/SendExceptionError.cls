@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/  
 /*------------------------------------------------------------------------
    File        : SendExceptionError
@@ -51,7 +51,7 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
                                           input pcStatusMessage  as character):
         this-object(poStatusCode, pcStatusMessage, ?).
     end constructor.
-
+    
     /* Constructor.
     
        @param StatusCodeEnum The error status being raised 
@@ -81,4 +81,8 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
         
         AddMessage(this-object:StatusMessage, integer(poStatusCode)).
     end.
+    
+    method override public character ToString():
+        return substitute('HTTP Error: &2 (&1)', StatusCode, StatusMessage).
+    end method.
 end.

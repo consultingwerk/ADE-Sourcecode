@@ -25,9 +25,10 @@ using Progress.IO.OutputStream.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.Object.
+using Progress.Json.ObjectModel.JsonArray.
 
 class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
-    /** The filter being built */ 
+    /** The filter being built */
     define public property Filter as ILoggerFilter no-undo
         get():
             if not valid-object(this-object:Filter) then
@@ -58,7 +59,12 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         return LogFilterBuilder:Build(pcFilterType, LogFilterBuilderRegistry:Registry). 
     end method.
     
-    /** Returns log writer build for a logging type
+    /** Returns log writer build for a logging type.
+        
+        To find a filter builder,
+          i.   Look in the registry for the filter type. If not found,
+          ii.  Look for the default ('*') builder in the registry. If not found,
+          iii. Use this type (LogFilterBuilder)
         
         @param  character The Filter type for which to build the logger
         @param  BuilderRegistry A registry of Filter writers to user
@@ -72,11 +78,16 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         Assert:NotNull(poWriters, 'Writer builder registry').
         Assert:IsType(poWriters:ValueType, get-class(LogFilterBuilder)).
         
+        // Look for a builder for the filter name
         assign oBuilderType = poWriters:Get(pcFilterType).
+        
+        // Look for a default builder 
+        if not valid-object(oBuilderType) then
+            assign oBuilderType = poWriters:Get('*':u).
         if valid-object(oBuilderType) then
-            Assert:IsType(oBuilderType, get-class(LogFilterBuilder)).        
+            Assert:IsType(oBuilderType, get-class(LogFilterBuilder)).
         else
-            // default is this class 
+        // Default is this class 
             assign oBuilderType = get-class(LogFilterBuilder).
         
         oBuilder = dynamic-new string(oBuilderType:TypeName) (pcFilterType).
@@ -86,7 +97,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         return oBuilder.
     end method.
-
+    
     /* Constructor */
     constructor public LogFilterBuilder (input pcFilterType as character):
         Assert:NotNull(pcFilterType, 'Filter type').
@@ -98,9 +109,39 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         @param  JsonObject The Filter options (can be anything)
         @return LogFilterBuilder This builder object. */
     method public LogFilterBuilder Options(input poValue as JsonObject):
-        Assert:NotNull(poValue, 'Filter options').
+        define variable names as character extent no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
         
-        SetOption('loggerOptions':u, poValue).
+        /* Take those values in the JSON and set the property names to the values.
+           
+           If the JSON property names match a config option that has already been
+           set, the JSON value overwrites the current value. */
+        if valid-object(poValue) then
+            assign names = poValue:GetNames()
+                   cnt   = extent(names) 
+                   .
+        do loop = 1 to cnt:
+            case poValue:GetType(names[loop]):
+                when JsonDataType:ARRAY then
+                    SetOption(names[loop], poValue:GetJsonArray(names[loop])).
+                
+                when JsonDataType:BOOLEAN then
+                    SetOption(names[loop], poValue:GetLogical(names[loop])).
+                
+                when JsonDataType:NUMBER then
+                    SetOption(names[loop], poValue:GetDecimal(names[loop])).
+                
+                when JsonDataType:OBJECT then
+                    SetOption(names[loop], poValue:GetJsonObject(names[loop])).
+                
+                when JsonDataType:STRING then
+                    SetOption(names[loop], poValue:GetCharacter(names[loop])).
+                
+                when JsonDataType:NULL then
+                    SetOption(names[loop], string(?)).
+            end case. 
+        end.
         return this-object.
     end method.
     
@@ -174,10 +215,22 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         @param  character The filename to write to
         @return LogFilterBuilder This builder object. */
-    method public LogFilterBuilder WriteTo(input pcLogFile as character ):
+    method public LogFilterBuilder WriteTo(input pcLogFile as character):
         Assert:NotNullOrEmpty(pcLogFile, 'Logfile name').
         
-        SetOption('writeToFileName':u, pcLogFile).
+        SetOption('fileName':u, pcLogFile).
+        
+        return this-object.
+    end method.
+    
+    /** Sets the output destination
+        
+        @param  JsonArray The object to write into to
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder WriteTo(input pLog as JsonArray ):
+        Assert:NotNull(pLog, 'Log data').
+        
+        SetOption('writeToJsonArray':u, pLog).
         
         return this-object.
     end method.
@@ -189,7 +242,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
     method public LogFilterBuilder Append(input plAppendToLog as logical):
         Assert:NotUnknown(plAppendToLog, 'Append to log').
         
-        SetOption('appendToLog':u, plAppendToLog).
+        SetOption('appendTo':u, plAppendToLog).
         
         return this-object.
     end method.
@@ -225,7 +278,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
     method public LogFilterBuilder FormatAs(input pcFormat as character):
         Assert:NotNullOrEmpty(pcFormat, 'Filter format string').
         
-        SetOption('formatString':u, pcFormat).
+        SetOption('format':u, pcFormat).
         
         return this-object.
     end method.    
@@ -287,19 +340,9 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         if type-of(logFilter, ISupportFormatting) then
         do:
-            assign formatString = GetOptionStringValue('formatString':u).
-            if     formatString eq ? 
-               and HasOption('loggerOptions':u) then
-            do:
-                assign filterOptions = cast(GetOptionObjectValue('loggerOptions':u), JsonObject).
-                if     valid-object(filterOptions) 
-                   and filterOptions:Has('format':u) 
-                   and filterOptions:GetType('format':u) eq JsonDataType:STRING then
-                    assign formatString = filterOptions:GetCharacter('format':u).
-            end.
-            
+            assign formatString = GetOptionStringValue('format':u).
             if formatString ne ? then
-                assign cast(logFilter, ISupportFormatting):Format = formatString. 
+                assign cast(logFilter, ISupportFormatting):Format = formatString.
         end.
         
         if type-of(logFilter, ISupportInitialize) then

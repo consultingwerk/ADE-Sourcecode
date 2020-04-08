@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ObjectValueWriter
@@ -40,7 +40,9 @@ using OpenEdge.Core.String.
 using OpenEdge.Logging.Logger.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
+using Progress.Lang.ParameterList.
 using Progress.Reflect.AccessMode.
+using Progress.Reflect.Constructor.
 using Progress.Reflect.DataType.
 using Progress.Reflect.Property.
 
@@ -58,21 +60,32 @@ class OpenEdge.Web.DataObject.Writer.ObjectValueWriter inherits ArgumentValueWri
     end constructor. 
     
     method override public void Open(): 
+        define variable ctor as Constructor no-undo.
+        define variable paramList as ParameterList no-undo.
+            
            // If nothing's passed in, create an instance of the Argument Type
         if     not valid-object(this-object:Value)
            // we must be able to instantiate this type
            and not this-object:ArgumentType:IsAbstract()
            and not this-object:ArgumentType:IsInterface()
         then
-            this-object:Value = this-object:ArgumentType:New().
+        do:
+            // Only objects with a default constructor can be instantiated here
+            assign paramList = new ParameterList(0)
+                   ctor      = this-object:ArgumentType:GetConstructor(paramList)
+                   .
+            if valid-object(ctor) then
+                this-object:Value = this-object:ArgumentType:New().
+        end.
         
         super:Open().
     end method.
     
     method override public void Write(input pData as Progress.Lang.Object):
         case true:
+            // unknown values are valid too
             when not valid-object(pData) then
-                return.
+                assign this-object:Value = pData.
             
             when type-of(pData, KeyValuePair) then
                 this-object:Write(cast(pData, KeyValuePair)).
@@ -82,7 +95,7 @@ class OpenEdge.Web.DataObject.Writer.ObjectValueWriter inherits ArgumentValueWri
         end case.
     end method.
     
-    method protected void Write(input pData as KeyValuePair):
+    method protected void Write(input pData as KeyValuePair):   
         define variable fieldProperty as Property  no-undo.
         define variable propertyName as character no-undo.
         define variable propertyType as class Progress.Lang.Class no-undo.

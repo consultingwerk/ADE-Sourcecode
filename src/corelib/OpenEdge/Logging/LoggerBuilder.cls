@@ -13,20 +13,27 @@ Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Collections.IIterator.
+using OpenEdge.Core.Collections.IList.
+using OpenEdge.Core.Collections.List.
 using OpenEdge.Core.ISupportInitialize.
+using OpenEdge.Core.KeyValuePair.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Core.Util.ConfigBuilder.
 using OpenEdge.Logging.ConfigFileLoggerBuilder.
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
-using OpenEdge.Logging.Filter.LoggerFilterList.
-using OpenEdge.Logging.Filter.LoggerFilterNode.
+using OpenEdge.Logging.Format.AnonymizedTokenFormat.
+using OpenEdge.Logging.Format.MDCTokenFormat.
+using OpenEdge.Logging.Format.ResolvedTokenFormat.
+using OpenEdge.Logging.Format.TokenContextFormat.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.VoidLogger.
+using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     /* Private variable with the enum (int64) vaues in the OpenEdge.Logging.LogLevelEnum type. Used
@@ -193,18 +200,58 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         return this-object.
     end method.
     
-    /* Adds a filter to the logger being built
+    /* Adds a filter to the logger being built, with options in Json form 
        
-       @param  character The filter name to add  
+       @param  character The filter name to add
+       @param  JsonObject The filter options
        @return LoggerBuilder This builder object  */
-    method public LoggerBuilder AddFilter(input pcFilterName as character):
-        Assert:NotNullOrEmpty(pcFilterName, 'Log filter name').
+    method public LoggerBuilder AddFilter(input pFilterName as character,
+                                          input pFilterOptions as JsonObject):
+        define variable filterList as IList no-undo.
         
-        AppendArrayCharacterValue('filterName':u, pcFilterName).
+        if HasOption('filters') then
+            assign filterList = cast(GetOptionObjectValue('filters'), IList).
+        else
+        do:
+            assign filterList = new List().
+            SetOption('filters', filterList). 
+        end.
+        
+        filterList:Add(new KeyValuePair(pFilterName, pFilterOptions)).
         
         return this-object.
     end method.
+    
+    /* Adds a filter to the logger being built
+       
+       @param  character The filter name to add
+       @return LoggerBuilder This builder object  */
+    method public LoggerBuilder AddFilter(input pcFilterName as character):
+        return AddFilter(pcFilterName, ?).
+    end method.
+    
+    /* Adds a filter to the logger being built
+       
+       @param  ILoggerFilter The filter to add  
+       @return LoggerBuilder This builder object  */
+    method public LoggerBuilder AddFilter(input pFilter as ILoggerFilter):
+        define variable filterList as IList no-undo.
         
+        Assert:NotNull(pFilter, 'Log Filter').
+        
+        if HasOption('filters') then
+            assign filterList = cast(GetOptionObjectValue('filters'), IList).
+        else
+        do:
+            assign filterList = new List().
+            SetOption('filters', filterList). 
+        end.
+        
+        filterList:Add(pFilter).
+        
+        return this-object.
+    end method.
+    
     /* Constructs the actual logger instance
        
        @return ILogWriter A new or cached logged */
@@ -212,9 +259,10 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         define variable logWriter as ILogWriter no-undo.
         define variable logAt as LogLevelEnum no-undo.
         
-        if log-manager:logfile-name ne ? then
+        // use the specified/configured value first.
+        // otherwise use the log-manager's as a default
+        if not log-manager:logfile-name eq ? then
         do:
-            // use the specified/configured value first 
             if not HasOption('logLevel':u) then
             do:
                 if log-manager:logging-level gt mMaxLogLevel then
@@ -226,50 +274,74 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
                     assign logAt = LogLevelEnum:DEFAULT.
                 
                 LogAt(logAt).
-            end.
+            end.    //log level
             
-            // If the debug-alert flag is set, then write the log stack
-            if session:debug-alert then
-                AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
-            
-            AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
-            
-            // resolves any of the standard tokens
-            AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).
-            // writes any resolved tokens into the message
-            AddFilter(LoggerFilterRegistry:REPLACE_TOKENS_FORMAT).
-            
-            // write to the log-manager
-            AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
-            AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
-        end.
+            // if there are some filters configured, use those,
+            // otherwise use the defaults
+            if not HasOption('filters':u) then
+            do:
+                // If the debug-alert flag is set, then write the log stack
+                if session:debug-alert then
+                    AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
+                
+                AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
+                
+                // resolves any of the standard tokens
+                AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).
+                // writes any resolved tokens into the message
+                AddFilter(LoggerFilterRegistry:REPLACE_TOKENS_FORMAT).
+                
+                // write to the log-manager
+                AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
+                AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
+            end.    // default filters
+        end.    // logmanager enabled
         
-        if HasOption('filterName':u) then
-            assign logWriter = BuildFilterLogger(). 
-        
-        if not valid-object(logWriter) then 
-            assign logWriter = new VoidLogger(this-object:LoggerType).
+        // now try to build a logger from the set of filters 
+        assign logWriter = BuildFilterLogger(). 
         
         return logWriter.
-
+        
         catch loadError as Progress.Lang.Error:
             LoggerBuilder:LogMessage(substitute('Error building logger &1 : &2', this-object:LoggerType, loadError:GetMessage(1)),
                                      LogLevelEnum:ERROR).
         end catch.
+        finally:
+            // if we fail to buld a logger, use the void logger
+            if not valid-object(logWriter) then
+                return new VoidLogger(this-object:LoggerType).
+        end finally.
+    end method.
+    
+    /* Adds JSON configuration for loggers, fitlers and builders
+        
+       @param  JsonObject The JSON configuration for a logger
+       @return LoggerBuilder This builder object  */
+    method public LoggerBuilder FromConfig(input pJsonConfig as JsonObject):
+        SetOption('logging.config':u, pJsonConfig).
+        
+        return this-object.
     end method.
     
     /* Creates a default logger based that uses the config in this class
        
        @return ILogWriter A logger */
     method protected ILogWriter BuildFilterLogger():
-        define variable filterList as LoggerFilterList no-undo.
+        define variable filterIdx as integer no-undo.
+        define variable filterList as ILoggerFilter extent no-undo.
         define variable filter as ILoggerFilter no-undo.
         define variable logLevel as LogLevelEnum no-undo.
-        define variable filterNames as character extent no-undo.
-        define variable loop as integer no-undo.
-        define variable numFilters as integer no-undo.
+        define variable filterConfig as Progress.Lang.Object no-undo.
+        define variable filterData as Progress.Lang.Object no-undo.
+        define variable filterIter as IIterator no-undo.
+        define variable filterOptions as JsonObject no-undo.
+        define variable missingTokenFilter as logical no-undo initial false.
         
-        if not HasOption('filterName':u) then
+        if not HasOption('filters':u) then
+            return ?.
+        
+        assign filterConfig = GetOptionObjectValue('filters':u).
+        if not type-of(filterConfig, IList) then
             return ?.
         
         // get the logging level. first check for a set option, then derive it
@@ -278,23 +350,68 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         if not valid-object(logLevel) then
             assign logLevel = LogLevelEnum:DEFAULT.
         
-        assign filterList  = new LoggerFilterList()
-               filterNames = GetOptionStringArrayValue('filterName':u)
-               numFilters  = extent(filterNames)
-               .
-        if    numFilters eq 0 
-           or numFilters eq ? then
+        assign filterIter = cast(filterConfig, IList):Iterator().
+        if cast(filterConfig, IList):Size eq 0 then
+            return ?. 
+        
+        assign extent(filterList) = cast(filterConfig, IList):Size.
+        
+        do while filterIter:HasNext():
+            assign filterData = filterIter:Next().
+            case true:
+                when not valid-object(filterData) then
+                    assign filter = ?.
+                
+                // Filter added as an instance of ILoggerFilter
+                when type-of(filterData, ILoggerFilter) then
+                    assign filter = cast(filterData, ILoggerFilter).
+                
+                // Filter added as a name, optionally with config
+                when type-of(filterData, KeyValuePair) then
+                    assign filterOptions = cast(cast(filterData, KeyValuePair):Value, JsonObject)
+                           filter        = LogFilterBuilder:Build(string(cast(filterData, KeyValuePair):Key))
+                                                :Options(filterOptions)
+                                                :Filter
+                           .
+                // we don't know what to do with this
+                otherwise
+                    assign filter = ?.
+            end case.
+            
+            case true:
+                when not valid-object(filter) then
+                    LogMessage(substitute('Unable to build filter "&1" for logger "&2"',
+                                          string(filterData),
+                                          this-object:LoggerType       ),
+                               LogLevelEnum:WARN).
+                
+                // the token resolver filter ones we know about
+                when type-of(filter, ResolvedTokenFormat) or
+                when type-of(filter, AnonymizedTokenFormat) or
+                when type-of(filter, MDCTokenFormat) then
+                    assign missingTokenFilter = true.
+                
+                when type-of(filter, TokenContextFormat) then
+                    assign missingTokenFilter = false.
+                
+                otherwise
+                    .   //no-op
+            end case.
+            
+            if valid-object(filter) then
+                assign filterIdx             = filterIdx + 1
+                       filterList[filterIdx] = filter
+                       .
+        end.
+        
+        // Even if there were filters configured, none of them may have been able to be built
+        if not valid-object(filterList[1]) then
             return ?.
         
-        do loop = 1 to numFilters:
-            assign filter = LogFilterBuilder:Build(filterNames[loop])
-                                :Filter.
-            
-            if filterNames[loop] eq LoggerFilterRegistry:ERROR_FORMAT then
-                assign session:error-stack-trace = true.
-            
-            filterList:InsertLast(new LoggerFilterNode(filter)).
-        end.
+        if missingTokenFilter then
+            LoggerBuilder:LogMessage(substitute('REPLACE_TOKENS_FORMAT filter is missing for logger "&1"; token values will not be written out',
+                                                this-object:LoggerType),
+                                     LogLevelEnum:WARN).
         
         return new OpenEdge.Logging.Logger(this-object:LoggerType, logLevel, filterList).
     end method.

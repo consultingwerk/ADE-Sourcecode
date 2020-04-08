@@ -65,16 +65,16 @@ class OpenEdge.Net.HTTP.Filter.Writer.AuthenticationRequestWriterBuilder:
         Assert:NotNull(poRequest, 'Request').
         
         assign oWriterType = AuthenticationRequestWriterBuilder:Registry:Get(poRequest:AuthenticationMethod).
-        
-        /* double-check we have the correct type */
-        Assert:IsType(oWriterType, get-class(IHttpMessageWriter)).
-        
-        oWriter = dynamic-new string(oWriterType:TypeName) (input poRequest).
-        
-        if type-of(oWriter, ISupportInitialize) then
+        if valid-object(oWriterType) 
+        then do: 
+          /* double-check we have the correct type */
+          Assert:IsType(oWriterType, get-class(IHttpMessageWriter)).
+          oWriter = dynamic-new string(oWriterType:TypeName) (input poRequest).
+          if type-of(oWriter, ISupportInitialize) 
+          then
             cast(oWriter, ISupportInitialize):Initialize().
-        
-        return oWriter.
+          return oWriter.
+        end.           
     end method.
     
     /** Returns a writer fot the  authenticated request

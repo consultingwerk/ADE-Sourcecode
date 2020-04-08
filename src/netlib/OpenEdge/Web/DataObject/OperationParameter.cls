@@ -135,8 +135,10 @@ class OpenEdge.Web.DataObject.OperationParameter:
                 assign this-object:ArgumentType = get-class(IMemptrArrayHolder).
             when 'handle':u then
                 assign this-object:ArgumentType = get-class(IHandleArrayHolder).
-            when 'table':u or
-            when 'dataset':u then
+            when 'table' or
+            when 'table-handle':u or
+            when 'dataset' or
+            when 'dataset-handle':u then
                 assign this-object:ArgumentType = get-class(IHandleArrayHolder)
                        this-object:HasSchema    = true.
             when 'class':u then
@@ -172,13 +174,17 @@ class OpenEdge.Web.DataObject.OperationParameter:
             when 'handle':u then
                 assign this-object:ArgumentType = get-class(IHandleHolder).
             when 'table' or
-            when 'dataset':u then
+            when 'table-handle':u or
+            when 'dataset' or
+            when 'dataset-handle':u then
             do:
                 /* special treatment for datasets & temp-tables. Always use dataset handles */
                 assign this-object:ArgumentType = get-class(IHandleHolder)
-                       this-object:DataType     = substitute('&1-handle':u, ablTypeToken[1])
                        this-object:HasSchema    = true
                        .
+                if not this-object:DataType eq ablTypeToken[1] + '-handle':u then
+                    assign this-object:DataType = substitute('&1-handle':u, ablTypeToken[1]).
+                
                 // INPUT and IN-OUT parameters must be BY-REF. RETURN is left alone
                 // in OUTPUT mode we don't know what the ABL code is doing - or rather can't control 
                 // it particularly well - so we force a deep copy out :(

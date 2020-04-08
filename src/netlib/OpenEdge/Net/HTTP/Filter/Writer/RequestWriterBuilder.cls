@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2015, 2018-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RequestWriterBuilder
@@ -136,7 +136,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilde
         The search alogrithm is
         1. A writer for the HTTP Version+METHOD
         2. A writer for the HTTP version
-            - The default is HTTP/1.1
+        3. The writer for HTTP/1.1 . We use HTTP/1.1 as a defautl because it's pretty pervasive
         
         @param IHttpRequest The request for which we are seeking a writer
         @param BuilderRegistry The registry in which to look 
@@ -151,17 +151,17 @@ class OpenEdge.Net.HTTP.Filter.Writer.RequestWriterBuilder inherits ConfigBuilde
         if not valid-object(pRequest) then
             assign writerType = pRegistry:Get('HTTP/1.1':u).
         
-        if not valid-object(writerType) 
-           and valid-object(pRegistry)
-        then
+        if not valid-object(writerType) then
             // 1. A writer for the HTTP VERSION+METHOD
             assign writerType = pRegistry:Get(substitute('&1+&2':u, pRequest:Version, pRequest:Method)).
         
         // 2. A writer for the HTTP VERSION (version-default)
-        if not valid-object(writerType)
-           and valid-object(pRegistry)
-        then
+        if not valid-object(writerType) then
             assign writerType = pRegistry:Get(pRequest:Version).
+        
+        // 3. Default to HTTP/1.1
+        if not valid-object(writerType) then
+            assign writerType = pRegistry:Get('HTTP/1.1':u).
         
         return writerType.
     end method.

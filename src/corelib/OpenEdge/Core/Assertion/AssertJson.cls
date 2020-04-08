@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2019-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : AssertJson
@@ -12,11 +12,12 @@ Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using OpenEdge.Core.AssertionFailedError.
-using Progress.Json.ObjectModel.JsonObject.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertJson.
+using OpenEdge.Core.AssertionFailedError.
 using OpenEdge.Core.JsonDataTypeEnum.
+using Progress.Json.ObjectModel.JsonArray.
+using Progress.Json.ObjectModel.JsonObject.
 
 class OpenEdge.Core.Assertion.AssertJson:
     
@@ -33,7 +34,7 @@ class OpenEdge.Core.Assertion.AssertJson:
             return error new AssertionFailedError(
                             substitute('JSON Object does not have a property named ~'&1~'', pcName) , 0).
     end method.
-
+    
     /** Asserts that a the value of a property is null
         
         @param JsonObject The JSON object being checked
@@ -47,6 +48,60 @@ class OpenEdge.Core.Assertion.AssertJson:
                             substitute('Property ~'&1~' must be null', pcName) , 0).
     end method.
     
+    /** Asserts that an array extent value is null
+        
+        @param JsonArray The JSON object being checked
+        @param integer The index being checked
+        @throws AssertionFailedError Error thrown if the property does not exist */
+    method public static void IndexIsNull(input pArray as JsonArray, input pIdx as integer):
+        Assert:NotNull(pArray, 'JSON Array').
+        Assert:IsPositive(pIdx, 'Array index').
+        
+        if pIdx gt pArray:Length then
+            return error new AssertionFailedError(substitute('Index &1 is larger than the array size &2', pIdx, pArray:Length), 0).
+        
+        if not pArray:IsNull(pIdx) then
+            return error new AssertionFailedError(
+                            substitute('Index &1 must be null', pIdx) , 0).
+    end method.
+    
+    /** Asserts that an array extent value is null
+        
+        @param JsonArray The JSON object being checked
+        @param integer The index being checked
+        @throws AssertionFailedError Error thrown if the property does not exist */
+    method public static void IndexNotNull(input pArray as JsonArray, input pIdx as integer):
+        Assert:NotNull(pArray, 'JSON Array').
+        Assert:IsPositive(pIdx, 'Array index').
+        
+        if pIdx gt pArray:Length then
+            return error new AssertionFailedError(substitute('Index &1 is larger than the array size &2', pIdx, pArray:Length), 0).
+        
+        if pArray:IsNull(pIdx) then
+            return error new AssertionFailedError(
+                            substitute('Index &1 must be not be null', pIdx) , 0).
+    end method.
+    
+    /** Asserts that a JSON Array has a index of a particular type.
+        
+        @param JsonArray The JSON object being checked
+        @param integer The index being checked
+        @param JsonDataTypeEnum The data type being checked
+        @throws AssertionFailedError Error thrown if the property does not exist */
+    method public static void IndexIsType(input pArray as JsonArray,
+                                          input pIdx as integer,
+                                          input pPropertyType as JsonDataTypeEnum):
+        Assert:NotNull(pArray, 'JSON Array').
+        Assert:IsPositive(pIdx, 'Array index').
+        
+        if pIdx gt pArray:Length then
+            return error new AssertionFailedError(substitute('Index &1 is larger than the array size &2', pIdx, pArray:Length), 0).
+        
+        if not pArray:GetType(pIdx) eq integer(pPropertyType) then
+            return error new AssertionFailedError(
+                            substitute('Index &1 must be of type &2', pIdx, string(pPropertyType)), 0).
+    end method.
+     
     /** Asserts that a the value of a property is not null
         
         @param JsonObject The JSON object being checked

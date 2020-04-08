@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016,2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DatabaseOptionDataSource
@@ -92,12 +92,11 @@ OptionValue,_Db-option-value"
             when '_pvm.noBlankUser':u        or
             when '_pvm.recordSessions':u     or 
             when '_pvm.RuntimePermissions':u or
-            when '_pvm.useAppRegistry':u     then
+            when '_pvm.useAppRegistry':u then
             do:
                 /* must have a type value of 2 */
                 Assert:Equals(phTTBuffer::OptionType,
                               integer(DatabaseOptionTypeEnum:GeneralSecurity)).
-                
                 Assert:IsLogical(phTTBuffer::OptionValue, 'Option value').
             end.    /* security options  */
             when '_db.sts.url':u then

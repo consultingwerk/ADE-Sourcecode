@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ContentTypeHeader
@@ -12,15 +12,28 @@ Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsi
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.StringConstant.
+using OpenEdge.Logging.ILogWriter.
+using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
-using OpenEdge.Core.Assert.
 using Progress.Lang.AppError.
 
-class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
-    /* The Content-Type header must start with one of these types OR X-<something> */
+class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader
+            implements ISupportLogging:
+    /* The Content-Type header should start with one of these types OR X-<something> */
     define private variable mcValidType as character no-undo
           initial 'application,audio,image,message,multipart,text,video':u.
     
+    define public property Logger as ILogWriter no-undo 
+        get():
+            if not valid-object(Logger) then
+                assign Logger = LoggerBuilder:GetLogger(this-object:GetClass()).
+            
+            return this-object:Logger.
+        end get.
+        set.
+        
     /* Constructor
     
        @param character A non-empty header name */
@@ -59,10 +72,27 @@ class OpenEdge.Net.HTTP.ContentTypeHeader inherits HttpHeader:
             undo, throw new AppError(substitute('Header value must have at least 2 "/"-delimited parts: &1', pcValue), 0).
         
         assign cType = entry(1, pcValue, '/':u). 
+        if lookup(cType, mcValidType) eq 0 then
+            logger:Info(substitute('Content-Type header has a non-standard type of &1', cType)).
+    end method.
+    
+    /** Saves a parameter value for a header.
         
-        if lookup(cType, mcValidType) eq 0 and
-           not cType begins 'X-':u then
-            undo, throw new AppError(substitute('Invalid type: &1', cType), 0).           
+        @param character (mandatory) The name of the parameter value to retrieve
+        @param character (mandatory) The parameter value; blank/empty otherwise 
+        @return logical  TRUE when the parameter was replaced/previously existed. */
+    method override public logical SetParameterValue(input pcParamName as character,
+                                                     input pcParamValue as character ):
+        case pcParamName:
+            when 'boundary':u then
+                // we consume the boundary in an unquoted manner
+                if not OpenEdge.Core.String:IsNullOrEmpty(pcParamValue) 
+                   and OpenEdge.Core.String:IsQuoted(pcParamValue, StringConstant:DOUBLE_QUOTE)
+                then
+                    assign pcParamValue = substring(pcParamValue, 2, length(pcParamValue) - 2).
+        end case.
+        
+        return super:SetParameterValue(pcParamName, pcParamValue).
     end method.
     
 end class.

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ABLUnitCore
@@ -73,6 +73,7 @@ IF commandParams BEGINS "CFG=" THEN
     END.
 ELSE
   RUN CreateJsonFromParam(INPUT commandParams, OUTPUT configJson, OUTPUT updateFile).
+
 testConfig = NEW TestConfig(configJson).
 ablRunner = NEW ABLRunner(testConfig, updateFile).
 ablRunner:RunTests().
@@ -91,8 +92,10 @@ CATCH e AS Error:
     IF testConfig:WriteLog THEN
         DO:
             LOG-MANAGER:LOGFILE-NAME = SESSION:TEMP-DIR + "ablunit.log".
-            LOG-MANAGER:LOG-ENTRY-TYPES = "4GLMessages".
             LOG-MANAGER:WRITE-MESSAGE (e:GetMessage(1)).
+            if type-of(e, AppError) then
+                LOG-MANAGER:WRITE-MESSAGE (cast(e, AppError):ReturnValue).
+            LOG-MANAGER:WRITE-MESSAGE (e:CallStack).
             LOG-MANAGER:CLOSE-LOG.
         END.
     IF testConfig:ShowErrorMessage THEN

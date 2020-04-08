@@ -13,17 +13,19 @@ block-level on error undo, throw.
 using Ccs.Common.Support.IHandleHolder.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.Assertion.AssertObject.
+using OpenEdge.Core.KeyValuePair.
+using OpenEdge.Core.SemanticVersion.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.URI.
 using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
+using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.Object.
 
 class OpenEdge.Web.DataObject.Writer.DataObjectServiceWriter abstract
             implements ISupportLogging:
-    
     /* A reference to the Logger in use by an implementer */
     define public property Logger as ILogWriter no-undo 
         get(): 
@@ -147,16 +149,29 @@ class OpenEdge.Web.DataObject.Writer.DataObjectServiceWriter abstract
             when type-of(pData, IHandleHolder) then
                 WriteSchema(mCurrentService, cast(pData, IHandleHolder):Value).
             
+            when type-of(pData, KeyValuePair) then
+                WriteTuple(cast(pData, KeyValuePair):Key,
+                           cast(pData, KeyValuePair):Value).
+            
             otherwise
                 logger:Warn(substitute('Unsupported object type: &1', pData:GetClass():TypeName)).
         end case.
     end method.
     
-    /* Writes a URI to the output. THis is effectively a VIRTUAL method (no default behaviour 
-       but not compiler enforcement either).
+    /* Writes a URI to the output. This is effectively a VIRTUAL method (no default behaviour 
+       but not compiled enforcement either).
        
        @param URI The URI to write */
     method protected void WriteURI(input pData as URI):
+    end method.
+    
+    /* Writes a tuple (key-value pair).
+       This is effectively a VIRTUAL method (no default behaviour but not compiled enforcement either).
+       
+       @param Progress.Lang.Object The key value - property name (required)
+       @param Progress.Lang.Object A value to be written for the property. May be null. */
+    method protected void WriteTuple(input pKey as Progress.Lang.Object,
+                                     input pValue as Progress.Lang.Object):
     end method.
     
     /* Writes a single Data Object Service
@@ -177,7 +192,7 @@ class OpenEdge.Web.DataObject.Writer.DataObjectServiceWriter abstract
         assign schemas = pData:GetSchemas()
                cnt     = extent(schemas)
                .
-        do loop     = 1 to cnt:
+        do loop = 1 to cnt:
             WriteSchema(pData, schemas[loop]).
         end.
         
@@ -208,5 +223,19 @@ class OpenEdge.Web.DataObject.Writer.DataObjectServiceWriter abstract
        @param handle The service schema to write */
     method abstract protected void WriteSchema(input pSvc as DataObjectService,
                                                input pData as handle).
+    
+    /* Returns a schema for a Data Object Service Catalog
+       
+       @param  SemanticVersion The catalog version
+       @return JsonObject The catalog JSON-schema   */
+    method protected JsonObject GetCatalogSchema(input pVersion as SemanticVersion):
+        define variable catalogRef as JsonObject no-undo.
+        
+        assign catalogRef = new JsonObject().
+        catalogRef:Add('$ref':u,
+                       'https://raw.githubusercontent.com/progress/CDO/master/catalog%20validation/JSONSchemaForCDOCatalog.json':u). 
+        
+        return catalogRef.
+    end method.
     
 end class.

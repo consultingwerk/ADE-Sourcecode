@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2000,2006,2008,2011 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2000,2006,2008,2011,2019 by Progress Software          *
+* Corporation. All rights reserved.  Prior versions of this work may   *
+* contain portions contributed by participants of Possenet.            *
 *                                                                      *
 ***********************************************************************/
 /* loaddefs.i - definitions for load .df file
@@ -49,7 +49,8 @@ DEFINE {1} SHARED TEMP-TABLE wcon NO-UNDO LIKE _Constraint.
 DEFINE {1} SHARED TEMP-TABLE ttFldOrder NO-UNDO
     FIELD FILE-NAME  AS CHAR
     FIELD Field-Name AS CHAR
-    FIELD Prev-Order AS INT.
+    FIELD Prev-Order AS INT
+    FIELD isOrderUpdated as LOGICAL.
 
 &ENDIF
 

@@ -17,21 +17,25 @@ Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its
 //block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.IList.
+using OpenEdge.Core.Collections.List.
+using OpenEdge.Core.Util.Token.
 using OpenEdge.Core.Util.TokenResolver.
+using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LoggerFilterList.
+using OpenEdge.Logging.Filter.LoggerFilterNode.
 using OpenEdge.Logging.Format.ISupportFormatting.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogEvent.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LogMessage.
 using OpenEdge.Logging.Logger.
-using OpenEdge.Core.Util.Token.
-using OpenEdge.Core.ObjectArrayHolder.
-using OpenEdge.Core.Collections.List.
 
 class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     // (mandatory) Holds filters for formatting the messagesto this logger
-    define private variable moLogFilters as LoggerFilterList no-undo.
+    //define private variable moLogFilters as LoggerFilterList no-undo.
+    define public property LogFilters as ILoggerFilter extent no-undo
+        get.
+        private set.
     
     // (mandatory) The level being logged at
     define public property LogLevel as LogLevelEnum no-undo get. private set. 
@@ -57,19 +61,46 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     
     /* Constructor
        
+       --- USE FOR BACKWARDS COMPATIBILITLY ONLY ---
+       
        @param character The name of this logger implementation
        @param LogLevelEnum The level we're logging at
        @param LoggerFilterList A list of filters to format and write the log data */
     constructor public Logger(input pcName as character,
                               input poLevel as LogLevelEnum,
                               input poLogFilters as LoggerFilterList):
+        define variable filters as ILoggerFilter extent no-undo.
+        define variable list as IList no-undo.
+        define variable filterNode as LoggerFilterNode no-undo.
+        
+        this-object(pcName, poLevel, filters).
+        
+        assign list       = new List()
+               filterNode = poLogFilters:First
+               .
+        do while valid-object(filterNode):
+            list:Add(filterNode:Data).
+            assign filterNode = filterNode:Next.
+        end.
+        
+        assign this-object:LogFilters = cast(list:ToArray(), ILoggerFilter).
+    end constructor.
+    
+    /* Constructor
+       
+       @param character The name of this logger implementation
+       @param LogLevelEnum The level we're logging at
+       @param LoggerFilterList A list of filters to format and write the log data */
+    constructor public Logger(input pcName as character,
+                              input poLevel as LogLevelEnum,
+                              input poLogFilters as ILoggerFilter extent):
         if not valid-object(poLevel) then
             assign poLevel = LogLevelEnum:DEFAULT.
-            
-        assign this-object:Name     = pcName
-               this-object:Format   = '1C':u
-               moLogFilters         = poLogFilters
-               this-object:LogLevel = poLevel
+        
+        assign this-object:Name       = pcName
+               this-object:Format     = '1C':u
+               this-object:LogFilters = poLogFilters
+               this-object:LogLevel   = poLevel
                .
     end constructor.
     
@@ -575,6 +606,8 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
                                      input poMessage as LogMessage,
                                      input poError as Progress.Lang.Error):
         define variable oEvent as LogEvent no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
         
         if valid-object(poError) then
             assign oEvent = new LogEvent(poLogLevel, poMessage, poError, now).
@@ -591,7 +624,11 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         // Use the LogEvent's Message since we know it exists (the input poMessage may be ?)
         ExtractMessageTokens(oEvent:Message).
         // process the message with the filter chain
-        moLogFilters:ExecuteFilter(oEvent).
+        assign cnt = extent(LogFilters). 
+        do loop = 1 to cnt:
+            if valid-object(LogFilters[loop]) then
+                LogFilters[loop]:ExecuteFilter(oEvent).
+        end.
         
         catch oError as Progress.Lang.Error :
             // CATCH & SWALLOW: errors in the filter chain, or in this method
@@ -644,6 +681,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
         if not type-of(poRef, Logger) then
             return false.
         
-        return (cast(poRef, Logger):Name eq this-object:Name).             
+        return (cast(poRef, Logger):Name eq this-object:Name).
     end method.
+    
 end class.

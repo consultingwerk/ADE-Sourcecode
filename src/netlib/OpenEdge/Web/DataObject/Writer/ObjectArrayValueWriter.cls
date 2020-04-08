@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ObjectArrayValueWriter
@@ -23,12 +23,11 @@ using OpenEdge.Core.KeyValuePair.
 class OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter inherits ArgumentValueWriter:
     /* Since arrays are hard to dynamically extend, use a backing IList (ordered collection) to store the 
        values passed in until we Flush()/Close() the writer */
-    define variable mBackingList as IList no-undo.
+    define private variable mBackingList as IList no-undo.
     
-    constructor public ObjectArrayValueWriter ():
-        super(get-class(IObjectArrayHolder)).
-        
-        assign mBackingList = new List().
+    /* Default constructor */
+    constructor public ObjectArrayValueWriter():
+        this-object(get-class(IObjectArrayHolder)).
     end constructor. 
     
     /* Constructor
@@ -36,6 +35,8 @@ class OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter inherits ArgumentVal
        @param Progress.Lang.Class The argument type */
     constructor public ObjectArrayValueWriter(input pArgumentType as class Progress.Lang.Class):
         super(pArgumentType).
+        
+        assign mBackingList = new List().
     end constructor. 
     
     method override public void Clear():

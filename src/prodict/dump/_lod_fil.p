@@ -13,6 +13,12 @@
 	                       or updated.  BUG# 99-02-09-002
       
       fernando 08/16/06 Raw comparison when checking if char values are different - 20060301-002
+      
+      nprajapa 2019/25/09 Removed the code, which updated the _File._File-name added by 
+      BUG# 99-02-09-002, as it is causing problem while loading delta.df for online tirgger 
+      operation. Timestamp will be updated by ABL client code for this operation. For more
+      details about the issue please refer https://progresssoftware.atlassian.net/browse/OCTA-16013
+
                            
    
  */
@@ -374,12 +380,6 @@ IF imod = "a" OR imod = "m" THEN DO:
       DICTDB._File-trig._Proc-Name  = wfit._Proc-Name
       DICTDB._File-trig._Trig-CRC   = wfit._Trig-CRC.
 	  	        
-    /* Update DICTDB._File._File-name.  Force timestamp change.   *
-     * Refer to bug# 99-02-09-002                          */
-    IF AVAIL DICTDB._File and DICTDB._File._file-attributes[6] NE true THEN
-    DO:	  
-       ASSIGN DICTDB._File._File-name = wfil._File-name.       
-    END.		    
   END.
       
   FOR EACH DICTDB._File-trig OF DICTDB._File WHERE NOT CAN-DO(scrap,DICTDB._File-trig._Event): 

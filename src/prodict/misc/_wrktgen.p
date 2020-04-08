@@ -206,6 +206,7 @@ If working with an Oracle Database and the user wants to have a DEFAULT value of
   sdash    01/22/13   Include Default Apply Default as Constraint option was not generating default constraints in MSS(PSC00284588)
   sdash    05/04/14   Support for native sequence generator for MSS.
   sdash    08/04/14   PSC00307888 - Fix issue with MS SQL Server native sequence qualifier and owner
+  vprasad  10/30/2019 Changed the master.dbo.syslogins to testdb.dbo.syslogins to avoid the Database lock error while running tdriver tests parallel
 */
 
 { prodict/dictvar.i }
@@ -905,9 +906,9 @@ FOR EACH DICTDB._File  WHERE DICTDB._File._Db-recid = drec_db
           comment_chars "if (select name from sysobjects " SKIP 
           comment_chars "    where name = '" n1 "' and type = 'U' and " SKIP
           comment_chars "    uid = (select uid from sysusers " SKIP  
-          comment_chars "            where sid = (select sid from master.dbo.syslogins" SKIP 
+          comment_chars "            where sid = (select sid from " user_env[26] ".dbo.syslogins" SKIP 
           comment_chars "                         where UPPER(name) = UPPER('" user_env[26] "'))))" skip 
-          comment_chars "   is not NULL" SKIP          
+          comment_chars "   is not NULL" SKIP           
           comment_chars "    drop table " n1 SKIP
           comment_chars user_env[5] SKIP.
   END.

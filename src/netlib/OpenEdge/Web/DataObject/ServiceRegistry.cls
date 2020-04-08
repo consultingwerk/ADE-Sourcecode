@@ -86,7 +86,7 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     method static public logical TryFindService(input pcServiceName as character,
                                                 input pVersion as character,
                                                 input pcWebAppPath as character):
-        return Loader:TryFindService(pcServiceName, pcWebAppPath).
+        return Loader:TryFindService(pcServiceName, pVersion, pcWebAppPath).
     end method.
 
     /* Indicates whether a named service is available. Will attempt to 

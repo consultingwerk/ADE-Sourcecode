@@ -120,6 +120,15 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:resetDeferredLog().
     end method.
     
+    method public logical ResetDynamicABLSessionLimit(OUTPUT sessionInfo AS Longchar):
+        return pasam:ResetDynamicABLSessionLimit(OUTPUT sessionInfo).
+    end method.
+
+    method public logical SetDynamicABLSessionLimit(INPUT limit AS Integer,
+                                                    OUTPUT sessionInfo AS Longchar):
+        return pasam:SetDynamicABLSessionLimit(limit, OUTPUT sessionInfo).
+    end method.
+
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

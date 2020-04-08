@@ -2,8 +2,8 @@
 Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
-    File        : ServiceRegistryImpl
-    Purpose     : Contains a registry for mapped services 
+    File        : ServiceRegistryLoader
+    Purpose     : Loads DOH services from a JSON file
     Syntax      : 
     Description : 
     Author(s)   : pjudge
@@ -42,8 +42,15 @@ using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
+using OpenEdge.Core.Json.JsonPropertyHelper.
+using OpenEdge.Core.JsonDataTypeEnum.
 
 class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
+    /* We never add records to this, just */
+    define private static temp-table ttCaseSensitive no-undo 
+        field csChar as character case-sensitive
+        field csClob as clob case-sensitive
+        .
     
     // Holds the class that does the actual work/maintains the actual registry
     define public property Registry as IServiceRegistry no-undo
@@ -316,7 +323,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                     hSchema:add-buffer(hTempTable:default-buffer-handle).
                 end.
                 
-                if valid-object(attribs) then                
+                if valid-object(attribs) then
                 do:
                     if     attribs:Has(string(ServiceMappingFileSchemaEnum:serializeHidden)) 
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeHidden)) eq JsonDataType:BOOLEAN
@@ -327,6 +334,9 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                        and attribs:GetType(string(ServiceMappingFileSchemaEnum:serializeName)) eq JsonDataType:STRING
                     then
                         assign hSchema:serialize-name = attribs:GetCharacter(string(ServiceMappingFileSchemaEnum:serializeName)).
+                    
+                    if JsonPropertyHelper:HasTypedProperty(attribs, string(ServiceMappingFileSchemaEnum:relations), JsonDataType:ARRAY) then
+                        AddRelations(hSchema, attribs:GetJsonArray(string(ServiceMappingFileSchemaEnum:relations))).
                 end.
             end.    //datasets
             
@@ -334,6 +344,114 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         end.
         
         return iSchemaMax.
+    end method.
+    
+    /* Adds relations between TTs in a dataset
+        
+       @param handle The dataset
+       @param JsonArray An array of relations */
+    method private void AddRelations(input pDataset as handle,
+                                     input pRelations as JsonArray):
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable relFlds  as JsonArray no-undo.
+        define variable fldData as JsonObject no-undo.
+        define variable fldLoop as integer no-undo.
+        define variable fldCnt as integer no-undo.
+        define variable fldPairs as character no-undo.
+        define variable relData as JsonObject no-undo.
+        define variable hdlChild as handle no-undo.
+        define variable hdlParent as handle no-undo.
+        define variable hdlRelation as handle no-undo.
+        define variable delim as character no-undo.
+        
+        Assert:NotNull(pDataset, 'Dataset handle').
+        Assert:NotNull(pRelations, 'Dataset relations').
+        
+        assign cnt = pRelations:Length.
+        do loop = 1 to cnt
+           on error undo, throw:
+            
+            if not pRelations:GetType(loop) eq JsonDataType:OBJECT then
+            do:
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - expecting JsonObject but was &3', 
+                                pDataset:name, loop, string(JsonDataTypeEnum:GetEnum(pRelations:GetType(loop))))).
+                next.
+            end.
+            
+            assign relData = pRelations:GetJsonObject(loop).
+            
+            if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:parentTable), JsonDataType:STRING) then
+            do:
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no parent table name provided', 
+                                pDataset:name, loop)).
+                next.
+            end.
+            
+            if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:childTable), JsonDataType:STRING) then
+            do:
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no child table name provided', 
+                                pDataset:name, loop)).
+                next.
+            end.
+            
+            if not JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:fields), JsonDataType:ARRAY) then
+            do:
+                Logger:Warn(substitute('Unable to add relation &2 to dataset &1 - no fields provided', 
+                                pDataset:name, loop)).
+                next.
+            end.
+            
+            assign hdlParent = pDataset:get-buffer-handle(relData:GetCharacter(string(ServiceMappingFileSchemaEnum:parentTable)))
+                   hdlChild  = pDataset:get-buffer-handle(relData:GetCharacter(string(ServiceMappingFileSchemaEnum:childTable)))
+                   relFlds   = relData:GetJsonArray(string(ServiceMappingFileSchemaEnum:fields))
+                   fldCnt    = relFlds:Length
+                   fldPairs  = '':u
+                   delim     = '':u
+                   .
+            do fldLoop = 1 to fldCnt:
+                if relFlds:GetType(fldLoop) eq JsonDataType:OBJECT then
+                do: 
+                    assign fldData = relFlds:GetJsonObject(fldLoop).
+                    if     JsonPropertyHelper:HasTypedProperty(fldData, string(ServiceMappingFileSchemaEnum:parentField), JsonDataType:STRING) 
+                       and JsonPropertyHelper:HasTypedProperty(fldData, string(ServiceMappingFileSchemaEnum:childField),  JsonDataType:STRING)
+                    then
+                        assign fldPairs = fldPairs 
+                                        + delim
+                                        + fldData:GetCharacter(string(ServiceMappingFileSchemaEnum:parentField))
+                                        + ',':u
+                                        + fldData:GetCharacter(string(ServiceMappingFileSchemaEnum:childField))
+                               delim    = ',':u
+                               .
+                end.
+            end.
+            
+            // make sure we have some fields
+            if String:IsNullOrEmpty(fldPairs) then
+            do:
+                Logger:Warn(substitute('Data-relation field pairs for dataset &1', pDataset:name)).
+                next.
+            end.
+            
+            assign hdlRelation = pDataset:add-relation(hdlParent, hdlChild, fldPairs).
+            
+            // add optional values
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:name), JsonDataType:STRING) then
+                assign hdlRelation:name = relData:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:nested), JsonDataType:BOOLEAN) then
+                assign hdlRelation:nested = relData:GetLogical(string(ServiceMappingFileSchemaEnum:nested)).
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:active), JsonDataType:BOOLEAN) then
+                assign hdlRelation:active = relData:GetLogical(string(ServiceMappingFileSchemaEnum:active)).
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:recursive), JsonDataType:BOOLEAN) then
+                assign hdlRelation:recursive = relData:GetLogical(string(ServiceMappingFileSchemaEnum:recursive)).
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:reposition), JsonDataType:BOOLEAN) then
+                assign hdlRelation:reposition = relData:GetLogical(string(ServiceMappingFileSchemaEnum:reposition)).
+            
+            catch e as Progress.Lang.Error :
+                Logger:Warn(substitute('Unable to add data-relation for dataset &1', pDataset:name),
+                            e).
+            end catch.
+        end.    // relation loop
     end method.
     
     /* Creates a temp-table from the JSON config in the mapping file
@@ -361,6 +479,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable lHasBeforeTable as logical no-undo.
         define variable attrIdx as integer no-undo.
         define variable fieldWithAttr as integer extent no-undo.
+        define variable ablType as character no-undo.
         
         create temp-table hTable.
         
@@ -368,20 +487,40 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                iNumFields = oFieldList:Length
                lHasBeforeTable       = false
                extent(fieldWithAttr) = iNumFields
-               attrIdx               = 0 
+               attrIdx               = 0
                .
         do iFieldLoop = 1 to iNumFields:
             assign oField  = oFieldList:GetJsonObject(iFieldLoop)
-                   iExtent = ?.
+                   iExtent = ?
+                   ablType = oField:GetCharacter(string(ServiceMappingFileSchemaEnum:ablType))
+                   .
             if oField:Has(string(ServiceMappingFileSchemaEnum:extent)) then
                 assign iExtent = oField:GetInteger(string(ServiceMappingFileSchemaEnum:extent)).
-            hTable:add-new-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
-                                 oField:GetCharacter(string(ServiceMappingFileSchemaEnum:ablType)),
-                                 iExtent).
+            
+            // if there are indexed CHAR or CLOB fields that are case-sensitive, then we must use
+            // the static TT in this class to get the
+            if     iExtent eq ?
+               and oField:Has(string(ServiceMappingFileSchemaEnum:caseSensitive))
+               and oField:GetType(string(ServiceMappingFileSchemaEnum:caseSensitive)) eq JsonDataType:BOOLEAN
+               and oField:GetLogical(string(ServiceMappingFileSchemaEnum:caseSensitive))
+            then
+            case ablType:
+                when 'character':u then
+                    hTable:add-like-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
+                                          'ttCaseSensitive.csChar':u).
+                when 'clob':u then
+                    hTable:add-like-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
+                                          'ttCaseSensitive.csClob':u).
+            end case.
+            else
+                hTable:add-new-field(oField:GetCharacter(string(ServiceMappingFileSchemaEnum:name)),
+                                     ablType,
+                                     iExtent).
+            
             // We can only flag fields later so not which (potentially) need updates  
             if    oField:Has(string(ServiceMappingFileSchemaEnum:serializeName))
                or oField:Has(string(ServiceMappingFileSchemaEnum:serializeHidden))
-               then
+            then
                 assign attrIdx                = attrIdx + 1
                        fieldWithAttr[attrIdx] = iFieldLoop
                        .
@@ -1126,7 +1265,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                and writerMap:GetType(string(ServiceMappingFileSchemaEnum:name)) eq JsonDataType:STRING
             then
                 assign writerName = writerMap:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
-
+            
             if     writerMap:Has(string(ServiceMappingFileSchemaEnum:type))
                and writerMap:GetType(string(ServiceMappingFileSchemaEnum:type)) eq JsonDataType:STRING
             then

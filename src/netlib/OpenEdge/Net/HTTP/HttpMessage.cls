@@ -41,7 +41,7 @@ class OpenEdge.Net.HTTP.HttpMessage
     define public property Version as character no-undo
         get.
         set(input pcVersion as character):
-            Assert:NotNullOrEmpty(pcVersion, 'Version').
+            Assert:IsIn(pcVersion, 'HTTP/1.1,HTTP/1.0':u, 'HTTP Version').
             assign this-object:Version = pcVersion.
         end set.
     

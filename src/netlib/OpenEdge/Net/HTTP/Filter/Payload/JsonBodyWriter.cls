@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : JsonBodyWriter
@@ -12,34 +12,23 @@ Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-using Ccs.Common.Support.ICharacterArrayHolder.
 using Ccs.Common.Support.ICharacterHolder.
-using Ccs.Common.Support.IDateArrayHolder.
-using Ccs.Common.Support.IDateTimeArrayHolder.
-using Ccs.Common.Support.IDateTimeTzArrayHolder.
-using Ccs.Common.Support.IDecimalArrayHolder.
-using Ccs.Common.Support.IHandleArrayHolder.
 using Ccs.Common.Support.IHandleHolder.
-using Ccs.Common.Support.IInt64ArrayHolder.
-using Ccs.Common.Support.IIntegerArrayHolder.
-using Ccs.Common.Support.ILogicalArrayHolder.
-using Ccs.Common.Support.ILongcharArrayHolder.
 using Ccs.Common.Support.ILongcharHolder.
-using Ccs.Common.Support.IMemptrArrayHolder.
 using Ccs.Common.Support.IMemptrHolder.
 using Ccs.Common.Support.IPrimitiveArrayHolder.
-using Ccs.Common.Support.IRowidArrayHolder.
-using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
-using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.IStringKeyedMap.
-using OpenEdge.Core.Collections.MapEntry.
+using OpenEdge.Core.Collections.Array.
+using OpenEdge.Core.Collections.ICollection.
+using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
+using OpenEdge.Core.IObjectArrayHolder.
+using OpenEdge.Core.Json.IJsonSerializer.
 using OpenEdge.Core.JsonDataTypeEnum.
 using OpenEdge.Core.Memptr.
 using OpenEdge.Core.Session.
-using OpenEdge.Core.StringConstant.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.IO.FileInputStream.
 using Progress.Json.ObjectModel.JsonArray.
@@ -47,13 +36,14 @@ using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
+using OpenEdge.Core.Json.JsonConverter.
 
 class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter: 
     constructor public JsonBodyWriter():
         super (get-class(ByteBucket)).
     end constructor.    
     
-    method override public void Open():    
+    method override public void Open():
         if not valid-object(this-object:Entity) then
             assign this-object:Entity = ByteBucket:Instance().
         
@@ -66,17 +56,30 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
         return get-size(pmData).
     end method.
 
-    method override public int64 Write(input pData as longchar):       
+    method override public int64 Write(input pData as longchar):
         cast(this-object:Entity, ByteBucket):PutString(pData).
         
         return length(pData, 'raw':u).
     end method.
     
-    method override public int64 Write( input poData as Object):
+    method protected int64 Write(input poData as Object extent):
+        define variable jsonData as JsonArray no-undo.
+        
+        assign jsonData = JsonConverter:ToArray(poData).
+        
+        return this-object:Write(jsonData).
+    end method.
+    
+    method override public int64 Write(input poData as Object):
         define variable mJson as memptr no-undo.
         define variable lcJson as longchar no-undo.
         define variable iBytesWritten as int64 no-undo.
         define variable fileStream as FileInputStream no-undo.
+        define variable objArray as Progress.Lang.Object extent no-undo.
+        define variable jsonData as JsonObject no-undo.
+        
+        // JSON is defined as UTF-8
+        fix-codepage(lcJson) = 'utf-8':u.
         
         case true:
             when not valid-object(poData) then
@@ -86,6 +89,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 cast(this-object:Entity, ByteBucket):PutString(lc(string(JsonDataTypeEnum:Null))).
                 return length(lc(string(JsonDataTypeEnum:Null)), 'raw':u).
             end.    // nulls/empty  
+            
+            // first try the object's own serialization, then the hard-coded ones below
+            when type-of(poData, IJsonSerializer) then
+                return this-object:Write(cast(poData, IJsonSerializer):ToJsonConstruct()).
             
             when type-of(poData, Memptr) or
             when type-of(poData, IMemptrHolder) then
@@ -102,7 +109,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
             
             when type-of(poData, JsonConstruct) then
             do on error undo, throw:
-                cast(poData, JsonConstruct):Write(mJson, session:debug-alert).
+                cast(poData, JsonConstruct):Write(mJson).   //, session:debug-alert).
                 
                 /* Add the JSON to the message body's bytebucket */
                 assign iBytesWritten = get-size(mJson).
@@ -117,50 +124,21 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
             when type-of(poData, IHandleHolder) then
                 return this-object:Write(cast(poData, IHandleHolder):Value).
             
-            when type-of(poData, IStringKeyedMap) then
-            do:
-                define variable oIterator as IIterator no-undo.
-                define variable oValue as MapEntry no-undo.
-                define variable oJson as JsonObject no-undo.
-                
-                assign oJson = new JsonObject()
-                       oIterator = cast(poData, IStringKeyedMap):EntrySet:Iterator().
-                do while oIterator:HasNext():
-                    assign oValue = cast(oIterator:Next(), MapEntry).
-                    oJson:Add(oValue:Key:ToString(),
-                              oValue:Value:ToString()).
-                end.
-                
-                return this-object:Write(oJson).
-            end.
+            when type-of(poData, IMap) then
+                return this-object:Write(JsonConverter:ToObject(cast(poData, IMap))).
+            
+            when type-of(poData, ICollection) then
+                return this-object:Write(JsonConverter:ToArray(cast(poData, ICollection))).
             
             when type-of(poData, IPrimitiveArrayHolder) then
-            case true:
-                when type-of(poData, ICharacterArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, ICharacterArrayHolder):Value)).
-                when type-of(poData, IDateArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IDateArrayHolder):Value)).
-                when type-of(poData, IDateTimeArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IDateTimeArrayHolder):Value)). 
-                when type-of(poData, IDateTimeTzArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IDateTimeTzArrayHolder):Value)).
-                when type-of(poData, IDecimalArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IDecimalArrayHolder):Value)).
-                when type-of(poData, IHandleArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IHandleArrayHolder):Value)).
-                when type-of(poData, IInt64ArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IInt64ArrayHolder):Value)).
-                when type-of(poData, IIntegerArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IIntegerArrayHolder):Value)).
-                when type-of(poData, ILogicalArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, ILogicalArrayHolder):Value)).
-                when type-of(poData, ILongcharArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, ILongcharArrayHolder):Value)).
-                when type-of(poData, IMemptrArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IMemptrArrayHolder):Value)).
-                when type-of(poData, IRowidArrayHolder) then
-                    return this-object:Write(new JsonArray(cast(poData, IRowidArrayHolder):Value)).
-            end case.   // individual primitive array types
+                return this-object:Write(JsonConverter:ToArray(cast(poData, IPrimitiveArrayHolder))).
+            
+            // object array types
+            when type-of(poData, IObjectArrayHolder) then
+                return this-object:Write(JsonConverter:ToArray(cast(poData, IObjectArrayHolder))).
+                
+            when type-of(poData, Array) then
+                return this-object:Write(cast(poData, Array):ToArray()).
             
             when type-of(poData, OpenEdge.Core.String) or
             when type-of(poData, ICharacterHolder) or
@@ -170,7 +148,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 assign lcJson = dynamic-property(poData, 'Value':u).
                 
                 // longchars are passed by-value, so don't do that
-                cast(this-object:Entity, ByteBucket):PutString(lcJson).                
+                cast(this-object:Entity, ByteBucket):PutString(lcJson, 'utf-8':u).
                 return length(lcJson, 'raw':u).
             end.    // characters
             
@@ -181,90 +159,29 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                     when 'json':u then
                         return WriteFileStream(fileStream). 
                     otherwise 
-                    return error new AppError(substitute('Unsupported file extension .&1 for JSON', 
+                        return error new AppError(substitute('Unsupported file extension .&1 for JSON', 
                                                     entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u))
-                                    , 0).
+                                                 , 0).
                 end case.
             end.    // file stream
             
             when type-of(poData, Progress.Lang.Error) then
-                return this-object:Write(WriteError(cast(poData, Progress.Lang.Error))).
+                return this-object:Write(JsonConverter:ToObject(cast(poData, Progress.Lang.Error))).
             
             otherwise
                 return error new AppError(
-                                substitute('Unsupported object type: &1', poData:GetClass():TypeName)
+                                substitute('JsonBodyWriter cannot convert object type &1 to JSON ', poData:GetClass():TypeName)
                                 , 0).
         end case.
         
         return 0.
     end method.
     
-    /* Writes an error into a known/consistent format 
-       
-       @param Progress.Lang.Error The error to write.
-       @return JsonObject JSON representation of the error */
-    method private JsonObject WriteError(input poError as Progress.Lang.Error):
-        define variable oResponse as JsonObject no-undo.
-        define variable oError as JsonObject no-undo.
-        define variable oErrorList as JsonArray no-undo.
-        define variable iLoop as integer no-undo.
-        define variable cRetVal as character no-undo.
-        define variable iMax as integer no-undo.
-        define variable oProp as Progress.Reflect.Property no-undo.
-        define variable oInner as Progress.Lang.Error no-undo.
-
-        Assert:NotNull(poError, 'Error').
-        
-        /* build the current error */
-         assign oResponse  = new JsonObject()
-                oErrorList = new JsonArray()
-                iMax       = poError:NumMessages
-                .
-        if type-of(poError, AppError) then
-            oResponse:Add('_retVal':u, cast(poError, AppError):ReturnValue).
-        
-        oResponse:Add('_errors':u, oErrorList).
-        do iLoop = 1 to iMax:
-            assign oError = new JsonObject().
-            oErrorList:Add(oError).
-            
-            oError:Add('_errorMsg':u, poError:GetMessage(iLoop)).
-            oError:Add('_errorNum':u, poError:GetMessageNum(iLoop)).
-        end.
-        
-        if session:debug-alert then
-            oResponse:Add('_type':u, poError:GetClass():TypeName).
-            
-        if not poError:CallStack eq ? then
-        do:
-            assign oErrorList = new JsonArray()
-                   iMax       = num-entries(poError:CallStack, StringConstant:LF)
-                   .
-            oResponse:Add('_stack':u, oErrorList).
-            do iLoop = 1 to iMax:
-                oErrorList:Add(entry(iLoop, poError:CallStack, StringConstant:LF)).
-            end.
-        end.
-        
-        assign oProp = poError:GetClass():GetProperty('InnerError':u).
-        if      valid-object(oProp) 
-           and oProp:DataType eq Progress.Reflect.DataType:Object 
-           and Progress.Lang.Class:GetClass(oProp:DataTypeName):IsA(get-class(Progress.Lang.Error)) 
-           then
-        do:           
-            assign oInner = oProp:Get(poError).
-            if valid-object(oInner) then
-                this-object:WriteError(oInner).
-        end.
-        
-        return oResponse.
-    end method.
-
     method public int64 WriteHandle(input phData as handle):
         return this-object:Write(phData).
     end method.
     
-    method override public int64 Write(input phData as handle):        
+    method override public int64 Write(input phData as handle):
         define variable iBytesWritten as int64 no-undo.
         define variable mJson as memptr no-undo.
         
@@ -274,7 +191,14 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
                 when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
                 when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
+                do:
+                    def var timer as datetime-tz extent 2.
+                    timer[1] = now.
                     phData:write-json(DataTypeEnum:Memptr:ToString(), mJson, session:debug-alert).
+                    timer[2] = now.
+                    
+                    Logger:Trace(substitute('WRITE-JSON took &1ms', interval(timer[2], timer[1], 'milliseconds'))).
+                end.
                 
                 otherwise
                     return error new AppError(
@@ -282,7 +206,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                                     , 0).
             end case.
             
-            assign iBytesWritten = get-size(mJson).        
+            assign iBytesWritten = get-size(mJson).
             cast(this-object:Entity, ByteBucket):PutBytes(mJson).
         end.
         else

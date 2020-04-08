@@ -27,6 +27,7 @@ define temp-table ttSecurityOptions no-undo serialize-name "securityOptions" {1}
          field RecordAuthenticatedSessions as char serialize-name "recordAuthenticatedSessions"
          field DisallowBlankUserid as char serialize-name "disallowBlankUserid"
          field UseRuntimePermissions as char serialize-name "useRuntimePermissions"   
-         field CDCUserid as char serialize-name "cdcUserid"      
+         field CDCUserid as char serialize-name "cdcUserid" 
+         field SafeUserid as char serialize-name "safeUserid"     
          {daschema/entity.i}           
          index idxName as primary unique Name. 

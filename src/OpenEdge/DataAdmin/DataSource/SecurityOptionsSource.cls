@@ -1,5 +1,5 @@
  /*************************************************************/
- /* Copyright (c) 2011-2017 by Progress Software Corporation  */
+ /* Copyright (c) 2011-2017,2019 by Progress Software Corporation  */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -58,6 +58,8 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
             assign hBuffer::UseRuntimePermissions = logical(DICTDB._db-option._db-option-value). 
           if DICTDB._db-option._db-option-code =  "_pvm.useAppRegistry" then 
             assign hBuffer::TrustApplicationDomainRegistry = logical(DICTDB._db-option._db-option-value). 
+          if DICTDB._db-option._db-option-code =  "_pvm.safeUserIdPolicy" then 
+            assign hBuffer::SafeUserid = DICTDB._db-option._db-option-value.
         end.
         
         for each DICTDB._db-option where DICTDB._db-option._db-recid = RECID(DICTDB._db) 
@@ -105,6 +107,10 @@ class OpenEdge.DataAdmin.DataSource.SecurityOptionsSource:
           if DICTDB._db-option._db-option-code =  "_pvm.useAppRegistry" 
           and phBuffer::TrustApplicationDomainRegistry NE LOGICAL(DICTDB._db-option._db-option-value) then  
             assign DICTDB._db-option._db-option-value = phBuffer::TrustApplicationDomainRegistry. 
+          
+          if DICTDB._db-option._db-option-code =  "_pvm.safeUserIdPolicy" 
+          and phBuffer::SafeUserid NE DICTDB._db-option._db-option-value then  
+            assign DICTDB._db-option._db-option-value = phBuffer::SafeUserid.
        end.
        
         find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Change Data Capture" no-lock no-error.        

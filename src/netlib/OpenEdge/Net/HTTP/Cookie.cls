@@ -85,13 +85,14 @@ class OpenEdge.Net.HTTP.Cookie serializable:
         Assert:NotNull(pcDomain, 'Cookie domain').
         Assert:NotNull(pcPath, 'Cookie path').
         
-        assign this-object:Name = pcCookieName
-               this-object:Domain = pcDomain
-               this-object:Path = pcPath
-               this-object:Value = pcCookieValue
-               this-object:Secure = plSecureOnly
-               this-object:HttpOnly = plHttpOnly.
-        
+        assign this-object:Name     = pcCookieName
+               this-object:Domain   = pcDomain
+               this-object:Path     = pcPath
+               this-object:Value    = pcCookieValue
+               this-object:Secure   = plSecureOnly
+               this-object:HttpOnly = plHttpOnly
+               this-object:MaxAge   = piMaxAge
+               .
         if piMaxAge ne ? then
         do:
             Assert:IsZeroOrPositive(piMaxAge, 'Cookie max age').
@@ -170,7 +171,7 @@ class OpenEdge.Net.HTTP.Cookie serializable:
                 when 'HttpOnly':u then assign lHttpOnly = true.
                 when 'Path':u     then assign cPath = trim(attrValue, StringConstant:DOUBLE_QUOTE).
                 when 'Expires':u  then assign tExpiresAt = TimeStamp:ToABLDateTimeTzFromHttp(trim(attrValue, StringConstant:DOUBLE_QUOTE)).
-                when 'Version':u  then assign dVersion = decimal(attrValue).
+                when 'Version':u  then assign dVersion = decimal(trim(attrValue, StringConstant:DOUBLE_QUOTE)).
                 otherwise
                     if iLoop eq 1 then
                         assign cName  = attrName
@@ -183,8 +184,8 @@ class OpenEdge.Net.HTTP.Cookie serializable:
                 case attrName:
                     when 'Path':u then
                         undo, throw parseErr.
-                    otherwise 
-                        . //no-op
+                    otherwise
+                        next. //no-op
                 end case.
             end catch.
         end.

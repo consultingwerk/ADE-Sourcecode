@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : ABLRunner
@@ -12,35 +12,38 @@ Copyright (c)  2013-2018 by Progress Software Corporation. All rights reserved.
    Notes       : Modified the annotations. The newly modified annotations are common for both class and procedure files.
                  Current annotations are Before, Setup, Test, TearDown, After.
  ----------------------------------------------------------------------*/
+BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-ROUTINE-LEVEL ON ERROR UNDO, THROW.
-
-USING OpenEdge.ABLUnit.Model.File FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestClass FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestEntity FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestMethod FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestProcedure FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestRootModel FROM PROPATH.
-USING OpenEdge.ABLUnit.Model.TestSuite FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.AnnotationInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.AnnotationUtil FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.ClassInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.TestInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Reflection.TypeInfo FROM PROPATH.
-USING OpenEdge.ABLUnit.Results.TestTestResult FROM PROPATH.
-USING OpenEdge.ABLUnit.Results.TestTypeResult FROM PROPATH.
-USING OpenEdge.ABLUnit.Runner.TestConfig FROM PROPATH.
-USING OpenEdge.Core.AssertionFailedError FROM PROPATH.
-USING OpenEdge.Core.Collections.Array FROM PROPATH.
-USING Progress.Json.ObjectModel.JsonArray FROM PROPATH.
-USING Progress.Json.ObjectModel.JsonObject FROM PROPATH.
-USING Progress.Lang.AppError FROM PROPATH.
+using OpenEdge.ABLUnit.Model.File FROM PROPATH.
+using OpenEdge.ABLUnit.Model.IRunnableEntity.
+using OpenEdge.ABLUnit.Model.TestCase.
+using OpenEdge.ABLUnit.Model.TestClass FROM PROPATH.
+using OpenEdge.ABLUnit.Model.TestEntity FROM PROPATH.
+using OpenEdge.ABLUnit.Model.TestMethod FROM PROPATH.
+using OpenEdge.ABLUnit.Model.TestProcedure FROM PROPATH.
+using OpenEdge.ABLUnit.Model.TestRootModel FROM PROPATH.
+using OpenEdge.ABLUnit.Model.TestSuite FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.AnnotationInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.AnnotationUtil FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.ClassAnnotationInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.ClassInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.ProcedureAnnotationInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.TestInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Reflection.TypeInfo FROM PROPATH.
+using OpenEdge.ABLUnit.Results.TestResultEnum.
+using OpenEdge.ABLUnit.Results.TestTestResult FROM PROPATH.
+using OpenEdge.ABLUnit.Results.TestTypeResult FROM PROPATH.
+using OpenEdge.ABLUnit.Runner.TestConfig FROM PROPATH.
+using OpenEdge.ABLUnit.Writer.IResultsWriter.
+using OpenEdge.ABLUnit.Writer.ResultsXmlWriter.
+using OpenEdge.Core.Collections.Array FROM PROPATH.
+using Progress.Json.ObjectModel.JsonArray FROM PROPATH.
+using Progress.Json.ObjectModel.JsonObject FROM PROPATH.
+using Progress.Lang.AppError FROM PROPATH.
+using Progress.Lang.LockConflict.
 
 CLASS OpenEdge.ABLUnit.Runner.ABLRunner: 
-
-    DEFINE STREAM dirlist.
+    DEFINE PRIVATE STREAM dirlist.
     
     /*
     Class members
@@ -56,30 +59,23 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     DEFINE PRIVATE VARIABLE TEST_TREE   AS CHARACTER  NO-UNDO INIT "TEST_TREE".
     DEFINE PRIVATE VARIABLE TREE_DEPTH_END   AS CHARACTER  NO-UNDO INIT "\NULL".
              
-    DEFINE PRIVATE VARIABLE testModel AS TestEntity NO-UNDO. 
+    DEFINE PRIVATE VARIABLE testModel AS TestRootModel NO-UNDO.
     DEFINE PRIVATE VARIABLE TEST_FOLDER_ROOT AS CHARACTER NO-UNDO INIT "TEST_ROOT".   
     DEFINE PRIVATE VARIABLE currentID AS INTEGER NO-UNDO INIT 0.
     
     DEFINE PRIVATE VARIABLE testMethodInfo  AS TestInfo NO-UNDO.
-    DEFINE PRIVATE VARIABLE summaryResult AS TestTypeResult NO-UNDO.
-    
     DEFINE PRIVATE VARIABLE testConfig AS TestConfig NO-UNDO.
     DEFINE PRIVATE VARIABLE updateFile AS CHARACTER NO-UNDO.
     DEFINE PRIVATE VARIABLE prevStackTraceProperty AS LOGICAL NO-UNDO.
     DEFINE PRIVATE VARIABLE oldWarningsList AS CHARACTER NO-UNDO.
-    DEFINE VARIABLE ablResultsFile AS CHARACTER NO-UNDO.
+    DEFINE PRIVATE VARIABLE ablResultsFile AS CHARACTER NO-UNDO.
     
-     /*------------------------------------------------------------------------------
-     Purpose:
-     Notes:
-    ------------------------------------------------------------------------------*/
-        
+    /* Default constructor */
     CONSTRUCTOR PUBLIC ABLRunner (  ):
         SUPER ().
         testModel = NEW TestRootModel(currentID).
         currentID = currentID + 1.
         testModel:name = TEST_FOLDER_ROOT.
-        summaryResult = NEW TestTypeResult().
         updateStackTraceProperty().
         oldWarningsList = SESSION:SUPPRESS-WARNINGS-LIST.
         SESSION:SUPPRESS-WARNINGS-LIST = '6430,' + SESSION:SUPPRESS-WARNINGS-LIST.
@@ -88,14 +84,12 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     METHOD PRIVATE VOID updateStackTraceProperty():
      prevStackTraceProperty = SESSION:ERROR-STACK-TRACE.
      SESSION:ERROR-STACK-TRACE = TRUE.
-     END METHOD.
+    END METHOD.
     
-
-     /*------------------------------------------------------------------------------
+    /*------------------------------------------------------------------------------
      Purpose: This is newly added constructor, which accepts formatted JSON object of configuration file.
      Notes:
     ------------------------------------------------------------------------------*/
-        
     CONSTRUCTOR PUBLIC ABLRunner (INPUT inputConfig AS CLASS TestConfig, INPUT updateFile AS CHARACTER ):
         THIS-OBJECT().
         DEFINE VARIABLE outputLocation AS CHARACTER NO-UNDO.
@@ -111,20 +105,23 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
      Purpose: This method runs the tests that are passed as JsonObject.
      Notes:
     ------------------------------------------------------------------------------*/
-
     METHOD PUBLIC VOID RunTests(  ):
         DEFINE VARIABLE testsArray AS JsonArray NO-UNDO.
         DEFINE VARIABLE testCasesArray AS JsonArray NO-UNDO.
         DEFINE VARIABLE testIndex AS INTEGER NO-UNDO.
         DEFINE VARIABLE caseIndex AS INTEGER NO-UNDO.
-       
-        DEFINE VARIABLE testSummary AS TestTypeResult NO-UNDO.
         DEFINE VARIABLE testEntity AS TestEntity NO-UNDO.
+        define variable writer as IResultsWriter no-undo.
         
         testsArray = testConfig:testsJson.
         
         DEFINE VARIABLE testJson AS JsonObject NO-UNDO.
         DEFINE VARIABLE testResource AS CHARACTER NO-UNDO.
+        
+        assign writer = new ResultsXmlWriter().
+        // Write out an 'empty' line to the results file, in case the model population fails
+        // The root test model has no children or results at this point
+        writer:WriteToFile(ablResultsFile, testModel).
         
         DO testIndex = 1 TO testsArray:Length:
             testJson = testsArray:GetJsonObject(testIndex).
@@ -149,35 +146,43 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             END. 
         END.
         IF testEntity NE ? THEN DO:
-            testSummary = runtests(testEntity, updateFile).
-            WriteTestResults(ablResultsFile, testEntity, testSummary).
+            runtests(testEntity, updateFile).
+            // The real results will overwrite the empty version
+            writer:WriteToFile(ablResultsFile, testEntity).
         END.
         
-      	FINALLY:
-      		/* COMPLETE event has to be updated anyway to complete the session. */
-          	updateFile(updateFile, "COMPLETE", FALSE).
-          	SESSION:ERROR-STACK-TRACE = prevStackTraceProperty.
-          	SESSION:SUPPRESS-WARNINGS-LIST = oldWarningsList.
+          FINALLY:
+              /* COMPLETE event has to be updated anyway to complete the session. */
+              updateFile(updateFile, "COMPLETE", FALSE).
+              SESSION:ERROR-STACK-TRACE = prevStackTraceProperty.
+              SESSION:SUPPRESS-WARNINGS-LIST = oldWarningsList.
         END.
-
     END METHOD.
-
-    /*------------------------------------------------------------------------------
-        Generates the procedure information in xref xml file                                                                     
-    ------------------------------------------------------------------------------*/   
     
-    METHOD PUBLIC TypeInfo BuildTypeInfo (INPUT testCase AS CHARACTER ):
+    /*------------------------------------------------------------------------------
+        Generates the procedure information in xref xml file
         
+        @param character The ABL program (.P or .CLS) file name 
+        @return TypeInfo Unit test type info about the program 
+    ------------------------------------------------------------------------------*/   
+    METHOD PUBLIC TypeInfo BuildTypeInfo (INPUT testCase AS CHARACTER ):
         DEFINE VARIABLE xrefFile AS CHARACTER NO-UNDO.
+        DEFINE VARIABLE typeInfo AS TypeInfo NO-UNDO.
+        
         xrefFile = SESSION:TEMP-DIR + testConfig:ResultsFileName + ".xref".
         COMPILE value(testCase) xref-xml VALUE(xrefFile).
-        DEFINE VARIABLE typeInfo AS TypeInfo NO-UNDO.
         typeInfo = ParseXMLDocument(xrefFile).
         /*Adding a check for debug mode for users to inspect the file in case something unexpected happens.*/
         IF NOT SESSION:DEBUG-ALERT THEN
             OS-DELETE value(xrefFile).
         RETURN typeInfo.
-        
+        // If any one of the test case/suites doesn't compile, then the whole test run fails.
+        // Return a better message so that we know which test case failed to build 
+        catch err as Progress.Lang.Error:
+            undo, throw new AppError(substitute('Unable to build type info for &1: &2',
+                                     testCase, err:GetMessage(1)),
+                                     0).
+        end catch.
     END METHOD.
     
     /*----------------------------------------------------------------------------
@@ -188,7 +193,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     END METHOD.
 
     /*------------------------------------------------------------------------------
-        Parses the XREF XML file for Test Methods and Procedures                                                                    
+        Parses the XREF XML file for Test Methods and Procedures
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TypeInfo ParseXMLDocument(INPUT xmlDocument AS CHARACTER):
   
@@ -233,7 +238,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     ----------------------------------------------------------------------------*/   
     METHOD PRIVATE CHARACTER GetObjectIdAttribute(INPUT xmlElement AS HANDLE):
         RETURN xmlElement:GET-ATTRIBUTE("Object-identifier").
-    END METHOD.                                             
+    END METHOD.
   
     /*----------------------------------------------------------------------------
     Parses a <source> element in the xml-xref, looking for methods and 
@@ -251,15 +256,16 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         DEFINE VARIABLE annotationsInfo AS Array NO-UNDO.
         DEFINE VARIABLE annotationsCount AS INTEGER NO-UNDO INIT 0.
         DEFINE VARIABLE classInfo      AS ClassInfo      NO-UNDO.
-        CREATE X-NODEREF xmlRefElement.
         DEFINE VARIABLE methodInfoList  AS Array  NO-UNDO.
         DEFINE VARIABLE typeInfo  AS TypeInfo  NO-UNDO.
         DEFINE VARIABLE isStaticHandle AS HANDLE NO-UNDO.
-        CREATE X-NODEREF isStaticHandle.
-         DEFINE VARIABLE isStaticValueHandle AS HANDLE NO-UNDO.
-        CREATE X-NODEREF isStaticValueHandle.
+        DEFINE VARIABLE isStaticValueHandle AS HANDLE NO-UNDO.
         
         DEFINE VARIABLE isTestSuiteClass AS LOGICAL NO-UNDO.
+        
+        CREATE X-NODEREF xmlRefElement.
+        CREATE X-NODEREF isStaticValueHandle.
+        CREATE X-NODEREF isStaticHandle.
         
         methodInfoList = NEW Array().
         methodInfoList:AutoExpand = TRUE.
@@ -270,13 +276,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         
         DO i = 1 TO xmlSourceElement:NUM-CHILDREN:
             xmlSourceElement:GET-CHILD(xmlRefElement, i).
-   
             IF xmlRefElement:SUBTYPE = "ELEMENT" AND xmlRefElement:NAME = "Reference" THEN 
             DO:
                 nodeType = GetRefTypeAttribute(xmlRefElement).
                 
                 CASE nodeType:
-          
                     WHEN "ANNOTATION" THEN 
                         DO:
                             DEFINE VARIABLE annotationInfo AS AnnotationInfo NO-UNDO.
@@ -284,7 +288,6 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                             annotationsCount = annotationsCount + 1.
                             annotationsInfo:SetValue(annotationInfo,  annotationsCount).
                         END.
-          
                     WHEN "CLASS" THEN 
                         DO:
                             IF classInfo = ? THEN 
@@ -317,13 +320,12 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                                             LEAVE.
                                         END.
                                 END.
-
                                 methodInfoList:SetValue(methodIn, typeInfo:methodsCount).
                                 annotationsCount = 0.
                                 annotationInfo = ?.
                                 annotationsInfo = NEW Array().
                                 annotationsInfo:AutoExpand = TRUE.
-                            END.                                             
+                            END.
                         END.
                     WHEN "PROCEDURE" THEN 
                         DO:
@@ -337,7 +339,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                                 annotationInfo = ?.
                                 annotationsInfo = NEW Array().
                                 annotationsInfo:AutoExpand = TRUE.
-                            END.                                             
+                            END.
                         END.
                 END CASE.
             END.
@@ -379,11 +381,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
 
     /*------------------------------------------------------------------------------
             Given a testclass and test method, this method will store and 
-            run the test methods and calls a method which writes the results in the xml file                                                                      
+            run the test methods and calls a method which writes the results in the xml file
     ------------------------------------------------------------------------------*/
-
     METHOD PUBLIC VOID populateTestModelForTestClass(INPUT testClassName AS CHARACTER, 
-        INPUT testMethod AS CHARACTER, INPUT testEntity AS TestEntity):
+                                                     input testMethod as character,
+                                                     input testEntity as TestEntity):
         DEFINE VARIABLE testClassType   AS Progress.Lang.Object                       NO-UNDO.
         DEFINE VARIABLE methodInfoList  AS Array  NO-UNDO.
         DEFINE VARIABLE testSuiteInfo   AS TestInfo       NO-UNDO.
@@ -391,11 +393,11 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         DEFINE VARIABLE i               AS INTEGER                                    NO-UNDO.
         DEFINE VARIABLE testSuiteCount  AS INTEGER                                    NO-UNDO INIT 0.
         DEFINE VARIABLE annotationName  AS CHARACTER                                  NO-UNDO.
-        
         DEFINE VARIABLE ignoreTest  AS LOGICAL                                  NO-UNDO.
-         DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
-                        
+        DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
         DEFINE VARIABLE typeInfo AS TypeInfo NO-UNDO.
+        define variable isTestClass as logical no-undo initial no.
+        
         /** for qualified classes input **/
         testClassName = getRelativePathOfClasses(testClassName). 
         typeInfo = BuildTypeInfo(testClassName).
@@ -405,74 +407,84 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         
         // Check whether the test method is ignored
         ignoreTest = AnnotationUtil:HasIgnoreAnnotation(typeInfo:classInfo:annotationsInfo).
-        
         /*
         Loop through the parsed method information from xref xml file
         */
         DEFINE VARIABLE testInfo AS TestInfo.
+        
+        
         DO i=1 TO typeInfo:methodsCount:
             testInfo = CAST(methodInfoList:GetValue(i), TestInfo).
+            
             DEFINE VARIABLE annotations AS Array NO-UNDO.
             DEFINE VARIABLE annotationsCount AS INTEGER NO-UNDO.
             DEFINE VARIABLE annotationInfo AS AnnotationInfo NO-UNDO.
             DEFINE VARIABLE j AS INTEGER NO-UNDO.
+            
             annotations = testInfo:annotations.
             annotationsCount = testInfo:annotationsCount.
+            
             DO j=1 TO annotationsCount:
             annotationInfo = CAST(annotations:GetValue(j), AnnotationInfo).
             annotationName = annotationInfo:getAnnotationName().
             CASE annotationName:
                 WHEN "TestSuite" THEN
                 IF NOT ignoreTest THEN
-                DO:
-                    testSuiteCount = testSuiteCount + 1.
-                    testSuiteInfo = testInfo.
-                END.
-                    
+                    assign testSuiteCount = testSuiteCount + 1
+                           testSuiteInfo  = testInfo
+                           isTestClass    = true
+                           .
                 WHEN "Before" THEN
                 DO:
                     classAnnotInfo:setBeforeClass(testInfo).
                     IF testInfo:getTestName() = testMethod THEN
-                        testMethodInfo = testInfo.
+                        assign testMethodInfo = testInfo.
                 END.
                     
                 WHEN "Setup" THEN
-                DO:
+                do:
                     classAnnotInfo:setBeforeMethod(testInfo).
                     IF testInfo:getTestName() = testMethod THEN
-                        testMethodInfo = testInfo.
+                        assign testMethodInfo = testInfo.
                 END.
                     
                 WHEN "Test" THEN
                 DO:
                     classAnnotInfo:AddTestMethod(testInfo).
+                    
+                    // if there's one annotated method, this is a test
+                    assign isTestClass = true.
+                    
                     IF testInfo:getTestName() = testMethod THEN
-                        testMethodInfo = testInfo.
+                        assign testMethodInfo = testInfo.
                 END.
                     
                 WHEN "TearDown" THEN
                 DO:
                     classAnnotInfo:setAfterMethod(testInfo).
                     IF testInfo:getTestName() = testMethod THEN
-                        testMethodInfo = testInfo.
+                        assign testMethodInfo = testInfo.
                 END.
+                    
                     
                 WHEN "After" THEN
                 DO:
                     classAnnotInfo:setAfterClass(testInfo).
                     IF testInfo:getTestName() = testMethod THEN
-                        testMethodInfo = testInfo.
+                        assign testMethodInfo = testInfo.
                 END.
             END CASE.
             END.
-        END.        
+        END.
+        
+        if not isTestClass then
+            return.
         
         IF NOT testSuiteCount = 0  THEN
         DO:
             isTestSuite =  TRUE.
-
+            
             DEFINE VARIABLE testSuite AS TestSuite.
-            testSuiteName = testClassName.
             testSuite = NEW TestSuite(currentID).
             currentID = currentID + 1. 
             testSuite:Name = testClassName.
@@ -480,7 +492,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             testSuite:classInfo = typeInfo:classInfo.
             // Check whether the suite class is ignored
             IF ignoreTest THEN 
-                UpdateIgnoreDetails(testResult, testSuite, testClassName, summaryResult).
+                UpdateIgnoreDetails(testResult, testSuite, testClassName, testModel:Summary).
             ELSE
                 populateTestModelForTestSuite(testSuiteInfo, testSuite).
         END.
@@ -494,7 +506,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             testEntity:addTestEntity(testClass).
             // Check whether the class is ignored
             IF ignoreTest THEN 
-                UpdateIgnoreDetails(testResult, testClass, testClassName, summaryResult).
+                UpdateIgnoreDetails(testResult, testClass, testClassName, testModel:Summary).
             ELSE 
                 populateTestModelForTestMethod(testClassType, testClassName, classAnnotInfo, testMethodInfo, (testMethod = ""), testClass).
 
@@ -502,111 +514,94 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             
     END METHOD.
     
-	/*------------------------------------------------------------------------------
-	 Purpose:
-	 Notes:
-	------------------------------------------------------------------------------*/
-
-	METHOD PRIVATE VOID UpdateIgnoreDetails( testResult AS TestTestResult, testEntity AS TestEntity, testName AS CHARACTER, summaryResult AS TestTypeResult ):
-		
-		testResult = NEW TestTestResult().
-        testResult:TestResult = TestTestResult:StatusIgnored.
-        testResult:TestName = testName.
-        testEntity:testResult = testResult.
-        updateTestSummary(summaryResult, testResult).
-
-	END METHOD.
+    /*------------------------------------------------------------------------------
+     Purpose:
+     Notes:
+    ------------------------------------------------------------------------------*/
+    METHOD PRIVATE VOID UpdateIgnoreDetails( testResult AS TestTestResult, testEntity AS TestEntity, testName AS CHARACTER, summaryResult AS TestTypeResult ):
+        assign testResult = NEW TestTestResult(testName).
+        testResult:TestResult = TestResultEnum:StatusIgnored.
+        
+        testEntity:AddTestResult(testResult).
+        
+        summaryResult:Add(testResult).
+    END METHOD.
 
     METHOD PUBLIC VOID populateTestModelForTestMethod(INPUT testClassType AS Progress.Lang.Object,
-        INPUT testClassName AS CHARACTER, 
-        INPUT classAnnotInfo AS ClassAnnotationInfo,
-        INPUT testMethodInfo AS TestInfo, 
-        INPUT runAllMethods AS LOGICAL, INPUT testEntity AS TestEntity):
-      
+                                                      input testClassName as character, 
+                                                      input classAnnotInfo as ClassAnnotationInfo,
+                                                      input testMethodInfo as TestInfo, 
+                                                      input runAllMethods as logical,
+                                                      input testEntity as TestEntity):
         DEFINE VARIABLE testmethods  AS Array NO-UNDO.
-        DEFINE VARIABLE testCount AS INTEGER NO-UNDO.
-        DEFINE VARIABLE j AS INTEGER NO-UNDO.
-        
         DEFINE VARIABLE testmethod  AS TestMethod NO-UNDO.
-        
         DEFINE VARIABLE testInSuitResult AS TestTestResult NO-UNDO.
         DEFINE VARIABLE ignoreTest AS LOGICAL NO-UNDO.
+        define variable testInfo as TestInfo.
+        define variable j as integer no-undo.
+        define variable testCount as integer no-undo.
         
-/*        testInSuitResult = NEW TestTestResult().                                    */
-/*                                                                                    */
-/*        ignoreTest = AnnotationUtil:HasIgnoreAnnotation(testMethodInfo:annotations).*/
-/*        IF ignoreTest THEN DO:                                                      */
-/*            testInSuitResult:TestResult = TestTestResult:StatusIgnored.             */
-/*            testInSuitResult:TestName = testMethodInfo:getTestName().               */
-/*            testEntity:testResult = testInSuitResult.                               */
-/*            RETURN.                                                                 */
-/*        END.                                                                        */
-        
-       testmethods = classAnnotInfo:getTestList().
-       testCount = classAnnotInfo:testCount.
-       
-       IF(runAllMethods) THEN
-            DO j=1 TO testCount ON ERROR UNDO, THROW :
-               testMethod = NEW TestMethod(currentID).
-               currentID = currentID + 1.
-               DEFINE VARIABLE testInfo AS TestInfo.
-               testInfo = CAST(testmethods:GetValue(j), TestInfo).
-               testmethod:Name = testInfo:getTestName().
-               testmethod:setTestInfo(testInfo).
-               testEntity:addTestEntity(testmethod).
-            END.
-       ELSE
-       DO:
-               testMethod = NEW TestMethod(currentID).
-               currentID = currentID + 1.
-               testmethod:Name = testMethodInfo:getTestName().
-               testmethod:setTestInfo(testMethodInfo).
-               testEntity:addTestEntity(testmethod).
-        END.
-        
+        assign testCount  = classAnnotInfo:Tests:Size.
+        IF(runAllMethods) THEN
+        DO j=1 TO testCount:
+            testMethod = NEW TestMethod(currentID).
+            currentID = currentID + 1.
             
-     END METHOD.
-     
+            testInfo = cast(classAnnotInfo:Tests:Get(j), TestInfo).
+            
+            testmethod:Name = testInfo:getTestName().
+            testmethod:setTestInfo(testInfo).
+            testEntity:addTestEntity(testmethod).
+        END.
+        ELSE
+        DO:
+            testMethod = NEW TestMethod(currentID).
+            currentID = currentID + 1.
+            testmethod:Name = testMethodInfo:getTestName().
+            testmethod:setTestInfo(testMethodInfo).
+            testEntity:addTestEntity(testmethod).
+        END.
+    END METHOD.
     
-     METHOD PUBLIC VOID populateTestModelForInternalProcs(INPUT procHandle AS HANDLE, INPUT testProcedureName AS CHARACTER,
-            INPUT procAnnotInfo AS ProcedureAnnotationInfo,
-            INPUT testProcInfo AS TestInfo,
-            INPUT runAllProcs AS LOGICAL, INPUT testEntity AS TestEntity):
-                
-                DEFINE VARIABLE testProcs AS Array NO-UNDO.
-                DEFINE VARIABLE testProcsCount AS INTEGER NO-UNDO.
-                DEFINE VARIABLE j AS INTEGER NO-UNDO.
-                DEFINE VARIABLE internalProcTestEntity AS TestMethod NO-UNDO.
-                
-                 testProcs = procAnnotInfo:getTestProcs().
-                 IF(runAllProcs) THEN
-                    DO j=1 TO procAnnotInfo:testCount  ON ERROR UNDO, THROW :
-                    internalProcTestEntity = NEW TestMethod(currentID).
-                    currentID = currentID + 1.
-                    DEFINE VARIABLE testInfo AS TestInfo.
-                    testInfo = CAST(testProcs:GetValue(j), TestInfo).
-                    internalProcTestEntity:Name = testInfo:getTestName().
-                    internalProcTestEntity:setTestInfo(testInfo).
-                    testEntity:addTestEntity(internalProcTestEntity).
-                     END.
-                 ELSE
-                 DO:
-                     internalProcTestEntity = NEW TestMethod(currentID).
-                     currentID = currentID + 1.
-                     internalProcTestEntity:Name = testProcInfo:getTestName().
-                     internalProcTestEntity:setTestInfo(testProcInfo).
-                     testEntity:addTestEntity(internalProcTestEntity).
-                 END.
-         END METHOD.
+    METHOD PUBLIC VOID populateTestModelForInternalProcs(INPUT procHandle AS HANDLE,
+                                                         INPUT testProcedureName AS CHARACTER,
+                                                         INPUT procAnnotInfo AS ProcedureAnnotationInfo,
+                                                         INPUT testProcInfo AS TestInfo,
+                                                         INPUT runAllProcs AS LOGICAL, 
+                                                         INPUT testEntity AS TestEntity):
+        DEFINE VARIABLE testProcsCount AS INTEGER NO-UNDO.
+        DEFINE VARIABLE j AS INTEGER NO-UNDO.
+        DEFINE VARIABLE internalProcTestEntity AS TestMethod NO-UNDO.
+        DEFINE VARIABLE testInfo AS TestInfo.
+        
+        assign testProcsCount = procAnnotInfo:Tests:Size.
+        IF(runAllProcs) THEN
+        DO j=1 TO testProcsCount:
+            internalProcTestEntity = NEW TestMethod(currentID).
+            currentID = currentID + 1.
+            
+            testInfo = cast(procAnnotInfo:Tests:Get(j), TestInfo).
+            
+            internalProcTestEntity:Name = testInfo:getTestName().
+            internalProcTestEntity:setTestInfo(testInfo).
+            testEntity:addTestEntity(internalProcTestEntity).
+        END.
+        ELSE
+        DO:
+            internalProcTestEntity = NEW TestMethod(currentID).
+            currentID = currentID + 1.
+            internalProcTestEntity:Name = testProcInfo:getTestName().
+            internalProcTestEntity:setTestInfo(testProcInfo).
+            testEntity:addTestEntity(internalProcTestEntity).
+        END.
+    END METHOD.
     
     /*------------------------------------------------------------------------------
             Given a test procedure and test internal procedure, this method will store and 
-            run the test procedures and calls a method which writes the results in the xml file                                                                      
+            run the test procedures and calls a method which writes the results in the xml file
             Notes:                                                                        
     ------------------------------------------------------------------------------*/
-
     METHOD PUBLIC VOID populateTestModelForProcedureType(INPUT testProcedureName AS CHARACTER, INPUT testInternalProcedure AS CHARACTER, INPUT testEntity AS TestEntity):
-    
         DEFINE VARIABLE procHandle     AS        HANDLE                                    NO-UNDO.
         DEFINE VARIABLE procInfoList   AS        Array      NO-UNDO.
         DEFINE VARIABLE procAnnotInfo  AS        ProcedureAnnotationInfo NO-UNDO.
@@ -619,8 +614,8 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         DEFINE VARIABLE testProcInfo   AS        TestInfo      NO-UNDO.
         DEFINE VARIABLE procTestEntity   AS      TestProcedure     NO-UNDO.
         DEFINE VARIABLE typeInfo AS TypeInfo  NO-UNDO.
-        
         DEFINE VARIABLE ignoreTest AS LOGICAL  NO-UNDO.
+        define variable isTestProc as logical no-undo initial no.
         
         typeInfo = BuildTypeInfo(testProcedureName).
         procInfoList = typeInfo:methods.
@@ -643,10 +638,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             annotation = annotationInfo:getAnnotationName().
             CASE annotation:
                 WHEN "TestSuite" THEN
-                DO:
-                    testSuiteCount = testSuiteCount + 1.
-                    testSuiteList  = testInfo.
-                END.
+                    assign testSuiteCount = testSuiteCount + 1
+                           testSuiteList  = testInfo
+                           isTestProc     = yes
+                           .
                     
                 WHEN "Before" THEN
                 DO:
@@ -665,6 +660,10 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                 WHEN "Test" THEN
                 DO:
                     procAnnotInfo:addTestProc(testInfo).
+                    
+                    // if there's one annotated method, this is a test
+                    assign isTestProc = true.
+                    
                     IF testInfo:getTestName() = testInternalProcedure THEN
                         testProcInfo = testInfo.
                 END.
@@ -683,12 +682,14 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                         testProcInfo = testInfo.
                 END.
                 WHEN "Ignore" THEN
-                DO:
                    ignoreTest = TRUE.
-                END.
             END CASE.
             END.
         END.
+        
+        if not isTestProc then
+            return.
+        
         IF NOT testSuiteCount = 0  THEN 
         DO:
             isTestSuite =  TRUE.
@@ -702,7 +703,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             IF ignoreTest THEN 
             DO:
                 DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
-                UpdateIgnoreDetails(testResult, testProcSuite, testSuiteName, summaryResult).
+                UpdateIgnoreDetails(testResult, testProcSuite, testSuiteName, testModel:Summary).
             END.
             ELSE
                 populateTestModelForTestSuite(testSuiteList, testProcSuite). 
@@ -720,16 +721,9 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
                 populateTestModelForInternalProcs(procHandle, testProcedureName, procAnnotInfo, testProcInfo, FALSE, procTestEntity).   
         END.         
     END METHOD.
-
+    
     /*------------------------------------------------------------------------------
-            Invokes the method in the object                                                                      
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID Invoke(INPUT obj AS Progress.Lang.Object, INPUT testMethod AS CHARACTER):
-        DYNAMIC-INVOKE (obj, testMethod).
-    END METHOD.
-  
-    /*------------------------------------------------------------------------------
-       Compiles and call the corresponding method or internal procedure to run the testcase                                                                        
+       Compiles and call the corresponding method or internal procedure to run the testcase
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC VOID populateTestModelForTestCase(INPUT testCase AS CHARACTER, INPUT test AS CHARACTER, INPUT testEntity AS TestEntity):
             IF(testCase MATCHES "*.p") THEN
@@ -740,7 +734,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     END METHOD.
     
     /*------------------------------------------------------------------------------
-            Runs the corresponding method based on the type of the testcase.                                                                       
+            Runs the corresponding method based on the type of the testcase.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC TestEntity populateTestModel(INPUT testCase AS CHARACTER, INPUT testCount AS INTEGER):
         DEFINE VARIABLE serializedtree AS LONGCHAR  NO-UNDO.
@@ -780,13 +774,9 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             FILE-INFO:FILE-NAME = testCase.
             /** For directory inputs **/
             IF (FILE-INFO:FILE-TYPE BEGINS "D") THEN  
-            DO:
                 populateTestModelForTestFolder(testCase, testEntity).
-            END. 
             ELSE
-            DO:
                 populateTestModelForTestCase(testCase, "", testEntity).
-            END.
         END.
         ELSE 
         DO:
@@ -808,7 +798,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
     METHOD PUBLIC VOID populateTestModelForTestFolder(INPUT testFolder AS CHARACTER, INPUT testEnity AS TestEntity):
         
         DEFINE VARIABLE fileN     AS CHARACTER FORMAT "x(30)" NO-UNDO.
-        DEFINE VARIABLE testFiles AS ARRAY NO-UNDO.
+        DEFINE VARIABLE testFiles AS Array NO-UNDO.
         DEFINE VARIABLE i         AS INTEGER   NO-UNDO.
         DEFINE VARIABLE count     AS INTEGER   NO-UNDO INIT 0.
         INPUT stream dirlist from os-dir(testFolder).
@@ -942,320 +932,261 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
             END.
     END METHOD.
 
-    /*------------------------------------------------------------------------------
-            Writes the testclass results in the xml file                                                                       
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID WriteTestResults(INPUT pcXmlFileName AS CHARACTER, 
-        INPUT testEntity AS TestEntity, INPUT testTypeResult AS TestTypeResult):
+    /* Processes a test entity's TestResult based on status
+       
+       @param TestEntity     The entity to process
+       @param TestTypeResult The summary to which this result aggregates */
+    method private void ProcessTestResult(input pEntity as TestEntity,
+                                          input pSummary as TestTypeResult):
+        define variable tr as TestTestResult extent no-undo.
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        define variable failType as character no-undo.
         
-        DEFINE VARIABLE i                 AS INTEGER                                 NO-UNDO.
-        DEFINE VARIABLE testCaseHandle    AS HANDLE                                  NO-UNDO.
-        DEFINE VARIABLE phDoc             AS HANDLE    NO-UNDO.
-        DEFINE VARIABLE phRootNode        AS HANDLE    NO-UNDO.
-        DEFINE VARIABLE children  AS ARRAY NO-UNDO. 
-        DEFINE VARIABLE newTestEntity AS TestEntity NO-UNDO.
-         
-         CREATE X-DOCUMENT phDoc.
-         CREATE X-NODEREF phRootNode.
+        if not valid-object(pEntity) then
+            return.
+        
+        if valid-object(pSummary) then
+            pSummary:Add(pEntity:Summary).
+        
+        if pEntity:Summary:ignoreCount gt 0 then
+            updateFile(updateFile, "TEST_IGNORED " + STRING(pEntity:Id), false).
+        else
+        if    pEntity:Summary:errorCount gt 0 
+           or pEntity:Summary:failureCount gt 0 
+        then
+        do:
+            assign tr  = pEntity:GetTestResults()
+                   cnt = extent(tr)
+                   .
+            do loop = 1 to cnt:
+                case tr[loop]:TestResult:
+                    when TestResultEnum:StatusFailed then
+                        // errors > failures since they're not deliberate
+                        if not failType eq 'TEST_EXCEPTION':u then 
+                            assign failType = 'TEST_FAIL':u.
+                    when TestResultEnum:StatusError then
+                        assign failType = 'TEST_EXCEPTION':u.
+                    otherwise
+                        next.
+                end case.
+                
+                if valid-object(tr[loop]:Stop) then
+                    updateStackTrace(tr[loop]:Stop, updateFile, string(pEntity:Id)).
+                else
+                    updateStackTrace(tr[loop]:Error, updateFile, string(pEntity:Id)).
+            end.
             
-            /*'testsuites' is the root element*/
-            phDoc:CREATE-NODE(phRootNode, "testsuites", "ELEMENT").
-            phDoc:APPEND-CHILD(phRootNode).
-            phRootNode:SET-ATTRIBUTE("name", "ABLUnit").
-            phRootNode:SET-ATTRIBUTE("tests", STRING(testTypeResult:getTestCount())).
-            phRootNode:SET-ATTRIBUTE("errors", STRING(testTypeResult:GetErrorCount())).
-            phRootNode:SET-ATTRIBUTE("failures", STRING(testTypeResult:GetFailureCount())).
-            IF testTypeResult:GetIgnoreCount() > 0 THEN
-                phRootNode:SET-ATTRIBUTE("ignored", STRING(testTypeResult:GetIgnoreCount())).
-
-        children = testEntity:getTestEntities().
-        DO i=1 TO testEntity:getChildrenSize():
-            newTestEntity = CAST(children:GetValue(i),TestEntity).
-            WriteChildEntities(newTestEntity, phDoc, phRootNode).
-         END.
-         phDoc:SAVE("file", pcXmlFileName).
-    END METHOD.
-    
-      /*------------------------------------------------------------------------------
-           writes the details of a particular test case into the given handle      
-           'time' is in sec, 'tests' represent the number of tests.                                                           
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC VOID WriteChildEntities(INPUT testEntity AS TestEntity, INPUT phDoc AS HANDLE, INPUT parentNode AS HANDLE ):
-        DEFINE VARIABLE children  AS ARRAY NO-UNDO. 
-        DEFINE VARIABLE childrenSize AS INTEGER NO-UNDO.
-        DEFINE VARIABLE i AS INTEGER NO-UNDO.
-        DEFINE VARIABLE newTestEntity AS TestEntity NO-UNDO.
-        DEFINE VARIABLE testResult AS TestTestResult.
-        DEFINE VARIABLE testEntityHandle AS HANDLE    NO-UNDO.
+            updateFile(updateFile, failType + " " + STRING(pEntity:Id), false).
+        end.
+        else
+        // no failures or errors mean success
+            updateFile(updateFile, "TEST_END " + STRING(pEntity:Id) + " " + STRING(pEntity:timeTaken), false).
+    end method.
+     
+    /* Runs a TestEntity and aggregates results
        
-        CREATE X-NODEREF testEntityHandle.
-        IF TYPE-OF (testEntity, TestSuite) THEN
-        DO:
-            phDoc:CREATE-NODE (testEntityHandle, "testsuite", "ELEMENT").
-            testEntityHandle:SET-ATTRIBUTE ("name", testEntity:Name).
-            testEntityHandle:SET-ATTRIBUTE ("tests", STRING(testEntity:getChildrenSize())).
-            UpdateIgnored(testEntityHandle, testEntity).
-            parentNode:APPEND-CHILD (testEntityHandle).
-        END.
-        ELSE IF TYPE-OF (testEntity, TestClass) OR TYPE-OF (testEntity, TestProcedure) THEN
-        DO:
-            /*Each class or procedure is a  'testsuite'*/
-            phDoc:CREATE-NODE (testEntityHandle, "testsuite", "ELEMENT").
-            testEntityHandle:SET-ATTRIBUTE ("name", testEntity:Name).
-            testEntityHandle:SET-ATTRIBUTE ("tests", STRING(testEntity:getChildrenSize())).
-            UpdateIgnored(testEntityHandle, testEntity).
-            parentNode:APPEND-CHILD (testEntityHandle).
-        END.    
-        ELSE
-        DO:
-            testEntityHandle = createTestXMLResult(phDoc, testEntityHandle, testEntity, parentNode).
-        END.    
+       @param TestEntity The entity being run (class/method/suite/root)
+       @param character The ABLUnit output file (not results.xml)
+       @return TestTypeResult  The aggregate result for this test entity  */
+    METHOD PUBLIC TestTypeResult runtests(INPUT testEntity AS TestEntity,
+                                          INPUT updateFile AS CHARACTER):
+        DEFINE VARIABLE children            AS Array                  NO-UNDO. 
+        DEFINE VARIABLE childrenSize        AS INTEGER                 NO-UNDO.
+        DEFINE VARIABLE j                   AS INTEGER                 NO-UNDO.
+        define variable childEntity as TestEntity no-undo.
+        define variable startTime as datetime no-undo.
+        define variable runnableEntity as IRunnableEntity no-undo.
+        define variable tr as TestTestResult no-undo.
         
-        testEntityHandle:SET-ATTRIBUTE ("time", STRING (testEntity:timeTaken)).
-        
-        children = testEntity:getTestEntities().
-        DO i=1 TO testEntity:getChildrenSize():
-            newTestEntity = CAST(children:GetValue(i),TestEntity).
-            WriteChildEntities(newTestEntity, phDoc, testEntityHandle).
-         END.
-         
-    END METHOD.
-
-	/*------------------------------------------------------------------------------
-	 Purpose:
-	 Notes:
-	------------------------------------------------------------------------------*/
-
-	METHOD PRIVATE VOID UpdateIgnored(INPUT testEntityHandle AS HANDLE, INPUT testEntity AS TestEntity ):
-		DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
-        testResult = testEntity:testResult.
-        IF testResult NE ? AND testResult:TestResult = TestTestResult:StatusIgnored THEN 
-            testEntityHandle:SET-ATTRIBUTE ("ignored", "true").
-		RETURN.
-
-	END METHOD.
-
-    /*------------------------------------------------------------------------------
-            Creates the <testcase> tag element for every test method or test procedure.
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC HANDLE CreateTestXMLResult(INPUT phDoc AS HANDLE, INPUT hXnode AS HANDLE, INPUT testEntity AS TestEntity, INPUT parentNode AS HANDLE):
-        DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
-        /*Attribute 'status' represents the test case status 'Success', 'Error' or 'Failure'*/
-        DEFINE VARIABLE statusAttr AS CHARACTER NO-UNDO INIT "status".
-        testResult = testEntity:TestResult.
-        phDoc:CREATE-NODE(hXnode, "testcase", "ELEMENT").
-        parentNode:APPEND-CHILD (hXnode).
-        hXnode:SET-ATTRIBUTE ("name", testEntity:Name).
-
-        IF testResult:TestResult = TestTestResult:StatusPassed THEN
-        DO:
-            hXnode:SET-ATTRIBUTE (statusAttr, "Success").
-        END.
-        ELSE IF testResult:TestResult = TestTestResult:StatusFailed THEN
-        DO:
-           DEFINE VARIABLE traceHandle AS HANDLE NO-UNDO.
-           hXnode:SET-ATTRIBUTE (statusAttr, "Failure").
-           /*Creates a child node with the name 'failure'*/
-           traceHandle = createTraceElement(phDoc, hXnode, testResult, "failure").
-           IF NOT traceHandle = ? THEN
-               hXnode:APPEND-CHILD(traceHandle).
-        END.
-        ELSE IF testResult:TestResult = TestTestResult:StatusError THEN
-        DO:
-            hXnode:SET-ATTRIBUTE (statusAttr, "Error").
-            /*Creates a child node with the name 'error'*/
-            traceHandle = createTraceElement(phDoc, hXnode, testResult, "error").
-            IF NOT traceHandle = ? THEN
-                hXnode:APPEND-CHILD(traceHandle).
-        END.
-        ELSE IF testResult:TestResult = TestTestResult:StatusIgnored THEN
-        DO:
-            hXnode:SET-ATTRIBUTE (statusAttr, "Success").
-            hXnode:SET-ATTRIBUTE ("ignored", "true").
-        END. 
-        RETURN hXnode.
-    END METHOD.
-    
-      /*------------------------------------------------------------------------------
-            creates the trace element with the given name and result in the xml file . Applicable for both error and exception      
-            nodeName: the name of the node 'error' or 'failure'.                                             
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC HANDLE createTraceElement( INPUT phDoc AS HANDLE,INPUT hXnode AS HANDLE, INPUT testResult AS TestTestResult, INPUT nodeName AS CHARACTER):
-                DEFINE VARIABLE hXResult AS HANDLE NO-UNDO.
-                DEFINE VARIABLE traceHandle AS HANDLE NO-UNDO.
-                
-                CREATE X-NODEREF traceHandle.
-                CREATE X-NODEREF hXResult.
-                
-                phDoc:CREATE-NODE(traceHandle, nodeName, "ELEMENT").
-                phDoc:CREATE-NODE(hXResult, "", "TEXT").
-                
-                /*If the message is not empty, create an attribute named 'message'*/
-                IF LENGTH(testResult:ErrorMessage) > 0 THEN
-                    traceHandle:SET-ATTRIBUTE("message", testResult:ErrorMessage).
-               
-                IF testResult:Error:CallStack <> ? THEN DO:
-                    hXResult:NODE-VALUE = STRING(testResult:Error:CallStack).
-                    traceHandle:APPEND-CHILD (hXResult).
-                 END.
-              RETURN traceHandle.
-     END METHOD.           
-    
-    METHOD PUBLIC TestTypeResult runtests(INPUT testEntity AS TestEntity, INPUT updateFile AS CHARACTER):
-        runtests(testEntity, updateFile, summaryResult).
-        RETURN summaryResult.
-       END METHOD.
-       
-    /*------------------------------------------------------------------------------
-           runs all the tests that are populated in OpenEdge.ABLUnit.Model.TestEntity recursively                                                           
-    ------------------------------------------------------------------------------*/
-    METHOD PRIVATE VOID runtests(INPUT testEntity AS TestEntity, INPUT updateFile AS CHARACTER, INPUT summaryResult AS TestTypeResult):   
-        DEFINE VARIABLE children  AS ARRAY NO-UNDO. 
-        DEFINE VARIABLE childrenSize AS INTEGER NO-UNDO.
-        DEFINE VARIABLE j AS INTEGER NO-UNDO.
-        DEFINE VARIABLE testMethodInfo AS TestInfo NO-UNDO.
-        DEFINE VARIABLE testMethodEntity AS TestMethod NO-UNDO.
-        DEFINE VARIABLE testClassType AS Progress.Lang.Object NO-UNDO.
-    
-       DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
-       DEFINE VARIABLE classEntity AS TestClass NO-UNDO.
-       DEFINE VARIABLE classAnnotationInfo AS ClassAnnotationInfo NO-UNDO.
-       DEFINE VARIABLE procHandle AS HANDLE   NO-UNDO.
-       DEFINE VARIABLE procedureAnnotInfo  AS ProcedureAnnotationInfo       NO-UNDO.
-       DEFINE VARIABLE procedureEntity AS TestProcedure NO-UNDO.     
-       DEFINE VARIABLE timeString AS DECIMAL DECIMALS 3 NO-UNDO.
-       DEFINE VARIABLE childTimeString AS DECIMAL DECIMALS 3 NO-UNDO.
-
-        DEFINE VARIABLE className AS CHARACTER NO-UNDO.
         updateFile(updateFile, "TEST_START " + STRING(testEntity:Id), FALSE).
-
-        timeString = MTIME.
+        
+        assign startTime = now.
         /* Suite Class, Suite Procedure, Test Class may have configured with Ignore Annotation*/
         /*Start*/
-        testResult = testEntity:testResult.
-        IF testResult NE ? AND testResult:TestResult = TestTestResult:StatusIgnored THEN 
-        DO:
-            updateFile(updateFile, "TEST_IGNORED " + STRING(testEntity:Id), FALSE).
-            timeString = 0.
-            // timeString = timeString / 1000.
-            testEntity:TimeTaken = timeString.
-            updateFile(updateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(timeString) , FALSE).
-            RETURN.
-        END.
-        
+        if testEntity:Summary:ignoreCount gt 0 then
+        do:
+            updateFile(updateFile, "TEST_IGNORED " + STRING(testEntity:Id), false).
+            assign testEntity:TimeTaken = 0.
+            updateFile(updateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(testEntity:TimeTaken) , false).
+            
+            return testEntity:Summary.
+        end.
         /*End*/
+        
         children = testEntity:getTestEntities().
         childrenSize = testEntity:getChildrenSize().
         
-        IF(TYPE-OF (testEntity , TestClass)) THEN
-        DO:  
-            DEFINE VARIABLE testClass AS TestClass NO-UNDO.
-            testClass = CAST(testEntity, TestClass).
-            className = testClass:classInfo:getClassName().
-            testClassType = DYNAMIC-NEW className () NO-ERROR.
-            classEntity =   CAST(testEntity , TestClass).
-            classAnnotationInfo =classEntity:AnnotationInfo.
-            classAnnotationInfo:RunBeforeClass(testClassType, summaryResult).
-        END.
-        ELSE IF(TYPE-OF (testEntity , TestProcedure)) THEN
-        DO: 
-            RUN value(testEntity:Name) PERSISTENT SET procHandle NO-ERROR.
-            procedureEntity =   CAST(testEntity , TestProcedure).
-            procedureAnnotInfo = procedureEntity:annotationInfo. 
-            procedureAnnotInfo:RunBeforeProcedure(procHandle, summaryResult).
-        END.   
+        if type-of(testEntity, IRunnableEntity) then
+        do:
+            assign runnableEntity = cast(testEntity, IRunnableEntity).
+            
+            runnableEntity:StartEntity().
+            if    testEntity:Summary:errorCount gt 0 
+               or testEntity:Summary:failureCount gt 0
+            then
+                return testEntity:Summary.
+            else
+                // ... but don't add success (since we're not _actually_ running a test here ...
+                ProcessTestResult(testEntity, ?).
+        end.
         
-        DO j = 1 TO childrenSize:
-             IF(TYPE-OF (children:GetValue(j), TestMethod)) THEN
-                DO:
-                    DEFINE VARIABLE content AS CHARACTER NO-UNDO.
-                    DEFINE VARIABLE testMethod AS TestMethod NO-UNDO.
-                    testMethod = CAST(children:GetValue(j), TestMethod).
-                     content = "TEST_START " + STRING(testMethod:Id).
-                     updateFile(updateFile, content, FALSE).
-                     
-                     testMethodEntity = CAST(testMethod , TestMethod).
-                     childTimeString = MTIME.
-                     IF(testEntity:Name MATCHES "*.cls") THEN
-                        testResult = runTestClassMethod(CAST(testEntity , TestClass), testMethodEntity:getTestInfo(), testClassType).
-                     IF(testEntity:Name MATCHES "*.p") THEN
-                       testResult = runTestProcedure(CAST(testEntity , TestProcedure), testMethodEntity:getTestInfo(), testMethod, procHandle).    
-                     
-                     testMethodEntity:TestResult = testResult.
-                     updateTestSummary(summaryResult, testResult).
-                    
-                     IF(testResult:TestResult = TestTestResult:StatusFailed) THEN
-                     DO:
-                         updateFile(updateFile, "TEST_FAIL " + STRING(testMethod:Id), FALSE).
-                         updateStackTrace(testResult:Error, updateFile, STRING(testMethod:Id)).
-                     END.
-                     ELSE IF(testResult:TestResult = TestTestResult:StatusError) THEN     
-                     DO:
-                             updateFile(updateFile, "TEST_EXCEPTION " + STRING(testMethod:Id), FALSE).
-                             updateStackTrace(testResult:Error, updateFile, STRING(testMethod:Id)).
-                     END.
-                     ELSE IF(testResult:TestResult = TestTestResult:StatusIgnored) THEN     
-                     DO:
-                             updateFile(updateFile, "TEST_IGNORED " + STRING(testMethod:Id), FALSE).
-                     END.
-					 /* Update the time taken */
-                     IF(testResult:TestResult = TestTestResult:StatusIgnored) THEN
-                    	childTimeString = 0.
-                     ELSE DO:
-                     	childTimeString = MTIME - childTimeString. 
-                     	childTimeString = childTimeString / 1000.
-                     END.
-                     testMethod:TimeTaken = childTimeString.
-                     updateFile(updateFile, "TEST_END " + STRING(testMethod:Id) + " " + STRING(childTimeString), FALSE).
-                END.
-              ELSE
-                 runtests(CAST(children:GetValue(j), TestEntity), updateFile).
-        END.
+        do j = 1 to childrenSize:
+            assign childEntity = cast(children:GetValue(j), TestEntity).
+            if    type-of(childEntity, TestMethod) 
+              and valid-object(runnableEntity)
+            then
+            do:
+                updateFile(updateFile, "TEST_START " + STRING(childEntity:Id), false).
+                
+                runnableEntity:RunChild(childEntity).
+                // for individual tests, always add the count & process the result
+                ProcessTestResult(childEntity, testEntity:Summary). 
+            end.
+            else
+            do:
+                // suite, class, procedure
+                runtests(childEntity, updateFile).
+                // add the counts from the children to this run
+                testEntity:Summary:Add(childEntity:Summary).
+            end.
+        end.
         
-        IF(TYPE-OF (testEntity , TestClass)) THEN
-             DO:  
-                classAnnotationInfo:RunAfterClass(testClassType).
-             END.
-        ELSE IF(TYPE-OF (testEntity , TestProcedure)) THEN
-        DO: 
-                procedureAnnotInfo:RunAfterProcedure(procHandle).
-        END.
+        if valid-object(runnableEntity) then
+        do:
+            runnableEntity:StopEntity().
+            // if there's an error we don't want to write TEST_END
+            if    testEntity:Summary:errorCount gt 0 
+               or testEntity:Summary:failureCount gt 0
+            then
+                return testEntity:Summary.
+            else
+                // ... but don't add success (since we're not _actually_ running a test here ...
+                ProcessTestResult(testEntity, ?).
+        end.
         
-        timeString = MTIME - timeString.
-        timeString = timeString / 1000.
-        testEntity:TimeTaken = timeString.
-        updateFile(updateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(timeString) , FALSE).
-    
+        assign testEntity:TimeTaken = interval(now, startTime, 'milliseconds':u) / 1000.
+        updateFile(updateFile, "TEST_END " + STRING(testEntity:Id) + " " + STRING(testEntity:TimeTaken) , false).
+        
+        catch stoi as Progress.Lang.Stop :
+            assign tr      = new TestTestResult(testEntity:name)
+                   tr:Stop = stoi.
+            testEntity:AddTestResult(tr).
+            ProcessTestResult(testEntity, testEntity:Summary).
+        end catch.
+        catch runErr as Progress.Lang.Error:
+            assign tr       = new TestTestResult(testEntity:name)
+                   tr:Error = runErr
+                   .
+            testEntity:AddTestResult(tr).
+            ProcessTestResult(testEntity, testEntity:Summary).
+        end catch.
+        // always return a result, even if there was an error
+        finally:
+            return testEntity:Summary.
+        end.
     END METHOD.
     
     /*------------------------------------------------------------------------------
-           updates stack trace with the given error in the given file                                                           
+           updates stack trace with the given error in the given file
     ------------------------------------------------------------------------------*/
-    METHOD PRIVATE VOID updateStackTrace(INPUT errorResult AS Progress.Lang.Error, INPUT updateFile AS CHARACTER, INPUT id AS CHARACTER):
-            IF NOT updateFile = "" THEN
-           DO:
-               DEFINE VARIABLE stackTrace AS CHARACTER NO-UNDO.
-               DEFINE VARIABLE stackTraceLine AS CHARACTER NO-UNDO.
-               DEFINE VARIABLE i AS INTEGER NO-UNDO.
-               DEFINE VARIABLE numMessages AS INTEGER NO-UNDO.
-               DEFINE VARIABLE exception AS AssertionFailedError NO-UNDO.
-               stackTrace = errorResult:CallStack.
-               OUTPUT TO VALUE(updateFile) APPEND.
-               numMessages = errorResult:NumMessages.
-               DO i=1 TO numMessages:
-                    PUT UNFORMATTED "STACK_TRACE " id " " errorResult:GetMessage(i) SKIP.
-               END.
-               
-               DO i=1 TO NUM-ENTRIES(stackTrace,CHR(10) + CHR(13)):
-                  stackTraceLine = ENTRY(i, stackTrace, CHR(10) + CHR(13)).
-                  PUT UNFORMATTED "STACK_TRACE " id " " stackTraceLine SKIP.
-               END.
-               OUTPUT close.  
-          END.            
+    METHOD PRIVATE VOID updateStackTrace(INPUT errorResult AS Progress.Lang.Error,
+                                         INPUT updateFile AS CHARACTER,
+                                         INPUT id AS CHARACTER):
+        IF NOT updateFile = "" THEN
+        DO on error undo, throw:
+            DEFINE VARIABLE stackTrace     AS CHARACTER            NO-UNDO.
+            DEFINE VARIABLE stackTraceLine AS CHARACTER            NO-UNDO.
+            DEFINE VARIABLE i              AS INTEGER              NO-UNDO.
+            DEFINE VARIABLE numMessages    AS INTEGER              NO-UNDO.
+            
+            OUTPUT TO VALUE(updateFile) APPEND.
+            
+            if not valid-object(errorResult) then
+            do:
+                PUT UNFORMATTED "STACK_TRACE " id " UNKNOWN ERROR " SKIP.
+                return.
+            end.
+            
+            stackTrace = errorResult:CallStack.
+            
+            numMessages = errorResult:NumMessages.
+            DO i=1 TO numMessages:
+                PUT UNFORMATTED "STACK_TRACE " id " " errorResult:GetMessage(i) SKIP.
+            END.
+            
+            if type-of(errorResult, AppError) then
+            do:
+                stackTraceLine = cast(errorResult, AppError):ReturnValue.
+                if not stackTraceLine eq '':u then
+                    PUT UNFORMATTED "STACK_TRACE " id " " stackTraceLine SKIP.
+            end.
+            
+            numMessages = NUM-ENTRIES(stackTrace,CHR(10) + CHR(13)). 
+            DO i=1 TO numMessages:
+                stackTraceLine = ENTRY(i, stackTrace, CHR(10) + CHR(13)).
+                PUT UNFORMATTED "STACK_TRACE " id " " stackTraceLine SKIP.
+            END.
+            
+            finally:
+                OUTPUT close.
+            end finally.
+        END.
     END METHOD.
     
+    /* Writes a stack trace for a stop condition 
+       
+       @param Progress.Lang.Stop THe stop condition 
+       @param character The file into which to write 
+       @param character The ID of the test entity   */
+    method private void updateStackTrace(input pStop as Progress.Lang.Stop,
+                                         input pUpdateFile as character,
+                                         input pId as character):
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable traceLine as character no-undo.
+        
+        if pUpdateFile eq '':u then
+            return.
+        
+        output to value(pUpdateFile) append.
+        
+        if not valid-object(pStop) then
+        do:
+            put unformatted "STACK_TRACE " pId " UNKNOWN STOP CONDITION " skip.
+            return.
+        end.
+        
+        put unformatted "STACK_TRACE " pId " STOP CONDITION: " pStop:GetClass():TypeName skip.
+        
+        if type-of(pStop, LockConflict) then
+        do:
+            // Device
+            assign traceLine = cast(pStop, LockConflict):Device.
+            if not traceLine eq '':u then
+                put unformatted "STACK_TRACE " pId " Device: " traceLine skip.
+            // TableName
+            assign traceLine = cast(pStop, LockConflict):TableName.
+            if not traceLine eq '':u then
+                put unformatted "STACK_TRACE " pId " TableName: " traceLine skip.
+            // User
+            assign traceLine = cast(pStop, LockConflict):User.
+            if not traceLine eq '':u then
+                put unformatted "STACK_TRACE " pId " User: " traceLine skip.
+        end.
+        //
+        assign cnt = num-entries(pStop:CallStack, chr(10) + CHR(13)). 
+        do loop = 1  to cnt:
+            assign traceLine = entry(loop, pStop:CallStack, chr(10) + CHR(13)).
+            put unformatted "STACK_TRACE " pId " " traceLine skip.
+        end.
+        finally:
+            output close.
+        end finally.
+    end method.
+    
      /*------------------------------------------------------------------------------
-           writes to the update file the given content. If override is true, the file is overwritten.                                                        
+           writes to the update file the given content. If override is true, the file is overwritten.
     ------------------------------------------------------------------------------*/
     METHOD PUBLIC VOID updateFile(INPUT updateFile AS CHARACTER, INPUT content AS LONGCHAR, INPUT override AS LOGICAL):
         IF NOT updateFile = "" THEN
@@ -1268,42 +1199,4 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
            END.
     END METHOD.
     
-    METHOD PRIVATE VOID updateTestSummary(INPUT summaryResult AS TestTypeResult, INPUT testMethodResult AS TestTestResult):
-        IF(testMethodResult:TestResult = TestTestResult:StatusError) THEN
-                summaryResult:incrementError().
-        ELSE IF(testMethodResult:TestResult = TestTestResult:StatusFailed) THEN
-                summaryResult:incrementFailure().
-        ELSE IF(testMethodResult:TestResult = TestTestResult:StatusIgnored) THEN
-                summaryResult:IncrementIgnore().
-        ELSE
-               summaryResult:incrementSuccess().
-    END.
-    
-    /*------------------------------------------------------------------------------
-         runs a given test method denoted by  OpenEdge.ABLUnit.Reflection.TestInfo in the class OpenEdge.ABLUnit.Model.TestClass                                                     
-    ------------------------------------------------------------------------------*/
-    METHOD PUBLIC TestTestResult runTestClassMethod(INPUT testClass AS TestClass, INPUT testMethodInfo  AS TestInfo, INPUT testClassType  AS Progress.Lang.Object):
-        DEFINE VARIABLE classAnnotInfo  AS ClassAnnotationInfo       NO-UNDO.
-        DEFINE VARIABLE testListCount AS INTEGER NO-UNDO.
-        DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.  
-        
-        classAnnotInfo = testClass:AnnotationInfo. 
-        RETURN classAnnotInfo:RunSelectedTestMethod(testClassType, testMethodInfo).
-        
-    END METHOD.
-    
-    /*------------------------------------------------------------------------------
-         runs a given internal procedure denoted by  OpenEdge.ABLUnit.Reflection.TestInfo in the class OpenEdge.ABLUnit.Model.TestProcedure
-    ------------------------------------------------------------------------------*/
-     METHOD PUBLIC TestTestResult runTestProcedure(INPUT testProcedure AS TestProcedure, INPUT testProcInfo  AS TestInfo, INPUT testMethod AS TestEntity, INPUT procHandle AS HANDLE):
-/*        DEFINE VARIABLE procHandle AS HANDLE   NO-UNDO.*/
-        DEFINE VARIABLE procedureAnnotInfo  AS ProcedureAnnotationInfo       NO-UNDO.
-        
-        IF NOT VALID-HANDLE(procHandle) THEN
-            RUN value(testProcedure:Name) PERSISTENT SET procHandle NO-ERROR.
-        procedureAnnotInfo = testProcedure:annotationInfo. 
-        RETURN procedureAnnotInfo:RunSelectedTestProc(procHandle, testProcInfo).
-        
-    END METHOD.
-
 END CLASS.

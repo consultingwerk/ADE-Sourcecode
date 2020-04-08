@@ -2230,15 +2230,20 @@ DO ON STOP UNDO, LEAVE
         
         IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:            
             IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN                
-                PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.           
+                PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+            ELSE IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "active" THEN
+                PUT STREAM ddl UNFORMATTED "  ACTIVE" SKIP.            
         END.
-        ELSE IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN DO:       
+        ELSE IF NOT (DICTDB._Index._Active AND (IF iact = ? THEN TRUE ELSE iact)) THEN DO:  
+            IF NOT DICTDB._Index._Active then          
             PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
         END.
       END. 
       ELSE IF OS-GETENV ("DUMP_INC_INDEXMODE") NE ? AND OS-GETENV ("DUMP_INC_INDEXMODE") NE '""' THEN DO:              
           IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "inactive" THEN              
               PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+          ELSE IF OS-GETENV ("DUMP_INC_INDEXMODE") EQ "active" THEN
+              PUT STREAM ddl UNFORMATTED "  ACTIVE" SKIP.
       END.
       ELSE IF NOT DICTDB._Index._Active AND NOT DICTDB._Index._Unique THEN DO:
           PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.

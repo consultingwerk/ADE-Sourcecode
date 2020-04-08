@@ -92,7 +92,8 @@
         },
         "extent": {"type": ["number","null"]},
         "serializeHidden": {"type": "boolean"},
-        "serializeName": {"type": "string"}
+        "serializeName": {"type": "string"},
+        "caseSensitive": {"type": "boolean"}
       },
       "required": [
         "name",
@@ -158,7 +159,7 @@
         "responseEnvelope": {"type": ["boolean","string"]},
         "errorEnvelope": {"type": ["boolean","string"]},
         "timeout": {"type": ["number","null"]},
-        "schemaInclude": {
+        "schemas": {
           "type": "object",
           "description": "An object of tables/fields to include: one property per dataset and one per temp-table in it. The value is a comma-separated string of values, or * for all",
           "patternProperties": {
@@ -323,6 +324,13 @@
           "type": "number",
           "multipleOf": 1,
           "description": "The HTTP status code to return"
+        },
+        "acl": {
+            "type": ["array", "null"],
+            "description": "An array of roles that are required to allow access to this operation.",
+            "items": [
+                {"type": "string"}
+            ]
         },
         "options": {"$ref": "#/definitions/operationOptions"},
         "void": {

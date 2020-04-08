@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : IOModeEnum
@@ -53,38 +53,22 @@ enum OpenEdge.Core.IOModeEnum flags:
                 Input-Output = Input, Output
                 InputOutput  = Input-Output
                 
-                Input-Output-By-Reference = Input, Output, ByReference
+                Input-Output-By-Reference = Input-Output, ByReference
                 InputOutputByReference    = Input-Output-By-Reference
                 
-                //@deprecated(since="11.7.2").
-                Dataset-Handle
-                
-                //@deprecated(since="11.7.2").
-                DatasetHandle  = Dataset-Handle
-                
-                //@deprecated(since="11.7.2").
-                Dataset-Handle-By-Reference = DatasetHandle, ByReference
-                //@deprecated(since="11.7.2").
-                DatasetHandleByReference    = Dataset-Handle-By-Reference
-                
-                //@deprecated(since="11.7.2").
-                Dataset-Handle-By-Value = DatasetHandle, ByValue
-                //@deprecated(since="11.7.2").
-                DatasetHandleByValue    = Dataset-Handle-By-Value
-                
-                //@deprecated(since="11.7.2").
+                // complex data structures (PDS and TT)
+                // these are here in addition to the OpenEdge.Core.DataTypeEnum since they are used to 
+                // define parameters (DEFINE PARAMETER BUFFER localTable FOR Table, or 
+                // DEFINE INPUT PARAMETER DATASET-HANDLE hdHdl)
+                Table
                 Table-Handle
-                //@deprecated(since="11.7.2").
                 TableHandle  = Table-Handle
                 
-                //@deprecated(since="11.7.2").
-                Table-Handle-By-Reference = TableHandle, ByReference
-                //@deprecated(since="11.7.2").
-                TableHandleByReference    = Table-Handle-By-Reference
+                Dataset
+                Dataset-Handle
+                DatasetHandle  = Dataset-Handle
                 
-                //@deprecated(since="11.7.2").
-                Table-Handle-By-Value = TableHandle, ByValue
-                //@deprecated(since="11.7.2").
-                TableHandleByValue    = Table-Handle-By-Value
+                Buffer
+                
                 .
 end enum.

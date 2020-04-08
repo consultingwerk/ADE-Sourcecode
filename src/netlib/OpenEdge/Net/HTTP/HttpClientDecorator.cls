@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2015 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : HttpClientDecorator
@@ -57,8 +57,8 @@ class OpenEdge.Net.HTTP.HttpClientDecorator abstract implements IHttpClient:
 	/** Executes an HTTP request.
 	
 	    This method wraps the Execute(Req,Resp) call in the same way that the
-	    HttpClient does. If does so in order to ensure that tyhe Execute(req, resp)
-	    is always called, becuase we don't want to force each decorator to have
+	    HttpClient does. If does so in order to ensure that the Execute(req, resp)
+	    is always called, because we don't want to force each decorator to have
 	    to implement this call.
         
         @param  HttpRequest Request parameters (URL, method, etc)

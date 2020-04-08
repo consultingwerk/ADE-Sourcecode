@@ -168,6 +168,25 @@ class OpenEdge.ApplicationServer.AgentInfo :
         end finally. 
     end method.
     
+    /* Returns the agent dynamic ABL session info
+       
+       @param longchar out JSON representation of the stack 
+       @return logical  */
+
+    method public logical GetDynamicABLSessionLimitInfo (output sessionInfo as longchar):
+        define variable mptr as memptr no-undo.
+        define variable retVal as logical no-undo.
+        
+        assign retVal = Progress.ApplicationServer.AgentInfo:GetDynamicABLSessionLimitInfo(mptr).
+        copy-lob from mptr // JSON data is spec'ed as UTF-8
+            to sessionInfo convert target codepage 'utf-8':u.
+        
+        return retVal.
+        finally:
+            set-size(mptr) = 0.
+        end finally. 
+    end method.
+    
     /* Returns the agent call stack for a given session
        
        @param character The session id for which to return a call stack
@@ -266,6 +285,7 @@ class OpenEdge.ApplicationServer.AgentInfo :
 
     /* Returns the active request for a given sessionID
        @param character in session id 
+       @param longchar out request info for the given session id 
     */
     method public void getAgentActiveRequestData (INPUT sessionId AS character, output table-handle hTTCopy):
         
@@ -294,8 +314,7 @@ class OpenEdge.ApplicationServer.AgentInfo :
      
         CREATE QUERY hQuery.
         hQuery:SET-BUFFERS(hTTSrcBuffer).
-       /* hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME). */
-	hQuery:QUERY-PREPARE(SUBSTITUTE("FOR EACH &1 WHERE &1._Request-BrokerSessionId='&2'", pasThandle:NAME, sessionId)).
+        hQuery:QUERY-PREPARE("FOR EACH " +  pasThandle:NAME).
      
         hQuery:QUERY-OPEN().
      
@@ -303,11 +322,14 @@ class OpenEdge.ApplicationServer.AgentInfo :
             hQuery:GET-NEXT().
             IF hQuery:QUERY-OFF-END THEN LEAVE. 
 		
-           /* IF hTTSrcBuffer:BUFFER-FIELD("_Request-BrokerSessionId"):BUFFER-VALUE = sessionId THEN */
+            IF hTTSrcBuffer:BUFFER-FIELD("_Request-BrokerSessionId"):BUFFER-VALUE = sessionId THEN
+            DO:
                 /* Create record and copy from source */
                 hTTCopyBuffer:BUFFER-CREATE().
                 hTTCopyBuffer:BUFFER-COPY(hTTSrcBuffer).
                 hTTCopyBuffer:BUFFER-RELEASE().
+                
+            END.
 
         END.
      

@@ -123,9 +123,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         define variable oPartData as ByteBucket no-undo.
         define variable iStartDataPos as int64 no-undo.
         define variable startAt as datetime no-undo.
-        define variable boundaryBytes as integer extent no-undo.
         define variable boundaryLoop as integer no-undo.
         define variable atBoundary as logical no-undo.
+        define variable cPattern as character no-undo.
+        define variable idx as integer no-undo.
         
         assign iSize = get-size(pmData).
         
@@ -142,47 +143,32 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                startAt            = now
                iByte              = 0
                
-               iBoundaryLength       = length(oMPE:Boundary, 'raw':u)
-               extent(boundaryBytes) = iBoundaryLength
-               .
-        // cache the boundary as a series of bytes, since we don't know whether 
-        // there will be -- embedded in the part bodies or not. We compare these bytes
-        // against the bytes in the memptr - we do NOT compare strings since there may
-        // be conversion errors (eg non-convertible or non-comparable bytes following
-        // the -- in the body
-        do iLoop = 1 to iBoundaryLength:
-            assign boundaryBytes[iLoop] = asc(substring(oMPE:Boundary, iLoop, 1)).
-        end.
+               iBoundaryLength    = length(oMPE:Boundary, 'raw':u)
+               cPattern           = "--" + this-object:Boundary.
         
         MAIN-LOOP:
         do iLoop = 1 to iSize:
-            assign iPrevByte = iByte
-                   iByte     = get-byte(pmData, iLoop)
-                   .
-                /* double hyphen/dash -- or end-of-data */
-            if    (iByte eq 45 and iPrevByte eq 45)
-               or (iLoop eq iSize)
-            then
-            do:
+            idx = INDEX(pmData, cPattern, iLoop).
+            iLoop = idx.
+            if iLoop gt 2 then
+                    // iLoop points to the first dash; now check the 2 bytes before that 
+                    assign atBoundary = (    get-byte(pmData, iLoop - 2) eq CR
+                                         and get-byte(pmData, iLoop - 1) eq LF).
+            else
+                atBoundary = (idx > 0).
+
+            if  not atBoundary then
+                 return iSize.
+            else do:
                 // if the length of the boundary will span the end of the memptr, then it's not a boundary
-                if (iLoop + iBoundaryLength gt iSize) then
+                if (iLoop + iBoundaryLength gt iSize) or (idx eq 0) then do:
                     assign atBoundary = no.
-                else
-                // if we're at the beginning of the body, there may be no prologue and so no leading CRLF
-                if iLoop gt 2 then
-                    // iLoop - 1 takes us to the first dash; now check the 2 bytes before that 
-                    assign atBoundary = (    get-byte(pmData, iLoop - 1 - 2) eq CR
-                                         and get-byte(pmData, iLoop - 1 - 1) eq LF).
-                else
-                    assign atBoundary = yes.
-                
-                do boundaryLoop = 1 to iBoundaryLength
-                   while atBoundary:
-                    assign atBoundary = (get-byte(pmData, iLoop + boundaryLoop) eq boundaryBytes[boundaryLoop]).
                 end.
-                
+                    
                 if atBoundary then
                 do:
+                    // now iLoop should point to second dash so incrementing it by 1
+                    iLoop = iLoop + 1.
                     /* postition of last byte of part, excluding boundaries */
                     assign iEndPos           = (iLoop - 2 /* for the -- */ - 2 /* for CRLF */)
                            lHeadersRead      = false
