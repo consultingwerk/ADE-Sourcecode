@@ -33,6 +33,9 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
     // TRUE if the response line and set of headers have been written
     define private variable preamble_written as logical no-undo.
     
+    // TRUE if the associated response's message body has been written
+    define private variable body_written as logical no-undo.
+    
     /* The stream to which we are writing */
     define public property WebStream as handle no-undo 
         get ():
@@ -74,6 +77,9 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         /* allow for reopens */
         output stream-handle WebStream close.
         output stream-handle WebStream TO "WEB":u.
+        
+        // We can write more body after close()/open()
+        assign this-object:body_written = false.
     end method.
     
     /* Closes the web stream */
@@ -97,9 +103,9 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         define variable bytesWritten as int64 no-undo.
         
         WriteHttpPreamble().
-        
-        assign bytesWritten = get-size(pData).
-        
+        assign bytesWritten = get-size(pData)
+               body_written = true
+               .
         export stream-handle WebStream pData.
         
         return bytesWritten.
@@ -115,8 +121,9 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         define variable tmpmemptr as memptr.
         define variable lenmemptr as integer.
         
-        assign lenmemptr = get-size(pmData).
+        // The Write(memptr) method sets body_written = true ; we don't need to do it here 
         
+        assign lenmemptr = get-size(pmData).
         if lenmemptr eq 0 or
            offset    lt 1 or
            len       le 0 or
@@ -147,11 +154,15 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         @param longchar The data to write to the web stream 
         @return int64 The number of bytes written */
     method public override int64 Write( lcData as longchar ):
-        WriteHttpPreamble().
+        define variable bytesWritten as int64 no-undo.
         
+        WriteHttpPreamble().
+        assign bytesWritten = length(lcData, 'raw':u)
+               body_written = true
+              .
         export stream-handle WebStream lcData.
         
-        return length(lcData, "RAW":u). 
+        return bytesWritten. 
     end method.
     
     /*  Writes character data to the web stream 
@@ -159,11 +170,15 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         @param character The data to write to the web stream 
         @return int64 The number of bytes written */
     method public override int64 Write(pcData as character).
-        WriteHttpPreamble().
+        define variable bytesWritten as int64 no-undo.
         
+        WriteHttpPreamble().
+        assign body_written = true
+               bytesWritten = length(pcData, 'raw':u)
+               .
         put stream-handle WebStream unformatted pcData.
         
-        return length(pcData, 'raw':u).
+        return bytesWritten.
     end method.
     
     /* Writes out the HTTP status line & headers.
@@ -189,12 +204,11 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
             // response to a HEAD request, we assume
             .
         else
-        do:
             // Per https://tools.ietf.org/html/rfc7230#section-3.3.2 , there MUST NOT be a Content-Length header
             // when there is transfer encoding
+            //
+            // PASOE will write the Transfer-Encoding: chunked header based on the missing Content-Length header
             this-object:Response:RemoveHeader('Content-Length':u).
-            WriteHeader('Transfer-Encoding':u, lc(string(TransferEncodingEnum:Chunked))).
-        end.
         
         // OTHER HEADERS
         WriteHeaders().
@@ -293,8 +307,11 @@ class OpenEdge.Web.WebResponseWriter inherits OutputStream:
         
         if not valid-object(Response)
         or not valid-object(Response:Entity)
+        or body_written
         then
             return.
+        
+        assign body_written = true.
         
         /* Convert from a strongly-typed body object to bytes */
         if type-of(this-object:Response:Entity, ByteBucket) then

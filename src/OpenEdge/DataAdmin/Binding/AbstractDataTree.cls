@@ -1,5 +1,5 @@
 /* ***********************************************************/
-/* Copyright (c) 2013-2016 by Progress Software Corporation       */
+/* Copyright (c) 2013-2016,2020 by Progress Software Corporation       */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -206,7 +206,7 @@ class  OpenEdge.DataAdmin.Binding.AbstractDataTree abstract implements IDataTree
                             leave. // leave to skip iterating other fields                            
                     end.
                     TableList2 = tblChar + "@" + schChar + ",".                    
-                    if index(TableList1,TableList2) eq 0 or TableList1 eq "" then do:
+                    if lookup(TableList2, TableList1) eq 0 or TableList1 eq "" then do:
                         cnt = cnt + 1.                        
                         if (batchStart eq 0 and pSize eq 0) or (batchStart eq ? and pSize eq ?) then do:
                             jsonArray:add(getCdcJsonRow(que,tblChar,schChar,pfilter,pbuffers,pcname,phidefields)).

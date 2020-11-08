@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2008,2020 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -31,7 +31,8 @@ History:
                       20020701-029
    fernando  03/13/06 Storing table names in temp-table - 20050930-006.
    fernando  12/13/07 Handle long list of "some" selected tables 
-   fernando  06/26/08 Filter out schema tables for encryption   
+   fernando  06/26/08 Filter out schema tables for encryption
+   tmasood   06/03/20 Fixed issue with display of metaschema tables   
 
 *************************************************************/
 
@@ -478,7 +479,7 @@ IF NOT p_option THEN DO:
         THEN user_filename = cache_file[p_recid].
       ELSE
       IF p_typed <> cache_file[p_recid] THEN DO:
-        FIND _File
+        FIND FIRST _File
           WHERE _File._Db-recid = drec_db
             AND _File._File-name BEGINS p_typed 
             AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN") NO-ERROR.
