@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : TokenResolver
@@ -12,7 +12,7 @@ Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiari
                     the token format is ${<token>}, where
                     token = group "." arg
                     groups = session | env | guid | t[ime] | web | ver[sion]
-                             cp | req[uest] | name
+                             cp | req[uest] | name | err
                    
                     If a token cannot be resovled, or resolves to a value of
                     ? (unknown) then the token name is used.  
@@ -110,16 +110,27 @@ Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiari
                             L   : trimmed elements are lower-cased
                             K   : trimmed elements are left alone (default)
                             C   : trimmed elements are Camel-cased (caps only written) 
+ 
+                 * Group args for ERROR
+                    N          : message number n (defaults to 1 if not an integer or none provided)
+                    SEV        : error severity
+                    RETVAL     : return value, if an AppError
+                    STACK      : the callstack, if enabled
+                    TYPE       : the error type (class) 
+ 
  ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using Ccs.Common.Support.IDateTimeTzHolder.
 using OpenEdge.Core.Session.
 using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.TimeStamp.
+using OpenEdge.Core.Util.Token.
 using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Core.Util.TokenResolverEventArgs.
 using OpenEdge.Security.Principal.
+using Progress.Lang.AppError.
 
 class OpenEdge.Core.Util.TokenResolver:
     
@@ -151,6 +162,57 @@ class OpenEdge.Core.Util.TokenResolver:
             set.
     
     define static private variable mInstanceRoot as character no-undo.
+    
+    /* Resolves a ERR-based token arg, based on the type/logger name given
+       
+       @param character  The token argument for ${ERR.*} tokens
+       @param Progress.Lang.Error The error/exception to resolve
+       @return character The resolved string  */
+    method static public character ResolveError(input pTokenArg  as character,
+                                                input pError as Progress.Lang.Error):
+        define variable tokenVal as character no-undo.
+        define variable idx as integer no-undo.
+        
+        if not valid-object(pError) then
+            return ?.
+        
+        case pTokenArg:
+            when ? then
+                assign tokenVal = ?.
+            
+            // type = type of the error
+            when 'type':u then
+                assign tokenVal = pError:GetClass():TypeName.
+            
+            // sev = the value of the severity property
+            when 'sev':u then
+                assign tokenVal = string(pError:Severity).
+            
+            // stack = the error's callstack
+            when 'stack':u then
+                assign tokenVal = pError:CallStack.
+            
+            // retval = the return value if a AppError
+            when 'retval':u then
+                if type-of(pError, AppError) then
+                    assign tokenVal = cast(pError, AppError):ReturnValue.
+            
+            // <blank>   = err.1
+            // <non-int> = err.1
+            // <int>     = the message represented by that number
+            otherwise
+            do:
+                // separate ASSIGN statements to make sure that we can reset the ERROR-STATUS:ERROR flag
+                assign idx = integer(pTokenArg) no-error.
+                
+                //set no-error here to stop errors propagating onwards
+                assign tokenVal = pError:GetMessage(max(1, idx))
+                       no-error.                
+            end.
+        end case.
+        
+        return tokenVal.
+    end method.
     
     /* Resolves a NAME-based token arg, based on the type/logger name given
        
@@ -242,7 +304,7 @@ class OpenEdge.Core.Util.TokenResolver:
         return ResolveTime(pTokenArg,
                            MONTH_LONG, MONTH_SHORT,
                            WEEKDAY_LONG, WEEKDAY_SHORT,
-                           pTimestamp).                                                   
+                           pTimestamp).
     end method.
     
     /* Resolves a time-based token arg, based on the timestamp given
@@ -447,134 +509,216 @@ class OpenEdge.Core.Util.TokenResolver:
         end finally.
     end method.
     
+    /* Resolves a single token into appropriate values, optionally using some input context
+       
+       @param character (required) The token group
+       @param character (optional) The token argument
+       @param Progress.Lang.Object (optional) Context used to resolve the token. eg a TimeStamp for times
+       @return character The token value. Returns the UNKNOWN value if the token cannot be resolved */
+    method static public character ResolveToken(input pTokenGroup as character,
+                                                input pTokenArg as character,
+                                                input pContext as Progress.Lang.Object):
+        define variable tokenVal as character no-undo.
+        define variable dynCall as handle no-undo.
+        define variable dotPos as integer no-undo.
+        
+        assign tokenVal = ?. 
+        
+        case pTokenGroup:
+            when 'session':u then
+            do:
+                // we can get the rest dynamically.
+                if not valid-handle(dynCall) then
+                    create call dynCall.
+                else
+                    dynCall:clear().
+                
+                assign dynCall:call-type = get-attr-call-type
+                       dynCall:call-name = pTokenArg
+                       dynCall:in-handle = session:handle
+                       .
+                dynCall:invoke no-error.
+                assign tokenVal = substitute('&1':u, dynCall:return-value). 
+            end.   // session
+            
+            when 't':u or
+            when 'time':u then
+            case true:
+                when not valid-object(pContext) then
+                    assign tokenVal  = ResolveTime(pTokenArg, now).
+                when type-of(pContext, TimeStamp) then
+                    assign tokenVal  = ResolveTime(pTokenArg,
+                                                   cast(pContext, TimeStamp):ToDateTimeTz() ).
+                when type-of(pContext, IDateTimeTzHolder) then
+                    assign tokenVal  = ResolveTime(pTokenArg,
+                                                   cast(pContext, IDateTimeTzHolder):Value ).
+            end case.
+            
+            when 'guid':u then
+                assign tokenVal = guid.
+            
+            when 'env':u then
+            do:
+                case pTokenArg:
+                    when 'CATALINA_BASE':u then
+                    do:
+                        if mInstanceRoot eq '':u then
+                            assign tokenVal      = os-getenv(pTokenArg)
+                                   mInstanceRoot = tokenVal
+                                   .
+                        else
+                            assign tokenVal = mInstanceRoot. 
+                    end.
+                    otherwise
+                        assign tokenVal = os-getenv(pTokenArg).
+                end case.
+            end.    //env
+            
+            when 'version':u or
+            when 'ver':u then
+            case pTokenArg:
+                when 'major':u then
+                    assign tokenVal = session:local-version-info:OEMajorVersion.
+                when 'minor':u then
+                    assign tokenVal = session:local-version-info:OEMinorVersion.
+                when 'maint':u then
+                    assign tokenVal = session:local-version-info:OEMaintVersion.
+            end.    // version
+            
+            when 'request':u or
+            when 'req':u then
+            case pTokenArg:
+                when 'tpt':u then
+                    assign tokenVal = string(session:current-request-info:AdapterType).
+               when 'ccid':u then
+                    assign tokenVal = session:current-request-info:ClientContextId.
+                when 'id':u then
+                    assign tokenVal = session:current-request-info:RequestId.
+                when 'session':u then
+                    assign tokenVal = string(session:current-request-info:SessionId).
+                when 'thread':u then
+                    assign tokenVal = string(session:current-request-info:ThreadId).
+                when 'agent':u then
+                    assign tokenVal = string(session:current-request-info:AgentId).
+                when 'proc':u then
+                    assign tokenVal = session:current-request-info:ProcedureName.
+            end case.
+            
+            when 'web':u then
+            // if we're not in a WEBSPEED or PASOE session, these'll resolve to null/unknown
+            case pTokenArg:
+                // the file-system path to the webapp
+                when 'webapp.path':u then
+                    assign tokenVal = web-context:get-cgi-value('env':u, 'BASE_PATH':u).
+                // the webapp name
+                when 'webapp':u or
+                when 'webapp.name':u then
+                do:
+                    // we want a name here not a path. for that, use webapp.path
+                    assign tokenVal = trim(web-context:get-cgi-value('env':u, 'CONTEXT_PATH':u), '/':u).
+                    if tokenVal eq '':u then
+                        assign tokenVal = 'ROOT':u.
+                end.
+                
+                otherwise
+                    assign tokenVal = web-context:get-cgi-value('env':u, caps(pTokenArg)).
+            end case.  // web
+            
+            when 'cp':u then
+                if     valid-object(pContext)
+                   and type-of(pContext, Principal)
+                then
+                    assign tokenVal = ResolveUser(pTokenArg, cast(pContext, Principal):Token).
+            
+            when 'name':u then
+                if valid-object(pContext) then
+                    //tokenArg = format-expression "." logger-name 
+                    assign dotPos   = index(pTokenArg, '.':u)
+                           tokenVal = ResolveName(substring(pTokenArg, 1, dotPos - 1), string(pContext))
+                           .
+        end case.   // token-group
+        
+        return tokenVal.
+        finally:
+            if valid-object(dynCall) then
+                delete object dynCall no-error.
+            
+            assign error-status:error = false.
+        end finally.
+    end method.
+    
+    /* Extracts any tokens from a string, and returns them as an array of token objects
+       
+       @param character The string potentially containing tokens
+       @return Token[]  An array of tokens. May be indeterminate in size if there are no tokens. */
+    method static public Token extent Parse(input pBaseString as character):
+        define variable tokens as Token extent no-undo.
+        define variable startPos as integer no-undo.
+        define variable endPos as integer no-undo.
+        define variable idx as integer no-undo.
+        define variable token as character no-undo.
+        
+        if    pBaseString eq ?
+           or pBaseString eq '':u
+        then
+            return tokens.
+        
+        assign idx = num-entries(pBaseString, '$':u + StringConstant:CURLY_OPEN).
+        if idx eq 1 then
+            return tokens.
+        
+        assign extent(tokens) = idx - 1
+               idx            = 1
+               startPos       = index(pBaseString, '$':u + StringConstant:CURLY_OPEN)
+               .
+        do while startPos gt 0:
+            assign endPos     = index(pBaseString, StringConstant:CURLY_CLOSE)
+                   token      = substring(pBaseString, startPos, endPos - startPos + 1)
+                   token      = trim(token, '$':u + StringConstant:CURLY_OPEN)
+                   token      = trim(token, StringConstant:CURLY_CLOSE)
+                   
+                   // chop off the and everything preceeding the first } in the string
+                   pBaseString = substring(pBaseString, endPos + 1)
+                   // see if there's another token
+                   startPos     = index(pBaseString, '$':u + StringConstant:CURLY_OPEN)
+                   tokens[idx] = OpenEdge.Core.Util.Token:Parse(token)
+                   idx         = idx + 1
+                   .
+        end.
+        
+        return tokens.
+    end method.
+    
     /* Resolves any tokens in the file name into appropriate values
        
        @param character The source string
        @return character The resolved string */
     method static public character Resolve(input pcBaseString as character):
-        define variable resolvedName as character no-undo.
-        define variable startPos as integer no-undo.
-        define variable endPos as integer no-undo.
-        define variable token as character no-undo.
-        define variable dynCall as handle no-undo.
-        define variable logicalDb as character no-undo.
-        define variable currentTime as datetime-tz no-undo.
-        define variable formatString as character no-undo.
-        define variable currentUser as handle no-undo.
+        define variable tokens as Token extent no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable resolvedString as character no-undo.
         define variable tokenEventArgs as TokenResolverEventArgs no-undo.
+        define variable currentTime as datetime-tz no-undo.
+        define variable currentUser as handle no-undo.
         define variable dotPos as integer no-undo.
-        
-        if pcBaseString eq ? then
-            return '':u.
-        
-        //assign startPos = index(pcBaseString, '$':u).
-        assign startPos = index(pcBaseString, '$':u + StringConstant:CURLY_OPEN).
-        if startPos eq 0 then
-            return pcBaseString.
+        define variable logicalDb as character no-undo.
         
         assign /* use a variable to fix the time used in the filename. if we use now or time, we may flip 
                   to the next (milli)second during the execution of this loop */
                currentTime    = now
+               
+               tokens         = TokenResolver:Parse(pcBaseString)
+               cnt            = extent(tokens)
+               resolvedString = pcBaseString
                .
-        do while startPos gt 0:
-            assign endPos     = index(pcBaseString, StringConstant:CURLY_CLOSE)
-                   token      = substring(pcBaseString, startPos, endPos - startPos + 1)
-                   token      = trim(token, '$':u + StringConstant:CURLY_OPEN)
-                   token      = trim(token, StringConstant:CURLY_CLOSE)
-                   .
+        do loop = 1 to cnt:
+            assign tokenEventArgs = new TokenResolverEventArgs(tokens[loop]:Group, tokens[loop]:Arg).
             
-            // TokenValue is set to ? in the ctor
-            assign tokenEventArgs = new TokenResolverEventArgs(token).
             case tokenEventArgs:TokenGroup:
-                when 'session':u then
-                do:
-                    // we can get the rest dynamically.
-                    if not valid-handle(dynCall) then
-                        create call dynCall.
-                    else
-                        dynCall:clear().
-                    
-                    assign dynCall:call-type = get-attr-call-type
-                           dynCall:call-name = tokenEventArgs:TokenArg
-                           dynCall:in-handle = session:handle
-                           .                              
-                    dynCall:invoke no-error.
-                    assign tokenEventArgs:TokenValue = substitute('&1':u, dynCall:return-value). 
-                end.   // session
-                
                 when 't':u or
                 when 'time':u then
-                    assign tokenEventArgs:SourceValue = new TimeStamp(currentTime)
-                           tokenEventArgs:TokenValue  = ResolveTime(tokenEventArgs:TokenArg, currentTime).
-                
-                when 'guid':u then
-                    assign tokenEventArgs:TokenValue = guid.
-                
-                when 'env':u then
-                do:
-                    case tokenEventArgs:TokenArg:
-                        when 'CATALINA_BASE':u then
-                        do:
-                            if mInstanceRoot eq '':u then
-                                assign tokenEventArgs:TokenValue = os-getenv(tokenEventArgs:TokenArg)
-                                       mInstanceRoot             = tokenEventArgs:TokenValue.
-                            else
-                                assign tokenEventArgs:TokenValue = mInstanceRoot. 
-                        end.
-                        otherwise
-                            assign tokenEventArgs:TokenValue = os-getenv(tokenEventArgs:TokenArg).
-                    end case.
-                end.    //env
-                
-                when 'version':u or
-                when 'ver':u then
-                case tokenEventArgs:TokenArg:
-                    when 'major':u then
-                        assign tokenEventArgs:TokenValue = session:local-version-info:OEMajorVersion.
-                    when 'minor':u then
-                        assign tokenEventArgs:TokenValue = session:local-version-info:OEMinorVersion.
-                    when 'maint':u then
-                        assign tokenEventArgs:TokenValue = session:local-version-info:OEMaintVersion.
-                end.    // version
-                
-                when 'request':u or
-                when 'req':u then
-                case tokenEventArgs:TokenArg:
-                    when 'tpt':u then
-                        assign tokenEventArgs:TokenValue = string(session:current-request-info:AdapterType).
-                   when 'ccid':u then
-                        assign tokenEventArgs:TokenValue = session:current-request-info:ClientContextId.
-                    when 'id':u then
-                        assign tokenEventArgs:TokenValue = session:current-request-info:RequestId.
-                    when 'session':u then
-                        assign tokenEventArgs:TokenValue = string(session:current-request-info:SessionId).
-                    when 'thread':u then
-                        assign tokenEventArgs:TokenValue = string(session:current-request-info:ThreadId).
-                    when 'agent':u then
-                        assign tokenEventArgs:TokenValue = string(session:current-request-info:AgentId).
-                    when 'proc':u then
-                        assign tokenEventArgs:TokenValue = session:current-request-info:ProcedureName.
-                end case.
-                
-                when 'web':u then
-                // if we're not in a WEBSPEED or PASOE session, these'll resiolve to null/unknown
-                case tokenEventArgs:TokenArg:
-                    // the file-system path to the webapp
-                    when 'webapp.path':u then
-                        assign tokenEventArgs:TokenValue = web-context:get-cgi-value('env':u, 'BASE_PATH':u).
-                    // the webapp name
-                    when 'webapp':u or
-                    when 'webapp.name':u then
-                    do:
-                        // we want a name here not a path. for that, use webapp.path
-                        assign tokenEventArgs:TokenValue = trim(web-context:get-cgi-value('env':u, 'CONTEXT_PATH':u), '/':u).
-                        if tokenEventArgs:TokenValue eq '':u then
-                            assign tokenEventArgs:TokenValue = 'ROOT':u.
-                    end.
-                    
-                    otherwise
-                        assign tokenEventArgs:TokenValue = web-context:get-cgi-value('env':u, caps(tokenEventArgs:TokenArg)).
-                end case.  // web
+                    assign tokenEventArgs:SourceValue = new TimeStamp(currentTime).
                 
                 when 'cp':u then
                 do:
@@ -595,45 +739,33 @@ class OpenEdge.Core.Util.TokenResolver:
                     
                     if valid-handle(currentUser) then
                         // the C-P represented by currentUser is manually cleaned up in this method's finally block
-                        assign tokenEventArgs:SourceValue = new Principal(currentUser)
-                               tokenEventArgs:TokenValue  = ResolveUser(tokenEventArgs:TokenArg, currentUser)
-                               .
+                        assign tokenEventArgs:SourceValue = new Principal(currentUser).
                 end.    //cp
                 
                 when 'name':u then
-                    //tokenArg = format-expression "." logger-name 
                     assign dotPos                     = index(tokenEventArgs:TokenArg, '.':u)
                            tokenEventArgs:SourceValue = new String(substring(tokenEventArgs:TokenArg, dotPos + 1))
-                           tokenEventArgs:TokenValue  = ResolveName(substring(tokenEventArgs:TokenArg, 1, dotPos - 1),
-                                                                    tokenEventArgs:SourceValue:ToString()).
-            end case.   // token-group 
+                           .
+            end case.
+            
+            // resolve the individual token
+            assign tokenEventArgs:TokenValue = ResolveToken(tokenEventArgs:TokenGroup,
+                                                            tokenEventArgs:TokenArg,
+                                                            tokenEventArgs:SourceValue).
             
             // see if anyone wants to change this token, or handle tokens we don't know about
             TokenResolved:Publish(get-class(TokenResolver), tokenEventArgs).
             
-            // null values aren't nice in the filesystem. use the original token instead
-            if tokenEventArgs:TokenValue eq ? then
-                assign tokenEventArgs:TokenValue = token.
-            
-            assign resolvedName = resolvedName
-                                // add the stuff before the ${
-                                + substring(pcBaseString, 1, startPos - 1)
-                                // add the replaced value
-                                + tokenEventArgs:TokenValue
-                    
-                   // chop off the and everything preceeding the first } in the string
-                   pcBaseString = substring(pcBaseString, endPos + 1)
-                   // see if there's another token
-                   startPos     = index(pcBaseString, '$':u + StringConstant:CURLY_OPEN).
-                   .
+            if not tokenEventArgs:TokenValue eq ? then
+                assign resolvedString = replace(resolvedString,
+                                                '$':u + StringConstant:CURLY_OPEN + string(tokens[loop]) + StringConstant:CURLY_CLOSE, 
+                                                tokenEventArgs:TokenValue).  
         end.
         
-        return resolvedName + pcBaseString.
+        return resolvedString.
         finally:
             if valid-object(currentUser) then
                 delete object currentUser no-error.
-            if valid-object(dynCall) then
-                delete object dynCall no-error.
         end finally.
     end method.
     

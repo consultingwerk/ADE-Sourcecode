@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2011-2016 by Progress Software Corporation. */
+/* Copyright (c) 2011-2016,2019 by Progress Software Corporation. */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -3353,6 +3353,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
          end.
          ValidateBuffer(hbuf).
          ReadChildren(pjson).
+         ValidateChildren(hbuf).
     end method.    
     
     method protected void ReadChildren(json as JSONObject).
@@ -3805,7 +3806,13 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
         end.
     end method.
      
+    /* hook to validate current Buffer */
     method protected void ValidateBuffer(hBuffer as handle):
+    
+    end method.  
+
+    /* hook to validate children of current buffer  */ 
+    method protected void ValidateChildren(hBuffer as handle):
     
     end method.  
     

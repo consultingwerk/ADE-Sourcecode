@@ -24,6 +24,7 @@ using Progress.IO.FileOutputStream.
 using Progress.IO.OutputStream.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
+using Progress.Lang.Object.
 
 class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
     /** The filter being built */ 
@@ -92,7 +93,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         assign this-object:FilterType = pcFilterType.
     end method.
     
-     /** Adds or overwrites an option for the client library.
+    /** Adds or overwrites an option for the logger filter.
         
         @param  JsonObject The Filter options (can be anything)
         @return LogFilterBuilder This builder object. */
@@ -100,6 +101,72 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         Assert:NotNull(poValue, 'Filter options').
         
         SetOption('loggerOptions':u, poValue).
+        
+        return this-object.
+    end method.
+    
+    /** Adds or overwrites an option for the logger filter.
+        
+        @param  character The name of the option
+        @param  character The value of the option (can be anything)
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder Option(input pName as character,
+                                          input pValue as character):
+        Assert:NotNullOrEmpty(pName, 'Option name').
+        SetOption(pName, pValue).
+        
+        return this-object.
+    end method.
+    
+    /** Adds or overwrites an option for the logger filter.
+        
+        @param  character The name of the option
+        @param  Object The value of the option (can be anything)
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder Option(input pName as character,
+                                          input pValue as Object):
+        
+        Assert:NotNullOrEmpty(pName, 'Option name').
+        SetOption(pName, pValue).
+        
+        return this-object.
+    end method.
+    
+    /** Adds or overwrites an option for the logger filter.
+        
+        @param  character The name of the option
+        @param  int64 The value of the option (can be anything)
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder Option(input pName as character,
+                                          input pValue as int64):
+        Assert:NotNullOrEmpty(pName, 'Option name').
+        SetOption(pName, pValue).
+        
+        return this-object.
+    end method.
+    
+    /** Adds or overwrites an option for the logger filter.
+        
+        @param  character The name of the option
+        @param  decimal The value of the option (can be anything)
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder Option(input pName as character,
+                                          input pValue as decimal):
+        Assert:NotNullOrEmpty(pName, 'Option name').
+        SetOption(pName, pValue).
+        
+        return this-object.
+    end method.
+    
+    /** Adds or overwrites an option for the logger filter.
+        
+        @param  character The name of the option
+        @param  logical The value of the option (can be anything)
+        @return LogFilterBuilder This builder object. */
+    method public LogFilterBuilder Option(input pName as character,
+                                          input pValue as logical):
+        Assert:NotNullOrEmpty(pName, 'Option name').
+        SetOption(pName, pValue).
         
         return this-object.
     end method.
@@ -115,7 +182,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         return this-object.
     end method.
-
+    
     /** Indicates whether to append to the log
         
         @param  character The filename to write to

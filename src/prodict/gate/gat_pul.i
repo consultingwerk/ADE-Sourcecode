@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2015 by Progress Software Corporation. All rights    *
+* Copyright (C) 2019 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -560,6 +560,9 @@ for each gate-work
     or when "PACKAGE" then do:
       if user_dbtype = "ORACLE"
        then do:
+       /* Adding oracle_procinfo to schema as backward compatibility*/
+        RUN "prodict/ora/_ora_crp.p" (RECID(DICTDB._Db)).
+        
         RUN prodict/ora/_ora_prc.p
           (INPUT  typevar,
            INPUT  namevar,

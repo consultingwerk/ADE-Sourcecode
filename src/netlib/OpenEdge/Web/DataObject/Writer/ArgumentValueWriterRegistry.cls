@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterRegistry
@@ -40,6 +40,7 @@ using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry.
 using OpenEdge.Web.DataObject.Writer.CollectionValueWriter.
+using OpenEdge.Web.DataObject.Writer.DataRequestValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateTimeArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.DateTimeTzArrayValueWriter.
@@ -75,7 +76,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry:
             if not valid-object(ArgumentValueWriterRegistry:Registry) then
             do:
                 assign oRegistry = new BuilderRegistry(get-class(ArgumentValueWriter)).
-                ArgumentValueWriterRegistry:InitializeRegistry(oRegistry).                
+                ArgumentValueWriterRegistry:InitializeRegistry(oRegistry).
                 assign ArgumentValueWriterRegistry:Registry = oRegistry.
             end.
             return ArgumentValueWriterRegistry:Registry.
@@ -119,6 +120,9 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry:
         poRegistry:Put(get-class(JsonObject):TypeName,              get-class(JsonObjectValueWriter)).
         poRegistry:Put(get-class(JsonArray):TypeName,               get-class(JsonArrayValueWriter)).
         poRegistry:Put(get-class(ICollection):TypeName,             get-class(CollectionValueWriter)).
+        
+        // external-to-netlib writers or keys (Business Logic or other)
+        poRegistry:Put('Ccs.BusinessLogic.IGetDataRequest':u,       get-class(DataRequestValueWriter)).
     end method.
     
 end class. 

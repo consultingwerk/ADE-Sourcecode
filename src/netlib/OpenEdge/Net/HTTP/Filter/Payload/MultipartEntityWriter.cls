@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015, 2017-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MultipartEntityWriter
@@ -29,7 +29,11 @@ using Progress.Lang.AppError.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWriter
-        implements ISupportMultipartEntity:
+        implements ISupportMultipartEntity: 
+    
+    /* magic numbers */
+    define private property CR as integer init 13 no-undo get.
+    define private property LF as integer init 10 no-undo get.
     
     /** The character string delimiting the parts. Excludes the leading and trailing -- */
     define public property Boundary as character no-undo get. set.
@@ -109,7 +113,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         define variable iPartLoop as int64 no-undo.
         define variable iNumBytes as int64 no-undo.
         define variable cHeader as character no-undo.
-        define variable cPotentialBoundary as character no-undo.
         define variable oPartWriter as MessageWriter no-undo.
         define variable iBoundaryLength as integer no-undo.
         define variable mPartData as memptr no-undo.
@@ -120,6 +123,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         define variable oPartData as ByteBucket no-undo.
         define variable iStartDataPos as int64 no-undo.
         define variable startAt as datetime no-undo.
+        define variable boundaryBytes as integer extent no-undo.
+        define variable boundaryLoop as integer no-undo.
+        define variable atBoundary as logical no-undo.
         
         assign iSize = get-size(pmData).
         
@@ -128,24 +134,54 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
         assign oMPE               = new MultipartEntity()
                oMPE:Boundary      = this-object:Boundary
                this-object:Entity = oMPE
-               iBoundaryLength    = length(this-object:Boundary, 'raw':u)
                /* postition of first byte of part, excluding boundaries */
                iStartPos          = 1
                iPartNum           = 0
                lHeadersRead       = false
                oPartData          = ByteBucket:Instance()
                startAt            = now
+               iByte              = 0
+               
+               iBoundaryLength       = length(oMPE:Boundary, 'raw':u)
+               extent(boundaryBytes) = iBoundaryLength
                .
+        // cache the boundary as a series of bytes, since we don't know whether 
+        // there will be -- embedded in the part bodies or not. We compare these bytes
+        // against the bytes in the memptr - we do NOT compare strings since there may
+        // be conversion errors (eg non-convertible or non-comparable bytes following
+        // the -- in the body
+        do iLoop = 1 to iBoundaryLength:
+            assign boundaryBytes[iLoop] = asc(substring(oMPE:Boundary, iLoop, 1)).
+        end.
+        
         MAIN-LOOP:
         do iLoop = 1 to iSize:
-            assign iByte = get-byte(pmData, iLoop). 
-                
+            assign iPrevByte = iByte
+                   iByte     = get-byte(pmData, iLoop)
+                   .
                 /* double hyphen/dash -- or end-of-data */
-            if (iByte eq 45 and iPrevByte eq 45) or
-               (iLoop eq iSize) then
+            if    (iByte eq 45 and iPrevByte eq 45)
+               or (iLoop eq iSize)
+            then
             do:
-                assign cPotentialBoundary = get-string(pmData, iLoop + 1, iBoundaryLength).
-                if cPotentialBoundary eq this-object:Boundary then
+                // if the length of the boundary will span the end of the memptr, then it's not a boundary
+                if (iLoop + iBoundaryLength gt iSize) then
+                    assign atBoundary = no.
+                else
+                // if we're at the beginning of the body, there may be no prologue and so no leading CRLF
+                if iLoop gt 2 then
+                    // iLoop - 1 takes us to the first dash; now check the 2 bytes before that 
+                    assign atBoundary = (    get-byte(pmData, iLoop - 1 - 2) eq CR
+                                         and get-byte(pmData, iLoop - 1 - 1) eq LF).
+                else
+                    assign atBoundary = yes.
+                
+                do boundaryLoop = 1 to iBoundaryLength
+                   while atBoundary:
+                    assign atBoundary = (get-byte(pmData, iLoop + boundaryLoop) eq boundaryBytes[boundaryLoop]).
+                end.
+                
+                if atBoundary then
                 do:
                     /* postition of last byte of part, excluding boundaries */
                     assign iEndPos           = (iLoop - 2 /* for the -- */ - 2 /* for CRLF */)
@@ -161,8 +197,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                         otherwise
                         do:
                             assign oPart     = new MessagePart()
-                                   iPrevByte = 0.  /* reset */
-                            
+                                   // reset
+                                   iPrevByte = 0
+                                   .
                             PART-LOOP:
                             do iPartLoop = iStartPos to iEndPos:
                                 assign iByte     = get-byte(pmData, iPartLoop)
@@ -171,14 +208,15 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                 if not lHeadersRead then
                                 do:
                                     /* don't count the CR/LF as bytes */
-                                    if iByte eq 13 or iByte eq 10 then
+                                    if iByte eq CR or iByte eq LF then
                                         assign iNumBytes = iNumBytes - 1.
                                     
                                     /* if we're at the end of our chunk of data, or we have hit 
                                        the carriage return */
-                                    if ( (iPrevByte eq 13 /*CR*/ and iByte eq 10 /*LF*/ ) or 
-                                         iPartLoop eq iEndPos) and
-                                       iNumBytes gt 0 then
+                                    if     (   (iPrevByte eq CR and iByte eq LF) 
+                                             or iPartLoop eq iEndPos) 
+                                       and iNumBytes gt 0
+                                    then
                                     do:
                                         /* start at the beginning of this word/token. */
                                         assign cHeader = get-string(pmData, iPartLoop - (iNumBytes + 1), iNumBytes)
@@ -188,17 +226,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                                                .
                                         oPart:Headers:Put(HttpHeaderBuilder:Build(cName):Value(cValue):Header).
                                                /* reset counters/temps */
-                                        assign cHeader = '':u
+                                        assign cHeader   = '':u
                                                iNumBytes = 0.
                                     end.
                                     
                                     /* if this is the 2nd CRLF then we have finished all the headers 
-                                    
+                                       
                                        NOTE: usually we check for line ending by having CR+LF. Here we
                                        check for LF then CR since that means the first byte following a
                                        LF is another line ending (CR). */
-                                    if iByte eq 10 and iNumBytes eq 0 and 
-                                       get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (StringConstant:CRLF + StringConstant:CRLF) then
+                                    if iByte eq LF and iNumBytes eq 0 and 
+                                       get-string(pmData, iPartLoop - 3 /* 1-based counting */, 4) eq (StringConstant:CRLF + StringConstant:CRLF)
+                                    then
                                         assign lHeadersRead  = true
                                                iStartDataPos = iPartLoop.
                                     
@@ -245,7 +284,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                         
                         /* so we leave processing */
                         assign iLoop = iSize.
-
+                        
                         if oMPE:Epilogue eq StringConstant:CRLF then
                             assign oMPE:Epilogue = '':u. 
                         
@@ -256,12 +295,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.MultipartEntityWriter inherits MessageWri
                     
                     assign iStartPos = iStartPos + 2 /* CRLF */
                            iLoop     = iStartPos - 1 /* AVM will add 1 on the next iteration of this loop*/
-                           //iLoop     = iEndPos - 1 /* AVM will add 1 on the next iteration of this loop*/
                            .
                 end. /* we're at a boundary */
             end.    /* MAIN-LOOP: */
-            
-            assign iPrevByte = iByte.
         end.
         
         Logger:Trace(substitute('Multipart data of &1 bytes parsed in &2ms',

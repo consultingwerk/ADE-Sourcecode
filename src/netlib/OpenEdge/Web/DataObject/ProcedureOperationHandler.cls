@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ProcedureOperationHandler
@@ -100,13 +100,15 @@ class OpenEdge.Web.DataObject.ProcedureOperationHandler inherits OperationHandle
         
         /* create Call object from operation params (IN, IN-OUT, OUT ) */
         create call hDynCall.
-        assign iMax = poOperation:Parameters:Size
+        assign iMax                    = poOperation:Parameters:Size
                
                hDynCall:num-parameters = iMax
-               hDynCall:call-name = poOperation:TargetFunction
-               hDynCall:in-handle = cast(poEntity, IHandleHolder):Value
-               cReturnType        = entry(2, cSignature)
+               hDynCall:call-name      = poOperation:TargetFunction
+               cReturnType             = entry(2, cSignature)
                .
+        if not poOperation:TargetFunction eq ? then
+            assign hDynCall:in-handle = cast(poEntity, IHandleHolder):Value.
+        
         case entry(1, cSignature):
             when 'FUNCTION':u  then hDynCall:call-type = function-call-type.
             when 'PROCEDURE':u then hDynCall:call-type = procedure-call-type.

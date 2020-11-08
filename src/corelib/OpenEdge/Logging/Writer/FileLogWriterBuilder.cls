@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : FileLogFilterBuilder
@@ -17,11 +17,11 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.StringConstant.
+using OpenEdge.Core.Util.TokenResolver.
 using OpenEdge.Logging.Filter.ILoggerFilter.
 using OpenEdge.Logging.Filter.LogFilterBuilder.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerFilterRegistry.
-using OpenEdge.Logging.TokenResolver.
 using OpenEdge.Logging.Writer.IFileWriter.
 using OpenEdge.Logging.Writer.VoidWriter.
 using Progress.IO.FileOutputStream.

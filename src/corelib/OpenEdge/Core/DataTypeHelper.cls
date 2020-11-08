@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015-2016, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
  /*------------------------------------------------------------------------
     File        : DataTypeHelper
@@ -22,53 +22,26 @@ class OpenEdge.Core.DataTypeHelper:
         
         case poDataType:
             when DataTypeEnum:None               then return '':u.
-            when DataTypeEnum:Character          then return 'Character':u.
             when DataTypeEnum:CharacterArray     then return 'Character Extent':u.
-            when DataTypeEnum:LongChar           then return 'Longchar':u.
             when DataTypeEnum:LongCharArray      then return 'Longchar Extent':u.
-            when DataTypeEnum:Integer            then return 'Integer':u.
             when DataTypeEnum:IntegerArray       then return 'Integer Extent':u.
-            when DataTypeEnum:Int64              then return 'Int64':u.
             when DataTypeEnum:Int64Array         then return 'Int64 Extent':u.
-            when DataTypeEnum:Decimal            then return 'Decimal':u.
             when DataTypeEnum:DecimalArray       then return 'Decimal Extent':u.
-            when DataTypeEnum:Logical            then return 'Logical':u.
             when DataTypeEnum:LogicalArray       then return 'Logical Extent':u.
-            when DataTypeEnum:Rowid              then return 'Rowid':u.
             when DataTypeEnum:RowidArray         then return 'Rowid Extent':u.
-            when DataTypeEnum:Recid              then return 'Recid':u.
             when DataTypeEnum:RecidArray         then return 'Recid Extent':u.
-            when DataTypeEnum:Date               then return 'Date':u.
             when DataTypeEnum:DateArray          then return 'Date Extent':u.
-            when DataTypeEnum:Datetime           then return 'Datetime':u.
             when DataTypeEnum:DatetimeArray      then return 'Datetime Extent':u.
-            when DataTypeEnum:DatetimeTZ         then return 'Datetime-TZ':u.
             when DataTypeEnum:DatetimeTZArray    then return 'Datetime-TZ Extent':u.
-            when DataTypeEnum:Raw                then return 'Raw':u.
             when DataTypeEnum:RawArray           then return 'Raw Extent':u.
-            when DataTypeEnum:Memptr             then return 'Memptr':u.
             when DataTypeEnum:MemptrArray        then return 'Memptr Extent':u.
-            when DataTypeEnum:Handle             then return 'Handle':u.
             when DataTypeEnum:HandleArray        then return 'Handle Extent':u.
+            when DataTypeEnum:ComHandleArray     then return 'Com-Handle Extent':u.
             when DataTypeEnum:Class              then return 'Class &1':u.
             when DataTypeEnum:ClassArray         then return 'Class &1 Extent':u.
             when DataTypeEnum:ProgressLangObject then return 'Progress.Lang.Object':u.
-            when DataTypeEnum:BLOB               then return 'BLOB':u.
-            when DataTypeEnum:CLOB               then return 'CLOB':u.
-            when DataTypeEnum:ComHandle          then return 'Com-Handle':u.
-            when DataTypeEnum:ComHandleArray     then return 'Com-Handle Extent':u.
-            when DataTypeEnum:Dataset            then return 'Dataset':u.
-            when DataTypeEnum:Buffer             then return 'Buffer':u.
-            when DataTypeEnum:TempTable          then return 'Temp-Table':u.
-            when DataTypeEnum:ClientPrincipal    then return 'Client-Principal':u.
-            
-            when DataTypeEnum:Enumeration        then return 'Enumeration':u.
-            when DataTypeEnum:Stream             then return 'Stream':u.
-            when DataTypeEnum:RowState           then return 'row-state':u.
-            
-            when DataTypeEnum:XmlNodeRef         then return 'x-noderef':u.
-            when DataTypeEnum:XmlDocument        then return 'x-document':u.
-        end.        
+            otherwise                                 return string(poDataType).
+        end.
     end method.
           
     method static public logical IsPrimitive(poDataType as DataTypeEnum):

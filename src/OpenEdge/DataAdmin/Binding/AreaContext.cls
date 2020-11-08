@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010-2011 by Progress Software Corporation  */
+/* Copyright (c) 2010-2011,2019 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -223,13 +223,15 @@ class OpenEdge.DataAdmin.Binding.AreaContext inherits DataAdminContext implement
         ValidateClusterSize(phArea::name,string(phArea::ClusterSize)).
         ValidateRecordsPerBlock(phArea::name,string(phArea::RecordsPerBlock)).     
         ValidateAreaType(phArea::name,phArea::type).      
+    end method.      
+    
+    method protected override void ValidateChildren(phArea as handle):
         if pharea:row-state = row-created then 
         do:
             ValidateExtent(phArea::name).
         end.    
-          
     end method.      
-    
+          
     method private void ValidateAreaName(pcKey as char).  
         if pcKey = ? or pcKey = "" then 
              undo, throw new DataError("Area must have a name to be created").  

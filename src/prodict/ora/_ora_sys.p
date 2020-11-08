@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2019 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *********************************************************************/
@@ -43,7 +43,8 @@ History:
                             unique-index-allowed to 
                             change-uniqueness-allowed   and
                             removed the "u" from the capab-string
-    06/21/11   kmayur       added support for constraint pull - OE00195067                            
+    06/21/11   kmayur       added support for constraint pull - OE00195067
+	04/18/19   hjivani		Added creation of oracle_procinfo table
 
 -----------------------------------------------------------------------*/
 /*h-*/
@@ -74,8 +75,8 @@ assign
               + "oracle_procedures,oracle_sequences,oracle_users,"
               + "oracle_links,oracle_synonyms,oracle_views,"
               + "oracle_tablespace,oracle_constraint,oracle_cons,"
-              + "oracle_cons_fld"
-  l_sys-obj-f = "ARGUMENT$,COL$,COM$,ICOL$,IND$,OBJ$,"
+              + "oracle_cons_fld,oracle_procinfo"
+  l_sys-obj-f = "ARGUMENT$,COL$,COM$,ICOL$,IND$,OBJ$,PROCEDUREINFO$"
               + "PROCEDURE$,SEQ$,USER$,LINK$,SYN$,VIEW$,CON$,CDEF$,CCOL$".
 /* NOTE: If you add a new foreign-meta-schema table be sure to append
  *       its progress-name and foreign-name TO THE END of the lists
@@ -132,11 +133,12 @@ ELSE IF system BEGINS "a"
   RUN "prodict/ora/_ora_crl.p" (dbkey). /* links synonyms views */
   RUN "prodict/ora/_ora_crm.p" (dbkey). /* comment              */
   RUN "prodict/ora/_ora_cro.p" (dbkey). /* objects              */
-  RUN "prodict/ora/_ora_crp.p" (dbkey). /* procedures           */
+  RUN "prodict/ora/_ora_crp.p" (dbkey). /* procedureinfo        */
   RUN "prodict/ora/_ora_crs.p" (dbkey). /* sequences            */
   RUN "prodict/ora/_ora_crt.p" (dbkey). /* tablespaces          */
   RUN "prodict/ora/_ora_cru.p" (dbkey). /* users                */
   RUN "prodict/ora/_ora_crn.p" (dbkey). /* constraint           */
+  
   RUN adecomm/_setcurs.p ("").
   end.
 

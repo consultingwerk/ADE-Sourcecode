@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectHandler
@@ -17,10 +17,13 @@ using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.ISupportInitialize.
 using OpenEdge.Core.LogicalValue.
 using OpenEdge.Core.Memptr.
+using OpenEdge.Core.Session.
+using OpenEdge.Core.String.
 using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
@@ -32,13 +35,16 @@ using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Net.MimeTypeHelper.
 using OpenEdge.Net.URI.
+using OpenEdge.Security.Principal.
+using OpenEdge.Web.DataObject.AuthorizeOperationEventArgs.
 using OpenEdge.Web.DataObject.DataObjectError.
-using OpenEdge.Web.DataObject.DataObjectEventArgs.
+using OpenEdge.Web.DataObject.DataObjectHandler.
 using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.HandlerErrorEventArgs.
 using OpenEdge.Web.DataObject.HandlerLoadEntityEventArgs.
 using OpenEdge.Web.DataObject.IOperationEventHandler.
 using OpenEdge.Web.DataObject.IOperationHandler.
+using OpenEdge.Web.DataObject.IServiceEventHandler.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.OperationInvocationEventArgs.
 using OpenEdge.Web.DataObject.ServiceDiscoveryEventArgs.
@@ -56,12 +62,17 @@ using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Web.IWebHandler.
-using OpenEdge.Web.DataObject.DataObjectHandler.
 
-class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupportInitialize, ISupportLogging, IOperationHandler, IOperationEventHandler:
+class OpenEdge.Web.DataObject.DataObjectHandler
+        implements  IWebHandler,                                                        // So that we can handle requests
+                    ISupportInitialize, ISupportLogging,                                // General infrastructure
+                    IOperationHandler, IOperationEventHandler, IServiceEventHandler:    // DOH workings
     
-    /* Sometimes the DOH is mapped to /web/pdo; sometimes to /web/api; sometimes to /web. In all of these cases we want to throw that away */
-    define static public property HANDLER_PREFIX as character no-undo initial 'pdo':u get. set.
+    /* Sometimes the DOH is mapped to /web/pdo; sometimes to /web/api; sometimes to /web. 
+       In all of these cases we want to throw that paths segment away */
+    define static public property HANDLER_PREFIX as character no-undo initial 'pdo':u
+        get.
+        set.
     
     /* Event published before the service lookup occurs in the registry;  
        
@@ -77,13 +88,20 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     define static public event OperationError signature void (input poSender as Progress.Lang.Object,
                                                               input poEventArgs as HandlerErrorEventArgs). 
     
+    /* Event published to perform any authorization on the operation
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param AuthorizeOperationEventArgs Event args for this event */
+    define static public event AuthorizeOperation signature void (input pSender as Progress.Lang.Object,
+                                                                  input pEventArgs as AuthorizeOperationEventArgs). 
+    
     /* Event published to invoke/load a piece of business logic (aka Business Entity).
        
        @param Progress.Lang.Object The handler publishing the event
        @param HandlerLoadEntityEventArgs Event args for this event */
     define static public event LoadEntity signature void (input poSender as Progress.Lang.Object,
                                                           input poEventArgs as HandlerLoadEntityEventArgs). 
-
+    
     /* Event published to unload a piece of business logic (aka Business Entity).
        
        @param Progress.Lang.Object The handler publishing the event
@@ -97,7 +115,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        @param OperationInvocationEventArgs Event args for this event */
     define static public event Invoking signature void (input poSender as Progress.Lang.Object,
                                                         input poEventArgs as OperationInvocationEventArgs). 
-
+    
     /* Event published after the business logic function was called by the handler 
        
        @param Progress.Lang.Object The handler publishing the event
@@ -109,7 +127,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     define public property Logger as ILogWriter no-undo
         get(): 
             if not valid-object(this-object:Logger) then
-                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(DataObjectHandler)).
+                assign this-object:Logger = LoggerBuilder:GetLogger(this-object:GetClass()).
             
             return this-object:Logger.
         end get.
@@ -132,21 +150,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     destructor DataObjectHandler():
         Destroy().
     end destructor.
-    
-    /* Handles an exception that has been raised in an event handler used to process
-       the request.
-       
-       @param DataObjectEventArgs A valid event args object 
-       @return integer A non-null status code use to deal with errors */
-    method protected integer HandleException(input poEventArgs as DataObjectEventArgs):
-        Assert:NotNull(poEventArgs, 'Event args').
-        return HandleException(poEventArgs:Error,
-                               poEventArgs:Request,
-                               poEventArgs:Response,
-                               poEventArgs:BusinessEntity,
-                               poEventArgs:Service,
-                               poEventArgs:Operation).
-    end method.
     
     /* Handles an exception that has been raised while dealing with the request.
        The OE default is to return a status code; to customise, subscribe to the 
@@ -172,14 +175,8 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                              input pService as DataObjectService,
                                              input poOperation as MappedOperation):
         define variable oArgs as HandlerErrorEventArgs no-undo.
-        define variable oWriter as WebResponseWriter no-undo.
-        define variable oEntityWriter as MessageWriter no-undo.
-        define variable cEnvelope as character no-undo.
-        define variable iStatusCode as integer no-undo.
-        define variable cContentType as character no-undo.
         
         Assert:NotNull(poRequest,  'Web request').
-        Assert:NotNull(poResponse, 'Web response').
         Assert:NotNull(poError, 'Error').
         
         Logger:Error(substitute('Exception raised for &1 &2; Entity=&3; Operation=&4',
@@ -189,73 +186,22 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                               (if valid-object(poOperation) then poOperation:ToString() else '':u)),
                       poError).
         
-        assign oArgs                = new HandlerErrorEventArgs(poRequest, poResponse)
-               oArgs:Error          = poError
+        // We'll need a response
+        if not valid-object(poResponse) then
+            assign poResponse = CreateDefaultResponse().
+        
+        assign oArgs                = new HandlerErrorEventArgs(poRequest, poResponse, poError)
+               // don't pass the BusinessEntity in the constructor, since that validates for nulls  
                oArgs:BusinessEntity = poBusinessEntity
                .
         oArgs:SetService(pService).
         oArgs:SetOperation(poOperation).
         
-        if valid-object(poOperation) then
-            assign cContentType = poOperation:ContentType.
-        else
-            assign cContentType = 'application/json':u.
-        
-        assign oEntityWriter = EntityWriterBuilder:Build(cContentType)
-                                    :Writer.
-        
-        // if we can find a writer for this content type then write in that format
-        if valid-object(oEntityWriter) 
-           // we must be able to return something that the client can read
-           and ValidateContentType(poRequest, cContentType) 
-        then
-            oEntityWriter:Open().
-        else
-            // no writer so we use the static pages in PASOE 
-            assign oEntityWriter = ?.
-               
-        /* We have some default behaviour ... which is to return an error code. Use the
-           response status for a default */
-        if type-of(poError, SendExceptionError) then
-        do:
-            assign iStatusCode = integer(cast(poError, SendExceptionError):StatusCode).
-            Logger:Error(substitute('SendExceptionError status: &1 (&2)', 
-                         iStatusCode, cast(poError, SendExceptionError):StatusMessage)).
-        end.    // SendExceptionError
-        else
-            /* all we know is something horrible happened ... */
-            assign iStatusCode = integer(StatusCodeEnum:InternalServerError).
-        
-        assign oArgs:Response:StatusCode   = iStatusCode
-               oArgs:Response:StatusReason = StatusCodeHelper:GetMessage(iStatusCode)
-               .
-        if valid-object(oEntityWriter) then
-        do on error undo, throw:
-            oEntityWriter:Write(poError).
-            oEntityWriter:Close().
-            
-            assign oArgs:Response:Entity       = oEntityWriter:Entity
-                   oArgs:Response:ContentType  = cContentType
-                   // we're handling it ourselves 
-                   oArgs:ReturnStatusCode      = 0
-                   .
-            /* Something went wrong while writing the error body.
-               Log it and fall back to static error pages. */
-            catch oError as Progress.Lang.Error :
-                Logger:Error('Error writing exception', oError).
-                
-                assign oArgs:ReturnStatusCode = iStatusCode.
-            end catch.
-        end.
-        else
-            assign oArgs:ReturnStatusCode = iStatusCode.
-        
-        /* see if anyone is going to customise this */
         OnOperationError(oArgs).
         
         /* a non-zero value means that we will use the static pages */
         if oArgs:ReturnStatusCode eq 0 then
-        do on error undo, throw:
+        do:
             /* is there an envelope? */
             if     valid-object(poOperation) 
                and poOperation:Options:HasErrorEnvelope
@@ -263,19 +209,10 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                 AddResponseEnvelope(poResponse, poOperation, poOperation:Options:ErrorEnvelope).
             
             WriteResponse(oArgs:Response).
-            
-            /* Something went wrong while writing the http response.
-               Log it and fall back to static error pages. */
-            catch oError as Progress.Lang.Error :
-                Logger:Error('Error writing response', oError).
-                
-                assign oArgs:ReturnStatusCode = iStatusCode.
-            end catch.
-        end.
+        end.    
         
         return oArgs:ReturnStatusCode.
-        
-        catch oError as Progress.Lang.Error :
+        catch oError as Progress.Lang.Error:
             /* Something went wrong while processing errors */
             Logger:Error('Error handling exceptions: using default status code 500/Internal Server Error', oError).
             
@@ -309,43 +246,6 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     end method.
     
 /** HANDLING OF THE REQUEST **/    
-    /* Returns a usable instance of a business entity/logic class
-       
-       @param HandlerLoadEntityEventArgs Event args for the operation */
-    method protected void InvokeEntity(input pEntityLoadArgs as HandlerLoadEntityEventArgs):
-        define variable invokeTime as datetime extent 2 no-undo.
-        
-        Assert:NotNull(pEntityLoadArgs, 'Entity load event args').
-        
-        assign invokeTime[1] = now.
-        
-        OnLoadEntity(pEntityLoadArgs).
-        
-        if not valid-object(pEntityLoadArgs:BusinessEntity) then
-            undo, throw new SendExceptionError(StatusCodeEnum:ServiceUnavailable,
-                                               new AppError(substitute('Unable to instantiate business entity &2 &1 ; type-of: &3',
-                                                                pEntityLoadArgs:Operation:TargetName,
-                                                                pEntityLoadArgs:Operation:TargetType,
-                                                                (if valid-object(pEntityLoadArgs:EntityType) then pEntityLoadArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) ),
-                                                            0)).
-        
-        Logger:Debug(substitute('Using business entity &1 of type &2',
-                                pEntityLoadArgs:BusinessEntity,
-                                pEntityLoadArgs:BusinessEntity:GetClass():TypeName)).
-        
-        if valid-object(pEntityLoadArgs:EntityType) then
-            Assert:IsType(pEntityLoadArgs:BusinessEntity, pEntityLoadArgs:EntityType).
-        
-        finally:
-            assign invokeTime[2] = now.
-            Logger:Debug(substitute('Using entity &1 for operation &2',
-                            pEntityLoadArgs:BusinessEntity:ToString(), pEntityLoadArgs:Operation:ToString())).
-            Logger:Trace(substitute('Entity &1 invoked in &2(ms)',
-                            pEntityLoadArgs:BusinessEntity:ToString(),
-                            interval(invokeTime[2], invokeTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-        end finally.
-    end method.
-    
     /* Processes a request. The primary entrypoint into the handler.
        Is just a wrapper around the HandleRequest(IWebRequest) method.
        
@@ -463,17 +363,14 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         /* errors? */
         catch doErr as DataObjectError:
             assign iStatusCode = HandleException(doErr:Error,
-                                                 doErr:Request, doErr:Response, 
+                                                 doErr:Request,
+                                                 doErr:Response, 
                                                  doErr:BusinessEntity, 
                                                  doErr:Service,
                                                  doErr:Operation).
             return iStatusCode.
         end catch.
         catch oError as Progress.Lang.Error:
-            // if there are errors thrown from the FindOperation (run before CreateOperationResponse())
-            if not valid-object(oResponse) then
-                assign oResponse = CreateDefaultResponse().
-            
             assign iStatusCode = HandleException(oError, poRequest, oResponse, ?, svc, oOperation).
             return iStatusCode.
         end catch.
@@ -497,7 +394,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
        @param IWebRequest The request that resulting in the exception
        @param character The MIME type we're wanting to return (usally from the operation) 
        @return logical TRUE if the operation's ContentType is compatible with the request's Accept value */
-    method protected logical ValidateContentType(input poRequest as IWebRequest,                                              
+    method protected logical ValidateContentType(input poRequest as IWebRequest,
                                                  input pcContentType as character):
         define variable cAccept as character no-undo.
         define variable iLoop as integer no-undo.
@@ -536,7 +433,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             // unless the request is * (done above) we want a match
             if cReqType[1] ne cOperType[1] then
                 next.
-
+            
             // *-groups and exact matches
             if cReqType[2] eq '*':u or
                cReqType[2] eq cOperType[2] then
@@ -547,6 +444,39 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         end.
         
         return lValidType.
+    end method.
+    
+    /* Event handler for the event published when an error is encountered
+       
+       @param Progress.Lang.Object The handler publishing the event
+       @param HandlerErrorEventArgs Event args for this event */
+    method public void AuthorizeOperationHandler(input pSender as Progress.Lang.Object,
+                                                 input pEventArgs as AuthorizeOperationEventArgs):
+        if    pEventArgs:Cancel
+           or valid-object(pEventArgs:Error)
+           or extent(pEventArgs:Operation:AccessControl) eq ?
+        then
+            return.
+        
+        Logger:Trace(substitute('Operation target "&1:&2" requires one of ACL roles ["&3"]',
+                                pEventArgs:Operation:TargetName,
+                                pEventArgs:Operation:TargetFunction,
+                                String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+        
+        // The fact that there are ACLs set for this operation means that we should report on the fact that the
+        // user isn't set, and throw an error. 
+        if not valid-object(pEventArgs:User) then
+            Logger:Warn(substitute('Unable to authorize operation "&1:&2": no user asserted. One of ACL roles required ["&3"]',
+                                   pEventArgs:Operation:TargetName,
+                                   pEventArgs:Operation:TargetFunction,
+                                   String:Join(pEventArgs:Operation:AccessControl, '","':u) )).
+        else
+        // user passes muster
+        if pEventArgs:User:AuthorizeOne(pEventArgs:Operation:AccessControl) then
+            return.
+        
+        // there is a user, and the Authorization failed 
+        undo, throw new SendExceptionError(StatusCodeEnum:Unauthorized).
     end method.
     
     /* Internal worker method to do the action defined by a mapped operation
@@ -570,15 +500,31 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         define variable operationLogger as ILogWriter no-undo.
         define variable operationTime as datetime no-undo.
         define variable entityArgs as HandlerLoadEntityEventArgs no-undo.
+        define variable authzArgs as AuthorizeOperationEventArgs no-undo.
+        define variable curUser as Principal no-undo.
         
         Assert:NotNull(poRequest,   'Web request').
         Assert:NotNull(poResponse,  'Web response').
         Assert:NotNull(poOperation, 'Mapped operation').
         
+        // Before anything, authorize the operation
+        // get the currently-asserted user 
+        assign curUser = Principal:Import().
+        if not valid-object(curUser) then
+            assign curUser = Principal:Import(session:current-request-info).
+        
+        assign authzArgs          = new AuthorizeOperationEventArgs(poRequest,
+                                                                    pService,
+                                                                    poOperation,
+                                                                    curUser)
+               authzArgs:Response = poResponse
+               .
+        OnAuthorizeOperation(authzArgs).
+        
         assign entityArgs          = new HandlerLoadEntityEventArgs(poRequest, pService, poOperation)
                entityArgs:Response = poResponse
                .
-        InvokeEntity(entityArgs).
+        OnLoadEntity(entityArgs).
         
         assign oOperationArgs             = new OperationInvocationEventArgs(poRequest,
                                                                              entityArgs:BusinessEntity,
@@ -623,7 +569,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                             poOperation:ServiceURI), 
                                     0).
         
-        Logger:Trace(substitute('Service &2 &1 execute handler time(ms)=&3', 
+        Logger:Trace(substitute('Service &1 operation &1 execute handler time(ms)=&3', 
                             pService:Name,
                             string(poOperation:Method),
                             interval(now, operationTime, string(DateTimeAddIntervalEnum:Milliseconds)))).
@@ -640,22 +586,35 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         catch doeErr as DataObjectError:
             undo, throw doeErr.
         end catch.
+        catch see as SendExceptionError:
+            // Log the error here, since we're not re-throwing it
+            Logger:Error(substitute('Service &1 operation &2 &3 error', 
+                                    pService:Name,
+                                    string(poOperation:Method),
+                                    poOperation:ServiceURI),
+                          see).
+            return integer(see:StatusCode).
+        end catch.
         catch err as Progress.Lang.Error:
-            define variable dohError as DataObjectError no-undo.
+            define variable dohError  as DataObjectError no-undo.
             
             assign dohError                = new DataObjectError()
                    dohError:Error          = err
                    dohError:Request        = poRequest
                    dohError:Response       = poResponse
-                   dohError:BusinessEntity = entityArgs:BusinessEntity
                    dohError:Service        = pService
                    dohError:Operation      = poOperation
                    .
+            if valid-object(entityArgs) then
+                assign dohError:BusinessEntity = entityArgs:BusinessEntity.
+            
             undo, throw dohError.
         end catch.
         finally:
             // We're done with this request - tell clients that they can let go
-            OnUnloadEntity(entityArgs).
+            if valid-object(entityArgs) then
+                OnUnloadEntity(entityArgs).
+            
             //reset to original/default.
             if valid-object(oOperationHandler) then
                 assign cast(oOperationHandler, ISupportLogging):Logger = operationLogger.
@@ -827,12 +786,50 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
             // Run our local 'handler'
             DiscoverServiceHandler(this-object, poEventArgs).
         
+        if valid-object(poEventArgs:Error) then
+            undo, throw poEventArgs:Error.
+        
         // no error, but stop
         if poEventArgs:Cancel then
             undo, throw new AppError(substitute('Service discovery for &1 version &1 was cancelled',
                                         poEventArgs:Name,
                                         poEventArgs:Version),
                                      0).
+    end method.
+    
+    /* Publishes the 'AuthorizeOperation' event with the provided args 
+       
+       @param AuthorizeOperationEventArgs The args for this event */
+    method protected void OnAuthorizeOperation(input pEventArgs as AuthorizeOperationEventArgs):
+        Assert:NotNull(pEventArgs, 'Event args').
+        
+        DataObjectHandler:AuthorizeOperation:Publish(this-object, pEventArgs).
+        
+        // If all went well, run the local 'handler'
+        if     not valid-object(pEventArgs:Error)
+           and not pEventArgs:Cancel
+        then
+            AuthorizeOperationHandler(this-object, pEventArgs).
+        
+        if valid-object(pEventArgs:Error) then
+            undo, throw new DataObjectError(pEventArgs).
+        
+        // no error, but stop
+        if pEventArgs:Cancel then
+            undo, throw new AppError(substitute('Authorization of operation &1 cancelled',
+                                        string(pEventArgs:Operation)),
+                                     0).
+        
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign pEventArgs:Error = ple.
+            undo, throw new DataObjectError(pEventArgs).
+        end catch.
     end method.
     
     /* Publishes the 'Invoking' event with the provided args 
@@ -842,6 +839,12 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:Invoking:Publish(this-object, poEventArgs).
+
+        // If all went well, run the local 'handler'
+        if     not valid-object(poEventArgs:Error)
+           and not poEventArgs:Cancel
+        then
+            InvokingHandler(this-object, poEventArgs).
         
         if valid-object(poEventArgs:Error) then
             undo, throw new DataObjectError(poEventArgs).
@@ -854,6 +857,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
                                      0).
         catch doe as DataObjectError:
             undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
             assign poEventArgs:Error = ple.
@@ -869,6 +875,12 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         
         DataObjectHandler:Invoked:Publish(this-object, poEventArgs).
         
+        // If all went well, run the local 'handler'
+        if     not valid-object(poEventArgs:Error)
+           and not poEventArgs:Cancel
+        then
+            InvokedHandler(this-object, poEventArgs).
+        
         if valid-object(poEventArgs:Error) then
             undo, throw new DataObjectError(poEventArgs).
         
@@ -881,6 +893,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         catch doe as DataObjectError:
             undo, throw doe.
         end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
+        end catch.
         catch ple as Progress.Lang.Error:
             assign poEventArgs:Error = ple.
             undo, throw new DataObjectError(poEventArgs).
@@ -888,35 +903,80 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
     end method.
 
     /* Publishes the 'OperationError' event with the provided args 
-    
+       
        @param HandlerErrorEventArgs The args for this event */
     method protected void OnOperationError(input poEventArgs as HandlerErrorEventArgs):
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:OperationError:Publish(this-object, poEventArgs).
+        
+        // If all went well, run the local 'handler'. We expect the OperationError property to be filled; 
+        // that's data for the error. The Error property is an error-in-processing-the-operationerror
+        if     not poEventArgs:Cancel 
+           and not valid-object(poEventArgs:Error)
+        then
+            OperationErrorHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw poEventArgs:Error.
+        
+        catch ple as Progress.Lang.Error :
+            /* Something went wrong while processing errors */
+            Logger:Error('Error handling exceptions: using default status code 500/Internal Server Error', ple).
+            assign poEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError).
+        end catch.
     end method.
     
     /* Publishes the 'LoadEntity' event with the provided args 
-    
+       
        @param HandlerErrorEventArgs The args for this event */
     method protected void OnLoadEntity(input poEventArgs as HandlerLoadEntityEventArgs):
+        define variable invokeTime as datetime extent 2 no-undo.
+        
         Assert:NotNull(poEventArgs, 'Event args').
+        
+        assign invokeTime[1] = now.
         
         DataObjectHandler:LoadEntity:Publish(this-object, poEventArgs).
         
-        // Run our local 'handler'
-        if not poEventArgs:Cancel then
+        // If all went well, run the local 'handler'
+        if     not valid-object(poEventArgs:Error)
+           and not poEventArgs:Cancel
+        then
             LoadEntityHandler(this-object, poEventArgs).
-        
-        if valid-object(poEventArgs:Error) then
-            undo, throw new DataObjectError(poEventArgs).
         
         if poEventArgs:Cancel then
             undo, throw new AppError(substitute('Business entity &1 load for operation &2 cancelled',
                                         poEventArgs:Operation:TargetName, poEventArgs:Operation:ToString()),
                                      0).
+        
+        if not valid-object(poEventArgs:BusinessEntity) then
+            undo, throw new SendExceptionError(StatusCodeEnum:ServiceUnavailable,
+                                               new AppError(substitute('Unable to instantiate business entity &2 &1 ; type-of: &3',
+                                                                poEventArgs:Operation:TargetName,
+                                                                poEventArgs:Operation:TargetType,
+                                                                (if valid-object(poEventArgs:EntityType) then poEventArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) ),
+                                                            0)).
+        
+        Logger:Debug(substitute('Using business entity &1 of type &2',
+                                poEventArgs:BusinessEntity,
+                                poEventArgs:BusinessEntity:GetClass():TypeName)).
+        
+        if valid-object(poEventArgs) then
+            Assert:IsType(poEventArgs:BusinessEntity, poEventArgs:EntityType).
+        
+        assign invokeTime[2] = now.
+        Logger:Debug(substitute('Using entity &1 for operation &2',
+                        poEventArgs:BusinessEntity:ToString(), poEventArgs:Operation:ToString())).
+        Logger:Trace(substitute('Entity &1 invoked in &2(ms)',
+                        poEventArgs:BusinessEntity:ToString(),
+                        interval(invokeTime[2], invokeTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
+        
         catch doe as DataObjectError:
             undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
             assign poEventArgs:Error = ple.
@@ -932,14 +992,17 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         
         DataObjectHandler:UnloadEntity:Publish(this-object, poEventArgs).
         
-        // Run our local 'handler'
-        UnloadEntityHandler(this-object, poEventArgs).
-        
-        if valid-object(poEventArgs:Error) then
-            undo, throw new DataObjectError(poEventArgs).
+        // If all went well, run the local 'handler'
+        if     not valid-object(poEventArgs:Error)
+           and not poEventArgs:Cancel
+        then
+            UnloadEntityHandler(this-object, poEventArgs).
         
         catch doe as DataObjectError:
             undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
             assign poEventArgs:Error = ple.
@@ -1069,7 +1132,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
 
         Assert:NotNullOrEmpty(pcService, 'Service name').
         Assert:NotNull(pVersion, 'Service version').
-        Assert:NotNullOrEmpty(pcEntityName, 'Entity name').
+        Assert:NotNull(pcEntityName, 'Entity name').
         
         assign lExists = can-find(lbEntity where
                                   lbEntity.Service eq pcService and
@@ -1326,10 +1389,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         
         // no service was found
         if not valid-object(discoveryArgs:Service) then
-        do:
-            Logger:Error(substitute('Service not found for "&1"', discoveryArgs:Name)).
-            return error new SendExceptionError(StatusCodeEnum:NotFound).
-        end.
+            return error new SendExceptionError(StatusCodeEnum:NotFound,
+                                                substitute('Service not found for "&1"', discoveryArgs:Name) ).
+        
         Logger:Trace(substitute('Service "&1" found for "&2 &3"',
                                 discoveryArgs:Service:ToString(),
                                 poRequest:Method,
@@ -1385,11 +1447,9 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         end.
         
         if not valid-object(oOperation) then
-        do:
-            Logger:Error(substitute('Mapped operation not found for service "&1" with &3 "&2"',
-                                        pService:Name, serviceURI, cPathType)).
-            return error new SendExceptionError(StatusCodeEnum:NotFound).
-        end.
+            return error new SendExceptionError(StatusCodeEnum:NotFound,
+                                                substitute('Mapped operation not found for service "&1" with &3 "&2"',
+                                                           pService:Name, serviceURI, cPathType)).
         
         Logger:Debug(substitute('Using mapped operation for &1 &4 &2: &3',
                         string(oOperation:Method), serviceURI, string(oOperation), cPathType)).
@@ -1441,7 +1501,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         if    valid-object(pEventArgs:BusinessEntity)
            or pEventArgs:Cancel
            or valid-object(pEventArgs:Error)
-           then
+        then
             return.
         
         // Use a CCS Service Manager if extant, and let it control this object's lifecycle
@@ -1519,14 +1579,65 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         end catch.
     end method.
     
-    /* Event handler for the event published when an error is encountered 
+    /* Event handler for the event published when an error is encountered.
+       
+       If the HandlerErrorEventArgs:OperationError is of type SendExceptionError then
+       we use the SendExceptionError's StatusCode for the response; otherwise we return
+       an Internal Server Error (501).
        
        @param Progress.Lang.Object The handler publishing the event
        @param HandlerErrorEventArgs Event args for this event */
     method public void OperationErrorHandler (input pSender as Progress.Lang.Object,
                                               input pEventArgs as HandlerErrorEventArgs): 
-    end method.
+        define variable entityWriter as MessageWriter no-undo.
+        define variable contentType as character no-undo.
         
+        if not pEventArgs:ReturnStatusCode eq 0
+           or pEventArgs:Cancel
+           or valid-object(pEventArgs:Error)
+        then
+            return.
+        
+        if valid-object(pEventArgs:Operation) then
+            assign contentType = pEventArgs:Operation:ContentType.
+        else
+            assign contentType = 'application/json':u.
+        
+        assign entityWriter = EntityWriterBuilder:Build(contentType):Writer.
+        
+        // if we can find a writer for this content type then write in that format
+        if     valid-object(entityWriter)
+               // we must be able to return something that the client can read
+           and ValidateContentType(pEventArgs:Request, contentType)
+        then
+        do:
+            entityWriter:Open().
+            entityWriter:Write(pEventArgs:OperationError).
+            entityWriter:Close().
+            
+            /* We have some default behaviour ... which is to return an error code. Use the
+               response status for a default */
+            if type-of(pEventArgs:OperationError, SendExceptionError) then
+                assign pEventArgs:Response:StatusCode   = integer(cast(pEventArgs:OperationError, SendExceptionError):StatusCode)
+                       pEventArgs:Response:StatusReason = cast(pEventArgs:OperationError, SendExceptionError):StatusMessage
+                       .
+            else
+                // all we know is something horrible happened ...
+                assign pEventArgs:Response:StatusCode   = integer(StatusCodeEnum:InternalServerError)
+                       pEventArgs:Response:StatusReason = StatusCodeHelper:GetMessage(StatusCodeEnum:InternalServerError)
+                       .
+            
+            // we're handling the error message ourselves
+            assign pEventArgs:ReturnStatusCode      = 0
+                   pEventArgs:Response:Entity       = entityWriter:Entity
+                   pEventArgs:Response:ContentType  = contentType
+                   .
+        end.
+        else
+            // we don't know how to write the error response, so let the webapp handle it
+            assign pEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError).
+    end method.
+    
     /* Event handler for the event published before the business logic function is called by the handler
        
        @param Progress.Lang.Object The handler publishing the event
@@ -1559,7 +1670,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler implements IWebHandler, ISupport
         if not valid-object(pEventArgs:Registry) then
         do:
             Logger:Trace(substitute('Service registry not set for "&1 &2"; using default',
-                                pEventArgs:Request:Method, 
+                                pEventArgs:Request:Method,
                                 pEventArgs:Request:URI:ToString())).
             assign pEventArgs:Registry = ServiceRegistry:Registry.
         end.

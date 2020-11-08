@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceMappingFileSchemaEnum
@@ -14,6 +14,7 @@ enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
         ablName
         ablRef
         ablType
+        accessControl
         arg
         argumentWriters
         attr

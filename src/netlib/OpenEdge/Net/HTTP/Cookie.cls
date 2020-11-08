@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Cookie
@@ -14,6 +14,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Core.TimeStamp.
 using OpenEdge.Net.HTTP.Cookie.
 using OpenEdge.Net.URI.
@@ -57,7 +58,7 @@ class OpenEdge.Net.HTTP.Cookie serializable:
                               input pcDomain as character,
                               input pcPath as character,
                               input pcCookieValue as character):
-        this-object(pcCookieName, pcDomain, pcPath, pcCookieValue, ?, ?, ?, ?, ?).                                  
+        this-object(pcCookieName, pcDomain, pcPath, pcCookieValue, ?, ?, ?, ?, ?).
     end constructor.
     
     /* Constructor
@@ -154,7 +155,8 @@ class OpenEdge.Net.HTTP.Cookie serializable:
                iMax = num-entries(pcCookie, ';':u)
                .
         /* do the name=value separately so that we can "strongly-type" our case statement. */
-        do iLoop = 1 to iMax:
+        do iLoop = 1 to iMax
+        on error undo, throw:
             assign cAttribute = entry(iLoop, pcCookie, ';':u)
                    chrPos     = index(cAttribute, '=':u)
                    attrName   = trim(substring(cAttribute, 1, chrPos - 1)) 
@@ -163,11 +165,11 @@ class OpenEdge.Net.HTTP.Cookie serializable:
             case attrName:
                 when 'Max-Age':u  then assign iMaxAge = integer(attrValue).
                 /* trim off the leading/trailing quotes (") */
-                when 'Domain':u   then assign cDomain = trim(attrValue, '"':u).
+                when 'Domain':u   then assign cDomain = trim(attrValue, StringConstant:DOUBLE_QUOTE).
                 when 'Secure':u   then assign lSecureOnly = true.
                 when 'HttpOnly':u then assign lHttpOnly = true.
-                when 'Path':u     then assign cPath = trim(attrValue, '"':u).
-                when 'Expires':u  then assign tExpiresAt = TimeStamp:ToABLDateTimeTzFromHttp(trim(attrValue, '"':u)).
+                when 'Path':u     then assign cPath = trim(attrValue, StringConstant:DOUBLE_QUOTE).
+                when 'Expires':u  then assign tExpiresAt = TimeStamp:ToABLDateTimeTzFromHttp(trim(attrValue, StringConstant:DOUBLE_QUOTE)).
                 when 'Version':u  then assign dVersion = decimal(attrValue).
                 otherwise
                     if iLoop eq 1 then
@@ -175,6 +177,16 @@ class OpenEdge.Net.HTTP.Cookie serializable:
                                cValue = attrValue
                                .                
             end case.
+            catch parseErr as Progress.Lang.Error:
+                // Per the spec at https://tools.ietf.org/html/rfc6265#section-5.1.1, ignore the cookie-av 
+                // in case of error.
+                case attrName:
+                    when 'Path':u then
+                        undo, throw parseErr.
+                    otherwise 
+                        . //no-op
+                end case.
+            end catch.
         end.
         
         Assert:NotNullOrEmpty(cName, 'Cookie name').

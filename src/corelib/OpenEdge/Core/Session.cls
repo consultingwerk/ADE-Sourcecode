@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2018-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : Session
@@ -13,12 +13,9 @@ Copyright (c) 2013, 2018 by Progress Software Corporation. All rights reserved.
   ---------------------------------------------------------------------- */
 block-level on error undo, throw.
 
-using OpenEdge.Core.Session.
-using OpenEdge.Core.Collections.Array.
-using OpenEdge.Core.String.
-using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Core.Assert.
-using Progress.Lang.Class.
+using OpenEdge.Core.Collections.Array.
+using OpenEdge.Core.WidgetHandle.
 using Progress.Lang.Object.
 
 class OpenEdge.Core.Session:
@@ -32,11 +29,14 @@ class OpenEdge.Core.Session:
         define variable hProc as handle no-undo.
         
         hProc = session:first-procedure.
-        do while valid-handle(hProc) and hProc:file-name ne pcName:
+        do while valid-handle(hProc):
+            if hProc:file-name eq pcName then
+                return new WidgetHandle(hProc).
+            
             hProc = hProc:next-sibling. 
         end.
         
-        return new WidgetHandle(hProc).
+        return ?.
     end method.
 
     /** Returns all the running persistent procedure instances found
@@ -54,16 +54,18 @@ class OpenEdge.Core.Session:
         define variable iMax as integer no-undo.
         define variable iLoop as integer no-undo.
         
-        oProcedures = new Array().
+        assign oProcedures            = new Array()
+               oProcedures:AutoExpand = true 
+               .
         hTemp = session:first-procedure.
-        do while valid-handle(hTemp):         
+        do while valid-handle(hTemp):
             if hTemp:file-name eq pcName then
                 oProcedures:Add(new WidgetHandle(hTemp)).
-
+            
             hTemp = hTemp:next-sibling. 
         end.
         
-        return oProcedures.        
+        return oProcedures.
     end method.
     
     /** Resolves a weak reference into an object instance. A weak reference is an integer
@@ -78,16 +80,16 @@ class OpenEdge.Core.Session:
                 is returned if the referecen cannot be resolved.  */
     method static public Object ResolveWeakReference(input piReference as integer):
         define variable oInstance as Object no-undo.
-        define variable oReference as Object no-undo.
         
-        oInstance = session:first-object.
-        do while valid-object(oInstance) and not valid-object(oReference):
-            if piReference eq int(oInstance) then
-                oReference = oInstance.
-            oInstance = oInstance:Next-Sibling.
+        assign oInstance = session:first-object.
+        do while valid-object(oInstance):
+            if piReference eq integer(oInstance) then
+                return oInstance.
+            
+            assign oInstance = oInstance:Next-Sibling.
         end.
         
-        return oReference.        
+        return ?.
     end method.
     
     /** Returns the first object instance found that is of the type given.
@@ -97,19 +99,18 @@ class OpenEdge.Core.Session:
                        there's no running instance of that name. */
     method static public Object GetFirstClassInstance(input poType as Progress.Lang.Class):
         define variable oInstance as Object no-undo.
-        define variable firstInstance as Progress.Lang.Object no-undo.
         
         Assert:NotNull(poType, 'type').
         
         assign oInstance = session:first-object.
-        do while valid-object(oInstance) and not valid-object(firstInstance):  
-            if not oInstance:GetClass():IsA(poType) then
-                assign firstInstance = oInstance. 
+        do while valid-object(oInstance):
+            if oInstance:GetClass():IsA(poType) then
+                return oInstance. 
             
             assign oInstance = oInstance:next-sibling. 
         end.
         
-        return firstInstance.
+        return ?.
     end method.
     
     /** Returns all the object instances found that are of the type given.
@@ -123,14 +124,15 @@ class OpenEdge.Core.Session:
         
         Assert:NotNull(poType, 'type').
         
-        oInstance = new Array().
-        
-        oTemp = session:first-object.
+        assign oInstance            = new Array()
+               oInstance:AutoExpand = true
+               oTemp                = session:first-object
+               .
         do while valid-object(oTemp):
             if oTemp:GetClass():IsA(poType) then
                 oInstance:Add(oTemp).
             
-            oTemp = oTemp:next-sibling. 
+            assign oTemp = oTemp:next-sibling. 
         end.
         
         return oInstance.

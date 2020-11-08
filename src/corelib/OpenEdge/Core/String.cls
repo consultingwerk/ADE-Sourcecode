@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -44,22 +44,12 @@ class OpenEdge.Core.String serializable
         and stored in the private mUTF8Value variable */
     define public non-serializable property Value as longchar no-undo
         get():
-            // always deallocate/reset/clear
-            assign this-object:Value = ?.
-            
             // no need for changes if we're using UTF-8 as CPINTERNAL
-            if get-codepage(mUTF8Value) eq this-object:Encoding then
+            if this-object:Encoding eq 'UTF-8':u then
                 return mUTF8Value.
             else
-            do:
-                fix-codepage(this-object:Value) = this-object:Encoding.
-                
-                assign this-object:Value = mUTF8Value.
-                
-                return this-object:Value.
-            end.
+                return codepage-convert(mUTF8Value, this-object:Encoding).
         end get.
-        private set.
     
     /** Returns the size of the contained string, in characters */
     define public property Size as int64 no-undo
@@ -91,7 +81,7 @@ class OpenEdge.Core.String serializable
     /* Constructor 
        
        @param longchar A string value */
-    constructor public String(input pcString as char):
+    constructor public String(input pcString as character):
         this-object().
         
         assign mUTF8Value = pcString.
@@ -400,8 +390,8 @@ class OpenEdge.Core.String serializable
            (iRawLength eq length(pcValue) and right-trim(left-trim(pcValue)) eq '':u) then
             return true.
         
-        return false.            
+        return false.
     end method.
-    
+
 end class.
 

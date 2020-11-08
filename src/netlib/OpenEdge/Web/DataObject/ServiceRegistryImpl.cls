@@ -98,6 +98,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
                    lbService.Service        = pService
                    .
             OnServiceRegistered(new ServiceRegistryEventArgs(pService)).
+            Logger:Info(substitute('Service "&1 v&2" registered', pService:Name, string(pService:Version))).
         end.
     end method.
     
@@ -127,7 +128,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         return svc.
     end method.
     
-        /* Indicates whether a named, versioned service is available in the registry.  
+    /* Indicates whether a named, versioned service is available in the registry.  
        
        @param character The name of the mapped service
        @param SemanticVersion The service version
@@ -137,11 +138,15 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         define buffer lbService for Service.
         
         Assert:NotNullOrEmpty(pServiceName, 'Service name').
-        Assert:NotNull(pVersion, 'Service version').
         
-        FindServiceRecord(DataObjectService:NormaliseServiceName(pServiceName),
-                          pVersion,
-                          buffer lbService).
+        if valid-object(pVersion) then
+            FindServiceRecord(DataObjectService:NormaliseServiceName(pServiceName),
+                              pVersion,
+                              buffer lbService).
+        else
+            FindServiceLatest(DataObjectService:NormaliseServiceName(pServiceName),
+                              ?,        // version
+                              buffer lbService).
         
         return (available lbService).
     end method.
@@ -605,7 +610,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         
         delete lbService.
         
-        Logger:Info(substitute('Service "&1" v&2 deregistered', pServiceName, pVersion)).
+        Logger:Info(substitute('Service "&1" v&2 deregistered', pServiceName, string(pVersion))).
         
         OnServiceDeregistered(new ServiceRegistryEventArgs(svc)).
     end method.

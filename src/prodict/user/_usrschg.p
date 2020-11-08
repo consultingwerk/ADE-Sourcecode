@@ -53,6 +53,7 @@ History:
   kmcintos  09/08/05    Added support for Oracle 10 20050318-015                      
   fernando  09/14/07    Allow ORACLE version 11
   sbehera   02/03/14    Support ORACLE version 12 and changed default version to 11
+  vprasad   25/04/19    Support ORACLE version 18 and changed default version to 12
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -101,7 +102,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 10, 11 or 12."
+  /*14*/ "Oracle version must be either 11,12 or 18."
 ].
 
 FORM

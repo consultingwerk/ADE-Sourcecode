@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ConfigFileLoggerBuilder
@@ -145,8 +145,8 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
        @param character The logger type being built */
     constructor public ConfigFileLoggerBuilder (input pcLoggerType as character):
         super(pcLoggerType).
-    end method.    
-
+    end method.
+    
     /* Clears all the current logger configurations */
     method static public void ClearConfig():
         empty temp-table Logger.
@@ -155,7 +155,7 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         ConfigFileLoggerBuilder:FilterBuilders:Clear().
         ConfigFileLoggerBuilder:Filters:Clear().
     end method.
-
+    
     /* Loads logging configuration from JSON
        
        @param JsonObject JSON representation of the lgging configuration */
@@ -241,7 +241,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                    .
             do iLoop = 1 to iMax:
                 // this will give us the filter's type 
-                assign resolvedType = GetABLType(oConfig, propertyName).                    
+                assign propertyName = cNames[iLoop]
+                       resolvedType = GetABLType(oConfig, propertyName)
+                       .
                 if valid-object(resolvedType) then
                     ConfigFileLoggerBuilder:Filters:Put(propertyName, resolvedType).
                 
@@ -272,6 +274,10 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
         define variable logLevel as LogLevelEnum no-undo.
         define variable filterBuilder as LogFilterBuilder no-undo.
         define variable loggerOptions as JsonObject no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable propNames as longchar extent no-undo.
+        define variable optionName as character no-undo.
         
         define buffer lbLogger for Logger.
         define buffer lbFilter for LogFilter.
@@ -307,26 +313,57 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
                     // Extract the filter options we know about
                     if     loggerOptions:Has(PROP_FILE_NAME) 
                        and loggerOptions:GetType(PROP_FILE_NAME) eq JsonDataType:STRING 
-                       then
+                    then
                         filterBuilder:WriteTo(loggerOptions:GetCharacter(PROP_FILE_NAME)).
                     
                     if     loggerOptions:Has(PROP_FORMAT_STRING) 
                        and loggerOptions:GetType(PROP_FORMAT_STRING) eq JsonDataType:STRING 
-                       then
+                    then
                         filterBuilder:FormatAs(loggerOptions:GetCharacter(PROP_FORMAT_STRING)).
                     
                     if     loggerOptions:Has(PROP_APPEND_LOG) 
                        and loggerOptions:GetType(PROP_APPEND_LOG) eq JsonDataType:BOOLEAN 
-                       then
+                    then
                         filterBuilder:Append(loggerOptions:GetLogical(PROP_APPEND_LOG)).
                     
                     // write all the options anyway, for those we don't know about
+                    assign extent(propNames) = ?
+                           propNames         = loggerOptions:GetNames()
+                           cnt               = extent(propNames)
+                           .
+                    do loop = 1 to cnt:
+                        assign optionName = string(propNames[loop]).
+                        case loggerOptions:GetType(optionName):
+                            when JsonDataType:ARRAY then
+                                filterBuilder:Option(optionName, loggerOptions:GetJsonArray(optionName)).
+                            
+                            when JsonDataType:OBJECT then
+                                filterBuilder:Option(optionName, loggerOptions:GetJsonObject(optionName)).
+                            
+                            when JsonDataType:NUMBER then
+                                filterBuilder:Option(optionName, loggerOptions:GetInt64(optionName)).
+                            
+                            when JsonDataType:STRING or 
+                            when JsonDataType:NULL then
+                                filterBuilder:Option(optionName, loggerOptions:GetCharacter(optionName)).
+                            
+                            when JsonDataType:BOOLEAN then
+                                filterBuilder:Option(optionName, loggerOptions:GetLogical(optionName)).
+                            // no otherwise needed
+                        end case.
+                    end.
+                    // write them all as an object anyway
                     filterBuilder:Options(loggerOptions).
                 end.
                 
                 assign filter = filterBuilder:Filter.
                 if valid-object(filter) then
                     filterList:InsertLast(new LoggerFilterNode(filter)).
+                else
+                    LogMessage(substitute('Unable to build filter "&1" for logger "&2"',
+                                          lbFilter.FilterName,
+                                          lbFilter.LoggerName       ),
+                               LogLevelEnum:WARN).
             end.
             
             // If there are no filters, this is a void logger
@@ -340,6 +377,12 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
             assign logWriter = super:GetLoggerInstance().
         
         return logWriter.
+        catch err as Progress.Lang.Error:
+            LoggerBuilder:LogMessage(substitute('Error building logger &1: &2', lbLogger.LoggerName, err:GetMessage(1)),
+                                     LogLevelEnum:ERROR).
+            
+            return new VoidLogger(lbLogger.LoggerName).
+        end catch.        
     end method.
     
     /* Finds the log level for a logger to use, based on the logger type
@@ -474,6 +517,9 @@ class OpenEdge.Logging.ConfigFileLoggerBuilder inherits LoggerBuilder:
     method private logical FindLogger(input pcLoggerType as character,
                                       buffer pbLogger for Logger):
         define variable dotPos as integer no-undo.
+        
+        // so we don't end up with a previously-found buffer
+        release pbLogger.
         
         if can-find(pbLogger where pbLogger.LoggerName eq pcLoggerType) then
             find pbLogger where pbLogger.LoggerName eq pcLoggerType.

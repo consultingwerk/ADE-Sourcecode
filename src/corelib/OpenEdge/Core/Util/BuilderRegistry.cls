@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : BuilderRegistry
@@ -102,6 +102,24 @@ class OpenEdge.Core.Util.BuilderRegistry:
         Assert:NotNull(pTypeKey, 'Type key').
         
         return this-object:Put(string(pTypeKey), pType).
+    end method.
+    
+    /** Registers type for a key 
+        
+        @param character The key of the type to register
+        @param character The type of the writer used to process that type
+        @return logical True if the type was previously registered */
+    method public logical Put(input pTypeKey as character,
+                              input pType as character):
+        define variable type as Progress.Lang.Class no-undo.
+        
+        assign type = Progress.Lang.Class:GetClass(pType)
+               no-error.
+        // separate assign to clear any GetClass() errors
+        assign error-status:error = false.
+        
+        // this performs any type-checks (incl validity of the type itself)
+        return this-object:Put(pTypeKey, type).
     end method.
     
     /** Registers type for a key 
@@ -245,14 +263,14 @@ class OpenEdge.Core.Util.BuilderRegistry:
         define buffer lbRegistry for Registry.
         define query qryRegistry for lbRegistry.
         
-        open query qryRegistry 
+        open query qryRegistry
             preselect each lbRegistry where
                            lbRegistry.ParentRegistry eq int64(this-object).
         
         if query qryRegistry:num-results eq 0 then
             return cKeys.
         
-        extent(cKeys) = query qryRegistry:num-results.
+        assign extent(cKeys) = query qryRegistry:num-results.
         
         get first qryRegistry.
         do while not query qryRegistry:query-off-end:

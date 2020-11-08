@@ -196,6 +196,7 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
         The search alogrithm is
         1. Exact match  - type / sub-type
         2. Vendor types - type / vendor-prefix-removed-sub-type 
+           Suffixes     - type / suffix
         3. General type - type / *
         4. Fallback to HTTP default - application/octet-stream
         
@@ -217,33 +218,33 @@ class OpenEdge.Net.HTTP.Filter.Writer.MessageWriterBuilder inherits ConfigBuilde
             type / sub-type ; parameter 
             
             We only care about the type + subtype */        
-        assign pcContentType = trim(entry(1, pcContentType, ';':u))
-               cType    = trim(entry(1, pcContentType, '/':u))
-               cSubType = trim(entry(2, pcContentType, '/':u))
-               .
+        assign pcContentType = trim(entry(1, pcContentType, ';':u)).
         
         /* 1. Exact match */
         assign oWriter = this-object:WriterRegistry:Get(pcContentType).
+        if valid-object(oWriter) then
+            return oWriter.
         
-        /* 2. Vendor types */
-        if not valid-object(oWriter) and
-           entry(1, cSubType, '.':u) eq 'vnd':u then
-        do:
-            assign iPos = r-index(cSubType, '+':U).
-            if iPos gt 0 then
-                assign cSubType = substring(cSubType, iPos + 1)
-                       oWriter  = this-object:WriterRegistry:Get(cType + '/':u + cSubType).
-        end.
+        /* 2. Suffixed types, may include vendor and personal types
+              Vendor types application/vnd.progress+json */
+        assign cType    = trim(entry(1, pcContentType, '/':u))
+               cSubType = trim(entry(2, pcContentType, '/':u))
+               // is there a suffix  like +xml or +json ?
+               iPos     = r-index(cSubType, '+':u)
+               .
+        // if iPos = 0 then we're doing the same as 1 above
+        if iPos gt 0 then
+            assign oWriter  = this-object:WriterRegistry:Get(cType + '/':u + substring(cSubType, iPos + 1)).
+        if valid-object(oWriter) then
+            return oWriter.
         
         /* 3. General type */
-        if not valid-object(oWriter) then
-            assign oWriter = this-object:WriterRegistry:Get(cType + '/*':u).
+        assign oWriter = this-object:WriterRegistry:Get(cType + '/*':u).
+        if valid-object(oWriter) then
+            return oWriter.
         
         /* 4. Fallback to HTTP default */
-        if not valid-object(oWriter) then
-            assign oWriter = this-object:WriterRegistry:Get('application/octet-stream':u).
-        
-        return oWriter.
+        return this-object:WriterRegistry:Get('application/octet-stream':u).
     end method.
     
 end class.

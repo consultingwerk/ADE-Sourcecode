@@ -23,14 +23,16 @@ class OpenEdge.ApplicationServer.AgentInfo :
         setArchiveAgentStats(false).
     end.
     
-    /* Empties the cached agent stats */
+    /* Empties the cached agent request stats */
     method public void clearAgentStatData():
         define variable statsData as handle no-undo.
         
-        Progress.ApplicationServer.AgentInfo:getAgentstatTableHandle(output statsData).
-        // this should always be valid, but it doesn't hurt to be defensive
-        if valid-handle(statsData) then
-            statsData:empty-temp-table().
+    /* clear the agent request table */
+
+    Progress.ApplicationServer.AgentInfo:getAgentRequestTableHandle(output statsData).
+    if valid-handle(statsData) then
+        statsData:empty-temp-table().
+
     end method.
     
     /* Toggles the agent stats archive on and off.

@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2017 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -53,7 +53,7 @@ class OpenEdge.Security.Principal :
         assign this-object:Token = phClientPrincipal
                mlAutoDestroy     = plAutoDestroy.
     end constructor.
-        
+    
     destructor Principal():
         if     mlAutoDestroy 
            and valid-object(this-object:Token ) then
@@ -84,7 +84,8 @@ class OpenEdge.Security.Principal :
        @param character A non-empty role
        @return logical TRUE if the user is authorised for the given role */
     method public logical Authorize(input pcRole as character):
-        Assert:NotNullOrEmpty(pcRole, 'Role').
+        if pcRole eq ? then
+            return false.
         
         return can-do(this-object:Token:roles, pcRole).
     end method.
@@ -94,16 +95,42 @@ class OpenEdge.Security.Principal :
        @param character[] A non-empty array of roles
        @return logical TRUE if the user is authorised for ALL the given roles */
     method public logical Authorize(input pcRole as character extent):
+        return AuthorizeAll(pcRole).
+    end method.
+    
+    /* Authorises the current token for all given roles 
+       
+       @param character[] A non-empty array of roles
+       @return logical TRUE if the user is authorised for ALL the given roles */
+    method public logical AuthorizeAll(input pcRole as character extent):
         define variable lAllowed as logical no-undo.
         define variable iLoop as integer no-undo.
         
-        do iLoop = extent(pcRole) to 1 by -1 
-           while lAllowed:            
-            assign lAllowed = Authorize(pcRole[iLoop]).
+        assign lAllowed = no.
+        
+        do iLoop = extent(pcRole) to 1 by -1:
+            assign lAllowed = lAllowed and Authorize(pcRole[iLoop]).
+            if not lAllowed then
+                leave.
         end.
         
-        return lAllowed.                                               
+        return lAllowed.
     end method.
+    
+    /* Authorises the current token for ONE of the given roles 
+       
+       @param character[] A non-empty array of roles
+       @return logical TRUE if the user is authorised for ONE the given roles */
+    method public logical AuthorizeOne(input pcRole as character extent):
+        define variable loop as integer no-undo.
+        
+        do loop = extent(pcRole) to 1 by -1:
+            if Authorize(pcRole[loop]) then
+                return true.
+        end.
+        
+        return false.
+    end method.    
     
     /* Asserts the user represented by this token in the current session.
        Will set for all connected dbs.
@@ -112,7 +139,7 @@ class OpenEdge.Security.Principal :
     method public logical AssertUser():
         return security-policy:set-client(this-object:Token).
     end method.
-
+    
     /* Asserts the user represented by this token in the current session.
        Passing in a value of * results in asserting the user against all
        connected DB's.
@@ -152,7 +179,7 @@ class OpenEdge.Security.Principal :
         create client-principal hCP.
         hCP:import-principal (prCP).
         
-        return new Principal(hCP, true).        
+        return new Principal(hCP, true).
     end method.
 
     /* Creates a new Principal from BASE64 data
@@ -165,31 +192,65 @@ class OpenEdge.Security.Principal :
         Assert:NotNullOrEmpty(pcCP, 'Input token').
         
         assign rCP = base64-decode(pcCP).
-                               
+        
         return Principal:Import(rCP).
+    end method.
+    
+    /* Creates a new Principal from the CP asserted in this session
+       
+       @return Principal A new object representing the input CP. May be null */
+    method static public Principal Import():
+        define variable hCP as handle no-undo.
+        
+        assign hCP = security-policy:get-client().
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
+        
+        return ?.
     end method.
     
     /* Creates a new Principal from the CP returned by a server. 
        
        @param OERequestInfo The request info containing the CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input poRequestInfo as OERequestInfo):
         define variable hCP as handle no-undo.
         
         Assert:NotNull(poRequestInfo, 'Server request info').
         assign hCP = poRequestInfo:GetClientPrincipal().
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
         
-        Assert:NotNull(hCP, 'Input token').
+        return ?.
+    end method.
+    
+    /* Creates a new Principal from the CP asserted against a database 
+       
+       @param integer The logical DB connection number
+       @return Principal A new object representing the input CP. May be null */
+    method static public Principal Import(input pDbNum as integer):
+        define variable hCP as handle no-undo.
+        define variable name as character no-undo.
         
-        return new Principal(hCP, true).        
+        Assert:NotNull(pDbNum, 'Logical database number').
+        if pDbNum gt num-dbs then
+            undo, throw new AssertionFailedError(substitute('&1 is greater than the number of connected DBs &2', pDbNum, num-dbs)).
+        
+        assign name = ldbname(pDbNum)
+               hCP  = get-db-client(name)
+               .
+        if valid-handle(hCP) then
+            return new Principal(hCP, true).
+        
+        return ?.
     end method.
     
     /* Creates a new Principal from a object-wrapper memptr 
-    
+        
        CALLER IS RESPONSIBLE FOR MEMORY DEALLOCATION
        
        @param Memptr The OO wrapper containing the CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input poCP as class Memptr):
         Assert:NotNull(poCP, 'Client principal').
         
@@ -201,7 +262,7 @@ class OpenEdge.Security.Principal :
        CALLER IS RESPONSIBLE FOR MEMORY DEALLOCATION
        
        @param memptr The CP
-       @return Principal A new object representing the input CP */
+       @return Principal A new object representing the input CP. May be null */
     method static public Principal Import(input pmCP as memptr):
         define variable rCP as raw no-undo.
         
@@ -209,7 +270,7 @@ class OpenEdge.Security.Principal :
         Assert:IsPositive(get-size(pmCP), 'Client principal size').
         
         assign rCP = pmCP.
-        return Principal:Import(rCP).        
+        return Principal:Import(rCP).
     end method.
     
 end class.
