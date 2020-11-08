@@ -23,6 +23,7 @@ using OpenEdge.Logging.Format.ResolvedTokenFormat.
 using OpenEdge.Logging.Format.StackWriterFormat.
 using OpenEdge.Logging.Format.TokenContextFormat.
 using OpenEdge.Logging.LoggerFilterRegistry.
+using OpenEdge.Logging.Writer.JsonLogWriter.
 using OpenEdge.Logging.Writer.LogManagerWriter.
 using OpenEdge.Logging.Writer.MessageStatementWriter.
 using OpenEdge.Logging.Writer.NamedFileWriter.
@@ -34,7 +35,8 @@ class OpenEdge.Logging.LoggerFilterRegistry:
     define static public property NAMED_FILE_WRITER  as character initial 'NAMED_FILE_WRITER':u  no-undo get.
     define static public property VOID_WRITER        as character initial 'VOID_WRITER':u        no-undo get.
     define static public property DEFAULT_WRITER     as character initial 'DEFAULT_WRITER':u     no-undo get.
-    define static public property MSG_STMT_WRITER    as character initial 'MSG_STMT_WRITER':u    no-undo get.    
+    define static public property MSG_STMT_WRITER    as character initial 'MSG_STMT_WRITER':u    no-undo get.
+    define static public property JSON_LOG_WRITER    as character initial 'JSON_LOG_WRITER':u    no-undo get.
     
     // Default filter configs    
     define static public property ABL_SUBSTITUTE_FORMAT as character initial 'ABL_SUBSTITUTE_FORMAT':u  no-undo get.
@@ -63,7 +65,7 @@ class OpenEdge.Logging.LoggerFilterRegistry:
         end get.
         private set.
     
-    /** Adds initial values into the registry 
+    /** Adds initial values into the registry
         
         @param BuilderRegistry The registry to populate */
     method static private void InitializeRegistry(input poRegistry as BuilderRegistry):
@@ -72,6 +74,7 @@ class OpenEdge.Logging.LoggerFilterRegistry:
         poRegistry:Put(NAMED_FILE_WRITER,  get-class(NamedFileWriter)).
         poRegistry:Put(VOID_WRITER,        get-class(VoidWriter)).
         poRegistry:Put(MSG_STMT_WRITER,    get-class(MessageStatementWriter)).
+        poRegistry:Put(JSON_LOG_WRITER,    get-class(JsonLogWriter)).
         
         // Default to LOG-MANAGER for appservers 
         case session:client-type:

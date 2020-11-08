@@ -93,14 +93,22 @@ class OpenEdge.Net.HTTP.Filter.Payload.DefaultRequestFilter inherits MessageWrit
         define variable oBodyWriter as MessageWriter no-undo.
         define variable oMessageBody as ByteBucket no-undo.
         define variable iBytesWritten as int64 no-undo.
+        define variable errMsg as character no-undo.
         
         assign oMessageBody = ByteBucket:Instance()
                oBodyWriter  = BodyWriterBuilder
                                 :Build(poRequest)
                                 :WriteTo(oMessageBody)
                                 :Writer.
+        // We are extremely unlikely to not return a body writer, since spec says to use applicaiton/octet-stream
+        // but we want some sane error handlings here so that we don't get 'invalid handle' errors from the Open() line
         if not valid-object(oBodyWriter) then
-            return error new AppError('Unable to build request for transmission', 0).
+        do:
+            assign errMsg = substitute('Unable to build request for transmission: no builder available for Content-Type: &1',
+                                            poRequest:ContentType).
+            Logger:Error(errMsg).
+            return error new AppError(errMsg, 0).
+        end.
         
         oBodyWriter:Open().
         /* writes the message's entity contents into a byte bucket */

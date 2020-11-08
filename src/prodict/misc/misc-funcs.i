@@ -55,8 +55,8 @@ FUNCTION checkReadOnly RETURNS CHARACTER (INPUT pcdbNname AS CHARACTER,
     END.
 
     IF CAN-DO("READ-ONLY", DBRESTRICTIONS(pcdbNname)) or
-        NOT CAN-DO(hFileBuffer::_Can-write,USERID(pcdbNname)) THEN
-        ASSIGN ronly = YES.
+       NOT CAN-DO(hFileBuffer::_Can-write,USERID(pcdbNname)) THEN
+        ASSIGN ronly = YES. 
 
     RETURN "".
 END FUNCTION.

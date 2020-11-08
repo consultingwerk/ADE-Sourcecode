@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013-2014, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/  
  /*------------------------------------------------------------------------
     File        : TestMethod
@@ -10,30 +10,24 @@ Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
     Created     : Wed Sep 18 11:52:47 IST 2013
     Notes       : 
   ----------------------------------------------------------------------*/
+BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-USING Progress.Lang.*.
-USING OpenEdge.ABLUnit.Model.TestEntity.
-USING OpenEdge.ABLUnit.Reflection.TestInfo.
-
-ROUTINE-LEVEL ON ERROR UNDO, THROW.
+using OpenEdge.ABLUnit.Model.TestEntity.
+using OpenEdge.ABLUnit.Reflection.TestInfo.
 
 CLASS OpenEdge.ABLUnit.Model.TestMethod INHERITS TestEntity: 
     
     DEFINE PRIVATE VARIABLE testInfo AS TestInfo NO-UNDO. 
-		
-	CONSTRUCTOR PUBLIC TestMethod ( INPUT id1 AS INTEGER ):
-		SUPER (INPUT id1).
-		
-	END CONSTRUCTOR.
-	
-	
-	METHOD PUBLIC VOID setTestInfo(INPUT testInfo1 AS TestInfo):
-	    testInfo = testInfo1.
-	END METHOD.
-	
-	METHOD PUBLIC TestInfo getTestInfo():
+        
+    CONSTRUCTOR PUBLIC TestMethod ( INPUT id1 AS INTEGER ):
+        SUPER (INPUT id1).
+    END CONSTRUCTOR.
+    
+    METHOD PUBLIC VOID setTestInfo(INPUT testInfo1 AS TestInfo):
+        testInfo = testInfo1.
+    END METHOD.
+    
+    METHOD PUBLIC TestInfo getTestInfo():
         RETURN testInfo.
     END METHOD.
-
-
 END CLASS.

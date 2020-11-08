@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : LoggerFilterNode
@@ -13,27 +13,13 @@ Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.Logging.Filter.ILoggerFilter.
-
-
-
-    
-        
-                    
-    
-
-
-
+using OpenEdge.Logging.Filter.LoggerFilterNode.
 
 class OpenEdge.Logging.Filter.LoggerFilterNode : 
-    define public property Next as class OpenEdge.Logging.Filter.LoggerFilterNode no-undo get. set.
+    define public property Next as class LoggerFilterNode no-undo get. set.
     define public property Data as class ILoggerFilter no-undo get. set.
     
     constructor public LoggerFilterNode(input poData as class ILoggerFilter):
         this-object:Data = poData.
     end constructor.
-
-
-end class. 
-
-
- 
+end class.

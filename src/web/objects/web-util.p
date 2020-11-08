@@ -4,7 +4,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /***********************************************************************
-* Copyright (C) 2005-2018 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2018, 2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -1007,9 +1007,8 @@ PROCEDURE run-web-object :
     DYNAMIC-FUNCTION ("logNote":U IN web-utilities-hdl, "WARNING":U,
       SUBSTITUTE ("&1 was requested by &2 but was not in the propath and was rejected. (Ref: &3)", 
                   pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
-    DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-      SUBSTITUTE ("Unable to find web object file '&1'", 
-                  pcFilename)) NO-ERROR.  
+    DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl, 
+                            "Unable to run web object file") NO-ERROR.  
     RETURN.
   END. /* Not found in the propath */
 
@@ -1023,8 +1022,7 @@ PROCEDURE run-web-object :
                                 SUBSTITUTE ("&1 was requested by &2 but was not in the WebRunPath and was rejected. (Ref: &3)",
                                             pcFilename, REMOTE_ADDR, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                SUBSTITUTE ("Unable to find web object file '&1'",
-                                            pcFilename )) NO-ERROR.  
+                            "Unable to run web object file") NO-ERROR.  
     RETURN.
   END. /* not found in the WebRunPath */
 
@@ -1095,8 +1093,7 @@ PROCEDURE run-web-object :
                                 SUBSTITUTE("& could not be found (Ref: &2)",
                                            pcFilename, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                SUBSTITUTE("Unable to find web object file '&1'", 
-                                           pcFilename )) NO-ERROR.
+                                "Unable to run web object file") NO-ERROR.
     RETURN.
   END.  /* cannot find a file to run anywhere (or not in development )*/
         
@@ -1107,8 +1104,7 @@ PROCEDURE run-web-object :
                                 SUBSTITUTE("&1 did not have the required databases connected (Ref: &2)",
                                            pcFilename, HTTP_REFERER)) NO-ERROR.
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                SUBSTITUTE("&1 cannot be run as a web object.", 
-                                           pcFilename)) NO-ERROR.
+                                "Cannot run as a web object") NO-ERROR.
     RETURN.
   END.
   
@@ -1145,7 +1141,7 @@ PROCEDURE run-web-object :
                                  SUBSTITUTE ("&1 tried to run but failed. Message: &2", pcFilename, ERROR-STATUS:GET-MESSAGE(1))) NO-ERROR.
 
     DYNAMIC-FUNCTION ("ShowErrorScreen":U IN web-utilities-hdl,
-                                 SUBSTITUTE ("Unable to run Web object '&1'",pcFilename)) NO-ERROR.
+                                 "Unable to run Web object") NO-ERROR.
   END. /* IF...ERROR... */
   
   ASSIGN cLog = SUBSTITUTE ("Finished: &1 : &2",pcFilename,
@@ -1348,7 +1344,7 @@ FUNCTION get-config RETURNS CHARACTER
           when "srvrDebug":U then
               return get-cgi("SERVLET_SRVR_DEBUG":U).
           when "fileUploadDirectory":U then
-	      return web-context:get-config-value(pVarName).
+          return web-context:get-config-value(pVarName).
           when "workdir":U then
               return os-getenv("CATALINA_BASE":U) . /* TODO */
         
@@ -1525,7 +1521,8 @@ FUNCTION showErrorScreen RETURNS LOGICAL
   DEFINE VARIABLE iCntr   AS INTEGER    NO-UNDO.
   DEFINE VARIABLE cTxt    AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE lRetVal AS LOGICAL    NO-UNDO.
-
+  
+  ASSIGN cErrorMsg = html-encode(cErrorMsg).
   /* Check to see if there are any errors. If so, output them one by one. */
   IF ERROR-STATUS:ERROR             AND 
     ERROR-STATUS:NUM-MESSAGES GT 0 THEN DO:
@@ -1551,7 +1548,7 @@ FUNCTION showErrorScreen RETURNS LOGICAL
     RUN VALUE(FILE-INFO:FULL-PATHNAME)(cErrorMsg) NO-ERROR.
   ELSE DO:
     DYNAMIC-FUNCTION("output-content-type":U IN web-utilities-hdl,"text/html":U).
-    {&OUT} "<BR>":U cErrorMsg "<BR>":U.
+     {&OUT} "<BR>":U cErrorMsg "<BR>":U.
   END.
 
 END FUNCTION.

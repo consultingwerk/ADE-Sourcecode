@@ -101,6 +101,14 @@ class OpenEdge.ApplicationServer.AgentManager:
         return pasam:GetMemoryUseReport(AgentSessId, OUTPUT jsonrpt).
     end method.
 
+    method public logical flushDeferredLog():
+        return pasam:flushDeferredLog().
+    end method.
+    
+    method public logical resetDeferredLog():
+        return pasam:resetDeferredLog().
+    end method.
+    
     constructor public AgentManager():
         pasam = new Progress.ApplicationServer.AgentManager().
     end constructor.

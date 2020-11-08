@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2011,2019 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -533,7 +533,8 @@ PROCEDURE bump_sub.
         CREATE ttFldOrder.
         ASSIGN ttFldOrder.FILE-NAME = _File._File-name
                ttFldOrder.Field-name = uField._Field-Name
-               ttFldOrder.Prev-Order = uField._Order - 1.
+               ttFldOrder.Prev-Order = uField._Order - 1
+               ttFldOrder.isOrderUpdated = true.
     END.
   END.
 
@@ -548,7 +549,7 @@ PROCEDURE retryOrder.
        that needed this order value on this table.
     */
     FIND FIRST ttFldOrder WHERE ttFldOrder.FILE-NAME = _File._File-name AND
-               ttFldOrder.Prev-Order = pOrder NO-ERROR.
+               ttFldOrder.Prev-Order = pOrder and not ttFldOrder.isOrderUpdated NO-ERROR.
     IF AVAILABLE ttFldOrder THEN DO:
         FIND FIRST uField OF _File WHERE uField._Field-Name = ttFldORder.Field-Name NO-ERROR.
         IF AVAILABLE uField THEN

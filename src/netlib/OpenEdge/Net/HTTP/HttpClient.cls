@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
@@ -11,6 +11,7 @@ Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
     Notes       : 
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
+
 
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.IAdaptable.
@@ -31,6 +32,7 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
+using OpenEdge.Net.HTTP.Filter.Writer.AuthenticationRequestWriterBuilder.
 
 class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, ISupportLogging:
     /** (mandatory) A free-text name for this http client. Used for the USER-AGENT
@@ -121,12 +123,18 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response'). 
         
+        assign iNumRetries = 0.
         /* Use looping instead of recursion to avoid deeping the call stack */
         repeat:
-            if rRequestHash[1] eq rRequestHash[2] then
-                assign iNumRetries = iNumRetries + 1.
-            else
-                assign iNumRetries = 0.
+            if this-object:Options:NumRetries gt 0 then
+            do:
+               if iNumRetries eq 0 then
+                    Logger:Debug(substitute('Initial request for &2 &3; max retries=&1',
+                                      this-object:Options:NumRetries, poRequest:Method, poRequest:URI:ToString())).
+                else
+                    Logger:Debug(substitute('Retry attempt &1 of &2 for &3 &4',
+                                    iNumRetries, this-object:Options:NumRetries, poRequest:Method, poRequest:URI:ToString())).
+            end.
             
             /* Update the request as needed */
             AddUserAgent(poRequest).
@@ -142,8 +150,8 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
             
             if valid-object(oAuthRequest) then
             do:
-                Logger:Debug(substitute('Authenticated request: method = &1', oAuthRequest:AuthenticationMethod)).
-                Logger:Debug(substitute('Authenticated request: challenge = &1', oAuthRequest:AuthenticationChallenge)).
+                Logger:Debug(substitute('Authenticated request: method = &1, challenge = &2',
+                                oAuthRequest:AuthenticationMethod, oAuthRequest:AuthenticationChallenge)).
                 oAuthRequest:AddAuthentication().
             end.
             
@@ -159,13 +167,25 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
             if ProcessStatusAction(poRequest, poResponse) then
                 leave.
             
+            if this-object:Options:NumRetries eq 0 then
+            do:
+                Logger:Info(substitute('Client will not attempt retry of &1 &2 after response status code &3',
+                                poRequest:Method, poRequest:URI:ToString(), poResponse:StatusCode )).
+                leave.
+            end.
+            else
             if this-object:Options:NumRetries gt 0 then
             do:
-                if iNumRetries gt this-object:Options:NumRetries then
+                if iNumRetries ge this-object:Options:NumRetries then
                     leave.
                 if this-object:Options:PauseBetweenRetry gt 0 then
                     pause this-object:Options:PauseBetweenRetry no-message.
             end.
+            
+            if rRequestHash[1] eq rRequestHash[2] then
+                assign iNumRetries = iNumRetries + 1.
+            else
+                assign iNumRetries = 0.
         end.
     end method.
     
@@ -177,17 +197,16 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
                                                  input poResponse as IHttpResponse):
         define variable oStatusCodeWriter as IHttpMessageWriter no-undo.
         define variable cookies as Cookie extent no-undo.
-        define variable cnt as integer no-undo.
-        
+        define variable oWriterType as class Progress.Lang.Class no-undo.
+        define variable authRequest as class IAuthenticatedRequest no-undo.
+ 
         assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).    
         if valid-object(oStatusCodeWriter) then
         do:
             // Copy any cookies from the response into the request. This is typically some 
             // form of session cookie (JSESSIONID) or similar
             poResponse:GetCookies(output cookies).
-            do cnt = extent(cookies) to 1 by -1:
-                poRequest:SetCookie(cookies[cnt]).
-            end.
+            poRequest:SetCookies(cookies).
             
             // Now apply the response to the request
             oStatusCodeWriter:Open().
@@ -198,7 +217,14 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
                writer's message in place of the input message. */
             assign poRequest = cast(oStatusCodeWriter:Message, IHttpRequest).
             
-            /* status changes will require a retry */
+            /* status changes will require a retry unless not supported auth method */
+            if type-of(poRequest, IAuthenticatedRequest) 
+            then do:
+              authRequest = cast(poRequest, IAuthenticatedRequest).
+              assign oWriterType = AuthenticationRequestWriterBuilder:Registry:Get(authRequest:AuthenticationMethod).
+              if oWriterType = ? then 
+                 return true.
+            end.
             return false.
         end.
         

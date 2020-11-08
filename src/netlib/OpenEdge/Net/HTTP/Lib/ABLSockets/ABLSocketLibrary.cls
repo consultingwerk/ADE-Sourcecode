@@ -65,6 +65,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     define private property miErrorNo_RequestWriteTimeout   as integer initial 103 no-undo get.
     define private property miErrorNo_RequestReadTimeout    as integer initial 104 no-undo get.
     define private property miErrorNo_RequestReadTerminated as integer initial 105 no-undo get.
+    define private property miErrorNo_BadRequest            as integer initial 106 no-undo get.
     
     /** (mandatory) A free-text name for this library. Used for the USER-AGENT
         string. */
@@ -327,7 +328,15 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
            Do NOT use the STOP-AFTER modifier; let the socket's wait-for deal
            with its own timeouts */
         assign startTime = now.
-        do on error undo, throw:
+        do on error undo, throw
+           on stop  undo, retry:  // trap stop and/or timeout conditions
+            
+            if retry then // STOP
+                undo, throw new AppError(substitute('Stop condition raised while waiting for response from server &1 on port &2 ',
+                                            moSocketConnectionParam:URI:Host,
+                                            moSocketConnectionParam:URI:Port),
+                                      miErrorNo_RequestReadTerminated).
+            
             /* for cases where we re-use the socket object, we need to handle subscriptions, and not
                as previously in Initialize()/Destroy() */
             pServer:DataReceived:Subscribe(DataReceivedHandler).
@@ -455,13 +464,18 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     method private void ExtractBody(input poRequest as IHttpRequest,
                                     input poMessageBody as ByteBucket):
         define variable oBodyWriter as MessageWriter no-undo.
-        
+        define variable errMsg as character no-undo.
         
         assign oBodyWriter = RequestWriterBuilder:Build(poRequest)
                                     :WriteTo(poMessageBody)
                                     :Writer.
         if not valid-object(oBodyWriter) then
-            return error new AppError('Unable to build request for transmission', 0).
+        do:
+            assign errMsg = substitute('Unable to build request for transmission: no builder available for HTTP Version+Method: "&1+&2" ',
+                                            poRequest:Version, poRequest:Method ).
+            Logger:Error(errMsg).
+            return error new AppError(errMsg, miErrorNo_BadRequest).
+        end.
         
         oBodyWriter:Open().
         /* writes the message's contents into the message body */

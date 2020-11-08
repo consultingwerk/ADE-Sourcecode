@@ -1,4 +1,11 @@
 /*************************************************************/
+/* Copyright (c) 2011,2019 by Progress Software Corporation  */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/ 
+
 USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
 USING OpenEdge.DataAdmin.Entity.
 USING OpenEdge.DataAdmin.IRequestInfo.
@@ -6,12 +13,6 @@ USING OpenEdge.DataAdmin.ITable.
 USING OpenEdge.DataAdmin.IUser.
 USING OpenEdge.DataAdmin.IUserFieldPermission.
 USING Progress.Lang.*.
-/* Copyright (c) 2011 by progress Software Corporation       */
-/*                                                           */
-/* all rights reserved.  no part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/ 
  /*------------------------------------------------------------------------
     File        : UserFieldPermission
     Purpose     : 

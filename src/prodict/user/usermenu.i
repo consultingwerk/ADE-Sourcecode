@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2013,2016 by Progress Software Corporation. All *
+* Copyright (C) 2006-2013,2016,2020 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -105,7 +105,7 @@ Date Created: 01/04/93
    the initial graying phase, elements for menu-items that will NEVER
    be activated for this version of progress will be set to ?.
 ---------------------------------------------------------------------*/
-Define var Menu_Hdl as widget-handle extent /*170*/ 200 NO-UNDO.  /* tsn 7/96 */
+Define var Menu_Hdl as widget-handle extent /*170*/ /*200*/ 500 NO-UNDO.  /* tsn 7/96 */
 
 /* Indexes into the Menu_Hdl array and the ?_Gray arrays. */
 Define var All_Items_ix as integer NO-UNDO init 0. /* idx into Menu_Hdl */

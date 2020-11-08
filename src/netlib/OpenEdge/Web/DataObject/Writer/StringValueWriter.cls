@@ -20,6 +20,7 @@ using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Web.DataObject.Writer.ArgumentValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
+using OpenEdge.Core.String.
 
 class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWriter:
     constructor public StringValueWriter ():
@@ -63,7 +64,12 @@ class OpenEdge.Web.DataObject.Writer.StringValueWriter inherits ArgumentValueWri
     end method.
     
     method override public void Write(input pcData as memptr):
-        assign this-object:Value = new OpenEdge.Core.String(get-string(pcData, 1)).
+        if    get-size(pcData) eq ?
+           or get-size(pcData) eq 0
+        then
+            assign this-object:Value = String:Empty().
+        else
+            assign this-object:Value = new OpenEdge.Core.String(get-string(pcData, 1)).
     end method.
     
     method override public void Write(input pcData as rowid):

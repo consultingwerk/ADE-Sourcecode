@@ -1,4 +1,11 @@
 /*************************************************************/
+/* Copyright (c) 2010,2019 by progress Software Corporation       */
+/*                                                           */
+/* all rights reserved.  no part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from progress Software Corporation. */
+/*************************************************************/
+
 USING OpenEdge.DataAdmin.Binding.IContextTree.
 USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
 USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
@@ -25,12 +32,6 @@ USING OpenEdge.DataAdmin.Message.LoadDefinitions.
 USING OpenEdge.DataAdmin.PartitionCollection.
 USING OpenEdge.DataAdmin.TableSet.
 USING Progress.Lang.Object.
-/* Copyright (c) 2010 by progress Software Corporation       */
-/*                                                           */
-/* all rights reserved.  no part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from progress Software Corporation. */
-/*************************************************************/
 /*------------------------------------------------------------------------
     File        : Schema
     Purpose     : 

@@ -1,5 +1,5 @@
 /************************************************
-  Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
+  Copyright (c) 2016-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : Principal
@@ -216,7 +216,9 @@ class OpenEdge.Security.Principal :
     method static public Principal Import(input poRequestInfo as OERequestInfo):
         define variable hCP as handle no-undo.
         
-        Assert:NotNull(poRequestInfo, 'Server request info').
+        if not valid-object(poRequestInfo) then
+            return ?.
+        
         assign hCP = poRequestInfo:GetClientPrincipal().
         if valid-handle(hCP) then
             return new Principal(hCP, true).

@@ -1,6 +1,6 @@
 &if 1=0 &then
 /************************************************
-Copyright (c)  2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : OpenEdge/Core/Collections/typedlistclass.i
@@ -173,6 +173,9 @@ class {&FullType} {&serializable} inherits {&ParentCollectionType} {&Interfaces}
         return cast(super:ToArray(), {&ValueType}).
     end method.
     
-&if defined(NoEndClass) eq 0 &then     
+&if defined(NoEndClass) eq 0
+    or "{&NoEndClass}" eq "false" 
+    or "{&NoEndClass}" eq "no"
+&then
 end class. 
 &endif 

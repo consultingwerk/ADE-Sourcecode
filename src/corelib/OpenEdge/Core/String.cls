@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : String
@@ -91,7 +91,7 @@ class OpenEdge.Core.String serializable
     method public void Trim():
         /* we can't use the ABL TRIM keyword, since we run into 
            name conflicts, so do a left- and right-trim instead. */
-        right-trim(left-trim(mUTF8Value)).
+        assign mUTF8Value = right-trim(left-trim(mUTF8Value)).
     end method.
     
     /** Trims the specified character off the contained string
@@ -102,7 +102,7 @@ class OpenEdge.Core.String serializable
         
         /* we can't use the ABL TRIM keyword, since we run into 
            name conflicts, so do a left- and right-trim instead. */
-        right-trim(left-trim(mUTF8Value, pCharacter), pCharacter).
+        assign mUTF8Value = right-trim(left-trim(mUTF8Value, pCharacter), pCharacter).
     end method.
     
     /* Returns a single/the same empty/non-null String object.

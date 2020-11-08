@@ -1,5 +1,5 @@
 /**********************************************************************************
-Copyright (c) 2014-2018 by Progress Software Corporation. All rights reserved.     
+Copyright (c) 2014-2019 by Progress Software Corporation. All rights reserved.     
 ************************************************************************************/
 /*------------------------------------------------------------------------
     File        : URI
@@ -77,7 +77,6 @@ class OpenEdge.Net.URI serializable:
     define private static variable mEncFlag_Query    as logical extent 128 initial false no-undo.
     define private static variable mEncFlag_Fragment as logical extent 128 initial false no-undo.
     define private static variable mEncFlag_Cookie   as logical extent 128 initial false no-undo.
-    //define private static variable mEncFlag_Form     as logical extent 128 initial false no-undo.
     
     /* internal string representation of this object. we don't really want to build it 
        every time we need it */
@@ -281,13 +280,7 @@ class OpenEdge.Net.URI serializable:
                // "&" = 38
                mEncFlag_Query[38 + 1]    = false
                .
-        /*
-        // + is a commonly-used signal for space, so needs to be % encoded
-        // "+" = 43
-        assign mEncFlag_Form         = mEncFlag_Query
-               mEncFlag_Form[43 + 1] = false
-               . 
-        */
+        
         // Cookie US-ASCII characters excluding CTLs, whitespace (32) DQUOTE (34), comma (44), semicolon (59), and backslash (92)       
         // 0-31 and 127+ are control or non-US-ASCII character; 32 is space               
         do chrLoop = 33 to 126:
@@ -353,7 +346,7 @@ class OpenEdge.Net.URI serializable:
         // Finally add the fragment
         assign this-object:Fragment = pFragment.
         
-        AddQueryString(pQuery, true).   //Decode?
+        AddQueryString(pQuery, true).   //Decode
     end method.
     
     /** Constructor.
@@ -670,6 +663,7 @@ class OpenEdge.Net.URI serializable:
     method static public URI Parse(input pcURI as character,
                                    input pDecode as logical):
         define variable uriParts as character extent 5 no-undo.
+        define variable newURI as URI no-undo.
         
         Assert:NotNullOrEmpty(pcURI, 'URI string').
         
@@ -699,11 +693,17 @@ class OpenEdge.Net.URI serializable:
                    uriParts[FRAGMENT_PART_IDX]  = URI:Decode(uriParts[FRAGMENT_PART_IDX])
                    .
         // Build a URI from the component parts
-        return new URI(uriParts[SCHEME_PART_IDX],
-                       uriParts[AUTHORITY_PART_IDX],
-                       uriParts[PATH_PART_IDX],
-                       uriParts[QUERY_PART_IDX],
-                       uriParts[FRAGMENT_PART_IDX]).
+        assign newURI = new URI(uriParts[SCHEME_PART_IDX],
+                                uriParts[AUTHORITY_PART_IDX],
+                                uriParts[PATH_PART_IDX],
+                                ?,  // don't pass in the query string
+                                uriParts[FRAGMENT_PART_IDX]).
+        
+        // the constructor always decodes the query string, regardless of what's passed in here
+        //  Calling AddQueryString() respects that value
+        newURI:AddQueryString(uriParts[QUERY_PART_IDX], pDecode).
+        
+        return newURI.
     end method.
     
     /* Helper method to return the path as an array of segments.

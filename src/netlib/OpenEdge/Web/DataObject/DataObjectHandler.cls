@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectHandler
@@ -523,8 +523,26 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         
         assign entityArgs          = new HandlerLoadEntityEventArgs(poRequest, pService, poOperation)
                entityArgs:Response = poResponse
+               operationTime       = now
                .
         OnLoadEntity(entityArgs).
+        // we need a BE to continue
+        if not valid-object(entityArgs:BusinessEntity) then
+            undo, throw new AppError(substitute('Unable to instantiate business entity &2 &1 ; type-of: &3',
+                                                entityArgs:Operation:TargetName,
+                                                entityArgs:Operation:TargetType,
+                                                (if valid-object(entityArgs:EntityType) then entityArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) ),
+                                                0).
+        if valid-object(entityArgs:BusinessEntity) then
+            Assert:IsType(entityArgs:BusinessEntity, entityArgs:EntityType).
+        
+        Logger:Trace(substitute('Entity &1 invoked in &2(ms)',
+                        entityArgs:BusinessEntity:ToString(),
+                        interval(now, operationTime, string(DateTimeAddIntervalEnum:Milliseconds)))).
+        Logger:Debug(substitute('Using business entity &1 of type &2 for operation &3',
+                                string(entityArgs:BusinessEntity),
+                                (if valid-object(entityArgs:EntityType) then entityArgs:EntityType:TypeName else entityArgs:BusinessEntity:GetClass():TypeName) ),
+                                string(poOperation)).
         
         assign oOperationArgs             = new OperationInvocationEventArgs(poRequest,
                                                                              entityArgs:BusinessEntity,
@@ -584,16 +602,12 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         
         return oOperationArgs:ReturnStatusCode.
         catch doeErr as DataObjectError:
+            // don't wrap this in another DataObjectError; just throw it along
             undo, throw doeErr.
         end catch.
         catch see as SendExceptionError:
-            // Log the error here, since we're not re-throwing it
-            Logger:Error(substitute('Service &1 operation &2 &3 error', 
-                                    pService:Name,
-                                    string(poOperation:Method),
-                                    poOperation:ServiceURI),
-                          see).
-            return integer(see:StatusCode).
+            // don't wrap this in a DataObjectError; just throw it along
+            undo, throw see.
         end catch.
         catch err as Progress.Lang.Error:
             define variable dohError  as DataObjectError no-undo.
@@ -779,22 +793,29 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:DiscoverService:Publish(this-object, poEventArgs).
-        if valid-object(poEventArgs:Error) then
-            undo, throw poEventArgs:Error.
         
-        if not poEventArgs:Cancel then
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        if poEventArgs:Cancel then
+            Logger:Debug(substitute('Default DiscoverServiceHandler cancelled for service &1', poEventArgs:Service)).
+        else
             // Run our local 'handler'
             DiscoverServiceHandler(this-object, poEventArgs).
         
         if valid-object(poEventArgs:Error) then
-            undo, throw poEventArgs:Error.
+            undo, throw new DataObjectError(poEventArgs).
         
-        // no error, but stop
-        if poEventArgs:Cancel then
-            undo, throw new AppError(substitute('Service discovery for &1 version &1 was cancelled',
-                                        poEventArgs:Name,
-                                        poEventArgs:Version),
-                                     0).
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
+        end catch.
+        catch ple as Progress.Lang.Error:
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:NotFound, ple).
+            undo, throw new DataObjectError(poEventArgs).
+        end catch.
     end method.
     
     /* Publishes the 'AuthorizeOperation' event with the provided args 
@@ -805,20 +826,16 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         
         DataObjectHandler:AuthorizeOperation:Publish(this-object, pEventArgs).
         
-        // If all went well, run the local 'handler'
-        if     not valid-object(pEventArgs:Error)
-           and not pEventArgs:Cancel
-        then
+        if valid-object(pEventArgs:Error) then
+            undo, throw new DataObjectError(pEventArgs).
+        
+        if pEventArgs:Cancel then
+            Logger:Debug(substitute('Default AuthorizeOperationHandler cancelled for operation &1', string(pEventArgs:Operation))).
+        else
             AuthorizeOperationHandler(this-object, pEventArgs).
         
         if valid-object(pEventArgs:Error) then
             undo, throw new DataObjectError(pEventArgs).
-        
-        // no error, but stop
-        if pEventArgs:Cancel then
-            undo, throw new AppError(substitute('Authorization of operation &1 cancelled',
-                                        string(pEventArgs:Operation)),
-                                     0).
         
         catch doe as DataObjectError:
             undo, throw doe.
@@ -827,7 +844,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
-            assign pEventArgs:Error = ple.
+            assign pEventArgs:Error = new SendExceptionError(StatusCodeEnum:Unauthorized, ple).
             undo, throw new DataObjectError(pEventArgs).
         end catch.
     end method.
@@ -839,22 +856,19 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:Invoking:Publish(this-object, poEventArgs).
-
-        // If all went well, run the local 'handler'
-        if     not valid-object(poEventArgs:Error)
-           and not poEventArgs:Cancel
-        then
-            InvokingHandler(this-object, poEventArgs).
         
         if valid-object(poEventArgs:Error) then
             undo, throw new DataObjectError(poEventArgs).
         
         if poEventArgs:Cancel then
-            undo, throw new AppError(substitute('Running of &2 in &1 for operation &2 cancelled',
-                                        poEventArgs:Operation:TargetFunction,
-                                        poEventArgs:Operation:TargetName, 
-                                        poEventArgs:Operation:ToString()),
-                                     0).
+            Logger:Debug(substitute('Default InvokingHandler cancelled for operation &1', string(poEventArgs:Operation))).
+        else
+        // If all went well, run the local 'handler'
+            InvokingHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
         catch doe as DataObjectError:
             undo, throw doe.
         end catch.
@@ -862,7 +876,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
-            assign poEventArgs:Error = ple.
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:ServiceUnavailable, ple).
             undo, throw new DataObjectError(poEventArgs).
         end catch.
     end method.
@@ -875,21 +889,18 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         
         DataObjectHandler:Invoked:Publish(this-object, poEventArgs).
         
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
         // If all went well, run the local 'handler'
-        if     not valid-object(poEventArgs:Error)
-           and not poEventArgs:Cancel
-        then
+        if poEventArgs:Cancel then
+            Logger:Debug(substitute('Default InvokedHandler cancelled for operation &1', string(poEventArgs:Operation))).
+        else
             InvokedHandler(this-object, poEventArgs).
         
         if valid-object(poEventArgs:Error) then
             undo, throw new DataObjectError(poEventArgs).
         
-        if poEventArgs:Cancel then
-            undo, throw new AppError(substitute('Running of &2 in &1 for operation &2 cancelled',
-                                        poEventArgs:Operation:TargetFunction,
-                                        poEventArgs:Operation:TargetName, 
-                                        poEventArgs:Operation:ToString()),
-                                     0).
         catch doe as DataObjectError:
             undo, throw doe.
         end catch.
@@ -897,11 +908,11 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
-            assign poEventArgs:Error = ple.
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:ServiceUnavailable, ple).
             undo, throw new DataObjectError(poEventArgs).
         end catch.
     end method.
-
+    
     /* Publishes the 'OperationError' event with the provided args 
        
        @param HandlerErrorEventArgs The args for this event */
@@ -909,21 +920,28 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         Assert:NotNull(poEventArgs, 'Event args').
         
         DataObjectHandler:OperationError:Publish(this-object, poEventArgs).
+        if valid-object(poEventArgs:Error) then
+            undo, throw poEventArgs:Error.
         
         // If all went well, run the local 'handler'. We expect the OperationError property to be filled; 
         // that's data for the error. The Error property is an error-in-processing-the-operationerror
-        if     not poEventArgs:Cancel 
-           and not valid-object(poEventArgs:Error)
-        then
+        if poEventArgs:Cancel then
+            Logger:Debug(substitute('Default OperationErrorHandler cancelled for operation error &1', string(poEventArgs:OperationError))). 
+        else
             OperationErrorHandler(this-object, poEventArgs).
         
         if valid-object(poEventArgs:Error) then
             undo, throw poEventArgs:Error.
         
+        catch doe as DataObjectError:
+            undo, throw doe.
+        end catch.
+        catch see as SendExceptionError:
+            undo, throw see.
+        end catch.
         catch ple as Progress.Lang.Error :
-            /* Something went wrong while processing errors */
-            Logger:Error('Error handling exceptions: using default status code 500/Internal Server Error', ple).
-            assign poEventArgs:ReturnStatusCode = integer(StatusCodeEnum:InternalServerError).
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:InternalServerError, ple).
+            undo, throw new DataObjectError(poEventArgs).
         end catch.
     end method.
     
@@ -931,46 +949,21 @@ class OpenEdge.Web.DataObject.DataObjectHandler
        
        @param HandlerErrorEventArgs The args for this event */
     method protected void OnLoadEntity(input poEventArgs as HandlerLoadEntityEventArgs):
-        define variable invokeTime as datetime extent 2 no-undo.
-        
         Assert:NotNull(poEventArgs, 'Event args').
-        
-        assign invokeTime[1] = now.
         
         DataObjectHandler:LoadEntity:Publish(this-object, poEventArgs).
         
-        // If all went well, run the local 'handler'
-        if     not valid-object(poEventArgs:Error)
-           and not poEventArgs:Cancel
-        then
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
+        if poEventArgs:Cancel then 
+            Logger:Debug(substitute('Default LoadEntityHandler cancelled for entity type &1', poEventArgs:EntityType:TypeName)).
+        else
+            // If all went well, run the local 'handler'
             LoadEntityHandler(this-object, poEventArgs).
         
-        if poEventArgs:Cancel then
-            undo, throw new AppError(substitute('Business entity &1 load for operation &2 cancelled',
-                                        poEventArgs:Operation:TargetName, poEventArgs:Operation:ToString()),
-                                     0).
-        
-        if not valid-object(poEventArgs:BusinessEntity) then
-            undo, throw new SendExceptionError(StatusCodeEnum:ServiceUnavailable,
-                                               new AppError(substitute('Unable to instantiate business entity &2 &1 ; type-of: &3',
-                                                                poEventArgs:Operation:TargetName,
-                                                                poEventArgs:Operation:TargetType,
-                                                                (if valid-object(poEventArgs:EntityType) then poEventArgs:EntityType:TypeName else get-class(Progress.Lang.Object):TypeName) ),
-                                                            0)).
-        
-        Logger:Debug(substitute('Using business entity &1 of type &2',
-                                poEventArgs:BusinessEntity,
-                                poEventArgs:BusinessEntity:GetClass():TypeName)).
-        
-        if valid-object(poEventArgs) then
-            Assert:IsType(poEventArgs:BusinessEntity, poEventArgs:EntityType).
-        
-        assign invokeTime[2] = now.
-        Logger:Debug(substitute('Using entity &1 for operation &2',
-                        poEventArgs:BusinessEntity:ToString(), poEventArgs:Operation:ToString())).
-        Logger:Trace(substitute('Entity &1 invoked in &2(ms)',
-                        poEventArgs:BusinessEntity:ToString(),
-                        interval(invokeTime[2], invokeTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
         
         catch doe as DataObjectError:
             undo, throw doe.
@@ -979,7 +972,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
-            assign poEventArgs:Error = ple.
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:ServiceUnavailable, ple).
             undo, throw new DataObjectError(poEventArgs).
         end catch.
     end method.
@@ -992,11 +985,17 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         
         DataObjectHandler:UnloadEntity:Publish(this-object, poEventArgs).
         
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
+        
         // If all went well, run the local 'handler'
-        if     not valid-object(poEventArgs:Error)
-           and not poEventArgs:Cancel
-        then
+        if poEventArgs:Cancel then
+            Logger:Debug(substitute('Default UnloadEntityHandler cancelled for entity type &1', poEventArgs:EntityType:TypeName)).
+        else
             UnloadEntityHandler(this-object, poEventArgs).
+        
+        if valid-object(poEventArgs:Error) then
+            undo, throw new DataObjectError(poEventArgs).
         
         catch doe as DataObjectError:
             undo, throw doe.
@@ -1005,7 +1004,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             undo, throw see.
         end catch.
         catch ple as Progress.Lang.Error:
-            assign poEventArgs:Error = ple.
+            assign poEventArgs:Error = new SendExceptionError(StatusCodeEnum:ServiceUnavailable, ple).
             undo, throw new DataObjectError(poEventArgs).
         end catch.
     end method.
@@ -1396,6 +1395,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
                                 discoveryArgs:Service:ToString(),
                                 poRequest:Method,
                                 poRequest:URI:ToString() )).
+        
         return discoveryArgs:Service.
     end method.
     
@@ -1467,7 +1467,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         if not valid-object(pEventArgs:BusinessEntity)
            or pEventArgs:Cancel
            or valid-object(pEventArgs:Error)
-           then
+        then
             return.
         
         case pEventArgs:Request:GetContextValue('SERVLET_SRVR_DEBUG':u):

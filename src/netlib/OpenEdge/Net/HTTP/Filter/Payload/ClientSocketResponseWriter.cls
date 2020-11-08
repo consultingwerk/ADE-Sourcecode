@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
@@ -49,7 +49,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     
     /* helper variable for the response, to avoid constant casting */
     define protected property Response as IHttpResponse no-undo get. private set.
-
+    
     /* helper variable for the request, to avoid constant casting */
     define protected property Request as IHttpRequest no-undo get. private set.
     
@@ -76,7 +76,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         
         assign this-object:Request = ?.
     end method.
-
+    
     /** Opens the writer for output. Open/Close allows us to write the same message multiple
         times without requiring a new writer each time. */
     method public void Open():
@@ -118,7 +118,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     
     /* Specialised writer method for socket read args
         
-       @param SocketReadEventArgs A socket read args to write */    
+       @param SocketReadEventArgs A socket read args to write */
     method protected void Write(input poSocketArgs as SocketReadEventArgs):
         define variable iBytesRead as int64 no-undo.
         define variable iLoop as int64 no-undo.
@@ -131,7 +131,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         define variable cValue as character no-undo.
         
         Assert:NotNull(poSocketArgs, 'Socket read argument').
-
+        
         /* Parses a chunk of data that's received from the socket. May or not
             be a complete payload
             
@@ -143,7 +143,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                             | response-header        ; Section 6.2
                             | entity-header ) CRLF)  ; Section 7.1
                            CRLF
-                           [ message-body ]          ; Section 7.2      */        
+                           [ message-body ]          ; Section 7.2      */
         assign iBytesRead  = poSocketArgs:BytesRead
                iStartByte  = 1
                .
@@ -163,7 +163,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 /* don't count the CR/LF as bytes */
                 if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
-                                       
+                
                 /* if we're at the end of our chunk of data, or we have hit 
                    the carriage return */
                 if (miPrevByte eq CR and iByte eq LF ) or 
@@ -202,25 +202,38 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
                 
-                /* if we're at the end of our chunk of data, or we have hit 
-                   the carriage return */
-                if (miPrevByte eq CR and iByte eq LF ) or 
-                   iLoop eq iBytesRead then
-                assign mcCurrentLine = mcCurrentLine
-                                     /* start at the beginning of this word/token. */
-                                     + string(poSocketArgs:Data:GetString(iLoop - (iNumBytes + 1), iNumBytes, session:cpinternal)).
-                
-                /* if we're at the end of the line, add the header to the response */
-                if iByte eq LF and iNumBytes gt 0 then
+                // if the first bytes in this packet are CR and/or LF, the NumBytes will be 0 
+                if iNumBytes gt 0 then
                 do:
-                    assign iPos   = index(mcCurrentLine, ':':u)
-                           cName  = substring(mcCurrentLine, 1, iPos - 1)
-                           cValue = left-trim(substring(mcCurrentLine, iPos + 1))
-                    /* reset counters/temps */
-                           mcCurrentLine = '':u
-                           iNumBytes     = 0.
-                    Response:SetHeader(
-                        HttpHeaderBuilder:Build(cName):Value(cValue):Header).
+                    // We're at a LF byte
+                    if miPrevByte eq CR 
+                    and iByte eq LF
+                    then
+                        assign mcCurrentLine = mcCurrentLine
+                                             // Offset iNumBytes by CRLF bytes and 1 for 1-based counting
+                                             + poSocketArgs:Data:GetString(iLoop - (iNumBytes + 2 - 1), iNumBytes, session:cpinternal)
+                                             .
+                    else
+                    // If we're at the end of the loop, and this isn't a CR or LF, then get the
+                    // number of bytes, but without the leading CRLF
+                    if iLoop eq iBytesRead 
+                    then
+                        assign mcCurrentLine = mcCurrentLine 
+                                             + poSocketArgs:Data:GetString(iLoop - iNumBytes + 1, iNumBytes, session:cpinternal)
+                                             .
+                    
+                    /* if we're at the end of the line, add the header to the response */
+                    if iByte eq LF then
+                    do:
+                        assign iPos   = index(mcCurrentLine, ':':u)
+                               cName  = substring(mcCurrentLine, 1, iPos - 1)
+                               cValue = left-trim(substring(mcCurrentLine, iPos + 1))
+                        /* reset counters/temps */
+                               mcCurrentLine = '':u
+                               iNumBytes     = 0.
+                        Response:SetHeader(
+                            HttpHeaderBuilder:Build(cName):Value(cValue):Header).
+                    end.
                 end.
                 
                 /* if this is the 2nd CRLF then we have finished all the headers 
@@ -248,17 +261,21 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
             /* HEAD requests have no bodies, so we know we're done now.
                If the caller of this writer has not set the Request via Write(IHTTPRequest)
                then the socket may end up timing out instead but it won't fail. */
-            if     valid-object(this-object:Request) 
+            if     valid-object(this-object:Request)
                and this-object:Request:Method eq MethodEnum:HEAD:ToString()
             then
                 assign poSocketArgs:ReadComplete = true.
-            else
+            // if the status is 204, there will not be a Content-Length header
+            // and also no content/message body, so we're all done
+            // Per https://tools.ietf.org/html/rfc7230#section-3.3.2
+            else if Response:StatusCode eq integer(StatusCodeEnum:NoContent) then
+                assign poSocketArgs:ReadComplete = true.
             // If there's otherwise no entity/message body, then we can consider ourselves done.
-            if Response:ContentLength eq 0
-                       // If there's a Content-Length header with a value of 0/zero, then we're done here. 
-               and (   Response:HasHeader('Content-Length':u) 
-                       // if there's no discernable content on this response
-                    or Response:ContentType   eq '':u ) 
+            else if Response:ContentLength eq 0
+                           // If there's a Content-Length header with a value of 0/zero, then we're done here. 
+                    and (   Response:HasHeader('Content-Length':u) 
+                            // if there's no discernable content on this response
+                         or Response:ContentType   eq '':u ) 
             then
                 assign poSocketArgs:ReadComplete = true.
             else
@@ -318,7 +335,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                                 
                                 moChunk:PutBytes(poSocketArgs:Data:GetBytes(iPos, iNumBytes)).
                             end.
-                                                                        
+                            
                             /* figure out how big the chunk is */
                             if iByte eq LF and moChunk:Size gt 0 then
                             do on error undo, throw:
@@ -403,24 +420,24 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     end method.
     
     /** Write data to/from the message
-
+        
         @param handle Data to write */
-    method public void Write(input phData as handle):    
+    method public void Write(input phData as handle):
         /* no-op */
     end method.
-
+    
     /** Write data to/from the message
-
+        
         @param character Data to write */
-    method public void Write(input-output pcData as character):    
+    method public void Write(input-output pcData as character):
         /* no-op */
-    end method.    
+    end method.
     
     /** Write data to the output location 
     
         @param memptr Data to write */
     method public void Write(input pmData as memptr):
-        /* no-op*/                
+        /* no-op*/
     end method.
     
     /**  Flushes data to the output location. What data is flushed depends on the implementation */

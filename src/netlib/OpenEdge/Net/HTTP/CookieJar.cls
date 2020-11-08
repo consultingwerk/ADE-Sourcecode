@@ -55,7 +55,7 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         field Path as character
         
         /* data */
-        field WholeCookie as Object        
+        field WholeCookie as Object
         /* cache info */
         field CreatedAt as datetime-tz
         field LastAccessedAt as datetime-tz
@@ -246,6 +246,9 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         define variable oCookie as JsonObject no-undo.
         define variable iMax as integer no-undo.
         define variable iLoop as integer no-undo.
+        define variable cookieName as character no-undo.
+        define variable domain as character no-undo.
+        define variable path as character no-undo.
         
         define buffer lbCookie for PersistentCookie.
         
@@ -258,16 +261,31 @@ class OpenEdge.Net.HTTP.CookieJar use-widget-pool
         
         if oLoad:Has('cookies':u) then
             assign oArray = oLoad:GetJsonArray('cookies':u)
-                   iMax = oArray:Length.
+                   iMax   = oArray:Length.
         do iLoop = 1 to iMax:
-            assign oCookie = oArray:GetJsonObject(iLoop).
-            create lbCookie.
-            assign lbCookie.CookieName = oCookie:GetCharacter('CookieName':u)
-                   lbCookie.Domain = oCookie:GetCharacter('Domain':u)
-                   lbCookie.Path = oCookie:GetCharacter('Path':u)
-                   lbCookie.CreatedAt = oCookie:GetDatetimeTZ('CreatedAt':u) 
-                   lbCookie.LastAccessedAt  = oCookie:GetDatetimeTZ('LastAccessedAt':u)
-                   lbCookie.WholeCookie = OpenEdge.Net.HTTP.Cookie:Parse(oCookie:GetCharacter('Cookie':u)).
+            assign oCookie    = oArray:GetJsonObject(iLoop)
+                   cookieName = oCookie:GetCharacter('CookieName':u)
+                   domain     = oCookie:GetCharacter('Domain':u)
+                   path       = oCookie:GetCharacter('Path':u)
+                   .
+                   
+            find lbCookie 
+            where lbCookie.CookieName = cookieName
+              and lbCookie.Domain     = domain
+              and lbCookie.Path       = path
+              no-error.
+            if not available lbCookie then
+            do:     
+                create lbCookie.
+                assign lbCookie.CookieName = cookieName
+                       lbCookie.Domain     = domain
+                       lbCookie.Path       = path
+                       .
+            end.
+            assign lbCookie.CreatedAt      = oCookie:GetDatetimeTZ('CreatedAt':u) 
+                   lbCookie.LastAccessedAt = oCookie:GetDatetimeTZ('LastAccessedAt':u)
+                   lbCookie.WholeCookie    = OpenEdge.Net.HTTP.Cookie:Parse(oCookie:GetCharacter('Cookie':u))
+                   .
         end.
     end method.
     

@@ -1,4 +1,12 @@
 /*************************************************************/
+/* Copyright (c) 2012 by Progress Software Corporation.      */
+/*                                                           */
+/* All rights reserved.  No part of this program or document */
+/* may be  reproduced in  any form  or by  any means without */
+/* permission in writing from Progress Software Corporation. */
+/*************************************************************/
+
+
 USING OpenEdge.DataAdmin.Binding.IDataAdminContext.
 USING OpenEdge.DataAdmin.Binding.IDataAdminModel.
 USING OpenEdge.DataAdmin.Entity.
@@ -8,12 +16,6 @@ USING OpenEdge.DataAdmin.ITable.
 USING OpenEdge.DataAdmin.ITenant.
 USING OpenEdge.DataAdmin.ITenantGroup.
 USING Progress.Lang.*.
-/* Copyright (c) 2012 by Progress Software Corporation.      */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from Progress Software Corporation. */
-/*************************************************************/
 /*------------------------------------------------------------------------
     Purpose     : 
     Syntax      : 

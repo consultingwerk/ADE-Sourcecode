@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : RequestBuilder
@@ -660,12 +660,12 @@ class OpenEdge.Net.HTTP.RequestBuilder abstract inherits ConfigBuilder
         return this-object.
     end method.
     
-    /** Sets the HTTP version of the request   
+    /** Sets the HTTP version of the request.
     
         @param character A version
         @return RequestBuilder The request builder being constructed. */
     method public RequestBuilder HttpVersion(input pcVersion as character):
-        Assert:NotNullOrEmpty(pcVersion, 'HTTP version').
+        Assert:Equals('HTTP/1.1', pcVersion).
         
         SetOption('version':u, pcVersion).
         

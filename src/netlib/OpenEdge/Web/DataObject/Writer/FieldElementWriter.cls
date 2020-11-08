@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : FieldElementWriter
@@ -53,6 +53,7 @@ class OpenEdge.Web.DataObject.Writer.FieldElementWriter inherits ResponseElement
         define variable entityWriter as MessageWriter no-undo.
         define variable hdr as HttpHeader no-undo.
         define variable fileName as character no-undo.
+        define variable fileExt as character no-undo.
         define variable chrPos as integer no-undo.
         define variable contentType as character no-undo.
         
@@ -93,13 +94,18 @@ class OpenEdge.Web.DataObject.Writer.FieldElementWriter inherits ResponseElement
                         assign fileName = replace(cast(pElemValue, FileInputStream):FileName, StringConstant:BACKSLASH, '/':u)
                                chrPos   = r-index(fileName, '/':u)
                                fileName = substring(fileName, chrPos + 1)
+                               fileExt  = entry(num-entries(fileName, '.':u), fileName, '.':u)
                                .
                         hdr:SetParameterValue('filename':u, fileName).
                         Logger:Trace(substitute('Setting Content-Disposition: fileName to &1', fileName)).
                         
-                        assign contentType = FileTypeRegistry:Registry:Get(entry(num-entries(fileName, '.':u), fileName, '.':u)).
+                        assign contentType = FileTypeRegistry:Registry:Get(fileExt).
                         if contentType eq ? then
-                            assign msgPart:ContentType = 'application/octet-stream':u.
+                            assign contentType = 'application/octet-stream':u
+                                   // if we don't know the MIME type of the file, treat it as an attachment
+                                   // per https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types#applicationoctet-stream
+                                   hdr:Value   = 'attachment':u
+                                   .
                     end.    //file-input-stream
                     // default for message parts
                     otherwise assign contentType = 'text/plain':u.

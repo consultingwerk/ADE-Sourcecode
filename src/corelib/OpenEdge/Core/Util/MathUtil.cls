@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : MathUtil
@@ -39,13 +39,16 @@ class OpenEdge.Core.Util.MathUtil:
     /** Converts hex to integer values 
         
         @param character A hex value
-        @return integer The integer representation of that hex value.   */
-    method public static integer HexToInt(input pcHex as character):
-        define variable iResult as integer no-undo.
+        @return int64 The integer representation of that hex value.   */
+    method public static int64 HexToInt(input pcHex as character):
+        define variable iResult as int64 no-undo.
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
         define variable cHex as character no-undo.
         define variable rHex as raw no-undo.
+        
+        if pcHex eq ? then
+            return 0.
         
         assign cHex = trim(pcHex).
         
@@ -60,7 +63,8 @@ class OpenEdge.Core.Util.MathUtil:
                  iResult = iResult + get-byte(rHex, iLoop)
                  .
        end.
-       return iResult.  
+       
+       return iResult.
     end method.
     
     /** Converts an exponent (123e4) value into a decimal using a exponent

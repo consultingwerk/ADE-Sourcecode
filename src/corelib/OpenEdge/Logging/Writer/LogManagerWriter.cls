@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogManagerWriter
@@ -28,8 +28,8 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
     define public property FileName as character no-undo
         get():
             return log-manager:logfile-name.
-        end get.    
-        
+        end get.
+    
     // TRUE if we are appending to an existing file
     define public property Append as logical no-undo get. private set. 
     
@@ -57,47 +57,56 @@ class OpenEdge.Logging.Writer.LogManagerWriter implements ILoggerFilter, IFileWr
         this-object().
         
         case session:client-type:
-            when 'APPSERVER':u or 
+            when 'APPSERVER':u or
             when 'MULTI-SESSION-AGENT':u or
             when 'WEBSPEED':u then
             do:
                 assign mlDefaultLog       = true
-                       this-object:Append = true.
-                if log-manager:logging-level ge integer(LogLevelEnum:INFO) then                       
-                    log-manager:write-message(
-                                 substitute('INFO: Current session client type &1 does not support named logs', session:client-type),
-                                 SubSys).
+                       this-object:Append = true
+                       .
+                // If the config specifies a file name, write a note that we will be using the default log-manager log
+                if     log-manager:logging-level ge integer(LogLevelEnum:INFO)
+                   and ( not (pcFile eq ? or pcFile eq '':u)
+                         and log-manager:logfile-name ne pcFile )
+                then
+                    log-manager:write-message(substitute('INFO: Current session client type &1 does not support named logs',
+                                                          session:client-type),
+                                              SubSys).
                 return.
             end.
             otherwise
-            case true:
-                when log-manager:logfile-name eq ? and pcFile ne ? then
-                do:
-                    assign log-manager:logfile-name = pcFile
-                           this-object:Append       = plAppend
-                           mlDefaultLog             = true.
-                    if not plAppend then
-                        log-manager:clear-log(). 
-                end.
-                otherwise
-                do:
-                    if     log-manager:logfile-name ne pcFile 
-                       and pcFile ne '':u 
-                       and log-manager:logging-level ge integer(LogLevelEnum:INFO) then                       
-                        log-manager:write-message(
-                                substitute('INFO: Log-manager is already in use. Cannot write to &1', pcFile), 
-                                SubSys).
-                    assign mlDefaultLog       = true
-                           this-object:Append = true.
-                end.    // existing 
-            end case.
+            do:
+                case true:
+                    when log-manager:logfile-name eq ? then
+                    do:
+                        Assert:NotNullOrEmpty(pcFile, 'Logfile name').
+                        
+                        assign log-manager:logfile-name = pcFile
+                               this-object:Append       = plAppend
+                               mlDefaultLog             = true.
+                        if not plAppend then
+                            log-manager:clear-log().
+                    end.
+                    otherwise
+                    do:
+                        if     log-manager:logfile-name ne pcFile 
+                           and log-manager:logging-level ge integer(LogLevelEnum:INFO)
+                        then
+                            log-manager:write-message(
+                                    substitute('INFO: Log-manager is already in use. Cannot write to &1', pcFile), 
+                                    SubSys).
+                        assign mlDefaultLog       = true
+                               this-object:Append = true.
+                    end.    // existing 
+                end case.
+            end.
         end case.
     end constructor.
     
     /** Performs implementation-specific filtering for a logger type
         
         @param LogMessage The message to log. */
-    method public void ExecuteFilter( input poEvent as LogEvent):
+    method public void ExecuteFilter(input poEvent as LogEvent):
         if log-manager:logfile-name eq ? then
             return.
         log-manager:write-message(poEvent:Message:Message, SubSys).

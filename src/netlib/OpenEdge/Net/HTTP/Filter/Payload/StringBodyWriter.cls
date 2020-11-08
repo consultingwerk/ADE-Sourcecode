@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2018  by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : StringBodyWriter
@@ -98,17 +98,6 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
                 return length(lcText, 'raw':u).
             end.
             
-            // Keep the primitive holders separate from the 'string' holders, since we will "string" the Value, which may 
-            // truncate data for the String and ILongcharHolder types
-            when type-of(poData, IPrimitiveHolder) then
-            do:
-                assign lcText = string(dynamic-property(poData, 'Value':u)).
-                
-                // longchars are passed by-value, so don't do that
-                cast(this-object:Entity, ByteBucket):PutString(lcText).
-                return length(lcText, 'raw':u).
-            end.
-            
             when type-of(poData, ByteBucket) then
             do:
                 assign lcText = cast(poData, ByteBucket):GetString().
@@ -118,6 +107,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
                 return length(lcText, 'raw':u).
             end.
             
+            // The Memptr class implements IMemptrHolder and via inheritance IPrimitiveHolder, so 
+            // make sure this condition appears before those checks 
             when type-of(poData, Memptr) then
             do: 
                 assign lcText = cast(poData, Memptr):GetString(1).
@@ -131,6 +122,17 @@ class OpenEdge.Net.HTTP.Filter.Payload.StringBodyWriter inherits MessageWriter:
             // we want to use GetString() from the Memptr
             when type-of(poData, IMemptrHolder) then
                 return this-object:Write(cast(poData, IMemptrHolder):Value).
+            
+            // Keep the primitive holders separate from the 'string' holders, since we will "string" the Value, which may 
+            // truncate data for the String and ILongcharHolder types
+            when type-of(poData, IPrimitiveHolder) then
+            do:
+                assign lcText = string(dynamic-property(poData, 'Value':u)).
+                
+                // longchars are passed by-value, so don't do that
+                cast(this-object:Entity, ByteBucket):PutString(lcText).
+                return length(lcText, 'raw':u).
+            end.
             
             otherwise 
             do:

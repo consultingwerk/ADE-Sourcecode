@@ -49,7 +49,8 @@ DEFINE {1} SHARED TEMP-TABLE wcon NO-UNDO LIKE _Constraint.
 DEFINE {1} SHARED TEMP-TABLE ttFldOrder NO-UNDO
     FIELD FILE-NAME  AS CHAR
     FIELD Field-Name AS CHAR
-    FIELD Prev-Order AS INT.
+    FIELD Prev-Order AS INT
+    FIELD isOrderUpdated as LOGICAL.
 
 &ENDIF
 

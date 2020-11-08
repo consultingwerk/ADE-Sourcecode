@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : FileLogFilterBuilder
@@ -25,7 +25,6 @@ using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.Writer.IFileWriter.
 using OpenEdge.Logging.Writer.VoidWriter.
 using Progress.IO.FileOutputStream.
-using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 
@@ -55,12 +54,13 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
         if not valid-object(filterType) or
           ( filterType:IsA(get-class(VoidWriter)) 
             and this-object:FilterType ne LoggerFilterRegistry:VOID_WRITER 
-            and log-manager:logfile-name ne ?                              ) then
+            and log-manager:logfile-name ne ?                              )
+        then
             assign filterType = this-object:GetFilterType(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         
         return filterType.            
     end method.
-        
+    
     /* Creates the instance.
        
        @return ILoggerFilter A filter instance  */
@@ -94,15 +94,15 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
             
             otherwise
             do:
-                assign logfileName = GetOptionStringValue('writeToFileName':u).
-                if logfileName eq ? then
-                do:
-                    assign filterOptions = cast(GetOptionObjectValue('loggerOptions':u), JsonObject).
-                    if     valid-object(filterOptions) 
-                       and filterOptions:Has('fileName':u) 
-                       and filterOptions:GetType('fileName':u) eq JsonDataType:STRING then
-                        assign logfileName = filterOptions:GetCharacter('fileName':u).                        
-                end.
+                assign logfileName = GetOptionStringValue('fileName':u).
+                
+                // if there's no file name (from either the input or the log-manager) then
+                // we cannot create a meaningful writer
+                if     logfileName eq ?
+                   and log-manager:logfile-name eq ?
+                then 
+                    return filter.
+                
                 assign logfileName = replace(TokenResolver:Resolve(logfileName), StringConstant:BACKSLASH, '/':u).
                 
                 // certain characters are illegal on windows
@@ -122,19 +122,9 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
                     end.
                 end.
                 
-                assign appendToFile = GetOptionLogicalValue('appendToLog':u).
+                assign appendToFile = GetOptionLogicalValue('appendTo':u).
                 if appendToFile eq ? then
-                do:
-                    if not valid-object(filterOptions) then
-                        assign filterOptions = cast(GetOptionObjectValue('loggerOptions':u), JsonObject).
-                        
-                    if valid-object(filterOptions) 
-                       and filterOptions:Has('appendTo':u) 
-                       and filterOptions:GetType('appendTo':u) eq JsonDataType:BOOLEAN then
-                        assign appendToFile = filterOptions:GetLogical('appendTo':u).                        
-                    else
-                        assign appendToFile = true.
-                end.
+                    assign appendToFile = true.
                 
                 filter = dynamic-new string(filterType:TypeName) (logfileName, appendToFile).
             end.
@@ -145,5 +135,5 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
         
         return filter.
     end method.
-        
+    
 end class.

@@ -23,6 +23,25 @@
         {"$ref": "#/definitions/typeProperty"},
         {"$ref": "#/definitions/typeName"}
       ]
+    },
+    "filterName": {
+        "type": "string",
+        "enum": [
+            "LOG_MANAGER_WRITER",
+            "NAMED_FILE_WRITER",
+            "VOID_WRITER",
+            "DEFAULT_WRITER",
+            "MSG_STMT_WRITER",
+            "ABL_SUBSTITUTE_FORMAT",
+            "LOG_MANAGER_FORMAT",
+            "STACK_WRITER_FORMAT",
+            "FULL_TEXT_FORMAT",
+            "ERROR_FORMAT",
+            "TOKEN_FORMAT",
+            "ANON_FORMAT",
+            "MDC_FORMAT",
+            "REPLACE_TOKENS_FORMAT"
+          ]
     }
   },
   "DEFAULT_LOGGER": {"type": "string"},
@@ -50,8 +69,12 @@
             "minItems": 1,
             "items": {
               "oneOf": [
+                {
+                    "$ref": "#/definitions/filterName",
+                    "description": "A filterName reference to a in-the-box"
+                },
                 {"type": "string",
-                  "description": "A filterName reference to a in-the-box or registered filter, or an entry in the filters property in this config"
+                  "description": "A filterName reference to a registered filter, or an entry in the filters property in this config"
                 },
                 {
                   "type": "object",

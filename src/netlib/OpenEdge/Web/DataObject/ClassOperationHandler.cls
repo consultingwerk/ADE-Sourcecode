@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ClassOperationHandler
@@ -15,9 +15,11 @@ block-level on error undo, throw.
 using OpenEdge.Core.Assert.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
 using OpenEdge.Core.IOModeEnum.
+using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.Logger.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.OperationArgument.
 using OpenEdge.Web.DataObject.OperationHandler.
@@ -28,8 +30,6 @@ using OpenEdge.Web.SendExceptionError.
 using Progress.Lang.AppError.
 using Progress.Lang.ParameterList.
 using Progress.Reflect.DataType.
-using Progress.Reflect.Flags.
-using OpenEdge.Web.DataObject.DataObjectService.
 
 class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
     
@@ -156,24 +156,16 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
         Logger:Debug(substitute('Arguments for &1:&2 initialized in &3ms', 
                                 poOperation:TargetName, poOperation:TargetFunction, 
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
-
+        
         /* FIND THE METHOD TO INVOKE */
-        assign execTime[1] = now
-               oMethod = poEntity:GetClass()
-                                 :GetMethod(poOperation:TargetFunction, 
-                                           // don't want static stuff
-                                           (Flags:Public or Flags:Instance),
-                                           oParamList).
-                                           
+        assign oMethod = GetEntityMethod(poEntity, poOperation:TargetFunction, oParamList).
         if not valid-object(oMethod) then
             undo, throw new SendExceptionError(StatusCodeEnum:NotImplemented,
                                                new AppError(substitute('Unable to find class method for &1',
                                                     string(poOperation)),
                                                     0)).
-        
-        
         Logger:Trace(substitute('Using method &1 for operation &2', oMethod:ToString(), poOperation:ToString())).
-                                           
+        
         /* INVOKE & HANDLE RETURN-VALUE */
         find lbArg where lbArg.ParentOH eq int64(this-object) and
              lbArg.ParamIndex eq 0
@@ -192,6 +184,7 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             assign oOperArg     = ?
                    oValueWriter = ?.
         
+        assign execTime[1] = now.
         if valid-object(oOperArg) then
         do:
             case oMethod:ReturnType:
@@ -227,14 +220,11 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             SetOutputValue(oOperArg, poResponse).
         end.
         else
-        do:
-            assign execTime[1] = now.
             /* This invoke is basically what doh_execute_invoke.i does, but there are
                no return values to deal with in this case (or we don't care about them). */
             oMethod:Invoke(poEntity, oParamList).
-            assign execTime[2] = now.
-        end.
         
+        assign execTime[2] = now.
         Logger:Trace(substitute('Execution time for &1:&2 = &3 (ms)', 
                                 poOperation:TargetName, poOperation:TargetFunction, 
                                 interval(execTime[2], execTime[1], string(DateTimeAddIntervalEnum:Milliseconds)))).
@@ -340,6 +330,116 @@ class OpenEdge.Web.DataObject.ClassOperationHandler  inherits OperationHandler:
             do iCleanLoop = extent(arg_arr_memptr_31) to 1 by -1: set-size(arg_arr_memptr_31[iCleanLoop]) = 0. end.
             do iCleanLoop = extent(arg_arr_memptr_32) to 1 by -1: set-size(arg_arr_memptr_32[iCleanLoop]) = 0. end.
         end finally.
+    end method.
+    
+    /* Attempts to find a method by reflection, using the name and # parameters.
+       Methods must be public and instance-based
+       
+       @param P.L.Object The business logic code
+       @param character The name of the method
+       @param ParameterList The list of parameters for this operation    
+       @return Method A matching method, or NULL if none can be found. */
+    method private Progress.Reflect.Method GetEntityMethod(input pEntity as Progress.Lang.Object,
+                                                           input pMethodName as character,
+                                                           input pParams as Progress.Lang.ParameterList):
+        define variable targetMethod as Progress.Reflect.Method extent no-undo.
+        define variable methodParams as Progress.Reflect.Parameter extent no-undo.
+        define variable entityType as class Progress.Lang.Class no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        define variable paramLoop as integer no-undo.
+        define variable paramCnt as integer no-undo.
+        define variable hasMatchingSig as logical no-undo.
+        define variable hasMatchingName as logical no-undo.
+        define variable methFlags as Progress.Reflect.Flags no-undo.
+        
+        assign entityType           = pEntity:GetClass()
+               extent(targetMethod) = 1
+               methFlags            = (   Progress.Reflect.Flags:Instance
+                                       or Progress.Reflect.Flags:Public) 
+               targetMethod[1]      = entityType:GetMethod(pMethodName, methFlags, pParams)
+               .
+        // if we're debugging, write more stuff
+        if     not valid-object(targetMethod[1])
+           and Logger:LogLevel ge LogLevelEnum:DEBUG
+        then
+        do:
+            // this block attempts to figure out what failed in the GetMethod() call
+            Logger:Debug(substitute('Unable to find PUBLIC instance method &1 in entity &2 with matching parameters (&3)',
+                            pMethodName, entityType:TypeName, pParams:NumParameters)).
+            
+            // Is the access level wrong?
+            assign methFlags       = (   Progress.Reflect.Flags:Instance 
+                                      or Progress.Reflect.Flags:Private
+                                      or Progress.Reflect.Flags:Protected)
+                   targetMethod[1] = entityType:GetMethod(pMethodName, methFlags, pParams)
+                   .
+            if valid-object(targetMethod[1]) then
+            do:
+                Logger:Debug(substitute('Instance method &1 exists with the correct parameters but is &2',
+                                pMethodName, caps(string(targetMethod[1]:AccessMode)))).
+                return ?.
+            end.
+            
+            // Is it a static method?
+            assign methFlags       = (   Progress.Reflect.Flags:Static
+                                      or Progress.Reflect.Flags:Public
+                                      or Progress.Reflect.Flags:Protected
+                                      or Progress.Reflect.Flags:Private   )
+                   targetMethod[1] = entityType:GetMethod(pMethodName, methFlags, pParams)
+                   .
+            if valid-object(targetMethod[1]) then
+            do:
+                Logger:Debug(substitute('Method &1 exists with the correct parameters but is STATIC and &2',
+                                pMethodName, caps(string(targetMethod[1]:AccessMode)))).
+                return ?.
+            end.
+            
+            assign extent(targetMethod) = ?
+                   methFlags            = (   Progress.Reflect.Flags:Instance
+                                           or Progress.Reflect.Flags:Public)
+                   targetMethod         = entityType:GetMethods(methFlags)
+                   cnt                  = extent(targetMethod)
+                   hasMatchingSig       = no
+                   hasMatchingName      = no
+                   .
+            do loop = 1 to cnt:
+                if not targetMethod[loop]:Name eq pMethodName then
+                    next.
+                
+                assign hasMatchingName = yes.
+                if targetMethod[loop]:NumParameters eq pParams:NumParameters then
+                do:
+                    assign hasMatchingSig       = yes
+                           extent(methodParams) = ?
+                           methodParams         = targetMethod[loop]:GetParameters()
+                           paramCnt             = extent(methodParams)
+                           .
+                    do paramLoop = 1 to paramCnt:
+                        case methodParams[paramLoop]:DataType:
+                            when DataType:DataSet or
+                            when DataType:DataSetHandle or
+                            when DataType:Table or
+                            when DataType:TableHandle then
+                                Logger:Debug(substitute('Method &1 parameter &4 ("&2") is a &3; make sure that schemas match between the code and mapping file, and that temp-tables are not defined LIKE <db-table>, or that tables, fields and indexes are in the correct order', 
+                                                pMethodName, methodParams[paramLoop]:Name, string(methodParams[paramLoop]:DataType), paramLoop)).
+                        end case.
+                    end.
+                end.
+                
+                if not hasMatchingSig then
+                    Logger:Debug(substitute('Method &1 exists and is PUBLIC but does not have the expected number of parameters - &2',
+                                                pMethodName, pParams:NumParameters )).
+            end.
+            
+            if not hasMatchingName then
+                Logger:Debug(substitute('Method &1 does not exist in entity &2', pMethodName, entityType:TypeName )).
+            
+            // we know we couldn't find the right one
+            return ?.
+        end.
+        
+        return targetMethod[1].
     end method.
 
 end class.

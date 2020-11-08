@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2016, 2019 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultHttpClientBuilder
@@ -25,7 +25,7 @@ using OpenEdge.Net.URI.
 
 class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
              implements ISupportInitialize:
-                 
+    
     /** Returns a configured client. */
     define override public property Client as IHttpClient no-undo
         get():
@@ -46,10 +46,11 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
     
     method public void Destroy():
     end method.
+    
     /** Returns a useable HttpClient based on the config.
         
         @return IHttpClient A useable HttpClient instance */
-    method private IHttpClient NewClient():
+    method protected IHttpClient NewClient():
         define variable oClient as IHttpClient no-undo.
         define variable oClientType as Progress.Lang.Class no-undo.
         
@@ -73,8 +74,8 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
         if HasOption('pauseBetweenRetry':u) then
             oClient:Options:PauseBetweenRetry = GetOptionNumericValue('pauseBetweenRetry':u).
         if HasOption('requestTimeout':u) then
-            oClient:Options:RequestTimeout = GetOptionNumericValue('requestTimeout':u).
-        
+            assign oClient:Options:RequestTimeout = GetOptionNumericValue('requestTimeout':u).
+            
         // Add logging if it's been passed in 
         if HasOption(get-class(ILogWriter):TypeName) 
            and type-of(oClient, ISupportLogging) then
@@ -93,6 +94,7 @@ class OpenEdge.Net.HTTP.DefaultHttpClientBuilder inherits ClientBuilder
         if HasOption(get-class(ISupportProxy):TypeName) then
             assign oClient = ClientBuilder:DecorateClient(get-class(ISupportProxy), oClient)
                    cast(oClient, ISupportProxy):ProxyURI = cast(GetOptionObjectValue(get-class(ISupportProxy):TypeName), URI).
+        
         return oClient.
     end method.
     

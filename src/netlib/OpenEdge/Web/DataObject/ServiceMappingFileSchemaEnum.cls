@@ -15,10 +15,14 @@ enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
         ablRef
         ablType
         accessControl
+        active
         arg
         argumentWriters
         attr
+        caseSensitive
         catalog
+        childTable
+        childField
         contentType
         cookies
         entity
@@ -32,11 +36,17 @@ enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
         ioMode
         msgElem
         name
+        nested
         options
         operations
+        parentTable
+        parentField
         primary
+        recursive
+        reposition
         requestEnvelope
         responseEnvelope
+        relations
         schemas
         serializeHidden
         serializeName

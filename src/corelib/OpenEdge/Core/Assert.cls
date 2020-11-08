@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2019 by Progress Software Corporation 
+Copyright (c) 2013-2020 by Progress Software Corporation 
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -173,24 +173,15 @@ class OpenEdge.Core.Assert:
     end method.
 
     method public static void IsTrue(input a as logical):
-        define variable failMessage as character no-undo.
-        if not a then
-        do:
-            failMessage = "Expected: TRUE but was: FALSE".
-            return error new AssertionFailedError(failMessage, 0).
-        end.        
-
+        if not (a eq true) then
+            return error new AssertionFailedError(substitute("Expected: TRUE but was: &1", a), 0).
     end method.
 
-    method public static void IsFalse(input a as logical):
-        define variable failMessage as character no-undo.
-        if a then
-        do:
-            failMessage = "Expected: FALSE but was: TRUE".
-            return error new AssertionFailedError(failMessage, 0).
-        end.        
+   method public static void IsFalse(input a as logical):
+        if not (a eq false) then
+            return error new AssertionFailedError(substitute("Expected: FALSE but was: &1", a), 0).
     end method.
-    
+
     method public static void NotNull(input poArgument as Object , pcName as char):
         AssertObject:NotNull(poArgument, pcName).
     end method.
@@ -256,6 +247,15 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsNull(input pcArgument as character):
+        IsNull(pcArgument, "argument").
+    end method.
+    
+    method public static void IsNull(input pcArgument as longchar, input pcName as character):
+        if pcArgument ne ? then 
+            undo, throw new AssertionFailedError(substitute('&1 must be unknown', pcName), 0).
+    end method.
+    
+    method public static void IsNull(input pcArgument as longchar):
         IsNull(pcArgument, "argument").
     end method.
     
@@ -344,17 +344,16 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(pcArgument as character, pcName as character):
-        /* 15578
-        define variable cLongCharArg as longchar no-undo.
-        cLongCharArg = pcArgument.
-        Assert:NotNullOrEmpty(cLongCharArg, pcName).
-       */
        IF pcArgument EQ ?
        THEN
          UNDO, THROW NEW AssertionFailedError(SUBSTITUTE('&1 cannot be null',pcName),0).
-
+    
+        // TRIM will strip off spaces etc. Since this is a character parameter, it's already in
+        // CPINTERNAL and so doesn't suffer from the issues described in NotEmpty(longchar, char). 
+        if trim(pcArgument) eq '':u then
+            undo, throw new AssertionFailedError(substitute('&1 cannot be empty', pcName),0).
     end method.
-
+    
     method public static void NotNullOrEmpty(pcArgument as character):
         NotNullOrEmpty(pcArgument, "argument").
     end method.
@@ -372,14 +371,14 @@ class OpenEdge.Core.Assert:
 
     method public static void NotNull(input pcArgument as character extent, pcName as character):
         define variable cLongCharArg as longchar no-undo.
-
+        
         if extent(pcArgument) eq ? then
             undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
         
-        cLongCharArg = pcArgument[1].
-        Assert:NotNull(cLongCharArg, pcName).
+        if pcArgument[1] eq ? then
+            undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
     end method.
-
+    
     method public static void NotNull(input pcArgument as character extent):
         NotNull(pcArgument, "argument").
     end method.
@@ -1064,4 +1063,81 @@ class OpenEdge.Core.Assert:
         NotNull(mesg).
         return error new AssertionFailedError(mesg, 0).
     end method.
+    
+    /* Asserts that the input value is in the provided list
+       
+       @param character  The value to check
+       @param longchar  A comma-separated list to check against
+       @param character The name of the argument */
+    method static public void IsIn(input pValue as character,
+                                   input pList as longchar,
+                                   input pName as character):
+        IsIn(pValue, pList, ',':u, pName).
+    end method.
+    
+    /* Asserts that the input value is in the provided list
+       
+       @param character  The value to check
+       @param longchar  A delimited-separated list to check against
+       @param character The delimiter character
+       @param character The name of the argument */
+    method static public void IsIn(input pValue as character,
+                                   input pList as longchar,
+                                   input pDelim as character,
+                                   input pName as character):
+        define variable idx as integer no-undo.
+        
+        NotEqual(pValue, pDelim).
+        
+        assign idx = lookup(pValue, pList, pDelim).
+        if    idx eq 0      // value not in list
+           or idx eq ?      // value or list are ?
+        then
+            undo, throw new AssertionFailedError(
+                                    substitute('&1 ("&2") is not in the list: &3',
+                                               pName,
+                                               pValue,
+                                               pList ),
+                                    0).
+    end method.
+
+    /* Asserts that the input value is NOT in the provided list
+       
+       @param character  The value to check
+       @param longchar  A COMMA-separated list to check against
+       @param character The name of the argument */
+    method static public void NotIn(input pValue as character,
+                                    input pList as longchar,
+                                    input pName as character):
+        NotIn(pValue, pList, ',':u, pName). 
+    end method.
+    
+    /* Asserts that the input value is NOT in the provided list
+       
+       @param character  The value to check
+       @param longchar  A delimited-separated list to check against
+       @param character The delimiter character
+       @param character The name of the argument */
+    method static public void NotIn(input pValue as character,
+                                    input pList as longchar,
+                                    input pDelim as character,
+                                    input pName as character):
+        // if the list is empty/null then nothing can be in it
+        if    pList eq ?
+           or pList eq '':u
+        then
+            return.
+        
+        NotEqual(pValue, pDelim).
+        
+        // covers positive values (is a valid value, not in the list) and ? (unknown value)
+        if not lookup(pValue, pList, pDelim) eq 0 then
+            undo, throw new AssertionFailedError(
+                                    substitute('&1 ("&2") is in the list: &3',
+                                               pName,
+                                               pValue,
+                                               pList ),
+                                    0).
+    end method.
+    
 end class.
