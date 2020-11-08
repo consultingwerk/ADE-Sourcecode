@@ -11,7 +11,6 @@ Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
     Notes       : 
   ----------------------------------------------------------------------*/
 
-USING Progress.Lang.*.
 USING OpenEdge.ABLUnit.Reflection.ClassInfo.
 USING OpenEdge.Core.Collections.Array.
 
@@ -19,6 +18,8 @@ CLASS OpenEdge.ABLUnit.Reflection.TypeInfo:
     
     DEFINE PUBLIC PROPERTY classInfo AS ClassInfo  NO-UNDO GET. SET.
     DEFINE PUBLIC PROPERTY methods AS Array NO-UNDO GET. SET.
-    DEFINE PUBLIC PROPERTY methodsCount AS INTEGER INIT 0 NO-UNDO GET. SET .
+    DEFINE PUBLIC PROPERTY methodsCount AS INTEGER INIT 0 NO-UNDO GET. SET.
+
+    /* No functional code here. */
 
 END CLASS.

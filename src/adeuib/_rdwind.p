@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006,2009-2014 by Progress Software Corporation.  *
+* Copyright (C) 2005-2006,2009-2014,2020 by Progress Software Corporation.  *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -28,6 +28,7 @@ Modified by GFS on 3/11/96 - added support for small-icon
             JEP on 09/28/98 - Support restoring treeviews/design window sizes.
             TSM on 06/04/99 - added support for context-sensitive help
             RKUMAR on 11/12/14- display warning when opening .w in 64-bit AppBuilder
+            TMASOOD on 08/05/2020 Remove warning message for Height-Pixels, Width-Pixels etc
             
 ---------------------------------------------------------------------------- */
 DEFINE INPUT PARAMETER pp-recid AS RECID NO-UNDO.
@@ -166,24 +167,27 @@ REPEAT WHILE NOT DONE:
               _inp_line[3] = SUBSTRING(_inp_line[3],1,
                               LENGTH(_inp_line[3],"CHARACTER":U) - 1,"CHARACTER":U).
   CASE _inp_line[1]:
-    WHEN "ALWAYS-ON-TOP"    THEN _C._ALWAYS-ON-TOP = _inp_line[3] begins "y".
-    WHEN "BGCOLOR"          THEN _L._BGCOLOR  = INTEGER(_inp_line[3]).
-    WHEN "COLUMN"           THEN _L._COL      = DECIMAL(_inp_line[3]).
-    WHEN "CONTROL-BOX"      THEN _C._CONTROL-BOX = _inp_line[3] begins "y".
-    WHEN "CONTEXT-HELP"     THEN _C._CONTEXT-HELP = _inp_line[3] begins "y".
-    WHEN "CONTEXT-HELP-FILE" THEN _C._CONTEXT-HELP-FILE = _inp_line[3].
-    WHEN "DROP-TARGET"      THEN _U._DROP-TARGET = _inp_line[3] begins "y".
-    WHEN "FGCOLOR"          THEN _L._FGCOLOR  = INTEGER(_inp_line[3]).
-    WHEN "FONT"             THEN _L._FONT     = INTEGER(_inp_line[3]).
-    WHEN "HEIGHT"           THEN _L._HEIGHT   = DECIMAL(_inp_line[3]).
-    WHEN "HEIGHT-P"         THEN _HEIGHT-P    = INTEGER(_inp_line[3]).
-    WHEN "HIDDEN"           THEN _U._HIDDEN           = _inp_line[3] BEGINS "y".
+    WHEN "ALWAYS-ON-TOP"      THEN _C._ALWAYS-ON-TOP = _inp_line[3] begins "y".
+    WHEN "BGCOLOR"            THEN _L._BGCOLOR  = INTEGER(_inp_line[3]).
+    WHEN "COLUMN"             THEN _L._COL      = DECIMAL(_inp_line[3]).
+    WHEN "CONTROL-BOX"        THEN _C._CONTROL-BOX = _inp_line[3] begins "y".
+    WHEN "CONTEXT-HELP"       THEN _C._CONTEXT-HELP = _inp_line[3] begins "y".
+    WHEN "CONTEXT-HELP-FILE"  THEN _C._CONTEXT-HELP-FILE = _inp_line[3].
+    WHEN "DROP-TARGET"        THEN _U._DROP-TARGET = _inp_line[3] begins "y".
+    WHEN "FGCOLOR"            THEN _L._FGCOLOR  = INTEGER(_inp_line[3]).
+    WHEN "FONT"               THEN _L._FONT     = INTEGER(_inp_line[3]).
+    WHEN "HEIGHT"             THEN _L._HEIGHT   = DECIMAL(_inp_line[3]).
+    WHEN "HEIGHT-P"           THEN _HEIGHT-P    = INTEGER(_inp_line[3]).
+    WHEN "HEIGHT-PIXELS"      THEN _HEIGHT-P    = INTEGER(_inp_line[3]).
+    WHEN "HIDDEN"             THEN _U._HIDDEN           = _inp_line[3] BEGINS "y".
     WHEN "KEEP-FRAME-Z-ORDER" THEN _C._KEEP-FRAME-Z-ORDER = _inp_line[3] BEGINS "y".
-    WHEN "MAX-BUTTON"       THEN _C._MAX-BUTTON           = _inp_line[3] BEGINS "y".
-    WHEN "MAX-HEIGHT"       THEN _U._LAYOUT-UNIT      = TRUE.
-    WHEN "MAX-HEIGHT-P"     THEN _U._LAYOUT-UNIT      = FALSE.
-    WHEN "MAX-WIDTH"        THEN DO:    END.
-    WHEN "MAX-WIDTH-P"      THEN DO:    END.
+    WHEN "MAX-BUTTON"         THEN _C._MAX-BUTTON           = _inp_line[3] BEGINS "y".
+    WHEN "MAX-HEIGHT"         THEN _U._LAYOUT-UNIT      = TRUE.
+    WHEN "MAX-HEIGHT-P"       THEN _U._LAYOUT-UNIT      = FALSE.
+    WHEN "MAX-HEIGHT-PIXELS"  THEN _U._LAYOUT-UNIT      = FALSE.
+    WHEN "MAX-WIDTH"          THEN DO:    END.
+    WHEN "MAX-WIDTH-P"        THEN DO:    END.
+    WHEN "MAX-WIDTH-PIXELS"   THEN DO:    END.
     /* We can ignore the MENUBAR attribute because we will attach the one
        and only MENUBAR in the .w file to the one and only window  */
     WHEN "MENUBAR"          THEN DO:    END.
@@ -226,26 +230,29 @@ REPEAT WHILE NOT DONE:
         ASSIGN _U._PRIVATE-DATA-ATTR = LEFT-TRIM(_inp_line[4],":":U).
       END.
     END.
-    WHEN "RESIZE"           THEN _U._RESIZABLE        = _inp_line[3] BEGINS "y".
-    WHEN "ROW"              THEN _L._ROW              = DECIMAL(_inp_line[3]).
-    WHEN "SCROLL-BARS"      THEN _C._SCROLL-BARS      = _inp_line[3] BEGINS "y".
-    WHEN "SENSITIVE"        THEN _U._SENSITIVE        = _inp_line[3] BEGINS "y".
-    WHEN "SHOW-IN-TASKBAR"  THEN _C._SHOW-IN-TASKBAR  = _inp_line[3] BEGINS "y".
-    WHEN "SMALL-TITLE"      THEN _C._SMALL-TITLE      = _inp_line[3] BEGINS "y".
-    WHEN "STATUS-AREA"      THEN _C._STATUS-AREA      = _inp_line[3] BEGINS "y".
-    WHEN "STATUS-AREA-FONT" THEN _C._STATUS-AREA-FONT = INTEGER(_inp_line[3]).
-    WHEN "TITLE"            THEN _U._LABEL            = _inp_line[3].
-    WHEN "THREE-D"          THEN _L._3-D              = _inp_line[3] BEGINS "y".
-    WHEN "TOP-ONLY"         THEN _C._TOP-ONLY         = _inp_line[3] BEGINS "y".
-    WHEN "VIRTUAL-HEIGHT"   THEN _L._VIRTUAL-HEIGHT   = DECIMAL(_inp_line[3]).
-    WHEN "VIRTUAL-HEIGHT-P" THEN _VIRTUAL-HEIGHT-P    = INTEGER(_inp_line[3]).
-    WHEN "VIRTUAL-WIDTH"    THEN _L._VIRTUAL-WIDTH    = DECIMAL(_inp_line[3]).
-    WHEN "VIRTUAL-WIDTH-P"  THEN _VIRTUAL-WIDTH-P     = INTEGER(_inp_line[3]).
-    WHEN "VISIBLE"          THEN _U._DISPLAY          = _inp_line[3] BEGINS "y".
-    WHEN "WIDTH"            THEN _L._WIDTH            = DECIMAL(_inp_line[3]).
-    WHEN "WIDTH-P"          THEN _WIDTH-P             = INTEGER(_inp_line[3]).
-    WHEN "X"                THEN _X                   = INTEGER(_inp_line[3]).
-    WHEN "Y"                THEN _Y                   = INTEGER(_inp_line[3]).
+    WHEN "RESIZE"                THEN _U._RESIZABLE        = _inp_line[3] BEGINS "y".
+    WHEN "ROW"                   THEN _L._ROW              = DECIMAL(_inp_line[3]).
+    WHEN "SCROLL-BARS"           THEN _C._SCROLL-BARS      = _inp_line[3] BEGINS "y".
+    WHEN "SENSITIVE"             THEN _U._SENSITIVE        = _inp_line[3] BEGINS "y".
+    WHEN "SHOW-IN-TASKBAR"       THEN _C._SHOW-IN-TASKBAR  = _inp_line[3] BEGINS "y".
+    WHEN "SMALL-TITLE"           THEN _C._SMALL-TITLE      = _inp_line[3] BEGINS "y".
+    WHEN "STATUS-AREA"           THEN _C._STATUS-AREA      = _inp_line[3] BEGINS "y".
+    WHEN "STATUS-AREA-FONT"      THEN _C._STATUS-AREA-FONT = INTEGER(_inp_line[3]).
+    WHEN "TITLE"                 THEN _U._LABEL            = _inp_line[3].
+    WHEN "THREE-D"               THEN _L._3-D              = _inp_line[3] BEGINS "y".
+    WHEN "TOP-ONLY"              THEN _C._TOP-ONLY         = _inp_line[3] BEGINS "y".
+    WHEN "VIRTUAL-HEIGHT"        THEN _L._VIRTUAL-HEIGHT   = DECIMAL(_inp_line[3]).
+    WHEN "VIRTUAL-HEIGHT-P"      THEN _VIRTUAL-HEIGHT-P    = INTEGER(_inp_line[3]).
+    WHEN "VIRTUAL-HEIGHT-PIXELS" THEN _VIRTUAL-HEIGHT-P    = INTEGER(_inp_line[3]).
+    WHEN "VIRTUAL-WIDTH"         THEN _L._VIRTUAL-WIDTH    = DECIMAL(_inp_line[3]).
+    WHEN "VIRTUAL-WIDTH-P"       THEN _VIRTUAL-WIDTH-P     = INTEGER(_inp_line[3]).
+    WHEN "VIRTUAL-WIDTH-PIXELS"  THEN _VIRTUAL-WIDTH-P     = INTEGER(_inp_line[3]).
+    WHEN "VISIBLE"               THEN _U._DISPLAY          = _inp_line[3] BEGINS "y".
+    WHEN "WIDTH"                 THEN _L._WIDTH            = DECIMAL(_inp_line[3]).
+    WHEN "WIDTH-P"               THEN _WIDTH-P             = INTEGER(_inp_line[3]).
+    WHEN "WIDTH-PIXELS"          THEN _WIDTH-P             = INTEGER(_inp_line[3]).
+    WHEN "X"                     THEN _X                   = INTEGER(_inp_line[3]).
+    WHEN "Y"                     THEN _Y                   = INTEGER(_inp_line[3]).
     
     OTHERWISE IF _inp_line[1] NE "" THEN
                 MESSAGE _inp_line[1] _inp_line[2] _inp_line[3] SKIP

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2017, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : EntrySet
@@ -29,8 +29,22 @@ using Progress.Lang.Object.
 
 class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollection
             implements ISet:
-    constructor public EntrySet (poMap as IMap,phTT as handle,pcKeyField as char):
-        super (poMap,phTT,pcKeyField ).
+    
+    /* Constructor
+       
+       @param IMap The owning map
+       @param handle The underlying TT holding the data
+       @param character (optional) Query string 
+       @param character The field holding the data in the TT */
+    constructor public EntrySet(input pMap as IMap,
+                                input pTT as handle,
+                                input pQueryString as character,
+                                input pValueField as character):
+        super(pMap, pTT, pQueryString, pValueField).
+    end constructor.
+    
+    constructor public EntrySet(poMap as IMap,phTT as handle,pcKeyField as char):
+        super (poMap,phTT,pcKeyField).
     end constructor.
     
      /* Returns a new IIterator over the entryset. */
@@ -39,7 +53,9 @@ class OpenEdge.Core.Collections.EntrySet serializable inherits MapBackedCollecti
                     OwningMap,
                     this-object,
                     this-object:OwningBuffer,
-                    this-object:KeyField:name).
+                    this-object:KeyField:name,
+                    '':u,       // sort field
+                    this-object:QueryString).
     end method.
     
     /* abstract because this could be a key or value */

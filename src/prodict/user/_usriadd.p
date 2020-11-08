@@ -16,7 +16,7 @@ OUTPUT:
 The settings of the index fields are placed in user_env[4...].  This is
 in accordance with the what was once ???_idx.p's expectations.
 
-History:  D. McMann 07/29/03  Adjusted frame for data types with long name
+History:  D. McMann 07/29/03  Adjusted frame for data types with long name  
 
 */
 

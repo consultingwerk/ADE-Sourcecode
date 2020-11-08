@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : JsonBodyWriter
@@ -8,7 +8,8 @@ Copyright (c) 2015-2019 by Progress Software Corporation. All rights reserved.
     Description : 
     Author(s)   : pjudge
     Created     : Thu Jan 29 10:47:13 EST 2015
-    Notes       : 
+    Notes       : * This writer will never (deliberately) write formatted JSON;
+                    the goal is to reduce the size of the body as far as possible
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -17,6 +18,7 @@ using Ccs.Common.Support.IHandleHolder.
 using Ccs.Common.Support.ILongcharHolder.
 using Ccs.Common.Support.IMemptrHolder.
 using Ccs.Common.Support.IPrimitiveArrayHolder.
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.Collections.Array.
 using OpenEdge.Core.Collections.ICollection.
@@ -25,9 +27,9 @@ using OpenEdge.Core.DataTypeEnum.
 using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.IObjectArrayHolder.
 using OpenEdge.Core.Json.IJsonSerializer.
+using OpenEdge.Core.Json.JsonConverter.
 using OpenEdge.Core.JsonDataTypeEnum.
 using OpenEdge.Core.Memptr.
-using OpenEdge.Core.Session.
 using OpenEdge.Logging.Logger.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using Progress.IO.FileInputStream.
@@ -36,9 +38,18 @@ using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
-using OpenEdge.Core.Json.JsonConverter.
+using OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter.
 
-class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter: 
+class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
+    /* A CSV list of extensions that are considered JSON */
+    define static public property JsonExtensions as character no-undo
+        initial 'json,gen,map':u
+        get.
+        set(input pVal as character):
+            Assert:NotNull(pVal, 'JSON extensions').
+            assign JsonExtensions = pVal.
+        end set.
+     
     constructor public JsonBodyWriter():
         super (get-class(ByteBucket)).
     end constructor.    
@@ -46,6 +57,8 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
     method override public void Open():
         if not valid-object(this-object:Entity) then
             assign this-object:Entity = ByteBucket:Instance().
+        else
+            cast(this-object:Entity, ByteBucket):Clear().
         
         super:Open().
     end method.
@@ -75,6 +88,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
         define variable lcJson as longchar no-undo.
         define variable iBytesWritten as int64 no-undo.
         define variable fileStream as FileInputStream no-undo.
+        define variable fileExt as character no-undo.
         define variable objArray as Progress.Lang.Object extent no-undo.
         define variable jsonData as JsonObject no-undo.
         
@@ -94,6 +108,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
             when type-of(poData, IJsonSerializer) then
                 return this-object:Write(cast(poData, IJsonSerializer):ToJsonConstruct()).
             
+            when type-of(poData, ByteBucket) then
+            do:
+                cast(this-object:Entity, ByteBucket):PutBytes(cast(poData, ByteBucket)).
+                return cast(poData, ByteBucket):Size.
+            end.
+            
             when type-of(poData, Memptr) or
             when type-of(poData, IMemptrHolder) then
             do on error undo, throw:
@@ -109,10 +129,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
             
             when type-of(poData, JsonConstruct) then
             do on error undo, throw:
-                cast(poData, JsonConstruct):Write(mJson).   //, session:debug-alert).
-                
-                /* Add the JSON to the message body's bytebucket */
+                // get the JSON 
+                cast(poData, JsonConstruct):Write(mJson).
                 assign iBytesWritten = get-size(mJson).
+                
                 cast(this-object:Entity, ByteBucket):PutBytes(get-pointer-value(mJson),
                                                               iBytesWritten).
                 return iBytesWritten.
@@ -154,15 +174,18 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
             
             when type-of(poData, FileInputStream) then
             do:
-                assign fileStream = cast(poData, FileInputStream).
-                case entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u):
-                    when 'json':u then
-                        return WriteFileStream(fileStream). 
-                    otherwise 
-                        return error new AppError(substitute('Unsupported file extension .&1 for JSON', 
-                                                    entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u))
-                                                 , 0).
-                end case.
+                assign fileStream = cast(poData, FileInputStream)
+                       fileExt    = entry(num-entries(fileStream:FileName, '.':u), fileStream:FileName, '.':u)
+                       .
+                if JsonExtensions eq ?
+                or fileExt eq ?
+                or lookup(fileExt, JsonBodyWriter:JsonExtensions) eq 0 
+                then
+                    return error new AppError(substitute('Unsupported file extension .&1 for JSON (supported=&2)', 
+                                                         fileExt, JsonBodyWriter:JsonExtensions)
+                                             , 0).
+                else
+                    return WriteFileStream(fileStream). 
             end.    // file stream
             
             when type-of(poData, Progress.Lang.Error) then
@@ -191,14 +214,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.JsonBodyWriter inherits MessageWriter:
                 when DataTypeHelper:GetMask(DataTypeEnum:TempTable) or
                 when DataTypeHelper:GetMask(DataTypeEnum:Buffer) or
                 when DataTypeHelper:GetMask(DataTypeEnum:Dataset) then
-                do:
-                    def var timer as datetime-tz extent 2.
-                    timer[1] = now.
-                    phData:write-json(DataTypeEnum:Memptr:ToString(), mJson, session:debug-alert).
-                    timer[2] = now.
-                    
-                    Logger:Trace(substitute('WRITE-JSON took &1ms', interval(timer[2], timer[1], 'milliseconds'))).
-                end.
+                    phData:write-json('memptr':u, mJson).
                 
                 otherwise
                     return error new AppError(

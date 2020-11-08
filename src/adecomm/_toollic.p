@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2005,2020 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions             *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -96,28 +96,6 @@ IF ade_licensed[1] = ? THEN DO:
         ade_licensed[{&RB_IDX}] = {&NOT_AVAIL}.
     &ENDIF
 
-    &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-    IF GET-LICENSE("TRANSLATION-MGR") = 0 THEN DO:
-        IF SEARCH("_tran.p") <> ? OR SEARCH("_tran.r") <> ? THEN
-            ade_licensed[{&TRAN_IDX}] = {&INSTALLED}.
-        ELSE
-            ade_licensed[{&TRAN_IDX}] = {&LICENSED}.
-    END.
-    ELSE
-        ade_licensed[{&TRAN_IDX}] = {&NOT_AVAIL}.
-    &ENDIF
-
-    &IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-    IF GET-LICENSE("VISUAL-TRANSLATOR") = 0 THEN DO:
-        IF SEARCH("_vtran.p") <> ? OR SEARCH("_vtran.r") <> ? THEN
-            ade_licensed[{&VTRAN_IDX}] = {&INSTALLED}.
-        ELSE
-            ade_licensed[{&VTRAN_IDX}] = {&LICENSED}.
-    END.
-    ELSE
-        ade_licensed[{&VTRAN_IDX}] = {&NOT_AVAIL}.
-    &ENDIF
-
     IF GET-LICENSE("COMPILER-TOOL") = 0 THEN DO:
         IF SEARCH("_comp.p") <> ? OR SEARCH("_comp.r") <> ? THEN
             ade_licensed[{&COMP_IDX}] = {&INSTALLED}.
@@ -177,8 +155,6 @@ IF ade_licensed[1] = ? THEN DO:
         "UIB"   ade_licensed[{&UIB_IDX}]   SKIP
         "RPT"   ade_licensed[{&RPT_IDX}]   SKIP
         "RB"    ade_licensed[{&RB_IDX}]    SKIP
-        "TRAN"  ade_licensed[{&TRAN_IDX}]  SKIP
-        "VTRAN" ade_licensed[{&VTRAN_IDX}] SKIP
         "COMP"  ade_licensed[{&COMP_IDX}]  SKIP
         "DBG"   ade_licensed[{&DBG_IDX}]   SKIP
         "PTOOL" ade_licensed[{&PTOOL_IDX}] SKIP

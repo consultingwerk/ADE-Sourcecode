@@ -62,6 +62,9 @@ using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Web.IWebHandler.
+using Progress.Lang.StopAfter.
+using Progress.Lang.UserInterrupt.
+using Progress.Lang.LockConflict.
 
 class OpenEdge.Web.DataObject.DataObjectHandler
         implements  IWebHandler,                                                        // So that we can handle requests
@@ -311,77 +314,113 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         define variable serviceLogger as ILogWriter no-undo.
         define variable dohLogger as ILogWriter no-undo.
         
-        //The FindOperation() call should not return a null, but verify since it's an overrideable method
-        assign svc        = FindService(poRequest)
-               oOperation = FindOperation(svc, poRequest)
-               .
-        Assert:NotNull(oOperation, 'Mapped operation').
-        
-        // Set the default response values from the operation
-        assign oResponse = CreateOperationResponse(oOperation).
-        
-        // Use a per-service logger named "OpenEdge.Web.DataObject.DataObjectHandler.<ServiceName>"
-        do on error undo, throw:
-            assign serviceLogger = LoggerBuilder:GetLogger(get-class(DataObjectHandler):TypeName + '.':u + svc:Name).
-            if not serviceLogger:Equals(this-object:Logger) then
-            do:
-                assign dohLogger          = this-object:Logger
-                       this-object:Logger = serviceLogger
-                       .
-                dohLogger:Info(substitute('Service &1 logging performed by &2 at &3', 
-                                    svc:Name,
-                                    serviceLogger:Name, string(serviceLogger:LogLevel))).
+        HAMMER-TIME:
+        do on stop undo, retry:
+            if retry then
+                undo, throw new AppError(substitute('Stop condition raised for &1 &2', poRequest:Method, poRequest:PathInfo), 0).
+            
+                    //The FindOperation() call should not return a null, but verify since it's an overrideable method
+            assign svc        = FindService(poRequest)
+                   oOperation = FindOperation(svc, poRequest)
+                   .
+            Assert:NotNull(oOperation, 'Mapped operation').
+            
+            // Set the default response values from the operation
+            assign oResponse = CreateOperationResponse(oOperation).
+            
+            // Use a per-service logger named "OpenEdge.Web.DataObject.DataObjectHandler.<ServiceName>"
+            do on error undo, throw:
+                assign serviceLogger = LoggerBuilder:GetLogger(get-class(DataObjectHandler):TypeName + '.':u + svc:Name).
+                if not serviceLogger:Equals(this-object:Logger) then
+                do:
+                    assign dohLogger          = this-object:Logger
+                           this-object:Logger = serviceLogger
+                           .
+                    dohLogger:Info(substitute('Service &1 logging performed by &2 at &3', 
+                                        svc:Name,
+                                        serviceLogger:Name, string(serviceLogger:LogLevel))).
+                end.
+                /* Don't fail because we can't log per-service. Use the current logger */
+                catch oError as Progress.Lang.Error:
+                    Logger:Error(substitute('Unable to determine logger for service &1; using default logger &2',
+                                            svc:Name, this-object:Logger:Name),
+                                 oError).
+                end catch.
             end.
-            /* Don't fail because we can't log per-service. Use the current logger */
-            catch oError as Progress.Lang.Error:
-                Logger:Error(substitute('Unable to determine logger for service &1; using default logger &2',
-                                        svc:Name, this-object:Logger:Name),
-                             oError).
+            
+            /* the operation must be able to service the request, per the Accept header */
+            if not ValidateContentType(poRequest, oOperation:ContentType) then
+                undo, throw new SendExceptionError(StatusCodeEnum:NotAcceptable,
+                                                   new AppError(substitute('Request "Accept" header value "&1" and operation ContentType "&2" value are not compatible',
+                                                                     poRequest:GetHeader('Accept':u):Value,
+                                                                     oOperation:ContentType),
+                                                                0)).
+            
+            assign iStatusCode = PerformOperation(poRequest,
+                                                  ExtractMessageBody(poRequest, oOperation),
+                                                  oResponse, 
+                                                  svc,
+                                                  oOperation).
+            if iStatusCode eq 0 then
+            do:
+                AddResponseEnvelope(oResponse, oOperation).
+                WriteResponse(oResponse).
+            end.
+            
+            return iStatusCode.
+            /* errors? */
+            catch stoi as Progress.Lang.Stop:
+                define variable see as SendExceptionError no-undo.
+                
+                if type-of(stoi, StopAfter) then
+                    assign see = new SendExceptionError(StatusCodeEnum:RequestTimeOut, 
+                                                        'Request timeout due to time-out',
+                                                        stoi).
+                else
+                if type-of(stoi, LockConflict) then
+                    assign see = new SendExceptionError(StatusCodeEnum:RequestTimeOut, 
+                                                        'Request timeout due to lock conflict',
+                                                        stoi).
+                else
+                if type-of(stoi, UserInterrupt) then
+                    assign see = new SendExceptionError(StatusCodeEnum:RequestTimeOut, 
+                                                        'Request timeout due to user interrupt',
+                                                        stoi).
+                else
+                    assign see = new SendExceptionError(StatusCodeEnum:RequestTimeOut, 
+                                                        'Request timeout due to stop',
+                                                        stoi).
+                
+                assign iStatusCode = HandleException(see,
+                                                     poRequest,
+                                                     oResponse,
+                                                     ?,
+                                                     svc,
+                                                     oOperation).
+                return iStatusCode.
             end catch.
-        end.
-        
-        /* the operation must be able to service the request, per the Accept header */
-        if not ValidateContentType(poRequest, oOperation:ContentType) then
-            undo, throw new SendExceptionError(StatusCodeEnum:NotAcceptable,
-                                               new AppError(substitute('Request "Accept" header value "&1" and operation ContentType "&2" value are not compatible',
-                                                                 poRequest:GetHeader('Accept':u):Value,
-                                                                 oOperation:ContentType),
-                                                            0)).
-        
-        assign iStatusCode = PerformOperation(poRequest,
-                                              ExtractMessageBody(poRequest, oOperation),
-                                              oResponse, 
-                                              svc,
-                                              oOperation).
-        if iStatusCode eq 0 then
-        do:
-            AddResponseEnvelope(oResponse, oOperation).
-            WriteResponse(oResponse).
-        end.
-        
-        return iStatusCode.
-        /* errors? */
-        catch doErr as DataObjectError:
-            assign iStatusCode = HandleException(doErr:Error,
-                                                 doErr:Request,
-                                                 doErr:Response, 
-                                                 doErr:BusinessEntity, 
-                                                 doErr:Service,
-                                                 doErr:Operation).
-            return iStatusCode.
-        end catch.
-        catch oError as Progress.Lang.Error:
-            assign iStatusCode = HandleException(oError, poRequest, oResponse, ?, svc, oOperation).
-            return iStatusCode.
-        end catch.
-        finally:
-            Logger:Trace(substitute('Operation returned status code &1 / &2',
-                            iStatusCode,
-                            StatusCodeHelper:GetMessage(iStatusCode))).
-            // reset the logger
-            if valid-object(dohLogger) then 
-                assign this-object:Logger = dohLogger.
-        end finally.
+            catch doErr as DataObjectError:
+                assign iStatusCode = HandleException(doErr:Error,
+                                                     doErr:Request,
+                                                     doErr:Response, 
+                                                     doErr:BusinessEntity, 
+                                                     doErr:Service,
+                                                     doErr:Operation).
+                return iStatusCode.
+            end catch.
+            catch oError as Progress.Lang.Error:
+                assign iStatusCode = HandleException(oError, poRequest, oResponse, ?, svc, oOperation).
+                return iStatusCode.
+            end catch.
+            finally:
+                Logger:Trace(substitute('Operation returned status code &1 / &2',
+                                iStatusCode,
+                                StatusCodeHelper:GetMessage(iStatusCode))).
+                // reset the logger
+                if valid-object(dohLogger) then 
+                    assign this-object:Logger = dohLogger.
+            end finally.
+        end.    // HAMMER-TIME
     end method.
     
     /* Ensures that the request's Accept header and the operation's 
@@ -496,7 +535,7 @@ class OpenEdge.Web.DataObject.DataObjectHandler
         define variable oOperationArgs as OperationInvocationEventArgs no-undo.
         define variable oOperationHandler as IOperationHandler no-undo.
         define variable iTimeout as integer no-undo.
-        define variable oStopError as Progress.Lang.Error no-undo.
+        define variable oStopError as SendExceptionError no-undo.
         define variable operationLogger as ILogWriter no-undo.
         define variable operationTime as datetime no-undo.
         define variable entityArgs as HandlerLoadEntityEventArgs no-undo.
@@ -560,10 +599,10 @@ class OpenEdge.Web.DataObject.DataObjectHandler
                operationLogger   = cast(oOperationHandler, ISupportLogging):Logger
                // always use the DOH's logger
                cast(oOperationHandler, ISupportLogging):Logger = this-object:Logger
-               
-               oStopError        = new HttpRequestError(string(integer(StatusCodeEnum:RequestTimeOut)),
-                                             poRequest:Method,
-                                             poRequest:URI:ToString()).
+               oStopError        = new SendExceptionError(StatusCodeEnum:RequestTimeOut,
+                                                          substitute('&1 operation at URI &2',
+                                                                     poRequest:Method, poRequest:PathInfo))
+               .
         
         Logger:Trace(substitute('Service &2 &1 operation handler for target type &3 init time(ms)=&4', 
                             pService:Name,
@@ -580,6 +619,10 @@ class OpenEdge.Web.DataObject.DataObjectHandler
             stop-after iTimeout:
             
             assign iStatusCode = oOperationHandler:Execute(poRequest, poMessageBody, poResponse, pService, poOperation, entityArgs:BusinessEntity).
+            
+            catch stoi as Progress.Lang.Stop:
+                undo, throw stoi.
+            end catch.
         end.
         else
             undo, throw new AppError(substitute('Unable to service request for "&1 &2"',

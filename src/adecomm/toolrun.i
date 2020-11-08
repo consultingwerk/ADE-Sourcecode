@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2005,2020 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+***********************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -40,8 +40,6 @@ Items on the Tool menu are enabled or disabled based on a number of states:
 2. installed or not - grayed out if not installed (use SEARCH for _edit.p, ...).
 3. tty or not - not visible if not applicable (use preprocessor)
 4. in the call stack already or not - grays out of already in call stack 
-  (Tran Mgr will not show up on the Editor Tools menu if _tran.p can be 
-   found in the call tree - use PROGRAM-NAME)
 5. in that tool already or not - not visible if not (Editor does not have 
    Editor on Tools menu - use preprocessor)
 
@@ -59,8 +57,6 @@ Arguments:
       /* &EXCLUDE_EDIT=yes */
       /* &EXCLUDE_UIB=yes */
       /* &EXCLUDE_RPT=yes */
-      /* &EXCLUDE_TRAN=yes */
-      /* &EXCLUDE_VTRAN=yes */
       /* &EXCLUDE_COMP=yes */
       /* &ENABLE_WIDGETS_PROC = alternate enable routine [optional]  */
       /* &DISABLE_WIDGETS_PROC = alternate disable routine [optional] */
@@ -124,10 +120,14 @@ Change Log:
 &SCOP UIB_ENTRYPT   "adeuib/_uibmain.p"
 &SCOP RPT_ENTRYPT   "aderes/aderes.p"
 &SCOP RB_ENTRYPT    "aderb/_startrb.p"
-&SCOP TRAN_ENTRYPT  "adetran/pm/_pmmain.p"
-&SCOP VTRAN_ENTRYPT "adetran/vt/_main.p"
 &SCOP COMP_ENTRYPT  "adecomp/_procomp.p"
 &SCOP APMT_ENTRYPT  "auditing/_apmt.p"
+
+&IF DEFINED(EXCLUDE_EDIT) = 0 &THEN
+&SCOPED-DEFINE MENU_TOOL_PARENT mnu_Tools
+&ELSE
+&SCOPED-DEFINE MENU_TOOL_PARENT {&MENUBAR}
+&ENDIF
 
 &IF DEFINED(EXCLUDE_UIB) = 0 AND DEFINED(TOOL_RUN) = 0 &THEN
   DEFINE VARIABLE tool_pgm_list AS CHARACTER                          NO-UNDO.
@@ -153,8 +153,8 @@ IF tool_bomb THEN RETURN.
 &IF DEFINED(EXCLUDE_DICT) = 0 AND DEFINED(EXCLUDE_UIB) = 0 &THEN
   IF ade_licensed[{&DICT_IDX}] <> {&INSTALLED} OR 
      CAN-DO(tool_pgm_list, {&DICT_ENTRYPT}) 
-  THEN MENU-ITEM mnu_dict:SENSITIVE IN MENU mnu_Tools = No.
-  ELSE ON CHOOSE OF MENU-ITEM mnu_dict IN MENU mnu_Tools
+  THEN MENU-ITEM mnu_dict:SENSITIVE IN MENU {&MENU_TOOL_PARENT} = No.
+  ELSE ON CHOOSE OF MENU-ITEM mnu_dict IN MENU {&MENU_TOOL_PARENT}
                     {&PERSISTENT} RUN _RunTool( INPUT "_dict.p" ).
 
 &ELSEIF DEFINED(EXCLUDE_DICT) = 0 AND DEFINED(EXCLUDE_UIB) <> 0 &THEN
@@ -183,8 +183,8 @@ IF tool_bomb THEN RETURN.
 &IF "{&WINDOW-SYSTEM}" <> "TTY" AND DEFINED(EXCLUDE_ADMIN) = 0 AND DEFINED(EXCLUDE_UIB) = 0 &THEN
   IF ade_licensed[{&ADMIN_IDX}] <> {&INSTALLED} OR 
      CAN-DO(tool_pgm_list, {&ADMIN_ENTRYPT}) 
-  THEN MENU-ITEM mnu_admin:SENSITIVE IN MENU mnu_Tools = No.
-  ELSE ON CHOOSE OF MENU-ITEM mnu_admin IN MENU mnu_Tools
+  THEN MENU-ITEM mnu_admin:SENSITIVE IN MENU {&MENU_TOOL_PARENT} = No.
+  ELSE ON CHOOSE OF MENU-ITEM mnu_admin IN MENU {&MENU_TOOL_PARENT}
                    {&PERSISTENT} RUN _RunTool( INPUT "_admin.p" ).
 
 &ELSEIF DEFINED(EXCLUDE_ADMIN) = 0 AND DEFINED(EXCLUDE_UIB) <> 0 &THEN
@@ -221,9 +221,9 @@ IF tool_bomb THEN RETURN.
 
   IF ade_licensed[{&APMT_IDX}] <> {&INSTALLED} OR 
      CAN-DO(tool_pgm_list, {&APMT_ENTRYPT}) THEN 
-     MENU-ITEM mnu_apmt:SENSITIVE IN MENU mnu_Tools = No.
+     MENU-ITEM mnu_apmt:SENSITIVE IN MENU {&MENU_TOOL_PARENT} = No.
   ELSE DO:
-      ON CHOOSE OF MENU-ITEM mnu_apmt IN MENU mnu_Tools
+      ON CHOOSE OF MENU-ITEM mnu_apmt IN MENU {&MENU_TOOL_PARENT}
                     {&PERSISTENT} RUN "auditing/_apmt.p".
   END.
 
@@ -349,52 +349,6 @@ IF ade_licensed[{&RPT_IDX}] <> {&NOT_AVAIL} THEN DO:
        CAN-DO(tool_pgm_list, {&RPT_ENTRYPT}) 
     THEN
         mnu_rpt_wh:SENSITIVE = No.
-END.
-&ENDIF
-
-/*--------------------- TRANMAN MENU PROCESSING --------------------------*/
-
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" AND DEFINED(EXCLUDE_TRAN) = 0 &THEN
-IF ade_licensed[{&TRAN_IDX}] <> {&NOT_AVAIL} THEN DO:
-
-    &IF DEFINED(TOOL_RUN) = 0 &THEN
-    DEFINE VARIABLE mnu_tran_wh AS WIDGET-HANDLE.
-    &ENDIF
-    CREATE MENU-ITEM mnu_tran_wh
-        ASSIGN 
-            LABEL       = "&Translation Manager"
-            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
-                          &ELSE h_sm &ENDIF
-    TRIGGERS:
-        ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_tran.p" ).
-    END TRIGGERS.
-    IF ade_licensed[{&TRAN_IDX}] <> {&INSTALLED} OR 
-       CAN-DO(tool_pgm_list, {&TRAN_ENTRYPT}) 
-    THEN
-        mnu_tran_wh:SENSITIVE = No.
-END.
-&ENDIF
-
-/*------------ VISUAL TRANSLATOR MENU PROCESSING --------------------------*/
-
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" AND DEFINED(EXCLUDE_VTRAN) = 0 &THEN
-IF ade_licensed[{&VTRAN_IDX}] <> {&NOT_AVAIL} THEN DO:
-
-    &IF DEFINED(TOOL_RUN) = 0 &THEN
-    DEFINE VARIABLE mnu_vtran_wh AS WIDGET-HANDLE.
-    &ENDIF
-    CREATE MENU-ITEM mnu_vtran_wh
-        ASSIGN
-            LABEL       = "&Visual Translator"
-            PARENT      = &IF DEFINED(EXCLUDE_UIB) = 0 &THEN MENU mnu_Tools:HANDLE IN MENU {&MENUBAR}
-                          &ELSE h_sm &ENDIF
-    TRIGGERS:
-        ON CHOOSE {&PERSISTENT} RUN _RunTool( INPUT "_vtran.p").
-    END TRIGGERS.
-    IF ade_licensed[{&VTRAN_IDX}] <> {&INSTALLED} OR
-       CAN-DO(tool_pgm_list, {&VTRAN_ENTRYPT})
-    THEN
-        mnu_vtran_wh:SENSITIVE = No.
 END.
 &ENDIF
 

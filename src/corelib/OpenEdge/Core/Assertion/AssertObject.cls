@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2014, 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2014, 2016, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
  /*------------------------------------------------------------------------
     File        : AssertObject
@@ -30,12 +30,9 @@ class OpenEdge.Core.Assertion.AssertObject:
         @param b the value of Object being expected
         @throws AssertionFailedError Error thrown if they are not equal*/
     method public static void Equals(input a as Object, input b as Object):
-        define variable failMessage as character no-undo.
+        Assert:NotNull(a).
         if not a:Equals(b) then
-        do:
-            failMessage = "Expected: " + string(a) + " but was: " + string(b).
-            return error new AssertionFailedError(failMessage, 0).
-        end.        
+            return error new AssertionFailedError(substitute("Expected: &1 but was: &2", string(a), string(b)), 0).
     end method.
     
     /** Asserts that two objects are not equal.
@@ -44,8 +41,9 @@ class OpenEdge.Core.Assertion.AssertObject:
         @param b the value of Object being expected
         @throws AssertionFailedError Error thrown if they are equal*/
     method public static void NotEqual(input a as Object, input b as Object):
+        Assert:NotNull(a).
         if a:Equals(b) then
-            return error new AssertionFailedError(substitute('&1 and &2 are equal', a:ToString(), b:ToString()), 0).
+            return error new AssertionFailedError(substitute('&1 and &2 are equal', a:ToString(), string(b)), 0).
     end method.
     
     /** Asserts that the object is not null.

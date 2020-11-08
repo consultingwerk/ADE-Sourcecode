@@ -1,5 +1,5 @@
 /*************************************************************/
- /* Copyright (c) 2010 by progress Software Corporation.      */
+ /* Copyright (c) 2010,2020 by progress Software Corporation. */
  /*                                                           */
  /* all rights reserved.  no part of this program or document */
  /* may be  reproduced in  any form  or by  any means without */
@@ -89,7 +89,8 @@ if not lmt and not ltp then
 do:
     find DICTDB._Area where DICTDB._Area._Area-num = 6 no-lock no-error.
     if avail DICTDB._Area 
-    and not can-do(pInvalidAreas, DICTDB._AREA._Area-name) then
+    and not can-do(pInvalidAreas, DICTDB._AREA._Area-name) 
+    and DICTDB._Area._Area-name <> cSkipArea then
         pAreas = pAreas + DICTDB._Area._Area-name.
 end.
 pAreas = right-trim(pAreas,pdlm).  

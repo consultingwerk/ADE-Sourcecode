@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000-2015 by Progress Software Corporation.          *
-* All rights reserved. Prior versions of this work may contain       *
-* portions contributed by participants of Possenet.                  *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2000-2015,2020 by Progress Software Corporation.          *
+* All rights reserved. Prior versions of this work may contain            *
+* portions contributed by participants of Possenet.                       *
+*                                                                         *
+**************************************************************************/
 
 /*---------------------------------------------------------------------------
   menus.i
@@ -260,17 +260,6 @@ PROCEDURE RunDebugger.
            
     RUN enable_widgets.
 END.
-
-/*-------------------- ADDITIONAL TRANMAN TRIGGERS -----------------------*/
-&IF "{&WINDOW-SYSTEM}" BEGINS "MS-WIN" &THEN
-
-IF ade_licensed[{&TRAN_IDX}] <> {&NOT_AVAIL} THEN DO:
-    ON CHOOSE OF btn_tran IN FRAME Develop
-    DO:
-        RUN _RunTool("_tran.p").
-    END.
-END.
-&ENDIF
 
 /*-------------------- ADDITIONAL DWB TRIGGERS -----------------------*/
 IF ade_licensed[{&DWB_IDX}] <> {&NOT_AVAIL} THEN DO:

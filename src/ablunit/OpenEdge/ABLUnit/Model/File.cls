@@ -11,11 +11,8 @@ Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
     Notes       : 
   ----------------------------------------------------------------------*/
 
-USING Progress.Lang.*.
-
-
-
 CLASS OpenEdge.ABLUnit.Model.File: 
+
     DEFINE PUBLIC PROPERTY fileN AS CHARACTER NO-UNDO GET. SET.
 
 	/*------------------------------------------------------------------------------
@@ -23,9 +20,9 @@ CLASS OpenEdge.ABLUnit.Model.File:
 	 Notes:
 	------------------------------------------------------------------------------*/
 		
-	CONSTRUCTOR PUBLIC File (  input fileN as CHARACTER):
+	CONSTRUCTOR PUBLIC File ( INPUT pcFileN AS CHARACTER ):
 		SUPER ().
-		this-object:fileN = fileN.
+		THIS-OBJECT:fileN = pcFileN.
 	END CONSTRUCTOR.
 
 END CLASS.

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -38,6 +38,8 @@ Define var confirmed as logical init no.  /* this IS undoable */
 Define var capab     as char    NO-UNDO.
 Define var obj_str   as char    NO-UNDO.
 
+
+DEFINE BUFFER b_Sequence FOR dictdb._Sequence.
 
 /*========================Internal Procedures===============================*/
 
@@ -131,8 +133,9 @@ CASE p_Obj:
       	 do:
 	       /* delete tbl, it's indexes, fields and triggers */
       	    run adecomm/_setcurs.p ("WAIT").
-	        {adecomm/deltable.i}
-
+           /* OCTA-21469 - don't use include to avoid error */
+	       // {adecomm/deltable.i}
+            RUN adedict/_deltable.p.
       	    run CleanupDisplay (INPUT s_lst_Tbls:HANDLE in frame browse,
       	       	     	        INPUT s_CurrTbl,
       	       	     	        INPUT {&OBJ_TBL}).
@@ -172,12 +175,17 @@ CASE p_Obj:
       	 if confirmed then
       	 do:
       	    run adecomm/_setcurs.p ("WAIT").
-      	    find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
-                                    AND dictdb._Sequence._Seq-Name = s_CurrSeq.
-      	    delete dictdb._Sequence.
+            
+            /* OCTA-21469 - Do a dynamic find on _Sequence due to different schema for index
+               between OE 11 and OE 12 */      
+      	    /* find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
+                                    AND dictdb._Sequence._Seq-Name = s_CurrSeq. */
+            BUFFER b_Sequence:FIND-FIRST("where b_Sequence._Db-recid = " + STRING(s_DbRecId) +
+                                         " AND b_Sequence._Seq-Name = '" + s_CurrSeq + "'").
+      	    delete b_Sequence.
 
       	    run CleanupDisplay (INPUT s_lst_Seqs:HANDLE in frame browse,
-      	       	     	        INPUT s_CurrSeq,
+      	       	     	        INPUT s_CurrSeq,                          
       	       	     	        INPUT {&OBJ_SEQ}).
       	    obj_str = "Sequence".
       	    current-window = s_win_Browse.  /* cleanup may have changed it */
@@ -354,6 +362,7 @@ do:
    display obj_str + " deleted." @ s_Browse_Stat with frame browse.
    {adedict/setdirty.i &Dirty = "true"}.
 end.
+
 
 
 

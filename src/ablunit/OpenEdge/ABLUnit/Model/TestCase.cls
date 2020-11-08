@@ -12,15 +12,17 @@ Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using OpenEdge.ABLUnit.Model.IRunnableEntity.
+using OpenEdge.ABLUnit.Model.TestCase.
 using OpenEdge.ABLUnit.Model.TestEntity.
 using OpenEdge.ABLUnit.Model.TestMethod.
+using OpenEdge.ABLUnit.Reflection.AnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.AnnotationUtil.
 using OpenEdge.ABLUnit.Reflection.ITestInfoList.
 using OpenEdge.ABLUnit.Reflection.TestAnnotationInfo.
 using OpenEdge.ABLUnit.Reflection.TestInfo.
+using OpenEdge.ABLUnit.Results.TestResultEnum.
 using OpenEdge.ABLUnit.Results.TestTestResult.
 using Progress.Lang.AppError.
-using OpenEdge.ABLUnit.Results.TestResultEnum.
 
 class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
                     implements IRunnableEntity:
@@ -49,6 +51,8 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
         define variable ti as TestInfo no-undo.
         define variable expectedException as character no-undo.
         define variable expectedErrNum as integer no-undo.
+        define variable annotEntry as character no-undo.
+        define variable hasErrNumAttrib as logical no-undo.
         define variable loop as integer no-undo.
         define variable cnt as integer no-undo.
         define variable startTime as datetime no-undo.
@@ -80,15 +84,18 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
         RunLifecycleMethods(AnnotationInfo:BeforeEach, pChild, false).
         
         assign expectedException = AnnotationUtil:GetExpectedExceptionName(ti:annotations)
-               expectedErrNum    = 0
+               hasErrNumAttrib   = no
                cnt               = num-entries(expectedException)
                .
         // We know there's at least an 'expected' here, so if there's only 1 then move along.
         if cnt ge 2 then
         do loop = 1 to cnt
-        while expectedErrNum eq 0:
-            if trim(entry(loop, expectedException)) begins 'errNum':u then
-                assign expectedErrNum = integer(entry(2, entry(2, expectedException), '=':u)).
+        while not hasErrNumAttrib:
+            assign annotEntry = trim(entry(loop, expectedException)). 
+            if annotEntry begins 'errNum':u then
+                assign expectedErrNum  = integer(entry(2, annotEntry, '=':u))
+                       hasErrNumAttrib = yes
+                       .
         end.
         
         // Get a fully-qualified OOABL type reference  
@@ -135,8 +142,8 @@ class OpenEdge.ABLUnit.Model.TestCase abstract inherits TestEntity
                 else
                 if runErr:GetClass():IsA(expectedException) then
                 do:
-                    if    expectedErrNum eq 0
-                       or runErr:GetMessageNum(1) eq expectedErrNum
+                    if not hasErrNumAttrib
+                    or runErr:GetMessageNum(1) eq expectedErrNum
                     then
                         assign tr:TestResult = TestResultEnum:StatusPassed.
                     else

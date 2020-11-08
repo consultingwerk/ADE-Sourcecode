@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005,2015 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2005,2015,2020 by Progress Software Corporation.         *
+* All rights reserved.  Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 /*--------------------------------------------------------------------------
   pcompile.i
   Compile Commands-Related Procedures for Editor 
@@ -319,6 +319,7 @@ PROCEDURE RunFile.
                           INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_CLASS_TYPE_ERROR}) > 0 OR
                           INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_INTERFACE_TYPE_ERROR}) > 0 OR
                           INDEX(Compiler_Messages:SCREEN-VALUE,{&WRONG_ENUM_TYPE_ERROR}) > 0.
+                   
                       /* if this is an untitled edit buffer */
                       IF (NOT isClass AND Edit_Buffer.hBuffer:PRIVATE-DATA BEGINS untitled) THEN
                       DO:
@@ -337,7 +338,7 @@ PROCEDURE RunFile.
                       /* If this is a class, but the compile showed the classtype was wrong 
                        * 20050809-041 Only do this if the Wrong Class Type error was raised 
                        * on the same file that was being compiled, in case an interface or
-                       * ancestor class gives the same error. */                      
+                       * ancestor class gives the same error. */
                       IF (isClass AND isWrongClass AND 
                           COMPILER:FILE-NAME = Compile_Filename) THEN
                       DO:
@@ -358,6 +359,21 @@ PROCEDURE RunFile.
                               NEXT SAVE_AND_COMPILE_BLOCK.
                           END.
                           /* otherwise, fall through and display the wrong class error message */
+                      END.
+                      /* If this is a class, but the compile showed the classtype was wrong 
+                       * Only do this if the Wrong Class Type error was raised 
+                       * on the file being compiled first time. */
+                      IF (isClass AND ClassType = "" AND isWrongClass) THEN
+                      DO:
+                          IF IsValidClassChange(Edit_Buffer.hBuffer:PRIVATE-DATA,
+                                                ClassType,
+                                                COMPILER:CLASS-TYPE) THEN
+                          DO:
+                              ClassType = COMPILER:CLASS-TYPE.
+                              /* remove the previous Compile_Filename */
+                              OS-DELETE VALUE(Compile_Filename).
+                              NEXT SAVE_AND_COMPILE_BLOCK.
+                          END.
                       END.
                   END.  /* if Read_OK */
               END.  /* if compiler_stopped */
@@ -386,6 +402,7 @@ PROCEDURE RunFile.
           IF ( Compiler_Error = TRUE ) 
           THEN DO:
               Return_Status = YES.
+              
               IF ( COMPILER:FILENAME <> Compile_FileName )
                  AND ( SEARCH(COMPILER:FILENAME) <> SEARCH(Compile_FileName) )
               THEN DO:

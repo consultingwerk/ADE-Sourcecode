@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000,2007,2014 by Progress Software Corporation. All *
-* rights reserved. Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2000,2007,2014,2020 by Progress Software Corporation.    *
+* All rights reserved. Prior versions of this work may contain portions  *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -25,6 +25,7 @@ History:
     08/26/94    gfs         Added Recid index support.
     
     11/16/07    fernando    Support for _aud-audit-data* indexes deactivation
+    04/06/20    tmasood     Fix the active toggle box for online added index
 
 ----------------------------------------------------------------------------*/
 
@@ -113,7 +114,7 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       _File._Prime-Index = RECID(b_Index).
    end.
    
-   if NOT active AND b_Index._Active AND NOT fordb then
+   if NOT active AND b_Index._Active AND NOT fordb AND ActRec:SENSITIVE then
    do:
       answer = yes.  /* set's yes as default button */
       message "If you make this index inactive, the only way to" SKIP

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2014, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
  /*------------------------------------------------------------------------
     File        : TestInfo
@@ -10,13 +10,12 @@ Copyright (c)  2013-2014 by Progress Software Corporation. All rights reserved.
     Created     : Mon Aug 06 12:55:45 IST 2012
     Notes       : 
   ----------------------------------------------------------------------*/
+block-level on error undo, throw.
 
-USING Progress.Lang.*.
-USING OpenEdge.ABLUnit.Reflection.AnnotationInfo.
-USING OpenEdge.Core.Collections.Array.
-
+using OpenEdge.Core.Collections.Array.
 
 CLASS OpenEdge.ABLUnit.Reflection.TestInfo: 
+
     DEFINE PUBLIC PROPERTY annotations AS Array NO-UNDO GET. 
         PRIVATE SET.
     DEFINE PUBLIC PROPERTY annotationsCount AS INTEGER NO-UNDO GET. 
@@ -25,10 +24,10 @@ CLASS OpenEdge.ABLUnit.Reflection.TestInfo:
         PRIVATE SET.
     DEFINE PUBLIC PROPERTY isStatic AS LOGICAL INIT FALSE NO-UNDO GET. SET .
     
-    CONSTRUCTOR PUBLIC TestInfo(INPUT annotationInfo AS Array, INPUT annotationsCount AS INTEGER, INPUT testN AS CHARACTER):
-        annotations = annotationInfo.    
-        THIS-OBJECT:annotationsCount = annotationsCount.           
-        testName = testN.
+    CONSTRUCTOR PUBLIC TestInfo(INPUT poAnnotationInfo AS Array, INPUT piAnnotationsCount AS INTEGER, INPUT pcTestN AS CHARACTER):
+        annotations = poAnnotationInfo.    
+        THIS-OBJECT:annotationsCount = piAnnotationsCount.
+        testName = pcTestN.
     END CONSTRUCTOR.
 
 

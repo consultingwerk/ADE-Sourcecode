@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013, 2015, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2015, 2018, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : OpenEdge.Core.System.ApplicationError
@@ -12,30 +12,29 @@ Copyright (c) 2013, 2015, 2018 by Progress Software Corporation. All rights rese
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
-
+using OpenEdge.Core.DataTypeEnum.
+using OpenEdge.Core.DataTypeHelper.
+using OpenEdge.Core.IOModeEnum.
 using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Core.System.ErrorSeverityEnum.
-
-using OpenEdge.Core.DataTypeEnum.
-using OpenEdge.Core.IOModeEnum.
-using OpenEdge.Core.Assert.
-
-using Progress.Lang.ParameterList.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
 using Progress.Lang.Object.
-using Progress.Lang.Class.
-using OpenEdge.Core.DataTypeHelper.
+using Progress.Lang.ParameterList.
 
 class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppError:
-    /* Registry of error strings. These can be added via */
+    /* Registry of error strings.  */
     define static private temp-table ApplicationErrorText no-undo
         field ErrorType as character
         field ShortMessage as character
         field ErrorMessage as clob
         index idx1 as primary unique ErrorType. 
     
-    define public property InnerError as Error no-undo get. private set.
+    /* (optional) The P.L.Error that caused this error. Only one of InnerError or InnerStop is supported. */
+    define public property InnerError as Progress.Lang.Error no-undo get. private set.
+    
+    /* (optional) The P.L.Stop that caused this error. Only one of InnerError or InnerStop is supported. */
+    define public property InnerStop as Progress.Lang.Stop no-undo get. private set.
     
     constructor static ApplicationError():
         ApplicationError:AddError(
@@ -65,18 +64,31 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
         end.
         
         assign ApplicationErrorText.ShortMessage = pcShortMessage
-               ApplicationErrorText.ErrorMessage = pcMessage.                                            
+               ApplicationErrorText.ErrorMessage = pcMessage.
     end method.
     
+    /* Default constructor */
     constructor public ApplicationError():
-        this-object(?).
+        /* Severity can/will be overwritten by individual Error */
+        assign this-object:Severity = integer(ErrorSeverityEnum:Default).
     end constructor.
     
+    /* Constructor
+       
+       @param P.L.Error The error that caused this app error */
     constructor public ApplicationError(input poInnerError as Error):
-        /* Severity can/will be overwritten by individual Error */
-        assign this-object:Severity = integer(ErrorSeverityEnum:Default)
-               /* may be null */
-               this-object:InnerError = poInnerError.
+        this-object().
+        /* may be null */
+        assign this-object:InnerError = poInnerError.
+    end constructor.
+    
+    /* Constructor
+       
+       @param P.L.Error The error that caused this app error */
+    constructor public ApplicationError(input pInnerStop as Progress.Lang.Stop):
+        this-object().
+        /* may be null */
+        assign this-object:InnerStop = pInnerStop.
     end constructor.
     
     method public override Object Clone():
@@ -87,10 +99,16 @@ class OpenEdge.Core.System.ApplicationError abstract serializable inherits AppEr
         
         oClass = this-object:GetClass().
         oParams = new ParameterList(1).
-        oParams:SetParameter(1,
-                             substitute(DataTypeHelper:GetMask(DataTypeEnum:Class), 'Progress.Lang.Error':u),
-                             IOModeEnum:Input:ToString(),
-                             this-object:InnerError).
+        if valid-object(this-object:InnerStop) then
+            oParams:SetParameter(1,
+                                 substitute(DataTypeHelper:GetMask(DataTypeEnum:Class), 'Progress.Lang.Stop':u),
+                                 IOModeEnum:Input:ToString(),
+                                 this-object:InnerStop).
+        else
+            oParams:SetParameter(1,
+                                 substitute(DataTypeHelper:GetMask(DataTypeEnum:Class), 'Progress.Lang.Error':u),
+                                 IOModeEnum:Input:ToString(),
+                                 this-object:InnerError).
         oClone = cast(oClass:New(oParams), ApplicationError).
         do iLoop = 1 to NumMessages:
             oClone:AddMessage(GetMessage(iLoop), iLoop).

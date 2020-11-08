@@ -1,7 +1,7 @@
 /***********************************************************************
-* Copyright (C) 2005-2014 by Progress Software Corporation. All rights *
-  reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
+* Copyright (C) 2005-2014,2020 by Progress Software Corporation.       *
+* All rights reserved. Prior versions of this work may contain         *
+* portions contributed by participants of Possenet.                    *
 *                                                                      *
 ************************************************************************/
 
@@ -91,6 +91,7 @@ History:
     Rkamboj     09/30/11    Added CATEGORY field support for incremental dump.
     rkamboj     03/30/2012  Added check for sql-92 tables with unsupported ABL prop - OE00208080
     rkamboj     11/14/13    Added support to generate incremental for IS-PARTITIONED for _file and IS-LOCAL for _Index. For table partitioning feature.
+    tmasood     05/20/2020  Support for encryption
 */
 
 using Progress.Lang.*.
@@ -157,8 +158,10 @@ DEFINE            VARIABLE Constr1        AS CHARACTER               NO-UNDO.
 DEFINE            VARIABLE isIndexDel     AS LOGICAL           NO-UNDO.
 DEFINE            VARIABLE indxRecid      AS RECID             NO-UNDO.
 DEFINE            VARIABLE l_sys-obj      AS CHARACTER               NO-UNDO.
-define            variable isDictDbPartitionEnabled  as logical no-undo.
-define            variable isDictDb2PartitionEnabled as logical no-undo.
+define            variable isDictDbPartitionEnabled   as logical no-undo.
+define            variable isDictDb2PartitionEnabled  as logical no-undo.
+define            variable isDictDbEncryptionEnabled  as logical no-undo.
+define            variable isDictDb2EncryptionEnabled as logical no-undo.
 
 DEFINE NEW SHARED VARIABLE df-con AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
@@ -361,7 +364,8 @@ PROCEDURE checkEPolicy:
         /* we will try to compare encryption current policies. Must be enabled
            in both, or we won't do anything with them.
         */
-        myEPolicy[1] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB")).
+        IF isDictDbEncryptionEnabled THEN
+           myEPolicy[1] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB")).
         CATCH ae AS PROGRESS.Lang.AppError:
            /* if encryption is not enabled, we simply ignore it */
             IF ae:GetMessageNum(1) NE 14889 THEN
@@ -375,7 +379,8 @@ PROCEDURE checkEPolicy:
         /* we will try to compare encryption current policies. Must be enabled
            in both, or we won't do anything with them.
         */
-        myEPolicy[2] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB2")).
+        IF isDictDb2EncryptionEnabled THEN
+           myEPolicy[2] = NEW prodict.sec._sec-pol-util(LDBNAME("DICTDB2")).
         CATCH ae AS PROGRESS.Lang.AppError:
             /* if encryption is not enabled, we simply ignore it */
             IF ae:GetMessageNum(1) NE 14889 THEN
@@ -580,7 +585,6 @@ PROCEDURE checkObjectAttributes:
 END.
 
 /* mainline code **********************************************************/
-
 /* 02/01/29 vap (IZ# 1525) */
 ASSIGN p-batchmode = SESSION:BATCH-MODE.
 /*IF p-batchmode THEN DO: */
@@ -635,6 +639,19 @@ if avail dictdb2._Database-feature and dictdb2._Database-feature._dbfeature_enab
    assign isDictDb2PartitionEnabled = yes.
 else
    assign isDictDb2PartitionEnabled = no.
+
+/* Check if encryption feature is enable or not for both database. */   
+find dictdb._Database-feature where dictdb._Database-feature._DBFeature_Name = "Encryption" no-lock no-error.
+if avail dictdb._Database-feature and dictdb._Database-feature._dbfeature_enabled="1" then
+   assign isDictDbEncryptionEnabled = yes.
+else
+   assign isDictDbEncryptionEnabled = no.
+   
+find dictdb2._Database-feature where dictdb2._Database-feature._DBFeature_Name = "Encryption" no-lock no-error.
+if avail dictdb2._Database-feature and dictdb2._Database-feature._dbfeature_enabled="1" then
+   assign isDictDb2EncryptionEnabled = yes.
+else
+   assign isDictDb2EncryptionEnabled = no.   
     
 /* If either db is non-progress, it means one or both of the comparisons is with a 
  * "foreign" schema image.  As there are no real objects, just schema definitions 

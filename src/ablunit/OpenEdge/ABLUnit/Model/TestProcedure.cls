@@ -61,7 +61,7 @@ CLASS OpenEdge.ABLUnit.Model.TestProcedure INHERITS TestCase:
     method override protected void InvokeTestMethod(input pMethodInfo as TestInfo):
         define variable hInstance as handle no-undo.
         
-        if     valid-object(Entity) 
+        if     valid-object(Entity)
            and type-of(Entity, IHandleHolder)
         then
             assign hInstance = cast(Entity, IHandleHolder):Value. 
@@ -73,6 +73,10 @@ CLASS OpenEdge.ABLUnit.Model.TestProcedure INHERITS TestCase:
         if not valid-handle(hInstance) then
             // don't use Assert() because this state is a 'real error' not a test failure
             return error new AppError('Test instance is invalid', 0).
+        
+        if hInstance:get-signature(pMethodInfo:TestName) eq '':u then
+            // don't use Assert() because this state is a 'real error' not a test failure
+            return error new AppError(substitute('Test procedure &1 is PRIVATE', pMethodInfo:TestName), 0).
         
         // run the test
         run value(pMethodInfo:TestName) in hInstance.

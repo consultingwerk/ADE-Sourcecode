@@ -28,6 +28,8 @@ using OpenEdge.Web.IWebRequest from propath.
 using Progress.Json.ObjectModel.ObjectModelParser from propath.
 using Progress.Lang.AppError from propath.
 using Progress.Lang.Object from propath.
+using OpenEdge.Core.StringConstant.
+using OpenEdge.Net.HTTP.NullHeader.
 
 class OpenEdge.Web.WebRequest implements IWebRequest: 
     define private variable mUri as URI no-undo.
@@ -401,13 +403,16 @@ class OpenEdge.Web.WebRequest implements IWebRequest:
     end method.
     
     /** Returns a named header
-    
+        
         @param  character  The name of the header to retrieve
-        @return HttpHeader The header object. Null if not exists. */
+        @return HttpHeader The header object. The NullHeader object is returned if the header is not set on the request */
     method public HttpHeader GetHeader(pcName as character):
-        return HttpHeaderBuilder:Build(pcName)
-                        :Value(GetHeaderValue(pcname))
+        if HasHeader(pcName) then
+            return HttpHeaderBuilder:Build(pcName)
+                        :Value(GetHeaderValue(pcName))
                         :Header.
+        else
+            return OpenEdge.Net.HTTP.HttpHeader:NullHeader.
     end method.
     
     /** Gets a character header value

@@ -5,7 +5,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -18,6 +18,7 @@
 
    Modified    : February 18, 2001 Version 9.1C 
    Modified    : 02/27/02 Gikas A. Gikas - IZ 4050 Max query buffers
+   Modified    : 08/12/20 Talha Masood - Removed warning message 3623
     
     Note: !!!   : Method Libraries are maintained manually for 
                   conditional inclusion.        
@@ -255,7 +256,7 @@ PROCEDURE initProps :
       iPos       = INDEX(cOpenQuery, " FOR ":U) 
       /* No FOR keyword (reserved) found, check for PRESELECT (not reserved) */ 
       iPos       = IF iPos = 0 THEN INDEX(cOpenQuery, " PRESELECT ":U) ELSE iPos  
-      cQueryString = SUBSTR(cOpenQuery,iPos + 1).
+      cQueryString = SUBSTR(cOpenQuery,iPos + 1,-1,"CHARACTER").
   
   /* Store the original query in the OpenQuery property and prepare the query 
      with it. 

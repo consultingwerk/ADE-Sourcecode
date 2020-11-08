@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2020 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -41,6 +41,7 @@ History:
     hutegger    95/08   included {&end} parameter
     hutegger    95/04   creation
     sdash    05/04/14   Support for native sequence generator for MSS.
+    vmaganti 24/08/2020 Removed unnecessary for each block as part of jira # OCTA-22220 and OCTA-16650
 --------------------------------------------------------------------*/        
 /*h-*/
 
@@ -85,10 +86,14 @@ if user_env[25] begins "AUTO"
     assign gate-flag = {&gate-flag}.
     end.
 
-    for each s_ttb_seq    /*===== but exclude system-tables =====*/
+    /* below for each block removed as part of jira OCTA-16650 
+     * and OCTA-22220 which giving error while validating 
+     * query expression */
+
+    /*for each s_ttb_seq    /*===== but exclude system-tables =====*/
     where {&where}:
     assign gate-flag = {&gate-flag}.
-    end.
+    end.*/
 
   end.      /*========= automatically select all possible tables =======*/
 

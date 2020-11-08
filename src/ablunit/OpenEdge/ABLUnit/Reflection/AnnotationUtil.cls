@@ -1,5 +1,7 @@
- 
- /*------------------------------------------------------------------------
+/************************************************
+Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
+*************************************************/
+/*------------------------------------------------------------------------
     File        : AnnotationUtil
     Purpose     : A utility class to work with the annotation collection.
     Syntax      : 
@@ -35,7 +37,8 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
     METHOD PUBLIC STATIC LOGICAL HasIgnoreAnnotation( annotations AS Array ):
         DEFINE VARIABLE i AS INTEGER NO-UNDO.
         DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-
+        
+        if valid-object(annotations) then
         DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
             annotation = CAST(annotations:GetValue(i), AnnotationInfo).
             IF annotation NE ? AND annotation:AnnotationType EQ "Ignore"THEN
@@ -43,7 +46,6 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
         END.
         
         RETURN FALSE.
-
     END METHOD.
 
     /*------------------------------------------------------------------------------
@@ -53,10 +55,10 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
     ------------------------------------------------------------------------------*/
 
     METHOD PUBLIC STATIC CHARACTER GetExpectedExceptionName(annotations AS Array):
-
         DEFINE VARIABLE i AS INTEGER NO-UNDO.
         DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-                    
+        
+        if valid-object(annotations) then
         DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
             annotation = CAST(annotations:GetValue(i), AnnotationInfo).
             IF annotation NE ? AND annotation:AnnotationType EQ "Test" AND annotation:AttributeName EQ "expected" THEN
@@ -64,7 +66,6 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
         END.
         
         RETURN "".
-
     END METHOD.
     
      /*------------------------------------------------------------------------------
@@ -74,10 +75,10 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
     ------------------------------------------------------------------------------*/
 
     METHOD PUBLIC STATIC LOGICAL HasAnnotation(annotations AS Array, annotationName AS CHARACTER):
-        
         DEFINE VARIABLE i AS INTEGER NO-UNDO.
         DEFINE VARIABLE annotation AS AnnotationInfo NO-UNDO.
-
+        
+        if valid-object(annotations) then
         DO i=1 TO annotations:Size ON ERROR UNDO, THROW :
             annotation = CAST(annotations:GetValue(i), AnnotationInfo).
             IF annotation NE ? AND annotation:AnnotationType EQ annotationName THEN
@@ -85,6 +86,5 @@ CLASS OpenEdge.ABLUnit.Reflection.AnnotationUtil FINAL:
         END.
         
         RETURN FALSE.
-
     END METHOD.
 END CLASS.

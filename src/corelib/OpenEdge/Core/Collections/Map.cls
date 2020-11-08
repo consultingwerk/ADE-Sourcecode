@@ -77,6 +77,7 @@ class OpenEdge.Core.Collections.Map serializable
     /* Empties the map's contents */
     method public void Clear():
         empty temp-table ttMap.
+        assign this-object:Size = 0.
     end method.
 
     /* Returns true if the given object is also a map and the two Maps represent the same mappings.  */
@@ -249,7 +250,10 @@ class OpenEdge.Core.Collections.Map serializable
         define buffer lbMap for ttMap.
         define buffer putMap for ttMap.
         
-        if poKey:Equals(this-object) then 
+        if not valid-object(poKey) then
+            return oOld. 
+        
+        if poKey:Equals(this-object) then
              undo, throw new AppError("A Map cannot have itself as key.").
         /* not a real transaction, but scoping of updates 
           (not tested without, so not sure if it is really needed... )  */

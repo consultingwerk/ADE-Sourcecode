@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2017 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2017, 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : LogManagerFormat
@@ -33,6 +33,9 @@ class OpenEdge.Logging.Format.LogManagerFormat implements ILoggerFilter, ISuppor
             assign loggerShortName = poEvent:LoggerShortName.
         else
             assign loggerShortName = TokenResolver:ResolveName(this-object:Format, poEvent:LoggerName).
+        
+        if not poEvent:Message:GroupName eq poEvent:LoggerName then
+            assign loggerShortName = loggerShortName + ':':u + poEvent:Message:GroupName.  
         
         assign poEvent:Message:Message = substitute('[&3 &1] &2':u,
                                                 string(poEvent:LogLevel), 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2020 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,7 +14,7 @@
 	THIS IS ONLY FOR MS WINDOWS!!!!
                 
     Syntax :
-    RUN adetran/pm/_reg2ini.p 
+    RUN adecomm/_reg2ini.p 
 		(INPUT p-basekey, /* Registry Base Key */
 		INPUT p-subKey,	 	/* Registry SubKey */
                 INPUT p-reqSection,		/* Sections required 

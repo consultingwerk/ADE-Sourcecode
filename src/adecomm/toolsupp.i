@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2000,2020 by Progress Software Corporation. All rights    *
+* reserved. Prior versions of this work may contain portions              *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -88,8 +88,6 @@ PROCEDURE tools_check_call_stack:
     &ELSEIF DEFINED(EXCLUDE_UIB)   <> 0 &THEN this_tool = {&UIB_ENTRYPT}.
     &ELSEIF DEFINED(EXCLUDE_RPT)   <> 0 &THEN this_tool = {&RPT_ENTRYPT}.
     &ELSEIF DEFINED(EXCLUDE_RB)    <> 0 &THEN this_tool = {&RB_ENTRYPT}.
-    &ELSEIF DEFINED(EXCLUDE_TRAN)  <> 0 &THEN this_tool = {&TRAN_ENTRYPT}.
-    &ELSEIF DEFINED(EXCLUDE_VTRAN) <> 0 &THEN this_tool = {&VTRAN_ENTRYPT}.
     &ELSEIF DEFINED(EXCLUDE_COMP)  <> 0 &THEN this_tool = {&COMP_ENTRYPT}.
     &ELSE
         this_tool = ?.

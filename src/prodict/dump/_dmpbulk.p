@@ -1,14 +1,14 @@
 /*********************************************************************
-* Copyright (C) 2000,2007 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions         *
-* contributed by participants of Possenet.                           *
-*                                                                    *
+* Copyright (C) 2000,2007,2020 by Progress Software Corporation.     *
+* All rights reserved. Prior versions of this work may contain       *
+* portions contributed by participants of Possenet.                  *
 *********************************************************************/
 
 /* _dmpbulk.p - Make .fd file for _proutil -C bulkload 
 
    D. McMann 04/09/03 Added logic for LOB Directory
    fernando  12/12/07 Handle large list of tables.
+   tmasood   06/04/20 Fix the issue with Bulk load description file.
 
 */
 
@@ -80,7 +80,7 @@ IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
     HIDE MESSAGE NO-PAUSE.
     IF TERMINAL <> "" THEN MESSAGE "Working on" _File._File-name.
     IF CAN-FIND(FIRST _Field OF _File WHERE _Field._Data-type = "BLOB" OR
-                                            _Field._Data-type = "CLOB") THEN
+                                            _Field._Data-type = "CLOB") AND user_env[9] <> 'b' THEN
       PUT STREAM bulk UNFORMATTED
         _File._File-name " "
         (IF _File._Dump-name = ? THEN _File._File-name ELSE _File._Dump-name) ".d "
@@ -88,15 +88,15 @@ IF INTEGER(DBVERSION("DICTDB")) > 8 THEN
         user_env[30]
         SKIP.
     ELSE
-       PUT STREAM bulk UNFORMATTED
+      PUT STREAM bulk UNFORMATTED
         _File._File-name " "
         (IF _File._Dump-name = ? THEN _File._File-name ELSE _File._Dump-name) ".d "
         (IF _File._Dump-name = ? THEN _File._File-name ELSE _File._Dump-name) ".e"
         SKIP.
 
-
     FOR EACH _Field OF _File BY _Field._Order:
       IF _sys-field OR _Data-type = "recid" THEN NEXT.
+      IF user_env[9] = 'b' AND CAN-DO("blob,clob",_Data-type) THEN NEXT.
       PUT STREAM bulk UNFORMATTED "  " _Field-name SKIP.
     END.
 

@@ -18,9 +18,9 @@ CLASS OpenEdge.ABLUnit.Reflection.ClassInfo:
 	DEFINE PRIVATE VARIABLE className AS CHARACTER NO-UNDO.
 	DEFINE PUBLIC PROPERTY annotationsInfo AS Array NO-UNDO GET. SET.
 	
-	CONSTRUCTOR PUBLIC ClassInfo (INPUT classN AS CHARACTER, INPUT annotationsInfo AS Array):
-        	className = classN.
-        	THIS-OBJECT:annotationsInfo = annotationsInfo.	
+	CONSTRUCTOR PUBLIC ClassInfo (INPUT pcClassName AS CHARACTER, INPUT poAnnotationsInfo AS Array):
+        	className = pcClassName.
+        	THIS-OBJECT:annotationsInfo = poAnnotationsInfo.	
 	END CONSTRUCTOR.
 
 	METHOD PUBLIC CHARACTER getClassName(  ):

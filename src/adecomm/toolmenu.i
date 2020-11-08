@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/**************************************************************************
+* Copyright (C) 2007,2020 by Progress Software Corporation. All rights    *
+* reserved.  Prior versions of this work may contain portions             *
+* contributed by participants of Possenet.                                *
+*                                                                         *
+**************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -73,10 +73,12 @@ Change Log:
 &GLOB EDIT_IDX   3
 &GLOB UIB_IDX    4
 &GLOB RPT_IDX    5
+//TRAN_IDX is unused
 &GLOB TRAN_IDX   6
 &GLOB COMP_IDX   7
 &GLOB DBG_IDX    8
 &GLOB RB_IDX     9
+//VTRAN_IDX is unused
 &GLOB VTRAN_IDX  10
 &GLOB PTOOL_IDX  11
 &GLOB WTOOL_IDX  12

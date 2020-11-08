@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : LoggerBuilder
@@ -30,6 +30,7 @@ using OpenEdge.Logging.Format.ResolvedTokenFormat.
 using OpenEdge.Logging.Format.TokenContextFormat.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.LogLevelEnum.
+using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Logging.LoggerFilterRegistry.
 using OpenEdge.Logging.VoidLogger.
@@ -45,12 +46,34 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     define static private variable mMaxLogLevel as int64 no-undo.
     
     /* returns a logger instance */
-    define public property Logger as ILogWriter no-undo 
+    define public property Logger as ILogWriter no-undo
         get():
-            return GetLoggerInstance(). 
+            define variable logWriter as ILogWriter no-undo.
+            
+            // we don't check for a cached logger here because the child logger builders might
+            // clear the cache prior to building.
+            
+            do on error undo, throw:
+                assign logWriter = GetLoggerInstance().
+                catch err as Progress.Lang.Error:
+                    assign logWriter = ?.
+                    LoggerBuilder:LogMessage(substitute('Error building logger &1: &2',
+                                                this-object:LoggerType,
+                                                err:GetMessage(1)),
+                                             LogLevelEnum:ERROR).
+                end catch.
+            end.
+            // last-resort to ensure that we always return a valid instance
+            if not valid-object(logWriter) then
+            do:
+                assign logWriter = new VoidLogger(this-object:LoggerType).
+                LoggerBuilder:CacheInstance(this-object:LoggerType, logWriter).
+            end.
+            
+            return logWriter.
         end get.
     
-    /* (mandatory) The logger type that we want to build */ 
+    /* (mandatory) The logger type that we want to build */
     define public property LoggerType as character no-undo get. private set.
     
     /* The name of the default logger to use in the GetLogger() method. */
@@ -72,12 +95,24 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         end get.
         private set.
     
+    // A cache of logger instances, unique by LoggerName
+    define static private temp-table Logger no-undo
+        field LoggerName     as character
+        field LoggerInstance as Progress.Lang.Object
+        field CachedAt       as datetime 
+        
+        index idx1 as primary unique LoggerName
+        .
+    
+    // the name of this class; we could calculate it each time we need it but a string version is faster
+    define static private variable LOGGER_BUILDER_TYPE_NAME as character no-undo initial 'OpenEdge.Logging.LoggerBuilder':u.
+    
     /* Static constructor */
     constructor static LoggerBuilder():
         define variable cnt as integer no-undo.
         
-        assign mLogLevels    = get-class(LogLevelEnum):GetEnumValues()
-               mMaxLogLevel  = 0
+        assign mLogLevels   = get-class(LogLevelEnum):GetEnumValues()
+               mMaxLogLevel = 0
                .
         do cnt = num-entries(mLogLevels) to 1 by -1:
             assign mMaxLogLevel = max(mMaxLogLevel, int64(entry(cnt, mLogLevels))).
@@ -90,7 +125,7 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     constructor public LoggerBuilder (input pcLoggerType as character):
         Assert:NotNull(pcLoggerType, 'Logger type').
         assign this-object:LoggerType = pcLoggerType.
-    end method.
+    end constructor.
     
     /** Returns a logger (ILogWriter). 
         
@@ -98,6 +133,9 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         @return ILogWriter An instance of the default logger */
     method static public ILogWriter GetLogger(input poLoggerType as class Progress.Lang.Class):
         Assert:NotNull(poLoggerType, 'Logger type':u).
+        
+        // we don't check for a cached logger here because the child logger builders might
+        // clear the cache prior to building.
         
         return LoggerBuilder:Build(poLoggerType:TypeName):Logger.
     end method.
@@ -119,6 +157,9 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         else
             assign loggerName = LoggerBuilder:DefaultLogger.
         
+        // we don't check for a cached logger here because the child logger builders might
+        // clear the cache prior to building.
+        
         return LoggerBuilder:Build(loggerName):Logger.
     end method.
     
@@ -129,6 +170,9 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     method static public ILogWriter GetLogger(input pcLoggerType as character):
         if pcLoggerType eq '':u or pcLoggerType eq ? then
             assign pcLoggerType = LoggerBuilder:DefaultLogger.
+        
+        // we don't check for a cached logger here because the child logger builders might
+        // clear the cache prior to building.
         
         return LoggerBuilder:Build(pcLoggerType):Logger.
     end method.
@@ -195,9 +239,48 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     method public LoggerBuilder LogAt(input poLevel as LogLevelEnum):
         Assert:NotNull(poLevel, 'Log level').
         
+        ClearExternalBuild('LogAt':u).
+        
         SetOption('logLevel':u, poLevel).
         
         return this-object.
+    end method.
+    
+    /* This method removes the logger being built if the builder-methods are
+       called externally (in user code). If they are called internally, then
+       
+       @param character The method being checked: AddFilter and LogAt */
+    method protected void ClearExternalBuild(input pMethodName as character):
+        define variable loop as integer no-undo.
+        define variable progName as character no-undo.
+        
+        // no need, if it's not cached
+        if not LoggerBuilder:IsCached(this-object:LoggerType) then
+            return.
+        
+        // if the AddFilter method is called from manual Build():AddFilter():AddFilter() code
+        // then we want to remove any cached instance of this logger.
+        // However, if AddFilter() is called from a GetLogger() call in another builder, we let the builder 
+        // do the cache checks
+        
+        // start at 2 to avoid this method.
+        assign loop = 2.
+        do while not program-name(loop) eq ?:
+            assign progName = program-name(loop).
+            // skip any overrides
+            if progName eq pMethodName + ' ':u + OpenEdge.Logging.LoggerBuilder:LOGGER_BUILDER_TYPE_NAME then
+            do:
+                assign loop = loop + 1.
+                next.
+            end.
+            
+            if   num-entries(progName, StringConstant:SPACE) eq 2
+            and  entry(2, progName, StringConstant:SPACE) ne OpenEdge.Logging.LoggerBuilder:LOGGER_BUILDER_TYPE_NAME
+            then
+                LoggerBuilder:RemoveFromCache(this-object:LoggerType).
+            
+            leave.
+        end.
     end method.
     
     /* Adds a filter to the logger being built, with options in Json form 
@@ -208,6 +291,8 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
     method public LoggerBuilder AddFilter(input pFilterName as character,
                                           input pFilterOptions as JsonObject):
         define variable filterList as IList no-undo.
+        
+        ClearExternalBuild('AddFilter':u).
         
         if HasOption('filters') then
             assign filterList = cast(GetOptionObjectValue('filters'), IList).
@@ -236,8 +321,12 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
        @return LoggerBuilder This builder object  */
     method public LoggerBuilder AddFilter(input pFilter as ILoggerFilter):
         define variable filterList as IList no-undo.
+        define variable loop as integer no-undo.
+        define variable progName as character no-undo.
         
         Assert:NotNull(pFilter, 'Log Filter').
+        
+        ClearExternalBuild('AddFilter':u).
         
         if HasOption('filters') then
             assign filterList = cast(GetOptionObjectValue('filters'), IList).
@@ -252,68 +341,187 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         return this-object.
     end method.
     
+    /* Removes an instance record for a logger. Does not do anything to the logger itself (since it may
+       be in use)
+       
+       @param character The logger name
+       @return logical TRUE if the instance record was removed */
+    method static protected logical RemoveFromCache(input pLoggerName as character):
+        define buffer bLogger for Logger.
+        
+        if FindLoggerInstance(buffer bLogger, pLoggerName) then
+        do:
+            delete bLogger.
+            return true.
+        end.
+        
+        return false.
+    end method.
+    
+    /* Indicates whether a cached instance of a logger exists.
+       
+       @param character The logger name
+       @return logical TRUE if there's a valid instance of ILogWriter for the given logger name */
+    method static protected logical IsCached(input pLoggerName as character):
+        define buffer bLogger for Logger.
+        
+        if FindLoggerInstance(buffer bLogger, pLoggerName) then
+            return valid-object(bLogger.LoggerInstance).
+        
+        return false.
+    end method.
+    
+    /* Clears/empties the cache of logger instances */
+    method static protected void ClearCache():
+        define buffer bLogger for Logger.
+        
+        empty temp-table bLogger.
+    end method.
+    
+    /* Returns a cached logger instance.
+       
+       @param character The logger name
+       @param ILogWriter An instance of ILogWriter for the given logger, or UNKNOWN if not cached */
+    method static protected ILogWriter GetCachedInstance(input pLoggerName as character):
+        define buffer bLogger for Logger.
+        
+        if FindLoggerInstance(buffer bLogger, pLoggerName) then
+            return cast(bLogger.LoggerInstance, ILogWriter).
+        
+        return ?.
+    end method.
+    
+    /* Caches a logger instance for a logger name
+       
+       @param character The logger name
+       @param ILogWriter The logger instance */
+    method static protected void CacheInstance(input pLoggerName as character,
+                                               input pLogger as ILogWriter):
+        define buffer bLogger for Logger.
+        
+        Assert:NotNull(pLoggerName, 'Logger name').
+        
+        if not FindLoggerInstance(buffer bLogger, pLoggerName) then
+        do:
+            create bLogger.
+            assign bLogger.LoggerName = pLoggerName.
+        end.
+        
+        assign bLogger.LoggerInstance = pLogger
+               bLogger.CachedAt       = now
+               .
+    end method.
+    
+    /* Helper method to find the correct logger records
+       
+       @param buffer The Logger temp-table buffer
+       @param character The logger name
+       @return logical TRUE if a record for the logger can be found, FALSE otherwise */
+    method static private logical FindLoggerInstance(buffer pLogger for Logger,
+                                                     input pLoggerName as character):
+        release pLogger.
+        
+        if can-find(pLogger where pLogger.LoggerName eq pLoggerName) then
+            find pLogger
+           where pLogger.LoggerName eq pLoggerName.
+        
+        return (available pLogger).
+    end method.
+    
     /* Constructs the actual logger instance
        
        @return ILogWriter A new or cached logged */
     method protected ILogWriter GetLoggerInstance():
         define variable logWriter as ILogWriter no-undo.
         define variable logAt as LogLevelEnum no-undo.
-        
+        define variable filterIsStackWriter as logical no-undo.
+         
         // use the specified/configured value first.
         // otherwise use the log-manager's as a default
-        if not log-manager:logfile-name eq ? then
+        if  not HasOption('filters':u)
+        and not log-manager:logfile-name eq ?
+        then
         do:
-            if not HasOption('logLevel':u) then
-            do:
-                if log-manager:logging-level gt mMaxLogLevel then
-                    assign logAt = LogLevelEnum:GetEnum(mMaxLogLevel).
-                else
-                if lookup(string(log-manager:logging-level), mLogLevels) gt 0 then
-                    assign logAt = LogLevelEnum:GetEnum(log-manager:logging-level).
-                else
-                    assign logAt = LogLevelEnum:DEFAULT.
-                
-                LogAt(logAt).
-            end.    //log level
+            if LoggerBuilder:IsCached('LoggerBuilder:LOG-MANAGER':u) then
+                assign logWriter = LoggerBuilder:GetCachedInstance('LoggerBuilder:LOG-MANAGER':u).
             
-            // if there are some filters configured, use those,
-            // otherwise use the defaults
-            if not HasOption('filters':u) then
+            // Set logging level based on log-manager's logging-level
+            if log-manager:logging-level gt mMaxLogLevel then
+                assign logAt = LogLevelEnum:GetEnum(mMaxLogLevel).
+            else
+            if lookup(string(log-manager:logging-level), mLogLevels) gt 0 then
+                assign logAt = LogLevelEnum:GetEnum(log-manager:logging-level).
+            else
+                assign logAt = LogLevelEnum:DEFAULT.
+            
+            // we're not using the cached version, since the logging level has changed
+            if  valid-object(logWriter)
+            and not logWriter:LogLevel eq logAt
+            then
+                assign logWriter = ?.
+            
+            // if the debug-alert didn't change , then we can use the
+            // existing instance
+            if  valid-object(logWriter)
+            and type-of(logWriter, Logger)
+            then
             do:
-                // If the debug-alert flag is set, then write the log stack
-                if session:debug-alert then
-                    AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
+                // we should have at least 1 extent here but protect with a NO-ERROR
+                assign filterIsStackWriter =    cast(logWriter, Logger):LogFilters[1]:GetClass() 
+                                             eq LoggerFilterRegistry:Registry:Get(LoggerFilterRegistry:STACK_WRITER_FORMAT)
+                       no-error.
                 
-                AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
+                if (    session:debug-alert and     filterIsStackWriter)
+                or (not session:debug-alert and not filterIsStackWriter)
+                then
+                    return logWriter.
                 
-                // resolves any of the standard tokens
-                AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).
-                // writes any resolved tokens into the message
-                AddFilter(LoggerFilterRegistry:REPLACE_TOKENS_FORMAT).
-                
-                // write to the log-manager
-                AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
-                AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
-            end.    // default filters
+                // reset in case something went wrong
+                assign error-status:error = no.
+            end.
+            
+            LogAt(logAt).
+            
+            // Add default filters
+            // If the debug-alert flag is set, then write the log stack
+            if session:debug-alert then
+                AddFilter(LoggerFilterRegistry:STACK_WRITER_FORMAT).
+            
+            AddFilter(LoggerFilterRegistry:ERROR_FORMAT).
+            
+            // resolves any of the standard tokens
+            AddFilter(LoggerFilterRegistry:TOKEN_FORMAT).
+            // writes any resolved tokens into the message
+            AddFilter(LoggerFilterRegistry:REPLACE_TOKENS_FORMAT).
+            
+            // write to the log-manager
+            AddFilter(LoggerFilterRegistry:LOG_MANAGER_FORMAT).
+            AddFilter(LoggerFilterRegistry:LOG_MANAGER_WRITER).
         end.    // logmanager enabled
+        else
+        // Use a cached version if it exists. At this point any child builders
+        // will have done their config changes, so anything that's in the cache now
+        // is there rightfully
+        if LoggerBuilder:IsCached(this-object:LoggerType) then
+            return LoggerBuilder:GetCachedInstance(this-object:LoggerType).
         
         // now try to build a logger from the set of filters 
-        assign logWriter = BuildFilterLogger(). 
+        assign logWriter = BuildFilterLogger().
+        
+        if not valid-object(logWriter) then
+            assign logWriter = new VoidLogger(this-object:LoggerType).
+        
+        // Using the LOG-MANAGER
+        if valid-object(logAt) then
+            LoggerBuilder:CacheInstance('LoggerBuilder:LOG-MANAGER':u, logWriter).
+        else
+        if valid-object(logWriter) then
+            LoggerBuilder:CacheInstance(this-object:LoggerType, logWriter).
         
         return logWriter.
-        
-        catch loadError as Progress.Lang.Error:
-            LoggerBuilder:LogMessage(substitute('Error building logger &1 : &2', this-object:LoggerType, loadError:GetMessage(1)),
-                                     LogLevelEnum:ERROR).
-        end catch.
-        finally:
-            // if we fail to buld a logger, use the void logger
-            if not valid-object(logWriter) then
-                return new VoidLogger(this-object:LoggerType).
-        end finally.
     end method.
     
-    /* Adds JSON configuration for loggers, fitlers and builders
+    /* Adds JSON configuration for loggers, filters and builders
         
        @param  JsonObject The JSON configuration for a logger
        @return LoggerBuilder This builder object  */
@@ -337,18 +545,18 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
         define variable filterOptions as JsonObject no-undo.
         define variable missingTokenFilter as logical no-undo initial false.
         
+        // get the logging level. first check for a set option, then derive it
+        if HasOption('logLevel':u) then
+            assign logLevel = cast(GetOptionObjectValue('logLevel':u), LogLevelEnum).
+        if not valid-object(logLevel) then
+            assign logLevel = LogLevelEnum:DEFAULT.
+        
         if not HasOption('filters':u) then
             return ?.
         
         assign filterConfig = GetOptionObjectValue('filters':u).
         if not type-of(filterConfig, IList) then
             return ?.
-        
-        // get the logging level. first check for a set option, then derive it
-        if HasOption('logLevel':u) then
-            assign logLevel = cast(GetOptionObjectValue('logLevel':u), LogLevelEnum).
-        if not valid-object(logLevel) then
-            assign logLevel = LogLevelEnum:DEFAULT.
         
         assign filterIter = cast(filterConfig, IList):Iterator().
         if cast(filterConfig, IList):Size eq 0 then
@@ -393,9 +601,6 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
                 
                 when type-of(filter, TokenContextFormat) then
                     assign missingTokenFilter = false.
-                
-                otherwise
-                    .   //no-op
             end case.
             
             if valid-object(filter) then

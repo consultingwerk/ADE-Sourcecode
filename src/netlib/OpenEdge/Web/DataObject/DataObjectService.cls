@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataObjectService
@@ -19,6 +19,7 @@ using OpenEdge.Core.SemanticVersion.
 using OpenEdge.Core.Util.BuilderRegistry.
 using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Net.HTTP.MethodEnum.
+using OpenEdge.Web.DataObject.DataObjectService.
 using OpenEdge.Web.DataObject.MappedOperation.
 using OpenEdge.Web.DataObject.SchemaOption.
 using OpenEdge.Web.DataObject.ServiceOptions.
@@ -47,13 +48,13 @@ class OpenEdge.Web.DataObject.DataObjectService:
         index idx1 as primary unique ParentSvc URI Method
         index idx2 ParentSvc Name
         .
-    
+    // Holds empty schemas for use by operations
     define private static temp-table DataSchema no-undo
         //KEYS
-        field ParentSvc     as int64
+        field ParentSvc       as int64
+        field SchemaName      as character
         //DATA
-        field SchemaName    as character
-        field DataStructure as handle
+        field DataStructure   as handle
         index idx1 as primary unique ParentSvc SchemaName
         .
     
@@ -132,9 +133,9 @@ class OpenEdge.Web.DataObject.DataObjectService:
         if super:Equals(pCompare) then
             return true.
         
-        if type-of(pCompare, OpenEdge.Web.DataObject.DataObjectService) then
-            return (     this-object:Name    eq cast(pCompare, OpenEdge.Web.DataObject.DataObjectService):Name
-                     and this-object:Version:Equals(cast(pCompare, OpenEdge.Web.DataObject.DataObjectService):Version)).
+        if type-of(pCompare, DataObjectService) then
+            return (     this-object:Name    eq cast(pCompare, DataObjectService):Name
+                     and this-object:Version:Equals(cast(pCompare, DataObjectService):Version)).
         
         return false.
     end method.
@@ -324,8 +325,8 @@ class OpenEdge.Web.DataObject.DataObjectService:
         
         case pSchema:type:
             when string(DataTypeEnum:Temp-Table) or
-            when string(DataTypeEnum:Buffer) or
-            when string(DataTypeEnum:Dataset) then
+            when string(DataTypeEnum:Buffer)     or
+            when string(DataTypeEnum:Dataset)    then
                 .   // NO-OP
             otherwise
                 return error new AppError(substitute('Unsupported schema type: &1', pSchema:type), 0).
@@ -333,29 +334,24 @@ class OpenEdge.Web.DataObject.DataObjectService:
         
         FindSchemaRecord(pSchemaName, buffer lbSchema).
         assign schemaExists = available lbSchema.
-        if not schemaExists then
-        do:
-            create lbSchema.
-            assign lbSchema.ParentSvc  = int64(this-object)
-                   lbSchema.SchemaName = pSchemaName.
-        end.
-        else
-            delete object lbSchema.DataStructure no-error.
+        // The RemoveSchema() call recurses down the parent/child tree
+        if schemaExists then
+            RemoveSchema(pSchemaName).
         
-        assign lbSchema.DataStructure = pSchema
-               // reset the error-status error flag from above
-               no-error.
-        
+        create lbSchema.
+        assign lbSchema.ParentSvc     = int64(this-object)
+               lbSchema.SchemaName    = pSchemaName
+               lbSchema.DataStructure = pSchema
+               .
         case pSchema:type:
             when string(DataTypeEnum:Dataset) then
             do:
                 assign cnt = pSchema:num-buffers.
                 do loop = 1 to cnt:
                     assign tbl = pSchema:get-buffer-handle(loop). 
-                    // It's posible to have a TT and a PDS with the same name; wwe'll keep the dataset
+                    // It's posible to have a TT and a PDS with the same name; we'll keep the dataset
                     if tbl:name eq pSchema:name then
                         next.
-                    
                     PutSchema(tbl:name, tbl:table-handle).
                 end.
             end.
@@ -391,8 +387,8 @@ class OpenEdge.Web.DataObject.DataObjectService:
         if available lbSchema then
         do:
             delete object lbSchema.DataStructure no-error.
-            delete lbSchema.
-            assign error-status:error = false.
+            // to clear the previous one
+            delete lbSchema no-error.
             
             // Are there schema clones? Remove them too
             for each lbOper where lbOper.ParentSvc eq int64(this-object):
@@ -612,4 +608,46 @@ class OpenEdge.Web.DataObject.DataObjectService:
         end.
     end.
     
+    /* Merges service information into this one. The source of the
+       merge data must have the same name and version, otherwise
+       an error is thrown.
+       
+       A Merge will overwrite the schemas, operations, catalogs and
+       argument writers in this object with those that are passed in
+       (the source service).
+       
+       If there are schemas, operations and argument writers in the 
+       source service that are not in this service, they will be added.
+       
+       If there are schemas, operations and argument writers in the 
+       THIS service that are not in the source service, they will be 
+       not be touched.
+       
+       @param DataObjectService A service to merge into this one. */
+    method public void Merge(input pSvc as DataObjectService):
+        define buffer bSchema for DataSchema.
+        define buffer bOper for Operation.
+        
+        Assert:NotNull(pSvc, 'Merge source Data Object Service').
+        
+        if  not pSvc:Name eq this-object:Name
+        and not pSvc:Version:Equals(this-object:Version)
+        then
+            undo, throw new AppError(substitute('Merge source service name and version do not match: &1', ToString()), 0).
+        
+        assign this-object:Catalog = pSvc:Catalog.
+        // ServiceOptions have nothing as yet, so no work needed
+        
+        this-object:ArgumentWriters:PutAll(pSvc:ArgumentWriters).
+        
+        for each bSchema
+           where bSchema.ParentSvc eq int64(pSvc):
+            PutSchema(bSchema.SchemaName, bSchema.DataStructure).
+        end.
+        
+        for each bOper
+           where bOper.ParentSvc eq int64(pSvc):
+            PutOperation(cast(bOper.MappedOperation, MappedOperation)).
+        end.
+    end method.
 end class.

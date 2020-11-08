@@ -11,10 +11,10 @@ Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
     Notes       : 
   ----------------------------------------------------------------------*/
 
-using Progress.Lang.*.
 using OpenEdge.ABLUnit.Model.TestEntity.
 
 interface OpenEdge.ABLUnit.Writer.IResultsWriter:  
+
     /* Writes the test results to a longchar
        
        @param TestEntity The test to write (root)   

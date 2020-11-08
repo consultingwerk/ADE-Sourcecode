@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2019 by Progress Software Corporation 
+Copyright (c) 2013-2020 by Progress Software Corporation 
 and/or one of its subsidiaries or affiliates. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
@@ -247,6 +247,15 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void IsNull(input pcArgument as character):
+        IsNull(pcArgument, "argument").
+    end method.
+    
+    method public static void IsNull(input pcArgument as longchar, input pcName as character):
+        if pcArgument ne ? then 
+            undo, throw new AssertionFailedError(substitute('&1 must be unknown', pcName), 0).
+    end method.
+    
+    method public static void IsNull(input pcArgument as longchar):
         IsNull(pcArgument, "argument").
     end method.
     

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2015, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : ErrorSeverityEnum
@@ -13,13 +13,14 @@ Copyright (c)  2013, 2015 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 enum OpenEdge.Core.System.ErrorSeverityEnum flags:
-    define enum       Default
-                      None     
-                      Fatal    
-                      Critical 
-                      Error    
-                      Warning  
-                      Message  
-                      Info     
-                      Debug.    
+    define enum None     
+                Fatal     
+                Critical 
+                Error    
+                Warning  
+                Message  
+                Info     
+                Debug
+                
+                Default = None.
 end enum.

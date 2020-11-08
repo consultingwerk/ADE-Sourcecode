@@ -136,12 +136,10 @@ class OpenEdge.Logging.LogEvent serializable:
                    iLoop     = iLoop + 1
                    .
             // don't add the logging infrastructure to the log stack
-            if num-entries(cProgName, StringConstant:SPACE) ge 2 then 
-            case entry(2, cProgName, StringConstant:SPACE):
-                when get-class(OpenEdge.Logging.Logger):TypeName or
-                when this-object:GetClass():TypeName then
-                    next.
-            end case.
+            if     num-entries(cProgName, StringConstant:SPACE) ge 2 
+               and entry(2, cProgName, StringConstant:SPACE) begins 'OpenEdge.Logging.':u 
+            then 
+                next.
             
             assign cStack = cStack + cDelim + cProgName
                    cDelim = StringConstant:LF. 

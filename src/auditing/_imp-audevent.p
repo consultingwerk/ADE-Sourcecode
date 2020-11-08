@@ -1,5 +1,6 @@
 /*************************************************************/  
-/* Copyright (c) 1984-2005,2007 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2007,2020 by                      */
+/* Progress Software Corporation                             */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -21,6 +22,7 @@
     
     History:
     fernando    06/20/07   Support for large files
+    tmasood     06/15/20   Fix error 132 while importing zero records
 
   ----------------------------------------------------------------------*/
 
@@ -63,8 +65,10 @@ IF RETURN-VALUE <> "":U THEN DO:
     RETURN RETURN-VALUE.
 END.
 
+IF iRecs =  0 THEN RETURN "".
+
 /* figure out the maximum number of errors */
-IF iRecs = ? THEN DO:
+IF iRecs = ? THEN DO:  
     /* if .d didn't have number of records, then percentage is the actual
        maximum  number of errors. This is what the Data Admin tool does.
     */
@@ -100,7 +104,7 @@ REPEAT TRANSACTION ON ENDKEY UNDO, LEAVE:
 
     /* keep track of how many records we've processed */
     iProcessed = iProcessed + 1.
-
+    
     CREATE ttAuditEvent.
     IMPORT ttAuditEvent NO-ERROR.
 

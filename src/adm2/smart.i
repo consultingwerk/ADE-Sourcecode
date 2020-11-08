@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Method-Library 
 /***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
+* Copyright (C) 2005-2006-2020 by Progress Software Corporation.       *
+* All rights reserved. Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                             *
 *                                                                      *
 ************************************************************************/
@@ -128,11 +128,11 @@ ghContainer = {&ADM-CONTAINER-HANDLE}.
            iStart = R-INDEX(cObjectName, "~/":U) + 1
            cObjectName =
                 IF R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U) <= iStart THEN
-                   SUBSTR(cObjectName, iStart)
+                   SUBSTR(cObjectName, iStart, -1, "CHARACTER")
                 ELSE
                    SUBSTR(cObjectName,
                           iStart,
-                          R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U) - iStart).
+                          R-INDEX(THIS-PROCEDURE:FILE-NAME, ".":U) - iStart,"CHARACTER").
     {set ObjectName cObjectName}.    
 
       &IF DEFINED(ADM-CONTAINER-HANDLE) <> 0 &THEN

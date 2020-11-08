@@ -227,7 +227,6 @@ GUI_DIRLIST="$GUI_DIRLIST protools"
 GUI_DIRLIST="$GUI_DIRLIST adm adm2"          
 ##GUI_DIRLIST="$GUI_DIRLIST as4dict"          
 GUI_DIRLIST="$GUI_DIRLIST adeweb webutil web web2"
-GUI_DIRLIST="$GUI_DIRLIST adetran"            # Tranman
 GUI_DIRLIST="$GUI_DIRLIST dynamics"           # Dynamics (formerly icf)
 GUI_DIRLIST="$GUI_DIRLIST prodict"
 
@@ -661,88 +660,6 @@ do
       (cd "$POSSESRC"; find $j -name '*.[pw]' -print | eval $sedpcmd) > $srcfiles
     ;;
     
-    adetran)
-      cd "$WORK"
-      cp "$POSSESRC/adetran/data/_tran.df" .
-      for idb in xlkit xlproj
-      do
-        if [ ! -f $idb.db ] ; then
-          echo "$PROG: Creating $idb database ... `date`"
-          prodb $idb empty
-
-          ########################################################################
-          ## Now, load translation schema into the database.
-          ########################################################################
-          cp "$POSSESRC/adetran/data/$idb.df" .
-
-          echo y | _proutil -z3 $idb -C convchar convert undefined -G 0 $PFOPTS
-
-          echo "Updating databases with Collation information ... `date`"
-          echo OUTPUT TO $PROG.xdb.       >  xlschema.p
-          echo MESSAGE \'Loading _tran.df ...\'. >> xlschema.p
-          echo PROPATH = \"$BASEPROPATH\". >> xlschema.p
-          echo RUN prodict/load_df.p \(\"./_tran.df\"\). >> xlschema.p
-          echo OUTPUT CLOSE.           >> xlschema.p
-          echo QUIT.             >> xlschema.p
-          "$PROGRESS" $idb -1 -zn -zr $PROARGS -b -p xlschema.p >"$WORK/tmp.log" 2>&1
-          status=$?
-          cat "$WORK"/tmp.log
-          if test $status = 1 ; then
-            echo "$PROG: FAILED `date`"
-            cd "$BASEDIR"
-            $RMDIR "$WORK"
-            exit 1
-          fi
-
-          echo "Index rebuild ... `date`"
-          if [ -f $idb.db ]
-          then
-            _proutil -z3 $idb -C idxbuild all -G 0 $PFOPTS
-          fi
-
-          echo OUTPUT TO $PROG.xdb.       >  xlschema.p
-          echo MESSAGE \'Loading $idb.df ...\'. >> xlschema.p
-          echo PROPATH = \"$BASEPROPATH\". >> xlschema.p
-          echo RUN prodict/load_df.p \(\"$idb.df\"\). >> xlschema.p
-          echo OUTPUT CLOSE.           >> xlschema.p
-          echo QUIT.             >> xlschema.p
-
-          echo "Loading translation schema ... `date`"
-          "$PROGRESS" $idb -1 -zn -zr $PROARGS -b -p xlschema.p >"$WORK/tmp.log" 2>&1
-
-          status=$?
-          cat "$WORK/tmp.log"
-          if test $status = 1 ; then
-            echo "$PROG: FAILED `date`"
-            cd "$BASEDIR"
-            $RMDIR "$WORK"
-            exit 1
-          fi
-
-          #######################################################################
-          ## Compare the results against this baseline data.  If the compare 
-          ## passes (no differences), then discard the log info, as we don't
-          ## care about it.
-          #######################################################################
-          echo "Loading $idb.df ..." | diff -b - $PROG.xdb > "$WORK/endiff.tmp"
-          if [ $? != 0 ] ; then
-            echo "$PROG: WARNING: $idb.df Load messages found `date`"
-            echo "=============================================================" 
-            cat "$WORK/$PROG.xdb"
-            echo "============================================================="
-            echo ""
-          fi
-        fi
-      done
-
-      other_params="$other_params -db xlproj -1 -ld xlatedb"
-      other_params="$other_params -db xlkit  -1 -ld kit"
-
-      sedpcmd="$sedpcmd -e '/_reports.w/d'"
-
-      ( cd "$POSSESRC" ; find $j -name '*.[pw]' -print | eval $sedpcmd) > $srcfiles
-    ;;
-
     prodict)
       ###########################################################################
       ## Generate a list of files to compile for prodict and it's DataServer code.
@@ -1464,7 +1381,7 @@ cat <<+CAT >$TMPDIR/$$.pf
                  (cd "$WORK";cp prores/reslang/*.r "$POSSEDST/prores/reslang")
                  ;;
 
-  adecomm|adecomp|adedesk|adedict|adeedit|aderes|adeshar|adetran|adeuib|adeweb|as4dict|prodict|protools)
+  adecomm|adecomp|adedesk|adedict|adeedit|aderes|adeshar|adeuib|adeweb|as4dict|prodict|protools)
                  # Build and install ADE tools r-code procedure libraries
                  echo "$PROG: Installing $j ... `date`"
                  cd "$WORK"
@@ -1599,27 +1516,6 @@ cat <<+CAT >$TMPDIR/$$.pf
                        "$POSSESRC/wrappers"/*.i \
                        "$POSSESRC/wrappers/posseinfo.xml" "$POSSEDST"
                     ;;
-          adetran)
-             # Make sure the dest directories exist
-             for idir in data labels images
-             do
-                $MKDIR "$POSSEDST/adetran/$idir"
-             done
-
-             for idb in xlkit xlproj
-             do
-                echo y | _proutil -z3 $idb -C convchar convert undefined
-                _proutil -z3 $idb -C truncate bi -G 0
-                cp -p $idb.* "$POSSEDST/adetran/data/"
-             done
-
-             for idir in data labels images
-             do
-                cp "$POSSESRC/adetran/$idir"/*.* "$POSSEDST/adetran/$idir"
-             done
-
-          ;;
-          
           prodict) 
 		(
                cd "$POSSESRC/prodict"

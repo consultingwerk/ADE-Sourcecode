@@ -280,12 +280,13 @@ class OpenEdge.ABLUnit.Writer.ResultsXmlWriter use-widget-pool implements IResul
                        tr       = pEntity:GetTestResults()
                        cnt      = extent(tr)
                        .
+                RESULTBLK:
                 do loop = 1 to cnt:
                     // only deal with errors or failures here
                     if     not tr[loop]:TestResult eq TestResultEnum:StatusFailed
                        and not tr[loop]:TestResult eq TestResultEnum:StatusError
                     then
-                        next.
+                        next RESULTBLK.
                     
                     // create a 'testcase' node for the constructor failure
                     AddTestcase(caseNode, pEntity, entityNode, pXmlRefs).

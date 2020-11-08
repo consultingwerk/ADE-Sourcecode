@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceRegistryLoader
@@ -820,8 +820,7 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:contentType)) then oVerb:GetCharacter(string(ServiceMappingFileSchemaEnum:contentType)) else '':u),
                                                                       string(TargetTypeEnum:Void),
                                                                       // target name can be stringified JSON
-                                                                      (if oVerb:GetType(string(ServiceMappingFileSchemaEnum:void)) eq JsonDataType:NULL then '':u
-                                                                       else string(oVerb:GetJsonText(string(ServiceMappingFileSchemaEnum:void))) ),
+                                                                      (if not oVerb:Has(string(ServiceMappingFileSchemaEnum:void)) or oVerb:GetType(string(ServiceMappingFileSchemaEnum:void)) eq JsonDataType:NULL then '':u else string(oVerb:GetJsonText(string(ServiceMappingFileSchemaEnum:void))) ),
                                                                       '':u,     /* type-of */
                                                                       '':u,     /* function */
                                                                       (if oVerb:Has(string(ServiceMappingFileSchemaEnum:options)) then CreateOperationOptions(oVerb:GetJsonObject(string(ServiceMappingFileSchemaEnum:options))) else ?),

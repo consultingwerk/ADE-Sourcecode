@@ -32,7 +32,6 @@ using OpenEdge.Logging.Logger.
 
 class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     // (mandatory) Holds filters for formatting the messagesto this logger
-    //define private variable moLogFilters as LoggerFilterList no-undo.
     define public property LogFilters as ILoggerFilter extent no-undo
         get.
         private set.
@@ -51,7 +50,7 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     /* (optional) The short-name-format of the logger logging this event. 
        See the TokenResolve class for more detail */ 
     define public property Format as character no-undo
-        get. 
+        get.
         set(input pFormat as character):
             if pFormat ne this-object:Format then
                 assign this-object:Format    = pFormat
@@ -601,7 +600,9 @@ class OpenEdge.Logging.Logger final implements ILogWriter, ISupportFormatting:
     
     /* Writes a log message
        
-       @param LogMessage the message to be written */
+       @param LogLevelEnum The level at which the message was logged
+       @param LogMessage the message to be written
+       @param P.L.Error An error, if logged */
     method private void WriteMessage(input poLogLevel as LogLevelEnum,
                                      input poMessage as LogMessage,
                                      input poError as Progress.Lang.Error):

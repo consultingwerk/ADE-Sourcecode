@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2006-2011,2013,2016 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2006-2011,2013,2016,2020 by Progress Software Corporation. * 
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 
 /* _dmpsddl.p - dump data definitions */
@@ -55,7 +55,8 @@ History:
     fernando    09/27/06    Added check for sql-92 tables with unsupported ABL prop - 20060324-001
     fernando    06/19/07    Support for large files
     fernando    07/18/08    Support for encryption
-    fernando    04/08/09    Support for alternate buffer pool    
+    fernando    04/08/09    Support for alternate buffer pool
+    tmasood     08/17/20    Report warning message while dumping SQL-92 tables    
 */
 /*h-*/
 
@@ -77,10 +78,13 @@ DEFINE VARIABLE has_lchar AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE c         AS CHARACTER.
 DEFINE VARIABLE dumpPol   AS LOGICAL      NO-UNDO.
 DEFINE VARIABLE dumpAltBuf AS LOGICAL     NO-UNDO.
-DEFINE VARIABLE cMsg AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cMsg       AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE fil-e      AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE cSkipTables AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE myEPolicy  AS prodict.sec._sec-pol-util    NO-UNDO.
 DEFINE VARIABLE myObjAttrs AS prodict.pro._obj-attrib-util NO-UNDO.
 DEFINE VARIABLE brk        AS LOGICAL INITIAL NO NO-UNDO.
+DEFINE STREAM errstr.
 DEFINE NEW SHARED STREAM ddl.
 DEFINE NEW SHARED VARIABLE df-con  AS CHARACTER EXTENT 7    NO-UNDO.
 DEFINE NEW SHARED VARIABLE dfseq  AS INTEGER INITIAL 1 NO-UNDO.
@@ -130,7 +134,8 @@ if user_env[5] = "<internal defaults apply>"
  else OUTPUT STREAM ddl TO VALUE(user_env[2]) NO-ECHO NO-MAP
              CONVERT SOURCE SESSION:CHARSET TARGET user_env[5].
 
-assign SESSION:IMMEDIATE-DISPLAY = yes.
+assign SESSION:IMMEDIATE-DISPLAY = yes
+       fil-e = LDBNAME("DICTDB") + ".e".
 
 DO ON STOP UNDO, LEAVE:
   if user_env[9] = "a" then DO:
@@ -309,10 +314,10 @@ DO ON STOP UNDO, LEAVE:
       IF INTEGER(DBVERSION("DICTDB")) > 8         
         AND (DICTDB._File._Owner <> "PUB" AND DICTDB._File._Owner <> "_FOREIGN")
           THEN NEXT.
-
+      
       /* Do not dump SQL92 tables */
       IF DICTDB._File._Db-lang > 1 THEN NEXT.
-
+    
       /* 20060324-001
          Now due to the unified schema for sql92, we will get through
          for PUB tables but we can't dump tables with constraints 
@@ -321,8 +326,13 @@ DO ON STOP UNDO, LEAVE:
       */
       IF DICTDB._File._Has-Ccnstrs = "Y" 
          OR DICTDB._File._Has-Fcnstrs = "Y"
-         OR DICTDB._File._Has-Ucnstrs = "Y"  THEN
+         OR DICTDB._File._Has-Ucnstrs = "Y"  THEN DO:
+         IF cSkipTables = "" THEN
+           ASSIGN cSkipTables = DICTDB._File._File-name.
+         ELSE
+           ASSIGN cSkipTables = cSkipTables + "," + DICTDB._File._File-name.
          NEXT.
+      END.
 
       /* check if any of the non-ABL data types are used in any of the columns */
       FIND FIRST DICTDB._Field OF DICTDB._File WHERE
@@ -459,6 +469,14 @@ DO ON STOP UNDO, LEAVE:
 file_len = SEEK(ddl).
 OUTPUT STREAM ddl CLOSE.
 
+IF cSkipTables <> "" THEN DO:
+  OUTPUT STREAM errstr TO VALUE(fil-e) NO-ECHO. 
+    PUT STREAM errstr UNFORMATTED
+      "You must dump tables that have SQL constraints using SQL tools." SKIP
+      "Here is the list of tables which are not dumped:" SKIP cSkipTables.
+  OUTPUT STREAM errstr CLOSE.
+END.  
+
 SESSION:IMMEDIATE-DISPLAY = no.
 if TERMINAL <> "" and user_env[6] NE "dump-silent" then 
   run adecomm/_setcurs.p ("").
@@ -495,7 +513,10 @@ do:  /* output WITHOUT alert-box */
       end.
     else 
       if TERMINAL <> ""  then do:
-          cMsg = "Dump of definitions completed.".
+        if cSkipTables <> "" then
+           cMsg = "Dump completed but Errors/Warnings were recorded in the " + fil-e + " file.".
+        else
+           cMsg = "Dump of definitions completed.".
         if user_env[6] EQ "dump-silent" THEN  
             undo, throw new Progress.Lang.AppError(cMsg).
         else
@@ -513,7 +534,7 @@ end.      /* output WITHOUT alert-box */
       else    
          MESSAGE "Dump terminated."
       	   VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-      end.
+  end.
    else do:
     if file_len < 3 
      then do:  /* the file is empty - nothing to dump */
@@ -534,16 +555,19 @@ end.      /* output WITHOUT alert-box */
        end.
       end. 
     else if TERMINAL <> "" then do:
-        cMsg = "Dump of definitions completed.". 
+        if cSkipTables <> "" then
+           cMsg = "Dump completed but Errors/Warnings were recorded in the " + fil-e + " file.".
+        else
+           cMsg = "Dump of definitions completed.". 
         if user_env[6] EQ "dump-silent" THEN  
             undo, throw new Progress.Lang.AppError(cMsg).
         else
             MESSAGE cMsg 
 	         VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-	    end.     
-    end.
+	end.     
+   end.
   
-  end.     /* output WITH alert-box */
+ end.     /* output WITH alert-box */
 
 if TERMINAL <> "" and user_env[6] NE "dump-silent" then
   HIDE FRAME working NO-PAUSE.

@@ -1,5 +1,5 @@
 /** ****************************************************************************
-  Copyright 2012 Progress Software Corporation
+  Copyright 2012, 2020 Progress Software Corporation
   
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -39,6 +39,19 @@ using Progress.Lang.Object.
  
 class OpenEdge.Core.Collections.KeySet serializable inherits MapBackedCollection
         implements ISet: 
+    
+    /* Constructor
+       
+       @param IMap The owning map
+       @param handle The underlying TT holding the data
+       @param character (optional) Query string 
+       @param character The field holding the data in the TT */
+    constructor public KeySet(input pMap as IMap,
+                              input pTT as handle,
+                              input pQueryString as character,
+                              input pValueField as character):
+        super(pMap, pTT, pQueryString, pValueField).
+    end constructor.
   
     constructor public KeySet (poMap as IMap,phTT as handle,pcKeyField as char):
         super (poMap,phTT,pcKeyField).        

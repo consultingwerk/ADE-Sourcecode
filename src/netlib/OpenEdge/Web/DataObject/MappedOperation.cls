@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2018, 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MappedOperation
@@ -153,6 +153,7 @@ class OpenEdge.Web.DataObject.MappedOperation:
         Assert:NotNullOrEmpty(pTargetType, 'Target type').
         Assert:NotNull(pcTargetName, 'Target name').
         Assert:NotNull(poParams, 'Operation parameters').
+        Assert:IsPositive(piStatusCode, 'Status code').
         
         if not OperationHandlerRegistry:Registry:Has(pTargetType) then
             undo, throw new AppError(substitute('Unsupported target type "&1" for operation "&3 &2"',
@@ -161,21 +162,8 @@ class OpenEdge.Web.DataObject.MappedOperation:
                                         string(poMethod) ), 
                                     0).
         
-        // VOID targets are allowed empty names (by definition, really)
-        if not pTargetType eq string(TargetTypeEnum:Void) then
-        do:
-            Assert:NotEmpty(pcTargetName, 'Target name').
-            Assert:NotEmpty(pcContentType, 'Content type').
-        end.
-        else
-        // Procedures may have a NULL target (ie call the main block)
-        if pTargetType eq string(TargetTypeEnum:Procedure) then
-            Assert:NotEmpty(pcTargetFunction, 'Target function').
-        else
-            Assert:NotNullOrEmpty(pcTargetFunction, 'Target function').
-        
-        Assert:NotNull(poParams, 'Operation parameters').
-        Assert:IsPositive(piStatusCode, 'Status code').
+        // we don't validate the TargetFunction in any way because that is specific to the operation
+        // handler and its operation.
         
         assign this-object:mServiceURI    = '/':u + trim(pcServiceURI, '/':u)
                this-object:Method         = poMethod

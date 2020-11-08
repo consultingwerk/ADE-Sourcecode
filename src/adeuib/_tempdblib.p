@@ -1,7 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
-/* Copyright (C) 2005-2008,2013 by Progress Software Corporation. All     
+/* Copyright (C) 2005-2008,2013,2020 by Progress Software Corporation. All     
    rights reserved.  Prior versions of this work may contain portions
    contributed by participants of Possenet. */
 /*------------------------------------------------------------------------
@@ -763,7 +763,9 @@ DEFINE VARIABLE lCreated    AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE cIdxInfo    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hTempdb     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE lFoundTable AS LOGICAL    NO-UNDO.
+DEFINE VARIABLE cOrigDateFormat AS CHARACTER NO-UNDO.
 
+ASSIGN cOrigDateFormat = SESSION:DATE-FORMAT.
 
 RUN adecomm/_tmpfile.p
       (INPUT "", INPUT ".df":U, OUTPUT pcDumpFile).
@@ -812,6 +814,7 @@ DO i = 1 TO NUM-ENTRIES(pcBufHandles):
         " AS " hField:DATA-TYPE  SKIP.
 
       PUT STREAM TempDBStream UNFORMATTED "  FORMAT ":U QUOTER(hField:FORMAT) SKIP.
+      IF hField:DEFAULT-STRING <> "" AND hField:DATA-TYPE = "DATE" AND SESSION:DATE-FORMAT <> "mdy" THEN SESSION:DATE-FORMAT = "mdy".
       PUT STREAM TempDBStream UNFORMATTED "  INITIAL ":U QUOTER(TRIM(hField:DEFAULT-STRING)) SKIP .
       IF hField:LABEL <> ? THEN
         PUT STREAM TempDBStream UNFORMATTED "  LABEL ":U QUOTER(hField:LABEL) SKIP .
@@ -887,7 +890,10 @@ DO:
     OS-DELETE VALUE(pcDumpFile).
     ASSIGN pcDumpFile = "".
 END.
-  
+
+FINALLY:
+   ASSIGN SESSION:DATE-FORMAT = cOrigDateFormat.
+END FINALLY.  
 
 END PROCEDURE.
 

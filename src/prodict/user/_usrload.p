@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005-2009,2014,2016 by Progress Software Corporation.*
-* All rights reserved.  Prior versions of this work may contain      *
-* portions contributed by participants of Possenet.                  *
-*                                                                    *
-*********************************************************************/
+/***************************************************************************
+* Copyright (C) 2005-2009,2014,2016,2020 by Progress Software Corporation. *
+* All rights reserved.  Prior versions of this work may contain            *
+* portions contributed by participants of Possenet.                        *
+*                                                                          *
+****************************************************************************/
 
 /*
 
@@ -88,7 +88,8 @@ History:
     fernando 06/20/07   Support for large files
     fernando 12/13/07   Handle long list of "some" selected tables    
     fernando 07/20/08   support for encryption
-    rkamboj  08/16/11   Added new terminology for security items and windows. 
+    rkamboj  08/16/11   Added new terminology for security items and windows.
+    tmasood  08/25/20   Added field for missing codepage in the files. 
 */
 /*h-*/
 
@@ -127,6 +128,7 @@ DEFINE VARIABLE do-screen     AS LOGICAL   NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-file   AS LOGICAL   NO-UNDO INIT FALSE.
 DEFINE VARIABLE err-to-screen AS LOGICAL   NO-UNDO INIT TRUE.
 DEFINE VARIABLE oldsession    AS CHARACTER NO-UNDO.
+DEFINE VARIABLE cCodePage     AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
@@ -326,6 +328,7 @@ ASSIGN cr = CHR(10).
 
 /* form for .d file input */
 &GLOBAL-DEFINE DFILE-SPEECH   "Specify an acceptable error percentage.  When this limit is reached,      " AT 2 VIEW-AS TEXT SKIP  "loading will stop.  Enter 0 if any error should stop the load; enter      " AT 2 VIEW-AS TEXT SKIP  "100 if the load should not stop for any error.          "                                       AT 2     VIEW-AS TEXT SKIP ({&VM_WIDG})
+&GLOBAL-DEFINE CP-SPEECH  "Files missing code page in the trailer section will use code page:" AT 2 VIEW-AS TEXT SKIP ({&VM_WIDG})
 
 FORM SKIP({&TFM_WID})
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN 
@@ -518,6 +521,9 @@ FORM SKIP({&TFM_WID})
     user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
       SIZE 45 BY 1 NO-LABEL btn_dir2 LABEL "Lob Dir..." SKIP ({&VM_WIDG})
     btn_dir2 LABEL "Lob Dir..." SKIP ({&VM_WIDG})
+    {&CP-SPEECH}
+    cCodePage {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
+         SIZE 40 BY 1 NO-LABEL SKIP ({&VM_WIDG})
   &ELSE
      user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN SIZE 45 BY 1
                 LABEL "Input Directory"  SKIP 
@@ -526,6 +532,9 @@ FORM SKIP({&TFM_WID})
     user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
       SIZE 45 BY 1 LABEL "  LOB Directory"  SKIP 
      "(Leave blank for current directory)" VIEW-AS TEXT AT 19 SKIP({&VM_WIDG})
+    {&CP-SPEECH}
+    cCodePage {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN 
+         SIZE 40 BY 1 NO-LABEL SKIP ({&VM_WIDG})
   &ENDIF  
   {&DFILE-SPEECH}
   err% {&STDPH_FILL} FORMAT ">>9" AT 2 LABEL "&Acceptable Error Percentage"                     
@@ -1609,7 +1618,10 @@ DO:
   IF inclob:SCREEN-VALUE IN FRAME read-d-dir = "no" THEN
       ASSIGN user_env[31] = " NO-LOBS".            
   ELSE
-      ASSIGN user_env[31] = "".            
+      ASSIGN user_env[31] = "".
+
+  IF cCodePage:SCREEN-VALUE IN FRAME read-d-dir <> "" THEN
+      ASSIGN user_env[10] = cCodePage:SCREEN-VALUE.            
 END.
 
 ON GO OF FRAME read-d-dir-mt
@@ -2422,7 +2434,8 @@ ELSE IF class = "f" THEN DO FOR DICTDB._File:
     user_env[1] = ""
     user_longchar = (IF isCpUndefined THEN user_longchar ELSE "")
     comma       = ""
-    iVar           = 1.
+    iVar           = 1
+    cCodePage    = SESSION:STREAM.
 
   /* If user had selected ALL, fill base array with list of files.  
      Otherwise, it is already set to file list.
@@ -2818,7 +2831,8 @@ ELSE IF io-frame = "d" THEN DO:
                    btn_dir 
                    inclob 
                    user_env[30] 
-                   btn_dir2 
+                   btn_dir2
+                   cCodePage 
                    err% 
                    do-screen 
                    btn_OK 
@@ -2829,7 +2843,8 @@ ELSE IF io-frame = "d" THEN DO:
                    btn_dir 
                    inclob 
                    user_env[30] 
-                   btn_dir2 
+                   btn_dir2
+                   cCodePage     
                    err% 
                    do-screen 
                    btn_OK 
@@ -2837,12 +2852,13 @@ ELSE IF io-frame = "d" THEN DO:
                    {&HLP_BTN_NAME}.
             &ELSE
             
-            ENABLE user_env[2] inclob user_env[30] err% do-screen btn_OK btn_Cancel.
+            ENABLE user_env[2] inclob user_env[30] cCodePage err% do-screen btn_OK btn_Cancel.
             ASSIGN err% = INTEGER(user_env[4]).
     
             UPDATE user_env[2] 
                    inclob 
-                   user_env[30] 
+                   user_env[30]
+                   cCodePage 
                    err%
                    do-screen 
                    btn_OK 

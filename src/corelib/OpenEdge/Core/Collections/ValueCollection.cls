@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------------
     File        : ValueCollection
@@ -21,9 +21,7 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Collections.ICollection.
 using OpenEdge.Core.Collections.IIterator.
-using OpenEdge.Core.Collections.Iterator.
 using OpenEdge.Core.Collections.IMap.
-using OpenEdge.Core.System.UnsupportedOperationError.
 using OpenEdge.Core.Collections.MapBackedCollection.
 using Progress.Lang.Object.
 
@@ -31,6 +29,19 @@ class OpenEdge.Core.Collections.ValueCollection serializable inherits MapBackedC
     
     constructor public ValueCollection(poMap as IMap,phTT as handle, pcValuefield as char):
         super (poMap, phTT, pcValuefield).
+    end constructor.
+    
+    /* Constructor
+       
+       @param IMap The owning map
+       @param handle The underlying TT holding the data
+       @param character (optional) Query string 
+       @param character The field holding the data in the TT */
+    constructor public ValueCollection(input pMap as IMap,
+                                       input pTT as handle,
+                                       input pQueryString as character,
+                                       input pValueField as character):
+        super(pMap, pTT, pQueryString, pValueField).
     end constructor.
     
     method override public logical Contains( checkObject as Object):

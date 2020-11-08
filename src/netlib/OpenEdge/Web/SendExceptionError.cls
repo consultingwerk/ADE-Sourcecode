@@ -17,7 +17,6 @@ using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.HTTP.StatusCodeHelper.
 using OpenEdge.Web.SendExceptionError.
-using Progress.Lang.Error.
 
 class OpenEdge.Web.SendExceptionError inherits ApplicationError:  
     /* (mandatory) The error HTTP status code. */  
@@ -39,8 +38,10 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
     
        @param StatusCodeEnum The error status being raised */    
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum):
-        this-object(poStatusCode,
-                    StatusCodeHelper:GetMessage(poStatusCode)).
+        define variable innerErr as Progress.Lang.Error no-undo.
+        
+        super(innerErr).
+        SetMessage(poStatusCode, StatusCodeHelper:GetMessage(poStatusCode)).
     end.
     
     /* Constructor.
@@ -49,18 +50,42 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
        @param character The status message */    
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum,
                                           input pcStatusMessage  as character):
-        this-object(poStatusCode, pcStatusMessage, ?).
+        define variable innerErr as Progress.Lang.Error no-undo.
+        
+        super(innerErr).
+        SetMessage(poStatusCode, pcStatusMessage).
     end constructor.
     
     /* Constructor.
     
        @param StatusCodeEnum The error status being raised 
-       @param Progress.Lang.Error The error that caused this status error to be raised. */    
+       @param Progress.Lang.Error The error that caused this status error to be raised. */
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum,
-                                          input poInnerError as Error):
-        this-object(poStatusCode,
-                    StatusCodeHelper:GetMessage(poStatusCode),
-                    poInnerError).
+                                          input poInnerError as Progress.Lang.Error):
+        super(poInnerError).
+        SetMessage(poStatusCode, ?).
+    end constructor.
+    
+    /* Constructor.
+    
+       @param StatusCodeEnum The error status being raised 
+       @param Progress.Lang.Error The error that caused this status error to be raised. */
+    constructor public SendExceptionError(input pStatusCode as StatusCodeEnum,
+                                          input pInnerStop as Progress.Lang.Stop):
+        super(pInnerStop).
+        SetMessage(pStatusCode, ?).
+    end constructor.
+    
+    /* Constructor.
+    
+       @param StatusCodeEnum The error status being raised 
+       @param character The status message 
+       @param Progress.Lang.Error The error that caused this status error to be raised. */
+    constructor public SendExceptionError(input pStatusCode as StatusCodeEnum,
+                                          input pStatusMessage  as character,
+                                          input pInnerStop as Progress.Lang.Stop):
+        super(pInnerStop).
+        SetMessage(pStatusCode, pStatusMessage).
     end constructor.
     
     /* Constructor.
@@ -69,18 +94,29 @@ class OpenEdge.Web.SendExceptionError inherits ApplicationError:
        @param character The status message 
        @param Progress.Lang.Error The error that caused this status error to be raised. */    
     constructor public SendExceptionError(input poStatusCode as StatusCodeEnum,
-                                          input pcStatusMessage  as character,
-                                          input poInnerError as Error):
+                                          input pcStatusMessage as character,
+                                          input poInnerError as Progress.Lang.Error):
         super(poInnerError).
+        SetMessage(poStatusCode, pcStatusMessage).
+    end constructor.
+    
+    /* Sets the status code & message in the appropriate places
+       
+       @param StatusCodeEnum The status code for this error
+       @param character      A message associated with the status code. May be ? nbut not empty */
+    method private void SetMessage(input pStatusCode as StatusCodeEnum,
+                                   input pStatusMessage as character):
+        Assert:NotNull(pStatusCode, 'Status code').
+        if pStatusMessage eq ? then
+            assign pStatusMessage = StatusCodeHelper:GetMessage(pStatusCode).
+        else
+            Assert:NotEmpty(pStatusMessage, 'Status message').
         
-        Assert:NotNull(poStatusCode, 'Status code').
-        Assert:NotNullOrEmpty(pcStatusMessage, 'Status message').
+        assign this-object:StatusCode    = pStatusCode
+               this-object:StatusMessage = pStatusMessage.
         
-        assign this-object:StatusCode    = poStatusCode
-               this-object:StatusMessage = pcStatusMessage.
-        
-        AddMessage(this-object:StatusMessage, integer(poStatusCode)).
-    end.
+        AddMessage(this-object:StatusMessage, integer(pStatusCode)).
+    end method.
     
     method override public character ToString():
         return substitute('HTTP Error: &2 (&1)', StatusCode, StatusMessage).

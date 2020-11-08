@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2014      by progress Software Corporation. */
+/* Copyright (c) 2014,2020 by progress Software Corporation. */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -60,8 +60,8 @@ class OpenEdge.DataAdmin.DataSource.DataSourceUtil:
                 undo, throw new IllegalArgumentError("Field " + quoter(pcFieldnames[i]) + " does not exist in table " + quoter(dictdb._file._file-name)). 
             end.
             cIndexList = "".
-            for each dictdb._index-field of dictdb._field where dictdb._index-field._index-seq = i no-lock:
-                find dictdb._index of dictdb._index-field no-lock.
+            for each dictdb._index-field of dictdb._field where dictdb._index-field._index-seq = i no-lock,
+                first dictdb._index of dictdb._index-field no-lock by dictdb._index._index-name:
                 if i = 1 then 
                    cIndexList = cIndexList 
                               + (if cIndexList = "" then "" else ",") 

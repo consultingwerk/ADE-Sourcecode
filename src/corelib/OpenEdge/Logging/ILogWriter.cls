@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2019-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ILogWriter
@@ -12,7 +12,6 @@ Copyright (c) 2016 by Progress Software Corporation. All rights reserved.
                     www.slf4j.org/api/org/slf4j/Logger.html
   ----------------------------------------------------------------------*/
 
-using Ccs.Common.Support.ICharacterArrayHolder.
 using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LogMessage.
 

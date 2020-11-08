@@ -11,7 +11,6 @@
 "Session" "protools/_session.w" "adeicon/session" no yes 110 no
 "Window Viewer" "protools/_winmgr.w" "adeicon/windview" no yes 120 no
 "Windows Info" "protools/_wabout.p" "adeicon/wininfo" no yes 130 no
-"Screen Capture" "protools/_scrcap.w" "adeicon/scrcap" yes yes 140 no
 "SmartObject Upgrade Utility" "protools/_v89conv.w" "adeicon/smoupgrd" yes yes 150 no
 "Screen Scaling Utility" "protools/_ppuscl.p" "adeicon/fntupgrd" no yes 160 no
 "ADM to Dynamics" "adeuib/_convertadm2dynamics.w" "adeicon/admtodyn.gif" yes yes 170 no

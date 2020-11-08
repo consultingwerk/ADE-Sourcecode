@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2020 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -39,6 +39,8 @@ Define INPUT PARAMETER p_Obj  as integer NO-UNDO.
 Define INPUT PARAMETER p_Next as logical NO-UNDO.
 
 Define var nxttbl as char NO-UNDO.
+
+DEF VAR hBuffer AS HANDLE NO-UNDO.
 
 case p_Obj:
    when {&OBJ_TBL} then	
@@ -99,10 +101,18 @@ case p_Obj:
    do:	 
       if p_Next then
       do:
-	 find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
-                            AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
-                            AND dictdb._Sequence._Seq-Name > s_CurrSeq NO-ERROR.
       
+   /* OCTA-21469 - Avoids a FIND on _Sequence due to different index definitions
+      between OE 11 and OE 12 */
+	/* find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
+                            AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
+                            AND dictdb._Sequence._Seq-Name > s_CurrSeq NO-ERROR.    */
+      
+      hBuffer = BUFFER dictdb._Sequence:HANDLE.
+      hBuffer:FIND-FIRST("where dictdb._Sequence._Db-recid = " + string(s_DbRecId) +  
+                          " AND NOT dictdb._Sequence._Seq-Name BEGINS '$'" +
+                          " AND dictdb._Sequence._Seq-Name > '" + s_CurrSeq + "'") NO-ERROR.
+   
 	 if AVAILABLE _Sequence then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
@@ -118,13 +128,20 @@ case p_Obj:
       	 end.
       end.
       else do:
-	 find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
+   /* OCTA-21469 - Avoids FIND's on _Sequence due to different index definitions
+      between OE 11 and OE 12 */
+	/* find dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
                       AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
                       AND dictdb._Sequence._Seq-Name = s_CurrSeq.
 	 find PREV dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId 
                       AND NOT dictdb._Sequence._Seq-Name BEGINS "$"
-                      use-index _Seq-name NO-ERROR.
-      
+                      use-index _Seq-name NO-ERROR*/
+      hBuffer = BUFFER dictdb._Sequence:HANDLE.
+
+      hBuffer:FIND-LAST("where dictdb._Sequence._Db-recid = " + STRING(s_DbRecId) + 
+                        " AND NOT dictdb._Sequence._Seq-Name BEGINS '$'" +
+                        " AND dictdb._Sequence._Seq-Name < '" + s_CurrSeq + "' use-index _Seq-name") NO-ERROR.
+                      
 	 if AVAILABLE _Sequence then
 	 do:
 	    run adecomm/_setcurs.p ("WAIT").
@@ -245,6 +262,7 @@ case p_Obj:
       end.
    end.
 end.
+
 
 
 

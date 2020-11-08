@@ -76,7 +76,8 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         end.
     end destructor.
     
-    /* Adds a service to this registry
+    /* Adds a service to this registry. If the service is already registered (by name/version),
+       a message is logged, and the input service is merged into the existing service instance.  
        
        @param DataObjectService  A data service object */
     method public void RegisterService(input pService as DataObjectService):
@@ -100,9 +101,15 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
             OnServiceRegistered(new ServiceRegistryEventArgs(pService)).
             Logger:Info(substitute('Service "&1 v&2" registered', pService:Name, string(pService:Version))).
         end.
+        else
+        do:
+            Logger:Info(substitute('Service "&1 v&2" is already registered; the input will be merged into the existing instance', pService:Name, string(pService:Version))).
+            cast(lbService.Service, DataObjectService):Merge(pService).
+        end.
     end method.
     
-    /* Register a service 
+    /* Register a service. If the service is already registered, then return the registered instance. If not,
+       a new service instance will be created, regsitered and returned.
        
        @param character  (mandatory) The service name
        @param SemanticVersion  (mandatory) The service version
@@ -112,19 +119,24 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
     method public DataObjectService RegisterService(input pServiceName  as character,
                                                     input pVersion as SemanticVersion,
                                                     input pOptions as ServiceOptions,
-                                                    input pCatalog as JsonObject).                                           
+                                                    input pCatalog as JsonObject):
         define variable svc as DataObjectService no-undo.
         
         Assert:NotNullOrEmpty(pServiceName, 'Service name').
         Assert:NotNull(pVersion, 'Service version').
         
-        assign svc         = new DataObjectService(pServiceName, pVersion)
-               /* these can both be can be unknown */
+        if HasService(pServiceName, pVersion) then
+            assign svc = GetService(pServiceName, pVersion).
+        else
+        do:
+            assign svc = new DataObjectService(pServiceName, pVersion).
+            RegisterService(svc).
+        end.
+        
+        assign /* these can both be can be unknown */
                svc:Options = pOptions
                svc:Catalog = pCatalog
                .
-        RegisterService(svc).
-        
         return svc.
     end method.
     

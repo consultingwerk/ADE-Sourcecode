@@ -2,7 +2,7 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /************************************************************************
-* Copyright (C) 2005-2013 by Progress Software Corporation.  All rights *
+* Copyright (C) 2005-2013,2020 by Progress Software Corporation.  All rights *
 * reserved.  Prior versions of this work may contain portions           *
 * contributed by participants of Possenet.                              *
 ************************************************************************/
@@ -104,6 +104,8 @@
                   get-proc-hdl.
                   Changed is-sdo to check the QueryObject property to 
                   support any data object.
+    Updated     : 07/24/20 tm
+                  Added a message to check even list-item-pairs for combo-box  
 
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress UIB.             */
@@ -2038,6 +2040,13 @@ FUNCTION validate-list-item-pairs RETURNS LOGICAL
     RETURN FALSE.
   END.
   
+  IF NUM-ENTRIES(_F._LIST-ITEM-PAIRS,",") MODULO 2 > 0 THEN DO:
+    Message "Unable to save changes." SKIP
+            "LIST-ITEM-PAIRS must contain an even number of entries to specify label/value pairs for " _u._name  + "."             
+    view-as alert-box error.
+    RETURN FALSE.
+  END.
+
   /* There's no restrictions for list-items if  data-type is character */  
   IF _F._DATA-TYPE = "Character":U THEN RETURN TRUE.
      

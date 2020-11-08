@@ -1,7 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2007,2011,2016 by Progress Software Corporation. All *
-* rights reserved.  Prior versions of this work may contain portions *
-* contributed by participants of Possenet.                           *
+* Copyright (C) 2007,2011,2016,2020 by Progress Software Corporation.*
+* All rights reserved.  Prior versions of this work may contain      *
+* portions contributed by participants of Possenet.                  *
 *                                                                    *
 *********************************************************************/
 
@@ -78,6 +78,7 @@ history:
     fernando    12/13/07    Handle long list of "some" selected tables
     rkamboj     08/16/11   Added new terminology for security items and windows.
     rkamboj 	11/11/2011 Fixed issue of dump data for Lob field. bug OE00214956.
+    tmasood     06/02/2020 Fix the issue with Bulk load description file.
 */
 /*h-*/
 
@@ -118,6 +119,8 @@ DEFINE VARIABLE base_lchar AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE numCount   AS INTEGER  NO-UNDO.
 DEFINE VARIABLE cItem      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE isCpUndefined AS LOGICAL NO-UNDO.
+DEFINE VARIABLE okay          AS LOGICAL NO-UNDO INITIAL TRUE.
+DEFINE VARIABLE lwarning      AS LOGICAL NO-UNDO.
 
 define variable UseDefaultDirs as logical no-undo.
 define variable RootDirectory as character no-undo.
@@ -266,7 +269,7 @@ FORM SKIP({&TFM_WID})
        user_env[30] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" 
                     COLON 15 VIEW-AS FILL-IN SIZE 40 BY 1 
                     LABEL "Lob Directory" 
-       btn_dir LABEL "Dir..."  SKIP ({&VM_WIDG})
+       btn_dir LABEL "Dir..."  SKIP  ({&VM_WIDG}) 
      &ENDIF
      user_env[5] {&STDPH_FILL} FORMAT "x(80)" 
                  COLON 15 VIEW-AS FILL-IN SIZE 40 BY 1
@@ -1645,7 +1648,7 @@ ON CHOOSE OF btn_dir in frame write-audit-data
        ( INPUT user_env[30]:handle in frame write-audit-data /*Fillin*/,
          INPUT "Find Lob Directory"  /*Title*/,
          INPUT ""                 /*Filter*/).
-
+         
 ON CHOOSE OF btn_dir in frame write-boutput-file
   RUN "prodict/misc/_dirbtn.p"
        ( INPUT user_env[30]:handle in frame write-boutput-file /*Fillin*/,
@@ -1784,6 +1787,18 @@ DO:
       RETURN NO-APPLY.
     END. 
   END.
+  IF lwarning AND inclob THEN DO:
+    MESSAGE "WARNING: One or more selected tables has CLOB/BLOB datatype." SKIP
+             "Bulk dump of CLOB/BLOB is not supported." SKIP
+             "The table(s) will be dumped without the CLOB/BLOB fields." SKIP
+             "Do you want to continue?"
+         VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO UPDATE okay.
+    IF NOT okay THEN
+    DO:
+      APPLY "CLOSE" TO FRAME write-boutput-file.
+      RETURN NO-APPLY.
+    END.
+ END.    
   user_env[26] =  "n" .
 END. /* ON "GO" OF write-boutput-file */
 
@@ -2409,7 +2424,7 @@ ON CHOOSE OF btn_cancel IN FRAME write-def-file /* for CDC, class = "p" */
 ON WINDOW-CLOSE OF FRAME write-def-file
    APPLY "END-ERROR" TO FRAME write-def-file.
 ON END-ERROR OF FRAME write-def-file
-   user_env[1] = ?.   
+   user_env[1] = ?.  
 
 /*----- LEAVE of fill-ins: trim blanks the user may have typed in filenames---*/
 ON LEAVE OF user_env[2] IN FRAME write-output-file
@@ -2505,7 +2520,6 @@ ON VALUE-CHANGED OF inclob IN FRAME write-boutput-file DO:
   ELSE
     user_env[30]:SENSITIVE IN FRAME write-boutput-file = TRUE.
 END. /* ON "VALUE-CHANGED" OF inclob IN write-boutput-file */
-
 
 ON VALUE-CHANGED OF inclob IN FRAME write-dump-file 
 DO:
@@ -2867,7 +2881,6 @@ ASSIGN
   dmp-rpos:HIDDEN IN FRAME write-output-file = 
   (IF class = "d" THEN FALSE ELSE TRUE).
 
-
 /* for "some" operations, if user_env[1] is empty, then we got a bug
    list in user_longchar 
 */
@@ -2882,7 +2895,6 @@ ASSIGN
       user_env[37] = ""  
       user_env[40] = ""  
       .
-
 if int(dbversion("dictdb")) > 10 then
 do:
    isSuperTenant = can-find(first dictdb._tenant) and  tenant-id("dictdb") < 0.
@@ -2912,7 +2924,19 @@ IF user_env[1] <> "" AND
             THEN _File._File-name
             ELSE _File._Dump-name).
 END.
- 
+
+/* Dump of table with BLOB/CLOB not allowed  */
+IF user_env[1] <> "" AND user_env[9] = "b" THEN DO:
+   FOR EACH _File NO-LOCK WHERE _Db-recid = drec_db 
+                            AND CAN-DO(user_env[1],_File._File-name)
+                             OR user_env[1] = "All",
+     EACH _Field NO-LOCK WHERE _Field._File-Recid = RECID (_File)
+                           AND CAN-DO("blob,clob",_Field._Data-Type):
+                              
+       ASSIGN lwarning = TRUE.
+       LEAVE.                         
+   END.
+END. 
 
 /*----------------------------------------------*/ /* DUMP FILE DEFINITIONS */
 IF class = "d" OR class = "4" THEN DO FOR _File:
@@ -3591,11 +3615,11 @@ DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   ELSE IF class = "b" THEN
       UPDATE UNLESS-HIDDEN user_env[2] 
            btn_File
-       inclob
-       user_env[30]
-       &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN  
-        btn_dir
-       &ENDIF
+           inclob
+           user_env[30]
+           &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN  
+            btn_dir
+           &ENDIF
            user_env[5] 
            btn_OK 
            btn_Cancel

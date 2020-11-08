@@ -12,6 +12,8 @@ block-level on error undo, throw.
 
 using OpenEdge.Core.Json.IJsonSerializer.
 using OpenEdge.Core.Json.JsonPropertyHelper.
+using OpenEdge.Core.MemptrInputStream.
+using OpenEdge.Core.MemptrOutputStream.
 using Progress.IO.JsonSerializer.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonConstruct.
@@ -99,6 +101,7 @@ class OpenEdge.Core.Json.JsonSerializer:
         define variable serialisedObj as JsonConstruct no-undo.
         define variable js as JsonSerializer no-undo.
         define variable omp as ObjectModelParser no-undo.
+        define variable mos as MemptrOutputStream no-undo.
         
         if not valid-object(pSerialize) then
             return jsonData.
@@ -121,10 +124,22 @@ class OpenEdge.Core.Json.JsonSerializer:
             if type-of(serialisedObj, JsonArray) then
                 jsonData:Add('data':u, cast(serialisedObj, JsonArray)).
         end.
+        else
+        if pSerialize:GetClass():IsSerializable() then
+        do:
+            assign js  = new JsonSerializer(false)
+                   mos = new MemptrOutputStream()
+                   omp = new ObjectModelParser()
+                   .
+            js:Serialize(pSerialize, mos).
+            mos:Flush().
+            
+            assign jsonData = cast(omp:Parse(mos:Data), JsonObject).
+        end.
         
         return jsonData.
     end method. 
-
+    
     /* Deserializes an array of object from a JSON array..
        
        Integer values are references to objects in the array - if there are duplicates
@@ -169,12 +184,11 @@ class OpenEdge.Core.Json.JsonSerializer:
         define variable js as JsonSerializer no-undo.
         define variable mJson as memptr no-undo.
         define variable objType as Progress.Lang.Class no-undo.
-        define variable objData as JsonConstruct no-undo. 
+        define variable objData as JsonConstruct no-undo.
+        define variable mis as MemptrInputStream no-undo.
         
         if not valid-object(pJson) then
             return obj.
-        
-        pJson:Writefile(session:temp-dir + 'des.json', yes).
         
         if     JsonPropertyHelper:HasTypedProperty(pJson, 'serializer':u, JsonDataType:STRING) 
            and pJson:GetCharacter('serializer':u) eq get-class(IJsonSerializer):TypeName
@@ -194,6 +208,21 @@ class OpenEdge.Core.Json.JsonSerializer:
                 cast(obj, IJsonSerializer):FromJson(objData).
             end.
         end.    // IJsonSerializer
+        else
+        // built-in serialisation
+        if JsonPropertyHelper:HasTypedProperty(pJson, 'prods:version':u, JsonDataType:NUMBER) then
+        do on error undo, throw:
+            // turn JSON into MEMPTR
+            pJson:Write(mJson).
+            
+            assign js  = new JsonSerializer(false)
+                   mis = new MemptrInputStream(mJson)
+                   obj = js:Deserialize(mis)
+                   .
+            finally:
+                set-size(mJson) = 0.
+            end finally.
+        end.
         
         // can't deserialise
         return obj.

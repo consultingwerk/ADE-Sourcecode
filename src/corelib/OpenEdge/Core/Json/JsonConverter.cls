@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : JsonConverter
@@ -66,6 +66,8 @@ using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Lang.AppError.
 using Progress.Lang.Object.
+using Progress.Lang.LockConflict.
+using Progress.Lang.SoapFaultError.
 
 class OpenEdge.Core.Json.JsonConverter:
     /* Default constructor.
@@ -300,6 +302,31 @@ class OpenEdge.Core.Json.JsonConverter:
     end method.
     
     /* Converts an instance of a Progress.Lang.Error into a JSON Object
+    
+       {
+         _retVal: the return value, if an AppError
+         _soapFault:  If a SoapFaultError, non-empty values are written
+            {
+                _msg:  soapFault:soap-fault-string
+                _code: soapFault:soap-fault-code
+                _subCode: soapFault:soap-fault-subcode
+                _actor: soapFault:soap-fault-actor
+                _role: soapFault:soap-fault-role
+                _misunderstoodHeader: soap-fault-misunderstood-header
+                _node: soapFault:soap-fault-node
+            }   
+         _errors: [
+            { _errorMsg: the error message
+              _errorNum: the error number
+            }
+         ]
+         _sev: the severity of the error
+         _type: the OOABL type of the error, if session:debug-alert
+         _stack: the error call stack, if session:debug-alert
+         _innerError: one of the below. if both exist in the error, then stop is used 
+            {<error-json>} if the object has a readable InnerError property of type P.L.Error, and a valid value, then call ToObject(error)
+            {<stop-json>} if the object has a readable InnerStop property of type P.L.Stop, and a valid value, then call ToObject(stop)
+       }
        
        @param Progress.Lang.Error An error. Must exist
        @return JsonObject A JSON object representing the Error */
@@ -312,6 +339,9 @@ class OpenEdge.Core.Json.JsonConverter:
         define variable cnt as integer no-undo.
         define variable errProp as Progress.Reflect.Property no-undo.
         define variable innerErr as Progress.Lang.Error no-undo.
+        define variable innerStop as Progress.Lang.Stop no-undo.
+        define variable soapFault as handle no-undo.
+        define variable errString as character no-undo.
         
         Assert:NotNull(pError, 'Error').
         
@@ -322,6 +352,40 @@ class OpenEdge.Core.Json.JsonConverter:
                .
         if type-of(pError, AppError) then
             jsonData:Add('_retVal':u, cast(pError, AppError):ReturnValue).
+        else 
+        if type-of(pError, SoapFaultError) then
+        do:
+            assign soapFault = cast(pError, SoapFaultError):SoapFault.
+            if valid-handle(soapFault) then
+            do:
+                assign errData   = new JsonObject().
+                jsonData:Add('_soapFault':u, errData).
+                
+                assign errString = soapFault:soap-fault-string.
+                if not errString eq '':u then
+                    errData:Add('_msg':u, errString).
+                assign errString = soapFault:soap-fault-code.
+                if not errString eq '':u then
+                    errData:Add('_code':u, errString).
+                assign errString = soapFault:soap-fault-subcode.
+                if not errString eq '':u then
+                    errData:Add('_subCode':u, errString).
+                assign errString = soapFault:soap-fault-actor.
+                if not errString eq '':u then
+                    errData:Add('_actor':u, errString).
+                assign errString = soapFault:soap-fault-role.
+                if not errString eq '':u then
+                    errData:Add('_role':u, errString).
+                assign errString = soapFault:soap-fault-misunderstood-header.
+                if not errString eq '':u then
+                    errData:Add('_misunderstoodHeader':u, errString).
+                assign errString = soapFault:soap-fault-node.
+                if not errString eq '':u then
+                    errData:Add('_node':u, errString).
+            end.
+            else
+                jsonData:AddNull('_soapFault':u).
+        end.
         
         jsonData:Add('_errors':u, errList).
         do loop = 1 to cnt:
@@ -331,6 +395,7 @@ class OpenEdge.Core.Json.JsonConverter:
             errData:Add('_errorMsg':u, pError:GetMessage(loop)).
             errData:Add('_errorNum':u, pError:GetMessageNum(loop)).
         end.
+        jsonData:Add('_sev':u, pError:Severity).
         
         // only send debug info if we want debug info sent.
         if session:debug-alert then
@@ -349,8 +414,24 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
         end.
         
-        assign errProp = pError:GetClass():GetProperty('InnerError':u).
+        assign errProp = pError:GetClass():GetProperty('InnerStop':u).
         if     valid-object(errProp)
+           and errProp:CanRead
+           and errProp:DataType eq Progress.Reflect.DataType:Object
+           and Progress.Lang.Class:GetClass(errProp:DataTypeName):IsA(get-class(Progress.Lang.Stop))
+        then
+        do:
+            assign innerStop = errProp:Get(pError).
+            if valid-object(innerStop) then
+                jsonData:Add('_innerError':u, ToObject(innerStop)).
+        end.
+        
+        // There is only one cause, and since Stop is a more extreme one, write that
+        if not jsonData:Has('_innerError':u) then
+            assign errProp = pError:GetClass():GetProperty('InnerError':u).
+        
+        if     valid-object(errProp)
+           and errProp:CanRead
            and errProp:DataType eq Progress.Reflect.DataType:Object
            and Progress.Lang.Class:GetClass(errProp:DataTypeName):IsA(get-class(Progress.Lang.Error))
         then
@@ -363,6 +444,64 @@ class OpenEdge.Core.Json.JsonConverter:
         return jsonData.
     end method.
     
+    /* Converts an instance of a Progress.Lang.Stop into a JSON Object
+       {
+         _errors: [
+            { _errorMsg: the stop type name
+              _errorNum: null
+              _device:     ) 
+              _tableName:  ) If the stop is a LockConflict
+              _user:       )
+            }
+         ]
+         _type:   if session:debug-alert
+         _stack:  if session:debug-alert
+       }
+       
+       @param Progress.Lang.Stop An stop condition. Must exist
+       @return JsonObject A JSON object representing the Error */
+    method static public JsonObject ToObject(input pStop as Progress.Lang.Stop):
+        define variable jsonData as JsonObject no-undo.
+        define variable errData as JsonObject no-undo.
+        define variable errList as JsonArray no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        
+        Assert:NotNull(pStop, 'Stop condition').
+        
+        /* build the current error */
+        assign jsonData = new JsonObject()
+               errList  = new JsonArray()
+               errData  = new JsonObject()
+               .
+        jsonData:Add('_errors':u, errList).
+        errList:Add(errData).
+        errData:Add('_errorMsg':u, pStop:GetClass():TypeName).
+        errData:AddNull('_errorNum':u).
+        if type-of(pStop, LockConflict) then
+        do:
+            errData:Add('_device':u,    cast(pStop, LockConflict):Device). 
+            errData:Add('_tableName':u, cast(pStop, LockConflict):TableName).
+            errData:Add('_user':u,      cast(pStop, LockConflict):User).
+        end.
+        
+        // only send debug info if we want debug info sent.
+        if session:debug-alert then
+        do:
+            errData:Add('_type':u, pStop:GetClass():TypeName).
+            // A Stop's CallStack is always populated, regardless of the SESSION:ERROR-STACK-TRACE value 
+            assign cnt     = num-entries(pStop:CallStack, StringConstant:LF)
+                   errList = new JsonArray(cnt)
+                   .
+            jsonData:Add('_stack':u, errList).
+            do loop = 1 to cnt:
+                errList:Set(loop, entry(loop, pStop:CallStack, StringConstant:LF)).
+            end.
+        end.
+        
+        return jsonData.
+    end method.
+        
     /* Adds an instance value into a JSON array
        
        @param integer The index at which to add the value. the array may be extended to this value
@@ -590,10 +729,13 @@ class OpenEdge.Core.Json.JsonConverter:
                 when JsonDataType:OBJECT  then
                     dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonObject(propName)).
                 when JsonDataType:STRING  then
+                    // The Add/Set methods have overloads that accept longchar, so we won't run into the AddNumber issue
                     dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonText(propName)).
                 when JsonDataType:NUMBER  then
-                    dynamic-invoke(pTarget, methodName + 'Number':u, propName, pSource:GetJsonText(propName)).
-            end case. 
+                    // Because GetJsonText() returns a LONGCHAR, the reflection fails. It is extremely unlikely
+                    // that a number would have >2GB's worth of digits, so just STRING() it.
+                    dynamic-invoke(pTarget, methodName + 'Number':u, propName, string(pSource:GetJsonText(propName))).
+            end case.
         end.
     end method.
 
@@ -771,7 +913,6 @@ class OpenEdge.Core.Json.JsonConverter:
                    - iso-date
                    - memptr / base64-encoded value
                 */
-                
                 assign strValue = pArray:GetJsonText(pIdx)
                        cnt      = length(strValue, 'raw':u)
                        pos      = index(strValue, '-':u)
@@ -837,7 +978,7 @@ class OpenEdge.Core.Json.JsonConverter:
                 // base64-encoded
                 if substring(strValue, cnt - 2) eq '==':u then
                 do on error undo, throw:
-                    assign mData = base64-decode (strValue)
+                    assign mData = base64-decode(strValue)
                            no-error.
                     if not error-status:error then
                         return new OpenEdge.Core.Memptr(mData).

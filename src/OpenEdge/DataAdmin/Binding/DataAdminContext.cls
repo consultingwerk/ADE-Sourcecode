@@ -1,10 +1,10 @@
-/*************************************************************/
-/* Copyright (c) 2011-2016,2019 by Progress Software Corporation. */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from Progress Software Corporation. */
-/*************************************************************/
+/***********************************************************************/
+/* Copyright (c) 2011-2016,2019,2020 by Progress Software Corporation. */
+/*                                                                     */
+/* All rights reserved.  No part of this program or document           */
+/* may be  reproduced in  any form  or by  any means without           */
+/* permission in writing from Progress Software Corporation.           */
+/***********************************************************************/
  /** ------------------------------------------------------------------------
     Purpose     : Default implementation of IDataAdminContext    
     Syntax      : 
@@ -4008,7 +4008,7 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
     
     method protected void Destroy().
         /* did cause error once.. rcode out of synch */
-        delete object this-object no-error.
+        delete object this-object no-error.        
     end method.
      
     /** returns the query with the values inserted according to GetJoinFields 
@@ -4197,11 +4197,13 @@ class OpenEdge.DataAdmin.Binding.DataAdminContext abstract implements IDataAdmin
 	------------------------------------------------------------------------------*/
 	destructor public DataAdminContext ( ):
         define variable i as integer no-undo.
-        delete object SaveDataset no-error. 
-        delete object LastSavedDataset no-error. 
+        if valid-object(SaveDataset) then
+            delete object SaveDataset no-error. 
+        if valid-object(LastSavedDataset) then
+            delete object LastSavedDataset no-error. 
         /* may be dynamic */
-        if IsDatasetLoaded then
-            delete object DatasetHandle no-error.  
+        if IsDatasetLoaded then            
+            delete object DatasetHandle no-error.                      
         if IsLocal then 
         do:
             do i = 1 to ChildList:Count:
