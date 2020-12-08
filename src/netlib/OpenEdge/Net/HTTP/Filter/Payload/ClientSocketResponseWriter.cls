@@ -402,10 +402,14 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         assign oTempData = poSocketArgs:Data:GetBytes(iStartByte, iNumBytes).
                         
                         MessageBody:PutBytes(oTempData).
-                        /* Done if the Message Body is at least as big as the ContentLength. This is for cases like 
-                           PSC00359890 where the Content-Length header was 760 and the actual body 762 (2 trailing 
-                           whitespace bytes). */
-                        assign poSocketArgs:ReadComplete = (MessageBody:Size ge Response:ContentLength).
+                        
+                        // OCTA-29443: if there's no Content-Length header and no Transfer-Encoding, then we will jsut
+                        // have to wait for the server to close the socket (timeout at worst).
+                        if Response:HasHeader('Content-Length':u) then
+                            /* Done if the Message Body is at least as big as the ContentLength. This is for cases like 
+                               PSC00359890 where the Content-Length header was 760 and the actual body 762 (2 trailing 
+                               whitespace bytes). */
+                            assign poSocketArgs:ReadComplete = (MessageBody:Size ge Response:ContentLength).
                     end.
                 end.    /* no Transfer-Encoding */
             end case.   /* non-HEAD */

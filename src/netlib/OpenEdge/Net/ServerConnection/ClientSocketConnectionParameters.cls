@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014, 2017-2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014, 2017-2018, 2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocketConnectionParameters
@@ -55,6 +55,13 @@ class OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters
         
         This value is set for the -servername connection property iff HTTPS is used */
     define public property ServerNameIndicator as character  no-undo get. set.
+    
+    /* Indicates whether the server is expected to server disconnects (as opposed to the client disconnecting).
+       Default is FALSE (historical behaviour); which raises errors. TRUE means that no errors are raiseed on server 
+       disconnects */
+    define public property AllowServerDisconnect as logical no-undo initial FALSE
+        get.
+        set.
     
     /* Constructor
        
