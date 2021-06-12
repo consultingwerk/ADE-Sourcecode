@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2014 by Progress Software Corporation. All rights    *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/***********************************************************************
+* Copyright (C) 2014-2021 by Progress Software Corporation. All rights *
+* reserved.  Prior versions of this work may contain portions          *
+* contributed by participants of Possenet.                             *
+*                                                                      *
+************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ Author: Rohit Kumar
                     
 Date Created: 11/12/2014
 
-Modified:
+Modified: tmasood 02/17/2021 Stop the message to display again
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -29,7 +29,7 @@ DEFINE NEW GLOBAL SHARED VARIABLE l_show AS LOGICAL NO-UNDO INIT NO
 
 DEFINE BUTTON b_yes LABEL "OK" {&STDPH_OKBTN} AUTO-GO.
 
-
+DEFINE VARIABLE cChoice AS CHARACTER NO-UNDO INITIAL "Show". /* User's selection */
 Define var retval as char NO-UNDO init "". /* return value */
 
 FORM
@@ -100,6 +100,9 @@ do ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       ASSIGN retval = "mod".
              l_show = INPUT FRAME confirmation l_show.
 end.
+/* Don't show the message again */
+IF l_show:SCREEN-VALUE = "YES" THEN cChoice = "Hide".
+PUT-KEY-VALUE SECTION "ProAB" KEY "Disabled_TreeView_Message" VALUE cChoice NO-ERROR.
 
 hide frame confirmation.
 return retval.

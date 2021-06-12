@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2006,2009-2014 by Progress Software Corporation.  *
+* Copyright (C) 2005-2006,2009-2014,2021 by Progress Software Corporation.  *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -28,6 +28,7 @@ Modified by GFS on 3/11/96 - added support for small-icon
             JEP on 09/28/98 - Support restoring treeviews/design window sizes.
             TSM on 06/04/99 - added support for context-sensitive help
             RKUMAR on 11/12/14- display warning when opening .w in 64-bit AppBuilder
+            tmasood on 02/17/2021 Stop the message to display again
             
 ---------------------------------------------------------------------------- */
 DEFINE INPUT PARAMETER pp-recid AS RECID NO-UNDO.
@@ -61,6 +62,7 @@ DEFINE VARIABLE _VIRTUAL-WIDTH-P    AS INTEGER INITIAL ?.
 DEFINE VARIABLE _X                  AS INTEGER INITIAL ?.
 DEFINE VARIABLE _Y                  AS INTEGER INITIAL ?.
 define variable IDEIntegrated       as logical no-undo.
+DEFINE VARIABLE cChoice             AS CHARACTER NO-UNDO.
 
 DEFINE BUFFER  x_U FOR _U.
 
@@ -330,7 +332,10 @@ THEN ASSIGN _L._BGCOLOR        = ?
 ** this window focus and bring up the Section Editor to modify the procedure.
 */
 IF (_P._type BEGINS "WEB":U OR CAN-DO("p,i":U, _P._file-type)) THEN DO:
-    if (PROCESS-ARCHITECTURE = 64 and not OEIDEIsRunning)  THEN DO:
+    /* Based on user's choice we display the unable treeview message for 64-bit */
+    GET-KEY-VALUE SECTION "ProAB" KEY "Disabled_TreeView_Message" VALUE cChoice.
+
+    if (PROCESS-ARCHITECTURE = 64 and not OEIDEIsRunning and cChoice <> "Hide")  THEN DO:
                  RUN adeuib/_c64tv.p. 
     end.
     else if (PROCESS-ARCHITECTURE = 32 or OEIDEIsRunning)  THEN
