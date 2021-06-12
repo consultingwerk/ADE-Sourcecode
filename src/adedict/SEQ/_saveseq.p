@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000-2010 by Progress Software Corporation. All rights*
+* Copyright (C) 2000-2010,2020 by Progress Software Corporation. All rights*
 * reserved.  Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -60,11 +60,18 @@ Define var stat     as char    NO-UNDO init "error".
 PROCEDURE Add_to_List:
    Define INPUT PARAMETER p_name   as char NO-UNDO.  /* name to insert */
    Define var  	     	  ins_name as char NO-UNDO.
+   DEFINE BUFFER b_Sequence FOR dictdb._Sequence.
    
-   find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId AND
+   
+   /* OCTA-21469 - Do a dynamic find on _Sequence due to different schema for index
+      between OE 11 and OE 12 */
+   /* find FIRST dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId AND
                           NOT dictdb._Sequence._Seq-name BEGINS "$"  AND
      	     	      	      dictdb._Sequence._Seq-Name > p_name 
-      NO-ERROR.
+      NO-ERROR. */
+      BUFFER b_Sequence:FIND-FIRST("where dictdb._Sequence._Db-recid = " + STRING(s_DbRecId) + 
+                                   " AND NOT dictdb._Sequence._Seq-name BEGINS '$'  AND 
+     	     	      	           dictdb._Sequence._Seq-Name > '" + p_name + "'") NO-ERROR.
 
    ins_name = (if AVAILABLE dictdb._Sequence then dictdb._Sequence._Seq-name else "").
    run adedict/_newobj.p
@@ -200,6 +207,7 @@ end.
 
 run adecomm/_setcurs.p ("").
 return stat.
+
 
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000-2011,2018 by Progress Software Corporation. All  *
+* Copyright (C) 2000-2011,2018,2020 by Progress Software Corporation. All  *
 * rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -101,9 +101,16 @@ do:
    }
 end.
 
-/* Find the _Sequence record to edit. */
-find b_Sequence where b_Sequence._Seq-Name = s_CurrSeq AND 
+/* Find the _Sequence record to edit. */   
+
+/* OCTA-21469 - Do a dynamic find on _Sequence due to different schema for index
+  between OE 11 and OE 12 */
+/*find b_Sequence where b_Sequence._Seq-Name = s_CurrSeq AND 
      b_Sequence._Db-recid = s_DbRecId.
+*/
+
+BUFFER b_Sequence:FIND-FIRST("where b_Sequence._Seq-Name = '" + s_CurrSeq + 
+                             "' AND b_Sequence._Db-recid = " + STRING(s_DbRecId)).
 
 /* Set the limit value to the upper or lower limit depending on if increment
    is positive or negative. */
@@ -220,6 +227,7 @@ else do:
 
    apply "entry" to b_Sequence._Seq-Name in frame seqprops.
 end.
+
 
 
 

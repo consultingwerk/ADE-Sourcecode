@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2020 by Progress Software Corporation. All rights reserved.
 *************************************************/ 
 /*------------------------------------------------------------------------
     File        : ClientSocket
@@ -144,7 +144,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
         get():
             return IsConnected().
         end get.
-
+    
     /** Constructor. 
     
         @param ClientSocketConnectionParameters A URI and other parameters that
@@ -420,6 +420,22 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                    /* don't want any residual errors. this line is why we love structured-error-handling */
                    error-status:error = false
                    .
+            // The server is no longer connected. If AllowServerDisconnect is true we assume that this
+            // is a deliberate act on the part of the server and so finish gracefully
+            if cast(ConnectionParameters, ClientSocketConnectionParameters):AllowServerDisconnect
+            and not mhSocket:connected()
+            then
+            do:
+                Logger:Info(substitute('ReadHandler: socket disconnected: &1',
+                                       this-object:ConnectionParameters:GetConnectionString())).
+                /* Read is terminated. We're done here.  */
+                assign moReadEventArgs:ReadComplete   = true
+                       moReadEventArgs:ReadTerminated = true
+                       moReadEventArgs:Data           = ?
+                       moReadEventArgs:BytesRead      = 0
+                       .
+                leave ERROR-CATCHER-BLOCK.
+            end.
             /* Read. If nothing, check and try read. */
             /* now set the proper size */
             set-size(mData) = this-object:ReadBufferSize.
@@ -488,7 +504,7 @@ class OpenEdge.Net.ServerConnection.ClientSocket
                     
                     undo, throw oError.
                 end.
-
+                
                 OnReadTerminated(moReadEventArgs).
             end.
             else

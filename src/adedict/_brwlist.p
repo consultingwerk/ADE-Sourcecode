@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000,2020 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -30,6 +30,7 @@ Date Created: 02/04/92
 
 Define INPUT parameter p_Obj as integer NO-UNDO.
 
+DEFINE QUERY q1 FOR dictdb._Sequence.
 
 /*----------------------------------------------------------------------
    Do some common processing for all objects.
@@ -52,7 +53,6 @@ Define INPUT   	     PARAMETER p_List as widget-handle 	 NO-UNDO.
 Define INPUT-OUTPUT  PARAMETER p_Cached as logical    	 NO-UNDO.
 
 Define var val as char NO-UNDO.
-
    if NOT p_Cached then  
    do:
       val = p_List:Entry(1).
@@ -105,10 +105,27 @@ case p_Obj:
       	    message s_NoPrivMsg "see any sequence information."
       	       view-as ALERT-BOX ERROR buttons OK.
       	 else
-	    for each dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
+        
+        /* OCTA-21469 - Avoids a FOR EACH query for _Sequence due to different index definitions
+           between OE 11 and OE 12 */
+	    /*for each dictdb._Sequence where dictdb._Sequence._Db-recid = s_DbRecId
                              AND NOT dictdb._Sequence._Seq-name BEGINS "$":
 	       s_Res = s_lst_Seqs:add-last(dictdb._Sequence._Seq-name) in frame browse.
 	    end.
+         */
+
+         QUERY q1:QUERY-PREPARE("FOR EACH dictdb._Sequence where dictdb._Sequence._Db-recid = " + STRING(s_DbRecId) +
+                                " AND NOT dictdb._Sequence._Seq-name BEGINS '$'").
+         QUERY q1:QUERY-OPEN.
+         GET FIRST q1.
+
+         DO WHILE NOT QUERY q1:QUERY-OFF-END:
+            s_Res = s_lst_Seqs:add-last(dictdb._Sequence._Seq-name) in frame browse.
+            GET NEXT q1.
+         END.
+
+         CLOSE QUERY q1.
+         
       end.
    
       run Finish_Up (INPUT p_Obj,
@@ -161,6 +178,7 @@ case p_Obj:
       	       	     INPUT-OUTPUT s_Idxs_Cached).
    end.
 end. /* case */
+
 
 
 

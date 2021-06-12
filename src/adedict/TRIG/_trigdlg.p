@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2017 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2017,2020 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -210,8 +210,13 @@ Define var read       as logical NO-UNDO.  /* i.e., past tense of read */
 
    if p_Obj = {&OBJ_TBL} then
    do:
-      find b_ttrig of b_File where b_ttrig._Event = trig_event NO-ERROR.
-      if AVAILABLE b_ttrig then
+     /* OCTA-21469 - Do a dynamic find due to different schema for index
+        between OE 11 and OE 12 */
+     // find b_ttrig of b_File where b_ttrig._Event = trig_event NO-ERROR.
+     BUFFER b_ttrig:FIND-FIRST("where b_ttrig._file-recid = " + STRING(RECID(b_File)) +
+                               " AND b_ttrig._Event = '" + trig_event + "'") 
+                               NO-ERROR.
+     if AVAILABLE b_ttrig then
 	 assign
 	    trig_proc      = b_ttrig._Proc-Name
 	    trig_override  = b_ttrig._Override
@@ -221,9 +226,13 @@ Define var read       as logical NO-UNDO.  /* i.e., past tense of read */
 	 new_trig = true.
    end.
    else do:
-      find b_ftrig of b_Field where b_ftrig._Event = trig_event NO-ERROR.
+     /* OCTA-21469 - Do a dynamic find due to different schema for index
+        between OE 11 and OE 12 */
+      //find b_ftrig of b_Field where b_ftrig._Event = trig_event NO-ERROR.
+      BUFFER b_ftrig:FIND-FIRST("where b_ftrig._Field-recid = " + STRING(RECID(b_Field)) +
+                                " AND b_ftrig._Event = '" + trig_event + "'") NO-ERROR. 
       if AVAILABLE b_ftrig then
-	 assign
+	  assign
 	    trig_proc      = b_ftrig._Proc-Name
 	    trig_override  = b_ftrig._Override
 	    trig_crc       = (if b_ftrig._Trig-CRC = ? then no else yes)
@@ -1009,6 +1018,7 @@ if btn_Close:label in frame trigedit = "Close" then
    return "mod".
 else
    return "".
+
 
 
 
