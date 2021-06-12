@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : JsonConverter
@@ -590,10 +590,13 @@ class OpenEdge.Core.Json.JsonConverter:
                 when JsonDataType:OBJECT  then
                     dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonObject(propName)).
                 when JsonDataType:STRING  then
+                    // The Add/Set methods have overloads that accept longchar, so we won't run into the AddNumber issue
                     dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonText(propName)).
                 when JsonDataType:NUMBER  then
-                    dynamic-invoke(pTarget, methodName + 'Number':u, propName, pSource:GetJsonText(propName)).
-            end case. 
+                    // Because GetJsonText() returns a LONGCHAR, the reflection fails. It is extremely unlikely
+                    // that a number would have >2GB's worth of digits, so just STRING() it.
+                    dynamic-invoke(pTarget, methodName + 'Number':u, propName, string(pSource:GetJsonText(propName))).
+            end case.
         end.
     end method.
 
