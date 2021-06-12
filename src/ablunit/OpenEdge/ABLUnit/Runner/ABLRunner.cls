@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2013-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2013-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
    File        : ABLRunner
@@ -119,9 +119,6 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         DEFINE VARIABLE testResource AS CHARACTER NO-UNDO.
         
         assign writer = new ResultsXmlWriter().
-        // Write out an 'empty' line to the results file, in case the model population fails
-        // The root test model has no children or results at this point
-        writer:WriteToFile(ablResultsFile, testModel).
         
         DO testIndex = 1 TO testsArray:Length:
             testJson = testsArray:GetJsonObject(testIndex).
@@ -147,7 +144,6 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner:
         END.
         IF testEntity NE ? THEN DO:
             runtests(testEntity, updateFile).
-            // The real results will overwrite the empty version
             writer:WriteToFile(ablResultsFile, testEntity).
         END.
         
