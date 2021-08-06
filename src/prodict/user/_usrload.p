@@ -1,5 +1,5 @@
 /***************************************************************************
-* Copyright (C) 2005-2009,2014,2016,2020 by Progress Software Corporation. *
+* Copyright (C) 2005-2009,2014,2016,2020,2021 by Progress Software Corporation. *
 * All rights reserved.  Prior versions of this work may contain            *
 * portions contributed by participants of Possenet.                        *
 *                                                                          *
@@ -36,7 +36,7 @@ Input:
                 "m" = load security permissions
                 "i" = load Database Identification Properties
                 "o" = load Database Options
-				"p" = load CDC Policies
+                                "p" = load CDC Policies
                 
 Output:
   user_env[1] = same as IN
@@ -49,7 +49,11 @@ Output:
   user_env[8] = dbname (if class = "d" or "4" or "s")
   user_env[10]= user specified code page
   user_env[15]= user wants to commit even if errors are found.
-
+  user_env[39]= contains the value of pre_deploy toggle box if user wants to load that section.
+  user_env[40]= contains the value of trigger toggle box if user wants to load that section.
+  user_env[41]= contains the value of post deploy toggle box if user wants to load that section.
+  user_env[42]= contains the value of offline toggle box if user wants to load that section.
+  
 History:
     D. McMann   08/12/03 Add GET-DIR functionality
     D. McMann   02/04/03 Added support for LOB directories
@@ -90,6 +94,9 @@ History:
     fernando 07/20/08   support for encryption
     rkamboj  08/16/11   Added new terminology for security items and windows.
     tmasood  08/25/20   Added field for missing codepage in the files. 
+    kberlia  11/25/20   Added the code to support new online schema change. 
+    kberlia  12/07/20   Resized the rectangle of load by sections option.
+    tmasood  02/22/21   Display message when inactive index add to an existing table
 */
 /*h-*/
 
@@ -145,6 +152,16 @@ define variable UseDefaultDirs as logical no-undo
     label "Use default location" .
     
 define variable RootDirectory as character no-undo.
+define variable pre_deploy    as logical   no-undo.
+define variable trigger_flg   as logical   no-undo.
+define variable post_deploy   as logical   no-undo.
+define variable offline_flg   as logical   no-undo.
+define variable load_sections as logical   no-undo.
+&IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+define rectangle RECT-DS edge-pixels 2 graphic-edge no-fill size 67 by 2.
+&ELSE
+define rectangle RECT-DS edge-pixels 2 graphic-edge no-fill size 68 by 4.
+&ENDIF
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   DEFINE VARIABLE warntxt  AS CHARACTER  NO-UNDO VIEW-AS EDITOR NO-BOX 
@@ -291,7 +308,21 @@ FORM SKIP({&TFM_WID})
     SKIP({&VM_WID}) 
     no-schema-lock VIEW-AS TOGGLE-BOX LABEL "Add new objects on-line"
         COLON 3 SKIP({&VM_WIDG})
-  
+    load_sections VIEW-AS TOGGLE-BOX LABEL "Load by sections"
+        COLON 3 SKIP({&VM_WID})    
+    pre_deploy VIEW-AS TOGGLE-BOX LABEL "PreDeploy"
+        COLON 3
+    trigger_flg VIEW-AS TOGGLE-BOX LABEL "Trigger"
+        COLON 20
+    post_deploy VIEW-AS TOGGLE-BOX LABEL "PostDeploy"
+        COLON 38
+    offline_flg VIEW-AS TOGGLE-BOX LABEL "Offline"
+        COLON 55 SKIP({&VM_WID})
+  &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
+    RECT-DS AT ROW 6.3 COL 2
+  &ELSE
+    RECT-DS AT ROW 7 COL 2   
+  &ENDIF
   &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
   warntxt AT 2 NO-LABEL SKIP ({&VM_WIDG})
   &ELSE
@@ -1396,9 +1427,23 @@ DO:
     APPLY "ENTRY" TO user_env[2] IN FRAME read-df.
     RETURN NO-APPLY.
   END.
+  IF load_sections:SCREEN-VALUE IN FRAME read-df   = "yes"
+     AND pre_deploy:SCREEN-VALUE IN FRAME read-df  = "no"
+     AND trigger_flg:SCREEN-VALUE IN FRAME read-df = "no"
+     AND post_deploy:SCREEN-VALUE IN FRAME read-df = "no"
+     AND offline_flg:SCREEN-VALUE IN FRAME read-df = "no" THEN
+  DO:
+        MESSAGE "You must select at least one section if you select 'Load by sections'."
+           VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+        RETURN NO-APPLY.
+  END.
   IF io-file THEN 
     user_env[2]:SCREEN-VALUE = SEARCH(user_env[2]:SCREEN-VALUE IN FRAME read-df).
-  ASSIGN user_env[2] = user_env[2]:SCREEN-VALUE IN FRAME read-df.
+  ASSIGN user_env[2]  = user_env[2]:SCREEN-VALUE IN FRAME read-df
+         user_env[39] = pre_deploy:SCREEN-VALUE IN FRAME read-df
+         user_env[40] = trigger_flg:SCREEN-VALUE IN FRAME read-df
+         user_env[41] = post_deploy:SCREEN-VALUE IN FRAME read-df
+         user_env[42] = offline_flg:SCREEN-VALUE IN FRAME read-df.
   run verify-cp.
 END.
 
@@ -1550,7 +1595,7 @@ DO:
      
   IF NOT user_env[2] MATCHES "*~~.cd" THEN
   DO:
-	 MESSAGE "You must Provide a valid .cd file!"
+         MESSAGE "You must Provide a valid .cd file!"
         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
      APPLY "ENTRY" TO user_env[2].
      RETURN NO-APPLY.
@@ -1717,8 +1762,8 @@ IF user_env[9] = "p" THEN DO:
   ON CHOOSE OF btn_Cancel IN FRAME read-input-cdc
     APPLY "WINDOW-CLOSE" TO FRAME read-input-cdc.
 END.
-	  
-	  
+          
+          
 /*----- ON WINDOW-CLOSE -----*/
 on WINDOW-CLOSE of frame read-input
    apply "END-ERROR" to frame read-input.
@@ -1944,6 +1989,13 @@ do:
     
 end.
 
+ON VALUE-CHANGED OF load_sections IN FRAME read-df 
+    do:
+       IF SELF:screen-value = "yes" THEN        
+          ENABLE pre_deploy trigger_flg post_deploy offline_flg WITH FRAME read-df.   
+       ELSE 
+          DISABLE pre_deploy trigger_flg post_deploy offline_flg WITH FRAME read-df.
+    end.
 
 /*----- HIT of FILE BUTTON -----*/
 ON CHOOSE OF btn_File in frame read-input DO:
@@ -2652,25 +2704,36 @@ IF io-frame = "df" THEN DO:
 
 
   DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE WITH FRAME read-df:
-     ENABLE stop_flg commit_flg err-to-file err-to-screen no-schema-lock 
+     ENABLE stop_flg commit_flg err-to-file err-to-screen no-schema-lock load_sections 
      &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN warntxt &ENDIF 
          WITH FRAME read-df.
 
      ASSIGN stop_flg = user_env[4] BEGINS "y".
     
-    UPDATE user_env[2] btn_File stop_flg commit_flg err-to-file err-to-screen 
-           no-schema-lock btn_OK btn_Cancel {&HLP_BTN_NAME}.
-
+    IF load_sections:SCREEN-VALUE IN FRAME read-df = "yes" THEN
+    DO:
+       ENABLE pre_deploy trigger_flg post_deploy offline_flg.
+       UPDATE user_env[2] btn_File stop_flg commit_flg err-to-file err-to-screen 
+              no-schema-lock load_sections pre_deploy trigger_flg post_deploy offline_flg btn_OK btn_Cancel {&HLP_BTN_NAME} .
+    END.
+    ELSE
+    DO:
+       UPDATE user_env[2] btn_File stop_flg commit_flg err-to-file err-to-screen 
+              no-schema-lock load_sections btn_OK btn_Cancel {&HLP_BTN_NAME}.
+    END.
+            
     ASSIGN user_env[15] = STRING(commit_flg)
            user_env[4] = STRING(stop_flg).
     IF no-schema-lock THEN
       ASSIGN user_path = "_lodv5df,*C,_lodsddl,9=h,_usrload"
              oldsession = SESSION:SCHEMA-CHANGE
              SESSION:SCHEMA-CHANGE = "NEW OBJECTS"
-              user_env[35] = oldsession.
+              user_env[35] = oldsession
+              user_env[38] = "YES".
     ELSE
       ASSIGN user_path = "*T,_lodv5df,*C,_lodsddl,9=h,_usrload"
-             user_env[35] = "".
+             user_env[35] = ""
+             user_env[38] = "".
     
     { prodict/dictnext.i trash }
     canned = FALSE.
@@ -3065,12 +3128,12 @@ ELSE DO:
      
       UPDATE user_env[2]
              btn_File 
-			 err% 
-	         btn_OK 
-	         btn_Cancel 
-	         {&HLP_BTN_NAME}. 
-			 			      
-      ASSIGN user_env[4] = STRING(err%). 	
+                         err% 
+                 btn_OK 
+                 btn_Cancel 
+                 {&HLP_BTN_NAME}. 
+                                                       
+      ASSIGN user_env[4] = STRING(err%).         
 
       { prodict/dictnext.i trash }
       canned = FALSE.     

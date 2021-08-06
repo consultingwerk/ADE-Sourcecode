@@ -43,7 +43,7 @@ History:
     11/16/07  fernando      Support for _aud-audit-data* indexes deactivation
     06/26/08  fernando      Filter out schema tables for encryption
     04/06/20  tmasood       Fix the active toggle box for online added index
-
+    10/29/20  Kberlia       Added argument in _pro_area_list.p to support default area.
 ----------------------------------------------------------------------------*/
 
 { prodict/dictvar.i }
@@ -347,7 +347,7 @@ DO:
    do:
        enable areaname with frame idx_top.
           /* PSC00288448 and PSC00288469 - removed check condition " if areaname:SCREEN-VALUE = "N/A" " */ 
-          run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top, output AreaList).
+          run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output AreaList).
           ASSIGN areaname:LIST-ITEMS  IN FRAME idx_top = arealist.
           /* PSC00288453 - on value change of index to global, area is selected by default */
           areaname:SCREEN-VALUE IN FRAME idx_top = areaname:ENTRY(1).
@@ -445,7 +445,7 @@ DO:
            OUTPUT cTemp,
            OUTPUT answer,
            OUTPUT large_idx,
-	   OUTPUT isMultitenant,
+           OUTPUT isMultitenant,
            OUTPUT isPartitioned,
            OUTPUT isCDCEnabled).
 
@@ -632,7 +632,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                                                        AND dictdb._StorageObject._Object-number = _Index._Idx-num
                                                        AND dictdb._StorageObject._partitionid = 0
                                                        NO-LOCK NO-ERROR.
-                    IF AVAILABLE _StorageObject AND (get-bits(_StorageObject._Object-State,1,1) = 1) AND _Index._Active THEN /* Inactive */
+                    IF AVAILABLE dictdb._StorageObject AND (get-bits(dictdb._StorageObject._Object-State,1,1) = 1) AND _Index._Active THEN /* Inactive */
                       ASSIGN l_actidx = FALSE.
                     ELSE
                       ASSIGN l_actidx = TRUE.
@@ -832,7 +832,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                ASSIGN arealist = ""
                       indexarea = "".  
         else
-            run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top, output arealist).
+            run prodict/pro/_pro_area_list(recid(_File),{&INVALID_AREAS},areaname:DELIMITER in frame idx_top,"Index", output arealist).
 
         if isTablePartitioned then
             ASSIGN areaname:LIST-ITEMS IN FRAME idx_top = "N/A".
@@ -897,7 +897,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
             IF NOT s_In_Schema_Area THEN
                 APPLY "LEAVE" to areaname IN FRAME idx_top.
  
-	        if isTablePartitioned then
+                if isTablePartitioned then
                 disable areaname with frame idx_top.
          
         END.
@@ -988,7 +988,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
 
         if _Index._index-attributes[1]:screen-value = "Local" and isTablePartitioned then
             assign _Index._index-attributes[1] = true. 
-	 
+         
         DO i = 1 TO 16:
             c = user_env[i + 3].
             IF c = "" THEN LEAVE.
@@ -1002,7 +1002,7 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
               _Index-field._Index-recid = RECID(_Index)              
               _Index-field._Index-Seq   = i
               _Index-field._Ascending   = NOT (c MATCHES "*-*").
-	 
+         
         END.
         /* some DataServers don't initialize the _Index._idx-num - field */
         /* (see <DS>/_<DS>_sys.p), so we call the intialization routine */
@@ -1126,13 +1126,13 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
 
         IF _File._Frozen AND NOT canAudDeact THEN 
         DO:
-	   IF _Index._Index-Name = "_Identifying-Fields" THEN
-	   DO:
-	      IF NOT _Index._Active THEN
+           IF _Index._Index-Name = "_Identifying-Fields" THEN
+           DO:
+              IF NOT _Index._Active THEN
                  MESSAGE new_lang[20]. /* already off */
-	      ELSE
-	      DO:
-	         answer = FALSE. /* are you sure... make inactive? */
+              ELSE
+              DO:
+                 answer = FALSE. /* are you sure... make inactive? */
                  RUN "prodict/user/_usrdbox.p"
                    (INPUT-OUTPUT answer,?,?,new_lang[21] + ' "'
                     + _Index._Index-name + '" ' + new_lang[22]).
@@ -1140,8 +1140,8 @@ DO TRANSACTION ON ERROR UNDO,RETRY:
                     _Index._Active = FALSE.
                  in_trans = in_trans OR answer. 
                END.
-	   END.
-	   ELSE
+           END.
+           ELSE
               MESSAGE new_lang[27]. /* table is frozen */
         END.
         ELSE IF _File._Db-lang > 1 THEN  

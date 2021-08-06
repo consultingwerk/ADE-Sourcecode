@@ -60,7 +60,8 @@ CREATE WIDGET-POOL.
 
 /* Definitions for BROWSE br_table                                      */
 &Scoped-define FIELDS-IN-QUERY-br_table rowObject.menu_structure_code ~
-rowObject.object_filename rowObject.object_description 
+rowObject.object_filename rowObject.object_description ~
+rowObject.container_object 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-br_table 
 &Scoped-define OPEN-QUERY-br_table OPEN QUERY br_table FOR EACH rowObject NO-LOCK INDEXED-REPOSITION.
 &Scoped-define TABLES-IN-QUERY-br_table rowObject
@@ -98,12 +99,15 @@ DEFINE QUERY br_table FOR
 DEFINE BROWSE br_table
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTableWin _STRUCTURED
   QUERY br_table NO-LOCK DISPLAY
-      menu_structure_code FORMAT "X(28)":U WIDTH 22.2
-      object_filename FORMAT "X(35)":U WIDTH 22
-      object_description FORMAT "X(35)":U WIDTH 30
+      rowObject.menu_structure_code COLUMN-LABEL "Band Code" FORMAT "X(10)":U
+            WIDTH 22.2
+      rowObject.object_filename FORMAT "X(35)":U WIDTH 22
+      rowObject.object_description FORMAT "X(35)":U WIDTH 30
+      rowObject.container_object COLUMN-LABEL "Container" FORMAT "YES/NO":U
+            WIDTH 9.6
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 97 BY 6.91 EXPANDABLE.
+    WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 106 BY 6.91 EXPANDABLE.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -142,8 +146,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW bTableWin ASSIGN
-         HEIGHT             = 6.95
-         WIDTH              = 98.
+         HEIGHT             = 7.91
+         WIDTH              = 106.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -171,6 +175,9 @@ ASSIGN
        FRAME F-Main:SCROLLABLE       = FALSE
        FRAME F-Main:HIDDEN           = TRUE.
 
+ASSIGN 
+       rowObject.container_object:AUTO-RESIZE IN BROWSE br_table = TRUE.
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -182,11 +189,13 @@ ASSIGN
      _TblList          = "rowObject"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _FldNameList[1]   > _<SDO>.rowObject.menu_structure_code
-"menu_structure_code" ? ? "character" ? ? ? ? ? ? no "Band code" no no "22.2" yes no no "U" "" ""
+"rowObject.menu_structure_code" "Band Code" ? "character" ? ? ? ? ? ? no "Band code" no no "22.2" yes no no "U" "" ""
      _FldNameList[2]   > _<SDO>.rowObject.object_filename
-"object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "22" yes no no "U" "" ""
+"rowObject.object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "22" yes no no "U" "" ""
      _FldNameList[3]   > _<SDO>.rowObject.object_description
-"object_description" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
+"rowObject.object_description" ? ? "character" ? ? ? ? ? ? no ? no no "30" yes no no "U" "" ""
+     _FldNameList[4]   > _<SDO>.rowObject.container_object
+"rowObject.container_object" "Container" ? "logical" ? ? ? ? ? ? no ? no no "9.6" yes yes no "U" "" ""
      _Query            is NOT OPENED
 */  /* BROWSE br_table */
 &ANALYZE-RESUME

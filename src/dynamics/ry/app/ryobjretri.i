@@ -53,12 +53,8 @@ DEFINE TEMP-TABLE ttClass           NO-UNDO
     FIELD ClassTableName            AS CHARACTER        /* The name of the class' temp-table, e.g. cache_dynview */
     FIELD ClassBufferHandle         AS HANDLE           /* Handle to the dynamic temp-table's buffer */
     FIELD ClassObjectName           AS CHARACTER        /*  */
-    FIELD InheritsFromClasses       AS CHARACTER        /* Stores the class names of all classes that this class inherits from */
-    FIELD SuperProcedures           AS CHARACTER        /* Stores the pathed super procedures for this class, and only this class. */
-    FIELD SuperProcedureModes       AS CHARACTER        /* Stores super procedures mode 'STATELESS' or 'STATEFUL'  */
-    FIELD SuperHandles              AS CHARACTER        /* Stores the started super procedure handles for this class, and only this class. */
-    FIELD InstanceBufferHandle      AS HANDLE           /* Stores the started instances. */
-   INDEX idxMain
+    FIELD InheritsFromClasses       AS CHARACTER        /* Stored the class names of all classes that this class inherits from */
+    INDEX idxMain
         ClassName
     INDEX idxTableName      AS PRIMARY UNIQUE
         ClassTableName
@@ -93,13 +89,10 @@ DEFINE TEMP-TABLE cache_Object NO-UNDO     RCODE-INFORMATION
     FIELD tSdoSmartObjectObj                AS DECIMAL   FORMAT ">>,>>>,>>>,>>9.999999-" COLUMN-LABEL "SDO Smartobject Obj"       /* the design-time SDO which is associated with an Object. */
     FIELD tSdoPathedFilename                AS CHARACTER FORMAT "x(70)" COLUMN-LABEL "SDO Pathed Filename"
     FIELD tInheritsFromClasses              AS CHARACTER FORMAT "x(70)" COLUMN-LABEL "Inherits From Classes"       /* Stored the class names of all classes that this class inherits from */
-    FIELD tProductModuleCode                AS CHARACTER
-    FIELD tObjectIsRunnable                 AS LOGICAL     INITIAL NO
     /* Fields for security */
     FIELD tSecuredReadOnly                  AS LOGICAL INITIAL NO
     FIELD tSecuredHidden                    AS LOGICAL INITIAL NO
     FIELD tSecuredDisabled                  AS LOGICAL INITIAL NO
-    FIELD tObjectTranslated                 AS LOGICAL INITIAL NO
     INDEX idxContainedObjects
         tContainerObjectName
         tLogicalObjectName  
@@ -128,7 +121,6 @@ DEFINE TEMP-TABLE cache_Object NO-UNDO     RCODE-INFORMATION
 DEFINE TEMP-TABLE cache_ObjectPage NO-UNDO RCODE-INFORMATION
     FIELD tRecordIdentifier         AS DECIMAL   FORMAT ">,>>>,>>>,>>>,>>9.999999-" COLUMN-LABEL "Record Identifier"
     FIELD tPageNumber               AS INTEGER   FORMAT ">>9"                    COLUMN-LABEL "Page Number"
-    FIELD tPageReference            AS CHARACTER FORMAT "x(28)"                  COLUMN-LABEL "Page Reference"
     FIELD tPageLabel                AS CHARACTER FORMAT "X(46)"                  COLUMN-LABEL "Page Label"
     FIELD tLayoutCode               AS CHARACTER FORMAT "X(27)"                  COLUMN-LABEL "Layout Code"
     FIELD tPageInitialized          AS LOGICAL   INITIAL NO                      COLUMN-LABEL "Page Initialized"
@@ -141,9 +133,6 @@ DEFINE TEMP-TABLE cache_ObjectPage NO-UNDO RCODE-INFORMATION
         tPageObj
     INDEX idxSequence           AS PRIMARY
         tPageNumber
-        tRecordIdentifier
-    INDEX idxReference
-        tPageReference
         tRecordIdentifier
     .
 
@@ -256,14 +245,8 @@ DEFINE TEMP-TABLE container_Object              NO-UNDO
     FIELD tDestroyCustomSuper               AS LOGICAL
     FIELD tInstanceOrder                    AS INTEGER
     FIELD tPageNumber                       AS INTEGER
+    FIELD tAttributeList                    AS CHARACTER
     FIELD tRawAttributes                    AS RAW
-    FIELD tObjectIsRunnable                 AS LOGICAL
-    /* The fields below are specifically for use by containers (frames and/or windows) */
-    FIELD tContainerHandles                 AS CHARACTER
-    FIELD tObjectHandles                    AS CHARACTER
-    FIELD tToolbarHandles                   AS CHARACTER
-    FIELD tPageLinkList                     AS CHARACTER
-    FIELD tResizeOnPage                     AS INTEGER
     INDEX idxTargetProcedure
         tTargetProcedure
     INDEX idxInstances

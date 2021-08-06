@@ -69,19 +69,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 { af/app/afgenretin.i }
 { launch.i &Define-only=YES }
 
-/* Needed for RTB SCM control. */
-DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id    AS CHARACTER                NO-UNDO.
-
 DEFINE VARIABLE ghContainerSource                   AS HANDLE                   NO-UNDO.
 DEFINE VARIABLE ghBrowse                            AS HANDLE                   NO-UNDO.
 DEFINE VARIABLE ghQuery                             AS HANDLE                   NO-UNDO.
-DEFINE VARIABLE gcColumnsHandles                    AS CHARACTER                NO-UNDO.
 DEFINE VARIABLE ghHeaderInfoBuffer                  AS HANDLE                   NO-UNDO.
 DEFINE VARIABLE ghBrowseDataTable                   AS HANDLE                   NO-UNDO.
 DEFINE VARIABLE ghScmTool                           AS HANDLE                   NO-UNDO.
-
-DEFINE VARIABLE gcPopulateSource                    AS CHARACTER                NO-UNDO.
-DEFINE VARIABLE ghQuery1                            AS HANDLE                   NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -98,9 +91,11 @@ DEFINE VARIABLE ghQuery1                            AS HANDLE                   
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coProductModule coDbName buSelectAll ~
-buDeSelectAll toSizeHolder 
-&Scoped-Define DISPLAYED-OBJECTS coProductModule coDbName toSizeHolder 
+&Scoped-Define ENABLED-OBJECTS buGenerate toGenerateDataObjects ~
+toGenerateDataFields toGenerateViewers toGenerateBrowses toSizeHolder ~
+RECT-11 
+&Scoped-Define DISPLAYED-OBJECTS toGenerateDataObjects toGenerateDataFields ~
+toGenerateViewers toGenerateBrowses toSizeHolder 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -109,49 +104,76 @@ buDeSelectAll toSizeHolder
 &ANALYZE-RESUME
 
 
+/* ************************  Function Prototypes ********************** */
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD createObjectInformation sObject 
+FUNCTION createObjectInformation RETURNS LOGICAL
+    ( INPUT pcObjectType    AS CHARACTER )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectInfoValue sObject 
+FUNCTION getObjectInfoValue RETURNS CHARACTER
+    ( INPUT pcObjectType    AS CHARACTER,
+      INPUT pcTag           AS CHARACTER    )  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 
 /* ***********************  Control Definitions  ********************** */
 
 
 /* Definitions of the field level widgets                               */
-DEFINE BUTTON buDeSelectAll 
-     LABEL "Deselect All" 
-     SIZE 15 BY 1.14
+DEFINE BUTTON buGenerate 
+     IMAGE-UP FILE "ry/img/active.gif":U
+     LABEL "" 
+     SIZE 4.4 BY 1.14
      BGCOLOR 8 .
 
-DEFINE BUTTON buSelectAll 
-     LABEL "Select All" 
-     SIZE 15 BY 1.14
-     BGCOLOR 8 .
+DEFINE RECTANGLE RECT-11
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
+     SIZE 83.2 BY 1.71.
 
-DEFINE VARIABLE coDbName AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Database" 
-     VIEW-AS COMBO-BOX SORT INNER-LINES 5
-     LIST-ITEM-PAIRS "Item 1","Item 1"
-     DROP-DOWN-LIST
-     SIZE 65 BY 1 TOOLTIP "Select a database to generate objects from." NO-UNDO.
+DEFINE VARIABLE toGenerateBrowses AS LOGICAL INITIAL no 
+     LABEL "Browses" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 15.2 BY .81 NO-UNDO.
 
-DEFINE VARIABLE coProductModule AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Product module" 
-     VIEW-AS COMBO-BOX SORT INNER-LINES 5
-     LIST-ITEM-PAIRS "Item 1","Item 1"
-     DROP-DOWN-LIST
-     SIZE 65 BY 1 TOOLTIP "Use this product module to filter the DataObjects shown." NO-UNDO.
+DEFINE VARIABLE toGenerateDataFields AS LOGICAL INITIAL no 
+     LABEL "Data Fields" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 20 BY .81 NO-UNDO.
+
+DEFINE VARIABLE toGenerateDataObjects AS LOGICAL INITIAL yes 
+     LABEL "Data Objects" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 20 BY .81 TOOLTIP "When unchecked, objects will be generated based on existing data objects" NO-UNDO.
+
+DEFINE VARIABLE toGenerateViewers AS LOGICAL INITIAL no 
+     LABEL "Viewers" 
+     VIEW-AS TOGGLE-BOX
+     SIZE 20 BY .81 NO-UNDO.
 
 DEFINE VARIABLE toSizeHolder AS LOGICAL INITIAL no 
      LABEL "" 
      VIEW-AS TOGGLE-BOX
-     SIZE 3.6 BY .86 NO-UNDO.
+     SIZE 3.6 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     coProductModule AT ROW 1.19 COL 19.4 COLON-ALIGNED
-     coDbName AT ROW 1.19 COL 19.4 COLON-ALIGNED
-     buSelectAll AT ROW 1.1 COL 88.2
-     buDeSelectAll AT ROW 1.1 COL 103.8
-     toSizeHolder AT ROW 8.81 COL 115.8
+     buGenerate AT ROW 1.57 COL 87
+     toGenerateDataObjects AT ROW 1.86 COL 7
+     toGenerateDataFields AT ROW 1.86 COL 26.6
+     toGenerateViewers AT ROW 1.86 COL 48.2
+     toGenerateBrowses AT ROW 1.86 COL 69
+     toSizeHolder AT ROW 13.38 COL 87.4
+     RECT-11 AT ROW 1.48 COL 3.8
+     " Generate these objects:" VIEW-AS TEXT
+          SIZE 23.6 BY .62 AT ROW 1.19 COL 5
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -162,7 +184,6 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartObject
-   Compile into: af/obj2
    Allow: Basic
    Frames: 1
    Add Fields to: Neither
@@ -184,8 +205,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 8.67
-         WIDTH              = 118.4.
+         HEIGHT             = 13.19
+         WIDTH              = 90.4.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -207,18 +228,10 @@ END.
 /* SETTINGS FOR WINDOW sObject
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME frMain
-   NOT-VISIBLE Size-to-Fit Custom                                       */
+   NOT-VISIBLE Size-to-Fit                                              */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
-
-ASSIGN 
-       coDbName:PRIVATE-DATA IN FRAME frMain     = 
-                "DATABASE".
-
-ASSIGN 
-       coProductModule:PRIVATE-DATA IN FRAME frMain     = 
-                "MODULE".
 
 ASSIGN 
        toSizeHolder:HIDDEN IN FRAME frMain           = TRUE.
@@ -242,64 +255,24 @@ ASSIGN
 
 /* ************************  Control Triggers  ************************ */
 
-&Scoped-define SELF-NAME buDeSelectAll
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buDeSelectAll sObject
-ON CHOOSE OF buDeSelectAll IN FRAME frMain /* Deselect All */
+&Scoped-define SELF-NAME buGenerate
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buGenerate sObject
+ON CHOOSE OF buGenerate IN FRAME frMain
 DO:
-  RUN selectRecords(ghBrowse, NO).
+    RUN generateObjects NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN RETURN NO-APPLY.
 END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME buSelectAll
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buSelectAll sObject
-ON CHOOSE OF buSelectAll IN FRAME frMain /* Select All */
+&Scoped-define SELF-NAME toGenerateDataObjects
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL toGenerateDataObjects sObject
+ON VALUE-CHANGED OF toGenerateDataObjects IN FRAME frMain /* Data Objects */
+, toGenerateDataFields, toGenerateViewers, toGenerateBrowses
 DO:
-  RUN selectRecords(ghBrowse, YES).
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME coDbName
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coDbName sObject
-ON VALUE-CHANGED OF coDbName IN FRAME frMain /* Database */
-DO:
-
-  ASSIGN
-    coDBName.
-
-  ASSIGN
-    ghBrowse:PRIVATE-DATA = "":U
-    gcPopulateSource      = "DATABASE":U.
-
-  RUN populateBrowse.
-
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME coProductModule
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coProductModule sObject
-ON VALUE-CHANGED OF coProductModule IN FRAME frMain /* Product module */
-DO:
-
-  ASSIGN
-    coProductModule.
-  
-  PUBLISH "ProductModuleChanged":U FROM ghContainerSource (INPUT coProductModule).
-
-  ASSIGN
-    ghBrowse:PRIVATE-DATA = "":U
-    gcPopulateSource      = "MODULE":U.
-
-  RUN populateBrowse.
-
+    RUN changeGeneratedObjects ( INPUT SELF:NAME, INPUT SELF:CHECKED ).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -331,35 +304,84 @@ PROCEDURE buildBrowse :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    CREATE BROWSE ghBrowse
+        ASSIGN FRAME            = FRAME {&FRAME-NAME}:HANDLE
+               ROW              = 3.3
+               COLUMN           = 3.4
+               HEIGHT-CHARS     = 5
+               WIDTH-CHARS      = 5
+               SENSITIVE        = NO
+               HIDDEN           = YES
+               QUERY            = ghQuery
+               EXPANDABLE       = YES
+               ROW-MARKERS      = NO
+               SEPARATORS       = YES
+               MULTIPLE         = YES
+               COLUMN-RESIZABLE = YES
+               .
+    RUN resizeObject ( INPUT FRAME {&FRAME-NAME}:HEIGHT-CHARS, INPUT FRAME {&FRAME-NAME}:WIDTH-CHARS).
 
-  CREATE BROWSE ghBrowse
-    ASSIGN
-      FRAME            = FRAME {&FRAME-NAME}:HANDLE
-      ROW              = 2.5 
-      COLUMN           = 1.5
-      HEIGHT-CHARS     = 5
-      WIDTH-CHARS      = 5
-      SENSITIVE        = NO
-      HIDDEN           = YES
-      QUERY            = ghQuery
-      EXPANDABLE       = YES
-      ROW-MARKERS      = NO
-      SEPARATORS       = YES
-      MULTIPLE         = YES
-      COLUMN-RESIZABLE = YES
-      .
+    /* View the browse. We only make it sensitive once there is some
+     * data in it.                                                  */
+    ASSIGN ghBrowse:HIDDEN = NO.
 
-  RUN resizeObject(INPUT FRAME {&FRAME-NAME}:HEIGHT-CHARS
-                  ,INPUT FRAME {&FRAME-NAME}:WIDTH-CHARS
-                  ).
-
-  /* View the browse. We only make it sensitive once there is some data in it. */
-  ASSIGN
-    ghBrowse:HIDDEN = NO.
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.  /* buildBrowse */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeGeneratedObjects sObject 
+PROCEDURE changeGeneratedObjects :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pcWidgetName         AS CHARACTER            NO-UNDO.
+    DEFINE INPUT PARAMETER plChecked            AS LOGICAL              NO-UNDO.
+
+    DEFINE VARIABLE cWidgetName         AS CHARACTER                    NO-UNDO.  
+    DEFINE VARIABLE cPageNumber         AS CHARACTER                    NO-UNDO.
+
+    CASE pcWidgetName:
+        WHEN "toGenerateDataObjects":U THEN ASSIGN cPageNumber = "2,3":U.
+        WHEN "toGenerateDataFields":U  THEN ASSIGN cPageNumber = "3":U.
+        WHEN "toGenerateBrowses":U     THEN ASSIGN cPageNumber = "4":U.
+        WHEN "toGenerateViewers":U     THEN ASSIGN cPageNumber = "5":U.
+        OTHERWISE                           ASSIGN cPageNumber = "":U.
+    END CASE.   /* widget name */
+
+    IF cPageNumber NE "":U THEN
+    DO:
+        IF plChecked THEN
+            DYNAMIC-FUNCTION("enablePagesInFolder":U IN ghContainerSource, INPUT cPageNumber).
+        ELSE
+            DYNAMIC-FUNCTION("disablePagesInFolder":U IN ghContainerSource, INPUT cPageNumber).
+    END.    /* valid page number */
+
+    /* If all the buttons are unchecked, then disable the generate button .*/
+    DO WITH FRAME {&FRAME-NAME}:
+        IF NOT toGenerateDataFields:CHECKED  AND
+           NOT toGenerateDataObjects:CHECKED AND
+           NOT toGenerateBrowses:CHECKED     AND
+           NOT toGenerateViewers:CHECKED     THEN
+            ASSIGN buGenerate:SENSITIVE = NO.
+        ELSE
+            ASSIGN buGenerate:SENSITIVE = YES.
+    END.    /* with frame ... */
+
+    /* Special case is the toGenerateDataObjects. We need to populate some data based on this flag. */
+    IF pcWidgetName EQ "toGenerateDataObjects":U THEN
+    DO:
+        RUN populateBrowse ( INPUT (IF plChecked THEN "SCHEMA":U ELSE "REPOSITORY":U)).
+
+        IF plChecked THEN
+            ASSIGN toGenerateDataFields:CHECKED = YES.
+    END.    /* generate DataObject */
+
+    RETURN.
+END PROCEDURE.  /* changeGeneratedObjects */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -403,36 +425,113 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getBrowseHandle sObject 
-PROCEDURE getBrowseHandle :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE generateObjects sObject 
+PROCEDURE generateObjects :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cButtonPressed              AS CHARACTER            NO-UNDO.
+    DEFINE VARIABLE lRunOnAppserver             AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE lRunSilent                  AS LOGICAL              NO-UNDO.
+    DEFINE VARIABLE iBrowseLoop                 AS INTEGER              NO-UNDO.
+    DEFINE VARIABLE rBuffer                     AS RAW                  NO-UNDO.
+    DEFINE VARIABLE hBuffer                     AS HANDLE               NO-UNDO.
+    
+    /* Retrieve all information from the relevant objects */
+    DO WITH FRAME {&FRAME-NAME}:
+        EMPTY TEMP-TABLE ttObjectInfo.
 
-  DEFINE OUTPUT PARAMETER phBrowse  AS HANDLE   NO-UNDO.
+        IF toGenerateDataFields:CHECKED THEN
+            DYNAMIC-FUNCTION("createObjectInformation":U, INPUT "DataField":U).
 
-  ASSIGN
-    phBrowse = ghBrowse.
+        IF toGenerateDataObjects:CHECKED THEN
+            DYNAMIC-FUNCTION("createObjectInformation":U, INPUT "DataObject":U).
 
-  RETURN.
+        IF toGenerateBrowses:CHECKED THEN
+            DYNAMIC-FUNCTION("createObjectInformation":U, INPUT "Browse":U).
+                   
+        IF toGenerateViewers:CHECKED THEN
+            DYNAMIC-FUNCTION("createObjectInformation":U, INPUT "Viewer":U).
 
-END PROCEDURE.
+        /* Get header information. */
+        DYNAMIC-FUNCTION("createObjectInformation":U, INPUT "Header":U).
+    END.    /* with frame ... */
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+    /* Validate what we can. */
+    ASSIGN hBuffer = ghQuery:GET-BUFFER-HANDLE(1).
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getTablesFrame sObject 
-PROCEDURE getTablesFrame :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-    DEFINE OUTPUT PARAMETER phFrame             AS HANDLE               NO-UNDO.
+    IF ghBrowse:NUM-SELECTED-ROWS EQ 0 THEN
+    DO:
+        RUN showMessages IN gshSessionManager (INPUT  "At least one table or object should be selected.",    /* message to display */
+                                               INPUT  "ERR",          /* error type */
+                                               INPUT  "&OK",    /* button list */
+                                               INPUT  "&OK",           /* default button */ 
+                                               INPUT  "&OK",       /* cancel button */
+                                               INPUT  "Data selection error",             /* error window title */
+                                               INPUT  YES,              /* display if empty */ 
+                                               INPUT  ghContainerSource,                /* container handle */
+                                               OUTPUT cButtonPressed       ).    /* button pressed */
+        RETURN ERROR.
+    END.    /* no rows selected */
+    ELSE
+    DO iBrowseLoop = 1 TO ghBrowse:NUM-SELECTED-ROWS:
+        ghBrowse:FETCH-SELECTED-ROW(iBrowseLoop).
+        ghQuery:GET-CURRENT().
 
-    ASSIGN phFrame = FRAME {&FRAME-NAME}:HANDLE.
+        CREATE ttObjectInfo.
+        ASSIGN ttObjectInfo.tObjectType     = "BROWSE-DATA":U
+               ttObjectInfo.tTag            = ghBrowse:PRIVATE-DATA
+               ttObjectInfo.tPrimaryValue   = hBuffer:BUFFER-FIELD(1):BUFFER-VALUE
+               ttObjectInfo.tSecondaryValue = hBUffer:BUFFER-FIELD(2):BUFFER-VALUE
+               .
+    END.    /* loop through browse */
+
+    /* Perform the generation. */
+    ASSIGN lRunOnAppServer = NOT CONNECTED("RTB").
+
+    ASSIGN lRunSilent = LOGICAL(DYNAMIC-FUNCTION("getObjectInfoValue":U, INPUT "Header":U, INPUT "RUN-SILENT":U)).
+
+    IF NOT lRunSilent THEN
+    DO:
+        /* Change to the 'Logging' Page */
+        RUN selectPage IN ghContainerSource ( INPUT 6 ).
+
+        PUBLISH "listenForLogMessages":U FROM ghContainerSource.
+        ASSIGN lRunOnAppserver = NO.
+    END.    /* not run silent. */
+
+    SESSION:SET-WAIT-STATE("GENERAL":U). 
+
+    { launch.i
+        &PLIP         = 'af/app/afgenplipp.p'
+        &IProc        = 'generateObjects'
+        &PList        = "( INPUT lRunSilent, INPUT  TABLE ttObjectInfo, OUTPUT TABLE ttErrorLog )"
+        &OnApps       = lRunOnAppserver
+        &AutoKill     = YES        
+    }
+    SESSION:SET-WAIT-STATE("":U).
+
+    /* Process errors if they have not yet been processed. */
+    IF lRunSilent THEN
+    DO:
+        PUBLISH "listenForLogMessages":U FROM ghContainerSource.
+
+        FOR EACH ttErrorLog 
+                 BY ttErrorLog.tDateLogged
+                 BY ttErrorLog.tTimeLogged :
+            MESSAGE '[PJ]' {&line-number}  PROGRAM-NAME(1) PROGRAM-NAME(2) SKIP '---->' SKIP 
+                    ttErrorLog.tTimeLogged
+            SKIP '<----' VIEW-AS ALERT-BOX INFO BUTTONS OK.
+            
+            RAW-TRANSFER BUFFER ttErrorLog TO FIELD rBuffer.
+            PUBLISH "logObjectGeneratorMessage" ( INPUT rBuffer ).
+        END.    /* each error log */
+
+        /* Change to the 'Logging' Page */
+        RUN selectPage IN ghContainerSource ( INPUT 6 ).
+    END.    /* process errors. */
 
     RETURN.
 END PROCEDURE.
@@ -447,134 +546,25 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cLabel        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValue        AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iCountDB      AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iCountPMOD    AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iListLoop     AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE iDBNum        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hPopupMenu    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hPopupItem    AS HANDLE     NO-UNDO.
+    RUN SUPER.
 
-  RUN SUPER.
+    /* Move the Generate Button. */
+    ASSIGN buGenerate:ROW IN FRAME {&FRAME-NAME} = toGenerateBrowses:ROW IN FRAME {&FRAME-NAME} 
+           NO-ERROR.
 
-  DO WITH FRAME {&FRAME-NAME}:
-
-    ASSIGN
-      coDbName:LIST-ITEM-PAIRS        = coDbName:SCREEN-VALUE
-      coProductModule:LIST-ITEM-PAIRS = coProductModule:SCREEN-VALUE
-      NO-ERROR.
-
-    PUBLISH "getHeaderInfoBuffer" FROM ghContainerSource ( OUTPUT ghHeaderInfoBuffer ).
-
-    IF VALID-HANDLE(ghHeaderInfoBuffer)
-    THEN DO:
-
-        IF NOT VALID-HANDLE(ghQuery1) THEN
-            CREATE QUERY ghQuery1.
-
-        ghQuery1:SET-BUFFERS(ghHeaderInfoBuffer).
-
-      ghQuery1:QUERY-PREPARE(" FOR EACH ttHeaderInfo WHERE ttHeaderInfo.tDisplayRecord = YES":U).
-      ghQuery1:QUERY-OPEN().
-      ghQuery1:GET-FIRST().
-
-      DO WHILE ghHeaderInfoBuffer:AVAILABLE:
-
-        IF ghHeaderInfoBuffer:BUFFER-FIELD("tType":U):BUFFER-VALUE EQ "MODULE":U
-        THEN DO:
-          ASSIGN
-            cLabel = ghHeaderInfoBuffer:BUFFER-FIELD("tName":U):BUFFER-VALUE
-                   + " ( ":U
-                   + ENTRY(2, ghHeaderInfoBuffer:BUFFER-FIELD("tExtraInfo":U):BUFFER-VALUE, CHR(1))
-                   + " )":U
-            cValue = ghHeaderInfoBuffer:BUFFER-FIELD("tName":U):BUFFER-VALUE
-            NO-ERROR.
-          coProductModule:ADD-LAST(cLabel, cValue).
-          iCountPMOD = iCountPMOD + 1.
-        END.
-        ELSE
-        IF ghHeaderInfoBuffer:BUFFER-FIELD("tType":U):BUFFER-VALUE EQ "DATABASE":U
-        THEN DO:
-          ASSIGN
-            cLabel = LC(ghHeaderInfoBuffer:BUFFER-FIELD("tName":U):BUFFER-VALUE)
-            cValue = LC(ghHeaderInfoBuffer:BUFFER-FIELD("tName":U):BUFFER-VALUE)
-            NO-ERROR.
-          coDbName:ADD-LAST(cLabel, cValue).
-          iCountDB = iCountDB + 1.
-        END.
-
-        ghQuery1:GET-NEXT().
-
-      END.    /* available headerinfo */
-
-      ghQuery1:QUERY-CLOSE().
-
-      IF iCountPMOD > 1
-      THEN coProductModule:ADD-FIRST("<All>":U,"<All>":U).
-      IF iCountDB > 1
-      THEN coDbName:ADD-FIRST("<All>":U,"<All>":U).
-
-      IF iCountPMOD > 1
-      THEN
-        ASSIGN
-          coProductModule:SCREEN-VALUE = coProductModule:ENTRY(2)
-          NO-ERROR.
-      ELSE
-        ASSIGN
-          coProductModule:SCREEN-VALUE = coProductModule:ENTRY(1)
-          NO-ERROR.
-
-      IF iCountDB > 1
-      THEN
-        ASSIGN
-          iDBNum = 2.
-      ELSE
-        ASSIGN
-          iDBNum = 1.
-
-      blkDbLoop:
-      DO iListLoop = 1 TO coDBName:NUM-ITEMS:
-        IF coDBName:ENTRY(iListLoop) = "<All>":U
-        OR coDBName:ENTRY(iListLoop) = "ICFDB":U
-        OR coDBName:ENTRY(iListLoop) = "TEMP-DB":U
-        THEN
-          NEXT blkDbLoop.
-        ELSE DO:
-          ASSIGN
-            iDBNum = iListLoop.
-          LEAVE blkDbLoop.
-        END.
-      END.
-
-      IF iDBNum > 0
-      THEN
-        ASSIGN
-          coDbName:SCREEN-VALUE = coDbName:ENTRY( iDBNum )
-          NO-ERROR.
-      ELSE
-        ASSIGN
-          coDbName:SCREEN-VALUE = coDbName:ENTRY(1)
-          NO-ERROR.
-
-    END.    /* valid buffer handle */
-
-  END.    /* with frame ... */
+    PUBLISH "getHeaderInfoBuffer":U FROM ghContainerSource ( OUTPUT ghHeaderInfoBuffer ).
 
     RUN buildBrowse.
 
-    /* Removed the pop-up menu as part of issue 9635. This functionality will be replaced 
-     * by the changes to be made for issue 9042.                                          */
+    /** Initialise the tab pages based on the toggle settings
+     *  ----------------------------------------------------------------------- **/
+    ASSIGN toGenerateDataObjects:CHECKED IN FRAME {&FRAME-NAME} = YES.
+    APPLY "VALUE-CHANGED" TO toGenerateDataObjects.
+    DYNAMIC-FUNCTION("disablePagesInFolder":U IN ghContainerSource, INPUT "4,5":U).
 
-  RUN toggleDataObjects ( INPUT YES).
+    SUBSCRIBE "queryBasisChange" IN ghContainerSource.
 
-  SUBSCRIBE TO "toggleDataObjects":U      IN ghContainerSource.
-  SUBSCRIBE TO "getBrowseHandle":U        IN ghContainerSource.
-  SUBSCRIBE TO "getTablesFrame":U         IN ghContainerSource.
-  SUBSCRIBE TO "populateBrowse":U         IN ghContainerSource.
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.  /* initializeObject */
 
 /* _UIB-CODE-BLOCK-END */
@@ -610,168 +600,112 @@ PROCEDURE populateBrowse :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pcDataBasedOn        AS CHARACTER            NO-UNDO.
 
-  DEFINE VARIABLE cDataBasedOn            AS CHARACTER  NO-UNDO.
+    DEFINE VARIABLE cDatabaseName           AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cProductModuleCode      AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cProductModulePath      AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE cButtonPressed          AS CHARACTER                NO-UNDO.
+    DEFINE VARIABLE hBrowseDataBuffer       AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hBrowseDataTable        AS HANDLE                   NO-UNDO.
 
-  DEFINE VARIABLE cButtonPressed          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hBrowseDataBuffer       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBrowseDataTable        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hBrowseColumn           AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE iColumnLoop             AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE hColumnField            AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cColumnHandles          AS CHARACTER  NO-UNDO.
+    IF pcDataBasedOn NE ghBrowse:PRIVATE-DATA THEN
+    DO:
+        SESSION:SET-WAIT-STATE("GENERAL":U). 
+        IF VALID-HANDLE(ghBrowseDataTable) THEN
+        DO:
+            DELETE OBJECT ghBrowseDataTable NO-ERROR.
+            ASSIGN ghBrowseDataTable = ?.
+        END.    /* valid browse data table. */
 
-  DEFINE VARIABLE iListLoop               AS INTEGER    NO-UNDO.
+        /* Get the information we need */
+        IF pcDataBasedOn EQ "SCHEMA":U THEN        
+            PUBLISH "getSelectedDatabase":U FROM ghContainerSource ( OUTPUT cDatabaseName ).            
+        ELSE
+            PUBLISH "getDefaultModuleInfo":U FROM ghContainerSource ( OUTPUT cProductModuleCode ).
 
-  DEFINE VARIABLE cListDB                 AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cListPMOD               AS CHARACTER  NO-UNDO.
+        ASSIGN ghBrowse:PRIVATE-DATA = pcDataBasedOn.
 
-  ASSIGN
-    cDataBasedOn = (IF gcPopulateSource EQ "DATABASE":U
-                    THEN "SCHEMA":U      /* DATABASE */
-                    ELSE "REPOSITORY":U  /* MODULE   */
-                    ).
+        { launch.i
+            &PLIP         = 'af/app/afgenplipp.p'
+            &IProc        = 'retrieveBrowseData'
+            &PList        = "( INPUT  pcDataBasedOn,
+                               INPUT  cDatabaseName,
+                               INPUT  cProductModuleCode,
+                               OUTPUT TABLE-HANDLE hBrowseDataTable )"
+            &AutoKill     = YES            
+        }
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
+        DO:
+            SESSION:SET-WAIT-STATE("":U).
+            RUN showMessages IN gshSessionManager (INPUT  RETURN-VALUE,                     /* message to display */
+                                                   INPUT  "ERR",                            /* error type */
+                                                   INPUT  "&OK",                            /* button list */
+                                                   INPUT  "&OK",                            /* default button */ 
+                                                   INPUT  "&OK",                            /* cancel button */
+                                                   INPUT  "Data retrieval error", /* error window title */
+                                                   INPUT  YES,                              /* display if empty */ 
+                                                   INPUT  ghContainerSource,                /* container handle */ 
+                                                   OUTPUT cButtonPressed           ).
+            RETURN ERROR.
+        END.    /* error */
 
-  DO WITH FRAME {&FRAME-NAME}:
+        ASSIGN hBrowseDataBuffer = hBrowseDataTable:DEFAULT-BUFFER-HANDLE
+               ghBrowseDataTable = hBrowseDataTable
+               NO-ERROR.
 
-    SESSION:SET-WAIT-STATE("GENERAL":U). 
+        IF VALID-HANDLE(hBrowseDataBuffer) THEN
+        DO:
+            /* Set the query */
+            IF VALID-HANDLE(ghQuery) AND
+               ghQuery:IS-OPEN       THEN
+                ghQuery:QUERY-CLOSE().
+            ELSE
+                CREATE QUERY ghQuery.
+            
+            ghQuery:SET-BUFFERS(hBrowseDataBuffer).
+    
+            ghQuery:QUERY-PREPARE(" FOR EACH ":U + hBrowseDataBuffer:NAME ).
+            ASSIGN ghBrowse:QUERY = ghQuery.
+    
+            /* Create the relevant columns in the browse. */        
+            ghBrowse:ADD-COLUMNS-FROM(hBrowseDataBuffer).
+    
+            ghQuery:QUERY-OPEN().
 
-    IF VALID-HANDLE(ghBrowseDataTable)
-    THEN DO:
-      DELETE OBJECT ghBrowseDataTable NO-ERROR.
-      ASSIGN ghBrowseDataTable = ?.
-    END.    /* valid browse data table. */
+            /* Sensitise the browse */
+            ASSIGN ghBrowse:SENSITIVE = YES.
+        END.    /* valid buffer */
 
-    ASSIGN
-      coDbName
-      coProductModule
-      .
+        SESSION:SET-WAIT-STATE("":U).
+    END.    /* basis has changed. */   
 
-    ASSIGN
-      cListDB   = "":U
-      cListPMOD = "":U
-      .
-
-    IF coDBName = "<ALL>":U
-    THEN /* Do not do 1 as it will be <ALL> */
-    DO iListLoop = 2 TO coDBName:NUM-ITEMS:
-      ASSIGN
-        cListDB = cListDB
-                + (IF cListDB <> "":U THEN ",":U ELSE "":U)
-                + coDBName:ENTRY(iListLoop).
-    END.
-    ELSE
-      ASSIGN
-        cListDB = coDBName.
-
-    IF coProductModule = "<ALL>":U
-    THEN /* Do not do 1 as it will be <ALL> */
-    DO iListLoop = 2 TO coProductModule:NUM-ITEMS:
-      ASSIGN
-        cListPMOD = cListPMOD
-                  + (IF cListPMOD <> "":U THEN ",":U ELSE "":U)
-                  + coProductModule:ENTRY(iListLoop).
-    END.
-    ELSE
-      ASSIGN
-        cListPMOD = coProductModule.
-
-    ASSIGN
-      ghBrowse:PRIVATE-DATA = gcPopulateSource.
-
-    { launch.i
-        &PLIP         = 'af/app/afgenplipp.p'
-        &IProc        = 'retrieveBrowseData'
-        &PList        = "( INPUT  cDataBasedOn
-                         , INPUT  cListDB
-                         , INPUT  cListPMOD
-                         , OUTPUT TABLE-HANDLE hBrowseDataTable )"
-        &AutoKill     = YES
-    }
-
-    IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U
-    THEN DO:
-      SESSION:SET-WAIT-STATE("":U).
-      RUN showMessages IN gshSessionManager
-                      (INPUT  RETURN-VALUE                     /* message to display */
-                      ,INPUT  "ERR"                            /* error type */
-                      ,INPUT  "&OK"                            /* button list */
-                      ,INPUT  "&OK"                            /* default button */ 
-                      ,INPUT  "&OK"                            /* cancel button */
-                      ,INPUT  "Data retrieval error"           /* error window title */
-                      ,INPUT  YES                              /* display if empty */ 
-                      ,INPUT  ghContainerSource                /* container handle */ 
-                      ,OUTPUT cButtonPressed
-                      ).
-      RETURN ERROR.
-    END.    /* error */
-
-    ASSIGN
-      hBrowseDataBuffer = hBrowseDataTable:DEFAULT-BUFFER-HANDLE
-      ghBrowseDataTable = hBrowseDataTable
-      NO-ERROR.
-
-    IF VALID-HANDLE(hBrowseDataBuffer)
-    THEN DO:
-      /* Set the query */
-      IF VALID-HANDLE(ghQuery)
-      AND ghQuery:IS-OPEN
-      THEN
-        ghQuery:QUERY-CLOSE().
-      ELSE
-        CREATE QUERY ghQuery.
-      ghQuery:SET-BUFFERS(hBrowseDataBuffer).
-      ghQuery:QUERY-PREPARE(" FOR EACH ":U + hBrowseDataBuffer:NAME).
-      ASSIGN
-        ghBrowse:QUERY = ghQuery.
-
-      /* Resize the columns */
-      DO iColumnLoop = 1 TO hBrowseDataBuffer:NUM-FIELDS:
-          
-        hColumnField  = hBrowseDataBuffer:BUFFER-FIELD(iColumnLoop).
-        IF hColumnField:COLUMN-LABEL EQ "?":U THEN
-            NEXT.
-
-        hBrowseColumn = ghBrowse:ADD-LIKE-COLUMN(hColumnField).
-
-        IF VALID-HANDLE(hBrowseColumn)
-        THEN DO:
-
-          IF LENGTH(hBrowseColumn:LABEL) > hColumnField:WIDTH-CHARS
-          THEN
-            ASSIGN
-              hBrowseColumn:WIDTH = LENGTH(hBrowseColumn:LABEL).
-          ELSE
-            ASSIGN
-              hBrowseColumn:WIDTH = hColumnField:WIDTH-CHARS.
-
-          ASSIGN
-            cColumnHandles = cColumnHandles
-                        + (IF cColumnHandles = "":U THEN "":U ELSE ",":U)
-                        + STRING(hBrowseColumn).
-
-        END.
-
-      END.
-
-      gcColumnsHandles = cColumnHandles.
-
-      ghBrowse:FIT-LAST-COLUMN  = YES.
-
-      ghQuery:QUERY-OPEN().
-
-      /* Sensitise the browse */
-      ghBrowse:SENSITIVE = YES.
-
-    END.    /* valid buffer */
-
-    SESSION:SET-WAIT-STATE("":U).
-
-  END.    /* basis has changed. */
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.  /* populateBrowse */
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE queryBasisChange sObject 
+PROCEDURE queryBasisChange :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pcWhatChanged        AS CHARACTER            NO-UNDO.
+
+    IF ( pcWhatChanged EQ "DATABASE" AND ghBrowse:PRIVATE-DATA EQ "SCHEMA":U ) OR
+       ( pcWhatChanged EQ "MODULE"   AND ghBrowse:PRIVATE-DATA EQ "REPOSITORY":U ) THEN
+    DO: 
+        /* Set the PRIVATE-DATA to "" to force a change. */
+        ASSIGN ghBrowse:PRIVATE-DATA = "":U.
+        RUN changeGeneratedObjects ( INPUT "toGenerateDataObjects":U,
+                                     INPUT toGenerateDataObjects:CHECKED IN FRAME {&FRAME-NAME}).
+    END.
+
+    RETURN.
+END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -783,97 +717,119 @@ PROCEDURE resizeObject :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    DEFINE INPUT PARAMETER pdNewHeight              AS DECIMAL          NO-UNDO.
+    DEFINE INPUT PARAMETER pdNewWidth               AS DECIMAL          NO-UNDO.
 
-  DEFINE INPUT PARAMETER pdNewHeight              AS DECIMAL          NO-UNDO.
-  DEFINE INPUT PARAMETER pdNewWidth               AS DECIMAL          NO-UNDO.
+    ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE           = TRUE
+           FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT-CHARS
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH-CHARS
 
-  ASSIGN
-    FRAME {&FRAME-NAME}:SCROLLABLE           = TRUE
-    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = SESSION:HEIGHT-CHARS
-    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = SESSION:WIDTH-CHARS
-    FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdNewHeight
-    FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdNewWidth
-    NO-ERROR.
+           FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdNewHeight
+           FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdNewWidth
+           NO-ERROR.
 
-  ASSIGN
-    FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS
-    FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS
-    FRAME {&FRAME-NAME}:SCROLLABLE           = FALSE
-    NO-ERROR.
+    ASSIGN FRAME {&FRAME-NAME}:VIRTUAL-HEIGHT-CHARS = FRAME {&FRAME-NAME}:HEIGHT-CHARS
+           FRAME {&FRAME-NAME}:VIRTUAL-WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS
+           FRAME {&FRAME-NAME}:SCROLLABLE           = FALSE
+           .
+    IF VALID-HANDLE(ghBrowse) THEN
+        ASSIGN ghBrowse:HEIGHT-CHARS = pdNewHeight - ghBrowse:ROW - 1
+               ghBrowse:WIDTH-CHARS  = pdNewWidth - ghBRowse:COLUMN - 1
+               NO-ERROR.
 
-  IF VALID-HANDLE(ghBrowse)
-  THEN
-    ASSIGN
-      ghBrowse:HEIGHT-CHARS = pdNewHeight - ghBrowse:ROW
-      ghBrowse:WIDTH-CHARS  = pdNewWidth  - ghBrowse:COLUMN
-      NO-ERROR.
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE selectRecords sObject 
-PROCEDURE selectRecords :
-/*------------------------------------------------------------------------------
-  Purpose:     Selects records in the browse.
-  Parameters:  
-    phBrowse:  Browse to select records in
-    plSelect:  If set to yes, all records will be selected, otherwise all
-               records will be deselected.
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT  PARAMETER phBrowse AS HANDLE     NO-UNDO.
-  DEFINE INPUT  PARAMETER plSelect AS LOGICAL    NO-UNDO.
+/* ************************  Function Implementations ***************** */
 
-  IF plSelect THEN
-    phBrowse:SELECT-ALL().
-  ELSE
-    phBrowse:DESELECT-ROWS().
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION createObjectInformation sObject 
+FUNCTION createObjectInformation RETURNS LOGICAL
+    ( INPUT pcObjectType    AS CHARACTER ) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/    
+    DEFINE VARIABLE hFrame                  AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE hWidget                 AS HANDLE                   NO-UNDO.
+    DEFINE VARIABLE cPublishEvent           AS CHARACTER                NO-UNDO.
+
+    ASSIGN cPublishEvent = "get":U + pcObjectType + "Frame":U.
     
-END PROCEDURE.
+    PUBLISH cPublishEvent FROM ghContainerSource ( OUTPUT hFrame ).
+
+    IF NOT VALID-HANDLE(hFrame) THEN
+        RETURN FALSE.    
+
+    IF pcObjectType NE "Header":U THEN
+    DO:
+        FIND FIRST ttObjectInfo WHERE
+                   ttObjectInfo.tObjectType = "Header":U              AND
+                   ttObjectInfo.tTag        = "HEADER-CREATE-OBJECT-TYPES":U
+                   NO-ERROR.
+        IF NOT AVAILABLE ttObjectINfo THEN
+        DO:
+            CREATE ttObjectInfo.
+            ASSIGN ttObjectInfo.tObjectType   = "Header":U
+                   ttObjectInfo.tTag          = "HEADER-CREATE-OBJECT-TYPES":U
+                   ttObjectInfo.tPrimaryValue = pcObjectType.
+                   .
+        END.    /* n/a object info */
+        ELSE
+            ASSIGN ttObjectInfo.tPrimaryValue = ttObjectInfo.tPrimaryValue + ",":U + pcObjectType.
+    END.    /* object type <> header */
+
+    ASSIGN hWidget = hFrame
+           hWidget = hWidget:FIRST-CHILD        /* field group */
+           hWidget = hWidget:FIRST-CHILD
+           .
+    DO WHILE VALID-HANDLE(hWidget):
+        IF CAN-QUERY(hWidget, "PRIVATE-DATA":U) AND
+           CAN-QUERY(hWidget, "SCREEN-VALUE":U) AND
+           CAN-QUERY(hWidget, "SENSITIVE":U)    AND
+           hWidget:SENSITIVE                    AND
+           hWidget:PRIVATE-DATA         NE "":U AND
+           hWidget:PRIVATE-DATA         NE ?    THEN
+        DO:
+            CREATE ttObjectInfo.
+            ASSIGN ttObjectInfo.tObjectType   = pcObjectType
+                   ttObjectInfo.tTag          = CAPS(pcObjectType) + "-":U + hWidget:PRIVATE-DATA
+                   ttObjectInfo.tPrimaryValue = hWidget:SCREEN-VALUE
+                   .
+        END.    /* can get information */
+
+        ASSIGN hWidget = hWidget:NEXT-SIBLING.
+    END.
+
+    RETURN TRUE.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE toggleDataObjects sObject 
-PROCEDURE toggleDataObjects :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectInfoValue sObject 
+FUNCTION getObjectInfoValue RETURNS CHARACTER
+    ( INPUT pcObjectType    AS CHARACTER,
+      INPUT pcTag           AS CHARACTER    ) :
 /*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
+  Purpose:  
+    Notes:  
 ------------------------------------------------------------------------------*/
+    DEFINE VARIABLE cValue              AS CHARACTER                    NO-UNDO.
 
-  DEFINE INPUT PARAMETER plChecked            AS LOGICAL              NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:
-
-    IF plChecked
-    THEN
-      ASSIGN
-        coDbName:HIDDEN         = NO
-        coProductModule:HIDDEN  = YES
-        gcPopulateSource        = "DATABASE":U
-        .
+    FIND FIRST ttObjectInfo WHERE
+               ttObjectInfo.tObjectType = pcObjectType AND
+               ttObjectInfo.tTag        = CAPS(pcObjectType) + "-":U + pcTag
+               NO-ERROR.
+    IF AVAILABLE ttObjectInfo THEN
+        ASSIGN cValue = ttObjectInfo.tPrimaryValue.
     ELSE
-      ASSIGN
-        coDbName:HIDDEN         = YES
-        coProductModule:HIDDEN  = NO
-        gcPopulateSource        = "MODULE":U
-        .
+        ASSIGN cValue = ?.
 
-    ASSIGN
-      ghBrowse:PRIVATE-DATA = "":U.
-
-  END.    /* with frame ... */
-
-  RUN populateBrowse.
-
-  RETURN.
-
-END PROCEDURE.  /* toggleDataObjects */
+    RETURN cValue.
+END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

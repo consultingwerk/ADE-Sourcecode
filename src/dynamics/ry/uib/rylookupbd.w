@@ -170,7 +170,7 @@ DEFINE BROWSE BrBrowse
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS BrBrowse Dialog-Frame _STRUCTURED
   QUERY BrBrowse NO-LOCK DISPLAY
       gsc_product.product_code FORMAT "X(10)":U
-      gsc_product_module.product_module_code FORMAT "X(35)":U
+      gsc_product_module.product_module_code FORMAT "X(10)":U
       ryc_smartobject.object_filename FORMAT "X(70)":U WIDTH 35
       ryc_smartobject.object_description FORMAT "X(35)":U WIDTH 50
       ryc_smartobject.object_path FORMAT "X(70)":U

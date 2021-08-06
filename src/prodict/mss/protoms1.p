@@ -170,7 +170,7 @@ IF batch_mode THEN DO:
        "Create Shadow Columns:                " shadowcol SKIP       
        "Include Defaults:                     " dflt SKIP       
        "Use Revised Sequence Generator:       " newseq SKIP
-       "Try Native Sequence ?:                " nativeseq SKIP
+       "Use Native Sequence Generator:        " nativeseq SKIP
        "Cache Size:                           " cachesize SKIP
        "Map to MSS Datetime Type:             " mapMSSDatetime SKIP.
 

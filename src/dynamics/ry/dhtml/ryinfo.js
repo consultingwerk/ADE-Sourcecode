@@ -4,14 +4,9 @@
 
 Info.prototype.elem;
 Info.prototype.msgs;
-Info.prototype.options;
-Info.prototype.mode;  // Whether it shows automatic or not. ON/OFF/AUTO
 
 function Info(e){
   this.elem=e;
-  this.mode=e.getAttribute('mode');
-  this.mode=(this.mode?this.mode.toLowerCase():'auto');
-  e.className=(this.mode=='on'?'show':'hide'); 
   var node=document.createElement('b');
   node.appendChild(document.createTextNode('Messages:'));
   e.appendChild(node);
@@ -21,14 +16,17 @@ function Info(e){
 }
 
 Info.prototype.load=function(data){
-  this.msgs=data.concat([
-    "HTM26|File Attachement;Please enter file-name or use browse:;Cancel;OK;Uploading &, please wait!"
-  ]);
-  
-}
-
-Info.prototype.show=function(){  // Conditionally show the status window 
-  if(this.mode!='off') window.action('main.info.show');
+  this.msgs=data;
+  /*
+  this.msgs=data.concat(
+     'HTM14|Filter values;Save settings;From:;To:;OK;Cancel;Clear'
+    ,'HTM15|Find record criteria;From:;To:;OK;Cancel;Clear'
+    ,'HTM16|From:;To:;'
+    ,'HTM17|Record has changed!\nWould you like to overwrite the other changes?'
+    ,'HTM18|User input:Yes:No:Cancel:OK'
+    ,'HTM19|Invalid data for &1 = &2'
+    ,'HTM20|Number of rows of data');
+  */
 }
 
 Info.prototype.action=function(c,prm){
@@ -57,14 +55,14 @@ Info.prototype.action=function(c,prm){
     case 'get':  
       return msg;
     case 'msg':  
-      show();
+      window.action('main.info.show');
       return addText(c,msg2);
     case 'field':  
-      show();
+      window.action('main.info.show');
       addText(c,msg2);
       return window.action(a[2] + '.mark');
     case 'alert':  
-      show();
+      window.action('main.info.show');
       addText(c,msg2);
       return alert(msg);
     case 'prompt':   
@@ -77,9 +75,7 @@ Info.prototype.action=function(c,prm){
       return false;
     case 'yesno':   
       window.returnValue=msg;
-      this.options=a.slice(2);
       window.action('util.../dhtml/ryyesno.htm');
-/*
       switch(window.returnValue){
        case 'yes':
       	window.action(a[2]);
@@ -88,8 +84,11 @@ Info.prototype.action=function(c,prm){
       	window.action(a[3]);
         return true;
       }
-*/
-      return;
+      return false;
+    case 'yesnocancel':   
+      window.returnValue=msg;
+      window.action('util.../dhtml/ryyesno.htm');
+      return true;
     default:
       //alert(c + ' for INFO not implemented yet!');
       alert(window.action('info.get|HTM20||'+c+'|INFO')); //ok

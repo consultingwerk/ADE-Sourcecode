@@ -26,7 +26,7 @@ Date Created: 02/04/92
                              table properties.
           05/24/2005 Added GO trigger and changed choose trigger to s_btn_cancel in dbprops
           06/08/2006 fernando Added trigger for s_btn_toint64 - support for int64
-	      
+          10/29/2020 tmasood  Added default area support	      
 ----------------------------------------------------------------------------*/
 define variable AreaList as character no-undo.
 define variable lNoArea as logical no-undo.
@@ -268,7 +268,7 @@ do:
     end.
     else do:
 	     /*cannot change area of index */
-        run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame idxprops, output cAreaList).
+        run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame idxprops,"Index", output cAreaList).
         assign
             s_Idx_Area:list-items in frame idxprops = cAreaList
             s_Idx_Area:screen-value in frame idxprops = s_Idx_Area

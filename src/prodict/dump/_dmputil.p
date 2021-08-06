@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,6 +27,7 @@ Date Created: 10/04/99
               09/16/05 kmcintos  Fixed problems with determining if fields 
                                  are members of an index 20040402-004.
               07/12/11 rkamboj   Fixed no record found issue for _Area.
+              12/18/20 tmasood   Dump the data to correct stream.
 -----------------------------------------------------------------------------*/
 
 
@@ -37,6 +38,7 @@ routine-level on error undo, throw.
 /*------------------------ D E C L A R A T I O N S --------------------------*/
 
 { prodict/dump/dumpvars.i SHARED }
+{ prodict/user/uservar.i }
 
 DEFINE TEMP-TABLE ttRenameTable                   /* 02/01/29 vap (IZ# 1525) */
   FIELD RenameFrom LIKE DICTDB._Field._Field-Name COLUMN-LABEL "From":U
@@ -316,7 +318,7 @@ PROCEDURE Check_Index_Conflict:
          cnt = RANDOM(10000,99999).
       END.
       tempname = tempname + STRING(cnt).
-      PUT STREAM ddl UNFORMATTED
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED
         'RENAME INDEX "' index-alt.i1-name
         '" TO "' tempname
         '" ON "' p_db1-file-name '"' SKIP(1).

@@ -1,6 +1,6 @@
   FIELD user_obj LIKE gsm_user.user_obj VALIDATE ~
   FIELD confirm_password AS CHARACTER FORMAT "x(35)" LABEL "Confirm Password"~
-  FIELD c_profile_user AS CHARACTER FORMAT "x(15)" LABEL "Based on Profile"~
+  FIELD c_profile_user AS CHARACTER FORMAT "x(15)" LABEL "Profile User"~
   FIELD fmt_user_create_time AS CHARACTER FORMAT "x(8)" LABEL "User Creation Time"~
   FIELD fmt_user_login_time AS CHARACTER FORMAT "x(8)" LABEL "Last Login Time"~
   FIELD fmt_password_fail_time AS CHARACTER FORMAT "x(8)" LABEL "Password Fail Time"~
@@ -36,5 +36,4 @@
   FIELD maintain_system_data LIKE gsm_user.maintain_system_data~
   FIELD default_login_company_obj LIKE gsm_user.default_login_company_obj VALIDATE ~
   FIELD user_email_address LIKE gsm_user.user_email_address~
-  FIELD development_user LIKE gsm_user.development_user~
-  FIELD oldPasswordExpiryDate AS DATE FORMAT "99/99/9999"
+  FIELD development_user LIKE gsm_user.development_user

@@ -74,7 +74,9 @@ DEFINE INPUT  PARAMETER pcResultCode                    AS CHARACTER            
 DEFINE INPUT  PARAMETER pdLanguageObj                   AS DECIMAL              NO-UNDO.
 DEFINE INPUT  PARAMETER pcRunAttribute                  AS CHARACTER            NO-UNDO.
 DEFINE INPUT  PARAMETER plDesignMode                    AS LOGICAL              NO-UNDO.
-DEFINE OUTPUT PARAMETER TABLE-HANDLE phObjectsToFetchBuffer.
+
+DEFINE VARIABLE giRandomGuarantor               AS INTEGER                      NO-UNDO.
+DEFINE VARIABLE gcCurrentLogicalName            AS CHARACTER                    NO-UNDO.
 
 /* Temp-table definitions for object tables, which take into account customisation */
 { ry/app/ryobjretri.i }
@@ -87,7 +89,7 @@ DEFINE OUTPUT PARAMETER TABLE-HANDLE phObjectsToFetchBuffer.
  *  denote mapped fields: the attribute name on the left is the mapped to the
  *  attribute name on the right in the SDF.
  *  ----------------------------------------------------------------------- **/
-&SCOPED-DEFINE AUTO-ATTACH-KEEP-ATTRIBS FieldName,WidgetName=FieldName,Name=FieldName,ROW,COLUMN,Order,InitialValue,ENABLED=EnableField,DisplayField,TableName,Name=ObjectName,ObjectName
+&SCOPED-DEFINE AUTO-ATTACH-KEEP-ATTRIBS FieldName,WidgetName=FieldName,Name=FieldName,ROW,COLUMN,Order,InitialValue,ENABLED=EnableField,DisplayField,TableName
 
 /* Defines the NO-RESULT-CODE and DEFAULT-RESULT-CODE result codes. */
 { ry/app/rydefrescd.i }
@@ -102,8 +104,7 @@ DEFINE OUTPUT PARAMETER TABLE-HANDLE phObjectsToFetchBuffer.
  *  the contained information can be derived from the attributes for the 
  *  object itself, rather that relying on the contained instances to do so.
  *  ----------------------------------------------------------------------- **/
-DEFINE VARIABLE gcClassIgnoreContainedInstances             AS CHARACTER        NO-UNDO
-    INITIAL "SDO,DynBrow":U.
+&GLOBAL-DEFINE CLASS-IGNORE-CONTAINED-INSTANCES DynSDO,SDO,DynBrow
 
 /** The TT stores the names of the objects to retrieve. Treeview obejcts and
  *  contained containers will have thier names placed in this TT for later
@@ -113,11 +114,8 @@ DEFINE VARIABLE gcClassIgnoreContainedInstances             AS CHARACTER        
  *  ----------------------------------------------------------------------- **/
 DEFINE TEMP-TABLE ttObjectsToFetch      NO-UNDO
     FIELD tLogicalObjectName        AS CHARACTER
-    FIELD tObjectRetrieved          AS LOGICAL          INITIAL NO
     INDEX idxMain
         tLogicalObjectName
-    INDEX ixdCreated
-        tObjectRetrieved
     .
 
 /* _UIB-CODE-BLOCK-END */
@@ -139,19 +137,6 @@ DEFINE TEMP-TABLE ttObjectsToFetch      NO-UNDO
 
 /* ************************  Function Prototypes ********************** */
 
-&IF DEFINED(EXCLUDE-addObjectProcedures) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD addObjectProcedures Procedure 
-FUNCTION addObjectProcedures RETURNS LOGICAL
-    ( INPUT pdInstanceId        AS DECIMAL,
-      INPUT phAttributeBuffer   AS HANDLE,
-      INPUT plStaticObject      AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
 &IF DEFINED(EXCLUDE-cascadeAttributes) = 0 &THEN
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD cascadeAttributes Procedure 
@@ -172,18 +157,6 @@ FUNCTION cascadeUiEvents RETURNS LOGICAL
     ( INPUT pcClassName             AS CHARACTER,
       INPUT pdFromIdentifier        AS DECIMAL,
       INPUT pdToIdentifier          AS DECIMAL      )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-cleanupBuildObjectRecords) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD cleanupBuildObjectRecords Procedure 
-FUNCTION cleanupBuildObjectRecords RETURNS LOGICAL
-    ( INPUT pcResultCode        AS CHARACTER,
-      INPUT pcOldResultCode     AS CHARACTER  )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -277,59 +250,13 @@ FUNCTION ignoreContainedInstances RETURNS LOGICAL
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
 
-/* ***************************  Main Block  *************************** */        
+/* ***************************  Main Block  *************************** */    
     DEFINE VARIABLE hObjectBuffer               AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hPageBuffer                 AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hPageInstanceBuffer         AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hLinkBuffer                 AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hUiEventBuffer              AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE cSessionParam               AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE cSetCiciAlready             AS CHARACTER            NO-UNDO.
 
-    DEFINE BUFFER unfetchedObjectsToFetch   FOR ttObjectsToFetch.
-
-    /* Make sure that there's a unique value for the TT object IDs. */
-    IF gsdTempUniqueId EQ 0 OR gsdTempUniqueId EQ ? THEN
-        RUN seedTempUniqueID IN gshSessionManager.
-    
-    /* Get any updates and/or overrides from the Session param table.
-     * The parameter used to check for updates is purely internal. It should only be set
-     * by this procedure. "CiCi" = "ClassIgnoreContainedInstances"                      */
-    ASSIGN cSetCiciAlready = DYNAMIC-FUNCTION("getSessionParam":U IN TARGET-PROCEDURE,
-                                              INPUT "CiciSetAlready":U).
-
-    ASSIGN cSessionParam = DYNAMIC-FUNCTION("getSessionParam":U IN TARGET-PROCEDURE,
-                                            INPUT "ClassIgnoreContainedInstances":U).
-
-    /* We only want to set this parameter once, otherwise the parameter will grow and grow. */
-    IF cSetCiciAlready NE "YES":U THEN
-    DO:
-        IF cSessionParam EQ ? THEN
-            ASSIGN cSessionParam = "":U.
-
-        /* Get rid of the hard-coded stuff.
-         * Do this to prevent the hard-coded classes being added continually.
-         * The method used prevents having to loop through all of the stored values. */
-        ASSIGN cSessionParam = REPLACE(cSessionParam, gcClassIgnoreContainedInstances, "":U).
-
-        /* Now add the hard-coded stuff and make sure that we get rid of any extra commas. */
-        ASSIGN gcClassIgnoreContainedInstances = gcClassIgnoreContainedInstances + ",":U + cSessionParam
-               gcClassIgnoreContainedInstances = REPLACE(gcClassIgnoreContainedInstances, ",,":U, ",":U)
-               gcClassIgnoreContainedInstances = TRIM(gcClassIgnoreContainedInstances, ",":U).
-
-        /* Set the complete list of session parameters. */
-        DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE,
-                         INPUT "ClassIgnoreContainedInstances":U,
-                         INPUT gcClassIgnoreContainedInstances    ).
-
-        /* Remember that we've done this. */
-        DYNAMIC-FUNCTION("setSessionParam":U IN TARGET-PROCEDURE,
-                         INPUT "CiciSetAlready":U,
-                         INPUT STRING(YES)          ).
-    END.    /* there are values stored. */
-    ELSE
-        ASSIGN gcClassIgnoreContainedInstances = cSessionParam.
-    
     /* Ensure that we always attempt to retrieve the  default object(s) */
     RUN resolveResultCodes IN gshRepositoryManager ( INPUT plDesignMode, INPUT-OUTPUT pcResultCode ) NO-ERROR.
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
@@ -338,60 +265,51 @@ FUNCTION ignoreContainedInstances RETURNS LOGICAL
      * objects to be returned. Once the object has been constructed as it should be,
      * then the contents are returned and will be used to populate the cache_Object* 
      * temp-tables.                                                                  */
+    EMPTY TEMP-TABLE build_Object.
+    EMPTY TEMP-TABLE build_ObjectPage.
+    EMPTY TEMP-TABLE build_ObjectPageInstance.
+    EMPTY TEMP-TABLE build_ObjectLink.
+    EMPTY TEMP-TABLE build_ObjectUiEvent.
+
+    /* This TT keeps a list of the objects to fetch. */
+    EMPTY TEMP-TABLE ttObjectsToFetch.
 
     /* Create a record for the requested object. */
-    CREATE unfetchedObjectsToFetch.
-    ASSIGN unfetchedObjectsToFetch.tLogicalObjectName = pcLogicalObjectName.
+    /* Create all the objects records for the requested object, unaggregated. */
+    RUN retrieveAllResults ( INPUT pcLogicalObjectName, INPUT pcResultCode, INPUT plDesignMode ) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
 
-    /** Fetch any unfetched objects. There will be at least one of these, the
-     *  pcLogicalObjectName object.
-     *  We get into this loop because we may fetch objects that themselves require
-     *  subsidiary objects to be fetched. We repeat here until there are no more
-     *  objects requiring retrieval.
-     *  ----------------------------------------------------------------------- **/
-    FIND FIRST unfetchedObjectsToFetch WHERE
-               unfetchedObjectsToFetch.tObjectRetrieved = NO
-               NO-ERROR.
+    /* Retrieve all tree objects. */
+    FOR EACH ttObjectsToFetch:
+        RUN retrieveAllResults ( INPUT ttObjectsToFetch.tLogicalObjectName, INPUT pcResultCode, INPUT plDesignMode ) NO-ERROR.
+        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+    END.    /* each ttobjects to fetch */
 
-    DO WHILE AVAILABLE unfetchedObjectsToFetch:
-        FOR EACH ttObjectsToFetch WHERE
-                 ttObjectsToFetch .tObjectRetrieved = NO:
-            /* Set the fetched flag to YES. If this fetch fails, then we are going
-             * to bomb this retrieval anyway so we don't really care. We must set this
-             * value here because the retrieveAllResults() call may itself create objects
-             * for retrieval.                                                            */
-            ASSIGN ttObjectsToFetch.tObjectRetrieved = YES.
-
-            RUN retrieveAllResults IN TARGET-PROCEDURE (INPUT ttObjectsToFetch.tLogicalObjectName,
-                                                        INPUT pcResultCode,
-                                                        INPUT plDesignMode          ) NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
-        END.    /* each ttobjects to fetch */
-
-        /* Check if there are any more unfetched objects. */
-        FIND FIRST unfetchedObjectsToFetch WHERE
-                   unfetchedObjectsToFetch.tObjectRetrieved = NO
-                   NO-ERROR.
-    END.    /* unfetched objects */
-
+    ASSIGN hObjectBuffer       = BUFFER build_Object:HANDLE
+           hPageBuffer         = BUFFER build_ObjectPage:HANDLE
+           hPageInstanceBuffer = BUFFER build_ObjectPageInstance:HANDLE           
+           hLinkBuffer         = BUFFER build_ObjectLink:HANDLE
+           hUiEventBuffer      = BUFFER build_ObjectUiEvent:HANDLE
+           .
     /* In design mode we deal with an object per result code, and not
      * consolidations of result codes. We also want the unsecured, untranslated 
      * object.                                                                  */
     IF NOT plDesignMode THEN
     DO:
-        RUN customizeObjectByResult IN TARGET-PROCEDURE (INPUT pcLogicalObjectName, INPUT pcResultCode) NO-ERROR.
+        RUN customizeObjectByResult (INPUT pcLogicalObjectName, INPUT pcResultCode ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.    /* Runtime mode */
 
     /* Set the remaining key values. We need to do this to
      * make sure that the cache is populated properly.    
-     * The records that are in this temp-table are those that need
-     * to go into the cache. Customisaton has already been 
+     * The recorsd that are in this temp-table are those that need
+     * to go into the cache. Cusstomisaton has already been 
      * applied to them, if necessary.                             */
     FOR EACH build_Object:        
         ASSIGN build_Object.tUserObj      = pdUserObj
                build_Object.tRunAttribute = pcRunAttribute
-               build_Object.tLanguageObj  = pdLanguageObj.
+               build_Object.tLanguageObj  = pdLanguageObj
+               .
     END.    /* each buildObject */
 
     /* Now put the objects that we have retrieved into the cache.
@@ -404,12 +322,6 @@ FUNCTION ignoreContainedInstances RETURNS LOGICAL
      * the dynamic viewer's validateClassData procedure launches an SDO which
      * we will already have retrieved above. We do not want to have to 
      * retrieve this again.                                                    */
-    ASSIGN hObjectBuffer       = BUFFER build_Object:HANDLE
-           hPageBuffer         = BUFFER build_ObjectPage:HANDLE
-           hPageInstanceBuffer = BUFFER build_ObjectPageInstance:HANDLE           
-           hLinkBuffer         = BUFFER build_ObjectLink:HANDLE
-           hUiEventBuffer      = BUFFER build_ObjectUiEvent:HANDLE.
-
     RUN putObjectInCache IN gshRepositoryManager ( INPUT hObjectBuffer,
                                                    INPUT hPageBuffer,
                                                    INPUT hPageInstanceBuffer,
@@ -423,29 +335,20 @@ FUNCTION ignoreContainedInstances RETURNS LOGICAL
     DO:
         /* Translations and security are done on a per-user basis. 
          * Any other customisations, like popups, are also handled here. */
-        RUN customizeObjectByOther IN TARGET-PROCEDURE (INPUT pcLogicalObjectName,
-                                                        INPUT pcResultCode,
-                                                        INPUT pdUserObj,
-                                                        INPUT pcRunAttribute,
-                                                        INPUT pdLanguageObj            ) NO-ERROR.
+        RUN customizeObjectByOther ( INPUT pcLogicalObjectName,
+                                     INPUT pcResultCode,
+                                     INPUT pdUserObj,
+                                     INPUT pcRunAttribute,
+                                     INPUT pdLanguageObj            ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.    /* not in design mode */
-
-    /* Return this handle so that an AppServer request knows which records to return to 
-     * the client-side cache. If this request is made locally - not across an AppServer, 
-     * then this is not necessary and we don't return the handle.                        */
-    IF PROGRAM-NAME(2) BEGINS "serverFetchObject":U THEN
-        ASSIGN phObjectsToFetchBuffer = TEMP-TABLE ttObjectsToFetch:HANDLE.
-    ELSE
-        ASSIGN phObjectsToFetchBuffer = ?.
 
     ASSIGN hObjectBuffer       = ?
            hPageBuffer         = ?
            hPageInstanceBuffer = ?
            hLinkBuffer         = ?
-           hUiEventBuffer      = ?
-           NO-ERROR.
-
+           hUiEventBuffer      = ?           
+           .
     RETURN.
 /* EOF */
 
@@ -463,7 +366,7 @@ PROCEDURE autoAttachSdf :
   Purpose:     Auto attaches a SmartDataFIeld (dynamic or static) to a field.
   Parameters:  pcSdfFilename      -
                pdRecordIdentifier -
-               pdResultObj        -
+               pdResultObj        -  
   Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER pcSdfFilename        AS CHARACTER            NO-UNDO.
@@ -484,7 +387,6 @@ PROCEDURE autoAttachSdf :
     DEFINE BUFFER rycso                 FOR ryc_smartObject.
     DEFINE BUFFER rycso_SDO             FOR ryc_smartObject.
     DEFINE BUFFER rycso_super           FOR ryc_smartObject.
-    DEFINE BUFFER rycso_render          FOR ryc_smartObject.
     DEFINE BUFFER gscot                 FOR gsc_object_type.
 
     FIND FIRST build_Object WHERE build_Object.tRecordIdentifier = pdRecordIdentifier.
@@ -504,11 +406,13 @@ PROCEDURE autoAttachSdf :
 
     IF NOT AVAILABLE rycso THEN
         RETURN ERROR {aferrortxt.i 'RY' '01' 'rycso' 'object_filename' pcSdfFileName pdResultObj}.
-
-    FIND FIRST gsc_product_module WHERE
-               gsc_product_module.product_module_obj = rycso.product_module_obj
-               NO-LOCK NO-ERROR.
     
+    ASSIGN build_Object.tObjectPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                 INPUT rycso.object_filename,
+                                                                 INPUT rycso.object_path,
+                                                                 INPUT rycso.object_extension,
+                                                                 INPUT rycso.static_object,
+                                                                 INPUT (IF NOT rycso.static_object THEN rycso.physical_smartObject_obj ELSE 0)).
 
     /** We need to find the attributes for the AutoAttached SDF and poiint the 
      *  build_Object.tClassBufferHandle and tClassTableName at the new 
@@ -525,12 +429,10 @@ PROCEDURE autoAttachSdf :
         RETURN ERROR {aferrortxt.i 'RY' '01' '?' '?' "'Cached Class ' + gscot.object_type_code "}.
 
     /* Associate the SDF attribute buffer with the object in place of the original. */
-    ASSIGN hAttributeBuffer                  = hClassCacheBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE
-           build_Object.tClassName           = gscot.object_type_code
-           build_Object.tClassTableName      = hAttributeBuffer:NAME
-           build_Object.tClassBufferHandle   = hAttributeBuffer
-           build_Object.tInheritsFromClasses = hAttributeBuffer:BUFFER-FIELD("tInheritsFromClasses":U):INITIAL
-           build_Object.tProductModuleCode   = gsc_product_module.product_module_code
+    ASSIGN hAttributeBuffer                = hClassCacheBuffer:BUFFER-FIELD("classBufferHandle":U):BUFFER-VALUE
+           build_Object.tClassName         = gscot.object_type_code
+           build_Object.tClassTableName    = hAttributeBuffer:NAME
+           build_Object.tClassBufferHandle = hAttributeBuffer
            .
     ASSIGN lHasSuperProcedureAttribute = VALID-HANDLE(hAttributeBuffer:BUFFER-FIELD("customSuperProc":U)) NO-ERROR.
 
@@ -570,11 +472,12 @@ PROCEDURE autoAttachSdf :
 
         IF NUM-ENTRIES(cFieldName, "=":U) EQ 2 THEN
             ASSIGN cSourceFieldName = ENTRY(1, cFieldName, "=":U)
-                   cTargetFieldName = ENTRY(2, cFieldName, "=":U).
+                   cTargetFieldName = ENTRY(2, cFieldName, "=":U)
+                   .
         ELSE
             ASSIGN cSourceFieldName = cFieldName
-                   cTargetFieldName = cFieldName.
-
+                   cTargetFieldName = cFieldName
+                   .
         ASSIGN hField[1] = hOldClassAttributeBuffer:BUFFER-FIELD(cSourceFieldName)
                hField[2] = hAttributeBuffer:BUFFER-FIELD(cTargetFieldName)
                NO-ERROR.
@@ -586,17 +489,37 @@ PROCEDURE autoAttachSdf :
     hOldClassAttributeBuffer:BUFFER-DELETE().
     hOldClassAttributeBuffer:BUFFER-RELEASE().
 
-    /* Resolve the procedures that are stored as attributes into 
-     * relatively pathed values in the build_Object table.        */
-    DYNAMIC-FUNCTION("addObjectProcedures":U IN TARGET-PROCEDURE,
-                     INPUT build_Object.tRecordIdentifier,
-                     INPUT hAttributeBuffer,
-                     INPUT rycso.static_object ).
+    FIND FIRST rycso_super WHERE
+               rycso_super.smartObject_obj = rycso.custom_smartObject_obj
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE rycso_super THEN
+    DO:    
+        ASSIGN build_Object.tCustomSuperProcedure = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                     INPUT rycso_super.object_filename,
+                                                                     INPUT rycso_super.object_path,
+                                                                     INPUT rycso_super.object_extension,
+                                                                     INPUT rycso_super.static_object,
+                                                                     INPUT (IF NOT rycso_super.static_object THEN rycso_super.physical_smartObject_obj ELSE 0)).
+        /* SmartDataFields need the super procedure in attribute form. */
+        IF lHasSuperProcedureAttribute THEN
+        DO:
+            hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier) ) NO-ERROR.
+            ASSIGN hAttributeBuffer:BUFFER-FIELD("CustomSuperProc":U):BUFFER-VALUE = build_Object.tCustomSuperProcedure.
+        END.    /* update super proc attribute. */
+    END.    /* super procedure exists */
 
-    /* Update the SDO fields. */
-    ASSIGN build_Object.tSdoSmartObjectObj = rycso.sdo_smartObject_obj
-           build_Object.tSdoPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
-                                                              INPUT rycso.sdo_smartObject_obj).
+    /* Design-time SDO details */
+    FIND FIRST rycso_SDO WHERE
+               rycso_SDO.smartObject_obj = rycso.sdo_smartObject_obj
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE rycso_SDO THEN
+        ASSIGN build_Object.tSdoSmartObjectObj = rycso_SDO.smartObject_obj
+               build_Object.tSdoPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                  INPUT rycso_SDO.object_filename,
+                                                                  INPUT rycso_SDO.object_path,
+                                                                  INPUT rycso_SDO.object_extension,
+                                                                  INPUT rycso_SDO.static_object,
+                                                                  INPUT (IF NOT rycso_SDO.static_object THEN rycso_SDO.physical_smartObject_obj ELSE 0)).
 
     ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
@@ -620,9 +543,6 @@ PROCEDURE customizeObjectByOther :
                pcRunAttribute      -
                pdLanguageObj       -
   Notes:       * This procedure will typically run on the server.
-               * Any recursive calls must be made by the validateClassData() 
-                 call made here. Those calls will ensure that the instances
-                 are correct.
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER pcLogicalObjectName          AS CHARACTER    NO-UNDO.
     DEFINE INPUT PARAMETER pcResultCode                 AS CHARACTER    NO-UNDO.
@@ -635,33 +555,54 @@ PROCEDURE customizeObjectByOther :
     DEFINE VARIABLE hSourceBuffer               AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hClassObject                AS HANDLE               NO-UNDO.
     DEFINE VARIABLE hClassCacheBuffer           AS HANDLE               NO-UNDO.
-
-    DEFINE BUFFER build_Object              FOR build_Object.
     
     /* Each Class has a different set of actions to perform.
-     * We only use the build_Object records here to determine what objects to perform the 
-     * validateClassData procedure on.
+     * A buffer is passed in to the validateClass procedure since
+     * we are always running onthe same session.
      *
-     * Don't include instances here. They will be catered for by their containers. So
-     * the viewer instances on a container will be handled by the validateClassData()
-     * that is run in rydyncntcp.p                                                         */
-    FOR EACH build_Object WHERE build_Object.tContainerRecordIdentifier EQ 0 :
+     * We pass the cache_Object buffer in since we will be updating the cache records
+     * We only use the build_Object records here to determine what objects to perform the 
+     * validateClassData procedure on.                                                    */
+    ASSIGN hSourceBuffer     = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?)
+           hClassCacheBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, INPUT ?)
+           .
+    FOR EACH build_Object:
 
-        ASSIGN hClassObject = DYNAMIC-FUNCTION("launchClassObject":U IN gshRepositoryManager, INPUT build_Object.tClassName).
-
-        IF VALID-HANDLE(hClassObject) AND LOOKUP("validateClassData":U, hClassObject:INTERNAL-ENTRIES) GT 0 THEN
+        /* Validate the object?
+         * This procedure is only run once per object, regardless of whether it is the master or instance record.
+         * It is the responsibility of the validateClassData() procedure to ensure that the master and/or
+         * the instance record is updated correctly.                                                             */
+        IF NOT CAN-DO(cObjectsDone, build_Object.tLogicalObjectName) THEN
         DO:
-            RUN validateClassData IN hClassObject ( INPUT build_Object.tLogicalObjectName,
-                                                    INPUT pcResultCode,
-                                                    INPUT pdUserObj,
-                                                    INPUT pcRunAttribute,
-                                                    INPUT pdLanguageObj ,
-                                                    INPUT 0                     ) NO-ERROR.
-            IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
-        END.    /* can run validateClassData(). */
-    END.    /* each build_Object */
+            /* Validate the class.
+             * This makes sure that the data being returned has a certain form,
+             * and further data validation may be performed on it.             */
+            hClassCacheBuffer:FIND-FIRST(" WHERE ":U + hClassCacheBuffer:NAME + ".classTableName = ":U + QUOTER(build_Object.tClassTableName)).
+            IF hClassCacheBuffer:BUFFER-FIELD("classObjectName":U):BUFFER-VALUE GT "":U THEN
+            DO:
+                /* Use the launchProcedure API since this will allow us to laucnh the procedure once, and use it many times. */
+                RUN launchProcedure IN gshSessionManager ( INPUT  hClassCacheBuffer:BUFFER-FIELD("classObjectName":U):BUFFER-VALUE, /* pcPhysicalName */
+                                                           INPUT  YES,                              /* plOnceOnly */
+                                                           INPUT  NO,                               /* pcOnAppserver */
+                                                           INPUT  "":U,                             /* pcAppserverPartition */
+                                                           INPUT  YES,                              /* plRunPermanent */
+                                                           OUTPUT hClassObject ) NO-ERROR.
+                IF VALID-HANDLE(hClassObject) AND LOOKUP("validateClassData":U, hClassObject:INTERNAL-ENTRIES) GT 0 THEN
+                DO:
+                    RUN validateClassData IN hClassObject ( INPUT hSourceBuffer,
+                                                            INPUT build_Object.tLogicalObjectName,
+                                                            INPUT pcResultCode,
+                                                            INPUT pdUserObj,
+                                                            INPUT pcRunAttribute,
+                                                            INPUT pdLanguageObj                              ) NO-ERROR.
+                    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.                    
+                END.    /* can run validateClassData(). */
+            END.    /* there is a class object name */
 
-    ASSIGN ERROR-STATUS:ERROR = NO.
+            ASSIGN cObjectsDone = cObjectsDone + build_Object.tLogicalObjectName + ",":U.
+        END.    /* has the class already been validated? */
+    END.    /* each build_Object. */
+
     RETURN.
 END PROCEDURE.  /* customizeObjectByOther */
 
@@ -696,7 +637,6 @@ PROCEDURE customizeObjectByResult :
     DEFINE VARIABLE cResultCode                     AS CHARACTER        NO-UNDO.
     DEFINE VARIABLE cProcessedResultCodes           AS CHARACTER        NO-UNDO.
     DEFINE VARIABLE cOldResultCode                  AS CHARACTER        NO-UNDO.
-    DEFINE VARIABLE hCacheObjectBuffer              AS HANDLE           NO-UNDO.
     DEFINE VARIABLE hTargetBuffer                   AS HANDLE           NO-UNDO.
     DEFINE VARIABLE hClassCacheBuffer               AS HANDLE           NO-UNDO.
     DEFINE VARIABLE hAttributeBuffer                AS HANDLE           NO-UNDO.
@@ -724,33 +664,33 @@ PROCEDURE customizeObjectByResult :
      *  ----------------------------------------------------------------------- **/
     IF NUM-ENTRIES(pcResultCode) <= 1 THEN
         ASSIGN cOldResultCode = pcResultCode
-               pcResultCode   = pcResultCode + ",DUMMY-RESULT-CODE-FOR-CACHING":U.
-
+               pcResultCode   = pcResultCode + ",DUMMY-RESULT-CODE-FOR-CACHING":U
+               .
     ASSIGN hClassCacheBuffer = DYNAMIC-FUNCTION("getCacheClassBuffer":U IN gshRepositoryManager, INPUT ?).
 
     /* We are going to return customised obejcts which are both MASTER objects
      * and CONTAINER objects. We are also going to return customised objects which
      * DataAware.     
      *
-     * We look through the list of all master objects retrieved. These
-     * are the objects we need to apply customisation to.
-     * This means that the result code we use here is irrelavant, so we use the 
-     * DEFAULT-RESULT-CODE  since we know that this is guaranteed to exist.     */
-    fe-blk:
-    FOR EACH ttObjectsToFetch,
-        EACH lb2Object WHERE
-             lb2Object.tLogicalObjectName = ttObjectsToFetch.tLogicalObjectName AND
-             lb2Object.tResultCode        = "{&DEFAULT-RESULT-CODE}":U          AND
-             lb2Object.tUserObj           = 0 AND 
-             lb2Object.tObjectInstanceObj = 0:
+     * The FOR EACH through the lb2Object records just tells us which 
+     * objects to apply customisation to.
+     * This means that the result code we use here is irrrelavant, so we use the 
+     * DEFAULT-RESULT-CODE  since we know that this is guaranteed to exist.      */
+    FOR EACH lb2Object WHERE
+            (lb2Object.tInstanceIsAContainer = YES OR
+             lb2Object.tDbAware              = YES OR 
+             lb2Object.tLogicalObjectName    = pcLogicalObjectName ) AND
+             lb2Object.tObjectInstanceObj    = 0    AND
+             lb2Object.tUserObj              = 0    AND
+             lb2Object.tResultCode           = "{&DEFAULT-RESULT-CODE}":U :
 
         /* First create the record to be returned. */
         CREATE build_Object.
         BUFFER-COPY lb2Object
-             EXCEPT tClassName tClassTableName tClassBufferHandle tRecordIdentifier tContainerRecordIdentifier
+             EXCEPT lb2Object.tClassName lb2Object.tClassTableName lb2Object.tClassBufferHandle
                  TO build_Object
-             ASSIGN gsdTempUniqueId                = gsdTempUniqueId + 1
-                    dContainerRecordIdentifier      = gsdTempUniqueId
+             ASSIGN giRandomGuarantor               = giRandomGuarantor + 1
+                    dContainerRecordIdentifier      = RANDOM(4,12) * (ETIME + giRandomGuarantor)
                     build_Object.tResultCode        = pcResultCode
                     build_Object.tRecordIdentifier  = dContainerRecordIdentifier
                     build_Object.tClassName         = lb2Object.tClassName
@@ -816,18 +756,13 @@ PROCEDURE customizeObjectByResult :
              * set for that instance as well.  To keep track of where an attribute has been set, and whether we should   *
              * use it, we use the whereStored field.  The attribute with the deepest level will be used. (1 -> 15)       */
 
-
-            /* If this is the first time this loop is run, then copy the contents of the attributes 
-             * to the new buffer. This will ensure that all the values are set corectly, and can be 
-             * overridden.                                                                            */
-            IF iResultLoop EQ NUM-ENTRIES(pcResultCode) OR NUM-ENTRIES(cOldResultCode) EQ 1 THEN
-                hTargetBuffer:BUFFER-COPY(lbObject.tClassBufferHandle, "tRecordIdentifier":U).            
+            IF NUM-ENTRIES(cOldResultCode) = 1 /* If we only have one session result code, just buffer copy the attributes */
+            THEN DO:
+                hTargetBuffer:BUFFER-COPY(lbObject.tClassBufferHandle, "tRecordIdentifier":U).
+            END.
             ELSE
                 do-blk:
                 DO iFieldLoop = 1 TO hTargetBuffer:NUM-FIELDS:
-                    /* Skip the system fields like tWhereStored, tRecordIdentifier etc. */
-                    IF CAN-DO(lbObject.tClassBufferHandle:BUFFER-FIELD("tSystemList":U):BUFFER-VALUE, STRING(iFieldLoop) ) THEN
-                        NEXT do-blk.
 
                     ASSIGN iWhereStoredOnCustomisation = INTEGER(ENTRY(iFieldLoop, lbObject.tClassBufferHandle:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE)) NO-ERROR.
                     IF iWhereStoredOnCustomisation = 1 THEN NEXT do-blk. /* Attribute still set to the class default, skip it */
@@ -837,6 +772,7 @@ PROCEDURE customizeObjectByResult :
                      * in which case iWhereStoredOnCustomisation will be > 8 already, and this attribute has been overwritten at the master *
                      * or master instance level, then we're going to use this attribute, and we need to add 8 to it's stored where level to *
                      * indicate it was set from a customisation. ({&STORED-AT-CUSTOMIZATION} = 8)                                           */
+
                     IF cResultCode NE "{&DEFAULT-RESULT-CODE}":U
                     AND iWhereStoredOnCustomisation LT {&STORED-AT-CUSTOMIZATION} /* If this is a customised attribute, don't add {&STORED-AT-CUSTOMIZATION} again */
                     AND (iWhereStoredOnCustomisation = ({&STORED-AT-CLASS} + {&STORED-AT-MASTER}) 
@@ -845,7 +781,7 @@ PROCEDURE customizeObjectByResult :
 
                     /* If the attribute has been customised for this result code, and it has not been customised on a higher level, copy it */
 
-                    IF iWhereStoredOnCustomisation >= iWhereStoredOnTarget THEN /* If the level is deeper on the customisation, use it */
+                    IF iWhereStoredOnCustomisation > iWhereStoredOnTarget THEN /* If the level is deeper on the customisation, use it */
                         ASSIGN cWhereStored                                              = hTargetBuffer:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE
                                ENTRY(iFieldLoop, cWhereStored)                           = STRING(iWhereStoredOnCustomisation)
                                hTargetBuffer:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE = cWhereStored
@@ -884,12 +820,13 @@ PROCEDURE customizeObjectByResult :
                 DO:
                     CREATE build_Object.
                     BUFFER-COPY lbObject EXCEPT tContainerRecordIdentifier tRecordIdentifier tResultCode TO build_Object.
-                    ASSIGN gsdTempUniqueId                         = gsdTempUniqueId + 1
-                           dRecordIdentifier                       = gsdTempUniqueId
+                    ASSIGN giRandomGuarantor                       = giRandomGuarantor + 1
+                           dRecordIdentifier                       = RANDOM(4,12) * (ETIME + giRandomGuarantor)
                            build_Object.tResultCode                = pcResultCode
                            build_Object.tRecordIdentifier          = dRecordIdentifier
                            build_Object.tContainerRecordIdentifier = dContainerRecordIdentifier
-                           build_Object.tClassBufferHandle         = lbObject.tClassBufferHandle.
+                           build_Object.tClassBufferHandle         = lbObject.tClassBufferHandle
+                           .
 
                     /* Remember to populate the where stored field with default values */
                     build_Object.tClassBufferHandle:BUFFER-CREATE().
@@ -931,11 +868,10 @@ PROCEDURE customizeObjectByResult :
                  * set for that instance as well.  To keep track of where an attribute has been set, and whether we should   *
                  * use it, we use the whereStored field.  The attribute with the deepest level will be used. (1 -> 15)       */
 
-                /* If this is the first time this loop is run, then copy the contents of the attributes 
-                 * to the new buffer. This will ensure that all the values are set corectly, and can be 
-                 * overridden.                                                                            */
-                IF iResultLoop EQ NUM-ENTRIES(pcResultCode) OR NUM-ENTRIES(cOldResultCode) EQ 1 THEN
-                    hTargetBuffer:BUFFER-COPY(lbObject.tClassBufferHandle, "tRecordIdentifier":U).                
+                IF NUM-ENTRIES(cOldResultCode) = 1 /* If we only have one session result code, just buffer copy */
+                THEN DO:
+                    hTargetBuffer:BUFFER-COPY(lbObject.tClassBufferHandle, "tRecordIdentifier":U).
+                END.
                 ELSE
                     do-blk:
                     DO iFieldLoop = 1 TO hTargetBuffer:NUM-FIELDS:
@@ -943,8 +879,8 @@ PROCEDURE customizeObjectByResult :
                          * use after the merged container has been constructed.  You'll see the cFolderLabels variable is built *
                          * in the page loop below, this is what we're going to set this attribute to.  Don't process it here at all. */
 
-                        /* Skip the system fields like tWhereStored, tRecordIdentifier etc. */
-                        IF CAN-DO(lbObject.tClassBufferHandle:BUFFER-FIELD("tSystemList":U):BUFFER-VALUE, STRING(iFieldLoop) ) THEN
+                        IF lbObject.tClassBufferHandle:BUFFER-FIELD(iFieldLoop):NAME = "tRecordIdentifier":U
+                        OR lbObject.tClassBufferHandle:BUFFER-FIELD(iFieldLoop):NAME = "tWhereStored":U THEN
                             NEXT do-blk.
 
                         ASSIGN iWhereStoredOnCustomisation = INTEGER(ENTRY(iFieldLoop, lbObject.tClassBufferHandle:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE)) NO-ERROR.
@@ -964,7 +900,7 @@ PROCEDURE customizeObjectByResult :
     
                         /* If the attribute has been customised for this result code, and it has not been customised on a higher level, copy it */
 
-                        IF iWhereStoredOnCustomisation >= iWhereStoredOnTarget THEN /* If the level is deeper on the customisation, use it */
+                        IF iWhereStoredOnCustomisation > iWhereStoredOnTarget THEN /* If the level is deeper on the customisation, use it */
                             ASSIGN cWhereStored                                              = hTargetBuffer:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE
                                    ENTRY(iFieldLoop, cWhereStored)                           = STRING(iWhereStoredOnCustomisation)
                                    hTargetBuffer:BUFFER-FIELD("tWhereStored":U):BUFFER-VALUE = cWhereStored
@@ -996,7 +932,7 @@ PROCEDURE customizeObjectByResult :
             FOR EACH lbObjectPage WHERE lbObjectPage.tRecordIdentifier = dOldContainerRecordIdentifier:
 
                 FIND FIRST build_ObjectPage WHERE
-                           build_ObjectPage.tPageReference    = lbObjectPage.tPageReference AND
+                           build_ObjectPage.tPageNumber       = lbObjectPage.tPageNumber   AND
                            build_ObjectPage.tRecordIdentifier = dContainerRecordIdentifier 
                            NO-ERROR.
 
@@ -1009,11 +945,12 @@ PROCEDURE customizeObjectByResult :
                     IF build_ObjectPage.tPageNumber <> 0 THEN
                         ASSIGN ENTRY(build_ObjectPage.tPageNumber, cFolderLabels, "|":U) = build_ObjectPage.tPageLabel.
                 END.
-                ELSE DO:
-                    BUFFER-COPY lbObjectPage EXCEPT tRecordIdentifier TO build_ObjectPage.
+                ELSE
+                DO:
+                  BUFFER-COPY lbObjectPage EXCEPT tRecordIdentifier TO build_ObjectPage.
 
-                    IF build_ObjectPage.tPageNumber <> 0 THEN
-                        ENTRY(build_ObjectPage.tPageNumber, cFolderLabels, "|":U) = lbObjectPage.tPageLabel.
+                  IF build_ObjectPage.tPageNumber <> 0 THEN
+                    ENTRY(build_ObjectPage.tPageNumber, cFolderLabels, "|":U) = lbObjectPage.tPageLabel.
                 END.
             END.    /* Pages */
         END.    /* loop through result codes */
@@ -1048,26 +985,26 @@ PROCEDURE customizeObjectByResult :
         END.
 
         /* Go and set the folderLabels attribute */
-        ASSIGN cFolderLabels = RIGHT-TRIM(cFolderLabels, "|":U).
-        IF cFolderLabels <> "":U THEN
-        fe-blk:
-        FOR EACH build_object WHERE 
-                 build_Object.tContainerRecordIdentifier = dContainerRecordIdentifier AND
-                 CAN-DO(build_Object.tInheritsFromClasses, "SmartFolder":U)              :
-            ASSIGN hStoreFolderClass = build_object.tClassBufferHandle:BUFFER-FIELD("FolderLabels":U) NO-ERROR.
 
-            /* If we could find the folderLabels attribute in the class, we're going to assign it */
-            IF NOT VALID-HANDLE(hStoreFolderClass) THEN
-                NEXT fe-blk.
+        ASSIGN cFolderLabels = RIGHT-TRIM(cFolderLabels,"|":U).
+        IF cFolderLabels <> "":U
+        THEN DO:
+            fe-blk:
+            FOR EACH build_object 
+               WHERE build_object.tResultCode = pcResultCode:
+                ASSIGN hStoreFolderClass = build_object.tClassBufferHandle:BUFFER-FIELD("folderLabels":U) NO-ERROR.
+                /* If we could find the folderLabels attribute in the class, we're going to assign it */
+                IF NOT VALID-HANDLE(hStoreFolderClass) THEN
+                    NEXT fe-blk.
+                build_object.tClassBufferHandle:FIND-FIRST("WHERE tRecordIdentifier = ":U + QUOTER(build_object.tRecordIdentifier)).
 
-            build_Object.tClassBufferHandle:FIND-FIRST(" WHERE ":U + build_Object.tClassBufferHandle:NAME
-                                                       + ".tRecordIdentifier = ":U + QUOTER(build_object.tRecordIdentifier)).
-
-            ASSIGN hStoreFolderClass:BUFFER-VALUE = cFolderLabels.
-        END.    /* there are folder labels */
+                ASSIGN hStoreFolderClass:BUFFER-VALUE = cFolderLabels.
+            END.
+        END.    
     END.    /* each lb2Object with unresolved result codes */
 
     /* Remove any duplicate links, we may have overlaid the same link for multiple result codes */
+
     FOR EACH build_ObjectLink WHERE lbObjectLink.tRecordIdentifier = dContainerRecordIdentifier:
         IF CAN-FIND(FIRST lbObjectLink
                     WHERE lbObjectLink.tRecordIdentifier        = dContainerRecordIdentifier
@@ -1078,12 +1015,61 @@ PROCEDURE customizeObjectByResult :
             DELETE build_ObjectLink.
     END.
     
-    /* Get rid of extra records */
-    DYNAMIC-FUNCTION("cleanupBuildObjectRecords":U IN TARGET-PROCEDURE,
-                     INPUT pcResultCode,
-                     INPUT cOldResultCode ).
+    /** Once we have merged all of the customisations, we delete all the build_Object
+     *  records which are not relevant. At the end of this we should only have one set
+     *  of build_Object* records.
+     *  ----------------------------------------------------------------------- **/
+    FOR EACH build_Object WHERE build_Object.tResultCode <> pcResultCode:
+        /* ObjectPage */
+        FOR EACH build_ObjectPage WHERE build_ObjectPage.tRecordIdentifier = build_Object.tRecordIdentifier:
+            DELETE build_ObjectPage.
+        END.    /* Build_ObjectPage */
 
-    ASSIGN ERROR-STATUS:ERROR = NO.
+        /* ObjectLink */
+        FOR EACH build_ObjectLink WHERE build_ObjectLink.tRecordIdentifier = build_Object.tRecordIdentifier:
+            DELETE build_ObjectLink.
+        END.    /* Build_ObjectLink */
+    
+        /* ObjectUiEvent */
+        FOR EACH build_ObjectUiEvent WHERE build_ObjectUiEvent.tRecordIdentifier = build_Object.tRecordIdentifier:
+            DELETE build_ObjectUiEvent.
+        END.    /* Build_ObjectUiEvent */
+
+        /* Delete the attribute value records */
+        build_Object.tClassBufferHandle:FIND-FIRST(" WHERE ":U + build_Object.tClassBufferHandle:NAME + ".tRecordIdentifier = " + QUOTER(build_Object.tRecordIdentifier) + " ":U) NO-ERROR.
+        IF build_Object.tClassBufferHandle:AVAILABLE THEN
+        DO:        
+            build_Object.tClassBufferHandle:BUFFER-DELETE().
+            build_Object.tClassBufferHandle:BUFFER-RELEASE().
+        END.    /* available record in the attribute TT. */
+
+        DELETE build_Object.
+    END.    /* delete all  build_Objects which are not customised fully. */
+    
+    IF cOldResultCode NE "":U THEN
+    DO:
+        FOR EACH build_Object WHERE
+                 build_Object.tResultCode = pcResultCode:
+            ASSIGN build_Object.tResultCode = cOldResultCode.
+        END.    /* each build-object */
+        ASSIGN pcResultCode = cOldResultCode.
+    END.    /* Old result code not "" */
+
+    /* Update the tMasterRecordIdentifier ID on each contained instance. */
+    FOR EACH build_Object WHERE
+             build_Object.tObjectInstanceObj > 0        AND
+             build_Object.tUserObj           = 0        AND
+             build_Object.tResultCode        = pcResultCode:
+        FIND FIRST lbObject WHERE
+                   lbObject.tLogicalObjectName   = build_Object.tLogicalObjectName AND
+                   lbObject.tObjectInstanceObj   = 0                               AND
+                   lbObject.tUserObj             = build_Object.tUserObj           AND
+                   lbObject.tResultCode          = build_Object.tResultCode
+                   NO-ERROR.
+        IF AVAILABLE lbObject THEN
+            ASSIGN build_Object.tMasterRecordIdentifier = lbObject.tRecordIdentifier.
+    END.    /* update tRecordIdentifier. */
+
     RETURN.
 END PROCEDURE.  /* customizeObjectByResult */
 
@@ -1173,6 +1159,7 @@ PROCEDURE retrieveContainedInstances :
     DEFINE BUFFER build_Object          FOR build_Object.
     DEFINE BUFFER parent_Object         FOR build_Object.
     DEFINE BUFFER lbObject              FOR build_Object.
+    DEFINE BUFFER build_ObjectLink      FOR build_ObjectLink.
     DEFINE BUFFER parent_smartobject    FOR ryc_smartobject.
     DEFINE BUFFER parent_object_type    FOR gsc_object_type.
 
@@ -1203,9 +1190,7 @@ PROCEDURE retrieveContainedInstances :
          *  from the master object to the object instance.
          *  Cache the master object.
          *  ----------------------------------------------------------------------- **/
-        RUN retrieveMasterObject IN TARGET-PROCEDURE ( INPUT ryc_smartObject.smartObject_obj,
-                                                       INPUT plDesignMode,
-                                                       INPUT "":U                            ) NO-ERROR.
+        RUN retrieveMasterObject ( INPUT ryc_smartObject.smartObject_obj, INPUT plDesignMode ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
 
         FIND FIRST lbObject WHERE lbObject.tRecordIdentifier = ryc_smartObject.smartObject_obj NO-ERROR.
@@ -1244,12 +1229,12 @@ PROCEDURE retrieveContainedInstances :
         /* Cascade master attributes to the instance.
          * createAttributeValues will overwrite those
          * attribute which exist on the instance.       */
-        DYNAMIC-FUNCTION("cascadeAttributes":U IN TARGET-PROCEDURE,
+        DYNAMIC-FUNCTION("cascadeAttributes":U,
                          INPUT dMasterRecordIdentifier,
                          INPUT dRecordIdentifier,
                          INPUT hAttributeBuffer       ).
 
-        DYNAMIC-FUNCTION("createAttributeValues":U IN TARGET-PROCEDURE,
+        DYNAMIC-FUNCTION("createAttributeValues":U,
                          INPUT ryc_smartObject.object_filename,
                          INPUT dRecordIdentifier,
                          INPUT hAttributeBuffer,
@@ -1261,12 +1246,12 @@ PROCEDURE retrieveContainedInstances :
         /* Cascade master UI Events to the instance.
          * createUiEvents will overwrite those
          * IUI events which exist on the instance.       */
-        DYNAMIC-FUNCTION("cascadeUiEvents":U IN TARGET-PROCEDURE,
+        DYNAMIC-FUNCTION("cascadeUiEvents":U,
                          INPUT gsc_object_type.object_type_code,
                          INPUT dMasterRecordIdentifier,     /* from ID */
                          INPUT dRecordIdentifier            /* to ID */     ).
 
-        DYNAMIC-FUNCTION("createUiEvents":U IN TARGET-PROCEDURE,
+        DYNAMIC-FUNCTION("createUiEvents":U,
                          INPUT dRecordIdentifier,
                          INPUT build_Object.tClassName,
                          INPUT gsc_object_type.object_type_obj,
@@ -1274,7 +1259,7 @@ PROCEDURE retrieveContainedInstances :
                          INPUT ryc_object_instance.object_instance_obj,
                          INPUT pdContainerSmartObjectObj                ).
 
-        /* Find the attribute buffer record. */
+        /* FInd the attribute buffer record. */
         build_Object.tClassBufferHandle:FIND-FIRST(" WHERE ":U + build_Object.tClassBufferHandle:NAME
                                                    + ".tRecordIdentifier = ":U + QUOTER(dRecordIdentifier)) NO-ERROR.
         /** Set up the default layout positions. 
@@ -1336,13 +1321,23 @@ PROCEDURE retrieveContainedInstances :
 
         /** Page and page instance details.
          *  ----------------------------------------------------------------------- **/
-        IF  ryc_object_instance.page_obj <> 0 
-        AND ryc_object_instance.page_obj <> ? THEN
+        FIND FIRST ryc_page_object WHERE
+                   ryc_page_object.container_smartObject_obj = pdContainerSmartObjectObj      AND
+                   ryc_page_object.object_instance_obj       = build_Object.tObjectInstanceObj
+                   NO-LOCK NO-ERROR.
+        IF AVAILABLE ryc_page_object THEN
         DO:
             FIND FIRST build_ObjectPage WHERE
-                       build_ObjectPage.tPageObj = ryc_object_instance.page_obj
+                       build_ObjectPage.tPageObj = ryc_page_object.page_obj
                        NO-ERROR.
 
+            CREATE build_ObjectLink.
+            ASSIGN build_ObjectLink.tRecordIdentifier        = pdContainerRecordIdentifier
+                   build_ObjectLink.tSourceObjectInstanceObj = 0                        /* The container itself */
+                   build_ObjectLink.tTargetObjectInstanceObj = build_Object.tObjectInstanceObj
+                   build_ObjectLink.tLinkName                = "Page":U + STRING(build_ObjectPage.tPageNumber)
+                   build_ObjectLink.tLinkCreated             = NO
+                   .
             /* Update page number onto object instance and instance layout if required */
             ASSIGN build_Object.tPageNumber = build_ObjectPage.tPageNumber.
 
@@ -1353,33 +1348,6 @@ PROCEDURE retrieveContainedInstances :
                 ASSIGN build_Object.tLayoutPosition = build_Object.tLayoutPosition + ",":U + TRIM(STRING(build_Object.tPageNumber)).
         END.    /* page objects */
         
-        hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME
-                                    + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier)) NO-ERROR.
-
-        /** Set the NAME and ObjectName attributes (if they exist) to the value of the
-         *  object instance name. For object instances inheriting from the Field class,
-         *  set the instance name temporarily to the value of the FieldName. This is to avoid
-         *  problems with dynamic viewers that have been converted from static viewers.
-         *  ----------------------------------------------------------------------- **/
-        IF CAN-DO(build_Object.tInheritsFromClasses, "Field":U) THEN
-        DO:
-            ASSIGN hField[1] = hAttributeBuffer:BUFFER-FIELD("FieldName":U) NO-ERROR.
-
-            /* Don't set to blank or null. If this value is empty later on, we
-             * will make sure that there is a valid unique value in it.         */            
-            IF VALID-HANDLE(hField[1])                                        AND
-               hField[1]:BUFFER-VALUE NE "":U AND hField[1]:BUFFER-VALUE NE ? THEN
-                ASSIGN build_Object.tObjectInstanceName = hField[1]:BUFFER-VALUE.
-        END.    /* SDFs */
-
-        ASSIGN hField[1] = hAttributeBuffer:BUFFER-FIELD("ObjectName":U) NO-ERROR.
-        IF VALID-HANDLE(hField[1]) THEN
-            ASSIGN hField[1]:BUFFER-VALUE = build_Object.tObjectInstanceName.
-
-        ASSIGN hField[1] = hAttributeBuffer:BUFFER-FIELD("NAME":U) NO-ERROR.
-        IF VALID-HANDLE(hField[1]) THEN
-            ASSIGN hField[1]:BUFFER-VALUE = build_Object.tObjectInstanceName.
-        
         /* If the object instance has an attribute of "VisualizationType" and
          * this has a value which is not "SmartDataField" and the "SDFFileName"
          * attribute has a value, then the SmartDataField referenced in the attribute
@@ -1388,6 +1356,8 @@ PROCEDURE retrieveContainedInstances :
          * All of the existing attribute values and UI events for this obejct instance 
          * will be deleted, and the attribute values and UI events for the SDF will
          * be used. The SDF becomes a temporary object instance for the dynamic viewer. */
+        hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME
+                                    + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier)) NO-ERROR.
 
         /* Separate assign statements in case the first one fails.
          * That way the second one will still execute.            */
@@ -1401,35 +1371,25 @@ PROCEDURE retrieveContainedInstances :
            hField[2]:BUFFER-VALUE NE "SmartDataField":U THEN
         DO:
             ASSIGN cSdfFileName = hField[1]:BUFFER-VALUE.
-            RUN autoAttachSdf IN TARGET-PROCEDURE ( INPUT cSdfFileName,
-                                                    INPUT build_Object.tRecordIdentifier,
-                                                    INPUT pdResultObj ) NO-ERROR.
+            RUN autoAttachSdf ( INPUT cSdfFileName,
+                                INPUT build_Object.tRecordIdentifier,
+                                INPUT pdResultObj ) NO-ERROR.
             IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
         END.    /* Auto attach SDF */
 
         /* Flag container objects to be able to retrieve the contained instances */
-        IF plDesignMode EQ YES OR
-           ( lbObject.tInstanceIsAContainer EQ YES AND
-             ryc_smartObject.static_object  EQ NO  AND
-             DYNAMIC-FUNCTION("ignoreContainedInstances":U IN TARGET-PROCEDURE,
+        IF plDesignMode EQ YES                                                   OR
+           ( lbObject.tInstanceIsAContainer                         EQ YES AND
+             ryc_smartObject.static_object                              EQ NO  AND
+             DYNAMIC-FUNCTION("ignoreContainedInstances":U,
                               INPUT lbObject.tClassName,
                               INPUT lbObject.tInheritsFromClasses ) EQ NO      ) THEN
         DO:
-            IF NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = ryc_smartObject.object_filename) THEN
-            DO:
-                CREATE ttObjectsToFetch.
-                ASSIGN ttObjectsToFetch.tLogicalObjectName = ryc_smartObject.object_filename.
-            END.    /* not in table yet. */
+            CREATE ttObjectsToFetch.
+            ASSIGN ttObjectsToFetch.tLogicalObjectName = ryc_smartObject.object_filename.
         END.    /* retrieve contained objects */
-
-        /* If, after all of the above, the tObjectInstanceName is still blank, then we need
-         * to populate it with a unique value. This is because the code in customizeObjectByResult
-         * uses the tObjectInstanceName in its decision of what is customised, etc.                 */
-        IF build_Object.tObjectInstanceName EQ "":U OR build_Object.tObjectInstanceName EQ ? THEN
-            ASSIGN build_Object.tObjectInstanceName = STRING(build_Object.tObjectInstanceObj).
     END.    /* Object instances */
 
-    ASSIGN ERROR-STATUS:ERROR = NO.
     RETURN.
 END PROCEDURE.  /* retrieveContainedInstances */
 
@@ -1445,37 +1405,21 @@ PROCEDURE retrieveMasterObject :
 /*------------------------------------------------------------------------------
   Purpose:     Caches all information fgor a master object, excepting the contained
                instance information.
-  Parameters:  pdSmartObjectObj    -
-               plDesignMode        -
-               pcLogicalObjectName -
-  Notes:       * The plLogicalObjectName parameter is needed for cases when a 
-                 static object has been requested, particularly for objects where
-                 the object extension is stored in the obect_extension field. It 
-                 is possible to request such objects using either the unextended name
-                 (abc) or the extended name (abc.p). In both cases the correct object
-                 will be retrieved from the Repository, because of the code that 
-                 splits out the extension. If the object is requested both with
-                 and without an extension, the object will be cached twice. It is 
-                 not possible to know (on the client side) that abc and abc.p are the
-                 same object without resorting to guesswork.
-               * The plLogicalObjectName parameter will only contain a value when 
-                 this procedure is called from retrieveResultObject.
+  Parameters:  pdSmartObjectObj -
+               plDesignMode     -
+  Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER pdSmartObjectObj         AS DECIMAL          NO-UNDO.
     DEFINE INPUT PARAMETER plDesignMode             AS LOGICAL          NO-UNDO.
-    DEFINE INPUT PARAMETER pcLogicalObjectName      AS CHARACTER        NO-UNDO.
 
     DEFINE VARIABLE lHasSuperProcedureAttribute     AS LOGICAL          NO-UNDO.
     DEFINE VARIABLE lContainerIsTreeview            AS LOGICAL          NO-UNDO.
     DEFINE VARIABLE hClassCacheBuffer               AS HANDLE           NO-UNDO.
     DEFINE VARIABLE hAttributeBuffer                AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE hField                          AS HANDLE           NO-UNDO.
     DEFINE VARIABLE cResultCode                     AS CHARACTER        NO-UNDO.
-    DEFINE VARIABLE dSmartObjectObj                 AS DECIMAL          NO-UNDO.
 
     DEFINE BUFFER rycso_master      FOR ryc_smartObject.
     DEFINE BUFFER rycso_super       FOR ryc_smartObject.
-    DEFINE BUFFER rycso_render      FOR ryc_smartObject.
     DEFINE BUFFER rycso_SDO         FOR ryc_smartObject.
     DEFINE BUFFER ryccr             FOR ryc_customization_result.
     DEFINE BUFFER build_Object      FOR build_Object.
@@ -1492,7 +1436,7 @@ PROCEDURE retrieveMasterObject :
     FIND FIRST rycso_master WHERE
                rycso_master.smartObject_obj = pdSmartObjectObj
                NO-LOCK.
-
+               
     FIND FIRST ryccr WHERE
                ryccr.customization_result_obj = rycso_master.customization_result_obj
                NO-LOCK NO-ERROR.
@@ -1504,10 +1448,6 @@ PROCEDURE retrieveMasterObject :
     FIND gsc_object_type WHERE
          gsc_object_type.object_type_obj = rycso_master.object_type_obj
          NO-LOCK NO-ERROR.
-
-    FIND FIRST gsc_product_module WHERE
-               gsc_product_module.product_module_obj = rycso_master.product_module_obj
-               NO-LOCK NO-ERROR.
 
     /* Get the handle for the attributes of this object. */
     /* Check if the class has been cached already. If not, then create the class in the cache. */
@@ -1525,7 +1465,7 @@ PROCEDURE retrieveMasterObject :
 
     /* Create Container object. */
     CREATE build_Object.
-    ASSIGN build_Object.tLogicalObjectName         = (IF pcLogicalObjectName EQ "":U THEN rycso_master.object_filename ELSE pcLogicalObjectName)
+    ASSIGN build_Object.tLogicalObjectName         = rycso_master.object_filename
            build_Object.tUserObj                   = 0
            build_Object.tResultCode                = cResultCode
            build_Object.tLanguageObj               = 0
@@ -1535,11 +1475,11 @@ PROCEDURE retrieveMasterObject :
            build_Object.tClassName                 = gsc_object_type.object_type_code
            build_Object.tClassTableName            = hAttributeBuffer:NAME
            build_Object.tClassBufferHandle         = hAttributeBuffer
-           build_Object.tContainerObjectName       = build_Object.tLogicalObjectName
+           build_Object.tContainerObjectName       = rycso_master.object_filename
            build_Object.tInstanceIsAContainer      = CAN-FIND(FIRST ryc_object_instance WHERE ryc_object_instance.container_smartObject_obj = rycso_master.smartObject_obj) OR
                                                      CAN-FIND(FIRST ryc_page WHERE ryc_page.container_smartObject_obj = rycso_master.smartObject_obj)
-           build_Object.tObjectInstanceName        = rycso_master.object_filename
-           build_Object.tObjectInstanceDescription = rycso_master.object_description
+           build_Object.tObjectInstanceName        = "":U
+           build_Object.tObjectInstanceDescription = "":U
            build_Object.tDbAware                   = CAN-DO("{&DBAWARE-OBJECT-TYPES}":U, gsc_object_type.object_type_code)
            build_Object.tLayoutPosition            = "":U        /* This is the master, so no layout */
            build_Object.tDestroyCustomSuper        = YES         /* seems like a good idea to kill off the super proc when done. */
@@ -1547,10 +1487,14 @@ PROCEDURE retrieveMasterObject :
            build_Object.tPageNumber                = 0
            build_Object.tSmartObjectObj            = rycso_master.smartObject_obj
            build_Object.tInheritsFromClasses       = hClassCacheBuffer:BUFFER-FIELD("inheritsFromClasses":U):BUFFER-VALUE
-           build_Object.tProductModuleCode         = gsc_product_module.product_module_code
-           build_Object.tObjectIsRunnable          = rycso_master.object_is_runnable
-           lContainerIsTreeview                    = CAN-DO(build_Object.tInheritsFromClasses, "DynTree":U).
-
+           lContainerIsTreeview                    = CAN-DO(build_Object.tInheritsFromClasses, "DynTree":U)
+           .    
+    ASSIGN build_Object.tObjectPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                 INPUT rycso_master.object_filename,
+                                                                 INPUT rycso_master.object_path,
+                                                                 INPUT rycso_master.object_extension,
+                                                                 INPUT rycso_master.static_object,
+                                                                 INPUT (IF NOT rycso_master.static_object THEN rycso_master.physical_smartObject_obj ELSE 0)).
     /* Add Attributes for master object. */
     DYNAMIC-FUNCTION("createAttributeValues":U,
                      INPUT rycso_master.object_filename,
@@ -1564,8 +1508,8 @@ PROCEDURE retrieveMasterObject :
     /* Cascade UI events from class to master */
     DYNAMIC-FUNCTION("cascadeUiEvents":U,
                      INPUT gsc_object_type.object_type_code,
-                     INPUT 0,                               /* from ID (class) */
-                     INPUT build_Object.tRecordIdentifier   /* to ID (master) */     ).
+                     INPUT 0,                   /* from ID (class) */
+                     INPUT build_Object.tRecordIdentifier    /* to ID (master) */     ).
 
     /* Master UI Events */
     DYNAMIC-FUNCTION("createUiEvents":U,
@@ -1576,51 +1520,55 @@ PROCEDURE retrieveMasterObject :
                      INPUT 0,
                      INPUT 0                               ).
 
-    /* Resolve the procedures that are stored as attributes into 
-     * relatively pathed values in the build_Object table.        */
-    DYNAMIC-FUNCTION("addObjectProcedures":U IN TARGET-PROCEDURE,
-                     INPUT build_Object.tRecordIdentifier,
-                     INPUT hAttributeBuffer,
-                     INPUT rycso_master.static_object ).
-
-    /* Find the master object's attributes here. */
-    hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier) ) NO-ERROR.
-    
-    /** Set the NAME and ObjectName attributes (if they exist) to the value of the
-     *  object instance name. For master objects,  the instance name is the same as
-     *  object name.
-     *  ----------------------------------------------------------------------- **/
-    ASSIGN hField = hAttributeBuffer:BUFFER-FIELD("ObjectName":U) NO-ERROR.
-    IF VALID-HANDLE(hField) THEN
-        ASSIGN hField:BUFFER-VALUE = build_Object.tObjectInstanceName.
-
-    ASSIGN hField = hAttributeBuffer:BUFFER-FIELD("NAME":U) NO-ERROR.
-    IF VALID-HANDLE(hField) THEN
-        ASSIGN hField:BUFFER-VALUE = build_Object.tObjectInstanceName.
-
     /* Get the list of treeview objects. */
-    IF lContainerIsTreeview AND NOT plDesignMode THEN
-        DYNAMIC-FUNCTION("findTreeObjects":U, INPUT hAttributeBuffer:BUFFER-FIELD("RootNodeCode":U):BUFFER-VALUE, INPUT 0).
-    
-    /* Design-time SDO details */
-    ASSIGN build_Object.tSdoSmartObjectObj = rycso_master.sdo_smartObject_obj
-           build_Object.tSdoPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager, INPUT rycso_master.sdo_smartObject_obj).
-
-    IF plDesignMode THEN
+    IF lContainerIsTreeview THEN
     DO:
-        FIND FIRST rycso_SDO WHERE
-                   rycso_SDO.smartObject_obj = rycso_master.sdo_smartObject_obj
-                   NO-LOCK NO-ERROR.
-        IF AVAILABLE rycso_SDO THEN
+        hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier) ) NO-ERROR.
+/*        
+        DYNAMIC-FUNCTION("findTreeObjects":U, INPUT hAttributeBuffer:BUFFER-FIELD("RootNodeCode":U):BUFFER-VALUE, INPUT 0).
+  */
+    END.    /* Container Is Treeview  */
+
+    /* Super Procedure Details */
+    FIND FIRST rycso_super WHERE
+               rycso_super.smartObject_obj = rycso_master.custom_smartObject_obj
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE rycso_super THEN
+    DO:
+        ASSIGN build_Object.tCustomSuperProcedure = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                     INPUT rycso_super.object_filename,
+                                                                     INPUT rycso_super.object_path,
+                                                                     INPUT rycso_super.object_extension,
+                                                                     INPUT rycso_super.static_object,
+                                                                     INPUT (IF NOT rycso_super.static_object THEN rycso_super.physical_smartObject_obj ELSE 0)).
+        /* SmartDataFields need the super procedure in attribute form. */
+        IF lHasSuperProcedureAttribute THEN
         DO:
-            /* Get the Design time SDO and put in the cache. */
-            IF NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = rycso_SDO.object_filename) THEN
-            DO:
-                CREATE ttObjectsToFetch.
-                ASSIGN ttObjectsToFetch.tLogicalObjectName = rycso_SDO.object_filename.
-            END.    /* Design Time */
-        END.    /* Design time SDO */
-    END.    /* design mode only. */
+            hAttributeBuffer:FIND-FIRST(" WHERE ":U + hAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(build_Object.tRecordIdentifier) ) NO-ERROR.
+            ASSIGN hAttributeBuffer:BUFFER-FIELD("customSuperProc":U):BUFFER-VALUE = build_Object.tCustomSuperProcedure.
+        END.    /* update super proc attribute. */
+    END.    /* super procedure exists */
+
+    /* Design-time SDO details */
+    FIND FIRST rycso_SDO WHERE
+               rycso_SDO.smartObject_obj = rycso_master.sdo_smartObject_obj
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE rycso_SDO THEN
+    DO:
+        ASSIGN build_Object.tSdoSmartObjectObj = rycso_master.sdo_smartObject_obj
+               build_Object.tSdoPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
+                                                                  INPUT rycso_SDO.object_filename,
+                                                                  INPUT rycso_SDO.object_path,
+                                                                  INPUT rycso_SDO.object_extension,
+                                                                  INPUT rycso_SDO.static_object,
+                                                                  INPUT (IF NOT rycso_SDO.static_object THEN rycso_SDO.physical_smartObject_obj ELSE 0)).
+        /* Get the Design time SDO and put in the cache. */
+        IF plDesignMode THEN
+        DO:
+            RUN retrieveResultObject (INPUT rycso_SDO.object_filename, INPUT cResultCode, INPUT plDesignMode) NO-ERROR.
+            IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+        END.    /* Design Time */
+    END.    /* Design time SDO */
     
     /* Get the information that is associated with the master object, except the contained objects. */
     IF build_Object.tInstanceIsAContainer THEN
@@ -1636,7 +1584,6 @@ PROCEDURE retrieveMasterObject :
         CREATE build_ObjectPage.
         ASSIGN build_ObjectPage.tRecordIdentifier = build_Object.tRecordIdentifier
                build_ObjectPage.tPageNumber       = 0
-               build_ObjectPage.tPageReference    = "":U
                build_ObjectPage.tPageLabel        = "Page Zero"
                build_ObjectPage.tLayoutCode       = (IF AVAILABLE ryc_layout THEN ryc_layout.layout_code ELSE "00":U)
                build_ObjectPage.tPageInitialized  = NO
@@ -1655,7 +1602,6 @@ PROCEDURE retrieveMasterObject :
             CREATE build_ObjectPage.
             ASSIGN build_ObjectPage.tRecordIdentifier = build_Object.tRecordIdentifier
                    build_ObjectPage.tPageNumber       = ryc_page.page_sequence
-                   build_ObjectPage.tPageReference    = ryc_page.page_reference
                    build_ObjectPage.tPageLabel        = ryc_page.page_label
                    build_ObjectPage.tLayoutCode       = (IF AVAILABLE ryc_layout THEN ryc_layout.layout_code ELSE "00":U)
                    build_ObjectPage.tPageInitialized  = NO
@@ -1708,7 +1654,6 @@ PROCEDURE retrieveResultObject :
     DEFINE VARIABLE dResultObj              AS DECIMAL                  NO-UNDO.
     DEFINE VARIABLE cRootFile               AS CHARACTER                NO-UNDO.
     DEFINE VARIABLE cRootFileExt            AS CHARACTER                NO-UNDO.
-    DEFINE VARIABLE cObjectExt              AS CHARACTER                NO-UNDO.
 
     DEFINE BUFFER rycso_requested       FOR ryc_smartObject.
     DEFINE BUFFER build_Object          FOR build_Object.
@@ -1726,46 +1671,24 @@ PROCEDURE retrieveResultObject :
             ASSIGN dResultObj = ryc_customization_result.customization_result_obj.
     END.    /* non default result code */
 
-    /* First try to find the object, using the name as passed in.
-     * Don't search for the extension here. This will enable us to retrieve the
-     * correct object in cases where the extension is stored in the extension field
-     * and the request is made without the extension. Because of the unique indexes
-     * on the ryc_smartObject table the object_filename field must be unique - without
-     * taking the object_extension into cognisance.
-     * The above is only value for objects with extensions. Dynamic objects will be 
-     * correctly fetched by the first FIND FIRST.                                      */
-    FIND FIRST rycso_requested WHERE
-               rycso_requested.object_filename          = pcLogicalObjectName AND
-               rycso_requested.customization_result_obj = dResultObj
-               NO-LOCK NO-ERROR.
+    /* Extract the root filename from the logical object name - this also strips the paths. */
+    RUN extractRootFile IN gshRepositoryManager (INPUT pcLogicalObjectName, OUTPUT cRootFile, OUTPUT cRootFileExt) NO-ERROR.
+    IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
 
-    IF NOT AVAILABLE rycso_requested THEN
-    DO:
-        /* Strip the name apart, and use the pices to find the obejct. */
-        RUN extractRootFile IN gshRepositoryManager (INPUT pcLogicalObjectName, OUTPUT cRootFile, OUTPUT cRootFileExt) NO-ERROR.
-        IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
+    /* If there is a root file with an extension, first try and find the object name using this. */
+    IF cRootFileExt <> "":U THEN
+        FIND FIRST rycso_requested WHERE
+                   rycso_requested.object_filename          = cRootFileExt AND
+                   rycso_requested.customization_result_obj = dResultObj
+                   NO-LOCK NO-ERROR.
 
-        /* Figure out what the extension is. */
-        ASSIGN cObjectExt = TRIM(REPLACE(cRootFileExt, (cRootFile + ".":U), "":U)).
-
-        /* If there is a root file with an extension, first try and find the object name using this.
-         * We perform this check only if the root filename differs from the pcLogicalObjectName. It
-         * shouldn't, but it is theoretically possible for the pcLogicalObjectName to contain a pathed
-         * filename.                                                                                  */
-        IF cRootFileExt NE "":U AND pcLogicalObjectName NE cRootFileExt THEN
-            FIND FIRST rycso_requested WHERE
-                       rycso_requested.object_filename          = cRootFileExt AND
-                       rycso_requested.customization_result_obj = dResultObj
-                       NO-LOCK NO-ERROR.
-
-        /* Now try to find the object using the separate extension. */
-        IF NOT AVAILABLE rycso_requested AND cObjectExt NE "":U THEN
-            FIND FIRST rycso_requested WHERE
-                       rycso_requested.object_filename          = cRootFile  AND
-                       rycso_requested.customization_result_obj = dResultObj AND
-                       rycso_requested.object_extension         = cObjectExt
-                       NO-LOCK NO-ERROR.
-    END.    /* n/a requested */
+    /* If the previous find failed and we have a root file with no extension, find using that
+     * file name. */
+    IF NOT AVAILABLE(rycso_requested) AND cRootFile <> "":U THEN
+      FIND FIRST rycso_requested WHERE
+                 rycso_requested.object_filename          = cRootFile AND
+                 rycso_requested.customization_result_obj = dResultObj
+                 NO-LOCK NO-ERROR.
 
     IF NOT AVAILABLE(rycso_requested) THEN
     DO:
@@ -1779,27 +1702,25 @@ PROCEDURE retrieveResultObject :
 
     /** Cache the requested object itself.
      *  ----------------------------------------------------------------------- **/
-    RUN retrieveMasterObject IN TARGET-PROCEDURE( INPUT rycso_requested.smartObject_obj,
-                                                  INPUT plDesignMode,
-                                                  INPUT pcLogicalObjectName             ) NO-ERROR.
+    RUN retrieveMasterObject ( INPUT rycso_requested.smartObject_obj, INPUT plDesignMode ) NO-ERROR.
     IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
 
     /* The build_Object record should be available here. */
     FIND FIRST build_Object WHERE build_Object.tRecordIdentifier = rycso_requested.smartObject_obj NO-ERROR.
 
     /* Get contained instances */
-    IF build_Object.tInstanceIsAContainer AND
+    IF build_Object.tInstanceIsAContainer AND rycso_requested.static_object EQ NO AND 
        ( plDesignMode EQ YES OR
          DYNAMIC-FUNCTION("ignoreContainedInstances":U,
                           INPUT build_Object.tClassName,
                           INPUT build_Object.tInheritsFromClasses ) EQ NO  )      THEN
     DO:
-        RUN retrieveContainedInstances IN TARGET-PROCEDURE ( INPUT rycso_requested.smartObject_obj,
-                                                             INPUT pcLogicalObjectName,
-                                                             INPUT pcResultCode,
-                                                             INPUT build_Object.tRecordIdentifier,
-                                                             INPUT dResultObj,
-                                                             INPUT plDesignMode                     ) NO-ERROR.
+        RUN retrieveContainedInstances ( INPUT rycso_requested.smartObject_obj,
+                                         INPUT pcLogicalObjectName,
+                                         INPUT pcResultCode,
+                                         INPUT build_Object.tRecordIdentifier,
+                                         INPUT dResultObj,
+                                         INPUT plDesignMode                     ) NO-ERROR.
         IF ERROR-STATUS:ERROR OR RETURN-VALUE NE "":U THEN RETURN ERROR RETURN-VALUE.
     END.    /* a container and non-static object. */
 
@@ -1813,141 +1734,6 @@ END PROCEDURE.  /* retrieveResultObject */
 &ENDIF
 
 /* ************************  Function Implementations ***************** */
-
-&IF DEFINED(EXCLUDE-addObjectProcedures) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION addObjectProcedures Procedure 
-FUNCTION addObjectProcedures RETURNS LOGICAL
-    ( INPUT pdInstanceId        AS DECIMAL,
-      INPUT phAttributeBuffer   AS HANDLE,
-      INPUT plStaticObject      AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Resolves the procedures that are stored as attribute values into
-            relatively pathed values in the build_Object temp-table.
-    Notes:  * Supported attributes/field names:
-              RenderingProcedure -> tObjectPathedFilename
-              SuperProcedure     -> tCustomSuperProcedure
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hField                          AS HANDLE           NO-UNDO.
-    DEFINE VARIABLE dSmartObjectObj                 AS DECIMAL          NO-UNDO.
-    DEFINE VARIABLE lHasCustomSuperProcAttribute    AS LOGICAL          NO-UNDO.
-    
-    DEFINE BUFFER rycso_render      FOR ryc_smartObject.
-    DEFINE BUFFER rycso_super       FOR ryc_smartObject.
-    DEFINE BUFFER build_Object      FOR build_Object.
-
-    /* Refind the current build_Object record. We have a separate buffer
-     * defined for this so that we don't have problems with the record scope
-     * in this funciton's calling procedures.                               */
-    FIND FIRST build_Object WHERE build_Object.tRecordIdentifier = pdInstanceId.
-
-    /* Find the master object's attributes here. */
-    phAttributeBuffer:FIND-FIRST(" WHERE ":U + phAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(pdInstanceId) ) NO-ERROR.
-
-    /* Historically, DynLokups and DynCombos used an attribute called "CustomSuperProc" to
-     * store their super procedures. This functionality was replaced by the "SuperProcedure"
-     * attribute, but the DynLookups and DynCOmbos still use this attribute.                 */
-    ASSIGN hField = phAttributeBuffer:BUFFER-FIELD("CustomSuperProc":U) NO-ERROR.
-    ASSIGN lHasCustomSuperProcAttribute = VALID-HANDLE(hField).
-    
-    /** The rendering procedure (physical object) is stored in the RenderingProcedure
-     *  attribute as an object_filename. It needs to be taken from the attributes
-     *  and turned into a relatively pathed filename.
-     *  ----------------------------------------------------------------------- **/
-    IF NOT plStaticObject THEN
-    DO:
-        ASSIGN hField = phAttributeBuffer:BUFFER-FIELD("RenderingProcedure":U) NO-ERROR.
-        IF VALID-HANDLE(hField) THEN
-            ASSIGN build_Object.tObjectPathedFilename = hField:BUFFER-VALUE.
-    END.    /* not a static object */
-
-    IF build_Object.tObjectPathedFilename EQ ? THEN
-        ASSIGN build_Object.tObjectPathedFilename = "":U.
-
-    /* Get an object id for the procedure. If this is a static object, or 
-     * the rendering attribute could not be found, then we use the master object iteself. */
-    IF build_Object.tObjectPathedFilename NE "":U THEN
-        ASSIGN dSmartObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN gshRepositoryManager,
-                                                  INPUT build_Object.tObjectPathedFilename, INPUT 0 /* customisation result */ ).
-    ELSE
-        ASSIGN dSmartObjectObj = build_Object.tSmartObjectObj.
-        /* rycso_master.smartObject_obj. */
-
-    /* Now resolve the object id into a relatively pathed filename.
-     * We do a find on this record because we want to add this record to the 
-     * ttObjectsToFetch table. If we didn't need to do that, we could simply call
-     * getObjectPathedName() with the object id.                                 */
-    FIND FIRST rycso_render WHERE
-               rycso_render.smartObject_obj = dSmartObjectObj
-               NO-LOCK NO-ERROR.
-    IF AVAILABLE rycso_render THEN
-    DO:
-        ASSIGN build_Object.tObjectPathedFilename = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
-                                                                     INPUT rycso_render.smartObject_obj ).
-        /* Retrieve the super procedure information as well. */
-        IF NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = rycso_render.object_filename) THEN
-        DO:
-            CREATE ttObjectsToFetch.
-            ASSIGN ttObjectsToFetch.tLogicalObjectName = rycso_render.object_filename.
-        END.    /* need to get the rendering procedure. */
-    END.    /* available RenderingProcedure procedure. */
-
-    /** Super Procedure Details.
-     *  Only update the super procedure if there is a super procedure at the master
-     *  level. If the value of the SuperProcedure attribute has been inherited from
-     *  the class level, then we set the value at the master to blank.
-     *  ----------------------------------------------------------------------- **/
-    ASSIGN hField = phAttributeBuffer:BUFFER-FIELD("SuperProcedure":U) NO-ERROR.
-    IF VALID-HANDLE(hField) THEN
-    DO:
-        /* If the SuperProcedure attribute has been stored at the Class level, then we ignore 
-         * it since the class loader procedure (loadClass in the Repository Manager) will take
-         * care of launching these super procedures.                                            */
-        IF DYNAMIC-FUNCTION("getWhereStoredLevel":U IN gshRepositoryManager, INPUT phAttributeBuffer, INPUT hField) EQ "CLASS":U THEN
-            ASSIGN build_Object.tCustomSuperProcedure = "":U.
-        ELSE
-            ASSIGN build_Object.tCustomSuperProcedure = hField:BUFFER-VALUE.
-
-        /* Get an object id for the procedure. If this is a static object, or 
-         * the SuperProcedure attribute could not be found, then we use the master object iteself. */
-        IF build_Object.tCustomSuperProcedure NE "":U AND build_Object.tCustomSuperProcedure NE ? THEN
-            ASSIGN dSmartObjectObj = DYNAMIC-FUNCTION("getSmartObjectObj":U IN gshRepositoryManager,
-                                                      INPUT build_Object.tCustomSuperProcedure, INPUT 0 /* customisation result */ ).
-        ELSE
-            ASSIGN dSmartObjectObj = 0.
-
-        /* Now resolve the object id into a relatively pathed filename. */
-        FIND FIRST rycso_super WHERE
-                   rycso_super.smartObject_obj = dSmartObjectObj
-                   NO-LOCK NO-ERROR.
-        IF AVAILABLE rycso_super THEN
-        DO:
-            ASSIGN build_Object.tCustomSuperProcedure = DYNAMIC-FUNCTION("getObjectPathedName":U IN gshRepositoryManager,
-                                                                         INPUT rycso_super.smartObject_obj).
-    
-            /* SmartDataFields need the super procedure in attribute form. */
-            IF lHasCustomSuperProcAttribute THEN
-            DO:
-                phAttributeBuffer:FIND-FIRST(" WHERE ":U + phAttributeBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(pdInstanceId) ) NO-ERROR.
-                ASSIGN phAttributeBuffer:BUFFER-FIELD("customSuperProc":U):BUFFER-VALUE = build_Object.tCustomSuperProcedure.
-            END.    /* update super proc attribute. */
-    
-            /* Retrieve the super procedure information as well. */
-            IF NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = rycso_super.object_filename) THEN
-            DO:
-                CREATE ttObjectsToFetch.
-                ASSIGN ttObjectsToFetch.tLogicalObjectName = rycso_super.object_filename.
-            END.    /* need to get the super. */
-        END.    /* super procedure exists */
-    END.    /* valid SuperProcedure attribute */
-
-    RETURN TRUE.
-END FUNCTION.   /* addObjectProcedures */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
 
 &IF DEFINED(EXCLUDE-cascadeAttributes) = 0 &THEN
 
@@ -2024,101 +1810,6 @@ FUNCTION cascadeUiEvents RETURNS LOGICAL
     
     RETURN TRUE.
 END FUNCTION.   /* cascadeUiEvents */
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-cleanupBuildObjectRecords) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION cleanupBuildObjectRecords Procedure 
-FUNCTION cleanupBuildObjectRecords RETURNS LOGICAL
-    ( INPUT pcResultCode        AS CHARACTER,
-      INPUT pcOldResultCode     AS CHARACTER  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  Cleans up the contents of the BUILD_OBJECT temp-tables so that only 
-            the records that correspond to the result code are returned.
-    Notes:  
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE hCacheObjectBuffer              AS HANDLE               NO-UNDO.
-
-    DEFINE BUFFER lbObject      FOR build_Object.
-
-    /** Once we have merged all of the customisations, we delete all the build_Object
-     *  records which are not relevant. At the end of this we should only have one set
-     *  of build_Object* records.
-     *  ----------------------------------------------------------------------- **/
-    FOR EACH build_Object WHERE build_Object.tResultCode <> pcResultCode:
-        /* ObjectPage */
-        FOR EACH build_ObjectPage WHERE build_ObjectPage.tRecordIdentifier = build_Object.tRecordIdentifier:
-            DELETE build_ObjectPage.
-        END.    /* Build_ObjectPage */
-
-        /* ObjectLink */
-        FOR EACH build_ObjectLink WHERE build_ObjectLink.tRecordIdentifier = build_Object.tRecordIdentifier:
-            DELETE build_ObjectLink.
-        END.    /* Build_ObjectLink */
-    
-        /* ObjectUiEvent */
-        FOR EACH build_ObjectUiEvent WHERE build_ObjectUiEvent.tRecordIdentifier = build_Object.tRecordIdentifier:
-            DELETE build_ObjectUiEvent.
-        END.    /* Build_ObjectUiEvent */
-
-        /* Delete the attribute value records */
-        build_Object.tClassBufferHandle:FIND-FIRST(" WHERE ":U + build_Object.tClassBufferHandle:NAME + ".tRecordIdentifier = " + QUOTER(build_Object.tRecordIdentifier) + " ":U) NO-ERROR.
-        IF build_Object.tClassBufferHandle:AVAILABLE THEN
-        DO:
-            /* Check if the object is in the cache. If it is, then we don't delete the attributes
-             * for that object. 
-             *
-             * When running with -E (European numeric format) there may arise a situation, particularly
-             * when using the AppBuilder, where an object is retrieved in both run-time and design-time modes.
-             * Because the AppBuilder switches between American numeric format and the session's
-             * numeric format, there may be issues with the way that some of the obejcts are requested,
-             * particularly with the UserObj, since this is stored as a string by the login function. This 
-             * will be stored as the session's numeric format (seeing that it is a decimal). While the session
-             * has the same numeric format, all if fine, but as soon as the numeric format is dynamically changed, 
-             * problems will result because session proeprties are stored as string values.
-             * This check ensures that the relevant attributes are not deleted from the cache.
-             *
-             * See http://icf.possenet.org/issues/show_bug.cgi?id=7449 for details of this.
-             */
-            ASSIGN hCacheObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT build_Object.tRecordIdentifier).
-
-            IF NOT hCacheObjectBuffer:AVAILABLE THEN
-                build_Object.tClassBufferHandle:BUFFER-DELETE().
-
-            build_Object.tClassBufferHandle:BUFFER-RELEASE().
-        END.    /* available record in the attribute TT. */
-
-        DELETE build_Object.
-    END.    /* delete all  build_Objects which are not customised fully. */
-    
-    IF pcOldResultCode NE "":U THEN
-    DO:
-        FOR EACH build_Object WHERE build_Object.tResultCode = pcResultCode:
-            ASSIGN build_Object.tResultCode = pcOldResultCode.
-        END.    /* each build-object */
-        ASSIGN pcResultCode = pcOldResultCode.
-    END.    /* Old result code not "" */
-
-    /* Update the tMasterRecordIdentifier ID on each object. */
-    FOR EACH build_Object WHERE
-             build_Object.tUserObj    = 0        AND
-             build_Object.tResultCode = pcResultCode:
-        FIND FIRST lbObject WHERE
-                   lbObject.tLogicalObjectName   = build_Object.tLogicalObjectName AND
-                   lbObject.tObjectInstanceObj   = 0                               AND
-                   lbObject.tUserObj             = build_Object.tUserObj           AND
-                   lbObject.tResultCode          = build_Object.tResultCode
-                   NO-ERROR.
-        IF AVAILABLE lbObject THEN
-            ASSIGN build_Object.tMasterRecordIdentifier = lbObject.tRecordIdentifier.
-    END.    /* update tRecordIdentifier. */
-
-    RETURN TRUE.
-END FUNCTION.   /* cleanupBuildObjectRecords */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -2331,7 +2022,6 @@ FUNCTION findTreeObjects RETURNS LOGICAL
     Notes:  * If the ParentNodeCode is passed in, we assume that this is the top level.
             * We need to make sure that each object only goes into the list once.
 -----------------------------------------------------------------------------*/
-
     /* Top Level */
     IF pcParentNodeCode NE "":U THEN
     DO:
@@ -2341,41 +2031,37 @@ FUNCTION findTreeObjects RETURNS LOGICAL
         IF NOT AVAILABLE gsm_node THEN
             RETURN TRUE.
 
+        IF gsm_node.logical_object                                                                           NE "":U AND
+           NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.logical_object ) THEN
+        DO:
+            CREATE ttObjectsToFetch.
+            ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.logical_object.
+        END.
         IF gsm_node.data_source_type                                                                   EQ "SDO":U AND 
            NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.data_source ) THEN
         DO:
             CREATE ttObjectsToFetch.
             ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.data_source.
-        END.    /* Data Source */
-
-        IF gsm_node.primary_sdo                                                                           NE "":U AND
-           NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.primary_sdo ) THEN
-        DO:
-            CREATE ttObjectsToFetch.
-            ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.primary_sdo.
-        END.    /* primary SDO */
-
+        END.
         ASSIGN pdParentNodeObj = gsm_node.node_obj.
     END.    /* top level. */
 
     FOR EACH gsm_node WHERE
              gsm_node.parent_node_obj = pdParentNodeObj
              NO-LOCK:
+        IF gsm_node.logical_object                                                                           NE "":U AND
+           NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.logical_object ) THEN
+        DO:
+            CREATE ttObjectsToFetch.
+            ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.logical_object.
+        END.
         IF gsm_node.data_source_type                                                                   EQ "SDO":U AND 
            NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.data_source ) THEN
         DO:
             CREATE ttObjectsToFetch.
             ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.data_source.
-        END.    /* Data Source */
-
-        IF gsm_node.primary_sdo                                                                           NE "":U AND
-           NOT CAN-FIND(FIRST ttObjectsToFetch WHERE ttObjectsToFetch.tLogicalObjectName = gsm_node.primary_sdo ) THEN
-        DO:
-            CREATE ttObjectsToFetch.
-            ASSIGN ttObjectsToFetch.tLogicalObjectName = gsm_node.primary_sdo.
-        END.    /* primary SDO */
-
-        DYNAMIC-FUNCTION("findTreeObjects":U IN TARGET-PROCEDURE, INPUT  "":U, INPUT gsm_node.node_obj).
+        END.
+        DYNAMIC-FUNCTION("findTreeObjects":U, INPUT  "":U, INPUT gsm_node.node_obj).
     END.    /* each node */
 
     RETURN TRUE.
@@ -2401,9 +2087,9 @@ FUNCTION ignoreContainedInstances RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE iIgnoreLoop             AS INTEGER                  NO-UNDO.
 
-    DO iIgnoreLoop = 1 TO NUM-ENTRIES(gcClassIgnoreContainedInstances):
-        IF CAN-DO(pcInheritsFromClasses, ENTRY(iIgnoreLoop, gcClassIgnoreContainedInstances)) OR
-           CAN-DO(pcClassName,           ENTRY(iIgnoreLoop, gcClassIgnoreContainedInstances)) THEN
+    DO iIgnoreLoop = 1 TO NUM-ENTRIES("{&CLASS-IGNORE-CONTAINED-INSTANCES}":U):
+        IF CAN-DO(pcInheritsFromClasses, ENTRY(iIgnoreLoop, "{&CLASS-IGNORE-CONTAINED-INSTANCES}":U)) OR
+           CAN-DO(pcClassName,           ENTRY(iIgnoreLoop, "{&CLASS-IGNORE-CONTAINED-INSTANCES}":U)) THEN
             RETURN YES.
     END.    /* Ignore loop */
 

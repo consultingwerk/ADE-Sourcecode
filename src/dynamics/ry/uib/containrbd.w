@@ -36,7 +36,6 @@ CREATE WIDGET-POOL.
 /* ***************************  Definitions  ************************** */
 
 /* Parameters Definitions ---                                           */
-
 DEFINE INPUT        PARAMETER plTemplateRecord      AS LOGICAL      NO-UNDO.
 DEFINE INPUT        PARAMETER pcObjectTypeWhere     AS CHARACTER    NO-UNDO.
 DEFINE INPUT        PARAMETER plContainerObject     AS LOGICAL      NO-UNDO.
@@ -66,39 +65,29 @@ DEFINE       OUTPUT PARAMETER pcObjectTypeCode      AS CHARACTER    NO-UNDO.
 &Scoped-define BROWSE-NAME brObject
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_object_type
+&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_object gsc_object_type
 
 /* Definitions for BROWSE brObject                                      */
 &Scoped-define FIELDS-IN-QUERY-brObject ryc_smartobject.object_filename ~
-gsc_object_type.object_type_code ryc_smartobject.object_description ~
-ryc_smartobject.static_object ryc_smartobject.template_smartobject ~
-ryc_smartobject.container_object 
+gsc_object_type.object_type_code gsc_object.object_description ~
+gsc_object.logical_object ryc_smartobject.template_smartobject ~
+gsc_object.container_object 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-brObject 
-&Scoped-define QUERY-STRING-brObject FOR EACH ryc_smartobject ~
-      WHERE (ryc_smartobject.template_smartobject = YES ~
- OR ryc_smartobject.template_smartobject = plTemplateRecord ) AND  ~
-ryc_smartobject.object_type_obj = pdObjectTypeObj AND  ~
-ryc_smartobject.object_filename BEGINS fiObjectName:INPUT-VALUE IN FRAME {&FRAME-NAME} AND  ~
-ryc_smartobject.customization_result_obj = 0 ~
-AND (ryc_smartobject.container_object = plContainerObject OR ~
-ryc_smartobject.container_object = YES) ~
- NO-LOCK, ~
-      EACH gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK ~
-    BY ryc_smartobject.object_filename INDEXED-REPOSITION
 &Scoped-define OPEN-QUERY-brObject OPEN QUERY brObject FOR EACH ryc_smartobject ~
-      WHERE (ryc_smartobject.template_smartobject = YES ~
+      WHERE ( ryc_smartobject.template_smartobject = YES ~
  OR ryc_smartobject.template_smartobject = plTemplateRecord ) AND  ~
-ryc_smartobject.object_type_obj = pdObjectTypeObj AND  ~
-ryc_smartobject.object_filename BEGINS fiObjectName:INPUT-VALUE IN FRAME {&FRAME-NAME} AND  ~
-ryc_smartobject.customization_result_obj = 0 ~
-AND (ryc_smartobject.container_object = plContainerObject OR ~
-ryc_smartobject.container_object = YES) ~
- NO-LOCK, ~
+icfdb.ryc_smartobject.object_type_obj = pdObjectTypeObj AND  ~
+icfdb.ryc_smartobject.object_filename BEGINS fiObjectName:INPUT-VALUE IN FRAME {&FRAME-NAME} NO-LOCK, ~
+      EACH gsc_object WHERE gsc_object.object_obj = ryc_smartobject.object_obj ~
+  AND ( gsc_object.container_object = plContainerObject OR ~
+icfdb.gsc_object.container_object = YES ) NO-LOCK, ~
       EACH gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK ~
     BY ryc_smartobject.object_filename INDEXED-REPOSITION.
-&Scoped-define TABLES-IN-QUERY-brObject ryc_smartobject gsc_object_type
+&Scoped-define TABLES-IN-QUERY-brObject ryc_smartobject gsc_object ~
+gsc_object_type
 &Scoped-define FIRST-TABLE-IN-QUERY-brObject ryc_smartobject
-&Scoped-define SECOND-TABLE-IN-QUERY-brObject gsc_object_type
+&Scoped-define SECOND-TABLE-IN-QUERY-brObject gsc_object
+&Scoped-define THIRD-TABLE-IN-QUERY-brObject gsc_object_type
 
 
 /* Definitions for DIALOG-BOX gDialog                                   */
@@ -131,7 +120,7 @@ DEFINE BUTTON buSelect AUTO-GO
      LABEL "&Select" 
      SIZE 15 BY 1.14.
 
-DEFINE VARIABLE coObjectType AS DECIMAL FORMAT "->>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coObjectType AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>9.999999":U INITIAL 0 
      LABEL "Object Type" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEM-PAIRS "0",0
@@ -147,6 +136,7 @@ DEFINE VARIABLE fiObjectName AS CHARACTER FORMAT "X(35)":U
 &ANALYZE-SUSPEND
 DEFINE QUERY brObject FOR 
       ryc_smartobject, 
+      gsc_object, 
       gsc_object_type SCROLLING.
 &ANALYZE-RESUME
 
@@ -156,10 +146,10 @@ DEFINE BROWSE brObject
   QUERY brObject NO-LOCK DISPLAY
       ryc_smartobject.object_filename FORMAT "X(70)":U WIDTH 44
       gsc_object_type.object_type_code FORMAT "X(15)":U
-      ryc_smartobject.object_description FORMAT "X(35)":U
-      ryc_smartobject.static_object FORMAT "YES/NO":U
+      gsc_object.object_description FORMAT "X(35)":U
+      gsc_object.logical_object FORMAT "YES/NO":U
       ryc_smartobject.template_smartobject FORMAT "YES/NO":U
-      ryc_smartobject.container_object FORMAT "YES/NO":U
+      gsc_object.container_object FORMAT "YES/NO":U
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
     WITH NO-ROW-MARKERS SEPARATORS SIZE 128 BY 12 ROW-HEIGHT-CHARS .71 EXPANDABLE.
@@ -226,26 +216,25 @@ ASSIGN
 
 &ANALYZE-SUSPEND _QUERY-BLOCK BROWSE brObject
 /* Query rebuild information for BROWSE brObject
-     _TblList          = "icfdb.ryc_smartobject,icfdb.gsc_object_type WHERE icfdb.ryc_smartobject ..."
+     _TblList          = "icfdb.ryc_smartobject,icfdb.gsc_object WHERE icfdb.ryc_smartobject ...,icfdb.gsc_object_type WHERE icfdb.ryc_smartobject ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ",,"
      _OrdList          = "icfdb.ryc_smartobject.object_filename|yes"
-     _Where[1]         = "(ryc_smartobject.template_smartobject = YES
- OR ryc_smartobject.template_smartobject = plTemplateRecord ) AND 
-ryc_smartobject.object_type_obj = pdObjectTypeObj AND 
-ryc_smartobject.object_filename BEGINS fiObjectName:INPUT-VALUE IN FRAME {&FRAME-NAME} AND 
-ryc_smartobject.customization_result_obj = 0
-AND (ryc_smartobject.container_object = plContainerObject OR
-ryc_smartobject.container_object = YES)
-"
-     _JoinCode[2]      = "gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj"
+     _Where[1]         = "( icfdb.ryc_smartobject.template_smartobject = YES
+ OR icfdb.ryc_smartobject.template_smartobject = plTemplateRecord ) AND 
+icfdb.ryc_smartobject.object_type_obj = pdObjectTypeObj AND 
+icfdb.ryc_smartobject.object_filename BEGINS fiObjectName:INPUT-VALUE IN FRAME {&FRAME-NAME}"
+     _JoinCode[2]      = "icfdb.gsc_object.object_obj = icfdb.ryc_smartobject.object_obj
+  AND ( icfdb.gsc_object.container_object = plContainerObject OR
+icfdb.gsc_object.container_object = YES )"
+     _JoinCode[3]      = "icfdb.gsc_object_type.object_type_obj = icfdb.ryc_smartobject.object_type_obj"
      _FldNameList[1]   > icfdb.ryc_smartobject.object_filename
 "ryc_smartobject.object_filename" ? ? "character" ? ? ? ? ? ? no ? no no "44" yes no no "U" "" ""
      _FldNameList[2]   = icfdb.gsc_object_type.object_type_code
-     _FldNameList[3]   = icfdb.ryc_smartobject.object_description
-     _FldNameList[4]   = icfdb.ryc_smartobject.static_object
+     _FldNameList[3]   = icfdb.gsc_object.object_description
+     _FldNameList[4]   = icfdb.gsc_object.logical_object
      _FldNameList[5]   = icfdb.ryc_smartobject.template_smartobject
-     _FldNameList[6]   = icfdb.ryc_smartobject.container_object
+     _FldNameList[6]   = icfdb.gsc_object.container_object
      _Query            is OPENED
 */  /* BROWSE brObject */
 &ANALYZE-RESUME

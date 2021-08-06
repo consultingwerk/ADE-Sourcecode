@@ -37,16 +37,18 @@ af/cod/aftemwizpw.w
 /*---------------------------------------------------------------------------------
   File: rycusfapip.p
 
-  Description:  rycusfapip AppServer Proxy
+  Description:  Fetch Customisation Type API Procedure
 
-  Purpose:      rycusfapip AppServer Proxy
+  Purpose:      Fetch Customisation Type API Procedure. This procecure is primarily called
+                from the Customization Manager
 
-  Parameters:   <none>
+  Parameters:   pcCustomisationType -
+                pcAPIList           -
 
   History:
   --------
   (v:010000)    Task:           0   UserRef:    
-                Date:   08/01/2003  Author:     Bruce S Gruenbaum
+                Date:   04/23/2002  Author:     Peter Judge
 
   Update Notes: Created from Template rytemprocp.p
 
@@ -55,9 +57,6 @@ af/cod/aftemwizpw.w
 /*-------------------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-    DEFINE INPUT  PARAMETER pcCustomisationType             AS CHARACTER            NO-UNDO.
-    DEFINE OUTPUT PARAMETER pcAPIList                       AS CHARACTER            NO-UNDO.
-
 /* MIP-GET-OBJECT-VERSION pre-processors
    The following pre-processors are maintained automatically when the object is
    saved. They pull the object and version from Roundtable if possible so that it
@@ -68,19 +67,11 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &scop object-version    000000
 
 
-DEFINE VARIABLE gshCustomizationManager AS HANDLE     NO-UNDO.
-
-
 /* object identifying preprocessor */
-&glob   AstraProcedure    yes
+&glob   AstraProcedure    YES
 
-{src/adm2/globals.i}
-
-  gshCustomizationManager = DYNAMIC-FUNCTION("getManagerHandle" IN THIS-PROCEDURE,
-                                             "CustomizationManager":U).
-
-  IF NOT VALID-HANDLE(gshCustomizationManager) THEN
-    RETURN.
+DEFINE INPUT  PARAMETER pcCustomisationType             AS CHARACTER            NO-UNDO.
+DEFINE OUTPUT PARAMETER pcAPIList                       AS CHARACTER            NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -117,7 +108,7 @@ DEFINE VARIABLE gshCustomizationManager AS HANDLE     NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 17.95
+         HEIGHT             = 2
          WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -130,13 +121,20 @@ DEFINE VARIABLE gshCustomizationManager AS HANDLE     NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
+DEFINE VARIABLE iTypeLoop               AS INTEGER                  NO-UNDO.
 
-  RUN rycusfapip IN gshCustomizationManager
-    (INPUT pcCustomisationType,
-     OUTPUT pcAPIList) NO-ERROR.
-  IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
-    RETURN ERROR (IF RETURN-VALUE = "" OR RETURN-VALUE = ? AND ERROR-STATUS:NUM-MESSAGES > 0 THEN 
-                  ERROR-STATUS:GET-MESSAGE(1) ELSE RETURN-VALUE).
+DO iTypeLoop = 1 TO NUM-ENTRIES(pcCustomisationType):
+    FIND FIRST ryc_customization_type WHERE
+               ryc_customization_type.customization_type_code = ENTRY(iTypeLoop, pcCustomisationType)
+               NO-LOCK NO-ERROR.
+    IF AVAILABLE ryc_customization_type THEN
+        ASSIGN pcAPIList = pcAPIList + (IF NUM-ENTRIES(pcAPIList) EQ 0 THEN "":U ELSE ",":U)
+                        + ryc_customization_type.API_name.
+END.    /* loop through customisation types */
+
+RETURN.
+
+/* EOF */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME

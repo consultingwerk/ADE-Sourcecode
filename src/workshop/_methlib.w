@@ -1,0 +1,270 @@
+/*E4GL-W*/ {src/web/method/e4gl.i}  /*Tag=<SCRIPT LANGUAGE = "SpeedScript">*/ 
+  /*------------------------------------------------------------------------
+    File: _methlib.html
+
+    Description: Edit the Method Library Section
+
+    Parameters:  
+        p_action  -- Action to execute ("Save" or "Edit")
+        p_code-id -- context id for the code section
+        p_options -- comma delimited list of options [currently unused]
+
+    Author:  Wm. T. Wood
+    Created: March 31, 1997
+  ------------------------------------------------------------------------*/
+  /*           This .W file was created with WebSpeed Workshop.           */
+  /*----------------------------------------------------------------------*/
+
+  /* ***************************  Definitions  ************************** */
+
+  /* Parameters Definitions ---                                           */
+  DEFINE INPUT PARAMETER p_action   AS CHAR     NO-UNDO.
+  DEFINE INPUT PARAMETER p_code-id  AS RECID    NO-UNDO.
+  DEFINE INPUT PARAMETER p_options  AS CHAR     NO-UNDO.
+
+  /* Local Variable Definitions ---                                       */
+  DEFINE VARIABLE l_ok    AS LOGICAL  NO-UNDO.
+  DEFINE VARIABLE msg     AS CHAR     NO-UNDO.
+  DEFINE VARIABLE txt     AS CHAR     NO-UNDO.
+
+  /* Included Definitions ---                                             */
+  { webutil/wstyle.i }              /* Shared style guide definitions.    */
+  { workshop/code.i }               /* Shared code temp-tables.           */
+  { workshop/objects.i }            /* Shared objects temp-tables.        */
+  { workshop/help.i }               /* Include context strings.           */
+
+
+  /* Output the standard HTML header. */
+  {&OUT}
+     { workshop/html.i &SEGMENTS = "head,open-body,help"
+                       &FRAME    = "WSFC_main" 
+                       &AUTHOR   = "Wm.T.Wood"
+                       &TITLE    = "Method Libraries" 
+                       &CONTEXT  = "{&Method_Libraries_Help}" } .
+
+
+  /* Find the relevant records. */
+  FIND _code WHERE RECID(_code) eq p_code-id.
+  FIND _P WHERE RECID(_P) eq _code._P-recid.
+  IF _code._text-id ne ? THEN FIND _code-text 
+                                   WHERE RECID(_code-text) eq _code._text-id 
+                                   NO-ERROR.
+
+  {&OUT} 
+    format-filename (_P._filename, 'Method Libraries for &1...', '':U) SKIP
+    get-rule-tag ("100%":U, "":U )  
+    .
+  IF p_action ne "Save":U THEN DO:
+    /* Is there a code section? */
+    IF AVAILABLE _code-text THEN txt = _code-text._text.
+  END.
+  ELSE DO:
+    /* Get the new code section and verify it. Left-trim it because that is
+       MS IE3 trims it one line at at time. This makes IE work more consistently. */
+    txt = LEFT-TRIM(get-field ('code-text':U)).
+    RUN check-section (txt, OUTPUT l_ok, OUTPUT msg). 
+    /* Was there an error or warning message? */
+    IF msg ne "" THEN {&OUT} msg SKIP.
+
+    /* Store the code if it is OK. */
+    IF l_ok THEN DO:
+      IF NOT AVAILABLE _code-text THEN DO:
+        CREATE _code-text.
+        ASSIGN _code._text-id      = RECID(_code-text)
+               _code-text._code-id = RECID(_code).
+      END. /* IF NOT AVAILABLE _code-text... */
+      /* Assign the new value (and mark the file as being modified). */
+      IF _code-text._text ne txt 
+      THEN ASSIGN _code-text._text = txt  
+                  _P._modified     = yes.   
+    END. /* IF l_ok THEN DO... */
+  END. /* IF p_action [eq] "SAVE" ... */
+ /*Tag=</SCRIPT>*/ 
+{&OUT} '<FORM ACTION="_main.w" METHOD="POST">~n'.
+{&OUT} '<INPUT TYPE="HIDDEN" NAME="html"        VALUE="saveSection">~n'.
+{&OUT} '<INPUT TYPE="HIDDEN" NAME="section-id"  VALUE="' /*Tag=`*/ RECID(_code) /*Tag=`*/ '">~n'.
+{&OUT} '<CENTER>~n'.
+{&OUT} '<INPUT TYPE="SUBMIT" VALUE="Submit">&nbsp~;<INPUT TYPE="RESET">~n'.
+{&OUT} '<BR><BR>~n'.
+{&OUT} '<TEXTAREA NAME="code-text" COLS="50" ROWS="10">' /*Tag=`*/ html-encode (txt) /*Tag=`*/ '</TEXTAREA><BR>~n'.
+{&OUT} '</CENTER>~n'.
+{&OUT} '</form>~n'.
+{&OUT} '</body>~n'.
+{&OUT} '</html>~n'.
+
+ /*Tag=<script language="SpeedScript">*/ 
+/*
+ * **************************** Internal Procedures *****************************
+ */
+
+  /* ---------------------------------------------------------------------------- 
+   * check-section:
+   *   Look for anything that is not inside a "/* */" or "{ }" block. 
+   *   Create a temporary copy and substitute the tilde versions of all 
+   *   these first. 
+   * 
+   * Testing Note:
+   *    It is easier to test this code in the Procedure Editor. Copy this
+   *    procedure to the editor and add the following code to the top
+   *   (and then run).
+   *  -------
+    def var x as char.
+    def var l as logical.
+    x = ' /* Test /* */ */ ~n'  + '~{ ~{ "~{ }" } }'  + "~n" +   
+        ' ~{ workshop/test &test = "~{&xyx}"   /* Test */ }  /* standard */ ~n' + "~n" .
+    RUN check-section (INPUT x, OUTPUT l, OUTPUT x).
+    MESSAGE l SKIP x VIEW-AS ALERT-BOX.          
+   *
+   * ---------------------------------------------------------------------------------
+   */
+  PROCEDURE check-section :
+    DEFINE INPUT  PARAMETER p_text AS CHAR    NO-UNDO.
+    DEFINE OUTPUT PARAMETER p_ok   AS LOGICAL NO-UNDO.
+    DEFINE OUTPUT PARAMETER p_msg  AS CHAR    NO-UNDO.
+
+    DEFINE VARIABLE ch      AS CHAR    NO-UNDO.
+    DEFINE VARIABLE cType   AS CHAR    NO-UNDO.
+    DEFINE VARIABLE iEnd    AS INTEGER NO-UNDO.
+    DEFINE VARIABLE iLevel  AS INTEGER NO-UNDO.
+    DEFINE VARIABLE iPos    AS INTEGER NO-UNDO.
+    DEFINE VARIABLE iLast   AS INTEGER NO-UNDO.
+    DEFINE VARIABLE l_done  AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE l_xtra  AS LOGICAL NO-UNDO.
+    DEFINE VARIABLE lngth   AS INTEGER NO-UNDO.
+    DEFINE VARIABLE nxtType AS CHAR    NO-UNDO.
+    DEFINE VARIABLE tmp-txt AS CHAR    NO-UNDO. 
+
+    /* Get rid of cases where user has "tilde" version of the open
+       preprocessor character. */
+    ASSIGN tmp-txt = REPLACE (p_text, "~~~{":U, "":U) 
+           l_xtra  = no
+           lngth   = LENGTH(tmp-txt, "CHARACTER":U)
+           iPos    = MIN(1, lngth)
+           iLast   = 0
+           cType   = "" 
+           .  
+    /* Check all pieces of text for invalid characters. */    
+    IF lngth eq 0 THEN l_done = yes.
+    Check-Loop:
+    DO WHILE (l_xtra eq no) AND NOT l_done:   
+
+      /* Set up for next type. */
+      cType = nxtType.   
+
+      /* Look for the next comment or include reference. */
+      IF iLast >= lngth THEN l_done = yes.
+      ELSE DO: 
+
+        /* Look for the first open comment or open preproc expression 
+           if we are in plain text. */ 
+        case cType:
+          WHEN "":U THEN DO:
+            iPos = INDEX( tmp-txt, "~/*":U, iLast + 1 ).
+            IF iPos > 0 THEN 
+               ASSIGN iEnd = iPos
+                      nxtType = "Comment":U.
+            IF iPos eq 0 THEN iEnd = lngth. /* No comment. */
+            iPos = INDEX ( tmp-txt, "~{":U, iLast + 1).
+            IF iPos > 0 AND iPos < iEnd THEN
+               ASSIGN iEnd = iPos
+                      nxtType = "Preproc":U.
+            /* See if the code contains invalid characters. */
+            IF iEnd - (iLast + 1) > 0 AND cType eq "":U THEN DO:                                     
+              ch = SUBSTRING(p_text, iLast + 1, iEnd - (iLast + 1), "CHARACTER":U).
+              IF TRIM(ch) ne "" THEN l_xtra = yes.
+            END.  
+            /* Set up for next call. */
+            iLast = iEnd.
+          END. /* WHEN [outside comment/preproc] */
+
+          WHEN "Comment":U THEN DO:
+            /* Look for a close comment. */ 
+            ilevel = 1.
+            DO WHILE ilevel > 0 AND iLast < lngth:
+              iEnd = INDEX( tmp-txt, "~*/":U, iLast + 1). 
+              IF iEnd eq 0 THEN LEAVE Check-Loop.
+              iPos = INDEX( tmp-txt, "~/*":U, iLast + 1).   
+              IF (iPos > 0) AND (iPos < iEnd) 
+              THEN ASSIGN iLevel = iLevel + 1
+                          iLast  = iPos + 1.
+              ELSE ASSIGN iLevel = iLevel - 1 
+                          iLast = iEnd + 1.
+            END. /* DO WHILE... */ 
+            IF ilevel eq 0 THEN nxtType = "". 
+          END. /* WHEN "Comment" */
+
+          WHEN "Preproc":U THEN DO:
+            /* Look for a close curly brace. */ 
+            ilevel = 1.
+            DO WHILE ilevel > 0 AND iLast < lngth:
+              iEnd = INDEX( tmp-txt, "}":U, iLast + 1 ). 
+              IF iEnd eq 0 THEN LEAVE Check-Loop.
+              iPos = INDEX( tmp-txt, "~{":U, iLast + 1).  
+              IF iPos > 0 AND iPos < iEnd 
+              THEN ASSIGN iLevel = iLevel + 1
+                          iLast  = iPos.
+              ELSE ASSIGN iLevel = iLevel - 1 
+                          iLast  = iEnd.
+              IF ilevel eq 0 THEN nxtType = "".
+            END.
+          END. /* WHEN "Comment" */
+        END CASE.
+
+        /* Debugging 
+         * MESSAGE iLast iEnd l_xtra "[" cType "][" nxtType "]" SKIP
+         *     SUBSTRING(tmp-txt, iLast + 1, -1) VIEW-AS ALERT-BOX .  
+         */     
+      END.
+    END. /* DO WHILE...*/ 
+
+    /* Report Extra characters, or unclosed comments. */
+    CASE cType:
+      WHEN "Comment":U THEN 
+        ASSIGN p_ok  = NO
+               p_msg = "An open comment string (/~*) was found, but no closing " +
+                       "string. Please close any open comments.".
+      WHEN "Preproc":U THEN
+        ASSIGN p_ok  = NO
+               p_msg = "There is an unmatched curly brace (~{}). Please close " +
+                        "any open preprocessor expressions.".       
+      OTHERWISE DO:
+        p_ok = YES. /* Just a warning. We will still save the section. */
+        IF l_xtra THEN 
+          p_msg = "Warning: This section is expected to include " +
+                  "only comments (~/* */) and include file references " +
+                  "(~{ }). Extra code should be moved to the Definitions section.".
+      END.
+    END CASE.
+  END PROCEDURE.
+
+ /*Tag=</script>*/ 
+
+
+/************************* END OF HTML *************************/
+/*
+** File: src/main/abl/workshop/_methlib.w
+** Generated on: 2021-03-15 16:17:37
+** By: WebSpeed Embedded SpeedScript Preprocessor
+** Version: 2
+** Source file: src/main/abl/workshop/_methlib.html
+** Options: web-object
+**
+** WARNING: DO NOT EDIT THIS FILE.  Make changes to the original
+** HTML file and regenerate this file from it.
+**
+*/
+/********************* Internal Definitions ********************/
+
+/* This procedure returns the generation options at runtime.
+   It is invoked by src/web/method/e4gl.i included at the start
+   of this file. */
+PROCEDURE local-e4gl-options :
+  DEFINE OUTPUT PARAMETER p_version AS DECIMAL NO-UNDO
+    INITIAL 2.0.
+  DEFINE OUTPUT PARAMETER p_options AS CHARACTER NO-UNDO
+    INITIAL "web-object":U.
+  DEFINE OUTPUT PARAMETER p_content-type AS CHARACTER NO-UNDO
+    INITIAL "text/html":U.
+END PROCEDURE.
+
+/* end */

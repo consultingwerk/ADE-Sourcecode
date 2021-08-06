@@ -60,9 +60,8 @@ CREATE WIDGET-POOL.
 
 /* Definitions for BROWSE br_table                                      */
 &Scoped-define FIELDS-IN-QUERY-br_table rowObject.object_filename ~
-rowObject.object_type_code rowObject.template_smartobject ~
-rowObject.object_description rowObject.product_module_code ~
-rowObject.object_type_description 
+rowObject.template_smartobject rowObject.object_description ~
+rowObject.product_module_code 
 &Scoped-define ENABLED-FIELDS-IN-QUERY-br_table 
 &Scoped-define OPEN-QUERY-br_table OPEN QUERY br_table FOR EACH rowObject NO-LOCK INDEXED-REPOSITION.
 &Scoped-define TABLES-IN-QUERY-br_table rowObject
@@ -101,11 +100,9 @@ DEFINE BROWSE br_table
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _DISPLAY-FIELDS br_table bTableWin _STRUCTURED
   QUERY br_table NO-LOCK DISPLAY
       rowObject.object_filename FORMAT "X(70)":U
-      rowObject.object_type_code FORMAT "X(15)":U
       rowObject.template_smartobject FORMAT "YES/NO":U
       rowObject.object_description FORMAT "X(35)":U
       rowObject.product_module_code FORMAT "X(10)":U
-      rowObject.object_type_description FORMAT "X(35)":U
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
     WITH NO-ASSIGN NO-AUTO-VALIDATE NO-ROW-MARKERS SEPARATORS SIZE 66 BY 6.67 EXPANDABLE.
@@ -187,11 +184,9 @@ ASSIGN
      _TblList          = "rowObject"
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _FldNameList[1]   = _<SDO>.rowObject.object_filename
-     _FldNameList[2]   = _<SDO>.rowObject.object_type_code
-     _FldNameList[3]   = _<SDO>.rowObject.template_smartobject
-     _FldNameList[4]   = _<SDO>.rowObject.object_description
-     _FldNameList[5]   = _<SDO>.rowObject.product_module_code
-     _FldNameList[6]   = _<SDO>.rowObject.object_type_description
+     _FldNameList[2]   = _<SDO>.rowObject.template_smartobject
+     _FldNameList[3]   = _<SDO>.rowObject.object_description
+     _FldNameList[4]   = _<SDO>.rowObject.product_module_code
      _Query            is NOT OPENED
 */  /* BROWSE br_table */
 &ANALYZE-RESUME
@@ -245,23 +240,6 @@ END.
 ON HOME OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brshome.i}
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
-ON MOUSE-SELECT-DBLCLICK OF br_table IN FRAME F-Main
-DO:
-  DEFINE VARIABLE hContainer  AS HANDLE   NO-UNDO.
-  
-  {get ContainerSource hContainer}.
-  
-  IF VALID-HANDLE(hContainer) AND
-     LOOKUP("RecordSelected":U,hContainer:INTERNAL-ENTRIES) > 0 THEN
-    RUN RecordSelected IN hContainer.
-  
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -370,10 +348,9 @@ PROCEDURE getLayoutName :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE OUTPUT PARAMETER pcObjectName   AS CHAR NO-UNDO.
-DEFINE OUTPUT PARAMETER pcObjectDesc   AS CHAR NO-UNDO.
+DEFINE OUTPUT PARAMETER pcObjectName AS CHAR NO-UNDO.
+DEFINE OUTPUT PARAMETER pcObjectDesc AS CHAR NO-UNDO.
 DEFINE OUTPUT PARAMETER pcObjectModule AS CHAR NO-UNDO.
-DEFINE OUTPUT PARAMETER pcObjectCode   AS CHARACTER  NO-UNDO.
 
 ASSIGN pcObjectName = 
     rowobject.OBJECT_filename:SCREEN-VALUE IN BROWSE br_table
@@ -381,8 +358,6 @@ ASSIGN pcObjectName =
     rowobject.OBJECT_description:SCREEN-VALUE IN BROWSE br_table
        pcObjectModule =
     rowobject.product_module_code:SCREEN-VALUE IN BROWSE br_table.
-       pcObjectCode =
-    rowobject.object_type_code:SCREEN-VALUE IN BROWSE br_table.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

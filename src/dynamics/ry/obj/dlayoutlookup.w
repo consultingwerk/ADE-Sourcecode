@@ -38,8 +38,6 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
-DEFINE VARIABLE cClassesToRetrieve AS CHARACTER  NO-UNDO.
-
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -61,53 +59,44 @@ DEFINE VARIABLE cClassesToRetrieve AS CHARACTER  NO-UNDO.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
-
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES gsc_object_type ryc_smartobject ~
+&Scoped-define INTERNAL-TABLES gsc_object_type ryc_smartobject gsc_object ~
 gsc_product_module
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  object_filename object_description template_smartobject product_module_code~
- object_type_code object_type_description
-&Scoped-define ENABLED-FIELDS-IN-gsc_object_type object_type_code ~
-object_type_description 
+&Scoped-Define ENABLED-FIELDS  object_filename object_description template_smartobject product_module_code
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartobject object_filename ~
-object_description template_smartobject 
+template_smartobject 
+&Scoped-define ENABLED-FIELDS-IN-gsc_object object_description 
 &Scoped-define ENABLED-FIELDS-IN-gsc_product_module product_module_code 
-&Scoped-Define DATA-FIELDS  object_filename object_description template_smartobject product_module_code~
- object_type_code object_type_description
-&Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code ~
-object_type_description 
+&Scoped-Define DATA-FIELDS  object_filename object_description template_smartobject product_module_code
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename ~
-object_description template_smartobject 
+template_smartobject 
+&Scoped-define DATA-FIELDS-IN-gsc_object object_description 
 &Scoped-define DATA-FIELDS-IN-gsc_product_module product_module_code 
 &Scoped-Define MANDATORY-FIELDS 
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/dlayoutlookup.i"
-&Scoped-define QUERY-STRING-Query-Main FOR EACH gsc_object_type ~
-      WHERE LOOKUP(gsc_object_type.object_type_code, cClassesToRetrieve) > 0 NO-LOCK, ~
-      EACH ryc_smartobject OF gsc_object_type  ~
-      WHERE ryc_smartobject.object_type_obj = ~
-icfdb.gsc_object_type.object_type_obj ~
- AND ryc_smartobject.template_smartobject NO-LOCK, ~
-      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsc_object_type ~
-      WHERE LOOKUP(gsc_object_type.object_type_code, cClassesToRetrieve) > 0 NO-LOCK, ~
-      EACH ryc_smartobject OF gsc_object_type  ~
-      WHERE ryc_smartobject.object_type_obj = ~
+      WHERE gsc_object_type.object_type_code = "dynobjc" NO-LOCK, ~
+      EACH ryc_smartobject WHERE TRUE /* Join to gsc_object_type incomplete */ ~
+      AND ryc_smartobject.object_type_obj = ~
 icfdb.gsc_object_type.object_type_obj ~
  AND ryc_smartobject.template_smartobject NO-LOCK, ~
-      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK INDEXED-REPOSITION.
+      FIRST gsc_object OF gsc_object_type ~
+      WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK, ~
+      EACH gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
 &Scoped-define TABLES-IN-QUERY-Query-Main gsc_object_type ryc_smartobject ~
-gsc_product_module
+gsc_object gsc_product_module
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main gsc_object_type
 &Scoped-define SECOND-TABLE-IN-QUERY-Query-Main ryc_smartobject
-&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_product_module
+&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define FOURTH-TABLE-IN-QUERY-Query-Main gsc_product_module
 
 
 /* Custom List Definitions                                              */
@@ -127,6 +116,7 @@ gsc_product_module
 DEFINE QUERY Query-Main FOR 
       gsc_object_type, 
       ryc_smartobject, 
+      gsc_object, 
       gsc_product_module SCROLLING.
 &ANALYZE-RESUME
 {&DB-REQUIRED-END}
@@ -191,26 +181,23 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.gsc_object_type,icfdb.ryc_smartobject OF icfdb.gsc_object_type ,icfdb.gsc_product_module WHERE icfdb.ryc_smartobject ..."
+     _TblList          = "ICFDB.gsc_object_type,ICFDB.ryc_smartobject WHERE ICFDB.gsc_object_type ...,ICFDB.gsc_object OF ICFDB.gsc_object_type,ICFDB.gsc_product_module WHERE ICFDB.ryc_smartobject ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ",, FIRST,"
-     _Where[1]         = "LOOKUP(gsc_object_type.object_type_code, cClassesToRetrieve) > 0"
+     _Where[1]         = "ICFDB.gsc_object_type.object_type_code = ""dynobjc"""
      _Where[2]         = "ICFDB.ryc_smartobject.object_type_obj =
 icfdb.gsc_object_type.object_type_obj
  AND ICFDB.ryc_smartobject.template_smartobject"
-     _JoinCode[3]      = "gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj"
+     _Where[3]         = "ICFDB.gsc_object.object_obj = icfdb.ryc_smartobject.object_obj"
+     _JoinCode[4]      = "ICFDB.gsc_product_module.product_module_obj = ICFDB.ryc_smartobject.product_module_obj"
      _FldNameList[1]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[2]   > icfdb.ryc_smartobject.object_description
+     _FldNameList[2]   > ICFDB.gsc_object.object_description
 "object_description" "object_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[3]   > ICFDB.ryc_smartobject.template_smartobject
 "template_smartobject" "template_smartobject" ? ? "logical" ? ? ? ? ? ? yes ? no 21 yes
      _FldNameList[4]   > ICFDB.gsc_product_module.product_module_code
 "product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? yes ? no 20.6 yes
-     _FldNameList[5]   > ICFDB.gsc_object_type.object_type_code
-"object_type_code" "object_type_code" ? ? "character" ? ? ? ? ? ? yes ? no 17.2 yes
-     _FldNameList[6]   > ICFDB.gsc_object_type.object_type_description
-"object_type_description" "object_type_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -249,31 +236,4 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-
-{&DB-REQUIRED-START}
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject dTables  _DB-REQUIRED
-PROCEDURE initializeObject :
-/*------------------------------------------------------------------------------
-  Purpose:     Super Override
-  Parameters:  
-  Notes:       
-------------------------------------------------------------------------------*/
-
-  IF VALID-HANDLE(gshRepositoryManager) THEN
-    ASSIGN cClassesToRetrieve = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "dynMenc,dynFold,dynObjc")
-           cClassesToRetrieve = REPLACE(cClassesToRetrieve, CHR(3), ",":U).
-
-  /* Code placed here will execute PRIOR to standard behavior. */
-
-  RUN SUPER.
-
-  /* Code placed here will execute AFTER standard behavior.    */
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-{&DB-REQUIRED-END}
 

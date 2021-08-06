@@ -1,10 +1,10 @@
-/*************************************************************/
-/* Copyright (c) 1984-2007,2009 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/***********************************************************************/
+/* Copyright (c) 1984-2007,2009,2021 by Progress Software Corporation  */
+/*                                                                     */
+/* All rights reserved.  No part of this program or document           */
+/* may be  reproduced in  any form  or by  any means without           */
+/* permission in writing from PROGRESS Software Corporation.           */
+/***********************************************************************/
 
 /*------------------------------------------------------------------------
 
@@ -43,7 +43,8 @@
     kmcintos Aug 18, 2005  Increased format of gcUserId to x(40) 20050622-022.
     fernando Nov 03, 2005  Make sure 'grant' toggle-box is not selected by default
                            if scrolling through roles, after it gets sensitive again.
-    fernando 11/30/07      Check if read-only mode.                           
+    fernando 11/30/07      Check if read-only mode.
+    tmasood  05/21/21      Fixed the invalid value FALSE pass to a toggle-box                           
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -692,7 +693,7 @@ PROCEDURE initializeUI :
                                             CHR(1) + " ",
                                             CHR(1) + USERID("DICTDB"),
                                             CHR(1) + "",
-                                            CHR(1) + "FALSE")
+                                            CHR(1) + "NO")
            gcFieldInits        = REPLACE(gcFieldInits,"," + CHR(1),CHR(1))
            gcCreateModeFields  = SUBSTITUTE(gcFieldHandles,
                                             "yes",

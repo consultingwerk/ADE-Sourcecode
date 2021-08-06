@@ -91,7 +91,6 @@ DEFINE VARIABLE glNeedToSave        AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE glAppliedLeave      AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE gcWindowTitle       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glTrackChanges      AS LOGICAL    NO-UNDO INIT TRUE.
-DEFINE VARIABLE gcAppObjectType     AS CHARACTER  NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -125,13 +124,6 @@ DEFINE VARIABLE gcAppObjectType     AS CHARACTER  NO-UNDO.
 
 
 /* ************************  Function Prototypes ********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD assignObjectType vTableWin 
-FUNCTION assignObjectType RETURNS LOGICAL
-  ( pcObjectType AS CHARACTER )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD clearDetails vTableWin 
 FUNCTION clearDetails RETURNS LOGICAL
@@ -169,7 +161,6 @@ FUNCTION setToolbarHandle RETURNS LOGICAL
 DEFINE VARIABLE hContainerTemplate AS HANDLE NO-UNDO.
 DEFINE VARIABLE hCustomSuperProcedure AS HANDLE NO-UNDO.
 DEFINE VARIABLE hObjectFilename AS HANDLE NO-UNDO.
-DEFINE VARIABLE hObjectType AS HANDLE NO-UNDO.
 DEFINE VARIABLE hProductModule AS HANDLE NO-UNDO.
 DEFINE VARIABLE hResultCode AS HANDLE NO-UNDO.
 
@@ -179,11 +170,11 @@ DEFINE BUTTON buCreate
      SIZE 12.4 BY 1.14
      BGCOLOR 8 .
 
-DEFINE VARIABLE fiContainerTemplate AS CHARACTER FORMAT "X(256)":U INITIAL "Create from existing dynamic TreeView" 
+DEFINE VARIABLE fiContainerTemplate AS CHARACTER FORMAT "X(256)":U INITIAL "Create from existing Dynamic TreeView" 
       VIEW-AS TEXT 
      SIZE 37.8 BY .62 TOOLTIP "Enter a description of this TreeView container" NO-UNDO.
 
-DEFINE VARIABLE fiObjectDescription AS CHARACTER FORMAT "X(256)":U 
+DEFINE VARIABLE fiObjectDescription AS CHARACTER FORMAT "X(35)":U 
      LABEL "Description" 
      VIEW-AS FILL-IN 
      SIZE 48.8 BY 1 TOOLTIP "Enter a description for this Dynamic TreeView" NO-UNDO.
@@ -203,7 +194,7 @@ DEFINE FRAME frMain
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
          AT COL 1 ROW 1
-         SIZE 144.4 BY 4.52.
+         SIZE 144.4 BY 3.86.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -240,7 +231,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 4.52
+         HEIGHT             = 3.86
          WIDTH              = 144.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -273,7 +264,7 @@ ASSIGN
    NO-ENABLE                                                            */
 ASSIGN 
        fiContainerTemplate:PRIVATE-DATA IN FRAME frMain     = 
-                "Create from existing dynamic TreeView".
+                "Create from existing Dynamic TreeView".
 
 /* SETTINGS FOR FILL-IN fiObjectDescription IN FRAME frMain
    NO-ENABLE                                                            */
@@ -401,35 +392,25 @@ PROCEDURE adm-create-objects :
 
     WHEN 0 THEN DO:
        RUN constructObject (
-             INPUT  'adm2/dyncombo.w':U ,
-             INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionKeyFieldgsc_object_type.object_type_codeFieldLabelTypeFieldTooltipSelect an object type from listKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type
-                     WHERE LOOKUP(gsc_object_type.object_type_code, gsc_object_type.object_type_code) > 0 NO-LOCK
-                     BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 / &2ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldNamefiObjectTypeDisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
-             OUTPUT hObjectType ).
-       RUN repositionObject IN hObjectType ( 4.19 , 19.80 ) NO-ERROR.
-       RUN resizeObject IN hObjectType ( 1.00 , 49.20 ) NO-ERROR.
-
-       RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelObject filenameFieldTooltipPress F4 tor Lookup Dynamic TreeViews or enter the name of your new TreeView containerKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type WHERE LOOKUP(gsc_object_type.object_type_code, "DynTree":U) > 0 NO-LOCK, EACH ryc_smartobject NO-LOCK
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelObject FilenameFieldTooltipPress F4 tor Lookup Dynamic TreeViews or enter the name of your new TreeView containerKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type WHERE gsc_object_type.object_type_code = "DynTree":U NO-LOCK, EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.object_type_obj      = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO],
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [EXCLUDE_REPOSITORY_PRODUCT_MODULES],
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(35)|X(35)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleLookup Dynamic TreeViewViewerLinkedFieldsryc_smartobject.customization_result_obj,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,character,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(35),X(35),X(35)ViewerLinkedWidgets?,raObjectType,?,fiObjectDescriptionColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailyesMappedFieldsUseCacheyesSuperProcedureFieldName<Local1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(15)|X(10)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleLookup Dynamic TreeViewViewerLinkedFieldsryc_smartobject.customization_result_obj,gsc_object_type.object_type_code,gsc_product_module.product_module_code,ryc_smartobject.object_descriptionLinkedFieldDataTypesdecimal,character,character,characterLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999,X(15),X(10),X(35)ViewerLinkedWidgets?,raObjectType,?,fiObjectDescriptionColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailyesFieldName<Local1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectFilename ).
        RUN repositionObject IN hObjectFilename ( 1.00 , 19.80 ) NO-ERROR.
-       RUN resizeObject IN hObjectFilename ( 1.00 , 49.20 ) NO-ERROR.
+       RUN resizeObject IN hObjectFilename ( 1.00 , 48.80 ) NO-ERROR.
 
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_customization_result.customization_result_codeKeyFieldryc_customization_result.customization_result_objFieldLabelResult codeFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_customization_type NO-LOCK,
+             INPUT  'DisplayedFieldryc_customization_result.customization_result_codeKeyFieldryc_customization_result.customization_result_objFieldLabelResult CodeFieldTooltipPress F4 For LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_customization_type NO-LOCK,
                      EACH ryc_customization_result NO-LOCK
-                     WHERE ryc_customization_result.customization_type_obj = ryc_customization_type.customization_type_obj INDEXED-REPOSITIONQueryTablesryc_customization_type,ryc_customization_resultBrowseFieldsryc_customization_result.customization_result_code,ryc_customization_result.customization_result_desc,ryc_customization_result.system_owned,ryc_customization_type.customization_type_code,ryc_customization_type.customization_type_desc,ryc_customization_type.api_nameBrowseFieldDataTypescharacter,character,logical,character,character,characterBrowseFieldFormatsX(70)|X(70)|YES/NO|X(15)|X(35)|X(70)RowsToBatch200BrowseTitleResult Code LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     WHERE ryc_customization_result.customization_type_obj = ryc_customization_type.customization_type_obj INDEXED-REPOSITIONQueryTablesryc_customization_type,ryc_customization_resultBrowseFieldsryc_customization_result.customization_result_code,ryc_customization_result.customization_result_desc,ryc_customization_result.system_owned,ryc_customization_type.customization_type_code,ryc_customization_type.customization_type_desc,ryc_customization_type.api_nameBrowseFieldDataTypescharacter,character,logical,character,character,characterBrowseFieldFormatsX(70),X(70),YES/NO,X(15),X(35),X(70)RowsToBatch200BrowseTitleResult Code LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hResultCode ).
        RUN repositionObject IN hResultCode ( 3.14 , 19.80 ) NO-ERROR.
        RUN resizeObject IN hResultCode ( 1.00 , 49.00 ) NO-ERROR.
@@ -437,15 +418,15 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelSuper procedureFieldTooltipPress F4 to lookup an existing procedure to use as a Super Procedure for this TreeView containerKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
+             INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelSuper ProcedureFieldTooltipPress F4 to lookup an existing procedure to use as a Super Procedure for this TreeView containerKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK
                      WHERE gsc_object_type.object_type_code = ~'PROCEDURE~':U,
                      EACH ryc_smartobject NO-LOCK
                      WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO],
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [EXCLUDE_REPOSITORY_PRODUCT_MODULES],
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(70)|X(35)|X(35)RowsToBatch200BrowseTitleCustom SmartObject LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local5>DisplayFieldyesEnableFieldnoLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,ryc_smartobject.object_description,gsc_product_module.product_module_codeBrowseFieldDataTypescharacter,character,characterBrowseFieldFormatsX(70)|X(35)|X(10)RowsToBatch200BrowseTitleCustom SmartObject LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local5>DisplayFieldyesEnableFieldnoLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hCustomSuperProcedure ).
        RUN repositionObject IN hCustomSuperProcedure ( 2.05 , 19.80 ) NO-ERROR.
        RUN resizeObject IN hCustomSuperProcedure ( 1.00 , 49.00 ) NO-ERROR.
@@ -456,9 +437,9 @@ PROCEDURE adm-create-objects :
              INPUT  'DisplayedFieldryc_smartobject.object_filenameKeyFieldryc_smartobject.object_filenameFieldLabelDynamic TreeViewFieldTooltipPress F4 to lookup an existing Dynamic TreeView to use as a Template for your new TreeView containerKeyFormatX(70)KeyDatatypecharacterDisplayFormatX(70)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type WHERE gsc_object_type.object_type_code = "DynTree" NO-LOCK,
                      EACH ryc_smartobject NO-LOCK WHERE ryc_smartobject.object_type_obj = gsc_object_type.object_type_obj,
                      FIRST gsc_product_module NO-LOCK
-                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [&FilterSet=|&EntityList=GSCPM,RYCSO],
+                     WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj AND [EXCLUDE_REPOSITORY_PRODUCT_MODULES],
                      FIRST gsc_product NO-LOCK WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(35)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleDynamic TreeView Template LookupViewerLinkedFieldsryc_smartobject.customization_result_objLinkedFieldDataTypesdecimalLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoMappedFieldsUseCacheyesSuperProcedureFieldName<Local6>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY ryc_smartobject.object_filename INDEXED-REPOSITIONQueryTablesgsc_object_type,ryc_smartobject,gsc_product_module,gsc_productBrowseFieldsryc_smartobject.object_filename,gsc_object_type.object_type_code,ryc_smartobject.object_description,ryc_smartobject.static_object,ryc_smartobject.template_smartobject,ryc_smartobject.container_objectBrowseFieldDataTypescharacter,character,character,logical,logical,logicalBrowseFieldFormatsX(70)|X(15)|X(35)|YES/NO|YES/NO|YES/NORowsToBatch200BrowseTitleDynamic TreeView Template LookupViewerLinkedFieldsryc_smartobject.customization_result_objLinkedFieldDataTypesdecimalLinkedFieldFormats->>>>>>>>>>>>>>>>>9.999999999ViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local6>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hContainerTemplate ).
        RUN repositionObject IN hContainerTemplate ( 1.67 , 95.80 ) NO-ERROR.
        RUN resizeObject IN hContainerTemplate ( 1.00 , 34.40 ) NO-ERROR.
@@ -466,19 +447,17 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product_module.product_module_description,gsc_product_module.product_module_codeKeyFieldgsc_product_module.product_module_codeFieldLabelProduct module codeFieldTooltipChoose a product module that this TreeView container will belong to.KeyFormatX(35)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product_module NO-LOCK WHERE [&FilterSet=|&EntityList=GSCPM],
+             INPUT  'DisplayedFieldgsc_product_module.product_module_description,gsc_product_module.product_module_codeKeyFieldgsc_product_module.product_module_codeFieldLabelProduct Module CodeFieldTooltipChoose a product module that this TreeView container will belong to.KeyFormatX(10)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product_module NO-LOCK WHERE [EXCLUDE_REPOSITORY_PRODUCT_MODULES],
                      FIRST gsc_product NO-LOCK
                      WHERE gsc_product.product_obj = gsc_product_module.product_obj
-                     BY gsc_product_module.product_module_codeQueryTablesgsc_product_module,gsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 / &1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesUseCacheyesSuperProcedureFieldName<Local4>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+                     BY gsc_product_module.product_module_codeQueryTablesgsc_product_module,gsc_productSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&2 / &1ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local4>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProductModule ).
        RUN repositionObject IN hProductModule ( 3.14 , 95.80 ) NO-ERROR.
        RUN resizeObject IN hProductModule ( 1.00 , 46.80 ) NO-ERROR.
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( hObjectType ,
-             fiObjectDescription:HANDLE IN FRAME frMain , 'BEFORE':U ).
        RUN adjustTabOrder ( hObjectFilename ,
-             hObjectType , 'AFTER':U ).
+             fiObjectDescription:HANDLE IN FRAME frMain , 'BEFORE':U ).
        RUN adjustTabOrder ( hResultCode ,
              hObjectFilename , 'AFTER':U ).
        RUN adjustTabOrder ( hCustomSuperProcedure ,
@@ -508,9 +487,9 @@ PROCEDURE changesMade :
   IF NOT glNew THEN
     RUN setFields (INPUT "Change":U).
   
-  IF FOCUS:NAME <> "fiObjectDescription":U THEN
-    RUN disableField IN hContainerTemplate.
+  IF glNew THEN
   
+  RUN disableField IN hContainerTemplate.
   DISABLE buCreate WITH FRAME {&FRAME-NAME}.
 
 END PROCEDURE.
@@ -621,7 +600,7 @@ PROCEDURE initializeObject :
   /* Code placed here will execute PRIOR to standard behavior. */
   {get ContainerSource ghContainerSource}.
   {get ContainerHandle ghContainerHandle ghContainerSource}.
-
+  
   SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "lookupComplete":U         IN THIS-PROCEDURE.
   
   RUN SUPER.
@@ -661,12 +640,7 @@ PROCEDURE leftLookup :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-  IF glNew AND (LASTKEY = KEYCODE("TAB") OR 
-                LASTKEY = 609 /* Mouse Click */ OR 
-                LASTKEY = 619 OR 
-                LASTKEY = -1 OR 
-                LASTKEY = 9 OR
-                LASTKEY = 13) AND NOT glAppliedLeave THEN DO:
+IF glNew AND LASTKEY = KEYCODE("TAB") AND NOT glAppliedLeave THEN DO:
   glAppliedLeave = TRUE.
   RUN leavelookup IN hObjectFileName.
   RETURN.
@@ -722,7 +696,7 @@ PROCEDURE lookupComplete :
     IF pcDisplayedFieldValue <> "":U AND glNew THEN DO:
       {get LookupHandle hLookupFillin hObjectFileName}.
       hLookupFillin:SCREEN-VALUE = pcDisplayedFieldValue.
-      RUN newRecord IN ghContainerSource (INPUT "":U).
+      RUN newRecord IN ghContainerSource (INPUT pcDisplayedFieldValue).
 
       IF VALID-HANDLE(ghDataTable) THEN DO:
         /* Check if we used a template object - if we did - get out */
@@ -741,7 +715,7 @@ PROCEDURE lookupComplete :
         RUN setInfo IN ghAttrObject (INPUT ghDataTable).
         DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "Properties":U).
       END.
-    END. /*  NEW */
+    END.
     ELSE DO:
       IF VALID-HANDLE(ghDataTable) THEN DO:
         ghDataTable:EMPTY-TEMP-TABLE().
@@ -778,9 +752,6 @@ PROCEDURE lookupComplete :
       glTrackChanges THEN
       RUN changesMade.
   END.
-
-  IF phObject = hContainerTemplate THEN
-    RUN templateLookupChange.
     
 END PROCEDURE.
 
@@ -798,7 +769,7 @@ PROCEDURE nodeMaintenance :
   DEFINE VARIABLE hHandle        AS HANDLE     NO-UNDO.
   DEFINE VARIABLE cProcedureType AS CHARACTER  NO-UNDO.
 
-  RUN launchContainer IN gshSessionManager (INPUT  "gsmndtreew",    /* pcObjectFileName       */
+  RUN launchContainer IN gshSessionManager (INPUT  "gsmndobjcw",    /* pcObjectFileName       */
                                             INPUT  "":U,            /* pcPhysicalName         */
                                             INPUT  "":U,            /* pcLogicalName          */
                                             INPUT  TRUE,            /* plOnceOnly             */
@@ -829,33 +800,6 @@ PROCEDURE openTreeView :
   
   RUN assignNewValue IN hObjectFileName (INPUT "", INPUT pcObjectFileName, INPUT FALSE).
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE postCreateObjects vTableWin 
-PROCEDURE postCreateObjects :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure will change the base query string of the Object
-               Type combo to only list DynTree class objects 
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cBaseQueryString  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cValidObjectTypes AS CHARACTER  NO-UNDO.
-  cValidObjectTypes = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, "DynTree":U).
-  
-  /* Change Object Type Query */
-  ASSIGN cBaseQueryString = {fn getBaseQueryString hObjectType}
-         cBaseQueryString = REPLACE(cBaseQueryString, ", gsc_object_type.object_type_code":U, ",'" + cValidObjectTypes + "'":U).
-  DYNAMIC-FUNCTION("setBaseQueryString":U IN hObjectType, cBaseQueryString).
-
-  /* Change Object Lookup Query */
-  ASSIGN cBaseQueryString = {fn getBaseQueryString hObjectFilename}
-         cBaseQueryString = REPLACE(cBaseQueryString, ', "DynTree":U) > 0':U, ",'" + cValidObjectTypes + "') > 0":U).
-  DYNAMIC-FUNCTION("setBaseQueryString":U IN hObjectFilename, cBaseQueryString).
- 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1102,7 +1046,6 @@ PROCEDURE saveDetails :
   DEFINE VARIABLE cButton         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cProductModule  AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cError          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cObjectType     AS CHARACTER  NO-UNDO.
 
   SESSION:SET-WAIT-STATE("GENERAL":U).
 
@@ -1115,14 +1058,13 @@ PROCEDURE saveDetails :
 
   RUN assignValues IN ghAttrObject.
   hDataTable = DYNAMIC-FUNCTION("getDataTable":U IN ghAttrObject).
-  cObjectType = DYNAMIC-FUNCTION("getDataValue":U IN hObjectType).
+
   /* Save to the Repository */
   RUN saveTreeInfo IN ghContainerSource (INPUT hObjectLookup:SCREEN-VALUE,
                                          INPUT hDataTable,
                                          INPUT DYNAMIC-FUNCTION("getDataValue":U IN hCustomSuperProcedure),
                                          INPUT fiObjectDescription,
-                                         INPUT cProductModule,
-                                         INPUT cObjectType).
+                                         INPUT cProductModule).
   SESSION:SET-WAIT-STATE("":U).
   IF ERROR-STATUS:ERROR OR
      RETURN-VALUE <> "":U THEN DO:
@@ -1197,7 +1139,6 @@ PROCEDURE setFields :
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "cbSave,cbCancel,Properties":U).
       RUN enableField IN hObjectFilename.
       RUN enableField IN hProductModule.
-      RUN enableField IN hObjectType.
       RUN enableField IN hCustomSuperProcedure.
       RUN enableField IN hContainerTemplate.
       RUN disableButton IN hObjectFilename.
@@ -1211,35 +1152,6 @@ PROCEDURE setFields :
         IF TRIM(ENTRY(2,cRunAttribute,CHR(3))) <> "":U THEN
           DYNAMIC-FUNCTION("setDataValue":U IN hProductModule, TRIM(ENTRY(2,cRunAttribute,CHR(3)))).
       END.
-      
-      IF gcAppObjectType = "":U OR 
-         gcAppObjectType = ? THEN
-        gcAppObjectType = "DynTree":U.
-      
-      {set DataValue gcAppObjectType hObjectType}.
-
-      /* Adding new record - create temp-table */
-      RUN newRecord IN ghContainerSource (INPUT "":U).
-
-      IF VALID-HANDLE(ghDataTable) THEN DO:
-        /* Check if we used a template object - if we did - get out */
-        ghDataTable:FIND-FIRST().
-        IF ghDataTable:AVAILABLE THEN 
-          RETURN.
-        ghDataTable:EMPTY-TEMP-TABLE().
-        ghDataTable = ?.
-      END.
-
-      ghDataTable = DYNAMIC-FUNCTION("getTreeTable":U IN ghContainerSource).
-      
-      ghDataTable = ghDataTable:DEFAULT-BUFFER-HANDLE.
-      ghDataTable:BUFFER-CREATE().
-      IF VALID-HANDLE(ghAttrObject) THEN DO:
-        RUN setInfo IN ghAttrObject (INPUT ghDataTable).
-        DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "Properties":U).
-      END.
-
-
       APPLY "ENTRY":U TO hLookup.
     END.
     WHEN "Find":U THEN DO:
@@ -1247,7 +1159,6 @@ PROCEDURE setFields :
       DYNAMIC-FUNCTION("disableActions":U IN ghToolbar, "cbCancel,cbCopy,cbDelete,cbSave,cbFind,cbUndo,CntainerPreview,Properties":U).
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "New":U).
       RUN disableField IN hProductModule.
-      RUN disableField IN hObjectType.
       RUN disableField IN hCustomSuperProcedure.
       RUN disableField IN hContainerTemplate.
       RUN enableField IN hObjectFilename.
@@ -1263,8 +1174,6 @@ PROCEDURE setFields :
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "New,cbCopy,cbFind,cbDelete,CntainerPreview,Properties":U).
       RUN disableField IN hObjectFilename.
       RUN disableField IN hProductModule.
-      RUN disableField IN hObjectType.
-      RUN enableField IN hCustomSuperProcedure.
       ENABLE fiObjectDescription WITH FRAME {&FRAME-NAME}.
       RUN disableField IN hContainerTemplate.
       DISABLE buCreate WITH FRAME {&FRAME-NAME}.
@@ -1282,7 +1191,6 @@ PROCEDURE setFields :
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "New,cbCopy,cbFind,cbDelete,CntainerPreview":U).
       RUN enableField IN hObjectFilename.
       RUN disableField IN hCustomSuperProcedure.
-      RUN disableField IN hObjectType.
       RUN disableField IN hContainerTemplate.
       DISABLE buCreate WITH FRAME {&FRAME-NAME}.
       clearDetails(TRUE).
@@ -1294,7 +1202,6 @@ PROCEDURE setFields :
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "New,cbCopy,cbFind,cbDelete,CntainerPreview,Properties":U).
       RUN disableField IN hObjectFilename.
       RUN disableField IN hProductModule.
-      RUN disableField IN hObjectType.
       RUN enableField IN hCustomSuperProcedure.
       ENABLE fiObjectDescription WITH FRAME {&FRAME-NAME}.
       RUN disableField IN hContainerTemplate.
@@ -1304,7 +1211,7 @@ PROCEDURE setFields :
       glNeedToSave = TRUE.
       DYNAMIC-FUNCTION("disableActions":U IN ghToolbar, "New,cbCopy,cbFind,cbDelete,CntainerPreview":U).
       DYNAMIC-FUNCTION("enableActions":U IN ghToolbar, "cbSave,cbUndo,,Properties":U).
-      RUN disableField IN hObjectType.
+      RUN disableField IN hCustomSuperProcedure.
       DISABLE buCreate WITH FRAME {&FRAME-NAME}.
     END.
   END CASE.
@@ -1328,8 +1235,7 @@ PROCEDURE setOtherDetails :
     IF ghDataTable:AVAILABLE THEN DO WITH FRAME {&FRAME-NAME}:
       ASSIGN glTrackChanges = FALSE.
       ASSIGN fiObjectDescription:SCREEN-VALUE = ghDataTable:BUFFER-FIELD('cObjectDescription':U):BUFFER-VALUE.
-      DYNAMIC-FUNCTION("setDataValue":U IN hObjectType, INPUT ghDataTable:BUFFER-FIELD('cObjectTypeCode':U):BUFFER-VALUE).
-      RUN assignNewValue IN hCustomSuperProcedure (INPUT ghDataTable:BUFFER-FIELD('cCustomSuperProc':U):BUFFER-VALUE,"":U,INPUT FALSE).
+      RUN assignNewValue IN hCustomSuperProcedure (INPUT "":U,INPUT ghDataTable:BUFFER-FIELD('cCustomSuperProc':U):BUFFER-VALUE,INPUT FALSE).
       ASSIGN glTrackChanges = TRUE.
     END.
   END.
@@ -1373,7 +1279,6 @@ PROCEDURE validateData :
   DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageList      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hFileNameLookup   AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cObjectType       AS CHARACTER  NO-UNDO.
   
   SESSION:SET-WAIT-STATE("GENERAL":U).
   DO WITH FRAME {&FRAME-NAME}:
@@ -1382,7 +1287,6 @@ PROCEDURE validateData :
   
   {get LookupHandle hFileNameLookup hObjectFileName}.
   {get DataValue cProductModule hProductModule}.
-  {get DataValue cObjectType hObjectType}.
   
   cObjectFileName = hFileNameLookup:SCREEN-VALUE.
 
@@ -1394,9 +1298,6 @@ PROCEDURE validateData :
     cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                   {af/sup2/aferrortxt.i 'AF' '1' '' '' '"Product Module"'}.
 
-  IF cObjectType = "":U THEN
-    cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                  {af/sup2/aferrortxt.i 'AF' '1' '' '' '"Object Type"'}.
 
   RUN validateData IN ghAttrObject (OUTPUT cMessage).
   
@@ -1421,22 +1322,6 @@ END PROCEDURE.
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION assignObjectType vTableWin 
-FUNCTION assignObjectType RETURNS LOGICAL
-  ( pcObjectType AS CHARACTER ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  gcAppObjectType = pcObjectType.
-
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION clearDetails vTableWin 
 FUNCTION clearDetails RETURNS LOGICAL

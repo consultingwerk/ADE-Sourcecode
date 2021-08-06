@@ -116,7 +116,7 @@ define variable l_v_comp    as logical   no-undo.
 define variable odbtyp      as character no-undo.
 
 define variable ora_rid_det as character no-undo init
-"The native ROWID returns the address of a row in an Oracle database.  It typically provides the fastest access to a record.  However, the native ROWID does not support the {&PRO_DISPLAY_NAME} FIND PREV/LAST statement or cursor repositioning.  FIND FIRST/NEXT statements for tables that use the native ROWID as a row identifier have unpredictable results.  You can use native ROWID with a view only if there is a one-to-one correspondence between the rows in the view and the rows in a single underlying table.  You cannot use ROWID for a view that performs a join, uses ""distinct,"" ""group by,"" aggregate functions, unions, etc.".
+"The native ROWID returns the address of a row in an Oracle database.  It typically provides the fastest access to a record.  However, the native ROWID does not support the PROGRESS FIND PREV/LAST statement or cursor repositioning.  FIND FIRST/NEXT statements for tables that use the native ROWID as a row identifier have unpredictable results.  You can use native ROWID with a view only if there is a one-to-one correspondence between the rows in the view and the rows in a single underlying table.  You cannot use ROWID for a view that performs a join, uses ""distinct,"" ""group by,"" aggregate functions, unions, etc.".
 
 define variable l_msg         as character extent 16 initial [
  /* 1*/ "This index is NOT Unique. ",
@@ -157,7 +157,7 @@ define variable l_msg         as character extent 16 initial [
  */
 
 form
-  "Please select one of the following objects to be used for {&PRO_DISPLAY_NAME}" 
+  "Please select one of the following objects to be used for PROGRESS" 
                                        view-as text at 2  skip
   "ROWID functionality. "              view-as text at 2
   &IF "{&WINDOW-SYSTEM}" = "TTY"

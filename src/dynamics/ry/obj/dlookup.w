@@ -62,22 +62,24 @@ CREATE WIDGET-POOL.
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
-&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_product_module ~
-gsc_object_type
+&Scoped-define INTERNAL-TABLES ryc_smartobject gsc_object ~
+gsc_product_module gsc_object_type
 
 /* Definitions for QUERY Query-Main                                     */
-&Scoped-Define ENABLED-FIELDS  object_filename object_description template_smartobject product_module_code~
+&Scoped-Define ENABLED-FIELDS  object_filename template_smartobject object_description product_module_code~
  product_module_description object_type_code object_type_description
 &Scoped-define ENABLED-FIELDS-IN-ryc_smartobject object_filename ~
-object_description template_smartobject 
+template_smartobject 
+&Scoped-define ENABLED-FIELDS-IN-gsc_object object_description 
 &Scoped-define ENABLED-FIELDS-IN-gsc_product_module product_module_code ~
 product_module_description 
 &Scoped-define ENABLED-FIELDS-IN-gsc_object_type object_type_code ~
 object_type_description 
-&Scoped-Define DATA-FIELDS  object_filename object_description template_smartobject product_module_code~
+&Scoped-Define DATA-FIELDS  object_filename template_smartobject object_description product_module_code~
  product_module_description object_type_code object_type_description
 &Scoped-define DATA-FIELDS-IN-ryc_smartobject object_filename ~
-object_description template_smartobject 
+template_smartobject 
+&Scoped-define DATA-FIELDS-IN-gsc_object object_description 
 &Scoped-define DATA-FIELDS-IN-gsc_product_module product_module_code ~
 product_module_description 
 &Scoped-define DATA-FIELDS-IN-gsc_object_type object_type_code ~
@@ -86,19 +88,19 @@ object_type_description
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "ry/obj/dlookup.i"
-&Scoped-define QUERY-STRING-Query-Main FOR EACH ryc_smartobject NO-LOCK, ~
-      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, ~
-      FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH ryc_smartobject NO-LOCK, ~
-      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK, ~
+      FIRST gsc_object WHERE gsc_object.object_obj = ryc_smartobject.object_obj NO-LOCK, ~
+      FIRST gsc_product_module WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj ~
+ NO-LOCK, ~
       FIRST gsc_object_type WHERE gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
-&Scoped-define TABLES-IN-QUERY-Query-Main ryc_smartobject ~
+&Scoped-define TABLES-IN-QUERY-Query-Main ryc_smartobject gsc_object ~
 gsc_product_module gsc_object_type
 &Scoped-define FIRST-TABLE-IN-QUERY-Query-Main ryc_smartobject
-&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_product_module
-&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_object_type
+&Scoped-define SECOND-TABLE-IN-QUERY-Query-Main gsc_object
+&Scoped-define THIRD-TABLE-IN-QUERY-Query-Main gsc_product_module
+&Scoped-define FOURTH-TABLE-IN-QUERY-Query-Main gsc_object_type
 
 
 /* Custom List Definitions                                              */
@@ -117,6 +119,7 @@ gsc_product_module gsc_object_type
 &ANALYZE-SUSPEND
 DEFINE QUERY Query-Main FOR 
       ryc_smartobject, 
+      gsc_object, 
       gsc_product_module, 
       gsc_object_type SCROLLING.
 &ANALYZE-RESUME
@@ -182,17 +185,19 @@ END.
 
 &ANALYZE-SUSPEND _QUERY-BLOCK QUERY Query-Main
 /* Query rebuild information for SmartDataObject Query-Main
-     _TblList          = "icfdb.ryc_smartobject,icfdb.gsc_product_module WHERE icfdb.ryc_smartobject ...,icfdb.gsc_object_type WHERE icfdb.ryc_smartobject ..."
+     _TblList          = "ICFDB.ryc_smartobject,ICFDB.gsc_object WHERE ICFDB.ryc_smartobject ...,ICFDB.gsc_product_module WHERE ICFDB.ryc_smartobject ...,ICFDB.gsc_object_type WHERE ICFDB.ryc_smartobject ..."
      _Options          = "NO-LOCK INDEXED-REPOSITION"
      _TblOptList       = ", FIRST, FIRST, FIRST"
-     _JoinCode[2]      = "gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj"
-     _JoinCode[3]      = "gsc_object_type.object_type_obj = ryc_smartobject.object_type_obj"
+     _JoinCode[2]      = "ICFDB.gsc_object.object_obj = ICFDB.ryc_smartobject.object_obj"
+     _JoinCode[3]      = "ICFDB.gsc_product_module.product_module_obj = ICFDB.ryc_smartobject.product_module_obj
+"
+     _JoinCode[4]      = "ICFDB.gsc_object_type.object_type_obj = ICFDB.ryc_smartobject.object_type_obj"
      _FldNameList[1]   > ICFDB.ryc_smartobject.object_filename
 "object_filename" "object_filename" ? ? "character" ? ? ? ? ? ? yes ? no 70 yes
-     _FldNameList[2]   > icfdb.ryc_smartobject.object_description
-"object_description" "object_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
-     _FldNameList[3]   > ICFDB.ryc_smartobject.template_smartobject
+     _FldNameList[2]   > ICFDB.ryc_smartobject.template_smartobject
 "template_smartobject" "template_smartobject" ? ? "logical" ? ? ? ? ? ? yes ? no 21 yes
+     _FldNameList[3]   > ICFDB.gsc_object.object_description
+"object_description" "object_description" ? ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[4]   > ICFDB.gsc_product_module.product_module_code
 "product_module_code" "product_module_code" ? ? "character" ? ? ? ? ? ? yes ? no 20.6 yes
      _FldNameList[5]   > ICFDB.gsc_product_module.product_module_description

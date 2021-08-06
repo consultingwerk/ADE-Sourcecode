@@ -1,8 +1,8 @@
-/**********************************************************************
-* Copyright (C) 2000,2006,2013 by Progress Software Corporation. All  *
-* rights reserved.  Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                            *                         
-**********************************************************************/
+/**************************************************************************
+* Copyright (C) 2000,2006,2013,2020 by Progress Software Corporation. All  *
+* rights reserved.  Prior versions of this work may contain portions       *
+* contributed by participants of Possenet.                                 *                         
+****************************************************************************/
 
 /* Progress Lex Converter 7.1A->7.1B Version 1.11 */
 
@@ -11,6 +11,7 @@
    History: D. McMann 07/09/98 Added AND (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN")
                                to FIND of _File.
             d> McMann 07/29/03 Added support for BLOBS and CLOBS
+            Kberlia   10/29/20 Added argument in _pro_area_list.p to support default area.
 */
 
 { prodict/dictvar.i }
@@ -25,7 +26,7 @@ DEFINE VARIABLE maxpos      AS INTEGER   NO-UNDO.
 DEFINE VARIABLE new-name    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE fldOrder    AS INTEGER   NO-UNDO.
 DEFINE VARIABLE canned      AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE answer	    AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE answer            AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE skip_fld    AS LOGICAL   NO-UNDO.
 DEFINE VARIABLE any_copied  AS LOGICAL   NO-UNDO init no.
 define variable NoArea      as logical   no-undo.
@@ -241,18 +242,18 @@ DO TRANSACTION i = 1 TO pik_return:
       DEFINE VAR nname AS CHAR NO-UNDO.
 
       if skip_fld THEN 
-      	 RETURN.
+               RETURN.
 
       nname = new-name:SCREEN-VALUE IN FRAME rename-me.
       RUN "adecomm/_valname.p" (INPUT nname, INPUT no, OUTPUT answer).
       IF NOT answer THEN DO:
-      	 APPLY "ENTRY" TO new-name IN FRAME rename-me.
-      	 RETURN NO-APPLY.
+               APPLY "ENTRY" TO new-name IN FRAME rename-me.
+               RETURN NO-APPLY.
       END.
   
       IF CAN-FIND(_Field WHERE _Field._File-recid = drec_file
-      		  AND _Field._Field-name = nname) THEN DO:
-      	message new_lang[7] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+                        AND _Field._Field-name = nname) THEN DO:
+              message new_lang[7] VIEW-AS ALERT-BOX ERROR BUTTONS OK.
         RETURN NO-APPLY.
       END.
     END.
@@ -289,7 +290,7 @@ DO TRANSACTION i = 1 TO pik_return:
                   APPLY "GO" TO FRAME selectarea.
               END.
               
-              run prodict/pro/_pro_area_list(drec_file,{&INVALID_AREAS},cmbArea:delimiter, output  AreaList).
+              run prodict/pro/_pro_area_list(drec_file,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
           
               cmbArea:list-items = AreaList.
               cmbArea:screen-value = cmbArea:entry(1).

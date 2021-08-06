@@ -39,7 +39,7 @@ class adeuib._abstractdialogservice abstract inherits _ideeventservice implement
         end.      
         
     define protected abstract property CancelHandle as handle no-undo get.  
-    
+    define public property Cancelled as logical no-undo get. protected set. 
 	define public abstract property Title as char no-undo get. set.
 	
 	define variable mchar as character no-undo. 
@@ -118,12 +118,17 @@ class adeuib._abstractdialogservice abstract inherits _ideeventservice implement
     end method.
     
     method private void ApplyCancelEvent(  ).
-        define variable cevent as character no-undo.
+       
         if CancelEventNum = 0 or CancelEventNum = ? then
             apply "choose" to mcancel.
         else do:
             apply "U" + String(CancelEventNum) to CancelHandle.
         end.
+	Cancelled = true. // we are not always able to apply endkey so allow dialogs to check this after wait-for
+        catch e as Progress.Lang.Error :
+           // when cancel from eclipse X the widget is gone by now 
+           // whatever happens here stays here   
+        end catch.
     end method.
  
     method public void SetOkButton(pok as handle).

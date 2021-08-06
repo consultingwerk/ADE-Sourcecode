@@ -1,6 +1,6 @@
-/***************************************************************************
-* Copyright (C) 2000,2004-2011 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions                *
+/****************************************************************************
+* Copyright (C) 2000,2004-2011,2020 by Progress Software Corporation.       *
+* All rights reserved. Prior versions of this work may contain portions     *
 * contributed by participants of Possenet.                                  *
 *                                                                           *
 *****************************************************************************/
@@ -42,7 +42,10 @@ history:
     rkamboj     11/30/09    Added logic to dump category field.
     rkamboj     09/23/13    Added support for load of partitioned table flag for _File. 
                             Added support for load of is-local index for _index.
+    tmasood     11/11/20    Include four new sections to support online schema change feature.
 */
+
+{ prodict/user/uservar.i }
 
 DEFINE INPUT  PARAMETER pi_method  AS CHARACTER NO-UNDO.
 DEFINE INPUT  PARAMETER pi_recid   AS RECID     NO-UNDO.
@@ -65,6 +68,7 @@ DEFINE VARIABLE lpMemRules  AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lpMemLine   AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE lError      AS LOGICAL    NO-UNDO.
 define variable lNoArea     as logical no-undo.
+DEFINE VARIABLE hWriteToStream AS HANDLE  NO-UNDO.
 DEFINE SHARED STREAM ddl.
 DEFINE BUFFER   CON_DICTDB          FOR DICTDB._Constraint.
 DEFINE BUFFER   FILE_DICTDB         FOR DICTDB._File.
@@ -416,234 +420,237 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
         AND _StorageObject._Object-type = 1
         AND _Storageobject._Partitionid = 0
         NO-LOCK NO-ERROR.
-    PUT STREAM ddl UNFORMATTED "ADD TABLE """ _File._File-name """".
+    PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "ADD TABLE """ _File._File-name """".
     IF _File._Db-lang > 0 THEN
-      PUT STREAM ddl UNFORMATTED SKIP "  TYPE SQL" SKIP.
-    ELSE IF _Db._Db-type <> "PROGRESS"
-      THEN PUT STREAM ddl UNFORMATTED "  TYPE " _Db._Db-type SKIP.
-      ELSE PUT STREAM ddl UNFORMATTED skip.
-    
-    if (_Db._Db-type = "PROGRESS" and _File._File-attributes[1]) then  
-      PUT STREAM ddl UNFORMATTED "  MULTITENANT " _File._File-attributes[1] SKIP.
-    
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED SKIP "  TYPE SQL" SKIP.
+    ELSE IF _Db._Db-type <> "PROGRESS" THEN
+       PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  TYPE " _Db._Db-type SKIP.
+    ELSE 
+       PUT STREAM-HANDLE hPreDeployStream UNFORMATTED skip.
+           
+    if (_Db._Db-type = "PROGRESS" and _File._File-attributes[1]) then
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  MULTITENANT " _File._File-attributes[1] SKIP.
+         
     lNoArea = false.
   
     IF ((_File._File-attributes[1] AND _File._File-attributes[2] = FALSE) or (_File._File-attributes[3] )) THEN
     DO:
-        PUT STREAM ddl UNFORMATTED "  NO-DEFAULT-AREA "  SKIP.    
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  NO-DEFAULT-AREA "  SKIP.
         lNoArea = true.
     END.
     ELSE IF AVAILABLE _StorageObject THEN 
     DO:
         FIND _Area WHERE _Area._Area-number = _StorageObject._Area NO-LOCK.
-        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
     END. 
      /* multitenant and no keep default -   */ 
     ELSE DO: 
         FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
-        PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
     END.  
     IF _File._Can-Create <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-CREATE ".
-      EXPORT STREAM ddl _File._Can-Create.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-CREATE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Create.
     END.
     IF _File._Can-Delete <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-DELETE ".
-      EXPORT STREAM ddl _File._Can-Delete.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-DELETE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Delete.
     END.
     IF _File._Can-Read <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-READ ".
-      EXPORT STREAM ddl _File._Can-Read.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-READ ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Read.
     END.
     IF _File._Can-Write <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-WRITE ".
-      EXPORT STREAM ddl _File._Can-Write.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-WRITE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Write.
     END.
     IF _File._Can-Dump <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-DUMP ".
-      EXPORT STREAM ddl _File._Can-Dump.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-DUMP ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Dump.
     END.
     IF _File._Can-Load <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-LOAD ".
-      EXPORT STREAM ddl _File._Can-Load.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-LOAD ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Can-Load.
     END.
     IF _File._File-Label <> ? AND _File._File-Label <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  LABEL ".
-      EXPORT STREAM ddl _File._File-Label.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  LABEL ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._File-Label.
     END.
     IF _File._File-Label-SA <> ? AND _File._File-Label-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  LABEL-SA ".
-      EXPORT STREAM ddl _File._File-Label-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  LABEL-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._File-Label-SA.
     END.
     IF _File._Desc <> ? AND _File._Desc <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  DESCRIPTION ".
-      EXPORT STREAM ddl _File._Desc.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  DESCRIPTION ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Desc.
     END.
     IF _File._Valexp <> ? AND _File._Valexp <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALEXP ".
-      EXPORT STREAM ddl _File._Valexp.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALEXP ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Valexp.
     END.
     IF _File._Valmsg <> ? AND _File._Valmsg <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALMSG ".
-      EXPORT STREAM ddl _File._Valmsg.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALMSG ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Valmsg.
     END.
     IF _File._Valmsg-SA <> ? AND _File._Valmsg-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALMSG-SA ".
-      EXPORT STREAM ddl _File._Valmsg-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALMSG-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Valmsg-SA.
     END.
     IF _File._Frozen THEN
-      PUT STREAM ddl UNFORMATTED "  FROZEN" SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FROZEN" SKIP.
     IF _File._Hidden THEN
-      PUT STREAM ddl UNFORMATTED "  HIDDEN" SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  HIDDEN" SKIP.
     IF _File._Dump-name <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  DUMP-NAME ".
-      EXPORT STREAM ddl _File._Dump-name.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  DUMP-NAME ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._Dump-name.
     END.
     IF _File._For-Flag <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-FLAGS " _File._For-Flag SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-FLAGS " _File._For-Flag SKIP.
     IF _File._For-Format <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-FORMAT ".
-      EXPORT STREAM ddl _File._For-Format.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-FORMAT ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._For-Format.
     END.
     IF _File._For-Cnt1 <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-GLOBAL " _File._For-Cnt1 SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-GLOBAL " _File._For-Cnt1 SKIP.
     IF _File._For-Id <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-ID " _File._For-Id SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-ID " _File._For-Id SKIP.
     IF _File._For-Cnt2 <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-LOCAL " _File._For-Cnt2 SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-LOCAL " _File._For-Cnt2 SKIP.
     IF _File._For-Info <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-MARK ".
-      EXPORT STREAM ddl _File._For-Info.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-MARK ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._For-Info.
     END.
     IF _File._For-Name <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-NAME ".
-      EXPORT STREAM ddl _File._For-Name.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-NAME ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._For-Name.
     END.
     IF _File._For-Number <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-NUMBER " _File._For-Number SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-NUMBER " _File._For-Number SKIP.
     IF _File._For-Owner <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-OWNER ".
-      EXPORT STREAM ddl _File._For-Owner.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-OWNER ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._For-Owner.
     END.
     IF _File._For-Size <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-SIZE " _File._For-Size SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-SIZE " _File._For-Size SKIP.
     IF _File._For-Type <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-TYPE ".
-      EXPORT STREAM ddl _File._For-Type.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-TYPE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._For-Type.
     END.
     IF _File._Fil-misc1[1] <> ? THEN DO:
-      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl UNFORMATTED "  PROGRESS-RECID " _File._Fil-misc1[1] SKIP.
-        ELSE PUT STREAM ddl UNFORMATTED "  FILE-MISC11 "    _File._Fil-misc1[1] SKIP.
+      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  PROGRESS-RECID " _File._Fil-misc1[1] SKIP.
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC11 "    _File._Fil-misc1[1] SKIP.
     END.
     IF _File._Fil-misc1[2] <> ? THEN DO:
-      IF CAN-DO("RMS",_Db._Db-type)
-        THEN DO:
-          PUT STREAM ddl CONTROL "  FOREIGN-SPAN ".
-          EXPORT STREAM ddl (IF _File._Fil-misc1[2] = 1 THEN 'yes' ELSE 'no').
-        END.
-        ELSE PUT STREAM ddl UNFORMATTED "  FILE-MISC12 "    _File._Fil-misc1[2] SKIP.
+      IF CAN-DO("RMS",_Db._Db-type) THEN DO:
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-SPAN ".
+         EXPORT STREAM-HANDLE hPreDeployStream (IF _File._Fil-misc1[2] = 1 THEN 'yes' ELSE 'no').
+      END.
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC12 "    _File._Fil-misc1[2] SKIP.
     END.
     IF _File._Fil-misc1[3] <> ? THEN DO:
-      IF CAN-DO(cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl UNFORMATTED "  INDEX-FREE-FLD " _File._Fil-misc1[3] SKIP.
-        ELSE PUT STREAM ddl UNFORMATTED "  FILE-MISC13 "    _File._Fil-misc1[3] SKIP.
+      IF CAN-DO(cODBType,_Db._Db-type) THEN
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  INDEX-FREE-FLD " _File._Fil-misc1[3] SKIP.
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC13 "    _File._Fil-misc1[3] SKIP.
     END.
     IF (_File._Fil-misc1[4] <> ?) THEN DO:
-      IF CAN-DO("ORACLE",_Db._Db-type)
-        THEN PUT STREAM ddl UNFORMATTED "  RECID-COL-NO " _File._Fil-misc1[4] SKIP.
-        ELSE PUT STREAM ddl UNFORMATTED "  FILE-MISC14 "  _File._Fil-misc1[4] SKIP.
+      IF CAN-DO("ORACLE",_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  RECID-COL-NO " _File._Fil-misc1[4] SKIP.
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC14 "  _File._Fil-misc1[4] SKIP.
     END.
     IF (_File._Fil-misc1[5] <> ?) THEN
-      PUT STREAM ddl UNFORMATTED "  FILE-MISC15 " _File._Fil-misc1[5] SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC15 " _File._Fil-misc1[5] SKIP.
     IF (_File._Fil-misc1[6] <> ?) THEN
-      PUT STREAM ddl UNFORMATTED "  FILE-MISC16 " _File._Fil-misc1[6] SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC16 " _File._Fil-misc1[6] SKIP.
     IF (_File._Fil-misc1[7] <> ?) THEN
-      PUT STREAM ddl UNFORMATTED "  FILE-MISC17 " _File._Fil-misc1[7] SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC17 " _File._Fil-misc1[7] SKIP.
     IF (_File._Fil-misc1[8] <> ?) THEN
-      PUT STREAM ddl UNFORMATTED "  FILE-MISC18 " _File._Fil-misc1[8] SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FILE-MISC18 " _File._Fil-misc1[8] SKIP.
     IF _File._Fil-misc2[1] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  QUALIFIER ".
-      EXPORT STREAM ddl  _File._Fil-misc2[1].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  QUALIFIER ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[1].
     END.
     IF _File._Fil-misc2[2] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  HIDDEN-FLDS ".
-      EXPORT STREAM ddl  _File._Fil-misc2[2].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  HIDDEN-FLDS ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[2].
     END.
     IF _File._Fil-misc2[3] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  RECID-FLD-NAME ".
-      EXPORT STREAM ddl  _File._Fil-misc2[3].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  RECID-FLD-NAME ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[3].
     END.
     IF _File._Fil-misc2[4] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FLD-NAMES-LIST ".
-      EXPORT STREAM ddl  _File._Fil-misc2[4].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FLD-NAMES-LIST ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[4].
     END.
     IF _File._Fil-misc2[5] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FILE-MISC25 ".
-      EXPORT STREAM ddl  _File._Fil-misc2[5].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FILE-MISC25 ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[5].
     END.
     IF _File._Fil-misc2[6] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FILE-MISC26 ".
-      EXPORT STREAM ddl  _File._Fil-misc2[6].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FILE-MISC26 ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[6].
     END.
     IF _File._Fil-misc2[7] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FILE-MISC27 ".
-      EXPORT STREAM ddl  _File._Fil-misc2[7].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FILE-MISC27 ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[7].
     END.
     IF _File._Fil-misc2[8] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  DB-LINK-NAME ".
-      EXPORT STREAM ddl  _File._Fil-misc2[8].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  DB-LINK-NAME ".
+      EXPORT STREAM-HANDLE hPreDeployStream  _File._Fil-misc2[8].
     END.
     IF _File._category <> ? AND _File._category <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  CATEGORY ".
-      EXPORT STREAM ddl _File._category.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CATEGORY ".
+      EXPORT STREAM-HANDLE hPreDeployStream _File._category.
     END.
     if _file._File-Attributes[3] then
-    do:
-        PUT STREAM ddl UNFORMATTED "  IS-PARTITIONED" SKIP.
-    end.    
+       PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  IS-PARTITIONED" SKIP.
+       
     FOR EACH _File-trig OF _File NO-LOCK BY _Event:
-      PUT STREAM ddl UNFORMATTED
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED
         "  TABLE-TRIGGER """ _File-Trig._Event """ "
         (IF _File-Trig._Override THEN 'OVERRIDE' ELSE 'NO-OVERRIDE') " "
         "PROCEDURE """ _File-Trig._Proc-Name """ "
         "CRC """ _File-Trig._Trig-CRC """ " SKIP.
     END.
-    PUT STREAM ddl UNFORMATTED SKIP(1).
+    PUT STREAM-HANDLE hPreDeployStream UNFORMATTED SKIP(1).
   END.
   FOR EACH _Field OF _File NO-LOCK BY _Field-rpos:
     IF RECID(_File) <> pi_recid AND RECID(_Field) <> pi_recid THEN NEXT.
-    PUT STREAM ddl UNFORMATTED
+    PUT STREAM-HANDLE hPreDeployStream UNFORMATTED
       "ADD FIELD """ _Field._Field-name """ "
       "OF """ _File._File-name """ "
       "AS " _Field._Data-type " " SKIP.
     IF _Field._Desc <> ? AND _Field._Desc <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  DESCRIPTION ".
-      EXPORT STREAM ddl _Field._Desc.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  DESCRIPTION ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Desc.
     END.
-    PUT STREAM ddl CONTROL "  FORMAT ".
-    EXPORT STREAM ddl _Field._Format.
+    PUT STREAM-HANDLE hPreDeployStream CONTROL "  FORMAT ".
+    EXPORT STREAM-HANDLE hPreDeployStream _Field._Format.
     IF _Field._Format-SA <> ? AND _Field._Format-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  FORMAT-SA ".
-      EXPORT STREAM ddl _Field._Format-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FORMAT-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Format-SA.
     END.
-    PUT STREAM ddl CONTROL "  INITIAL ".
-    EXPORT STREAM ddl _Field._Initial.
+    PUT STREAM-HANDLE hPreDeployStream CONTROL "  INITIAL ".
+    EXPORT STREAM-HANDLE hPreDeployStream _Field._Initial.
     IF _Field._Initial-SA <> ? AND _Field._Initial-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  INITIAL-SA ".
-      EXPORT STREAM ddl _Field._Initial-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  INITIAL-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Initial-SA.
     END.
     IF _Field._Label <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  LABEL ".
-      EXPORT STREAM ddl _Field._Label.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  LABEL ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Label.
     END.
     IF _Field._Label-SA <> ? AND _Field._Label-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  LABEL-SA ".
-      EXPORT STREAM ddl _Field._Label-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  LABEL-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Label-SA.
     END.
     IF pi_DmpRpos = "y" THEN DO:
-       PUT STREAM ddl CONTROL "  POSITION ".
-       EXPORT STREAM ddl _Field._Field-rpos. 
+       PUT STREAM-HANDLE hPreDeployStream CONTROL "  POSITION ".
+       EXPORT STREAM-HANDLE hPreDeployStream _Field._Field-rpos.
     END.
     IF _Field._Width <> ? THEN DO:
       IF _Db._Db-type = "Progress" THEN DO: 
@@ -656,203 +663,211 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
                                     AND _Storageobject._Partitionid = 0
                                   NO-LOCK.
               FIND _Area WHERE _Area._Area-number = _StorageObject._Area-number NO-LOCK.
-              PUT STREAM ddl UNFORMATTED '  LOB-AREA "' _Area._Area-name '"' SKIP.   
+              PUT STREAM-HANDLE hPreDeployStream UNFORMATTED '  LOB-AREA "' _Area._Area-name '"' SKIP.
           end.
-          PUT STREAM ddl UNFORMATTED "  LOB-BYTES " _Field._Width SKIP.
-          PUT STREAM ddl UNFORMATTED "  LOB-SIZE " _Field._Fld-Misc2[1] SKIP.
+          PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  LOB-BYTES " _Field._Width SKIP.
+          PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  LOB-SIZE " _Field._Fld-Misc2[1] SKIP.
         END.
         ELSE DO:
-          PUT STREAM ddl CONTROL "  MAX-WIDTH ".
-          EXPORT STREAM ddl _Field._Width.
+          PUT STREAM-HANDLE hPreDeployStream CONTROL "  MAX-WIDTH ".
+          EXPORT STREAM-HANDLE hPreDeployStream _Field._Width.
         END.
       END.
       ELSE DO: /* Not a Progress Database */
-        PUT STREAM ddl CONTROL "  MAX-WIDTH ".
-        EXPORT STREAM ddl _Field._Width.
+        PUT STREAM-HANDLE hPreDeployStream CONTROL "  MAX-WIDTH ".
+        EXPORT STREAM-HANDLE hPreDeployStream _Field._Width.
       END.
     END.
     IF _Field._Data-type = "CLOB" THEN DO:
-        PUT STREAM ddl UNFORMATTED '  CLOB-CODEPAGE "' _Field._Charset '"' SKIP.
-        PUT STREAM ddl UNFORMATTED '  CLOB-COLLATION "' _Field._Collation '"' SKIP.
-        PUT STREAM ddl UNFORMATTED '  CLOB-TYPE ' _Field._Attributes1 SKIP.
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED '  CLOB-CODEPAGE "' _Field._Charset '"' SKIP.
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED '  CLOB-COLLATION "' _Field._Collation '"' SKIP.
+        PUT STREAM-HANDLE hPreDeployStream UNFORMATTED '  CLOB-TYPE ' _Field._Attributes1 SKIP.
     END.
     IF _Field._View-As <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  VIEW-AS ".
-      EXPORT STREAM ddl _Field._View-As.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VIEW-AS ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._View-As.
     END.
     IF _Field._Col-label <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  COLUMN-LABEL ".
-      EXPORT STREAM ddl _Field._Col-label.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  COLUMN-LABEL ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Col-label.
     END.
     IF _Field._Col-label-SA <> ? AND _Field._Col-label-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  COLUMN-LABEL-SA ".
-      EXPORT STREAM ddl _Field._Col-label-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  COLUMN-LABEL-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Col-label-SA.
     END.
     IF _Field._Can-Read <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-READ ".
-      EXPORT STREAM ddl _Field._Can-Read.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-READ ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Can-Read.
     END.
     IF _Field._Can-Write <> '*' THEN DO:
-      PUT STREAM ddl CONTROL "  CAN-WRITE ".
-      EXPORT STREAM ddl _Field._Can-Write.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  CAN-WRITE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Can-Write.
     END.
     IF _Field._Valexp <> ? AND _Field._Valexp <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALEXP ".
-      EXPORT STREAM ddl _Field._Valexp.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALEXP ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Valexp.
     END.
     IF _Field._Valmsg <> ? AND _Field._Valmsg <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALMSG ".
-      EXPORT STREAM ddl _Field._Valmsg.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALMSG ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Valmsg.
     END.
     IF _Field._Valmsg-SA <> ? AND _Field._Valmsg-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  VALMSG-SA ".
-      EXPORT STREAM ddl _Field._Valmsg-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  VALMSG-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Valmsg-SA.
     END.
     IF _Field._Help <> ? AND _Field._Help <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  HELP ".
-      EXPORT STREAM ddl _Field._Help.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  HELP ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Help.
     END.
     IF _Field._Help-SA <> ? AND _Field._Help-SA <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  HELP-SA ".
-      EXPORT STREAM ddl _Field._Help-SA.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  HELP-SA ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Help-SA.
     END.
     IF _Field._Extent > 0 THEN
-      PUT STREAM ddl UNFORMATTED "  EXTENT " _Field._Extent SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  EXTENT " _Field._Extent SKIP.
     IF _Field._Decimals <> ? AND _Field._dtype = 5 THEN
-      PUT STREAM ddl UNFORMATTED "  DECIMALS " _Field._Decimals SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  DECIMALS " _Field._Decimals SKIP.
     IF _Field._Decimals <> ? AND _Field._dtype = 1 THEN
-      PUT STREAM ddl UNFORMATTED "  LENGTH " _Field._Decimals SKIP.
-    PUT STREAM ddl UNFORMATTED "  ORDER " _Field._Order SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  LENGTH " _Field._Decimals SKIP.
+    PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  ORDER " _Field._Order SKIP.
     IF _Field._Mandatory THEN
-      PUT STREAM ddl UNFORMATTED "  MANDATORY" SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  MANDATORY" SKIP.
     IF _Field._Fld-case THEN
-      PUT STREAM ddl UNFORMATTED "  CASE-SENSITIVE" SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  CASE-SENSITIVE" SKIP.
     IF _Field._Fld-stoff <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-POS " _Field._Fld-stoff SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-POS " _Field._Fld-stoff SKIP.
     IF _Field._Fld-stlen <> ? AND _Db._Db-type <> "Progress" THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-SIZE " _Field._Fld-stlen SKIP.   
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-SIZE " _Field._Fld-stlen SKIP.
     IF _Field._Fld-stdtype = 38 AND _Db._Db-type = 'RMS' THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-BITS " _Field._Decimals SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-BITS " _Field._Decimals SKIP.
     IF _Field._For-Itype <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-CODE " _Field._For-Itype SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-CODE " _Field._For-Itype SKIP.
     IF _Field._For-Id <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-ID " _Field._For-Id SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-ID " _Field._For-Id SKIP.
     IF _Field._For-Name <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-NAME ".
-      EXPORT STREAM ddl _Field._For-Name.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-NAME ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._For-Name.
     END.
     IF _Field._For-Retrieve <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-RETRIEVE ".
-      EXPORT STREAM ddl _Field._For-Retrieve.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-RETRIEVE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._For-Retrieve.
     END.
     IF _Field._For-Scale <> ? AND _Field._For-Scale <> 0 THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-SCALE " _Field._For-Scale SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-SCALE " _Field._For-Scale SKIP.
     IF _Field._For-Spacing <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-SPACING " _Field._For-Spacing SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-SPACING " _Field._For-Spacing SKIP.
     IF _Field._For-Type <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-TYPE ".
-      EXPORT STREAM ddl _Field._For-Type.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-TYPE ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._For-Type.
     END.
     IF _Field._For-xpos <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-XPOS " _Field._For-xpos SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-XPOS " _Field._For-xpos SKIP.
     IF _Field._For-Separator <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-SEP ".
-      EXPORT STREAM ddl _Field._For-Separator.
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FOREIGN-SEP ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._For-Separator.
     END.
     IF _Field._For-Allocated <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-ALLOCATED " _Field._For-Allocated SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-ALLOCATED " _Field._For-Allocated SKIP.
     IF _Field._For-Maxsize <> ? THEN
-      PUT STREAM ddl UNFORMATTED "  FOREIGN-MAXIMUM " _Field._For-Maxsize SKIP.
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED "  FOREIGN-MAXIMUM " _Field._For-Maxsize SKIP.
     IF _Field._Fld-misc1[1] <> ? THEN DO:
-      IF CAN-DO("ORACLE," + cODBType,_Db._Db-type) 
-        THEN PUT STREAM ddl CONTROL "  DSRVR-PRECISION ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC11 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[1].
+      IF CAN-DO("ORACLE," + cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  DSRVR-PRECISION ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC11 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[1].
     END.
     IF _Field._Fld-misc1[2] <> ? THEN DO:
-      IF CAN-DO(cODBType,_Db._Db-type) 
-        THEN PUT STREAM ddl CONTROL "  DSRVR-SCALE ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC12 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[2].
+      IF CAN-DO(cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  DSRVR-SCALE ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC12 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[2].
     END.
     IF _Field._Fld-misc1[3] <> ? THEN DO:
-      IF CAN-DO(cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl CONTROL "  DSRVR-LENGTH ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC13 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[3].
+      IF CAN-DO(cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  DSRVR-LENGTH ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC13 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[3].
     END.
     IF _Field._Fld-misc1[4] <> ? THEN DO:
-      IF CAN-DO(cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl CONTROL "  DSRVR-FLDMISC ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC14 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[4].
+      IF CAN-DO(cODBType,_Db._Db-type) THEN
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  DSRVR-FLDMISC ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC14 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[4].
     END.
     IF _Field._Fld-misc1[5] <> ? THEN DO:
-      IF CAN-DO(cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl CONTROL "  DSRVR-SHADOW ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC15 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[5].
+      IF CAN-DO(cODBType,_Db._Db-type) THEN
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  DSRVR-SHADOW ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC15 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[5].
     END.
     IF _Field._Fld-misc1[6] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC16 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[6].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC16 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[6].
     END.
     IF _Field._Fld-misc1[7] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC17 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[7].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC17 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[7].
     END.
     IF _Field._Fld-misc1[8] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC18 ".
-      EXPORT STREAM ddl _Field._Fld-misc1[8].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC18 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc1[8].
     END.
     IF _Field._Fld-misc2[1] <> ? AND _Db._Db-type <> "Progress" THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC21 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[1].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC21 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[1].
     END.
     IF _Field._Fld-misc2[2] <> ? THEN DO:
       IF _db._Db-type = "ORACLE" THEN     
-        PUT STREAM ddl CONTROL "  SHADOW-COL ".
-      ELSE PUT STREAM ddl CONTROL "  FIELD-MISC22 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[2].
+        PUT STREAM-HANDLE hPreDeployStream CONTROL "  SHADOW-COL ".
+      ELSE 
+        PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC22 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[2].
     END.
     IF _Field._Fld-misc2[3] <> ? THEN DO:
-      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl CONTROL "  QUOTED-NAME ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC23 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[3].
+      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  QUOTED-NAME ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC23 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[3].
     END.
     IF _Field._Fld-misc2[4] <> ? THEN DO:
-      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type)
-        THEN PUT STREAM ddl CONTROL "  MISC-PROPERTIES ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC24 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[4].
+      IF CAN-DO("ORACLE,SYBASE," + cODBType,_Db._Db-type) THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  MISC-PROPERTIES ".
+      ELSE PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC24 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[4].
     END.
     IF _Field._Fld-misc2[5] <> ? THEN DO:
-      IF _Db._Db-type = "ODBC"
-        THEN PUT STREAM ddl CONTROL "  SHADOW-NAME ".
-        ELSE PUT STREAM ddl CONTROL "  FIELD-MISC25 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[5].
+      IF _Db._Db-type = "ODBC" THEN 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  SHADOW-NAME ".
+      ELSE 
+         PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC25 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[5].
     END.
     IF _Field._Fld-misc2[6] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC26 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[6].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC26 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[6].
     END.
     IF _Field._Fld-misc2[7] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC27 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[7].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC27 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[7].
     END.
     IF _Field._Fld-misc2[8] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FIELD-MISC28 ".
-      EXPORT STREAM ddl _Field._Fld-misc2[8].
+      PUT STREAM-HANDLE hPreDeployStream CONTROL "  FIELD-MISC28 ".
+      EXPORT STREAM-HANDLE hPreDeployStream _Field._Fld-misc2[8].
     END.
     FOR EACH _Field-trig OF _Field NO-LOCK BY _Event:
-      PUT STREAM ddl UNFORMATTED
+      PUT STREAM-HANDLE hPreDeployStream UNFORMATTED
         "  FIELD-TRIGGER """ _Field-Trig._Event """ "
         (IF _Field-Trig._Override THEN 'OVERRIDE' ELSE 'NO-OVERRIDE') " "
         "PROCEDURE """ _Field-Trig._Proc-Name """ "
         "CRC """ _Field-Trig._Trig-CRC """ " SKIP.
     END.
-    PUT STREAM ddl UNFORMATTED SKIP(1).
+    PUT STREAM-HANDLE hPreDeployStream UNFORMATTED SKIP(1).
   END.
 
   FOR EACH _Index
@@ -861,16 +876,21 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
     BY STRING(_File._Prime-Index = RECID(_Index),"1/2") + _Index-name:
     IF RECID(_File) <> pi_recid AND RECID(_Index) <> pi_recid THEN NEXT.
     IF _Index-name = "sql-default" THEN NEXT.
-    PUT STREAM ddl UNFORMATTED
-          "ADD INDEX """ _Index._Index-Name """ "
-          "ON """ _File._File-name """ " SKIP.
+    IF _Index._Active THEN
+      ASSIGN hWriteToStream = hOfflineStream.
+    ELSE
+      ASSIGN hWriteToStream = hPreDeployStream.
+
+    PUT STREAM-HANDLE hWriteToStream UNFORMATTED
+      "ADD INDEX """ _Index._Index-Name """ "
+      "ON """ _File._File-name """ " SKIP.
     /* not multi-tenant or keep area */
     if (_File._File-attributes[1] = false or  _File._File-attributes[2] = true) then
     do:
         /* if partitioned and local index just put is-local */
         if (_File._File-Attributes[3] and _Index._index-attributes[1]) then
         do: 
-            put stream ddl unformatted "  IS-LOCAL" skip.
+           PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  IS-LOCAL" SKIP.
         end.
         else do:
             /* first for collation */
@@ -885,87 +905,88 @@ IF pi_method BEGINS "t" THEN DO: /*----------------------*/ /* table_record */
             
             ELSE
                 FIND _Area WHERE _Area._Area-number = 6 NO-LOCK.
-            PUT STREAM ddl UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
+            PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  AREA """ _Area._Area-name """" SKIP.
         end.
     end.
     IF _Index._Unique THEN
-      PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
+      PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  UNIQUE" SKIP.
     IF NOT _Index._Active THEN
-      PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
+      PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  INACTIVE" SKIP.
     IF _File._Prime-index = RECID(_Index) THEN
-      PUT STREAM ddl UNFORMATTED "  PRIMARY" SKIP.
+      PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  PRIMARY" SKIP.
     IF _Index._Wordidx = 1 THEN
-      PUT STREAM ddl UNFORMATTED "  WORD" SKIP.
+      PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  WORD" SKIP.
     IF _Index._Desc <> ? AND _Index._Desc <> '' THEN DO:
-      PUT STREAM ddl CONTROL "  DESCRIPTION ".
-      EXPORT STREAM ddl _Index._Desc.
+      PUT STREAM-HANDLE hWriteToStream CONTROL "  DESCRIPTION ".
+      EXPORT STREAM-HANDLE hWriteToStream _Index._Desc.
     END.
     IF _Index._Idx-num <> ? AND _Db._Db-type <> 'PROGRESS' THEN
-      PUT STREAM ddl UNFORMATTED "  INDEX-NUM " _Index._Idx-num SKIP.
+      PUT STREAM-HANDLE hWriteToStream UNFORMATTED "  INDEX-NUM " _Index._Idx-num SKIP.
     IF _Index._For-Name <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-NAME ".
-      EXPORT STREAM ddl _Index._For-Name.
+      PUT STREAM-HANDLE hWriteToStream CONTROL "  FOREIGN-NAME ".
+      EXPORT STREAM-HANDLE hWriteToStream _Index._For-Name.
     END.
     IF _Index._For-Type <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  FOREIGN-TYPE ".
-      EXPORT STREAM ddl _Index._For-Type.
+      PUT STREAM-HANDLE hWriteToStream CONTROL "  FOREIGN-TYPE ".
+      EXPORT STREAM-HANDLE hWriteToStream _Index._For-Type.
     END.
     IF _Index._I-misc2[1] <> ? THEN DO:
-      PUT STREAM ddl CONTROL "  RECID-INDEX ".
-      EXPORT STREAM ddl _Index._I-misc2[1].
+      PUT STREAM-HANDLE hWriteToStream CONTROL "  RECID-INDEX ".
+      EXPORT STREAM-HANDLE hWriteToStream _Index._I-misc2[1].
     END.
     FOR EACH _Index-field OF _Index NO-LOCK,
       _Field OF _Index-field NO-LOCK
       BY _Index-field._Index-seq:     
       IF AVAILABLE _Field AND (_Field._Field-name <> "" AND _Field._Field-name <> ?) THEN
-        PUT STREAM ddl UNFORMATTED
+        PUT STREAM-HANDLE hWriteToStream UNFORMATTED
           "  INDEX-FIELD """ _Field._Field-Name """ "
           (IF _Index-field._Ascending THEN "ASCENDING " ELSE "")
           (IF NOT _Index-field._Ascending THEN "DESCENDING " ELSE "")
           (IF _Index-field._Abbreviate THEN "ABBREVIATED " ELSE "")
           (IF _Index-field._Unsorted THEN "UNSORTED " ELSE "") SKIP.
     END.
-    PUT STREAM ddl UNFORMATTED SKIP(1).
+    PUT STREAM-HANDLE hWriteToStream UNFORMATTED SKIP(1).
   END.
   
   FOR EACH _constraint OF _File WHERE NOT _constraint._con-type = "F":
   IF ((_constraint._con-Status = "N" OR _constraint._con-Status = "C" OR _constraint._con-Status = "M"))
   THEN DO:
     IF RECID(_File) <> pi_recid AND RECID(_constraint) <> pi_recid THEN NEXT.
-    PUT STREAM ddl UNFORMATTED
-          "ADD CONSTRAINT """ _constraint._con-name """ "
-          "ON """ _File._File-name """ " SKIP.
+    PUT STREAM-HANDLE hOfflineStream UNFORMATTED
+      "ADD CONSTRAINT """ _constraint._con-name """ "
+      "ON """ _File._File-name """ " SKIP.
     IF _constraint._con-type = "U" THEN
-      PUT STREAM ddl UNFORMATTED "  UNIQUE" SKIP.
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  UNIQUE" SKIP.
     IF _constraint._con-type = "P" THEN
-      PUT STREAM ddl UNFORMATTED "  PRIMARY" SKIP.
-    IF _constraint._con-type = "PC" OR  _constraint._con-type = "MP" THEN  
-      PUT STREAM ddl UNFORMATTED "  PRIMARY-CLUSTERED" SKIP.      
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  PRIMARY" SKIP.
+    IF _constraint._con-type = "PC" OR  _constraint._con-type = "MP" THEN
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  PRIMARY-CLUSTERED" SKIP.
     IF _constraint._con-type = "C" THEN
-      PUT STREAM ddl UNFORMATTED "  CHECK" SKIP.
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CHECK" SKIP.
     IF _constraint._con-type = "D" THEN
-      PUT STREAM ddl UNFORMATTED "  DEFAULT" SKIP.
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  DEFAULT" SKIP.
     IF _constraint._con-type = "M" THEN
-      PUT STREAM ddl UNFORMATTED "  CLUSTERED" SKIP.
+      PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CLUSTERED" SKIP.
     
-    IF _constraint._Con-Active = TRUE
-    THEN PUT STREAM ddl UNFORMATTED "  ACTIVE" SKIP.
-    ELSE PUT STREAM ddl UNFORMATTED "  INACTIVE" SKIP.
-    
+    IF _constraint._Con-Active = TRUE THEN
+       PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  ACTIVE" SKIP.
+    ELSE
+        PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  INACTIVE" SKIP.
+                
     FIND FIRST _Index where RECID(_Index) = _Constraint._Index-recid NO-LOCK NO-ERROR.
     FIND FIRST _Field where RECID(_Field) = _Constraint._Field-recid NO-LOCK NO-ERROR.  
 	
 	IF _constraint._con-type = "P" OR _constraint._con-type = "PC" OR _constraint._con-type = "MP" 
 	  OR _constraint._con-type = "M" OR _constraint._con-type = "U" THEN
-	PUT STREAM ddl UNFORMATTED "  CONSTRAINT-INDEX """ _Index._index-name """" SKIP.
-	
+	  PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CONSTRAINT-INDEX """ _Index._index-name """" SKIP.
+	  	
 	ELSE IF _constraint._con-type = "D" OR  _constraint._con-type = "C" THEN
-	   PUT STREAM ddl UNFORMATTED "  CONSTRAINT-FIELD """ _Field._Field-name """" SKIP.
-	
+	   PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CONSTRAINT-FIELD """ _Field._Field-name """" SKIP.
+      	
 	IF _constraint._con-type = "C" OR _constraint._con-type = "D" THEN
-	PUT STREAM ddl UNFORMATTED "  CONSTRAINT-EXPR """ _constraint._con-expr """" SKIP.
-	
-    PUT STREAM ddl UNFORMATTED SKIP(1).
+	  PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CONSTRAINT-EXPR """ _constraint._con-expr """" SKIP.
+      	
+	PUT STREAM-HANDLE hOfflineStream UNFORMATTED SKIP(1).
   END. /* IF CON-STATUS. */
   END.
 
@@ -1015,11 +1036,11 @@ ELSE IF pi_method BEGINS "o" THEN DO: /*----------------------*/
     IF iCounter1 > 2 THEN DO:
        cTemp = ENTRY(1,pi_DmpRpos, ";").
        IF NUM-ENTRIES(cTemp, ".") = 1 THEN
-          PUT STREAM ddl UNFORMATTED 'UPDATE TABLE "' cTemp '"' SKIP.
+          PUT STREAM-HANDLE hOfflineStream UNFORMATTED 'UPDATE TABLE "' cTemp '"' SKIP.
        ELSE
-          PUT STREAM ddl UNFORMATTED 'UPDATE ' UPPER(ENTRY(2, pi_DmpRpos, ";")) 
+          PUT STREAM-HANDLE hOfflineStream UNFORMATTED 'UPDATE ' UPPER(ENTRY(2, pi_DmpRpos, ";")) 
               ' "' ENTRY(2,cTemp, ".") '" OF "' ENTRY(1,cTemp, ".") '"' SKIP.
-
+       
        /* now we will have a variable length list of item separated by ';',
           where each entry is "tag,value".
        */
@@ -1028,26 +1049,17 @@ ELSE IF pi_method BEGINS "o" THEN DO: /*----------------------*/
            cTemp = ENTRY(iCounter2,pi_DmpRpos, ";").
            IF ENTRY(1,cTemp) = "cipher" THEN DO:
               IF ENTRY(2,cTemp) EQ "" THEN
-                  PUT STREAM ddl UNFORMATTED "  ENCRYPTION NO" SKIP.
+                 PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  ENCRYPTION NO" SKIP.
               ELSE DO:
-                  PUT STREAM ddl UNFORMATTED "  ENCRYPTION YES" SKIP.
-                  PUT STREAM ddl UNFORMATTED "  CIPHER-NAME " ENTRY(2,cTemp) SKIP.
+                 PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  ENCRYPTION YES" SKIP.
+                 PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  CIPHER-NAME " ENTRY(2,cTemp) SKIP.
               END.
            END.
-           ELSE IF ENTRY(1,cTemp) = "buffer-pool" THEN DO:
-               PUT STREAM ddl UNFORMATTED "  BUFFER-POOL " QUOTER(ENTRY(2,cTemp)) SKIP.
-           END.
+           ELSE IF ENTRY(1,cTemp) = "buffer-pool" THEN
+               PUT STREAM-HANDLE hOfflineStream UNFORMATTED "  BUFFER-POOL " QUOTER(ENTRY(2,cTemp)) SKIP.
        END.
-       PUT STREAM ddl UNFORMATTED SKIP(1).
+       PUT STREAM-HANDLE hOfflineStream UNFORMATTED SKIP(1).
     END.
 END.
 
 RETURN.
-
-
-
-
-
-
-
-

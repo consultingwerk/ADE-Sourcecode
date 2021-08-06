@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000-2013 by Progress Software Corporation.            *
+* Copyright (C) 2000-2013,2020 by Progress Software Corporation.       *
 * All rights reserved.  Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                    *
 *                                                                      *
@@ -33,7 +33,8 @@ Donna M. 04/23/02 Added assignment of new table recid variable
 10/01/02 DLM Changed check for SQL tables
 fernando 09/27/06 Use different delimiter for area name combo-box - 20051228-008
 fernando 06/26/08 Removed encryption area from list
-rkamboj  07/26/11 Fixed "keep default area" issue after creating new table with create button. 
+rkamboj  07/26/11 Fixed "keep default area" issue after creating new table with create button.
+tmasood  10/29/20 Added default area support for table creation 
 ----------------------------------------------------------------------------*/
 
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -287,7 +288,8 @@ ELSE DO:
   ASSIGN s_Tbl_Area = DICTDB._AREA._Area-name
          s_In_Schema_Area = TRUE.
 END.  
-run prodict/pro/_pro_area_list(?,{&INVALID_AREAS},s_lst_file_Area:DELIMITER in frame newtbl, output  cAreaList).
+run prodict/pro/_pro_area_list(?,{&INVALID_AREAS},s_lst_file_Area:DELIMITER in frame newtbl,"Table", output  cAreaList).
+
 s_lst_file_area:list-items in frame newtbl = cAreaList.
 num = s_lst_File_Area:num-items in frame newtbl.
 s_Lst_File_Area:inner-lines in frame newtbl = min(10,num).  

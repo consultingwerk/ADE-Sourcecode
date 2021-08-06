@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2013 by Progress Software Corporation.          *
+* Copyright (C) 2006-2020 by Progress Software Corporation.          *
 * All rights reserved.Prior versions of this work may contain        *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -7,6 +7,8 @@
 
 /* Procedure deltasql.p - sdash
    Created 03/13/13 Initial procedure for the MSS Incremental Df Utility
+   Procedure deltasql.p - vmaganti
+   Created 10/12/20 making native sequence as deafult one 
 */
 
 { prodict/user/uservar.i new }
@@ -293,15 +295,17 @@ END.
 ELSE
   create_df = TRUE.
 
-IF OS-GETENV("MSSREVSEQGEN") <> ? THEN DO:
 seqgen = OS-GETENV("MSSREVSEQGEN").
-  IF (seqgen <> ?) AND (seqgen BEGINS "N") THEN
-   newseq = FALSE.
-  ELSE
-   newseq = TRUE.
+IF seqgen BEGINS "Y" THEN DO:
+    seqgen = OS-GETENV("MSSSEQ").
+    IF (seqgen BEGINS "Y" ) THEN
+        ASSIGN newseq = FALSE
+                nativeseq = TRUE.
+    ELSE
+        ASSIGN newseq = TRUE
+                nativeseq = FALSE.
+        
 END.
-ELSE
-   newseq = TRUE.
 
 IF OS-GETENV("SQLWIDTH") <> ? THEN DO:
   sqlwdth = OS-GETENV("SQLWIDTH").
@@ -502,6 +506,7 @@ ELSE
        "Expand Width (utf-8):                   " lExpand SKIP
        "Map to MSS 'Datetime' Type:             " mapMSSDatetime SKIP
        "Use Revised Sequence Generator:         " newseq SKIP
+       "Use Native Sequence:                    " nativeseq SKIP
        "For Field width use                     "  skip
        "                         Width:         " wdth SKIP
        "                    ABL Format:         " ablfmt SKIP
@@ -536,12 +541,15 @@ ASSIGN user_env[1]  = df-file
        /* first y is for sequence support.
           second entry is for new sequence generator */
        user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n")
+                       + (IF mapMSSDatetime THEN ',n' ELSE ',y')
+                       + (IF nativeseq THEN ",y" ELSE ",n")
+                       + (IF cachesize <> ? THEN "," + string(cachesize) ELSE " ")
        user_env[28] = "128"
        user_env[29] = "128"            
        user_env[30] = "y"
        user_env[31] = "-- ** "
        user_env[32] = "MSSQLSRV7".
-    
+
 IF lUniExpand THEN 
    ASSIGN user_env[35] = "y".
 ELSE

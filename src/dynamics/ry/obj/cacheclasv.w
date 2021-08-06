@@ -94,8 +94,8 @@ DEFINE VARIABLE ghCacheBrowse        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghCacheBuffer        AS HANDLE     NO-UNDO.
 
 DEFINE TEMP-TABLE ttAttribute NO-UNDO RCODE-INFORMATION 
-    FIELD attributeName  AS CHARACTER FORMAT "x(100)" COLUMN-LABEL "Attribute"      LABEL "Attribute" 
-    FIELD attributeValue AS CHARACTER FORMAT "x(200)" COLUMN-LABEL "Value"          LABEL "Value"
+    FIELD attributeName  AS CHARACTER FORMAT "x(100)" COLUMN-LABEL "Attribute" LABEL "Attribute" 
+    FIELD attributeValue AS CHARACTER FORMAT "x(200)" COLUMN-LABEL "Value"     LABEL "Value"     
     INDEX index1 attributeName.
 
 DEFINE TEMP-TABLE ttMasterAttribute NO-UNDO LIKE ttAttribute RCODE-INFORMATION.
@@ -444,9 +444,6 @@ EMPTY TEMP-TABLE ttAttribute.
 IF NOT VALID-HANDLE(phObjectBuffer) THEN
     RETURN.
 
-IF NOT phObjectBuffer:AVAILABLE THEN
-    RETURN.
-
 ASSIGN hClassTable = phObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE.
 CREATE BUFFER ghCacheBuffer FOR TABLE hClassTable.
 
@@ -455,7 +452,7 @@ CREATE BUFFER ghCacheBuffer FOR TABLE hClassTable.
 CREATE QUERY ghCacheQuery.
 ghCacheQuery:SET-BUFFERS(ghCacheBuffer).
 ghCacheQuery:QUERY-PREPARE("FOR EACH ":U + ghCacheBuffer:NAME + 
-                             " WHERE ":U + ghCacheBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE)).
+                             " WHERE ":U + ghCacheBuffer:NAME + ".tRecordIdentifier = '":U + STRING(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + "'":U).
 ghCacheQuery:QUERY-OPEN().
 
 ghCacheQuery:GET-FIRST().
@@ -568,12 +565,6 @@ ASSIGN ghPageBrowse         = ?
        ghPageInstanceBuffer = ?
        ghlinkBuffer         = ?.
 
-IF NOT VALID-HANDLE(phObjectBuffer) THEN
-    RETURN.
-
-IF NOT phObjectBuffer:AVAILABLE THEN
-    RETURN.
-
 /*-------------------------*
  * Create the Page Browser *
  *-------------------------*/
@@ -589,7 +580,7 @@ THEN then-blk: DO:
 
     ghPageQuery:SET-BUFFERS(ghPageBuffer).
     ghPageQuery:QUERY-PREPARE("FOR EACH ":U + ghPageBuffer:NAME + 
-                                " WHERE ":U + ghPageBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) +
+                                " WHERE ":U + ghPageBuffer:NAME + ".tRecordIdentifier = '":U + STRING(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + "'":U +
                                    " BY ":U + ghPageBuffer:NAME + ".tPageNumber":U
                              ).
 
@@ -604,7 +595,9 @@ THEN then-blk: DO:
            SEPARATORS   = TRUE
            QUERY        = ghPageQuery
            ROW-MARKERS  = FALSE
-           PRIVATE-DATA = ghPageQuery:PREPARE-STRING
+           PRIVATE-DATA = "FOR EACH ":U + ghPageBuffer:NAME + 
+                                " WHERE ":U + ghPageBuffer:NAME + ".tRecordIdentifier = '":U + STRING(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + "'":U +
+                                   " BY ":U + ghPageBuffer:NAME + ".tPageNumber":U
            TRIGGERS:
                ON ANY-PRINTABLE PERSISTENT RUN anyPrintableInBrowse IN THIS-PROCEDURE (INPUT ghPageBrowse).
                ON START-SEARCH  PERSISTENT RUN startSearch          IN THIS-PROCEDURE (INPUT ghPageBrowse).
@@ -623,7 +616,8 @@ THEN then-blk: DO:
     ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tPageNumber")).
     ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tPageLabel")).
     ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tLayoutCode")).
-    ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tPageInitialized")).    
+    ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tPageInitialized")).
+    ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tRecordIdentifier")).
     ghPageBrowse:ADD-LIKE-COLUMN(ghPageBuffer:BUFFER-FIELD("tPageObj")).
 
     ASSIGN hColumn = ghPageBrowse:FIRST-COLUMN.
@@ -647,13 +641,15 @@ THEN then-blk: DO:
      * Create the Link Browser *
      *-------------------------*/
 
-    ASSIGN hLinkBuffer = DYNAMIC-FUNCTION("getCacheLinkBuffer":U IN gshRepositoryManager).           
+    ASSIGN hLinkBuffer         = DYNAMIC-FUNCTION("getCacheLinkBuffer":U IN gshRepositoryManager)
+           hPageInstanceBuffer = DYNAMIC-FUNCTION("getCachePageInstanceBuffer":U IN gshRepositoryManager).
 
-    IF  VALID-HANDLE(hLinkBuffer) 
+    IF  VALID-HANDLE(hLinkBuffer)
+    AND VALID-HANDLE(hPageInstanceBuffer)
     THEN DO:
         CREATE BUFFER ghLinkBuffer           FOR TABLE hLinkBuffer.
-        CREATE BUFFER ghInstanceSourceBuffer FOR TABLE phObjectBuffer BUFFER-NAME "bInstanceSourceBuffer":U.
-        CREATE BUFFER ghInstanceTargetBuffer FOR TABLE phObjectBuffer BUFFER-NAME "bInstanceTargetBuffer":U.
+        CREATE BUFFER ghInstanceSourceBuffer FOR TABLE hPageInstanceBuffer BUFFER-NAME "bInstanceSourceBuffer":U.
+        CREATE BUFFER ghInstanceTargetBuffer FOR TABLE hPageInstanceBuffer BUFFER-NAME "bInstanceTargetBuffer":U.
 
         CREATE QUERY ghLinkQuery.
 
@@ -678,7 +674,13 @@ THEN then-blk: DO:
                SEPARATORS   = TRUE
                QUERY        = ghLinkQuery
                ROW-MARKERS  = FALSE
-               PRIVATE-DATA = ghLinkQuery:PREPARE-STRING
+               PRIVATE-DATA = "FOR EACH ":U + ghLinkBuffer:NAME + 
+                                    " WHERE ":U + ghLinkBuffer:NAME + ".tRecordIdentifier = ":U + QUOTER(phObjectBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + ",":U +
+                                    "  EACH ":U + ghInstanceSourceBuffer:NAME + 
+                                    " WHERE ":U + ghInstanceSourceBuffer:NAME + ".tObjectInstanceObj = " + ghLinkBuffer:NAME + ".tSourceObjectInstanceObj," +
+                                    "  EACH ":U + ghInstanceTargetBuffer:NAME + 
+                                    " WHERE ":U + ghInstanceTargetBuffer:NAME + ".tObjectInstanceObj = " + ghLinkBuffer:NAME + ".tTargetObjectInstanceObj" + 
+                                       " BY ":U + ghInstanceSourceBuffer:NAME + ".tObjectInstanceName":U
                TRIGGERS:
                    ON VALUE-CHANGED PERSISTENT RUN pageValueChange      IN THIS-PROCEDURE.
                    ON ANY-PRINTABLE PERSISTENT RUN anyPrintableInBrowse IN THIS-PROCEDURE (INPUT ghLinkBrowse).
@@ -751,9 +753,6 @@ ASSIGN ghUIEventBrowse = ?
        ghUIEventBuffer = ?.
 
 IF NOT VALID-HANDLE(phObjectBuffer) THEN
-    RETURN.
-
-IF NOT phObjectBuffer:AVAILABLE THEN
     RETURN.
 
 ASSIGN hUIEventBuffer = DYNAMIC-FUNCTION("getCacheUIEventBuffer":U IN gshRepositoryManager).
@@ -867,9 +866,9 @@ tLogicalObjectName:SCREEN-VALUE IN FRAME {&FRAME-NAME} = phObjectBuffer:BUFFER-F
 {get runAttribute cRunAttribute}.
 
 CASE cRunAttribute:
-    WHEN "class":U      THEN RUN imAClassBrowser (INPUT phObjectBuffer).
-    WHEN "uiEvent":U    THEN RUN imAUIEventBrowser (INPUT phObjectBuffer).
-    WHEN "page":U       THEN RUN imAPageBrowser (INPUT phObjectBuffer).    
+    WHEN "class":U   THEN RUN imAClassBrowser (INPUT phObjectBuffer).
+    WHEN "uiEvent":U THEN RUN imAUIEventBrowser (INPUT phObjectBuffer).
+    WHEN "page":U    THEN RUN imAPageBrowser (INPUT phObjectBuffer).
 END CASE.
 
 ASSIGN ERROR-STATUS:ERROR = NO.
@@ -902,7 +901,7 @@ DELETE OBJECT ghPageInstanceBuffer NO-ERROR.
 ASSIGN ghPageInstanceQuery  = ?
        ghPageInstanceBrowse = ?
        ghPageInstanceBuffer = ?
-       hPageInstanceBuffer  = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT ?).
+       hPageInstanceBuffer  = DYNAMIC-FUNCTION("getCachePageInstanceBuffer":U IN gshRepositoryManager).
 
 IF VALID-HANDLE(hPageInstanceBuffer) 
 AND ghPageBuffer:AVAILABLE
@@ -912,8 +911,8 @@ THEN DO:
 
     ghPageInstanceQuery:SET-BUFFERS(ghPageInstanceBuffer).
     ghPageInstanceQuery:QUERY-PREPARE("FOR EACH ":U + ghPageInstanceBuffer:NAME + 
-                                        " WHERE ":U + ghPageInstanceBuffer:NAME + ".tContainerRecordIdentifier = ":U + QUOTER(ghPageBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) +
-                                          " AND ":U + ghPageInstanceBuffer:NAME + ".tPageNumber       = ":U + QUOTER(ghPageBuffer:BUFFER-FIELD("tPageNumber"):BUFFER-VALUE) + 
+                                        " WHERE ":U + ghPageInstanceBuffer:NAME + ".tRecordIdentifier = '":U + STRING(ghPageBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + "'":U +
+                                          " AND ":U + ghPageInstanceBuffer:NAME + ".tPageNumber       = '":U + STRING(ghPageBuffer:BUFFER-FIELD("tPageNumber"):BUFFER-VALUE) + "'":U + 
                                            " BY ":U + ghPageInstanceBuffer:NAME + ".tPageNumber":U
                                      ).
     CREATE BROWSE ghPageInstanceBrowse
@@ -927,7 +926,10 @@ THEN DO:
            SEPARATORS   = TRUE
            QUERY        = ghPageInstanceQuery
            ROW-MARKERS  = FALSE
-           PRIVATE-DATA = ghPageInstanceQuery:PREPARE-STRING
+           PRIVATE-DATA = "FOR EACH ":U + ghPageInstanceBuffer:NAME + 
+                            " WHERE ":U + ghPageInstanceBuffer:NAME + ".tRecordIdentifier = '":U + STRING(ghPageBuffer:BUFFER-FIELD("tRecordIdentifier"):BUFFER-VALUE) + "'":U +
+                              " AND ":U + ghPageInstanceBuffer:NAME + ".tPageNumber       = '":U + STRING(ghPageBuffer:BUFFER-FIELD("tPageNumber"):BUFFER-VALUE) + "'":U + 
+                               " BY ":U + ghPageInstanceBuffer:NAME + ".tPageNumber":U
         TRIGGERS:
             ON ANY-PRINTABLE PERSISTENT RUN anyPrintableInBrowse IN THIS-PROCEDURE (INPUT ghPageInstanceBrowse).
             ON START-SEARCH  PERSISTENT RUN startSearch          IN THIS-PROCEDURE (INPUT ghPageInstanceBrowse).
@@ -937,11 +939,12 @@ THEN DO:
 
     ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tPageNumber")).
     ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tObjectInstanceName")).
-    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tLogicalObjectName")).
-    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tClassName")).
-    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tLayoutPosition")).  
+    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tObjectTypeCode")).
+    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tLayoutPosition")).
+    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tRecordIdentifier")).
     ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tObjectInstanceObj")).
-    
+    ghPageInstanceBrowse:ADD-LIKE-COLUMN(ghPageInstanceBuffer:BUFFER-FIELD("tObjectInstanceHandle")).
+
     ASSIGN hColumn = ghPageInstanceBrowse:FIRST-COLUMN.
 
     DO WHILE VALID-HANDLE(hColumn):

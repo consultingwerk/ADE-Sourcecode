@@ -277,7 +277,7 @@ DO:
     END.
 
     INPUT FROM VALUE(fullname).
-    OUTPUT TO VALUE(v8df).
+    OUTPUT TO (v8df).
 
     Convert-Loop:
     REPEAT:
@@ -297,8 +297,7 @@ DO:
       END.
 
       /* Only write the line if it is a V8 feature */
-
-			IF LOOKUP(token,"UPDATE,AREA,POSITION,SQL-WIDTH,COLUMN-LABEL-SA,LABEL-SA,HELP-SA") = 0 THEN DO:
+      IF LOOKUP(token,"UPDATE,AREA,POSITION,SQL-WIDTH") = 0 THEN DO:
         npassed = npassed + 1.
         PUT UNFORMATTED LINE SKIP.
       END.

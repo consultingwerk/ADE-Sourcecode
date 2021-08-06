@@ -59,7 +59,6 @@ CREATE WIDGET-POOL.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
-
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -88,7 +87,6 @@ under_development menu_structure_narrative
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmmsfullo.i"
-&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_menu_structure NO-LOCK INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_menu_structure NO-LOCK INDEXED-REPOSITION.
 {&DB-REQUIRED-END}
@@ -185,19 +183,19 @@ END.
      _FldNameList[3]   > icfdb.gsm_menu_structure.disabled
 "disabled" "disabled" ? ? "logical" ? ? ? ? ? ? yes ? no 8.2 yes
      _FldNameList[4]   > icfdb.gsm_menu_structure.menu_item_obj
-"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 29.4 yes
      _FldNameList[5]   > icfdb.gsm_menu_structure.menu_structure_code
-"menu_structure_code" "menu_structure_code" "Band Code*" ? "character" ? ? ? ? ? ? yes ? no 28 yes
+"menu_structure_code" "menu_structure_code" "Band Code*" ? "character" ? ? ? ? ? ? yes ? no 20.2 yes
      _FldNameList[6]   > icfdb.gsm_menu_structure.menu_structure_description
 "menu_structure_description" "menu_structure_description" "Band Description*" ? "character" ? ? ? ? ? ? yes ? no 35 yes
      _FldNameList[7]   > icfdb.gsm_menu_structure.menu_structure_hidden
 "menu_structure_hidden" "menu_structure_hidden" "Hide band" ? "logical" ? ? ? ? ? ? yes ? no 23 yes
      _FldNameList[8]   > icfdb.gsm_menu_structure.menu_structure_obj
-"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
+"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[9]   > icfdb.gsm_menu_structure.menu_structure_type
-"menu_structure_type" "menu_structure_type" "Band Type*" ? "character" ? ? ? ? ? ? yes ? no 18.2 yes
+"menu_structure_type" "menu_structure_type" "Menu/Toolbar Type*" ? "character" ? ? ? ? ? ? yes ? no 18.2 yes
      _FldNameList[10]   > icfdb.gsm_menu_structure.product_module_obj
-"product_module_obj" "product_module_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"product_module_obj" "product_module_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 29.4 yes
      _FldNameList[11]   > icfdb.gsm_menu_structure.product_obj
 "product_obj" "product_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 29.4 yes
      _FldNameList[12]   > icfdb.gsm_menu_structure.system_owned
@@ -274,7 +272,7 @@ FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod):
                     {af/sup2/aferrortxt.i 'AF' '8' 'gsm_menu_structure' 'menu_structure_code' "'menu structure code, '" cValueList }.
 
   /* verify that menu item  specified is valid and of type 'Label' */
-  IF RowObjUpd.MENU_item_obj > 0 THEN DO:
+  IF RowObjUpd.MENU_item_obj > 0 OR RowObjUpd.MENU_item_obj = ? THEN DO:
     FIND gsm_menu_item WHERE gsm_menu_item.MENU_item_obj = RowObjUpd.MENU_item_obj NO-LOCK NO-ERROR.
     IF NOT AVAILABLE gsm_menu_item OR gsm_menu_item.ITEM_control_type <> "Label" THEN
       ASSIGN
@@ -282,24 +280,6 @@ FOR EACH RowObjUpd WHERE CAN-DO('A,C,U':U,RowObjUpd.RowMod):
         cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
                       {af/sup2/aferrortxt.i 'AF' '5' 'gsm_menu_structure' 'menu_item_obj' "'menu item object, '" cValueList }.
   END.
-
-  /* Verify the label is unique for the current product module */
-  IF (RowObjUpd.RowMod = 'U':U AND
-    CAN-FIND(FIRST gsm_menu_structure
-      WHERE gsm_menu_structure.menu_structure_description = rowObjUpd.menu_structure_description
-       AND (gsm_menu_structure.product_module_obj =   rowObjUpd.product_module_obj OR
-            gsm_menu_structure.product_module_obj = 0) 
-      AND ROWID(gsm_menu_structure) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent))))
-  OR (RowObjUpd.RowMod <> 'U':U AND
-    CAN-FIND(FIRST gsm_menu_structure
-      WHERE gsm_menu_structure.menu_structure_description = rowObjUpd.menu_structure_description
-       AND (gsm_menu_structure.product_module_obj =   rowObjUpd.product_module_obj OR
-            gsm_menu_structure.product_module_obj = 0)))
-  THEN
-    ASSIGN
-      cValueList   = STRING(RowObjUpd.menu_structure_description)
-      cMessageList = cMessageList + (IF NUM-ENTRIES(cMessageList,CHR(3)) > 0 THEN CHR(3) ELSE '':U) + 
-                    {af/sup2/aferrortxt.i 'AF' '8' 'gsm_menu_structure' 'menu_structure_description' "'band description, '" cValueList }.
 END.
 
 

@@ -36,8 +36,7 @@ af/cod/aftemwizpw.w
                 Date:   05/12/2003  Author:     
 
   Update Notes: Created from Template view
-  rkamboj 11/30/2012 User was able to modify users data for unauthorized company. 
-
+  
 ---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
@@ -1253,47 +1252,11 @@ PROCEDURE refreshQueryDetail :
   DEFINE VARIABLE cButton          AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageList     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE hWidget          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE dLoginUser          AS DECIMAL    NO-UNDO.
-  define variable lSecurityRestricted as logical no-undo.
-  define variable cSecurityValue1     as character no-undo.
-  define variable cSecurityValue2     as character no-undo.
-  define variable cButtonPressed      as character no-undo.
   
   IF pcEntity = "":U OR 
      pcEntity = ? THEN
     RETURN.
     
-  dLoginUser        = DECIMAL(DYNAMIC-FUNCTION("getPropertyList":U IN gshSessionManager,
-                                                INPUT "currentUserObj":U,
-                                                INPUT NO)) NO-ERROR.
-                          
-  /* if user has access to selected user then check if user has
-  access to selected company */                                              
-  if pdCompanyObj <> 0 then 
-  do: 
-     RUN userSecurityCheck IN gshSecurityManager (INPUT dLoginUser,
-                                                  INPUT 0,                      /* All companies */
-                                                  INPUT "gsmlg":U,              /* login company FLA */
-                                                  pdCompanyObj,
-                                                  INPUT NO,                     /* Return security values - NO */
-                                                  OUTPUT lSecurityRestricted,   /* Restricted yes/no ? */
-                                                  OUTPUT cSecurityValue1,       /* clearance value 1 */
-                                                  OUTPUT cSecurityValue2).      /* clearance value 2 */    
-     IF lSecurityRestricted THEN 
-     DO:
-       run showMessages in gshSessionManager ({errortxt.i 'AF' '40' '?' '?' '"User does not have access to selected login company"'},
-                                              'INF',
-                                              '&Ok',
-                                              '&Ok',
-                                              '&Ok',
-                                              '',
-                                              Yes,
-                                              ?,
-                                              output cButtonPressed) no-error.
-       RETURN.
-     END.
-   end.                                 
-
   IF VALID-HANDLE(ghNonSecBrowse) THEN
     DELETE OBJECT ghNonSecBrowse.
   IF VALID-HANDLE(ghNonSecQuery) THEN

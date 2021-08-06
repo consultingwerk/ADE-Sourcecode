@@ -128,9 +128,6 @@ FUNCTION getNextObj RETURNS DECIMAL
 
 /* ***************************  Main Block  *************************** */
 
-DISABLE TRIGGERS FOR LOAD OF ryt_dbupdate_status.
-DISABLE TRIGGERS FOR DUMP OF ryt_dbupdate_status.
-
 FOR EACH ttPatchList 
   BREAK BY ttPatchList.cPatchDB
         BY ttPatchList.cPatchLevel

@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -12,7 +12,10 @@
  * kmcintos     08/18/05    Added logical for audit policy commit   *
  *                          20050629-018                            *
  * fernando     03/14/06    Handle case with too many tables selected*
- *                          20050930-006                            */
+ *                          20050930-006                            *
+ * vmaganti     10/12/20    Making native sequence as default one   *
+ * tmasood      11/12/20    Include four new sections to            *
+ *                          support online schema change feature.   */
    
 /* uservar.i - dictionary user interface variable definitions */
 
@@ -47,9 +50,20 @@ DEFINE {1} SHARED VARIABLE user_excepts   AS CHARACTER NO-UNDO.
 DEFINE {1} SHARED VARIABLE user_longchar  AS LONGCHAR NO-UNDO.
 
 /* For MSS Native Sequence */
-DEFINE {1} SHARED VARIABLE nativeseq           AS LOGICAL    NO-UNDO  INITIAL  FALSE.
+DEFINE {1} SHARED VARIABLE nativeseq           AS LOGICAL    NO-UNDO  INITIAL  TRUE.
 DEFINE {1} SHARED VARIABLE cachesize           AS CHARACTER  NO-UNDO  INITIAL  "0" .
 DEFINE {1} SHARED VARIABLE hasNativeSeqSupport AS LOGICAL    NO-UNDO.
+
+/* For Online schema support */
+DEFINE {1} SHARED STREAM pre-str.
+DEFINE {1} SHARED STREAM trig-str. 
+DEFINE {1} SHARED STREAM post-str. 
+DEFINE {1} SHARED STREAM offln-str.
+DEFINE {1} SHARED VARIABLE hPreDeployStream  AS HANDLE NO-UNDO.
+DEFINE {1} SHARED VARIABLE hTriggersStream   AS HANDLE NO-UNDO.
+DEFINE {1} SHARED VARIABLE hPostDeployStream AS HANDLE NO-UNDO.
+DEFINE {1} SHARED VARIABLE hOfflineStream    AS HANDLE NO-UNDO.
+
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN 
    DEFINE RECTANGLE rect_Btns {&STDPH_OKBOX}.

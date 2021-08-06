@@ -126,6 +126,7 @@ DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
 DEFINE VARIABLE orig_y                    AS INTEGER    NO-UNDO.
 define variable cur-widget-parent         as recid no-undo.
 define variable cur-widget-type           as character no-undo.
+define variable iViewHwnd                 as integer no-undo.
 &IF DEFINED(ADEICONDIR) = 0 &THEN
  {adecomm/icondir.i}
 &ENDIF
@@ -435,6 +436,9 @@ end.
       run initializeIDEClient.
       /* Cannot use/keep accelerators since we use Eclipse key bindings  */  
       removeAccelerators(_h_menu_win:menu-bar).    
+      run get_appbuilder_properties_viewhwnd(output iViewHwnd).
+      if iViewHwnd > 0 then
+          run choose_attributes.
   end.
       
   /* Intercept the keyboard endkey events and do nothing.  This
@@ -1926,12 +1930,33 @@ PROCEDURE choose_attributes :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
+  define variable iCurrentHwnd as integer no-undo.
+  define variable iAttrHwnd as integer no-undo.
+   
+  /* 
+   if oeideisrunnoing then check that the view is the same 
+   this may fire after a close and open of view
+  */ 
+  
+  if OEIDEIsRunning then
+  do:
+      IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME EQ "{&AttrEd}" THEN 
+      do:
+          run get_ide_view_hwnd IN hAttrEd(output iAttrHwnd).
+          run get_appbuilder_properties_viewhwnd(output iCurrentHwnd).
+          if iAttrHwnd <> iCurrentHwnd then
+              run close_attributes.
+      end.  
+  end.
+  
   /* If it doesn't exist, them create it.  Otherwise, move it to the top.
      NOTE that we need to make sure the handle points to the same item
      (because PROGRESS reuses procedure handles). */
-  IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME EQ "{&AttrEd}"
-  THEN RUN move-to-top IN hAttrEd NO-ERROR.
+  IF VALID-HANDLE(hAttrEd) AND hAttrED:FILE-NAME EQ "{&AttrEd}" THEN 
+  do:        
+       RUN move-to-top IN hAttrEd NO-ERROR.
+  end.
+       
   ELSE RUN {&AttrEd} PERSISTENT SET hAttrEd .
 
   /* Show the current values. */
@@ -5917,6 +5942,24 @@ procedure getCurrentPageNo:
     
 end procedure.
 
+// keep track in one place - used here and from_attr_ed.w
+procedure get_appbuilder_properties_viewids:
+    define output parameter pcViewId      as character  no-undo.
+    define output parameter pcSecondaryId as character  no-undo.  
+    assign pcViewId      = "com.openedge.pdt.oestudio.appbuilderpropertiesview"
+           pcSecondaryId = getProjectName() .
+end procedure.
+
+procedure get_appbuilder_properties_viewhwnd:
+    define output parameter pViewHwnd as integer  no-undo.
+    define variable cViewId  as character  no-undo.
+    define variable cSecondaryId as character  no-undo.  
+    
+    run get_appbuilder_properties_viewids  (output cViewId, output cSecondaryId).
+    RUN getViewHwnd IN hOEIDEService (cViewId, cSecondaryId, OUTPUT pViewHwnd) NO-ERROR.
+           
+end procedure.
+
 procedure setPage:
     define input parameter piPage as integer no-undo. 
     
@@ -9849,9 +9892,9 @@ procedure save_file  private:
          IF lOK THEN
          DO:          
             GET-KEY-VALUE SECTION  "ProAB":U KEY "TempDBIntegration":U VALUE cValue.
-      IF CAN-DO ("true,yes,on":U,cValue) THEN
-      DO:
-         GET-KEY-VALUE SECTION  "ProAB":U KEY "TempDBExtension":U VALUE cValue.
+            IF CAN-DO ("true,yes,on":U,cValue) THEN
+            DO:
+               GET-KEY-VALUE SECTION  "ProAB":U KEY "TempDBExtension":U VALUE cValue.
                IF cValue > "" AND _save_file MATCHES cValue THEN 
                DO:
                   RUN adecomm/_relname.p (INPUT _save_file, INPUT "", OUTPUT cRelName).

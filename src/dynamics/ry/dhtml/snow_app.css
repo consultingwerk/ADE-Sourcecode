@@ -18,30 +18,17 @@ scrollbar-arrow-color: #666633
 
 FIELDSET.browse {border-color:gray;}
 TR.browseheader {background-color:lightgreen;font-weight:bold;}
-TR.browse       {background-color:white;}
-TR.browse.alt   {background-color:#E4FEFE;}
-TR.select       {background-color:#339999;}
-
-/** SmartPanels and lone tools **/
-.panel              {border-bottom:thin groove;border-top:thin groove;margin-top:7pt;margin-bottom:2pt;position:relative;}
-.panel TD           {margin:0;padding:2px 0px 0px 7px;border:0;width:24px;height:25px;
-                     background-image:url(../img/ws_round.gif);}
-.panel TD.over      {background-image:url(../img/ws_round2.gif);}
-.panel TD.disable   {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
-.panel TD.nolink    {filter:gray(enabled=1) alpha(opacity=20, enabled=1);-moz-opacity:20%;}
-
-SPAN                {margin:0;padding:4px 0px 0px 6px;border:0;width:30px;height:25px;
-                     background-image:url(../img/ws_round.gif);}
-SPAN.over           {background-image:url(../img/ws_round2.gif);}
-SPAN.disable        {filter:gray(enabled=1) alpha(opacity=40, enabled=1);-moz-opacity:40%;}
+TR.browse       {background-color:expression(this.rowIndex%2==1?'lightblue':'white');}
+TR.select       {background-color:expression('#339999');}
 
 
-
+IMG.tool        {border-color:lightblue;}
+IMG.tool.over   {background-color:white;border-left:1px #EEEEEE solid;border-top:1px #EEEEEE solid;border-right:1px gray solid;border-bottom:1px gray solid;}
 
 /** Tabfolders ***/
-#folder TD.front  {background-image:url(../img/ws_tbluef.gif);color:white;}
-#folder TD.back   {background-image:url(../img/ws_tblueb.gif);color:yellow;}
+#folder TD.front  {background:url(../../ws/img/tbluef.gif);color:white;}
+#folder TD.back   {background:url(../../ws/img/tblueb.gif);color:yellow;}
+
 
 INPUT.field.disable     {background-color:white;border:2px #D6D3CE solid;border-color:gray white white gray;color:gray;}
 
-.customerviewv  {background-color:yellow}

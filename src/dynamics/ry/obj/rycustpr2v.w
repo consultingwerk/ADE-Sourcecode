@@ -525,11 +525,10 @@ PROCEDURE createAttrBrowser :
            PERSISTENT RUN valueChanged IN THIS-PROCEDURE.
       END TRIGGERS.
 
-  /* The frame that the browser is on is hidden during construction, 
-     so we don't need to hide the dynamic browser while it is being constructed.
-     When the frame and window is viewed, then the browser will be viewed, too.
-   */
-  ASSIGN ghAttrBrowse:SENSITIVE = NO.
+  /* Hide the dynamic browser while it is being constructed */
+  ASSIGN
+   ghAttrBrowse:VISIBLE   = NO
+   ghAttrBrowse:SENSITIVE = NO.
   
   hBuffer = TEMP-TABLE ttAttribute:DEFAULT-BUFFER-HANDLE.
   
@@ -558,7 +557,9 @@ PROCEDURE createAttrBrowser :
     END.
   END.
   
-  ASSIGN ghAttrBrowse:SENSITIVE = TRUE.
+  ASSIGN
+   ghAttrBrowse:VISIBLE   = TRUE
+   ghAttrBrowse:SENSITIVE = TRUE.
 
 END PROCEDURE.
 
@@ -633,7 +634,7 @@ PROCEDURE initializeObject :
   IF NOT VALID-HANDLE(ghToolbar) THEN
     ghToolbar = WIDGET-HANDLE(DYNAMIC-FUNCTION("linkHandles":U, "TableIO-Source":U)).
   
-  RUN resizeObject (frame {&FRAME-NAME}:height, frame {&FRAME-NAME}:width).
+  RUN resizeObject (0, 0).
                             
 END PROCEDURE.
 
@@ -681,34 +682,34 @@ PROCEDURE resizeObject :
   {get ContainerHandle hWindow hContainerSource}.
 
   /* Save hidden state of current frame, then hide it */
-  ASSIGN FRAME {&FRAME-NAME}:SCROLLABLE = TRUE  
-         lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN
-         
-         FRAME {&FRAME-NAME}:HIDDEN     = TRUE
-         FRAME {&FRAME-NAME}:SCROLLABLE = FALSE
-         NO-ERROR.
-        
-  ASSIGN FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight
-         FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth
-         FRAME frDetail:ROW                 = FRAME {&FRAME-NAME}:HEIGHT - FRAME frDetail:HEIGHT + 0.9
-         NO-ERROR.
+  FRAME {&FRAME-NAME}:SCROLLABLE = FALSE.
+  lPreviouslyHidden = FRAME {&FRAME-NAME}:HIDDEN.
+  FRAME {&FRAME-NAME}:HIDDEN = TRUE.
+  
+  /* Resize frame relative to containing window size */
+  FRAME {&FRAME-NAME}:HEIGHT-PIXELS = hWindow:HEIGHT-PIXELS - 110.
+  FRAME {&FRAME-NAME}:WIDTH-PIXELS  = hWindow:WIDTH-PIXELS  - 28.
 
-        /* Resize dynamic browser (if exists) relative to current frame */
-    IF VALID-HANDLE(ghAttrBrowse) THEN
-        ASSIGN ghAttrBrowse:WIDTH-CHARS  = pdWidth - 1.5
-               ghAttrBrowse:HEIGHT-CHARS = FRAME frDetail:ROW - ghAttrBrowse:ROW - 0.24
-               fiTitle:WIDTH             = ghAttrBrowse:WIDTH-CHARS
-               NO-ERROR.
-    
-    /* Centre Text */
-    IF fiTitle:SCREEN-VALUE IN FRAME frMain <> "":U THEN
-        RUN centreText.
+  FRAME frDetail:ROW = FRAME {&FRAME-NAME}:HEIGHT - FRAME frDetail:HEIGHT + 1.
 
-        /* Restore original hidden state of current frame */
-    APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
-    ASSIGN FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
+  /* Resize dynamic browser (if exists) relative to current frame */
+  IF VALID-HANDLE(ghAttrBrowse) THEN
+  DO:
+    ghAttrBrowse:WIDTH-CHARS  = FRAME {&FRAME-NAME}:WIDTH-CHARS   - 2.
+    ghAttrBrowse:HEIGHT-CHARS = FRAME frDetail:ROW - ghAttrBrowse:ROW - .5.
 
-    RETURN.
+    ASSIGN fiTitle:WIDTH = ghAttrBrowse:WIDTH-CHARS
+           NO-ERROR.
+  END.
+
+  /* Centre Text */
+  IF fiTitle:SCREEN-VALUE IN FRAME frMain <> "":U THEN
+    RUN centreText.
+
+  /* Restore original hidden state of current frame */
+  APPLY "end-resize":U TO FRAME {&FRAME-NAME}.
+  FRAME {&FRAME-NAME}:HIDDEN = lPreviouslyHidden NO-ERROR.
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -960,6 +961,22 @@ PROCEDURE valueChangedClass :
   
   APPLY "ENTRY":U TO ghAttrBrowse.
   APPLY "VALUE-CHANGED":U TO ghAttrBrowse.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE viewObject vTableWin 
+PROCEDURE viewObject :
+/*------------------------------------------------------------------------------
+  Purpose:     Super Override
+  Parameters:  
+  Notes:       
+------------------------------------------------------------------------------*/
+
+  VIEW FRAME {&FRAME-NAME}.
+  VIEW FRAME frDetail.
 
 END PROCEDURE.
 

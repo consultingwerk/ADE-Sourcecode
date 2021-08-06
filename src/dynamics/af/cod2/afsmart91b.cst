@@ -153,9 +153,6 @@ USE             adm2/dynselect.w
 *SmartDataField Dynamic&Lookup
 USE             adm2/dynlookup.w
 
-*SmartDataField Dynamic&Combo
-USE             adm2/dyncombo.w
-
 #SmartFilter    &Default
 UP-IMAGE-FILE   adeicon/wp_up 24,360
 DOWN-IMAGE-FILE adeicon/wp_down 24,360

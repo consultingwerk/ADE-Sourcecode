@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 1984-2005 by Progress Software Corporation  */
+/* Copyright (c) 1984-2005,2020 by Progress Software Corporation  */
 /*                                                           */
 /* All rights reserved.  No part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -19,6 +19,7 @@ Author: Fernando de Souza
 
 Date Created: 05/24/2005
     Modified: 
+        tmasood  10/29/20  Added default area support for db properties 
 
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
@@ -63,6 +64,48 @@ do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
    IF hBuffer::_Db-custom-detail <>  new-add-details  THEN DO:
        ASSIGN changed = YES
                     hBuffer::_Db-custom-detail = new-add-details.
+   END.
+
+   FIND DICTDB._Area WHERE DICTDB._Area._Area-name = s_Db_Table_Area:SCREEN-VALUE NO-LOCK NO-ERROR.
+   IF AVAIL DICTDB._Area AND DICTDB._Area._Area-num <> DICTDB._Db._Db-misc1[1] THEN DO:
+      FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+      IF AVAIL DICTDB._db THEN
+         ASSIGN changed = YES
+                DICTDB._db._Db-misc1[1] =  _Area._Area-num.
+   END.
+   IF s_Db_Table_Area:SCREEN-VALUE = ? THEN DO:
+       FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+       IF AVAIL DICTDB._db THEN
+          ASSIGN changed = YES
+                 DICTDB._db._Db-misc1[1] =  ?.
+   END.
+
+   FIND DICTDB._Area WHERE DICTDB._Area._Area-name = s_Db_Index_Area:SCREEN-VALUE NO-LOCK NO-ERROR.
+   IF AVAIL DICTDB._Area AND DICTDB._Area._Area-num <> DICTDB._Db._Db-misc1[2] THEN DO:
+      FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+      IF AVAIL DICTDB._db THEN
+         ASSIGN changed = YES
+                DICTDB._db._Db-misc1[2] =  _Area._Area-num.
+   END.
+   IF s_Db_Index_Area:SCREEN-VALUE = ? THEN DO:
+       FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+       IF AVAIL DICTDB._db THEN
+          ASSIGN changed = YES
+                 DICTDB._db._Db-misc1[2] =  ?.
+   END.
+
+   FIND DICTDB._Area WHERE DICTDB._Area._Area-name = s_Db_LOB_Area:SCREEN-VALUE NO-LOCK NO-ERROR.
+   IF AVAIL DICTDB._Area AND DICTDB._Area._Area-num <> DICTDB._Db._Db-misc1[3] THEN DO:
+      FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+      IF AVAIL DICTDB._db THEN
+         ASSIGN changed = YES
+                DICTDB._db._Db-misc1[3] =  _Area._Area-num.
+   END.
+   IF s_Db_LOB_Area:SCREEN-VALUE = ? THEN DO:
+       FIND DICTDB._db WHERE RECID(DICTDB._db) = s_DbRecId EXCLUSIVE-LOCK NO-ERROR.
+       IF AVAIL DICTDB._db THEN
+          ASSIGN changed = YES
+                 DICTDB._db._Db-misc1[3] =  ?.
    END.
 
    DELETE OBJECT hBuffer.

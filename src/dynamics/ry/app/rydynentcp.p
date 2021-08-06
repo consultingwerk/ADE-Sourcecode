@@ -258,7 +258,8 @@ PROCEDURE validateClassData :
     /* Find the associated GSC_ENTITY_MNEMONIC record */
     ASSIGN hEntityBuffer = BUFFER gsc_entity_mnemonic:HANDLE.
 
-    hEntityBuffer:FIND-FIRST(" WHERE ":U + hEntityBuffer:NAME + ".entity_mnemonic_description = ":U + QUOTER(pcLogicalObjectName), NO-LOCK ) NO-ERROR.
+    hEntityBuffer:FIND-FIRST(" WHERE ":U + hEntityBuffer:NAME + ".entity_mnemonic_description = ":U
+                             + QUOTER(hObjectBuffer:BUFFER-FIELD("tLogicalObjectName":U):BUFFER-VALUE), NO-LOCK ) NO-ERROR.
 
     IF hEntityBuffer:AVAILABLE THEN
     DO iFieldLoop = 1 TO hEntityBuffer:NUM-FIELDS:
@@ -268,7 +269,7 @@ PROCEDURE validateClassData :
          * in the GSC_ENTITY_MNEMONIC table without the underscores.                                     */
         ASSIGN hAttributeField = hAttributeBuffer:BUFFER-FIELD(REPLACE(hEntityField:NAME, "_":U, "":U)) NO-ERROR.
 
-        IF VALID-HANDLE(hAttributeField) THEN        
+        IF VALID-HANDLE(hAttributeField) THEN
             ASSIGN hAttributeField:BUFFER-VALUE = hEntityField:BUFFER-VALUE NO-ERROR.
     END.    /* loop through fields */
 

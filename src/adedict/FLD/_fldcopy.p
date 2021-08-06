@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -14,14 +14,14 @@ Description:
 
 Input-Output Parameters:
    p_Order -  This is set to the last order# assigned to a copied field
-      	      If no field is successfully copied, or the user chooses
-      	      copy-modify first, the input value is left as is.
+                    If no field is successfully copied, or the user chooses
+                    copy-modify first, the input value is left as is.
 
 Output Parameters:
    p_Tbl   - The name of the table chosen if user hit Copy with Modify,
-      	     otherwise it is set to "".
+                   otherwise it is set to "".
    p_Fld   - The name of the field chosen if user hit Copy with Modify.
-      	     otherwise it is set to "".
+                   otherwise it is set to "".
    p_Copied- Set to yes if any field was copied successfully.
 
 Author: Laura Stern
@@ -35,7 +35,8 @@ History:
                          to _File Find.
      D. McMann 02/24/03  Added BLOB support
      D. McMann 10/08/03  Added CLOB support 20031007-038
-
+     Kberlia   10/29/20  Added argument in _pro_area_list to support default area.
+     
 ----------------------------------------------------------------------------*/
 
 
@@ -47,8 +48,8 @@ History:
 {adedict/FLD/fldvar.i shared}
 
 Define INPUT-OUTPUT PARAMETER p_Order  as integer  NO-UNDO.
-Define OUTPUT  	    PARAMETER p_Tbl    as char     NO-UNDO.
-Define OUTPUT  	    PARAMETER p_Fld    as char     NO-UNDO.
+Define OUTPUT              PARAMETER p_Tbl    as char     NO-UNDO.
+Define OUTPUT              PARAMETER p_Fld    as char     NO-UNDO.
 Define OUTPUT       PARAMETER p_Copied as logical  NO-UNDO init no.
 
 
@@ -63,13 +64,13 @@ Define var cmbArea as char NO-UNDO
    view-as COMBO-BOX size 40 by 1.  
  
 
-Define button btn_Copy_AsIs label "&Copy As Is" 	      	
+Define button btn_Copy_AsIs label "&Copy As Is"                       
    SIZE 15 by {&H_OKBTN} MARGIN-EXTRA DEFAULT AUTO-GO.
 Define button btn_Copy_Mod  label "&Modify First" 
    SIZE 15 by {&H_OKBTN} MARGIN-EXTRA DEFAULT AUTO-GO.
-Define button btn_Cancel1    label "Cancel"	
+Define button btn_Cancel1    label "Cancel"        
    SIZE 15 by {&H_OKBTN} MARGIN-EXTRA DEFAULT AUTO-ENDKEY.
-Define button btn_Skip 	    label "&Skip" {&STDPH_OKBTN} AUTO-GO.
+Define button btn_Skip             label "&Skip" {&STDPH_OKBTN} AUTO-GO.
 
 /* Id of the table selected in this dialog box.  Note s_TblRecId is the
    recid of the table we're adding fields to. */
@@ -186,7 +187,7 @@ PROCEDURE Fill_Field_List:
 
    /* Refresh the field list to show fields for the selected table. */
    find _File where 
-      	 _File._File-Name = cpy_lst_Tbls:screen-value in frame fldcopy AND
+               _File._File-Name = cpy_lst_Tbls:screen-value in frame fldcopy AND
         _File._DB-recid = s_DbRecId AND
         (_File._Owner = "PUB" OR _File._Owner = "_FOREIGN").
    cpy_Recid = RECID(_File).
@@ -221,7 +222,7 @@ on window-close of frame rename
 
 
 /*----- HIT of OK BUTTON or GO (frame rename) ----- */
-on GO of frame rename	/* or OK due to AUTO-GO */
+on GO of frame rename        /* or OK due to AUTO-GO */
 do:
    Define var name as char NO-UNDO.
 
@@ -269,7 +270,7 @@ on choose of btn_Skip in frame selectarea
 /*----- HELP -----*/
 on HELP of frame selectarea OR choose of s_btn_Help in frame selectarea
    RUN "adecomm/_adehelp.p" ("dict", "CONTEXT", {&Select_Area_Dialog_Box}, ?).
-      	 
+               
 /*========================Frame fldcopy Triggers==============================*/
 
 /*----- HIT of COPY AS IS BUTTON -----*/
@@ -311,7 +312,7 @@ do:
    do ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE ON STOP UNDO, LEAVE:
       cpy_loop:
       do fld# = 1 to num:
-      	 cpy_Name = ENTRY(fld#, flds).
+               cpy_Name = ENTRY(fld#, flds).
          find cpy_Field where cpy_Field._Field-Name = cpy_Name AND 
               cpy_Field._File-recid = cpy_Recid.
    
@@ -321,22 +322,22 @@ do:
          */
          do while CAN-FIND (_Field where _Field._File-recid = s_TblRecId AND
                             _Field._Field-Name = cpy_Name):
-      	    /* Turn off WAIT while in dlg */
-      	    run adecomm/_setcurs.p ("").
-      	    canned = true.
-      	    do ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
-	       update cpy_Name 
-		      s_btn_Ok 
-      	       	      s_btn_Cancel
-		      btn_Skip 
-		      s_btn_Help
-		      with frame rename.
-      	       canned = false.
-      	    end.
-      	    /* fields already copied are NOT undone */
-      	    if canned then leave cpy_loop.
+                  /* Turn off WAIT while in dlg */
+                  run adecomm/_setcurs.p ("").
+                  canned = true.
+                  do ON ERROR UNDO, LEAVE ON ENDKEY UNDO, LEAVE:
+               update cpy_Name 
+                      s_btn_Ok 
+                                   s_btn_Cancel
+                      btn_Skip 
+                      s_btn_Help
+                      with frame rename.
+                     canned = false.
+                  end.
+                  /* fields already copied are NOT undone */
+                  if canned then leave cpy_loop.
 
-      	    run adecomm/_setcurs.p ("WAIT"). 
+                  run adecomm/_setcurs.p ("WAIT"). 
             if cpy_Skipped then 
             do:
                hide frame rename.
@@ -361,7 +362,7 @@ do:
                  if AreaList = "" then
                  do:
                      cmbArea:delimiter  = chr(1).
-                     run prodict/pro/_pro_area_list(s_TblRecId,{&INVALID_AREAS},cmbArea:delimiter, output  AreaList).
+                     run prodict/pro/_pro_area_list(s_TblRecId,{&INVALID_AREAS},cmbArea:delimiter,"Lob", output  AreaList).
                      cmbArea:list-items = AreaList.
                      cmbArea:inner-lines = min(cmbArea:num-items ,10).
                      cmbArea:screen-value = cmbArea:entry(1).
@@ -389,20 +390,20 @@ do:
                 if canned then leave cpy_loop.
              end.  /* from lob has no area  */
          end. /* lob */
-      	 display cpy_Field._Field-Name @ stat with frame copying.
+               display cpy_Field._Field-Name @ stat with frame copying.
 
          create b_Field.
         
-      	 assign
+               assign
             b_Field._File-recid = s_TblRecId
-      	    b_Field._Field-name = cpy_Name
-      	    b_Field._Data-type  = cpy_Field._Data-type
-      	    b_Field._Format     = cpy_Field._Format
-      	    b_Field._Initial    = cpy_Field._Initial
-      	    b_Field._Order      = (if cpy_Order = ? then cpy_Field._Order
-      	       	     	      	       	     	    else cpy_Order).
-      	      	 
-      	 {prodict/dump/copy_fld.i &from=cpy_Field &to=b_Field &all=false &copyarea=CopyArea}
+                  b_Field._Field-name = cpy_Name
+                  b_Field._Data-type  = cpy_Field._Data-type
+                  b_Field._Format     = cpy_Field._Format
+                  b_Field._Initial    = cpy_Field._Initial
+                  b_Field._Order      = (if cpy_Order = ? then cpy_Field._Order
+                                                                                        else cpy_Order).
+                             
+               {prodict/dump/copy_fld.i &from=cpy_Field &to=b_Field &all=false &copyarea=CopyArea}
       
          IF b_field._Data-type = "BLOB" or b_field._Data-type = "CLOB" then
          do:
@@ -433,25 +434,25 @@ do:
                  ASSIGN b_field._Charset   = cpy_Field._Charset
                         b_Field._Collation = cpy_Field._Collation.
              END.
-      	 end. /* lob */
-              	 
-      	 /* Reset offset as if it was a new field to put at the end. */
-      	 b_Field._Fld-stoff = ?.
-      	 RUN adedict/FLD/_dfltgat.p (TRUE).
-      	 find _File where RECID(_File) = s_TblRecId.
-      	 if b_Field._Fld-stoff + b_Field._Fld-stlen > _File._For-Size then 
+               end. /* lob */
+                       
+               /* Reset offset as if it was a new field to put at the end. */
+               b_Field._Fld-stoff = ?.
+               RUN adedict/FLD/_dfltgat.p (TRUE).
+               find _File where RECID(_File) = s_TblRecId.
+               if b_Field._Fld-stoff + b_Field._Fld-stlen > _File._For-Size then 
          do:
-	    message "If this field is added, the record" SKIP
-		    "size will be exceeded." SKIP
-      	       	    "No more fields will be copied."
-		    view-as ALERT-BOX ERROR buttons OK.
-      	    undo all_flds, leave all_flds.
-      	 end.
+            message "If this field is added, the record" SKIP
+                    "size will be exceeded." SKIP
+                                 "No more fields will be copied."
+                    view-as ALERT-BOX ERROR buttons OK.
+                  undo all_flds, leave all_flds.
+               end.
 
          /* Update the browse window to show this field in the
             field list. */
-      	 run adedict/FLD/_ptinlst.p (INPUT b_Field._Field-Name,
-      	       	     	      	     INPUT b_Field._Order).
+               run adedict/FLD/_ptinlst.p (INPUT b_Field._Field-Name,
+                                                             INPUT b_Field._Order).
          p_Copied = yes.
 
          if cpy_Order <> ? then
@@ -461,7 +462,7 @@ do:
       if p_Copied then 
       do:
          {adedict/setdirty.i &Dirty = "true"}
-      	 p_Order = b_Field._Order.  /* Set to last order# used */
+               p_Order = b_Field._Order.  /* Set to last order# used */
       end.
       success = true.
    end.  /* do on error block */
@@ -576,8 +577,8 @@ assign
 
 do ON ERROR UNDO, LEAVE  ON ENDKEY UNDO, LEAVE:
    wait-for choose of btn_Cancel1   in frame fldcopy,
-      	       	      btn_Copy_AsIs in frame fldcopy,
-      	       	      btn_Copy_Mod  in frame fldcopy.
+                                   btn_Copy_AsIs in frame fldcopy,
+                                   btn_Copy_Mod  in frame fldcopy.
 end.
 hide frame fldcopy.
 return.

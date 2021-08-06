@@ -45,7 +45,7 @@ DEFINE VARIABLE v_one  AS CHARACTER NO-UNDO. /* value holder */
 DEFINE BUTTON qbf-ok   LABEL "OK"     {&STDPH_OKBTN} AUTO-GO.
 DEFINE BUTTON qbf-ee   LABEL "Cancel" {&STDPH_OKBTN} AUTO-ENDKEY.
 DEFINE BUTTON qbf-help LABEL "&Help"   {&STDPH_OKBTN}.
-
+define variable cTitle  as character no-undo init "Enter Contains String":t32.
 DEFINE RECTANGLE rect_btns            {&STDPH_OKBOX}.
 
 FORM
@@ -63,8 +63,14 @@ FORM
     &HELP   = "qbf-help" }
 
   WITH FRAME qbf%qbw NO-LABELS NO-ATTR-SPACE
-  DEFAULT-BUTTON qbf-ok CANCEL-BUTTON qbf-ee
-  TITLE "Enter Contains String":t32 VIEW-AS DIALOG-BOX.
+  DEFAULT-BUTTON qbf-ok 
+  CANCEL-BUTTON qbf-ee
+   &if DEFINED(IDE-IS-RUNNING) = 0 &then
+  TITLE cTitle VIEW-AS DIALOG-BOX
+   &else
+        NO-BOX
+   &endif
+  .
 
 ON GO OF FRAME qbf%qbw DO:
   IF INPUT FRAME qbf%qbw v_one = "" THEN DO:
@@ -101,10 +107,23 @@ ASSIGN
    &OK    = "qbf-ok" 
    &HELP  = "qbf-help" }
 
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then    
+  {adeuib/ide/dialoginit.i "FRAME qbf%qbw:handle}
+&endif
+
 ENABLE v_one qbf-ok qbf-ee qbf-help WITH FRAME qbf%qbw.
 
+&if DEFINED(IDE-IS-RUNNING) <> 0 &then   
+   &scoped-define CANCEL-EVENT U3
+   {adeuib/ide/dialogstart.i qbf-ok qbf-ee ctitle}
+   dialogService:SizeToFit().
+&endif     
 DO ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE:
-  WAIT-FOR GO OF FRAME qbf%qbw.
+    &if DEFINED(IDE-IS-RUNNING) <> 0 &then   
+    WAIT-FOR GO OF FRAME qbf%qbw or "{&CANCEL-EVENT}" of this-procedure. 
+    &else 
+     WAIT-FOR GO OF FRAME qbf%qbw.
+    &endif  
 END.
 
 HIDE FRAME qbf%qbw NO-PAUSE.

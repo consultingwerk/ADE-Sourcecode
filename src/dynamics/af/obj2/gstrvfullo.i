@@ -1,5 +1,5 @@
   FIELD record_version_obj LIKE gst_record_version.record_version_obj VALIDATE ~
-  FIELD entity_mnemonic LIKE gst_record_version.entity_mnemonic VALIDATE  LABEL "Entity"~
+  FIELD entity_mnemonic LIKE gst_record_version.entity_mnemonic VALIDATE ~
   FIELD key_field_value LIKE gst_record_version.key_field_value VALIDATE ~
   FIELD import_version_number_seq LIKE gst_record_version.import_version_number_seq VALIDATE ~
   FIELD version_number_seq LIKE gst_record_version.version_number_seq VALIDATE ~

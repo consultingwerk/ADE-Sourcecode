@@ -53,9 +53,9 @@ CREATE WIDGET-POOL.
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS edComment lCreate lBuild buPath1 fiPath1 ~
-buPath2 fiPath2 edConnect fiConnect RECT-1 
-&Scoped-Define DISPLAYED-OBJECTS edComment lCreate lBuild fiPath1 fiPath2 ~
-edConnect fiConnect 
+edConnect fiConnect RECT-1 
+&Scoped-Define DISPLAYED-OBJECTS edComment lCreate lBuild fiPath1 edConnect ~
+fiConnect 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -74,18 +74,13 @@ DEFINE BUTTON buPath1
      SIZE 15 BY 1.14
      BGCOLOR 8 .
 
-DEFINE BUTTON buPath2 
-     LABEL "Browse..." 
-     SIZE 15 BY 1.14
-     BGCOLOR 8 .
-
 DEFINE VARIABLE edComment AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
      SIZE 77.2 BY 6.38 NO-UNDO.
 
 DEFINE VARIABLE edConnect AS CHARACTER 
      VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
-     SIZE 73.6 BY 2.86 NO-UNDO.
+     SIZE 73.6 BY 4.29 NO-UNDO.
 
 DEFINE VARIABLE fiConnect AS CHARACTER FORMAT "X(256)":U 
       VIEW-AS TEXT 
@@ -96,14 +91,9 @@ DEFINE VARIABLE fiPath1 AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 43.2 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiPath2 AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Path 2" 
-     VIEW-AS FILL-IN 
-     SIZE 43.2 BY 1 NO-UNDO.
-
 DEFINE RECTANGLE RECT-1
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 76.4 BY 3.52.
+     SIZE 76.4 BY 5.05.
 
 DEFINE VARIABLE lBuild AS LOGICAL INITIAL no 
      LABEL "Build" 
@@ -124,11 +114,9 @@ DEFINE FRAME fMain
      lBuild AT ROW 7.91 COL 42.6
      buPath1 AT ROW 8.95 COL 62.8
      fiPath1 AT ROW 9 COL 17.2 COLON-ALIGNED
-     buPath2 AT ROW 10.24 COL 63
-     fiPath2 AT ROW 10.29 COL 17.4 COLON-ALIGNED
-     edConnect AT ROW 12.43 COL 3 NO-LABEL
-     fiConnect AT ROW 11.67 COL 1 COLON-ALIGNED NO-LABEL
-     RECT-1 AT ROW 12.05 COL 1.8
+     edConnect AT ROW 11 COL 3 NO-LABEL
+     fiConnect AT ROW 10.24 COL 1.8 COLON-ALIGNED NO-LABEL
+     RECT-1 AT ROW 10.52 COL 1.8
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -221,17 +209,6 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME buPath2
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buPath2 fFrameWin
-ON CHOOSE OF buPath2 IN FRAME fMain /* Browse... */
-DO:
-  RUN btnChoose IN THIS-PROCEDURE.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME fiPath1
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiPath1 fFrameWin
 ON LEAVE OF fiPath1 IN FRAME fMain /* Path 1 */
@@ -239,33 +216,6 @@ DO:
   RUN eventProc IN THIS-PROCEDURE ("LEAVE":U,"{&SELF-NAME}":U) NO-ERROR.
   IF ERROR-STATUS:ERROR THEN
     RETURN NO-APPLY.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME fiPath2
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiPath2 fFrameWin
-ON LEAVE OF fiPath2 IN FRAME fMain /* Path 2 */
-DO:
-  RUN eventProc IN THIS-PROCEDURE ("LEAVE":U,"{&SELF-NAME}":U) NO-ERROR.
-  IF ERROR-STATUS:ERROR THEN
-    RETURN NO-APPLY.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME lCreate
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lCreate fFrameWin
-ON VALUE-CHANGED OF lCreate IN FRAME fMain /* Create */
-DO:
-  ASSIGN
-    lCreate
-  .
-  RUN setSensitive.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -327,35 +277,11 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY edComment lCreate lBuild fiPath1 fiPath2 edConnect fiConnect 
+  DISPLAY edComment lCreate lBuild fiPath1 edConnect fiConnect 
       WITH FRAME fMain.
-  ENABLE edComment lCreate lBuild buPath1 fiPath1 buPath2 fiPath2 edConnect 
-         fiConnect RECT-1 
+  ENABLE edComment lCreate lBuild buPath1 fiPath1 edConnect fiConnect RECT-1 
       WITH FRAME fMain.
   {&OPEN-BROWSERS-IN-QUERY-fMain}
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE setSensitive fFrameWin 
-PROCEDURE setSensitive :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-    IF lCreate THEN
-      ASSIGN
-        lBuild:CHECKED = YES
-        lBuild:SENSITIVE = NO
-      .
-    ELSE
-      ASSIGN
-        lBuild:SENSITIVE = YES
-      .
-  END.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

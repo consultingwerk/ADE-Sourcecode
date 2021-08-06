@@ -113,15 +113,12 @@ FUNCTION replaceCtrlChar RETURNS CHARACTER
 
   DEFINE VARIABLE iCount     AS INTEGER    NO-UNDO.
 
-  IF plRemove THEN
   DO iCount = 1 TO 8:
-    pcString = REPLACE(pcString, CHR(iCount), "#CHR(":U + STRING(iCount) + ")#":U).
+    IF plRemove THEN
+      pcString = REPLACE(pcString, CHR(iCount), "#CHR(":U + STRING(iCount) + ")#":U).
+    ELSE
+      pcString = REPLACE(pcString, "#CHR(":U + STRING(iCount) + ")#":U, CHR(iCount)).
   END.
-  ELSE
-  DO iCount = 1 TO 8:
-    pcString = REPLACE(pcString, "#CHR(":U + STRING(iCount) + ")#":U, CHR(iCount)).
-  END.
-
   RETURN pcString.   /* Function return value. */
 
 END FUNCTION.

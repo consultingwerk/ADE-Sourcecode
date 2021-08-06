@@ -7,7 +7,8 @@
 /*
     History:
    
-    21/06/2011 Added logic to delete constraint OE00195067 kmayur 
+    21/06/2011 Added logic to delete constraint OE00195067 kmayur
+     
 */ 
 define input-output parameter minimum-index as integer.
 
@@ -60,6 +61,7 @@ do:
         RETURN.
 end.
 FIND FIRST widx.
+
 IF imod <> "a" AND imod <> "d" THEN
   FIND _Index OF _File
     WHERE _Index._Index-name = widx._Index-name. /* proven to exist */

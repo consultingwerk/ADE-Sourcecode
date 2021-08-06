@@ -56,7 +56,8 @@ History:
     fernando    06/19/07    Support for large files
     fernando    07/18/08    Support for encryption
     fernando    04/08/09    Support for alternate buffer pool
-    tmasood     08/17/20    Report warning message while dumping SQL-92 tables    
+    tmasood     08/17/20    Report warning message while dumping SQL-92 tables
+    tmasood     12/15/20    Fix the code to work with online schema feature    
 */
 /*h-*/
 
@@ -124,6 +125,11 @@ if TERMINAL <> "" and user_env[6] NE "dump-silent"
 
 if TERMINAL <> "" 
  then run adecomm/_setcurs.p ("WAIT").
+
+ASSIGN hPreDeployStream  = STREAM ddl:HANDLE
+       hTriggersStream   = STREAM ddl:HANDLE
+       hPostDeployStream = STREAM ddl:HANDLE
+       hOfflineStream    = STREAM ddl:HANDLE.
 
 if  user_env[5] = " "
  OR user_env[5] = ? 

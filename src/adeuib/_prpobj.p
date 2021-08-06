@@ -367,8 +367,10 @@ DEFINE STREAM  temp_stream.
 DEFINE BUFFER B_U FOR _U.
 DEFINE BUFFER B_C FOR _C.
 &if DEFINED(IDE-IS-RUNNING) <> 0 &then
-define variable CallResult as logical no-undo.
- &endif 
+   &scoped-define procerror RETURN.
+&ELSE
+   &scoped-define procerror RETURN ERROR.
+&endif 
 
 CREATE WIDGET-POOL.
 
@@ -739,7 +741,16 @@ RUN adecomm/_setcurs.p ("").
    dialogService:SetCancelButton(btn_Cancel:handle).
    dialogService:CancelEventNum = 3.
    dialogService:Title = dialogTitle.
-   WAIT-FOR "GO" OF FRAME prop_sht or "u3" of FRAME prop_sht. 
+   do on error undo, retry:
+       WAIT-FOR "GO" OF FRAME prop_sht or "u3" of FRAME prop_sht.
+        // not able to apply end-key when cancelled from eclipse
+       if valid-object(dialogService) and dialogService:Cancelled then
+          undo, return.
+       catch e as Progress.Lang.Error :
+          // when cancelled from eclipse the persistent leave triggers 
+          // may fire and cause wait-for terminated      
+       end catch.
+   end. 
 &else
    WAIT-FOR "GO" OF FRAME prop_sht.
  &endif
@@ -1079,7 +1090,7 @@ PROCEDURE row_change.
             VIEW-AS ALERT-BOX INFORMATION.
     &endif        
     SELF:SCREEN-VALUE = STRING(low-limit).
-    RETURN ERROR.
+    {&procerror}
   END.
   upr-limit = IF CAN-DO("WINDOW,DIALOG-BOX":U,_U._TYPE) THEN
                 SESSION:HEIGHT-CHARS
@@ -1092,7 +1103,7 @@ PROCEDURE row_change.
     MESSAGE "Row must be less than or equal to" STRING(upr-limit) + "."
             VIEW-AS ALERT-BOX INFORMATION.
     SELF:SCREEN-VALUE = STRING(upr-limit).
-    RETURN ERROR.
+    {&procerror}
   END.                                                      
   
   /* Windows and dialog boxes cannot have positions in the range (-1,1) not inclusive
@@ -1110,7 +1121,7 @@ PROCEDURE row_change.
                VIEW-AS ALERT-BOX INFORMATION.
        &endif        
        SELF:SCREEN-VALUE = (IF DECIMAL(SELF:SCREEN-VALUE) < 0 THEN STRING("-1") ELSE STRING ("1")).
-       RETURN ERROR.
+       {&procerror}
   END.
             
   ASSIGN _L._ROW = DECIMAL(SELF:SCREEN-VALUE) + col-lbl-adj.
@@ -1156,7 +1167,7 @@ PROCEDURE column_change.
              VIEW-AS ALERT-BOX INFORMATION.
    &endif          
     SELF:SCREEN-VALUE = STRING(low-limit).
-    RETURN ERROR.
+    {&procerror}
   END.
   IF xpos > upr-limit THEN DO:
     &if DEFINED(IDE-IS-RUNNING) <> 0 &then
@@ -1169,7 +1180,7 @@ PROCEDURE column_change.
             VIEW-AS ALERT-BOX INFORMATION.
     &endif        
     SELF:SCREEN-VALUE = STRING(upr-limit).
-    RETURN ERROR.                                    
+    {&procerror}                                    
   END.
 
   /* Windows and dialog boxes cannot have positions in the range (-1,1) not inclusive
@@ -1187,7 +1198,7 @@ PROCEDURE column_change.
                VIEW-AS ALERT-BOX INFORMATION.
        &endif        
        SELF:SCREEN-VALUE = (IF DECIMAL(SELF:SCREEN-VALUE) < 0 THEN STRING("-1") ELSE STRING ("1")).
-       RETURN ERROR.
+       {&procerror}
   END.
             
   CASE _U._ALIGN:
@@ -3065,7 +3076,7 @@ END.
 
 PROCEDURE max_value_change.
   RUN frequency_validation (OUTPUT lFreqValidate).
-  IF NOT lFreqValidate THEN RETURN ERROR.
+  IF NOT lFreqValidate THEN {&procerror}
   ELSE DO:
     _F._MAX-VALUE = INTEGER(SELF:SCREEN-VALUE).
     IF _F._MAX-VALUE > 2147483648 THEN 
@@ -3105,7 +3116,7 @@ END PROCEDURE.
 
 PROCEDURE min_value_change:
   RUN frequency_validation (OUTPUT lFreqValidate).
-  IF NOT lFreqValidate THEN RETURN ERROR.
+  IF NOT lFreqValidate THEN {&procerror}
   ELSE DO:
     _F._MIN-VALUE = INTEGER(SELF:SCREEN-VALUE).
     IF _F._MIN-VALUE < -2147483647 THEN 
@@ -3390,7 +3401,7 @@ PROCEDURE vir_height_change.
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
-    RETURN ERROR.
+    {&procerror}
   END.
      
 END PROCEDURE. /* vir_height_change */
@@ -3441,7 +3452,7 @@ PROCEDURE vir_width_change.
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
-    RETURN ERROR.
+    {&procerror}
   END.
      
 END PROCEDURE. /* vir_width_change */
@@ -3535,7 +3546,7 @@ PROCEDURE height_change.
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
-    RETURN ERROR.
+    {&procerror}
   END.
     
 END PROCEDURE. /* height_change */
@@ -3659,7 +3670,7 @@ PROCEDURE width_change.
     &else  
     MESSAGE err-msg VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
     &endif
-    RETURN ERROR.
+    {&procerror}
   END.
 END PROCEDURE. /* width_change */
 
@@ -5680,7 +5691,7 @@ END.  /* Procedure sensitize */
 
 PROCEDURE frequency_change:
   RUN frequency_validation (OUTPUT lFreqValidate).
-  IF NOT lFreqValidate THEN RETURN ERROR.
+  IF NOT lFreqValidate THEN {&procerror}
   ELSE ASSIGN _F._FREQUENCY = INTEGER(h_frequency:SCREEN-VALUE).
 end procedure.
 

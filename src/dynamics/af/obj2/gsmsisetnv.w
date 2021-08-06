@@ -12,6 +12,13 @@
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR " Static SmartDataViewer Wizard" vTableWin _INLINE
+/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
+/*  Static SmartDataViewer Wizard
+Destroy on next read */
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" vTableWin _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -130,12 +137,12 @@ DEFINE VARIABLE cSiteDivisionICF AS CHARACTER FORMAT "X(256)":U INITIAL "0"
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cSiteReverseICF AS CHARACTER FORMAT "X(256)":U INITIAL "0" 
-     LABEL "Site reverse" 
+     LABEL "Site Reverse" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE cSiteSequenceICF AS CHARACTER FORMAT "X(256)":U INITIAL "0" 
-     LABEL "Site sequence" 
+     LABEL "Site Sequence" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
@@ -144,27 +151,27 @@ DEFINE VARIABLE fiICFDBLabel AS CHARACTER FORMAT "X(35)":U INITIAL "ICFDB"
      SIZE 12.8 BY 1 NO-UNDO.
 
 DEFINE VARIABLE iSiteNumberICF AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Site number" 
+     LABEL "Site Number" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE iSiteSequence1ICF AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Site sequence 1" 
+     LABEL "Site Sequence 1" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE iSiteSequence2ICF AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Site sequence 2" 
+     LABEL "Site Sequence 2" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE iSiteSessionIDICF AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
-     LABEL "Session id" 
+     LABEL "Session ID" 
      VIEW-AS FILL-IN 
      SIZE 20 BY 1 NO-UNDO.
 
 DEFINE VARIABLE lUpdateSequence AS LOGICAL INITIAL no 
-     LABEL "Update sequence values" 
+     LABEL "Update Sequence Values" 
      VIEW-AS TOGGLE-BOX
      SIZE 42 BY 1 NO-UNDO.
 
@@ -314,7 +321,7 @@ END.
 
 &Scoped-define SELF-NAME iSiteNumberICF
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iSiteNumberICF vTableWin
-ON VALUE-CHANGED OF iSiteNumberICF IN FRAME frMain /* Site number */
+ON VALUE-CHANGED OF iSiteNumberICF IN FRAME frMain /* Site Number */
 DO:
   {set DataModified TRUE}.
 END.
@@ -325,7 +332,7 @@ END.
 
 &Scoped-define SELF-NAME iSiteSequence1ICF
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iSiteSequence1ICF vTableWin
-ON VALUE-CHANGED OF iSiteSequence1ICF IN FRAME frMain /* Site sequence 1 */
+ON VALUE-CHANGED OF iSiteSequence1ICF IN FRAME frMain /* Site Sequence 1 */
 DO:
   {set DataModified TRUE}.
 END.
@@ -336,7 +343,7 @@ END.
 
 &Scoped-define SELF-NAME iSiteSequence2ICF
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iSiteSequence2ICF vTableWin
-ON VALUE-CHANGED OF iSiteSequence2ICF IN FRAME frMain /* Site sequence 2 */
+ON VALUE-CHANGED OF iSiteSequence2ICF IN FRAME frMain /* Site Sequence 2 */
 DO:
   {set DataModified TRUE}.
 END.
@@ -347,7 +354,7 @@ END.
 
 &Scoped-define SELF-NAME iSiteSessionIDICF
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL iSiteSessionIDICF vTableWin
-ON VALUE-CHANGED OF iSiteSessionIDICF IN FRAME frMain /* Session id */
+ON VALUE-CHANGED OF iSiteSessionIDICF IN FRAME frMain /* Session ID */
 DO:
   {set DataModified TRUE}.
 END.
@@ -358,7 +365,7 @@ END.
 
 &Scoped-define SELF-NAME lUpdateSequence
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL lUpdateSequence vTableWin
-ON VALUE-CHANGED OF lUpdateSequence IN FRAME frMain /* Update sequence values */
+ON VALUE-CHANGED OF lUpdateSequence IN FRAME frMain /* Update Sequence Values */
 DO:
 
   ASSIGN

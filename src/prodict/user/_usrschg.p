@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007,2021 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -54,6 +54,7 @@ History:
   fernando  09/14/07    Allow ORACLE version 11
   sbehera   02/03/14    Support ORACLE version 12 and changed default version to 11
   vprasad   25/04/19    Support ORACLE version 18 and changed default version to 12
+  sseela    05/28/21    Removing Oracle 11, supporting ORACLE version 19 and updated the message
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -102,7 +103,7 @@ DEFINE VARIABLE new_lang AS CHARACTER EXTENT 14 NO-UNDO INITIAL [
   /*11*/ "Logical Database Name may not be left blank or unknown.",
   /*12*/ "Connect parameters are required.",
   /*13*/ "ODBC Data Source Name is required.",
-  /*14*/ "Oracle version must be either 11,12 or 18."
+  /*14*/ "Oracle version must be either 12,18 or 19."
 ].
 
 FORM
@@ -192,7 +193,9 @@ ON LEAVE OF oraver IN FRAME userschg DO:
         INPUT oraver <> 9 AND
         INPUT oraver <> 10 AND
         INPUT oraver <> 11 AND
-        INPUT oraver <> 12 THEN DO:
+        INPUT oraver <> 12 AND
+        INPUT oraver <> 18 AND
+        INPUT oraver <> 19 THEN DO:
     MESSAGE new_lang[14] 
        VIEW-AS ALERT-BOX ERROR BUTTONS OK.
     APPLY "ENTRY" TO oraver IN FRAME userschg.

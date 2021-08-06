@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights *
+* Copyright (C) 2006-2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -25,6 +25,7 @@
              Nagaraju  11/12/09 Remove numbers for radio-set options in MSSDS
              sgarg     07/12/10 Disallow ? as case-insesitive entry (OE00198732)
              kmayur    06/21/11 screen chnages for constraint migration - OE00195067
+             vmaganti  10/12/20 Making native sequence as default one and revised sequence as back-up one 
 */            
 
 
@@ -403,15 +404,15 @@ IF OS-GETENV("DFLTCONSTR") <> ? AND dflt
   ELSE  choiceDefault = "1".
     
 tmp_str = OS-GETENV("MSSREVSEQGEN").
-IF tmp_str <> ? AND tmp_str BEGINS "N" THEN
- ASSIGN  newseq = FALSE.
+IF tmp_str BEGINS "Y" THEN DO:
+    tmp_str = OS-GETENV("MSSSEQ").
+    IF (tmp_str BEGINS "Y" ) THEN
+        ASSIGN newseq = FALSE
+                nativeseq = TRUE.
+    ELSE
+        ASSIGN newseq = TRUE
+                nativeseq = FALSE.
 
-IF OS-GETENV("MSSSEQ") <> ? THEN DO:
- tmp_str = OS-GETENV("MSSSEQ").
- IF (newseq = TRUE AND tmp_str <> ? AND tmp_str BEGINS "Y" ) THEN
-   nativeseq = TRUE.
- ELSE
-   nativeseq = FALSE.
 END.
 
 IF OS-GETENV("SEQCACHESIZE") <> ? THEN DO:

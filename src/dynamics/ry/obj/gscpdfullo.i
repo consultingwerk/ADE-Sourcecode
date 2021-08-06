@@ -1,5 +1,6 @@
   FIELD package_dataset_obj LIKE gsc_package_dataset.package_dataset_obj VALIDATE ~
   FIELD deploy_dataset_obj LIKE gsc_package_dataset.deploy_dataset_obj VALIDATE ~
+  FIELD owner_site_code LIKE gsc_deploy_dataset.owner_site_code VALIDATE ~
   FIELD deploy_package_obj LIKE gsc_package_dataset.deploy_package_obj VALIDATE ~
   FIELD package_code LIKE gsc_deploy_package.package_code VALIDATE ~
   FIELD package_description LIKE gsc_deploy_package.package_description VALIDATE ~

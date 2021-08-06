@@ -1,8 +1,6 @@
 <%
 
 Dim objAgent
-Dim custErrHtmlPage
-custErrHtmlPage = ""
 
 On Error Resume Next
 
@@ -45,7 +43,6 @@ End Select
 
 If Request.QueryString = "ProcessErrMsgs" Then
 	objAgent.ProcessErrorMessages
-	custErrHtmlPage = objAgent.Output
 End If
 %>
 
@@ -215,11 +212,7 @@ Messenger to make a connection to the Broker and an available Agent. The Agent r
 <TR VALIGN="top" ALIGN="left">
 <TD WIDTH="10%"><img src="./images/trffc14.gif" align="bottom"></TD>
 <TD WIDTH="90%">
-<%If custErrHtmlPage <> "" Then%>
-	<%=custErrHtmlPage%>
-<%Else%>
-    <%=objAgent.CustomizeErrorMessages%>
-<%End If%>
+<%= objAgent.CustomizeErrorMessages %>
 </TD>
 </TABLE>
 </CENTER>

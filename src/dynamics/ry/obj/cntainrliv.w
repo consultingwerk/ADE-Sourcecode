@@ -83,7 +83,6 @@ DEFINE VARIABLE gcAllLinks          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE glFromSource        AS LOGICAL    NO-UNDO INITIAL ?. /* TRUE: Show from Source, FALSE: show from Target, ? Show from Link */
 DEFINE VARIABLE ghContainerToolbar  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghParentContainer   AS HANDLE     NO-UNDO.
-DEFINE VARIABLE ghGridObjectViewer  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghContainerSource   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghBrowseToolbar     AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghFilterViewer      AS HANDLE     NO-UNDO.
@@ -111,8 +110,8 @@ DEFINE VARIABLE ghSmartLink         AS HANDLE     NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS buSource buTarget buValidFromLink ~
-buValidFromSource buValidFromTarget seSource seTarget seLinks fiSource ~
+&Scoped-Define ENABLED-OBJECTS buValidFromLink buValidFromSource ~
+buValidFromTarget buSource seSource seTarget seLinks buTarget fiSource ~
 fiLinks fiTarget imgLink imgSource imgTarget rctLink rctSource rctTarget 
 &Scoped-Define DISPLAYED-OBJECTS seSource seTarget fiLinkName seLinks ~
 fiSource fiLinks fiTarget 
@@ -131,6 +130,13 @@ FUNCTION determineLists RETURNS LOGICAL
   (pcSourceInstanceName AS CHARACTER,
    pcLinkName           AS CHARACTER,
    pcTargetInstanceName AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getObjectInstanceObj vTableWin 
+FUNCTION getObjectInstanceObj RETURNS DECIMAL
+  (pcInstanceName AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -174,28 +180,28 @@ FUNCTION setLinkNameSensitivity RETURNS LOGICAL
 DEFINE BUTTON buSource 
      IMAGE-UP FILE "ry/img/objectlocator.gif":U NO-FOCUS FLAT-BUTTON
      LABEL "" 
-     SIZE 4.8 BY 1.14 TOOLTIP "Launch Object Locator to find source"
+     SIZE 4.4 BY 1.05 TOOLTIP "Launch Object Locator to find source"
      BGCOLOR 8 .
 
 DEFINE BUTTON buTarget 
      IMAGE-UP FILE "ry/img/objectlocator.gif":U NO-FOCUS FLAT-BUTTON
      LABEL "" 
-     SIZE 4.8 BY 1.14 TOOLTIP "Launch Object Locator to find target"
+     SIZE 4.4 BY 1.05 TOOLTIP "Launch Object Locator to find target"
      BGCOLOR 8 .
 
 DEFINE BUTTON buValidFromLink  NO-FOCUS FLAT-BUTTON
      LABEL "Filter from link" 
-     SIZE 22 BY 1.14 TOOLTIP "Show applicable source and target objects based on link"
+     SIZE 22.8 BY 1.05 TOOLTIP "Show applicable source and target objects based on link"
      BGCOLOR 8 .
 
 DEFINE BUTTON buValidFromSource  NO-FOCUS FLAT-BUTTON
      LABEL "Filter from source" 
-     SIZE 20.8 BY 1.14 TOOLTIP "Show applicable links and target objects from source"
+     SIZE 20.8 BY 1.05 TOOLTIP "Show applicable links and target objects from source"
      BGCOLOR 8 .
 
 DEFINE BUTTON buValidFromTarget  NO-FOCUS FLAT-BUTTON
      LABEL "Filter from target" 
-     SIZE 20.8 BY 1.14 TOOLTIP "Show applicable links and source objects from target"
+     SIZE 22.2 BY 1.05 TOOLTIP "Show applicable links and source objects from target"
      BGCOLOR 8 .
 
 DEFINE VARIABLE fiLinkName AS CHARACTER FORMAT "X(28)":U 
@@ -226,39 +232,19 @@ DEFINE IMAGE imgTarget CONVERT-3D-COLORS
 
 DEFINE RECTANGLE rctLink
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 28 BY 1.33.
+     SIZE 28 BY 1.24.
 
 DEFINE RECTANGLE rctLinkDetails
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 106.6 BY 11.05.
 
-DEFINE RECTANGLE rctSeperator1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
-DEFINE RECTANGLE rctSeperator2
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
-DEFINE RECTANGLE rctSeperator3
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
-DEFINE RECTANGLE rctSeperator4
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
-DEFINE RECTANGLE rctSeperator5
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
 DEFINE RECTANGLE rctSource
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 32.4 BY 1.33.
+     SIZE 32.4 BY 1.24.
 
 DEFINE RECTANGLE rctTarget
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 32.4 BY 1.33.
+     SIZE 32.4 BY 1.24.
 
 DEFINE VARIABLE seLinks AS CHARACTER 
      VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
@@ -277,31 +263,26 @@ DEFINE VARIABLE seTarget AS CHARACTER
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     buSource AT ROW 10.81 COL 3
-     buTarget AT ROW 10.81 COL 74
      buValidFromLink AT ROW 10.81 COL 40.6
      buValidFromSource AT ROW 10.81 COL 8.2
-     buValidFromTarget AT ROW 10.81 COL 79.4
+     buValidFromTarget AT ROW 10.81 COL 74
+     buSource AT ROW 10.81 COL 3
      seSource AT ROW 2.43 COL 2.4 NO-LABEL
      seTarget AT ROW 2.43 COL 73.6 NO-LABEL
      fiLinkName AT ROW 2.52 COL 38.2 COLON-ALIGNED NO-LABEL
      seLinks AT ROW 3.67 COL 40.2 NO-LABEL
+     buTarget AT ROW 10.81 COL 101
      fiSource AT ROW 1.76 COL 1.2 COLON-ALIGNED NO-LABEL
      fiLinks AT ROW 1.76 COL 39 COLON-ALIGNED NO-LABEL
      fiTarget AT ROW 1.76 COL 72.4 COLON-ALIGNED NO-LABEL
      rctLinkDetails AT ROW 1.29 COL 1
-     rctSeperator4 AT ROW 10.81 COL 78.6
-     rctSeperator1 AT ROW 10.81 COL 7.6
-     rctSeperator3 AT ROW 10.81 COL 62.8
-     rctSeperator2 AT ROW 10.81 COL 29.4
-     rctSeperator5 AT ROW 10.81 COL 100.6
-     imgLink AT ROW 10.95 COL 63.6
-     imgSource AT ROW 10.95 COL 30.2
-     imgTarget AT ROW 10.95 COL 101.2
+     imgLink AT ROW 10.91 COL 63.6
+     imgSource AT ROW 10.91 COL 30.2
+     imgTarget AT ROW 10.91 COL 96.6
      rctLink AT ROW 10.71 COL 40.2
      rctSource AT ROW 10.71 COL 2.4
      rctTarget AT ROW 10.71 COL 73.6
-     " Link details" VIEW-AS TEXT
+     " Link Details" VIEW-AS TEXT
           SIZE 12.6 BY .62 AT ROW 1 COL 2.4
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY USE-DICT-EXPS 
          SIDE-LABELS NO-UNDERLINE THREE-D NO-AUTO-VALIDATE 
@@ -374,16 +355,15 @@ ASSIGN
    NO-ENABLE                                                            */
 /* SETTINGS FOR RECTANGLE rctLinkDetails IN FRAME frMain
    NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator1 IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator2 IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator3 IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator4 IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator5 IN FRAME frMain
-   NO-ENABLE                                                            */
+ASSIGN 
+       seLinks:HIDDEN IN FRAME frMain           = TRUE.
+
+ASSIGN 
+       seSource:HIDDEN IN FRAME frMain           = TRUE.
+
+ASSIGN 
+       seTarget:HIDDEN IN FRAME frMain           = TRUE.
+
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -561,8 +541,6 @@ DO:
   DO:
     DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "UPDATE":U).
     DYNAMIC-FUNCTION("evaluateActions":U IN ghContainerSource).
-    
-    DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
   END.
 END.
 
@@ -587,8 +565,6 @@ DO:
   DO:
     DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "UPDATE":U).
     DYNAMIC-FUNCTION("evaluateActions":U IN ghContainerSource).
-
-    DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
   END.
 
   DYNAMIC-FUNCTION("setLinkNameSensitivity":U, seLinks:SCREEN-VALUE).
@@ -614,8 +590,6 @@ DO:
   DO:
     DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "UPDATE":U).
     DYNAMIC-FUNCTION("evaluateActions":U IN ghContainerSource).
-  
-    DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
   END.
 END.
 
@@ -638,8 +612,6 @@ DO:
   DO:
     DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "UPDATE":U).
     DYNAMIC-FUNCTION("evaluateActions":U IN ghContainerSource).
-    
-    DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
   END.
 END.
 
@@ -673,22 +645,6 @@ PROCEDURE adm-create-objects :
                After SmartObjects are initialized, then SmartLinks are added.
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE containerTypeChange vTableWin 
-PROCEDURE containerTypeChange :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER plDataContainer  AS LOGICAL    NO-UNDO.
-
-  {fnarg determineLists "'?', '?', '?'"}.
 
 END PROCEDURE.
 
@@ -754,18 +710,16 @@ PROCEDURE initializeObject :
   {get ContainerSource ghParentContainer ghContainerSource}.
   
   ASSIGN
-      ghGridObjectViewer = DYNAMIC-FUNCTION("linkHandles":U IN ghParentContainer, "gridv-Source":U)
-      ghContainerToolbar = DYNAMIC-FUNCTION("linkHandles":U IN ghContainerSource, "TopToolbar-Source":U)
       ghBrowseToolbar    = DYNAMIC-FUNCTION("linkHandles":U IN ghContainerSource, "BottomToolbar-Source":U)
+      ghContainerToolbar = DYNAMIC-FUNCTION("linkHandles":U IN ghContainerSource, "TopToolbar-Source":U)
       ghFilterViewer     = DYNAMIC-FUNCTION("linkHandles":U IN ghContainerSource, "FilterViewer-Source":U)
       ghSmartLink        = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartLink":U)).
   
   CREATE BUFFER ghSmartLink FOR TABLE ghSmartLink.
 
-  SUBSCRIBE TO "containerTypeChange":U  IN ghParentContainer.
-  SUBSCRIBE TO "objectLocated":U        IN THIS-PROCEDURE.
-  SUBSCRIBE TO "rowSelected":U          IN ghFilterViewer.
-
+  SUBSCRIBE TO "objectLocated":U  IN THIS-PROCEDURE.
+  SUBSCRIBE TO "rowSelected":U    IN ghFilterViewer.
+  
   RUN SUPER.
 
   /* Code placed here will execute AFTER standard behavior.    */
@@ -784,69 +738,33 @@ PROCEDURE objectLocated :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pdObjectInstanceObj  AS DECIMAL    NO-UNDO.
 
-  DEFINE VARIABLE cInstanceName     AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE lValidInstance    AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE httObjectInstance AS HANDLE     NO-UNDO.
 
-  httObjectInstance = WIDGET-HANDLE({fnarg getUserProperty 'ttObjectInstance':U ghParentContainer}).
+  httObjectInstance = WIDGET-HANDLE(DYNAMIC-FUNCTIOn("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U)).
 
   CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
 
-  httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = ":U + QUOTER(pdObjectInstanceObj)).
-
-  ASSIGN
-      cInstanceName  = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE
-      lValidInstance = TRUE.
+  httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = DECIMAL('":U + STRING(pdObjectInstanceObj) + "')":U).
 
   DO WITH FRAME {&FRAME-NAME}:
 
     CASE gcLocatorRequest:
       WHEN "SOURCE":U THEN
       DO:
-        IF LOOKUP(cInstanceName, seSource:LIST-ITEMS, seSource:DELIMITER) <> 0 AND
-           LOOKUP(cInstanceName, seSource:LIST-ITEMS, seSource:DELIMITER) <> ? THEN
-        DO:
-          seSource:SCREEN-VALUE = cInstanceName.
-          APPLY "VALUE-CHANGED":U TO seSource.
-        END.
-        ELSE
-          lValidInstance = FALSE.
+        seSource:SCREEN-VALUE = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE.
+        APPLY "VALUE-CHANGED":U TO seSource.
       END.
 
       WHEN "TARGET":U THEN
       DO:
-        IF LOOKUP(cInstanceName, seTarget:LIST-ITEMS, seTarget:DELIMITER) <> 0 AND
-           LOOKUP(cInstanceName, seTarget:LIST-ITEMS, seTarget:DELIMITER) <> ? THEN
-        DO:
-          seTarget:SCREEN-VALUE = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE.
-          APPLY "VALUE-CHANGED":U TO seTarget.
-        END.
-        ELSE
-          lValidInstance = FALSE.
+        seTarget:SCREEN-VALUE = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE.
+        APPLY "VALUE-CHANGED":U TO seTarget.
       END.
     END CASE.
   END.
 
   DELETE OBJECT httObjectInstance.
   httObjectInstance = ?.
-
-  IF NOT lValidInstance THEN
-  DO:
-    cMessage = {aferrortxt.i 'AF' '133' '?' '?' cInstanceName seLinks:SCREEN-VALUE gcLocatorRequest}.
-
-    RUN showMessages IN gshSessionManager (INPUT  cMessage,                         /* message to display */
-                                           INPUT  "ERR":U,                          /* error type         */
-                                           INPUT  "&OK":U,                          /* button list        */
-                                           INPUT  "&OK":U,                          /* default button     */ 
-                                           INPUT  "&OK":U,                          /* cancel button      */
-                                           INPUT  "Instance specified is invalid",  /* error window title */
-                                           INPUT  YES,                              /* display if empty   */ 
-                                           INPUT  TARGET-PROCEDURE,                 /* container handle   */ 
-                                           OUTPUT cButton).                         /* button pressed     */
-    RETURN.
-  END.
 
   RETURN.
 
@@ -886,26 +804,33 @@ PROCEDURE resizeObject :
 ------------------------------------------------------------------------------*/
   DEFINE INPUT PARAMETER pdHeight   AS DECIMAL    NO-UNDO.
   DEFINE INPUT PARAMETER pdWidth    AS DECIMAL    NO-UNDO.
-
+  
   DEFINE VARIABLE lResizedObjects   AS LOGICAL    NO-UNDO.
+  DEFINE VARIABLE dFrameHeight      AS DECIMAL    NO-UNDO.
   DEFINE VARIABLE dFrameWidth       AS DECIMAL    NO-UNDO.
   
   HIDE FRAME {&FRAME-NAME}.
 
-  dFrameWidth = FRAME {&FRAME-NAME}:WIDTH-CHARS.
+  ASSIGN
+      dFrameHeight = FRAME {&FRAME-NAME}:HEIGHT-CHARS
+      dFrameWidth  = FRAME {&FRAME-NAME}:WIDTH-CHARS.
   
-  /* If the width of the frame was made smaller */
-  IF pdWidth < dFrameWidth  THEN
+  /* If the height OR width of the frame was made smaller */
+  IF pdHeight < dFrameHeight OR
+     pdWidth  < dFrameWidth  THEN
   DO:
     /* Just in case the window was made longer or wider, allow for the new length or width */
-    IF pdWidth > dFrameWidth THEN FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth.
-
+    IF pdHeight > dFrameHeight THEN FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight.
+    IF pdWidth  > dFrameWidth  THEN FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth.
+    
     lResizedObjects = TRUE.
-
+    
     RUN resizeViewerObjects (INPUT pdHeight, INPUT pdWidth).
   END.
-
-  FRAME {&FRAME-NAME}:WIDTH-CHARS = pdWidth.
+  
+  ASSIGN    
+      FRAME {&FRAME-NAME}:HEIGHT-CHARS = pdHeight
+      FRAME {&FRAME-NAME}:WIDTH-CHARS  = pdWidth.
 
   IF lResizedObjects = FALSE THEN
     RUN resizeViewerObjects (INPUT pdHeight, INPUT pdWidth).
@@ -950,40 +875,33 @@ PROCEDURE resizeViewerObjects :
         fiLinks:WIDTH-CHARS        = dObjectWidth
         rctLink:WIDTH-CHARS        = dObjectWidth
         rctSource:COLUMN           = seSource:COLUMN
+        buSource:COLUMN            = seSource:COLUMN + 0.50
         seTarget:COLUMN            = pdWidth - seTarget:WIDTH-CHARS - 0.50
         rctTarget:COLUMN           = seTarget:COLUMN
         fiTarget:COLUMN            = seTarget:COLUMN
+        buTarget:COLUMN            = seTarget:COLUMN + seTarget:WIDTH-CHARS - buTarget:WIDTH-CHARS - 0.50
         seLinks:COLUMN             = seSource:COLUMN + seSource:WIDTH-CHARS + dClearance
         rctLink:COLUMN             = seLinks:COLUMN
         fiLinks:COLUMN             = seLinks:COLUMN
         fiLinkName:COLUMN          = seLinks:COLUMN
         
-        buSource:X                 = seSource:X + 2
-        buTarget:X                 = seTarget:X + 2
-
-        /* Valid from Source 'toolbar' */
-        buValidFromSource:WIDTH-CHARS = dObjectWidth        - buSource:WIDTH-CHARS            - 6.00
-        buValidFromSource:X           = buSource:X          + buSource:WIDTH-PIXELS           + 2
-        rctSeperator2:X               = buValidFromSource:X + buValidFromSource:WIDTH-PIXELS
-        imgSource:X                   = rctSeperator2:X     + 3
-
-        /* Valid from Source 'toolbar' */
-        buValidFromLink:WIDTH-CHARS   = dObjectWidth        - 5.75
-        buValidFromLink:COLUMN        = seLinks:COLUMN      + 0.35
-        rctSeperator3:X               = buValidFromLink:X   + buValidFromLink:WIDTH-PIXELS
-        imgLink:X                     = rctSeperator3:X     + 3
-
-        /* Valid from Target 'toolbar' */
-        buValidFromTarget:WIDTH-CHARS = dObjectWidth        - buTarget:WIDTH-CHARS            - 6.00
-        buValidFromTarget:X           = buTarget:X          + buTarget:WIDTH-PIXELS           + 2
-        rctSeperator4:X               = buTarget:X          + buTarget:WIDTH-PIXELS
-        rctSeperator5:X               = buValidFromTarget:X + buValidFromTarget:WIDTH-PIXELS
-        imgTarget:X                   = rctSeperator5:X     + 3
+        
+        buValidFromSource:WIDTH-CHARS = dObjectWidth    - buSource:WIDTH-CHARS - 5.75
+        buValidFromSource:COLUMN      = buSource:COLUMN + buSource:WIDTH-CHARS + 0.35
+        buValidFromTarget:WIDTH-CHARS = dObjectWidth    - buTarget:WIDTH-CHARS - 5.75
+        buValidFromTarget:COLUMN      = seTarget:COLUMN + 0.35
+        buValidFromLink:WIDTH-CHARS   = dObjectWidth   - 5.75
+        buValidFromLink:COLUMN        = seLinks:COLUMN + 0.35
+        
+        imgSource:COLUMN              = buValidFromSource:COLUMN + buValidFromSource:WIDTH-CHARS + 0.25
+        imgLink:COLUMN                = buValidFromLink:COLUMN   + buValidFromLink:WIDTH-CHARS   + 0.25
+        imgTarget:COLUMN              = buValidFromTarget:COLUMN + buValidFromTarget:WIDTH-CHARS + 0.25
         .
   END.
 
+  
   RETURN.
-
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1018,38 +936,48 @@ PROCEDURE rowSelected :
        cContainerMode = "ADD":U    THEN.
     ELSE
     DO:
-      DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, TRUE).
-
       IF pdSmartLinkObj <> ? AND
          pdSmartLinkObj <> 0 THEN
       DO:
-        ghSmartLink:FIND-FIRST("WHERE d_smartlink_obj = ":U + QUOTER(pdSmartLinkObj)).
-
+        ghSmartLink:FIND-FIRST("WHERE d_smartlink_obj = DECIMAL('":U + STRING(pdSmartLinkObj) + "') ":U).
+        /*
+        FIND FIRST gbttSmartLink
+             WHERE gbttSmartLink.d_source_object_instance_obj = pttSmartLink.d_source_object_instance_obj
+               AND gbttSmartLink.d_target_object_instance_obj = pttSmartLink.d_target_object_instance_obj
+               AND gbttSmartLink.d_smartlink_type_obj         = pttSmartLink.d_smartlink_type_obj
+               AND gbttSmartLink.c_action                    <> "D":U NO-ERROR.*/
+      
         IF ghSmartLink:AVAILABLE THEN
         DO:
           CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
           CREATE BUFFER httSmartLinkType  FOR TABLE httSmartLinkType.
 
-          httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = ":U + QUOTER(ghSmartLink:BUFFER-FIELD("d_source_object_instance_obj":U):BUFFER-VALUE)).
-          httSmartLinkType:FIND-FIRST(" WHERE d_smartlink_type_obj = ":U  + QUOTER(ghSmartLink:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE)).
+          httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = DECIMAL('":U + STRING(ghSmartLink:BUFFER-FIELD("d_source_object_instance_obj":U):BUFFER-VALUE) + "')":U).
+          httSmartLinkType:FIND-FIRST(" WHERE d_smartlink_type_obj = DECIMAL(":U   + QUOTER(ghSmartLink:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE) + ")":U).
 
           cSourceInstanceName = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE.
-
-          httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = ":U + QUOTER(ghSmartLink:BUFFER-FIELD("d_target_object_instance_obj":U):BUFFER-VALUE)).
-
+  
+          httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = DECIMAL('":U + STRING(ghSmartLink:BUFFER-FIELD("d_target_object_instance_obj":U):BUFFER-VALUE) + "')":U).  
+          
           ASSIGN
-              buValidFromSource:SENSITIVE = TRUE
-              buValidFromTarget:SENSITIVE = TRUE
+              fiLinkName:SCREEN-VALUE     = ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE
               cLinkName                   = httSmartLinkType:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE
-              cTargetInstanceName         = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE.
-
+              cTargetInstanceName         = httObjectInstance:BUFFER-FIELD("c_instance_name":U):BUFFER-VALUE
+              buValidFromSource:SENSITIVE = TRUE
+              buValidFromTarget:SENSITIVE = TRUE.
+          
           DYNAMIC-FUNCTION("determineLists":U, cSourceInstanceName, cLinkName, cTargetInstanceName).
-          DYNAMIC-FUNCTION("setFieldSensitivity":U, FALSE, FALSE).
 
+          IF dCustomizationResultObj <> ghSmartLink:BUFFER-FIELD("d_customization_result_obj"):BUFFER-VALUE THEN
+            DYNAMIC-FUNCTION("setFieldSensitivity":U, FALSE, FALSE).
+          ELSE
+          DO:
+            DYNAMIC-FUNCTION("setLinkNameSensitivity":U, httSmartLinkType:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE).
+            DYNAMIC-FUNCTION("setFieldSensitivity":U, TRUE, FALSE).
+          END.
+          
           DELETE OBJECT httObjectInstance.
           httObjectInstance = ?.
-          
-          fiLinkName:SCREEN-VALUE = ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE.
         END.
       END.
       ELSE
@@ -1060,8 +988,8 @@ PROCEDURE rowSelected :
     END.
   END.
 
-  IF ghSmartLink:AVAILABLE = TRUE AND dCustomizationResultObj <> ghSmartLink:BUFFER-FIELD("d_customization_result_obj"):BUFFER-VALUE THEN
-     DYNAMIC-FUNCTION("disableActions":U IN ghBrowseToolbar, "cbModify,cbDelete":U).
+  IF ghSmartLink:AVAILABLE  = TRUE AND dCustomizationResultObj <> ghSmartLink:BUFFER-FIELD("d_customization_result_obj"):BUFFER-VALUE THEN
+     DYNAMIC-FUNCTION("disableActions":U IN ghBrowseToolbar, "Delete2":U).
 
   RETURN.
   
@@ -1077,10 +1005,25 @@ PROCEDURE setupMaintenance :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  ASSIGN    
-      gcAllInstances = {fn getListItemPairs ghFilterViewer}
-      gcAllLinks     = {fn getLinkNames     ghFilterViewer}.
+  DO WITH FRAME {&FRAME-NAME}:
+    ASSIGN    
+        gcAllInstances = DYNAMIC-FUNCTION("getListItemPairs":U IN ghFilterViewer)
+        gcAllLinks     = DYNAMIC-FUNCTION("getLinkNames":U     IN ghFilterViewer).
+      /*cSource             = seSource:SCREEN-VALUE
+        cTarget             = seTarget:SCREEN-VALUE
+        seSource:LIST-ITEMS = gcAllInstances
+        seTarget:LIST-ITEMS = gcAllInstances
+        seLinks:LIST-ITEMS  = gcAllLinks.
 
+    IF LOOKUP(cSource, seSource:LIST-ITEMS, seSource:DELIMITER) > 0 THEN
+      seSource:SCREEN-VALUE = cSource.
+
+    IF LOOKUP(cTarget, seTarget:LIST-ITEMS, seTarget:DELIMITER) > 0 THEN
+      seTarget:SCREEN-VALUE = cTarget.*/
+  END.
+/*  
+  RUN trgValueChanged IN ghFilterViewer.
+*/  
   RETURN.
 
 END PROCEDURE.
@@ -1121,9 +1064,6 @@ PROCEDURE toolbarOverride :
         DYNAMIC-FUNCTION("evaluateActions":U  IN ghContainerSource).
         
         DYNAMIC-FUNCTION("setLinkNameSensitivity":U, seLinks:SCREEN-VALUE).
-
-        DYNAMIC-FUNCTION("disableActions":U       IN ghBrowseToolbar, "cbModify":U).
-        DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
       END.
       
       WHEN "Cancel":U OR WHEN "Undo":U THEN
@@ -1137,42 +1077,38 @@ PROCEDURE toolbarOverride :
           dSmartLinkObj = 0.00.
 
         RUN rowSelected (dSmartLinkObj).
-
-        DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, TRUE).
+      END.
+      
+      WHEN "Undo":U THEN
+      DO:
+        DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "MODIFY":U).
+        RUN rowSelected (ghSmartLink:BUFFER-FIELD("d_smartlink_obj":U):BUFFER-VALUE).
       END.
 
-      WHEN "Modify":U THEN
+      WHEN "Copy":U THEN
       DO:
-        DYNAMIC-FUNCTION("setLinkNameSensitivity":U, ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE).
-        DYNAMIC-FUNCTION("setFieldSensitivity":U, TRUE, FALSE).
-        DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, TRUE).
-        DYNAMIC-FUNCTION("disableActions":U       IN ghBrowseToolbar, "cbModify":U).
+        DYNAMIC-FUNCTION ("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "ADD":U).
       END.
       
       WHEN "Delete":U THEN
       DO:
+/*        FIND FIRST ttSmartLink NO-LOCK
+             WHERE ttSmartLink.d_smartlink_obj = gbttSmartLink.d_smartlink_obj.
+          FIND FIRST ttSmartLink NO-LOCK
+             WHERE ttSmartLink.d_source_object_instance_obj = gbttSmartLink.d_source_object_instance_obj
+               AND ttSmartLink.d_target_object_instance_obj = gbttSmartLink.d_target_object_instance_obj
+               AND ttSmartLink.d_smartlink_type_obj         = gbttSmartLink.d_smartlink_type_obj
+               AND ttSmartLink.d_customization_result_obj   = dCustomizationResultObj.
+*/        
         ghSmartLink:BUFFER-FIELD("c_action":U):BUFFER-VALUE = "D":U.
-        {fnarg setUserProperty "'SameContainer', 'yes'" ghFilterViewer}.
-
-        PUBLISH "refreshData":U FROM ghParentContainer (INPUT "NewData":U, INPUT 0.00).
         
-        IF LOOKUP(ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE, "Data,GroupAssign,Navigation,Update":U) <> 0 THEN
-          RUN evaluateSBOProperties IN ghGridObjectViewer (INPUT TRUE).
-
-        {fnarg setUserProperty "'SameContainer', 'no'" ghFilterViewer}.
-
-        IF DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ContainerMode":U) <> "UPDATE":U AND
-           DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ContainerMode":U) <> "ADD":U    THEN
-        DO:
-          DYNAMIC-FUNCTION("setUserProperty":U IN ghParentContainer, "ContainerMode":U, "UPDATE":U).
-          DYNAMIC-FUNCTION("evaluateActions":U IN ghParentContainer).
-        END.
+        PUBLISH "refreshData":U FROM ghParentContainer (INPUT "NewData":U, INPUT 0.00).
       END.
       
       WHEN "NoData":U THEN
       DO:
         DYNAMIC-FUNCTION("setFieldSensitivity":U, FALSE, TRUE).
-        DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, FALSE).
+
         DYNAMIC-FUNCTION("determineLists":U, "":U, "":U, "":U).
       END.
 
@@ -1203,15 +1139,15 @@ PROCEDURE toolbarOverride :
         IF cContainerMode = "ADD":U THEN
         DO:
           ASSIGN
-              dSourceObjectInstanceObj = DYNAMIC-FUNCTION("getObjectInstanceObj":U IN ghParentContainer, seSource:SCREEN-VALUE)
-              dTargetObjectInstanceObj = DYNAMIC-FUNCTION("getObjectInstanceObj":U IN ghParentContainer, seTarget:SCREEN-VALUE).
+              dSourceObjectInstanceObj = DYNAMIC-FUNCTION("getObjectInstanceObj":U, seSource:SCREEN-VALUE)
+              dTargetObjectInstanceObj = DYNAMIC-FUNCTION("getObjectInstanceObj":U, seTarget:SCREEN-VALUE).
 
           CREATE BUFFER httSmartLink FOR TABLE ghSmartLink.
           
-          httSmartLink:FIND-FIRST("WHERE d_source_object_instance_obj = ":U + QUOTER(dSourceObjectInstanceObj)
-                                 + " AND d_target_object_instance_obj = ":U + QUOTER(dTargetObjectInstanceObj)
-                                 + " AND c_link_name                  = ":U + QUOTER(fiLinkName:SCREEN-VALUE)
-                                 + " AND c_action                    <> 'D'":U) NO-ERROR.
+          httSmartLink:FIND-FIRST("WHERE d_source_object_instance_obj = DECIMAL(":U + QUOTER(dSourceObjectInstanceObj) + ") ":U
+                                  + "AND d_target_object_instance_obj = DECIMAL(":U + QUOTER(dTargetObjectInstanceObj) + ") ":U
+                                  + "AND c_link_name                  = ":U         + QUOTER(fiLinkName:SCREEN-VALUE)  + " ":U
+                                  + "AND c_action                    <> 'D'":U) NO-ERROR.
 
           IF httSmartLink:AVAILABLE THEN
           DO:
@@ -1233,13 +1169,13 @@ PROCEDURE toolbarOverride :
 
         httSmartLinkType:FIND-FIRST("WHERE c_link_name = ":U + QUOTER(seLinks:SCREEN-VALUE)).
 
-        httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0 ":U
-                                  + "AND d_customization_result_obj = ":U + QUOTER(dCustomizationResultObj)).
+        httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0.00 ":U
+                                  + "AND d_customization_result_obj = DECIMAL(":U + QUOTER(dCustomizationResultObj) + ")":U).
 
         ASSIGN
             ghSmartLink:BUFFER-FIELD("d_container_smartobject_obj":U):BUFFER-VALUE  = httSmartObject:BUFFER-FIELD("d_smartobject_obj":U):BUFFER-VALUE
-            ghSmartLink:BUFFER-FIELD("d_source_object_instance_obj":U):BUFFER-VALUE = DYNAMIC-FUNCTION("getObjectInstanceObj":U IN ghParentContainer, seSource:SCREEN-VALUE)
-            ghSmartLink:BUFFER-FIELD("d_target_object_instance_obj":U):BUFFER-VALUE = DYNAMIC-FUNCTION("getObjectInstanceObj":U IN ghParentContainer, seTarget:SCREEN-VALUE)
+            ghSmartLink:BUFFER-FIELD("d_source_object_instance_obj":U):BUFFER-VALUE = DYNAMIC-FUNCTION("getObjectInstanceObj":U, seSource:SCREEN-VALUE)
+            ghSmartLink:BUFFER-FIELD("d_target_object_instance_obj":U):BUFFER-VALUE = DYNAMIC-FUNCTION("getObjectInstanceObj":U, seTarget:SCREEN-VALUE)
             ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE                  = fiLinkName:SCREEN-VALUE
             ghSmartLink:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE         = httSmartLinkType:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE.
         
@@ -1249,24 +1185,11 @@ PROCEDURE toolbarOverride :
 
         DYNAMIC-FUNCTION("setUserProperty":U IN ghContainerSource, "ContainerMode":U, "MODIFY":U).
 
-        {fnarg setUserProperty "'SameContainer', 'yes'" ghFilterViewer}.
-
         PUBLISH "refreshData":U FROM ghParentContainer (INPUT "NewData":U,
                                                         INPUT ghSmartLink:BUFFER-FIELD("d_smartlink_obj":U):BUFFER-VALUE).
-
-        IF LOOKUP(ghSmartLink:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE, "Data,GroupAssign,Navigation,Update":U) <> 0 THEN
-          RUN evaluateSBOProperties IN ghGridObjectViewer (INPUT TRUE).
-
-        {fnarg setUserProperty "'SameContainer', 'no'" ghFilterViewer}.
-
-        IF DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ContainerMode":U) <> "UPDATE":U AND
-           DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ContainerMode":U) <> "ADD":U    THEN
-        DO:
-          DYNAMIC-FUNCTION("setUserProperty":U IN ghParentContainer, "ContainerMode":U, "UPDATE":U).
-          DYNAMIC-FUNCTION("evaluateActions":U IN ghParentContainer).
-        END.
-
-        DYNAMIC-FUNCTION("setBrowseSensitivity":U IN ghFilterViewer, TRUE).
+        
+        DYNAMIC-FUNCTION("setUserProperty":U IN ghParentContainer, "ContainerMode":U, "UPDATE":U).
+        DYNAMIC-FUNCTION("evaluateActions":U IN ghParentContainer).
       END.
     END CASE.
   END.
@@ -1290,16 +1213,12 @@ FUNCTION determineLists RETURNS LOGICAL
     Notes:  
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cListItems  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLinksList  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cLinkName   AS CHARACTER  NO-UNDO.
-
+  
   DO WITH FRAME {&FRAME-NAME}:
     IF pcSourceInstanceName = ? THEN pcSourceInstanceName = "":U.
     IF pcTargetInstanceName = ? THEN pcTargetInstanceName = "":U.
     IF pcLinkName           = ? THEN pcLinkName           = "":U.
-
-    cLinkName = pcLinkName.
-
+    
     CASE glFromSource:
       /* ---------- SOURCE ---------- */
       WHEN TRUE THEN
@@ -1337,13 +1256,8 @@ FUNCTION determineLists RETURNS LOGICAL
       WHEN ? THEN
       DO:
         /* If the LIST-ITEMS is not the same, set it to the retrieved list (Undoting it causes it to flicker) */
-        IF ({fnarg getUserProperty 'DataContainer' ghParentContainer} = "yes":U) THEN
-          cLinksList = "Data":U /*+ seLinks:DELIMITER + {fn getUserDefinedLinks ghFilterViewer}*/.
-        ELSE
-          cLinksList = gcAllLinks.
-
-        IF seLinks:LIST-ITEMS <> cLinksList THEN
-          seLinks:LIST-ITEMS = cLinksList.
+        IF seLinks:LIST-ITEMS <> gcAllLinks THEN
+          seLinks:LIST-ITEMS = gcAllLinks.
 
         IF NOT LOOKUP(pcLinkName, seLinks:LIST-ITEMS, seLinks:DELIMITER) > 0 THEN
           ASSIGN
@@ -1414,6 +1328,45 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getObjectInstanceObj vTableWin 
+FUNCTION getObjectInstanceObj RETURNS DECIMAL
+  (pcInstanceName AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE dCustomizationResultObj AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE dObjectInstanceObj      AS DECIMAL    NO-UNDO.
+  DEFINE VARIABLE httObjectInstance       AS HANDLE     NO-UNDO.
+  
+  ASSIGN
+      dCustomizationResultObj = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "CustomizationResultObj":U))
+      httObjectInstance       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U)).
+
+  CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
+
+  httObjectInstance:FIND-FIRST("WHERE d_customization_result_obj = 0.00 ":U
+                               + "AND c_instance_name            = '":U + pcInstanceName + "'":U) NO-ERROR.
+
+  IF NOT httObjectInstance:AVAILABLE THEN
+    httObjectInstance:FIND-FIRST("WHERE d_customization_result_obj = DECIMAL('":U + STRING(dCustomizationResultObj) + "') ":U
+                                 + "AND c_instance_name            = '":U + pcInstanceName + "'":U) NO-ERROR.
+
+  IF httObjectInstance:AVAILABLE THEN
+    dObjectInstanceObj = httObjectInstance:BUFFER-FIELD("d_object_instance_obj":U):BUFFER-VALUE.
+  ELSE
+    dObjectInstanceObj = 0.00.
+
+  DELETE OBJECT httObjectInstance.
+  httObjectInstance = ?.
+  
+  RETURN dObjectInstanceObj.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getValidLinks vTableWin 
 FUNCTION getValidLinks RETURNS CHARACTER
   (pcSourceTarget AS CHARACTER,
@@ -1426,7 +1379,6 @@ FUNCTION getValidLinks RETURNS CHARACTER
   DEFINE VARIABLE cValidLinks         AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cQueryString        AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE dObjectInstanceObj  AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE lDataContainer      AS LOGICAL    NO-UNDO.
   DEFINE VARIABLE httObjectInstance   AS HANDLE     NO-UNDO.
   DEFINE VARIABLE httSmartLinkType    AS HANDLE     NO-UNDO.
   DEFINE VARIABLE httSupportedLink    AS HANDLE     NO-UNDO.
@@ -1437,54 +1389,47 @@ FUNCTION getValidLinks RETURNS CHARACTER
         seSource
         seTarget
 
-        httObjectInstance  = WIDGET-HANDLE({fnarg getUserProperty 'ttObjectInstance' ghParentContainer})
-        httSupportedLink   = WIDGET-HANDLE({fnarg getUserProperty 'ttSupportedLink'  ghParentContainer})
-        httSmartLinkType   = WIDGET-HANDLE({fnarg getUserProperty 'ttSmartLinkType'  ghParentContainer})
+        httObjectInstance       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U))
+        httSupportedLink        = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSupportedLink":U))
+        httSmartLinkType        = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartLinkType":U))
 
-        dObjectInstanceObj = {fnarg getObjectInstanceObj pcInstanceName  ghParentContainer}
-        lDataContainer     = {fnarg getUserProperty      'DataContainer' ghParentContainer} = "yes":U
-        cUserDefinedLinks  = {fn    getUserDefinedLinks  ghFilterViewer}
-        .
+        dObjectInstanceObj = DYNAMIC-FUNCTION("getObjectInstanceObj":U, pcInstanceName)
+        cUserDefinedLinks  = DYNAMIC-FUNCTION("getUserDefinedLinks":U IN ghFilterViewer).
 
-    IF NOT lDataContainer THEN
-    DO:
-      CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
-      CREATE QUERY  hQuery.
+    CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
+    CREATE QUERY  hQuery.
 
-      httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = ":U + QUOTER(dObjectInstanceObj)).
+    httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = DECIMAL(":U + QUOTER(dObjectInstanceObj) + ")":U).
 
-      cQueryString = "FOR EACH ttSupportedLink":U
-                   + "   WHERE ttSupportedLink.d_object_type_obj = ":U + QUOTER(httObjectInstance:BUFFER-FIELD("d_object_type_obj":U):BUFFER-VALUE)
-                   + "     AND ttSupportedLink.l_link_":U + pcSourceTarget + " = TRUE,":U
-                   + "   FIRST ttSmartLinkType":U
-                   + "   WHERE ttSmartLinkType.d_smartlink_type_obj = ttSupportedLink.d_smartlink_type_obj":U
-                   + "      BY ttSmartLinkType.c_link_name":U.
+    cQueryString = "FOR EACH ttSupportedLink":U
+                 + "   WHERE ttSupportedLink.d_object_type_obj = DECIMAL(":U + QUOTER(httObjectInstance:BUFFER-FIELD("d_object_type_obj":U):BUFFER-VALUE) + ")":U
+                 + "     AND ttSupportedLink.l_link_":U + pcSourceTarget + " = TRUE,":U 
+                 + "   FIRST ttSmartLinkType":U
+                 + "   WHERE ttSmartLinkType.d_smartlink_type_obj = ttSupportedLink.d_smartlink_type_obj":U
+                 + "      BY ttSmartLinkType.c_link_name":U.
 
-      hQuery:SET-BUFFERS(httSupportedLink, httSmartLinkType).
-      hQuery:QUERY-PREPARE(cQueryString).
-      hQuery:QUERY-OPEN().
-      hQuery:GET-FIRST().
+    hQuery:SET-BUFFERS(httSupportedLink, httSmartLinkType).
+    hQuery:QUERY-PREPARE(cQueryString).
+    hQuery:QUERY-OPEN().
+    hQuery:GET-FIRST().
 
-      DO WHILE NOT hQuery:QUERY-OFF-END:
-        cValidLinks = cValidLinks + (IF cValidLinks = "":U THEN "":U ELSE CHR(3))
-                    + httSmartLinkType:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE.
-
-        hQuery:GET-NEXT().
-      END.
-
-      DELETE OBJECT httObjectInstance.
-      DELETE OBJECT hQuery.
-
-      ASSIGN
-          httObjectInstance = ?
-          hQuery            = ?.
-    END.
-    ELSE
-      cValidLinks = "Data":U.
-
-    IF cUserDefinedLinks <> "":U AND NOT lDataContainer THEN
+    DO WHILE NOT hQuery:QUERY-OFF-END:
       cValidLinks = cValidLinks + (IF cValidLinks = "":U THEN "":U ELSE CHR(3))
-                  + cUserDefinedLinks.
+                  + httSmartLinkType:BUFFER-FIELD("c_link_name":U):BUFFER-VALUE.
+
+      hQuery:GET-NEXT().
+    END.
+    
+    IF cUserDefinedLinks <> "":U THEN
+        cValidLinks = cValidLinks + (IF cValidLinks = "":U THEN "":U ELSE CHR(3))
+                    + cUserDefinedLinks.
+
+    DELETE OBJECT httObjectInstance.
+    DELETE OBJECT hQuery.
+
+    ASSIGN
+        httObjectInstance = ?
+        hQuery            = ?.
   END.
 
   RETURN cValidLinks.   /* Function return value. */
@@ -1502,20 +1447,18 @@ FUNCTION getValidObjects RETURNS CHARACTER
   Purpose:  
     Notes:  
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cValidObjects           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cQueryString            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dCustomizationResultObj AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE httObjectInstance       AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE httSmartLinkType        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE httSupportedLink        AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQuery                  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cValidObjects     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cQueryString      AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE httObjectInstance AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE httSmartLinkType  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE httSupportedLink  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hQuery            AS HANDLE     NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
-        dCustomizationResultObj = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "CustomizationResultObj":U))
-        httObjectInstance       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U))
-        httSupportedLink        = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSupportedLink":U))
-        httSmartLinkType        = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartLinkType":U)).
+        httObjectInstance = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U))
+        httSupportedLink  = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSupportedLink":U))
+        httSmartLinkType  = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartLinkType":U)).
 
     httSmartLinkType:FIND-FIRST("WHERE c_link_name = ":U + QUOTER(pcLinkName)) NO-ERROR.
 
@@ -1530,11 +1473,10 @@ FUNCTION getValidObjects RETURNS CHARACTER
         CREATE QUERY  hQuery.
     
         cQueryString = "FOR EACH ttSupportedLink":U
-                     + "   WHERE ttSupportedLink.d_smartlink_type_obj = ":U + QUOTER(httSmartLinkType:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE)
+                     + "   WHERE ttSupportedLink.d_smartlink_type_obj = DECIMAL(":U + QUOTER(httSmartLinkType:BUFFER-FIELD("d_smartlink_type_obj":U):BUFFER-VALUE) + ")":U
                      + "     AND ttSupportedLink.l_link_":U + pcSourceTarget + " = TRUE,":U 
                      + "    EACH ttObjectInstance":U
                      + "   WHERE ttObjectInstance.d_object_type_obj = ttSupportedLink.d_object_type_obj":U
-                     + "     AND ttObjectInstance.d_customization_result_obj = ":U + QUOTER(dCustomizationResultObj)
                      + "     AND ttObjectInstance.c_action         <> 'D'":U
                      + "      BY ttObjectInstance.c_instance_name":U.
     
@@ -1583,25 +1525,15 @@ FUNCTION setFieldSensitivity RETURNS LOGICAL
   DO WITH FRAME {&FRAME-NAME}:
     IF plSensitive = TRUE THEN
       ASSIGN
-          seSource:SENSITIVE          = TRUE
-          seTarget:SENSITIVE          = TRUE
-          seLinks:SENSITIVE           = TRUE
-          buSource:SENSITIVE          = TRUE
-          buTarget:SENSITIVE          = TRUE
-          buValidFromSource:SENSITIVE = TRUE
-          buValidFromTarget:SENSITIVE = TRUE
-          buValidFromLink:SENSITIVE   = TRUE.
+          seSource:SENSITIVE = TRUE
+          seTarget:SENSITIVE = TRUE
+          seLinks:SENSITIVE  = TRUE.
     ELSE
       ASSIGN
-          fiLinkname:SENSITIVE        = FALSE
-          seSource:SENSITIVE          = FALSE
-          seTarget:SENSITIVE          = FALSE
-          seLinks:SENSITIVE           = FALSE
-          buSource:SENSITIVE          = FALSE
-          buTarget:SENSITIVE          = FALSE
-          buValidFromSource:SENSITIVE = {fn getHasData ghFilterViewer}
-          buValidFromTarget:SENSITIVE = buValidFromSource:SENSITIVE
-          buValidFromLink:SENSITIVE   = buValidFromSource:SENSITIVE.
+          fiLinkname:SENSITIVE = FALSE
+          seSource:SENSITIVE   = FALSE
+          seTarget:SENSITIVE   = FALSE
+          seLinks:SENSITIVE    = FALSE.
   
     IF plClearFields = TRUE                             AND 
        INDEX(seSource:LIST-ITEMS, "THIS-OBJECT":U) <> 0 THEN

@@ -138,14 +138,9 @@ DEFINE VARIABLE cWhere AS CHARACTER  NO-UNDO.
 IF NOT VALID-HANDLE(ghSDO) THEN
     RETURN.
 
-DEFINE VARIABLE cValidDBs AS CHARACTER  NO-UNDO.
-
-  ASSIGN
-    cValidDBs = ghComboHandle:LIST-ITEMS
-    cValidDBs = LEFT-TRIM(REPLACE(cValidDBs, "<All>":U, "":U), ",":U)
-    cField    = "gsc_entity_mnemonic.entity_dbname":U 
-    cWhere    = IF ghComboHandle:SCREEN-VALUE = "<All>":U
-                THEN "LOOKUP(":U + cField + ", ":U + QUOTER(cValidDBs) + ") <> 0":U
+ASSIGN cField = "gsc_entity_mnemonic.entity_dbname":U 
+       cWhere = IF ghComboHandle:SCREEN-VALUE = "<All>":U
+                THEN "":U /* Clear the where clause for <All> */
                 ELSE cField + " = '":U + ghComboHandle:SCREEN-VALUE + "'":U.
 
 RUN updateAddQueryWhere IN ghSDO (INPUT cWhere, INPUT cField).
@@ -169,25 +164,21 @@ PROCEDURE initializeObject :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE cHandles AS CHARACTER  NO-UNDO.
 
+RUN SUPER.
+
 {get ContainerSource ghContainer}.
 {get allFieldHandles cHandles}.
 
 ASSIGN ghComboHandle   = WIDGET-HANDLE(ENTRY(1, cHandles)) NO-ERROR.
 
-ASSIGN ghSDO = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION('linkHandles' IN ghContainer,'PrimarySDO-TARGET'))) NO-ERROR.
+ASSIGN ghSDO = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION('linkHandles' IN ghContainer,'PrimarySDO-TARGET'))).
 
 ON "VALUE-CHANGED":U OF ghComboHandle PERSISTENT RUN buRefreshChoose IN THIS-PROCEDURE.
 
-IF VALID-HANDLE(ghSDO) THEN
-  {set OpenOnInit FALSE ghSDO}.
-
-RUN SUPER.
-
 /* Now build the database combo */
+
 IF VALID-HANDLE(ghComboHandle) THEN
     RUN populateCombo.
-
-RUN buRefreshChoose IN TARGET-PROCEDURE.
 
 END PROCEDURE.
 
@@ -217,7 +208,6 @@ THEN DO:
     RUN getDBsForImportedEntities IN gshGenManager (INPUT NO,
                                                     OUTPUT cDBList,
                                                     INPUT-OUTPUT cExtraParams) NO-ERROR.
-
     IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
         RETURN.
 END.

@@ -44,26 +44,8 @@ DEFINE TEMP-TABLE ttStoreAttribute      NO-UNDO
     FIELD tDateValue            AS DATE
     FIELD tRawValue             AS RAW
     FIELD tLogicalValue         AS LOGICAL
-    INDEX idxParent
-        tAttributeParent
-    INDEX idxObj
+    INDEX idxMain
         tAttributeParentObj
-    .
-
-DEFINE TEMP-TABLE ttStoreUiEvent        NO-UNDO
-    FIELD tEventParent          AS CHARACTER
-    FIELD tEventParentObj       AS DECIMAL
-    FIELD tEventName            AS CHARACTER
-    FIELD tActionType           AS CHARACTER
-    FIELD tActionTarget         AS CHARACTER    
-    FIELD tEventAction          AS CHARACTER
-    FIELD tEventParameter       AS CHARACTER
-    FIELD tEventDisabled        AS LOGICAL
-    FIELD tConstantValue        AS LOGICAL      INITIAL NO
-    INDEX idxParent
-        tEventParent
-    INDEX idxObj
-        tEventParentObj
     .
 
 /* _UIB-CODE-BLOCK-END */

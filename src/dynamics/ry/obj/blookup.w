@@ -17,9 +17,6 @@
   Output Parameters:
       <none>
 
-Modified: 10/18/2001      Mark Davies (MIP)
-          Added functionality to auto select when double-clicking on
-          a record.
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -254,22 +251,6 @@ END.
 ON HOME OF br_table IN FRAME F-Main
 DO:
   {src/adm2/brshome.i}
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL br_table bTableWin
-ON MOUSE-SELECT-DBLCLICK OF br_table IN FRAME F-Main
-DO:
-  DEFINE VARIABLE hDataSource AS HANDLE   NO-UNDO.
-  
-  hDataSource = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION("linkHandles":U, "Container-Source":U))).
-  IF VALID-HANDLE(hDataSource) AND
-     LOOKUP("objectSelected":U,hDataSource:INTERNAL-ENTRIES) > 0 THEN
-    RUN objectSelected IN hDataSource.
-  
 END.
 
 /* _UIB-CODE-BLOCK-END */

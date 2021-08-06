@@ -1,12 +1,12 @@
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
 &Scoped-define FRAME-NAME Dialog-Frame
-/*************************************************************/
-/* Copyright (c) 1984-2019 by Progress Software Corporation  */
-/*                                                           */
-/* All rights reserved.  No part of this program or document */
-/* may be  reproduced in  any form  or by  any means without */
-/* permission in writing from PROGRESS Software Corporation. */
-/*************************************************************/
+/******************************************************************/
+/* Copyright (c) 1984-2019,2021 by Progress Software Corporation  */
+/*                                                                */
+/* All rights reserved.  No part of this program or document      */
+/* may be  reproduced in  any form  or by  any means without      */
+/* permission in writing from PROGRESS Software Corporation.      */
+/******************************************************************/
 
 /*------------------------------------------------------------------------
 
@@ -41,6 +41,7 @@
     rkamboj  08/16/11      Added new terminology for security items and windows. 
     rkamboj  04/04/2012    Added field "Enable Authentication" and "Callback" for the
                            PAM plug-in feature.
+    tmasood  05/21/2021    Fixed the invalid value blank pass to a toggle-box                            
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -900,9 +901,9 @@ PROCEDURE initializeUI :
                                             CHR(1) + "",
                                             CHR(1) + "",
                                             CHR(1) + "",
+                                            CHR(1) + "NO",
                                             CHR(1) + "",
-                                            CHR(1) + "",
-											CHR(1) + "")
+											CHR(1) + "NO")
            gcFieldInits        = REPLACE(gcFieldInits,"," + CHR(1),CHR(1))
            gcCreateModeFields  = SUBSTITUTE(gcFieldHandles,
                                             "yes",

@@ -1,6 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12 GUI ADM2
 &ANALYZE-RESUME
 /* Connected Databases 
+          sports2000       PROGRESS
           icfdb            PROGRESS
 */
 &Scoped-define WINDOW-NAME CURRENT-WINDOW
@@ -77,8 +78,10 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 {src/adm2/globals.i}
 {src/adm2/ttcombo.i}
 
+&GLOBAL-DEFINE REPOSITORY-MODULES RY-,RV-,ICF-,AF-,GS-,AS-,RTB-,SCMRTB-,DCU-,DLC-,DB-,090DLC
 DEFINE VARIABLE gdType                    AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE ghRepositoryDesignManager AS HANDLE     NO-UNDO.
+DEFINE VARIABLE glDisplayRepository       AS LOGICAL    NO-UNDO.
 DEFINE STREAM sLog.
 
 ghRepositoryDesignManager = DYNAMIC-FUNCTION("getManagerHandle":U IN THIS-PROCEDURE,
@@ -396,7 +399,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelFrom Object Type CodeFieldTooltipPress F4 for Object Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatx(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatx(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local_1>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelFrom Object Type CodeFieldTooltipPress F4 for Object Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_fromType ).
        RUN repositionObject IN h_fromType ( 1.29 , 34.00 ) NO-ERROR.
        RUN resizeObject IN h_fromType ( 1.00 , 55.00 ) NO-ERROR.
@@ -404,7 +407,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelTo Object Type CodeFieldTooltipPress F4 for Object Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatx(30)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatx(30)SDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldName<Local_2>DisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelTo Object Type CodeFieldTooltipPress F4 for Object Type LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15)|X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldName<Local>DisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_toType ).
        RUN repositionObject IN h_toType ( 17.91 , 73.00 ) NO-ERROR.
        RUN resizeObject IN h_toType ( 1.00 , 55.00 ) NO-ERROR.
@@ -643,20 +646,22 @@ DEFINE VARIABLE iComboCount AS INTEGER    NO-UNDO.
   CREATE BUFFER hModule FOR TABLE 'gsc_product_module':U.
 
   hQuery:SET-BUFFERS(hObject, hModule).
-  
-  cWhere = 'FOR EACH ryc_smartobject NO-LOCK':U
-         + '   WHERE ryc_smartobject.customization_result_obj = 0 ':U
-         + '     AND ryc_smartobject.object_type_obj          = ':U + QUOTER(gdType)
+  cWhere = 'FOR EACH ryc_smartobject WHERE ryc_smartobject.customization_result_obj = 0 AND ':U +
+           'ryc_smartobject.object_type_obj = ':U + STRING(gdType).
+  IF glDisplayRepository THEN
+    cWhere = cWhere + IF dModule > 0 THEN ' AND ryc_smartobject.product_module_obj = ':U + STRING(dModule) ELSE '':U.
+  ELSE DO:
+    cWhere = cWhere + IF dModule > 0 THEN ' AND ryc_smartobject.product_module_obj = ':U + STRING(dModule) ELSE ' AND (':U.
+    IF dModule = 0 THEN
+    DO iComboCount = 1 TO coProductModule:NUM-ITEMS:
+      cWhere = cWhere + 'ryc_smartobject.product_module_obj = ':U + coProductModule:ENTRY(iComboCount) + 
+               IF iComboCount < coProductModule:NUM-ITEMS THEN ' OR ':U ELSE ' )':U.
+    END.  /* do 1 to num item in combo */
+  END.  /* else do - not glDisplayRepository */
 
-         + (IF dModule > 0 THEN ' AND ryc_smartobject.product_module_obj = ':U + QUOTER(dModule) ELSE '':U) + ",":U
-
-         + '  FIRST gsc_product_module NO-LOCK ':U
-         + '  WHERE gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj ':U
-         + '    AND [&FilterSet=|&EntityList=GSCPM,RYCSO] ':U
-         + '     BY ryc_smartobject.object_filename':U.     
-
-  RUN processQueryStringFilterSets IN gshGenManager (INPUT  cWhere,
-                                                     OUTPUT cWhere).
+  cWhere = cWhere + ' NO-LOCK, FIRST gsc_product_module WHERE ':U +                              
+             'gsc_product_module.product_module_obj = ryc_smartobject.product_module_obj NO-LOCK ':U + 
+             'BY ryc_smartobject.object_filename':U.     
 
   hQuery:QUERY-PREPARE(cWhere).
   hQuery:QUERY-OPEN().
@@ -696,11 +701,26 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE VARIABLE cProfileData AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE rRowid       AS ROWID      NO-UNDO.
+
   coProductModule:DELIMITER IN FRAME {&FRAME-NAME} = CHR(3).
 
   BROWSE {&BROWSE-NAME}:ROW-MARKERS = TRUE.
   
   RUN SUPER.
+
+  /* Display Repository?  */
+  ASSIGN rRowid = ?.
+
+  RUN getProfileData IN gshProfileManager ( INPUT        "General":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        "DispRepos":U,
+                                            INPUT        NO,
+                                            INPUT-OUTPUT rRowid,
+                                                  OUTPUT cProfileData).
+  ASSIGN glDisplayRepository = (cProfileData EQ "YES":U).
+  rRowID = ?.
 
   RUN populateCombo. 
   RUN enableField IN h_FromType.
@@ -718,8 +738,8 @@ PROCEDURE populateCombo :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cWhereClause  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iModuleCount  AS INTEGER    NO-UNDO.
+DEFINE VARIABLE cWhereClause AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE iModuleCount AS INTEGER    NO-UNDO.
 
   DO WITH FRAME {&FRAME-NAME}:
     EMPTY TEMP-TABLE ttComboData.
@@ -737,11 +757,15 @@ PROCEDURE populateCombo :
            ttComboData.cListItemDelimiter = coProductModule:DELIMITER
            ttComboData.cListItemPairs     = "":U
            ttComboData.cCurrentDescValue  = "":U
-           ttComboData.cForEach           = "FOR EACH gsc_product_module NO-LOCK":U
-                                          + "   WHERE [&FilterSet=|&EntityList=GSCPM] BY gsc_product_module.product_module_code":U.
+           ttComboData.cForEach           = "FOR EACH gsc_product_module WHERE ":U.
 
-    RUN processQueryStringFilterSets IN gshGenManager (INPUT  ttComboData.cForEach,
-                                                       OUTPUT ttComboData.cForEach).
+    IF NOT glDisplayRepository THEN
+    DO iModuleCount = 1 TO NUM-ENTRIES("{&REPOSITORY-MODULES}":U):
+     ASSIGN cWhereClause = cWhereClause + (IF NUM-ENTRIES(cWhereClause, "AND":U) EQ 0 THEN "":U ELSE " AND ":U)
+                         + " NOT gsc_product_module.product_module_code BEGINS '" + ENTRY(iModuleCount, "{&REPOSITORY-MODULES}":U) + "' ":U.
+    END.  /* do iModuleCount */
+
+    ASSIGN ttComboData.cForEach = ttComboData.cForEach + cWhereClause + " NO-LOCK BY gsc_product_module.product_module_code ":U.
 
     /* build combo list-item pairs */
     RUN af/app/afcobuildp.p ON gshAstraAppserver (INPUT-OUTPUT TABLE ttComboData).

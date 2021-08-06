@@ -577,7 +577,10 @@ DO ON STOP   UNDO BIG-TRANS-BLK, LEAVE BIG-TRANS-BLK
      this is applied to the frame (the dialogservice does not have proc) different from when using the dialogstart.i 
      with CancelEvent preprocessor */ 
   &if DEFINED(IDE-IS-RUNNING) <> 0  &then
-  WAIT-FOR "GO" OF FRAME {&FRAME-NAME} or "U2" of frame {&FRAME-NAME}.  
+  WAIT-FOR "GO" OF FRAME {&FRAME-NAME} or "U2" of frame {&FRAME-NAME}.
+  // cancel from eclipse does not fire endkey  
+  if valid-object(dialogService) and dialogService:Cancelled then
+      undo, leave BIG-TRANS-BLK.
   &else
   WAIT-FOR "GO" OF FRAME {&FRAME-NAME}.  
   &endif

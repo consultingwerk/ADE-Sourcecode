@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005-2006,2008-2010,2011 by Progress Software        *
+* Copyright (C) 2005-2020                by Progress Software        *
 * Corporation. All rights reserved.  Prior versions of this work may *
 * contain portions contributed by participants of Possenet.          *
 *                                                                    *
@@ -58,6 +58,7 @@
               09/18/13 sgarg    Fix for empty string ("") INITIAL value, does not generate SQL (OE00241307)
               12/11/13 sdash    OE Initial Value not propagated w/"Include Defaults" on delta.sql (PSC00247036)
 			  08/20/18 vprasad ODIA-1951 -  ODBC Driver 17 for SQL Server certification
+              11/11/20 vmaganti Replacing old sequence generation with Native sequence (OCTA-21826) 
 
 If the user wants to have a DEFAULT value of blank for VARCHAR fields, 
 an environmental variable BLANKDEFAULT can be set to "YES" and the code will
@@ -208,6 +209,16 @@ DEFINE VARIABLE nidx           AS LOGICAL        NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE renmae-index   AS LOGICAL        NO-UNDO INITIAL FALSE.
 DEFINE VARIABLE old-idx-name   AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE new-idx-name   AS CHARACTER             NO-UNDO.
+
+/* Native Sequence */
+DEFINE VARIABLE lnativeSeq     AS LOGICAL               NO-UNDO.
+DEFINE VARIABLE lcachesize     AS CHARACTER             NO-UNDO.
+DEFINE VARIABLE minimum_value  AS CHARACTER             NO-UNDO INIT ?.
+DEFINE VARIABLE limit          AS CHARACTER  			NO-UNDO.
+DEFINE VARIABLE new_seq_name   AS CHARACTER  			NO-UNDO.
+DEFINE VARIABLE nat-seq-line   AS CHARACTER  			NO-UNDO INIT ?.
+DEFINE VARIABLE seq-name-len   AS INTEGER               NO-UNDO .
+
 FUNCTION findShadow RETURNS INTEGER (INPUT fldRecid AS RECID) FORWARD.
 batch_mode = SESSION:BATCH-MODE.
 
@@ -912,53 +923,91 @@ PROCEDURE write-seq-sql:
   IF seq-line = ? OR seq-line = "" THEN LEAVE.
   /* Delete sequence */
   IF seq-type = "d"  THEN 
-    PUT STREAM tosql UNFORMATTED seq-line SKIP(1) "go" SKIP(1).
+    if lnewSeq then
+		PUT STREAM tosql UNFORMATTED seq-line SKIP(1) "go" SKIP(1).
+	else
+		PUT STREAM tosql UNFORMATTED "EXEC(' " seq-line " ')" SKIP(1) "go" SKIP(1).
+	
   /* add sequence */
   ELSE IF seq-type = "a" THEN DO:
+    /* The follwoing SQL statement generation
+	   Not required but keeping it for backward 
+	   compatibility once All the customers moved 
+	   to 12.4 or later we should remove it */
+	   
     PUT STREAM tosql UNFORMATTED 
            "if (select name from sysobjects where name = '"seqt_prefix forname "' and" skip
            "    uid = (select uid from sysusers " SKIP
            "           where sid = (select sid from master.dbo.syslogins" skip 
            "                        where UPPER(name) = UPPER('"mss_username "'))))" skip
            "is not NULL" skip
-           "drop table " seqt_prefix forname skip. 
+           "drop table " seqt_prefix forname skip "go" skip(1). 
     
     IF seqt_prefix = "_SEQT_REV_" THEN 
        ASSIGN other-seq-tab = "_SEQT_".
     ELSE 
        ASSIGN other-seq-tab = "_SEQT_REV_".
+	 
+	 IF seqp_prefix = "_SEQP_REV_" THEN 
+       ASSIGN other-seq-proc = "_SEQP_".
+    ELSE 
+       ASSIGN other-seq-proc = "_SEQP_REV_".
 	
-    IF seqt_prefix = "_SEQT_" THEN 
+    IF seqt_prefix = "_SEQT_" THEN /* Drop revised sequence, Manager, table and procedure */
      PUT STREAM tosql UNFORMATTED 
         "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
         "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
         "      if (select seq_name from _SEQT_REV_SEQTMGR where seq_name = '" forname "') " skip
         "          is not NULL" skip
-        "             delete from _SEQT_REV_SEQTMGR where seq_name = '" forname "' " skip
+        "             delete from _SEQT_REV_SEQTMGR where seq_name = '" forname "' " skip "go" skip(1)
 
         "if exists (select name from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
         "   and OBJECTPROPERTY(id, N'IsTable') = 1) " skip
         "     if (select seq_name from _SEQT_REV_SEQTMGR) is NULL " skip
-	    "         drop table _SEQT_REV_SEQTMGR " skip. /* processing SEQTMGR table */
+	    "         drop table _SEQT_REV_SEQTMGR " skip "go" skip(1)/* processing SEQTMGR table */
 	     
-     PUT STREAM tosql UNFORMATTED 
-           "if (select name from sysobjects where name = '"other-seq-tab forname "' and" skip
-           "    uid = (select uid from sysusers " SKIP
-           "           where sid = (select sid from master.dbo.syslogins" skip 
-           "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
-           "is not NULL" skip
-           "drop table " other-seq-tab forname skip. 
+        "if (select name from sysobjects where name = '"other-seq-tab forname "' and" skip
+        "    uid = (select uid from sysusers " SKIP
+        "           where sid = (select sid from master.dbo.syslogins" skip 
+        "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+        "is not NULL" skip
+        "drop table " other-seq-tab forname skip "go" skip(1) 
+		
+		"if (select name from sysobjects where name = '"other-seq-proc forname "' and" skip
+        "           uid = (select uid from sysusers " SKIP
+        "                  where sid = (select sid from master.dbo.syslogins" skip 
+        "                               where UPPER(name) = UPPER('" mss_username "'))))" skip
+        " is not NULL" skip
+        " drop procedure " other-seq-proc forname SKIP. 
+		
+	ELSE /* Drop native sequence and procedure and existing revised procedure and table*/
+		PUT STREAM tosql UNFORMATTED 
+		"if (select name from sysobjects where name = '" forname "' and" skip
+        "    uid = (select uid from sysusers " SKIP
+        "           where sid = (select sid from master.dbo.syslogins" skip 
+        "                        where UPPER(name) = UPPER('" user_env[26] "'))))" skip
+        "is not NULL" skip
+        "drop sequence " forname skip "go" skip(1) 
+		
+		"if (select name from sysobjects where name = '"seqp_prefix forname "' and" skip
+        "           uid = (select uid from sysusers " SKIP
+        "                  where sid = (select sid from master.dbo.syslogins" skip 
+        "                               where UPPER(name) = UPPER('" mss_username "'))))" skip
+        " is not NULL" skip
+        " drop procedure " seqp_prefix forname SKIP "go" skip(1)
+		
+		"if (select name from sysobjects where name = '_SEQP_NAT_SEQUENCE' and" skip
+        "           uid = (select uid from sysusers " SKIP
+        "                  where sid = (select sid from master.dbo.syslogins" skip 
+        "                               where UPPER(name) = UPPER('" mss_username "'))))" skip
+        " is not NULL" skip
+        " drop procedure _SEQP_NAT_SEQUENCE" SKIP. 
 	
-     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
-
-     PUT STREAM tosql UNFORMATTED 
-           "if (select name from sysobjects where name = '"seqp_prefix forname "' and" skip
-           "           uid = (select uid from sysusers " SKIP
-           "                  where sid = (select sid from master.dbo.syslogins" skip 
-           "                               where UPPER(name) = UPPER('" mss_username "'))))" skip
-           " is not NULL" skip
-           " drop procedure " seqp_prefix forname SKIP. 
+     PUT STREAM tosql UNFORMATTED "go" SKIP(1).           
     
+	/* These changes are not required as we 
+    	are Handeling procedures in the above 
+		if else statement.
     IF seqp_prefix = "_SEQP_REV_" THEN 
        ASSIGN other-seq-proc = "_SEQP_".
     ELSE 
@@ -972,39 +1021,45 @@ PROCEDURE write-seq-sql:
            " is not NULL" skip
            "    drop procedure " other-seq-proc forname skip. 
 
-    PUT STREAM tosql UNFORMATTED "go" SKIP(1).
+    PUT STREAM tosql UNFORMATTED "go" SKIP(1).*/
 
     /* creating SEQT_REV_SEQTMGR table for revised sequence generator for MSS if one does not exist. */
      IF lnewSeq AND NOT check_seqtmgr THEN DO:
        put stream tosql unformatted 
 	  " if not exists (select * from dbo.sysobjects where id = object_id(N'_SEQT_REV_SEQTMGR') " skip
 	  "    and OBJECTPROPERTY(id, N'IsTable') = 1)" skip
-          "create table _SEQT_REV_SEQTMGR (" skip
-          "        seq_name varchar(30) not null, " skip
+      "        create table _SEQT_REV_SEQTMGR (" skip
+      "        seq_name varchar(30) not null, " skip
 	  "        initial_value bigint, " skip
 	  "        increment_value bigint, " skip
 	  "        upper_limit bigint, " skip
 	  "        cycle bit not null )" skip 
-          " " skip.
+      " " skip "go" skip(1).
 	ASSIGN check_seqtmgr = TRUE.
      END. /* end of SEQTMGR */
 
-     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
+     //PUT STREAM tosql UNFORMATTED "go" SKIP(1).
 
-  IF NOT lnewSeq THEN DO:
-     PUT STREAM tosql UNFORMATTED seq-line "(" SKIP.
-     PUT STREAM tosql UNFORMATTED "  initial_value   bigint NULL," SKIP.
-     PUT STREAM tosql UNFORMATTED "  increment_value bigint NULL," SKIP.
-     PUT STREAM tosql UNFORMATTED "  upper_limit     bigint NULL," SKIP.
-     PUT STREAM tosql UNFORMATTED "  current_value   bigint NULL," SKIP.
-     PUT STREAM tosql UNFORMATTED "  cycle           BIT NOT NULL)" SKIP(1).
-     PUT STREAM tosql UNFORMATTED "insert into _SEQT_" forname SKIP.
-     PUT STREAM tosql UNFORMATTED "(initial_value, increment_value, upper_limit, current_value, cycle)" SKIP.
-     PUT STREAM tosql UNFORMATTED "values(" init "," incre ",".
-     IF maxval = ? THEN
-       PUT STREAM tosql UNFORMATTED (IF large_seq THEN "9223372036854775807," ELSE "2147483647,") init "," cyc ")" SKIP.
-     ELSE
-       PUT STREAM tosql UNFORMATTED  maxval "," init "," cyc ")" SKIP. 
+  IF NOT lnewSeq THEN DO: /* creating Native sequence based on values from provided delta.df*/
+     ASSIGN 
+        minimum_value =   ( IF minval <> ?
+							THEN minval
+							ELSE "-9223372036854775808"
+						  )
+        limit = 		  ( IF maxval <> ?
+							THEN maxval
+							ELSE (IF large_seq 
+							THEN "9223372036854775807" ELSE "2147483647")
+					      ).
+     PUT STREAM tosql UNFORMATTED		 
+               "  EXEC(' CREATE SEQUENCE " forname " START WITH " STRING (init)
+               "  INCREMENT BY " + STRING (incre) 
+               "  MAXVALUE " limit " MINVALUE " minimum_value 
+                  (if cyc = "NO" THEN " CYCLE " else " NO CYCLE " ) 
+                  (if lcachesize = "?" THEN "  NO CACHE " 
+     		      ELSE IF INTEGER(lcachesize) <> 0 THEN 
+     		   "  CACHE " + STRING(lcachesize) ELSE " "  ) skip
+               "   ')" skip. 
   END.
   ELSE DO:
         PUT STREAM tosql UNFORMATTED seq-line "(" SKIP.
@@ -1022,106 +1077,138 @@ PROCEDURE write-seq-sql:
     PUT STREAM tosql UNFORMATTED "go" SKIP(1).
     
     /* Create the procedure to keep sequence numbers */
-    IF NOT lnewSeq THEN DO:
+    IF NOT lnewSeq THEN DO: /* Native sequence procedure */
        /* this is the default version of the sequence generator */
 
        PUT STREAM tosql unformatted 
-           "create procedure _SEQP_" forname " (@op int, @val bigint output) as " skip
-           "begin"  skip 
-           "    /* " skip 
-           "     * Current-Value function " skip 
-           "     */" skip
-           "    SET XACT_ABORT ON " skip
-           "    declare @err int " skip
-           "    if @op = 0 " skip 
-           "    begin" skip 
-           "        begin transaction" skip 
-           "        select @val = (select current_value from _SEQT_" forname ")" skip 
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           "        commit transaction" skip
-           "        return 0" skip
-           "    end" skip 
-           "    " skip 
-           "    /*" skip  
-           "     * Next-Value function " skip 
-           "     */" skip 
-           "    else if @op = 1" skip 
-           "    begin" skip 
-           "        declare @cur_val  bigint" skip 
-           "        declare @last_val bigint" skip 
-           "        declare @inc_val  bigint" skip 
-           " " skip 
-           "        begin transaction" skip 
-           " " skip 
-           "        /* perform a 'no-op' update to ensure exclusive lock */" skip 
-           "        update _SEQT_" forname " set initial_value = initial_value" skip
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           " " skip 
-           "        select @cur_val = (select current_value from _SEQT_" forname ")" skip
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           "        select @last_val = (select upper_limit from _SEQT_" forname ")" skip
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           "        select @inc_val  = (select increment_value from _SEQT_" forname ")" skip 
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           " " skip 
-           "        /*" skip 
-           "         * if the next value will pass the upper limit, then either" skip
-           "         * wrap or return a range violation" skip 
-           "         */ " skip 
-           "        if  @inc_val > 0 and @cur_val + @inc_val > @last_val  or @inc_val < 0 and @cur_val + @inc_val < @last_val " skip  
-           "        begin" skip 
-           "            if (select cycle from _SEQT_" forname ") = 0 /* non-cycling sequence */" skip 
-           "            begin " skip 
-           "                SET @err = @@error " skip
-           "                if @err <> 0 goto Err " skip
-           "                select @val = @cur_val" skip
-           "                commit transaction" skip 
-           "                return -1" skip 
-           "            end" skip 
-           "            else " skip
-           "            BEGIN " skip
-           "                 select @val = (select initial_value from _SEQT_" forname ")" skip
-           "                 SET @err = @@error " skip
-           "                 if @err <> 0 goto Err " skip
-           "            END " skip
-           "        end" skip 
-           "        else " skip 
-           "             select @val = @cur_val + @inc_val" skip 
-           " " skip 
-           " " skip 
-           "        update _SEQT_" forname " set current_value = @val" skip
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           " " skip 
-           " " skip 
-           "        commit transaction" skip 
-           "        return 0" skip 
-           "    end" skip 
-           "    else " SKIP
-           "    /*" skip  
-           "     * Set Current-Value function " skip 
-           "     */" skip
-           "    if @op = 2 " SKIP
-           "    begin " SKIP
-           "      begin transaction " SKIP
-           "      update _SEQT_" forname " set current_value = @val" SKIP
-           "        SET @err = @@error " skip
-           "        if @err <> 0 goto Err " skip
-           "      commit transaction " SKIP
-           "      return 0 " SKIP
-           "   end " SKIP           
-           "    else " skip 
-           "        return -2" skip 
-           "   Err: " skip
-           "       rollback " skip
-           "       return @err " skip
-           "end " skip 
-           " "   skip. 
+          "   IF exists (select * from dbo.sysobjects where id = object_id('_SEQP_NAT_SEQUENCE') " skip
+          "          and OBJECTPROPERTY(id, 'IsProcedure') = 1) " skip
+          "     BEGIN " skip
+          "      EXEC (' DROP PROCEDURE _SEQP_NAT_SEQUENCE ')  " skip
+          "     END " skip
+          "    EXEC ('  " skip
+          "     CREATE PROCEDURE _SEQP_NAT_SEQUENCE   " skip
+          "	 (  " skip
+          "         @op INT ,  " skip
+          "         @val BIGINT OUTPUT,  " skip
+          "         @seqN VARCHAR(100)  " skip
+          "     )  " skip
+          "     AS  " skip
+          "     BEGIN  " skip
+          "       DECLARE  @SeqSchema NVARCHAR(50) " skip
+          "       DECLARE  @SeqDb NVARCHAR(50) " skip
+          "       DECLARE  @tmp NVARCHAR(64) " skip
+          "       DECLARE  @SeqName NVARCHAR(50) " skip
+          "       DECLARE  @SQLQuery NVARCHAR(500) " skip
+          "       DECLARE  @err int  " skip
+          "   IF @seqN IS NOT NULL AND LEN(@seqN) < 1  " skip
+          "          BEGIN  " skip
+          "            SET @op = -1  /* Bad Sequence Name */   " skip
+          "            RETURN  " skip
+          "          END  " skip
+          "       ELSE " skip
+          "       BEGIN " skip
+          "           SELECT @SQLQuery = " skip
+          "                N''SELECT @SeqDb = LEFT('' + char(39) + @seqN + char(39) + '', CHARINDEX(''''.'''' ,'' + char(39)+ @seqN + char(39) + '')-1)''; " skip
+          "           EXEC sp_executesql @SQLQuery, N''@SeqDb NVARCHAR(50) output'', @SeqDb output; " skip
+          "           SELECT @SQLQuery = " skip
+          "                N''SELECT @tmp = RIGHT('' + char(39) + @seqN + char(39) + '', LEN ('' + char(39) + @seqN + char(39) + '') - CHARINDEX(''''.'''' ,'' + char(39)+ @seqN + char(39) + ''))''; " skip
+          "           EXEC sp_executesql @SQLQuery, N''@tmp NVARCHAR(64) output'', @tmp output; " skip
+          "           SELECT @SQLQuery = " skip
+          "                N''SELECT @SeqSchema = LEFT('' + char(39) + @tmp + char(39) + '', CHARINDEX(''''.'''' ,'' + char(39)+ @tmp + char(39) + '')-1)''; " skip
+          "           EXEC sp_executesql @SQLQuery, N''@SeqSchema NVARCHAR(50) output'', @SeqSchema output; " skip
+          "           SELECT @SQLQuery = " skip
+          "                N''SELECT @SeqName = RIGHT('' + char(39) + @seqN + char(39) + '', CHARINDEX(''''.'''', '' + '' REVERSE('' + char(39)+ @seqN + char(39) + ''))-1)''; " skip
+          "           EXEC sp_executesql @SQLQuery, N''@SeqName NVARCHAR(50) output'', @SeqName output; " skip
+          "       END " skip
+          "   IF @op = 0   /* Current_Value function */   " skip
+          "       BEGIN  " skip
+          "           SELECT @SQLQuery = N''SELECT @val = CONVERT(bigint,current_value) " skip
+          "                  FROM sys.schemas AS T1 INNER JOIN sys.sequences AS T2 ON (T1.schema_id = T2.schema_id) " skip
+          "                    WHERE T2.NAME = '' + char(39) + @SeqName + char(39) + '' AND T1.NAME = '' + char(39) + @SeqSchema + char(39); " skip
+          "           EXEC sp_executesql @SQLQuery, N''@val bigint output'', @val output; " skip
+          "           RETURN     /* Success */   " skip
+          "       END  " skip
+          "   ELSE IF @op = 1 /* NEXT VALUE FOR function */   " skip
+          "        BEGIN  " skip
+          "             DECLARE @ParamDef NVARCHAR (512)  " skip
+          "             DECLARE @cycle   bit  " skip
+          "             DECLARE @incval  bigint  " skip
+          "             DECLARE @maxval  bigint  " skip 
+          "             DECLARE @minval  bigint  " skip
+          "             DECLARE @curval  bigint  " skip
+          "             DECLARE @strtval bigint  " skip   
+          "             SET @SQLQuery = N''SELECT @cycle = is_cycling,  " skip
+          "                          @incval = CONVERT(bigint,increment) ,  " skip
+          "                          @minval = CONVERT(bigint,minimum_value) ,  " skip
+          "                          @maxval = CONVERT(bigint,maximum_value) ,  " skip
+          "                          @curval = CONVERT(bigint,current_value),  " skip
+          "                          @strtval = CONVERT(bigint,start_value)  " skip
+          "                               from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+          "          SET @ParamDef = N''@cycle bit output, @incval bigint output, @minval bigint output,  " skip
+          "                    @maxval bigint output, @curval bigint output, @strtval bigint output''  " skip
+          "          EXEC sp_executesql @SQLQuery, @ParamDef, @cycle output, @incval output, @minval output,  " skip
+          "                    @maxval output, @curval output, @strtval output;  " skip
+          "          SET @err = @@error  " skip
+          "          IF @err <> 0 goto Err  " skip
+          "          IF (@incval > 0 and @maxval - @curval < @incval) or (@incval < 0 and @maxval + @curval > @incval)  " skip
+          "           BEGIN  " skip
+          "  IF @cycle = 0  " skip
+          "    BEGIN  " skip
+          "        SET @SQLQuery = N''SELECT @Val = CONVERT(bigint,current_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+          "        EXEC sp_executesql @SQLQuery, N''@Val bigint output'', @val output; RETURN     /* Success */  " skip
+          "        SET @err = @@error  " skip
+          "        if @err <> 0 goto Err  " skip
+          "     END  " skip
+          "   ELSE  " skip
+          "      BEGIN  " skip
+          "           EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART WITH '' + @strtval )   " skip
+          "           EXEC(''SELECT NEXT VALUE FOR '' + @SeqName)   " skip
+          "           SET @err = @@error  " skip
+          "           if @err <> 0 goto Err  " skip
+          "           SET @SQLQuery = N''SELECT @Val = CONVERT(bigint,current_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+          "           EXEC sp_executesql @SQLQuery, N''@val bigint output'', @val output; RETURN     /* Success */  " skip
+          "           SET @err = @@error  " skip
+          "           if @err <> 0 goto Err  " skip
+          "      END  " skip
+          "  END  " skip
+          "  ELSE " skip
+          "    BEGIN " skip
+          "     SET @SQLQuery = ''SELECT @Val = NEXT VALUE FOR '' + @SeqName ;  " skip
+          "     Execute sp_executesql @SQLQuery,N''@val bigint output'', @val output  " skip
+          "      SET @err = @@error  " skip
+          "         IF @err <> 0 goto Err  " skip
+          "       RETURN   " skip
+          "        END  " skip
+          "    END  " skip
+          "        ELSE IF @op = 2 /* Set-Value function */   " skip
+          "        BEGIN  " skip
+          /*
+          "           DECLARE @maxlimit  bigint  " skip
+          "           SET @SQLQuery = N''SELECT @maxlimit = CONVERT(bigint,maximum_value) from SYS.sequences where name = '' + char(39)+ @SeqName + char(39);  " skip
+          "           EXEC sp_executesql @SQLQuery, N''@maxlimit bigint output'', @maxlimit output; " skip
+          "           SET @err = @@error  " skip
+          "           if @err <> 0 goto Err  " skip
+          "             BEGIN TRANSACTION   " skip
+          "               IF ( @val > @maxlimit ) " skip
+          "                  EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART '') " skip
+          "               ELSE  " skip
+          "               BEGIN  " skip
+          */
+          "                  EXEC ('' ALTER SEQUENCE '' + @SeqName + '' RESTART WITH '' + @val )  " skip
+          "                  EXEC(''SELECT NEXT VALUE FOR '' + @SeqName)   " skip
+          "                  SET @err = @@error  " skip
+          "                  IF  @err <> 0 goto Err  " skip
+          /*
+          "               END  " skip
+          "             COMMIT TRANSACTION   " skip
+          */
+          "            RETURN   " skip
+          "        END  " skip
+          "   Err:  " skip
+          "     return @err  " skip
+          "   END ')  " skip
+          " " skip.
      END.
      ELSE DO:
          /* here we will create the revised version of the sequence generator procedure */
@@ -1276,13 +1363,17 @@ PROCEDURE write-seq-sql:
            df-line = '  SEQ-MISC3 ' + LOWER(mss_username) + ','.
 
     IF NOT lnewSeq THEN
-        df-line = df-line + "_SEQP_" + forname.
+        df-line = df-line + forname.
     ELSE
         df-line = df-line + "_SEQP_REV_" + forname.
 
     ASSIGN df-line = df-line + ",@op,@val,".
+	
+	IF lnativeSeq THEN
+		    df-line = df-line + LOWER(mss_username) + ",".
 
   END.
+		
   /* update sequence table */
   ELSE DO:
     /* OE00167691 - handle update of sequence properly. seq-line already has the
@@ -1354,9 +1445,12 @@ PROCEDURE write-seq-sql:
            OUTPUT CLOSE.
        END.
        
-       PUT STREAM tosql UNFORMATTED seq-line SKIP.
+        IF lnewSeq THEN
+			PUT STREAM tosql UNFORMATTED seq-line SKIP.
        
         IF (newseq_upd  AND (init NE ? OR incre NE ? )) THEN DO:
+			PUT STREAM tosql UNFORMATTED "where seq_name = '"seqname "'" SKIP.
+			PUT STREAM tosql UNFORMATTED "go" SKIP.
        	    PUT STREAM tosql UNFORMATTED "DROP TABLE _SEQT_REV_" seqname SKIP(1)
 					 "CREATE TABLE _SEQT_REV_" seqname "(" SKIP
 				         "  current_value bigint identity(" .
@@ -1369,6 +1463,39 @@ PROCEDURE write-seq-sql:
 	    PUT STREAM tosql UNFORMATTED ") primary key, seq_val int)" skip.
 	    ASSIGN newseq_upd = FALSE.
 	END.
+	    
+		ELSE IF(lnativeSeq) THEN DO:  /* Alter the Native sequence */
+		    PUT STREAM tosql UNFORMATTED		 
+                 " EXEC('" nat-seq-line skip(1).
+                 IF init <> ? then 
+					PUT STREAM tosql UNFORMATTED		 
+					" RESTART WITH " init skip(1).
+                 IF incre <> ? then 
+				    PUT STREAM tosql UNFORMATTED
+				    " INCREMENT BY " incre skip(1).
+				 IF maxval <> ? then 
+				    PUT STREAM tosql UNFORMATTED
+				    " MAXVALUE " maxval skip(1).
+                 IF minval <> ? then
+                    PUT STREAM tosql UNFORMATTED				 
+				    " MINVALUE " minval skip(1).
+                 IF cyc    <> ? then 
+					PUT STREAM tosql UNFORMATTED
+						if cyc = "NO" THEN " CYCLE " else " NO CYCLE " skip(1).
+       	         IF lcachesize = "?" THEN
+					PUT STREAM tosql UNFORMATTED
+					"  NO CACHE " SKIP(1).
+				 ELSE IF INTEGER(lcachesize) <> 0 THEN
+				    PUT STREAM tosql UNFORMATTED
+				    "  CACHE " + STRING(lcachesize). 
+				 ELSE 
+				    PUT STREAM tosql UNFORMATTED
+				    " ".
+			PUT STREAM tosql UNFORMATTED
+					"')" skip.
+			ASSIGN newseq_upd = FALSE.
+		END.
+	   
 
        PUT STREAM tosql UNFORMATTED "go" SKIP(1).
     END.
@@ -2494,10 +2621,31 @@ IF NUM-ENTRIES(user_env[25]) > 1 AND
    ENTRY(2,user_env[25]) BEGINS "Y" THEN
    ASSIGN lnewSeq = TRUE
           seqt_prefix = "_SEQT_REV_"
-          seqp_prefix = "_SEQP_REV_".  
-	  
+          seqp_prefix = "_SEQP_REV_".
+
+/* For  Native sequence entry retrieve */		  
+IF NUM-ENTRIES(user_env[25]) > 4 AND 
+   ENTRY(4,user_env[25]) BEGINS "Y" THEN
+   ASSIGN lnativeSeq  = TRUE
+          seqt_prefix = "_SEQT_"
+          seqp_prefix = "_SEQP_NAT_SEQUENCE"
+		  lcachesize  = (IF (NUM-ENTRIES(user_env[25]) >= 5) THEN 
+                         ENTRY(5,user_env[25])
+                         ELSE ?). 
+					  
 OUTPUT STREAM todf TO VALUE(dfout) NO-ECHO NO-MAP.
 OUTPUT STREAM tosql TO VALUE(sqlout) NO-ECHO NO-MAP.
+
+/* Fetching values for batchmode for sequence support */
+IF batch_mode THEN DO:
+  tmp_str = OS-GETENV("MSSSEQ").
+  IF NOT tmp_str BEGINS "Y" THEN DO:
+      tmp_str = OS-GETENV("MSSREVSEQGEN").
+      IF (tmp_str BEGINS "Y" ) THEN
+          ASSIGN lnewseq = TRUE
+                  lnativeseq = FALSE.
+  END.
+END.
 
 INPUT FROM VALUE(user_env[1]).              
 
@@ -5720,7 +5868,7 @@ DO ON STOP UNDO, LEAVE:
 		       seqname = ilin[3].
 	  ELSE 
 	  /* first drop the table and write out the line */
-                ASSIGN seq-line = "DROP TABLE _SEQT_" + forname  
+                ASSIGN seq-line = "DROP SEQUENCE " + _Sequence._Seq-misc[2] + "." + _Sequence._Seq-misc[1]
                        seq-type = "d"
                        seqname = ilin[3].
           RUN write-seq-sql. 
@@ -5730,10 +5878,11 @@ DO ON STOP UNDO, LEAVE:
 	     ASSIGN seq-line = "DROP PROCEDURE _SEQP_REV_" + forname 
                     seq-type = "d"
                     seqname = ilin[3].
+		  /* For Native Sequence there are no procedures 
           else 
 	  ASSIGN seq-line = "DROP PROCEDURE _SEQP_" + forname 
                  seq-type = "d"
-                 seqname = ilin[3].
+                 seqname = ilin[3]. */
 
           CREATE df-info.
           ASSIGN df-info.df-seq = dfseq
@@ -5800,7 +5949,7 @@ DO ON STOP UNDO, LEAVE:
 
           END.
          
-          WHEN "UPDATE" THEN DO:         
+          WHEN "UPDATE" THEN DO:   
             IF seqname <> ? THEN 
               RUN write-seq-sql.
             IF NOT batch_mode THEN
@@ -5832,15 +5981,18 @@ DO ON STOP UNDO, LEAVE:
 		  /* new sequence generator- On update, drop old _SEQT_REV table and create again with new values */
 		 ASSIGN seq-line = "update _SEQT_REV_SEQTMGR set "
                         seq-type = "u"
-                        seqname = ilin[3]
+                        seqname = _Sequence._Seq-misc[1]
 		 	old_incr_val = _Sequence._Seq-Incr
 			old_init_val = _Sequence._Seq-Init
 			newseq_upd   = TRUE.
+			seq-name-len = LENGTH(seqname, "CHARACTER").
+			seqname = substr(_Sequence._Seq-misc[1], 11, seq-name-len, "CHARACTER").
 	      END.
               ELSE 
                  ASSIGN seq-line = "update " + _Sequence._Seq-misc[2] + "." + _Sequence._Seq-misc[1] + " set  "
-                        seq-type = "u".
-                        seqname = ilin[3].
+                        seq-type = "u"
+                        seqname = ilin[3]
+						nat-seq-line = "ALTER SEQUENCE " + _Sequence._Seq-misc[2] + "." + _Sequence._Seq-misc[1].
 
               CREATE df-info.
               ASSIGN df-info.df-seq = dfseq
@@ -5865,7 +6017,7 @@ DO ON STOP UNDO, LEAVE:
           END.
         END CASE.
       END.
-      /* Rename sequence in schema holder only */          
+      /* Rename sequence in schema holder only and not required for sql*/          
       ELSE IF imod = "r" THEN DO:
         IF seq-line <> ? THEN
            RUN write-seq-sql.

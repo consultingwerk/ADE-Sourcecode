@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
+* Copyright (C) 2005-2007,2021 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -35,6 +35,7 @@ Date Created: 1992
 
 Last Modified:
 
+    tmasood    06/23/21 Removed the unnecessary write-access check
     jep        09/28/01 IZ 1429 adm-create-objects is db-required.
                         It now defaults to not db-required.
     jep        08/08/00 Assign _P recid to newly created _TRG records.
@@ -175,7 +176,6 @@ DEFINE VARIABLE ext           AS INTEGER                               NO-UNDO.
 DEFINE VARIABLE OCXBinary     AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE madeBinary    AS LOGICAL   INITIAL no                  NO-UNDO.
 DEFINE VARIABLE bStatus       AS INTEGER   INITIAL 0                   NO-UNDO.
-DEFINE VARIABLE write-access  AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE app_handle    AS HANDLE                                NO-UNDO.
 DEFINE VARIABLE OCXName       AS CHARACTER                             NO-UNDO.
 DEFINE VARIABLE SpecialEvent  AS CHARACTER                             NO-UNDO.
@@ -260,43 +260,12 @@ DO ON STOP  UNDO, RETRY
     RETURN "Error-Write":U.
   END.
   
-  ASSIGN write-access = "W":U. 
-  
   RUN adeuib/_isa.p (INPUT INTEGER(RECID(_P)), INPUT "SmartDataObject":U,
                    OUTPUT isaSDO).
   
   IF NOT web_file THEN DO:
     ASSIGN l_SDOExisted = IF isaSDO AND SEARCH(_save_file) <> ? THEN YES ELSE NO.
-    
-    /* Ignore if called from ide 
-       This call locks (not sure what type of lock) the file so that it fails the next time it is called
-       under certain cases where Eclipse opens the file in the mean time.
-       This lock condition seems to only affect this progrsam... the file can be saved.   
-       The check also seems unnecessary in general. There are other read-only checks before we get here */
-    if not OEIDEIsRunning then 
-    do: 
-        RUN adecomm/_osfrw.p
-            (INPUT _save_file , INPUT "_WRITE-TEST":U , OUTPUT write-access).
-    end.
-  END.
-  
-  IF write-access <> "W":U THEN DO:
-      if OEIDE_CanShowMessage() then 
-       /* the formatting is deliberatley different.  */
-        run  ShowOkMessage in hOEIDEService(
-          _save_file + "~n" +
-          "Cannot save to this file. "  
-          +  "File is read-only or the path specified is invalid."
-           + "~n" 
-           + "Use a different filename.",
-          "Warning",?). 
-      else 
-          MESSAGE _save_file SKIP
-          "Cannot save to this file."  SKIP(1)
-          "File is read-only or the path specified" SKIP
-          "is invalid. Use a different filename."
-      VIEW-AS ALERT-BOX WARNING BUTTONS OK IN WINDOW ACTIVE-WINDOW.
-    RETURN "Error-Write":U.
+
   END.
   
   /* Check and see if an SDO's .i exists when the SDO's.w does not */

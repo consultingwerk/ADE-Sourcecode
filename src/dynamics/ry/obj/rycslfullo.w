@@ -14,6 +14,22 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Logic Procedure Wizard" dTables _INLINE
+/* Actions: ? af/cod/aftemwizcw.w ? ? af/cod/aftemwizls.p */
+/* Program Definition Comment Block Wizard
+Welcome to the Logic Procedure Block Wizard. Press Next to proceed.
+af/cod/aftemwizlw.w
+*/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Static SmartDataObject Wizard" dTables _INLINE
+/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
+/* Static SmartDataObject Wizard
+Destroy on next read */
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" dTables _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -103,7 +119,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 &ENDIF
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
-
 
 &Scoped-define QUERY-NAME Query-Main
 

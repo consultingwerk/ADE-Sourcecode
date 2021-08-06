@@ -23,6 +23,7 @@ interface adeuib.idialogservice inherits iideeventservice:
     define public property HeightPixels as integer no-undo get.  
     define public property WidthPixels as integer no-undo get.  
     define public property CancelEventNum as int no-undo get. set.  
+    define public property Cancelled as logical no-undo get.
        
     /* optional return value  (blank is nothing) */
     define public property ReturnValue as character no-undo 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2106,2113 by Progress Software Corporation. All      *
+* Copyright (C) 2106,2113,2020 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -20,6 +20,7 @@ Date Created: 03/05/92
 History:
     tomn    01/10/96    Added codepage to DB Properties form (s_Db_Cp)
     fernando 06/06/06    Added large sequence and keys to DB Properties form
+    tmasood  10/29/20    Added default area support for db properties
         
 ----------------------------------------------------------------------------*/
 
@@ -45,7 +46,13 @@ form
    s_Db_Large_Sequence LABEL "64-bit Sequences" colon 21
                  FORMAT "x(12)" view-as TEXT SKIP
    s_Db_Large_Keys LABEL "Large Key Entries"     colon 21 
-                 FORMAT "x(12)" view-as TEXT    SKIP    
+                 FORMAT "x(12)" view-as TEXT    SKIP
+   s_Db_Table_Area LABEL "Table Default Area"  colon 21
+                 FORMAT "x(32)" VIEW-AS COMBO-BOX SKIP
+   s_Db_Index_Area LABEL "Index Default Area"  colon 21
+                 FORMAT "x(32)" VIEW-AS COMBO-BOX SKIP
+   s_Db_LOB_Area LABEL "LOB Default Area"  colon 21 
+                 FORMAT "x(32)" VIEW-AS COMBO-BOX SKIP
    s_Db_Description  LABEL "Description" colon 21
                 FORMAT "X(70)" view-as FILL-IN size 30 BY 1
    s_Db_Add_Details LABEL "Additional Details" colon 21
@@ -60,6 +67,6 @@ form
       &CANCEL = s_btn_Cancel
       &HELP   = s_btn_Help}
 
-   with frame dbprops SIDE-LABELS NO-BOX DEFAULT-BUTTON s_btn_OK CANCEL-BUTTON s_btn_Cancel.
+   with frame dbprops SIDE-LABELS NO-BOX THREE-D DEFAULT-BUTTON s_btn_OK CANCEL-BUTTON s_btn_Cancel.
 
 

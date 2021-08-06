@@ -34,26 +34,15 @@ af/cod/aftemwizpw.w
 &glob   AstraInclude    yes
 
 
-DEFINE TEMP-TABLE ttInfoMaster    NO-UNDO
-    FIELD tMPData             AS CHARACTER
-    FIELD tMName              AS CHARACTER
-    FIELD tMDescription       AS CHARACTER
-    FIELD tMModule            AS CHARACTER
-    FIELD tMClass             AS CHARACTER
-    FIELD tMEntity            AS CHARACTER
-    FIELD tMDBList            AS CHARACTER
-    FIELD tMTableList         AS CHARACTER
-    INDEX idxMSort
-          tMPData
-    .
-
-DEFINE TEMP-TABLE ttInfoInstance NO-UNDO
-    FIELD tIKey               AS CHARACTER
-    FIELD tIPData             AS CHARACTER
-    FIELD tIValue             AS CHARACTER
-    INDEX idxISort
-          tIKey
-          tIPData
+DEFINE TEMP-TABLE ttObjectInfo      NO-UNDO
+    FIELD tObjectType       AS CHARACTER
+    FIELD tTag              AS CHARACTER
+    FIELD tPrimaryValue     AS CHARACTER
+    FIELD tSecondaryValue   AS CHARACTER
+    FIELD tExtraValue       AS CHARACTER
+    INDEX idxSort
+        tObjectType
+        tTag
     .
 
 DEFINE TEMP-TABLE ttErrorLog            NO-UNDO
@@ -66,8 +55,8 @@ DEFINE TEMP-TABLE ttErrorLog            NO-UNDO
     FIELD tDateLogged       AS DATE
     FIELD tTimeLogged       AS INTEGER
     INDEX idxSort
-          tDateLogged
-          tTimeLogged
+        tDateLogged
+        tTimeLogged
     .
 
 /* _UIB-CODE-BLOCK-END */
@@ -102,8 +91,8 @@ DEFINE TEMP-TABLE ttErrorLog            NO-UNDO
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 6.19
-         WIDTH              = 50.4.
+         HEIGHT             = 2
+         WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME

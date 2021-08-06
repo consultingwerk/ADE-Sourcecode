@@ -82,13 +82,12 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 DEFINE VARIABLE gcUserDefinedLinks  AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcLocatorRequest    AS CHARACTER  NO-UNDO.
+DEFINE VARIABLE gcLinkNames         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cOldSourceValue     AS CHARACTER  NO-UNDO INITIAL "<All>":U.
 DEFINE VARIABLE cOldTargetValue     AS CHARACTER  NO-UNDO INITIAL "<All>":U.
-DEFINE VARIABLE gcColumnWidths      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBaseQueryAll      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBaseQueryTF       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcCurrentSort       AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE gcLinkNames         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcTitle             AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gdSmartLinkObj      AS DECIMAL    NO-UNDO.
 DEFINE VARIABLE glShowFilter        AS LOGICAL    NO-UNDO INITIAL FALSE.
@@ -98,8 +97,6 @@ DEFINE VARIABLE ghParentContainer   AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghSmartLink         AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghSOInstance        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghTOInstance        AS HANDLE     NO-UNDO.
-DEFINE VARIABLE ghSColumn           AS HANDLE     NO-UNDO.
-DEFINE VARIABLE ghTColumn           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghBrowse            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghQuery             AS HANDLE     NO-UNDO.
 
@@ -125,9 +122,10 @@ DEFINE VARIABLE ghQuery             AS HANDLE     NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiFilter rctBorder 
+&Scoped-Define ENABLED-OBJECTS buShow coFilterSource coLink coFilterTarget ~
+raShow coShow buSource buTarget fiFilter rctBorder 
 &Scoped-Define DISPLAYED-OBJECTS coFilterSource coLink coFilterTarget ~
-raShow coShow coToPage coFromPage fiFilter fiShow 
+raShow coShow fiFilter fiShow 
 
 /* Custom List Definitions                                              */
 /* ADM-ASSIGN-FIELDS,List-2,List-3,List-4,List-5,List-6                 */
@@ -159,13 +157,6 @@ FUNCTION getListItemPairs RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getPageItemPairs vTableWin 
-FUNCTION getPageItemPairs RETURNS CHARACTER
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getShowFilter vTableWin 
 FUNCTION getShowFilter RETURNS LOGICAL
   ( /* parameter-definitions */ )  FORWARD.
@@ -180,6 +171,13 @@ FUNCTION getUserDefinedLinks RETURNS CHARACTER
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD isVisibleObject vTableWin 
+FUNCTION isVisibleObject RETURNS LOGICAL
+  (pcObjectTypeCode AS CHARACTER)  FORWARD.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD reopenBrowseQuery vTableWin 
 FUNCTION reopenBrowseQuery RETURNS LOGICAL
     (pcSubstituteList AS CHARACTER,
@@ -188,30 +186,9 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setBrowseSensitivity vTableWin 
-FUNCTION setBrowseSensitivity RETURNS LOGICAL
-  (plSensitive AS LOGICAL)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setFilterSensitivity vTableWin 
-FUNCTION setFilterSensitivity RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setShowFilter vTableWin 
 FUNCTION setShowFilter RETURNS LOGICAL
   (plShowFilter AS LOGICAL)  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD transferToExcel vTableWin 
-FUNCTION transferToExcel RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -253,12 +230,6 @@ DEFINE VARIABLE coFilterTarget AS CHARACTER FORMAT "X(256)":U INITIAL "0"
      DROP-DOWN-LIST
      SIZE 34.8 BY 1 NO-UNDO.
 
-DEFINE VARIABLE coFromPage AS CHARACTER FORMAT "X(256)":U INITIAL "0" 
-     VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "0","0"
-     DROP-DOWN-LIST
-     SIZE 27.2 BY 1 NO-UNDO.
-
 DEFINE VARIABLE coLink AS CHARACTER 
      LABEL "Link" 
      VIEW-AS COMBO-BOX INNER-LINES 5
@@ -269,13 +240,7 @@ DEFINE VARIABLE coShow AS CHARACTER FORMAT "X(256)":U INITIAL "0"
      VIEW-AS COMBO-BOX INNER-LINES 5
      LIST-ITEMS "0" 
      DROP-DOWN-LIST
-     SIZE 27.2 BY 1 NO-UNDO.
-
-DEFINE VARIABLE coToPage AS CHARACTER FORMAT "X(256)":U INITIAL "0" 
-     VIEW-AS COMBO-BOX INNER-LINES 5
-     LIST-ITEM-PAIRS "0","0"
-     DROP-DOWN-LIST
-     SIZE 27.2 BY 1 NO-UNDO.
+     SIZE 29.2 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiFilter AS CHARACTER FORMAT "X(256)":U INITIAL "  Filter" 
       VIEW-AS TEXT 
@@ -290,31 +255,27 @@ DEFINE VARIABLE raShow AS CHARACTER
      VIEW-AS RADIO-SET VERTICAL
      RADIO-BUTTONS 
           "All links", "1",
-"To/From", "2",
-"To page", "3",
-"From page", "4"
-     SIZE 14.6 BY 3.81 NO-UNDO.
+"To/From", "2"
+     SIZE 12 BY 1.52 NO-UNDO.
 
 DEFINE RECTANGLE rctBorder
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 106.4 BY 10.
+     SIZE 106.4 BY 7.62.
 
 DEFINE RECTANGLE rctShow
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 48.6 BY 4.57.
+     SIZE 48.6 BY 2.29.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     buShow AT ROW 7.14 COL 100.4
+     buShow AT ROW 6.95 COL 100.4
      coFilterSource AT ROW 2.29 COL 63.8 COLON-ALIGNED
      coLink AT ROW 3.38 COL 63.8 COLON-ALIGNED
      coFilterTarget AT ROW 4.48 COL 63.8 COLON-ALIGNED
      raShow AT ROW 6.33 COL 58.4 NO-LABEL
-     coShow AT ROW 7.14 COL 71 COLON-ALIGNED NO-LABEL
-     coToPage AT ROW 8.19 COL 71 COLON-ALIGNED NO-LABEL
-     coFromPage AT ROW 9.24 COL 71 COLON-ALIGNED NO-LABEL
+     coShow AT ROW 6.95 COL 69 COLON-ALIGNED NO-LABEL
      buSource AT ROW 2.29 COL 101
      buTarget AT ROW 4.48 COL 101
      fiFilter AT ROW 1.33 COL 55.2 COLON-ALIGNED NO-LABEL
@@ -360,7 +321,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW vTableWin ASSIGN
-         HEIGHT             = 10
+         HEIGHT             = 7.76
          WIDTH              = 106.6.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -388,27 +349,7 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
-/* SETTINGS FOR BUTTON buShow IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR BUTTON buSource IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR BUTTON buTarget IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coFilterSource IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coFilterTarget IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coFromPage IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coLink IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coShow IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR COMBO-BOX coToPage IN FRAME frMain
-   NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fiShow IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RADIO-SET raShow IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR RECTANGLE rctShow IN FRAME frMain
    NO-ENABLE                                                            */
@@ -500,21 +441,6 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME coFromPage
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coFromPage vTableWin
-ON VALUE-CHANGED OF coFromPage IN FRAME frMain
-DO:
-  ASSIGN
-      coFilterSource:SCREEN-VALUE   = coShow:SCREEN-VALUE
-      coFilterTarget:SCREEN-VALUE   = coShow:SCREEN-VALUE.
-  
-  DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, 0.00).
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME coLink
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coLink vTableWin
 ON VALUE-CHANGED OF coLink IN FRAME frMain /* Link */
@@ -547,28 +473,36 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME coToPage
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL coToPage vTableWin
-ON VALUE-CHANGED OF coToPage IN FRAME frMain
-DO:
-  ASSIGN
-      coFilterSource:SCREEN-VALUE   = coShow:SCREEN-VALUE
-      coFilterTarget:SCREEN-VALUE   = coShow:SCREEN-VALUE.
-  
-  DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, 0.00).
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
 &Scoped-define SELF-NAME raShow
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL raShow vTableWin
 ON VALUE-CHANGED OF raShow IN FRAME frMain
 DO:
   ASSIGN raShow.
   
-  DYNAMIC-FUNCTION("setFilterSensitivity":U).
+  IF raShow:SCREEN-VALUE = "1":U THEN
+  DO:
+    ASSIGN
+        coFilterSource:SENSITIVE    = TRUE
+        coFilterTarget:SENSITIVE    = TRUE
+        buSource:SENSITIVE          = TRUE
+        buTarget:SENSITIVE          = TRUE
+        coShow:SENSITIVE            = FALSE
+        buShow:SENSITIVE            = FALSE.
+        
+    IF INDEX(coFilterSource:LIST-ITEMS, cOldSourceValue) <> 0 THEN coFilterSource:SCREEN-VALUE = cOldSourceValue.
+    IF INDEX(coFilterTarget:LIST-ITEMS, cOldTargetValue) <> 0 THEN coFilterTarget:SCREEN-VALUE = cOldTargetValue.
+  END.
+  ELSE
+    ASSIGN
+        coFilterSource:SCREEN-VALUE = coShow:SCREEN-VALUE
+        coFilterTarget:SCREEN-VALUE = coShow:SCREEN-VALUE
+        coFilterSource:SENSITIVE    = FALSE
+        coFilterTarget:SENSITIVE    = FALSE
+        buSource:SENSITIVE          = FALSE
+        buTarget:SENSITIVE          = FALSE
+        coShow:SENSITIVE            = TRUE
+        buShow:SENSITIVE            = TRUE.
+
   DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, 0.00).
 END.
 
@@ -631,22 +565,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearFilters vTableWin 
-PROCEDURE clearFilters :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  coLink:SCREEN-VALUE  IN FRAME {&FRAME-NAME} = ENTRY(1, coLink:LIST-ITEMS, coLink:DELIMITER).
-
-  RUN setupMaintenance.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createBrowse vTableWin 
 PROCEDURE createBrowse :
 /*------------------------------------------------------------------------------
@@ -656,11 +574,10 @@ PROCEDURE createBrowse :
 ------------------------------------------------------------------------------*/
   DEFINE VARIABLE cQueryPrepare     AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cColumnName       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cEntry            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE iFieldLoop        AS INTEGER    NO-UNDO.
   DEFINE VARIABLE httObjectInstance AS HANDLE     NO-UNDO.
   DEFINE VARIABLE httSmartLink      AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hColumn           AS HANDLE     NO-UNDO EXTENT 11.
+  DEFINE VARIABLE hColumn           AS HANDLE     NO-UNDO.
   DEFINE VARIABLE hBuffer           AS HANDLE     NO-UNDO.
   
   SESSION:SET-WAIT-STATE("GENERAL":U).
@@ -689,37 +606,26 @@ PROCEDURE createBrowse :
          QUERY                  = ghQuery
          REFRESHABLE            = YES
   TRIGGERS:            
-      ON "START-SEARCH":U   PERSISTENT RUN trgStartSearch   IN THIS-PROCEDURE.
-      ON "VALUE-CHANGED":U  PERSISTENT RUN trgValueChanged  IN THIS-PROCEDURE.
-      ON "ROW-DISPLAY":U    PERSISTENT RUN trgRowDisplay    IN THIS-PROCEDURE.
+      ON "START-SEARCH":U   PERSISTENT RUN trgStartSearch  IN THIS-PROCEDURE.
+      ON "VALUE-CHANGED":U  PERSISTENT RUN trgValueChanged IN THIS-PROCEDURE.
   END TRIGGERS.
+  
+  hColumn = ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("c_instance_name":U)).
+  hColumn:LABEL = "Source".
+  
+  ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("i_page":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("i_row":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("i_column":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("c_lcr":U)).
+  ghBrowse:ADD-LIKE-COLUMN( ghSmartLink:BUFFER-FIELD("c_link_name":U)).
 
-  ASSIGN
-      hColumn[1]  = ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("c_instance_name":U))
-      hColumn[2]  = ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("i_page":U))
-      hColumn[3]  = ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("i_row":U))
-      hColumn[4]  = ghBrowse:ADD-CALC-COLUMN("CHAR":U, "X":U, "":U, "C":U)
-      hColumn[5]  = ghBrowse:ADD-LIKE-COLUMN(ghSOInstance:BUFFER-FIELD("c_lcr":U))
-      hColumn[6]  = ghBrowse:ADD-LIKE-COLUMN( ghSmartLink:BUFFER-FIELD("c_link_name":U))
-      hColumn[7]  = ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("c_instance_name":U))
-      hColumn[8]  = ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("i_page":U))
-      hColumn[9]  = ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("i_row":U))
-      hColumn[10] = ghBrowse:ADD-CALC-COLUMN("CHAR":U, "X":U, "":U, "C":U)
-      hColumn[11] = ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("c_lcr":U))
+  hColumn = ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("c_instance_name":U)).
+  hColumn:LABEL = "Target".
 
-      hColumn[1]:LABEL = "Source"
-      hColumn[7]:LABEL = "Target"
-      hColumn[4]:NAME  = "i_scolumn":U
-      hColumn[10]:NAME = "i_tcolumn":U
-      ghSColumn        = hColumn[4]
-      ghTColumn        = hColumn[10].
-
-  DO iFieldLoop = 1 TO ghBrowse:NUM-COLUMNS:
-    cEntry = ENTRY(iFieldLoop, gcColumnWidths, "^":U).
-
-    IF INTEGER(cEntry) <> 0 THEN
-      hColumn[iFieldLoop]:WIDTH-PIXELS = INTEGER(cEntry).
-  END.
+  ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("i_page":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("i_row":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("i_column":U)).
+  ghBrowse:ADD-LIKE-COLUMN(ghTOInstance:BUFFER-FIELD("c_lcr":U)).
 
   /* And show the browse to the user */
   ASSIGN
@@ -735,7 +641,8 @@ PROCEDURE createBrowse :
                          + "   FIRST ttTargetObjectInstance":U
                          + "   WHERE ttTargetObjectInstance.d_object_instance_obj = ttSmartLink.d_target_object_instance_obj":U
                          + "     AND ttTargetObjectInstance.c_instance_name       = ttTargetObjectInstance.c_instance_name":U
-                         + "     AND ttTargetObjectInstance.c_action             <> 'D'":U.
+                         + "     AND ttTargetObjectInstance.c_action             <> 'D'":U
+      gcCurrentSort      = " BY ttSmartLink.c_link_name ":U.
 
   SESSION:SET-WAIT-STATE("":U).
 
@@ -755,27 +662,6 @@ PROCEDURE destroyObject :
 ------------------------------------------------------------------------------*/
 
   /* Code placed here will execute PRIOR to standard behavior. */
-  DEFINE VARIABLE cPreferences  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
-
-  cPreferences = "DefaultSort":U  + "|":U + gcCurrentSort        + "|":U
-               + "ShowFilter":U   + "|":U + STRING(glShowFilter) + "|":U
-               + "ColumnWidths":U + "|":U.
-
-  DO iColumn = 1 TO ghBrowse:NUM-COLUMNS:
-    cPreferences = cPreferences + STRING(ghBrowse:GET-BROWSE-COLUMN(iColumn):WIDTH-PIXELS) + "^":U.
-  END.
-
-  cPreferences = TRIM(cPreferences, "^":U).
-
-  IF VALID-HANDLE(gshProfileManager) THEN
-    RUN setProfileData IN gshProfileManager (INPUT "Window":U,        /* Profile type code      */
-                                             INPUT "CBuilder":U,      /* Profile code           */
-                                             INPUT "LinkPreferences", /* Profile data key       */
-                                             INPUT ?,                 /* Rowid of profile data  */
-                                             INPUT cPreferences,      /* Profile data value     */
-                                             INPUT NO,                /* Delete flag            */
-                                             INPUT "PER":U).          /* Save flag (permanent)  */
 
   RUN SUPER.
 
@@ -804,45 +690,6 @@ PROCEDURE disable_UI :
   /* Hide all frames. */
   HIDE FRAME frMain.
   IF THIS-PROCEDURE:PERSISTENT THEN DELETE PROCEDURE THIS-PROCEDURE.
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getProfileData vTableWin 
-PROCEDURE getProfileData :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cPrefs  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iEntry  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE rRowId  AS ROWID      NO-UNDO.
-
-  ASSIGN
-      gcColumnWidths  = "0^0^0^0^0^0^0^0^0^0^0":U
-      gcCurrentSort   = " BY ttSmartLink.c_link_name ":U.
-  
-  IF VALID-HANDLE(gshProfileManager) THEN
-    RUN getProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code     */
-                                             INPUT "CBuilder":U,        /* Profile code          */
-                                             INPUT "LinkPreferences":U, /* Profile data key      */
-                                             INPUT "NO":U,              /* Get next record flag  */
-                                             INPUT-OUTPUT rRowid,       /* Rowid of profile data */
-                                             OUTPUT cPrefs).            /* Found profile data.   */
-
-  /* --- Preference lookup --------------------- */ /* --- Preference value assignment -------------------------------------------- */
-  iEntry = LOOKUP("ColumnWidths":U, cPrefs, "|":U). IF iEntry <> 0 THEN gcColumnWidths = ENTRY(iEntry + 1, cPrefs, "|":U).
-  iEntry = LOOKUP("DefaultSort":U,  cPrefs, "|":U). IF iEntry <> 0 THEN gcCurrentSort  = ENTRY(iEntry + 1, cPrefs, "|":U).
-  iEntry = LOOKUP("ShowFilter":U,   cPrefs, "|":U). IF iEntry <> 0 THEN glShowFilter   = (ENTRY(iEntry + 1, cPrefs, "|":U) = "yes":U).
-
-  /* glShowFilter is inverted because a call to toolbar in the container is made as part of initialization. This will have the same
-     effect as clicking on the filter icon which will then hide / show the filter again */
-  glShowFilter = NOT glShowFilter.
-  
-  RETURN.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -889,24 +736,19 @@ PROCEDURE initializeObject :
     ASSIGN
         coShow:DELIMITER         = CHR(3)
         coFilterSource:DELIMITER = CHR(3)
-        coFilterTarget:DELIMITER = CHR(3)
-        coFromPage:DELIMITER     = CHR(3)
-        coToPage:DELIMITER       = CHR(3).
+        coFilterTarget:DELIMITER = CHR(3).
   END.
 
   {get ContainerSource ghContainerSource}.
   {get ContainerHandle ghContainerHandle ghContainerSource}.
   {get ContainerSource ghParentContainer ghContainerSource}.
 
-  SUBSCRIBE TO "objectLocated":U IN THIS-PROCEDURE.
-  SUBSCRIBE TO "clearFilters":U  IN ghParentContainer.
+  SUBSCRIBE TO "objectLocated":U  IN THIS-PROCEDURE.
 
   gcTitle = ghContainerHandle:TITLE.
 
-  RUN getProfileData.
   RUN createBrowse.
   RUN buildCombo.
-  RUN toolbar IN ghContainerSource (INPUT "ShowFilter":U).
 
   RUN SUPER.
 
@@ -934,7 +776,7 @@ PROCEDURE objectLocated :
 
   CREATE BUFFER httObjectInstance FOR TABLE httObjectInstance.
 
-  httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = ":U + QUOTER(pdObjectInstanceObj)).
+  httObjectInstance:FIND-FIRST("WHERE d_object_instance_obj = DECIMAL('":U + STRING(pdObjectInstanceObj) + "')":U).
 
   DO WITH FRAME {&FRAME-NAME}:
 
@@ -979,26 +821,15 @@ PROCEDURE refreshData :
   DEFINE INPUT PARAMETER pcAction     AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pdObjNumber  AS DECIMAL    NO-UNDO.
 
-  IF {fnarg getUserProperty 'DisplayNow':U ghContainerSource} <> "No":U THEN
-    gdSmartLinkObj = pdObjNumber.
+  gdSmartLinkObj = pdObjNumber.
   
   CASE pcAction:
-    WHEN "NewData":U THEN
-    DO:
-      IF {fnarg getUserProperty 'DisplayNow':U ghContainerSource} <> "No":U THEN
-        RUN setupMaintenance.
-      ELSE
-        DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, gdSmartLinkObj).
-    END.
+    WHEN "NewData":U THEN RUN setupMaintenance.
     
     WHEN "Updated":U THEN
       IF ghQuery:NUM-RESULTS > 0 THEN
         ghBrowse:REFRESH().
   END CASE.
-
-  IF ghContainerHandle   = CURRENT-WINDOW AND
-     ghQuery:NUM-RESULTS > 0              THEN
-    APPLY "ENTRY":U TO ghBrowse.
 
   RETURN.
 
@@ -1077,17 +908,15 @@ PROCEDURE resizeViewerObjects :
 
         coFilterSource:COLUMN  = coFilterSource:COLUMN + dDifference
         coFilterTarget:COLUMN  = coFilterTarget:COLUMN + dDifference
-        coFromPage:COLUMN      = coFromPage:COLUMN     + dDifference
-        coToPage:COLUMN        = coToPage:COLUMN       + dDifference
         fiFilter:COLUMN        = fiFilter:COLUMN       + dDifference
         buSource:COLUMN        = buSource:COLUMN       + dDifference
         buTarget:COLUMN        = buTarget:COLUMN       + dDifference
+        rctShow:COLUMN         = fiFilter:COLUMN       - 0.25
         coLink:COLUMN          = coLink:COLUMN         + dDifference
         fiShow:COLUMN          = fiShow:COLUMN         + dDifference
         raShow:COLUMN          = raShow:COLUMN         + dDifference
         coShow:COLUMN          = coShow:COLUMN         + dDifference
         buShow:COLUMN          = buShow:COLUMN         + dDifference
-        rctShow:COLUMN         = fiFilter:COLUMN       - 0.25
 
         coFilterSource:SIDE-LABEL-HANDLE:COLUMN = coFilterSource:SIDE-LABEL-HANDLE:COLUMN + dDifference
         coFilterTarget:SIDE-LABEL-HANDLE:COLUMN = coFilterTarget:SIDE-LABEL-HANDLE:COLUMN + dDifference
@@ -1115,55 +944,42 @@ PROCEDURE setupMaintenance :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cContainerMode    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cListItemPairs    AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cMessage          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cButton           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cTitle            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hContainerHandle  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE cObjectFilename AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cContainerMode  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cListItemPairs  AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cButton         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessage        AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE httSmartObject  AS HANDLE     NO-UNDO.
+
+  httSmartObject = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartObject":U)).
   
-  {get ContainerHandle hContainerHandle ghParentContainer}.
+  httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0.00":U).
 
-  ghContainerHandle:TITLE = gcTitle + " ":U + (IF NUM-ENTRIES(hContainerHandle:TITLE, "-") >= 2 THEN TRIM(ENTRY(2, hContainerHandle:TITLE, "-":U)) ELSE "":U).
+  ASSIGN
+      cObjectFilename = httSmartObject:BUFFER-FIELD("c_object_filename":U):BUFFER-VALUE
+      cObjectFilename = (IF cObjectFilename = "":U OR cObjectFilename = ? THEN "New":U ELSE cObjectFilename).
+  
+  ghContainerHandle:TITLE = gcTitle + " ":U + cObjectFilename.
 
-  IF {fnarg getUserProperty 'SameContainer'} <> "yes":U THEN
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
         cListItemPairs              = DYNAMIC-FUNCTION("getListItemPairs":U)
         coFilterSource:LIST-ITEMS   = "<All>":U + coFilterSource:DELIMITER + cListItemPairs
-        coFromPage:LIST-ITEM-PAIRS  = DYNAMIC-FUNCTION("getPageItemPairs":U)
-        coToPage:LIST-ITEM-PAIRS    = coFromPage:LIST-ITEM-PAIRS
         coFilterSource:SCREEN-VALUE = "<All>":U
         coFilterTarget:LIST-ITEMS   = coFilterSource:LIST-ITEMS
         coFilterTarget:SCREEN-VALUE = "<All>":U
         coShow:LIST-ITEMS           = "<All>":U + coFilterSource:DELIMITER + cListItemPairs
-        coFromPage:SCREEN-VALUE     = ENTRY(2, coFromPage:LIST-ITEM-PAIRS, coFromPage:DELIMITER)
-        coToPage:SCREEN-VALUE       = ENTRY(2, coToPage:LIST-ITEM-PAIRS,   coToPage:DELIMITER)
         coShow:SCREEN-VALUE         = "<All>":U
         raShow:SCREEN-VALUE         = "1":U
         .
 
+    APPLY "VALUE-CHANGED":U TO raShow.
   END.
-
-  APPLY "VALUE-CHANGED":U TO raShow.
-
+/*
+  DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, 0.00). /*pdSmartLinkObj*/
+*/
   RETURN.
 
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE trgRowDisplay vTableWin 
-PROCEDURE trgRowDisplay :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  ghSColumn:SCREEN-VALUE = KEY-LABEL(KEY-CODE("A") + ghSOInstance:BUFFER-FIELD("i_column":U):BUFFER-VALUE - 1).
-  ghTColumn:SCREEN-VALUE = KEY-LABEL(KEY-CODE("A") + ghTOInstance:BUFFER-FIELD("i_column":U):BUFFER-VALUE - 1).
-  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1193,20 +1009,12 @@ PROCEDURE trgStartSearch :
     dSmartLinkObj = 0.00.
 
   /* Determine the new row. */
-  ASSIGN
-      hColumn       = ghBrowse:CURRENT-COLUMN
-      cColumnName   = hColumn:NAME
-      cColumnName   = (IF cColumnName = "i_scolumn":U OR cColumnName = "i_tcolumn":U THEN "i_column":U ELSE cColumnName).
-
-  IF VALID-HANDLE(hColumn:BUFFER-FIELD) THEN
-    cTableName = hColumn:BUFFER-FIELD:BUFFER-HANDLE:NAME.
-  ELSE
-    IF hColumn:NAME = "i_scolumn":U THEN
-      cTableName = ghSOInstance:NAME.
-    ELSE
-      cTableName = ghTOInstance:NAME.
-
-      gcCurrentSort = " BY ":U  + cTableName + (IF cTableName = ? THEN "":U ELSE ".":U) + cColumnName + " ":U.
+  ASSIGN hColumn       = ghBrowse:CURRENT-COLUMN
+         hBuffer       = hColumn:BUFFER-FIELD
+         hBuffer       = hBuffer:BUFFER-HANDLE
+         cColumnName   = hColumn:NAME
+         cTableName    = hBuffer:NAME
+         gcCurrentSort = " BY ":U  + cTableName + (IF cTableName = ? THEN "":U ELSE ".":U) + cColumnName + " ":U.
 
   DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U, dSmartLinkObj).
 
@@ -1224,24 +1032,19 @@ PROCEDURE trgValueChanged :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-
-  IF {fnarg getUserProperty 'DisplayNow':U ghContainerSource} = "No":U THEN
-    RETURN.
-
-  IF DYNAMIC-FUNCTION("transferActive":U IN ghParentContainer) = TRUE THEN
-    RETURN.
-
+  DEFINE VARIABLE dSmartLinkObj AS DECIMAL    NO-UNDO.
+  
   IF ghSmartLink:AVAILABLE  = FALSE OR
      ghQuery:NUM-RESULTS   <= 0     THEN
-    gdSmartLinkObj = ?.
+    dSmartLinkObj = ?.
   ELSE
   DO:
     ghBrowse:SELECT-FOCUSED-ROW() NO-ERROR.
     
-    gdSmartLinkObj = ghSmartLink:BUFFER-FIELD("d_smartlink_obj":U):BUFFER-VALUE.
+    dSmartLinkObj = ghSmartLink:BUFFER-FIELD("d_smartlink_obj":U):BUFFER-VALUE.
   END.
 
-  PUBLISH "RowSelected":U FROM THIS-PROCEDURE (INPUT gdSmartLinkObj).
+  PUBLISH "RowSelected":U FROM THIS-PROCEDURE (INPUT dSmartLinkObj).
 
   RETURN.
 
@@ -1348,7 +1151,7 @@ FUNCTION getListItemPairs RETURNS CHARACTER
 
     hQuery:SET-BUFFERS(httObjectInstance).
     hQuery:QUERY-PREPARE("FOR EACH ttObjectInstance":U
-                         + " WHERE ttObjectInstance.d_object_instance_obj <> 0":U
+                         + " WHERE ttObjectInstance.d_object_instance_obj <> 0.00":U
                          + "   AND ttObjectInstance.c_action              <> 'D'":U
                          + "    BY ttObjectInstance.c_instance_name":U).
     hQuery:QUERY-OPEN().
@@ -1373,65 +1176,6 @@ FUNCTION getListItemPairs RETURNS CHARACTER
     ASSIGN
         httObjectInstance = ?
         hQuery            = ?.
-  END.
-
-  RETURN cListItemPairs.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getPageItemPairs vTableWin 
-FUNCTION getPageItemPairs RETURNS CHARACTER
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cListItemPairs          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iPageSequence           AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE dCustomizationResultObj AS DECIMAL    NO-UNDO.
-  DEFINE VARIABLE bhttPage                AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE httPage                 AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hQuery                  AS HANDLE     NO-UNDO.
-
-  DO WITH FRAME {&FRAME-NAME}:
-    ASSIGN
-        dCustomizationResultObj = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "CustomizationResultObj":U))
-        httPage                 = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttPage":U))
-        cListItemPairs          = "":U.
-    
-    CREATE BUFFER httPage FOR TABLE httPage.
-    CREATE QUERY  hQuery.
-
-    hQuery:SET-BUFFERS(httPage).
-    hQuery:QUERY-PREPARE("FOR EACH ttPage":U
-                         + " WHERE ttPage.d_customization_result_obj = ":U + QUOTER(dCustomizationResultObj)
-                         + "   AND ttPage.c_action              <> 'D'":U
-                         + "    BY ttPage.i_page_sequence":U).
-    hQuery:QUERY-OPEN().
-    hQuery:GET-FIRST().
-
-    DO WHILE NOT hQuery:QUERY-OFF-END:
-      iPageSequence = httPage:BUFFER-FIELD("i_page_sequence":U):BUFFER-VALUE.
-
-      IF LOOKUP(iPageSequence, cListItemPairs, coFromPage:DELIMITER) = 0 THEN
-        ASSIGN
-            cListItemPairs = cListItemPairs
-                           + (IF cListItemPairs = "":U THEN "":U ELSE coFromPage:DELIMITER)
-                           + TRIM(REPLACE(httPage:BUFFER-FIELD("c_page_label":U):BUFFER-VALUE, "&":U, "":U)) + coFromPage:DELIMITER
-                           + TRIM(STRING(iPageSequence)) .
-
-      hQuery:GET-NEXT().
-    END.
-
-    DELETE OBJECT httPage.
-    DELETE OBJECT hQuery.
-
-    ASSIGN
-        httPage = ?
-        hQuery  = ?.
   END.
 
   RETURN cListItemPairs.   /* Function return value. */
@@ -1471,6 +1215,26 @@ END FUNCTION.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION isVisibleObject vTableWin 
+FUNCTION isVisibleObject RETURNS LOGICAL
+  (pcObjectTypeCode AS CHARACTER) :
+/*------------------------------------------------------------------------------
+  Purpose:  
+    Notes:  
+------------------------------------------------------------------------------*/
+  DEFINE VARIABLE lVisibleObject  AS LOGICAL    NO-UNDO INITIAL FALSE.
+  
+  IF INDEX(pcObjectTypeCode, "SDO":U) = 0 AND
+     INDEX(pcObjectTypeCode, "SBO":U) = 0 THEN
+    lVisibleObject = TRUE.
+  
+  RETURN lVisibleObject.   /* Function return value. */
+
+END FUNCTION.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION reopenBrowseQuery vTableWin 
 FUNCTION reopenBrowseQuery RETURNS LOGICAL
     (pcSubstituteList AS CHARACTER,
@@ -1486,7 +1250,7 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
   DEFINE VARIABLE httSmartLink    AS HANDLE     NO-UNDO.
   
   httSmartLink = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartLink":U)).
-
+  
   IF NOT VALID-HANDLE(httSmartLink) THEN
     RETURN FALSE.
 
@@ -1516,34 +1280,21 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
 
           cBaseQuery = gcBaseQueryAll.
 
-    CASE raShow:SCREEN-VALUE:
-      /* All */
-      WHEN "1":U THEN
-      DO:
-        IF coFilterSource:SCREEN-VALUE <> "<All>":U THEN
-          cBaseQuery = REPLACE(cBaseQuery, "= ttSourceObjectInstance.c_instance_name":U, "= '":U + coFilterSource:SCREEN-VALUE + "'":U).
-          
-        IF coFilterTarget:SCREEN-VALUE <> "<All>":U THEN
-          cBaseQuery = REPLACE(cBaseQuery, "= ttTargetObjectInstance.c_instance_name":U, "= '":U + coFilterTarget:SCREEN-VALUE + "'":U).
-      END.
-      
-      /* To/From */
-      WHEN "2":U THEN
-      DO:
-        IF coShow:SCREEN-VALUE <> "<All>":U THEN
-          cBaseQuery = cBaseQuery
-                     + " AND (ttSourceObjectInstance.c_instance_name = '":U + coShow:SCREEN-VALUE + "'":U
-                     + "  OR  ttTargetObjectInstance.c_instance_name = '":U + coShow:SCREEN-VALUE + "')":U.
-      END.
-      
-      /* To page */
-      WHEN "3":U THEN
-        cBaseQuery = cBaseQuery + " AND ttTargetObjectInstance.i_page = ":U + coToPage:SCREEN-VALUE.
-
-      /* From page */
-      WHEN "4":U THEN
-        cBaseQuery = cBaseQuery + " AND ttSourceObjectInstance.i_page = ":U + coFromPage:SCREEN-VALUE.
-    END CASE.
+    IF raShow:SCREEN-VALUE = "1":U THEN /* All */
+    DO:
+      IF coFilterSource:SCREEN-VALUE <> "<All>":U THEN
+        cBaseQuery = REPLACE(cBaseQuery, "= ttSourceObjectInstance.c_instance_name":U, "= '":U + coFilterSource:SCREEN-VALUE + "'":U).
+        
+      IF coFilterTarget:SCREEN-VALUE <> "<All>":U THEN
+        cBaseQuery = REPLACE(cBaseQuery, "= ttTargetObjectInstance.c_instance_name":U, "= '":U + coFilterTarget:SCREEN-VALUE + "'":U).
+    END.
+    ELSE /* To/From */
+    DO:
+      IF coShow:SCREEN-VALUE <> "<All>":U THEN
+        cBaseQuery = cBaseQuery
+                   + " AND (ttSourceObjectInstance.c_instance_name = '":U + coShow:SCREEN-VALUE + "'":U
+                   + "  OR  ttTargetObjectInstance.c_instance_name = '":U + coShow:SCREEN-VALUE + "')":U.
+    END.
     
     cBaseQuery = SUBSTITUTE(cBaseQuery,
                             cSubstituteList[1],
@@ -1561,14 +1312,8 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
       cBaseQuery = REPLACE(cBaseQuery, "= ttSmartLink.c_link_name":U, "= '":U + coLink:SCREEN-VALUE + "'":U).
 
     /* Always reopen, in case the sort has changed. */
-    gcCurrentSort = (IF INDEX(gcCurrentSort, ".i_scolumn":U) <> 0 THEN REPLACE(gcCurrentSort, ".i_scolumn":U, ".i_column":U) ELSE gcCurrentSort).
-    gcCurrentSort = (IF INDEX(gcCurrentSort, ".i_tcolumn":U) <> 0 THEN REPLACE(gcCurrentSort, ".i_tcolumn":U, ".i_column":U) ELSE gcCurrentSort).
-
-    lSuccess = ghQuery:QUERY-PREPARE(cBaseQuery + gcCurrentSort) NO-ERROR.
-
-    IF NOT lSuccess THEN
-      ghQuery:QUERY-PREPARE(cBaseQuery).
-
+    ghQuery:QUERY-PREPARE(cBaseQuery + gcCurrentSort).
+    
     IF ghQuery:IS-OPEN THEN
        ghQuery:QUERY-CLOSE().
   
@@ -1579,108 +1324,20 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
 
     IF ghQuery:NUM-RESULTS > 0 THEN
     DO:
-      httSmartLink:FIND-FIRST("WHERE d_smartlink_obj = ":U + QUOTER(gdSmartLinkObj)) NO-ERROR.
-
+      httSmartLink:FIND-FIRST("WHERE d_smartlink_obj = DECIMAL(":U + QUOTER(gdSmartLinkObj) + ")":U) NO-ERROR.
+      
       IF httSmartLink:AVAILABLE THEN
         lSuccess = ghQuery:REPOSITION-TO-ROWID(httSmartLink:ROWID) NO-ERROR.
 
       IF lSuccess = FALSE THEN
         APPLY "VALUE-CHANGED":U TO ghBrowse.
+        /*ghBrowse:SELECT-ROW(ghBrowse:CURRENT).*/
     END.
   
     RUN trgValueChanged.
   END.
 
   RETURN TRUE.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setBrowseSensitivity vTableWin 
-FUNCTION setBrowseSensitivity RETURNS LOGICAL
-  (plSensitive AS LOGICAL) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  ghBrowse:SENSITIVE = plSensitive.
-  
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setFilterSensitivity vTableWin 
-FUNCTION setFilterSensitivity RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-    CASE raShow:SCREEN-VALUE:
-      WHEN "1":U THEN
-      DO:
-        ASSIGN
-            coFilterSource:SENSITIVE    = TRUE
-            coFilterTarget:SENSITIVE    = TRUE
-            buSource:SENSITIVE          = TRUE
-            buTarget:SENSITIVE          = TRUE
-            coShow:SENSITIVE            = FALSE
-            buShow:SENSITIVE            = FALSE
-            coFromPage:SENSITIVE        = FALSE
-            coToPage:SENSITIVE          = FALSE.
-            
-        IF INDEX(coFilterSource:LIST-ITEMS, cOldSourceValue) <> 0 THEN coFilterSource:SCREEN-VALUE = cOldSourceValue.
-        IF INDEX(coFilterTarget:LIST-ITEMS, cOldTargetValue) <> 0 THEN coFilterTarget:SCREEN-VALUE = cOldTargetValue.
-      END.
-      
-      WHEN "2":U THEN
-        ASSIGN
-            coFilterSource:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterTarget:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterSource:SENSITIVE    = FALSE
-            coFilterTarget:SENSITIVE    = FALSE
-            buSource:SENSITIVE          = FALSE
-            buTarget:SENSITIVE          = FALSE
-            coShow:SENSITIVE            = TRUE
-            buShow:SENSITIVE            = TRUE
-            coFromPage:SENSITIVE        = FALSE
-            coToPage:SENSITIVE          = FALSE.
-      
-      WHEN "3":U THEN
-        ASSIGN
-            coFilterSource:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterTarget:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterSource:SENSITIVE    = FALSE
-            coFilterTarget:SENSITIVE    = FALSE
-            buSource:SENSITIVE          = FALSE
-            buTarget:SENSITIVE          = FALSE
-            coShow:SENSITIVE            = FALSE
-            buShow:SENSITIVE            = FALSE
-            coFromPage:SENSITIVE        = FALSE
-            coToPage:SENSITIVE          = TRUE.
-      
-      WHEN "4":U THEN
-        ASSIGN
-            coFilterSource:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterTarget:SCREEN-VALUE = coShow:SCREEN-VALUE
-            coFilterSource:SENSITIVE    = FALSE
-            coFilterTarget:SENSITIVE    = FALSE
-            buSource:SENSITIVE          = FALSE
-            buTarget:SENSITIVE          = FALSE
-            coShow:SENSITIVE            = FALSE
-            buShow:SENSITIVE            = FALSE
-            coToPage:SENSITIVE          = FALSE
-            coFromPage:SENSITIVE        = TRUE.
-    END CASE.
-  END.
-
-  RETURN TRUE.   /* Function return value. */
 
 END FUNCTION.
 
@@ -1696,47 +1353,7 @@ FUNCTION setShowFilter RETURNS LOGICAL
 ------------------------------------------------------------------------------*/
   glShowFilter = plShowFilter.
 
-  DO WITH FRAME {&FRAME-NAME}:
-    IF NOT glShowFilter THEN
-    DO:
-      DISABLE
-          coFilterSource  buSource
-          coFilterTarget  buTarget
-          coShow          buShow
-          coLink
-          raShow.
-    END.
-    ELSE
-    DO:
-      ENABLE coLink
-             raShow.
-
-      DYNAMIC-FUNCTION("setFilterSensitivity":U).
-    END.
-  END.
-
   RUN resizeObject (INPUT FRAME {&FRAME-NAME}:HEIGHT-CHARS, INPUT FRAME {&FRAME-NAME}:WIDTH-CHARS).
-
-  RETURN TRUE.   /* Function return value. */
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION transferToExcel vTableWin 
-FUNCTION transferToExcel RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-  {fnarg lockWindow TRUE ghContainerSource}.
-
-  RUN transferToExcel IN ghParentContainer (INPUT ghBrowse,
-                                            INPUT ghContainerSource).
-
-  {fnarg lockWindow FALSE ghContainerSource}.
 
   RETURN TRUE.   /* Function return value. */
 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008,2013 by Progress Software Corporation. All      *
+* Copyright (C) 2008,2013,2020 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,6 +40,8 @@ form.
     fernando   06/08/06 int64 support - type change
     fernando   08/10/06 Handle too many tables in db - 20060717-022
     fernando   06/26/08 Filter out schema tables for encryption
+    kberlia    10/29/20 Added default area support for LOB Fields.
+    tmasood    11/18/20 Fix the default area issue with BLOB 
 */     
 
 DEFINE INPUT  PARAMETER ronly   AS CHARACTER             NO-UNDO.
@@ -488,7 +490,7 @@ ON LEAVE OF dfields._Initial IN FRAME pro_fld,
             s_Initial IN FRAME pro_fld
 DO:
     IF dfields._Data-type = "INT64" OR 
-	( allow_type_change AND INPUT FRAME pro_fld s_Dtype = "INT64") THEN DO:
+        ( allow_type_change AND INPUT FRAME pro_fld s_Dtype = "INT64") THEN DO:
        IF DECIMAL(SELF:SCREEN-VALUE) > 9223372036854775807 OR 
           DECIMAL(SELF:SCREEN-VALUE) < -9223372036854775808 THEN DO:
            MESSAGE new_lang[12].
@@ -975,12 +977,25 @@ IF dfields._Data-type = "BLOB" THEN DO:
           ASSIGN arealist = DICTDB._Area._Area-name.           
         ELSE
           ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
-    
+     
+        FIND FIRST DICTDB._Db SHARE-LOCK NO-ERROR.
+        IF AVAILABLE DICTDB._Db AND _Db._Db-misc1[3] <> ? THEN 
+        DO:
+           FIND FIRST DICTDB._Area WHERE DICTDB._Area._Area-number = _Db._Db-misc1[3] NO-LOCK NO-ERROR.
+           IF AVAILABLE DICTDB._Area THEN 
+           DO:
+              IF LOOKUP(DICTDB._Area._Area-name,arealist,",") > 0 THEN
+                 ASSIGN arealist = REPLACE(arealist,DICTDB._Area._Area-name + ",","")
+                        arealist = DICTDB._Area._Area-name + "," + arealist
+                        lobarea  = DICTDB._Area._Area-name.
+           END.
+        END.
+        RELEASE DICTDB._Db.
         ASSIGN areaname:LIST-ITEMS IN FRAME pro-blob = arealist.
     end.
-                  
+                 
     DISPLAY areaname  lob-size neworder @ dfields._Order dfields._Desc dfields._Field-name WITH FRAME pro-blob.
-    ASSIGN areaname:SCREEN-VALUE = lobarea.
+    ASSIGN areaname:SCREEN-VALUE IN FRAME pro-blob = lobarea.
     SET areaname when lNoArea = false lob-size dfields._Order dfields._Desc  dfields._Field-name WITH FRAME pro-blob.    
   
   END.
@@ -1043,6 +1058,19 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
         ELSE
           ASSIGN arealist = arealist + "," + DICTDB._Area._Area-name.
     
+        FIND FIRST DICTDB._Db SHARE-LOCK NO-ERROR.
+        IF AVAILABLE DICTDB._Db AND _Db._Db-misc1[3] <> ? THEN
+        DO:
+           FIND FIRST DICTDB._Area WHERE DICTDB._Area._Area-number = _Db._Db-misc1[3] NO-LOCK NO-ERROR.
+           IF AVAILABLE DICTDB._Area THEN
+           DO:
+              IF LOOKUP(DICTDB._Area._Area-name,arealist,",") > 0 THEN
+                 ASSIGN arealist = REPLACE(arealist,DICTDB._Area._Area-name + ",","")
+                        arealist = DICTDB._Area._Area-name + "," + arealist
+                        lobarea  = DICTDB._Area._Area-name.
+           END.
+        END.
+        RELEASE DICTDB._Db.
         ASSIGN areaname:LIST-ITEMS IN FRAME pro-clob = arealist.
     end.
     
@@ -1055,10 +1083,10 @@ ELSE IF dfields._Data-type = "CLOB" THEN DO:
                 
     DISPLAY dfields._Field-name areaname lob-size neworder @ dfields._Order
             dfields._Fld-case cpname colname dfields._Desc WITH FRAME pro-clob.
-
+    
     ASSIGN areaname:SCREEN-VALUE IN FRAME pro-clob = lobarea
-           cpname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Code page"
-           colname:SCREEN-VALUE IN FRAME pro-clob = "*Use DB Collation".
+           cpname:SCREEN-VALUE IN FRAME pro-clob   = "*Use DB Code page"
+           colname:SCREEN-VALUE IN FRAME pro-clob  = "*Use DB Collation".
 
     SET areaname when lNoArea = false lob-size dfields._Order 
         dfields._Fld-case cpname colname dfields._Desc dfields._Field-name WITH FRAME pro-clob.

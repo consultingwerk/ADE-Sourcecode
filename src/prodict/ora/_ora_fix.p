@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2019 by Progress Software Corporation. All rights    *
+* Copyright (C) 2020 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -45,6 +45,7 @@ History:
    DLM         05/09/02 Change length from 30 to 26 to match protoora.
    DLM         07/23/02 Added _OWNER = "Pub" on the delete for each _file section. 20020723-004
    DLM         06/21/11 kmayur  added support for constraint - OE00195067                                
+   DLM         11/20/20 vmaganti  Increase max name size to 36  - OCTA-29898                                
 --------------------------------------------------------------------*/
 /*h-*/
 
@@ -79,7 +80,7 @@ DEFINE VARIABLE l_views          AS CHARACTER NO-UNDO.
 DEFINE vARIABLE l_sys-obj        AS CHARACTER NO-UNDO.
 DEFINE VARIABLE del-cycle        AS LOGICAL   NO-UNDO.
 
-DEFINE VARIABLE max_name_size    AS CHARACTER INITIAL "26" NO-UNDO.
+DEFINE VARIABLE max_name_size    AS CHARACTER INITIAL "36" NO-UNDO.
 DEFINE VARIABLE temp_dbtype-1    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE temp_size        AS INTEGER   NO-UNDO.
 DEFINE VARIABLE cid              AS CHARACTER NO-UNDO.

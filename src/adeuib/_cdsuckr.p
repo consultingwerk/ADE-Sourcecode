@@ -1,8 +1,8 @@
-/***********************************************************************
-* Copyright (C) 2005-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
+/************************************************************************
+* Copyright (C) 2005-2010,2021 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
 ************************************************************************/
 /*----------------------------------------------------------------------------
 
@@ -22,6 +22,7 @@ Author: D. Ross Hunter
 Created: 1993
 Updated: 03/05/95 jap   Added LIB-MGR support
          12/15/00 adams Added Remote File Management support
+         02/25/21 tm    Added check for 32000 character limit
 
 ---------------------------------------------------------------------------- */
 /*--------------------------------------------------------------------------
@@ -526,7 +527,16 @@ ELSE DO:
     IF _inp_line[1] eq ? THEN _inp_line[1] = "?".
     IF TRIM(_inp_line[1]) = "/* _UIB-CODE-BLOCK-END */" 
       THEN LEAVE READ-CODE.
-    ELSE _TRG._tCODE = _TRG._tCODE + _inp_line[1] + {&EOL}.
+    ELSE DO:
+        ASSIGN _TRG._tCODE = _TRG._tCODE + _inp_line[1] + {&EOL} NO-ERROR.
+        IF ERROR-STATUS:ERROR AND (LENGTH(_TRG._tCODE, "RAW") + LENGTH(_inp_line[1])) > 31900 THEN DO:
+          MESSAGE "Could not read the code under block" _TRG._tSECTION org-name SKIP
+                 "The section size exceeds the internal limit of 31900 characters." SKIP
+                 "Aborting the opening of the file."
+                 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+          RETURN "_ABORT".
+        END.   
+    END.
   END.  /* READ-CODE:REPEAT */
 END.
 

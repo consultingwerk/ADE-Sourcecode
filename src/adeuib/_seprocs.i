@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000-2016 by Progress Software Corporation. All      *
+* Copyright (C) 2000-2016,2021 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,6 +33,7 @@ Modified:
    09/28/01  jep  IZ 1429 adm-create-objects is db-required. Now defaults
                   to not db-required.
    03/07/02  jep  IZ 4098 AppBuilder undoes code changes wrong.
+   02/05/21  tm   Added message to inform about size limit in section editor
 ----------------------------------------------------------------------------*/
 
 
@@ -2974,6 +2975,7 @@ PROCEDURE display_trg.
   DEFINE VARIABLE window-handle AS HANDLE    NO-UNDO.
   DEFINE VARIABLE code_type     AS CHARACTER NO-UNDO.
   DEFINE VARIABLE lOK           AS LOGICAL   NO-UNDO.
+  DEFINE VARIABLE lInitialVal   AS LOGICAL       NO-UNDO INITIAL TRUE.
 
   DEFINE BUFFER x_U FOR _U.
   DEFINE BUFFER p_U FOR _U.
@@ -2998,6 +3000,12 @@ PROCEDURE display_trg.
                         _SEW_TRG._STATUS <> "DELETED" NO-ERROR.
     IF AVAILABLE _SEW_TRG THEN DO:
       txt = _SEW_TRG._tCODE.
+      /* We have a 20000 character limit for 64-bit section editor. */
+      IF LENGTH(txt, "RAW") > 20000 THEN DO:
+          RUN adecomm/_s-alert.p (INPUT-OUTPUT lInitialVal,"INFORMATION":u,"OK":u,
+                                  "The section of the file exceeds the internal limit of 20000 characters for the section editor." + 
+                                  " You can't edit this section, except for deleting characters to avoid the size limit.").
+      END.
       IF (_SEW_TRG._tSPECIAL NE ?) AND (_SEW_TRG._tCODE = ?)
       THEN RUN adeshar/_coddflt.p (_SEW_TRG._tSPECIAL, _SEW-recid, OUTPUT txt).
     END.

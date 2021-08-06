@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2017,2020 by Progress Software Corporation. All *
+* Copyright (C) 2000,2017,2020 by Progress Software Corporation. All      *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -40,7 +40,6 @@ McMann   98/07/10   Added DBVERSION and _Owner check for _file.
 McMann   98/10/08   Added available check for b_file.
 McMann   99/10/15   Changed DBVERSION check to use DICTDB
 Rohit    9/15/2017  Modified trig_proc to X(255)- PSC00360752
-tmasood  07/23/20   Fixed the error 565
 ----------------------------------------------------------------------------*/
 &GLOBAL-DEFINE WIN95-BTN YES
 {adedict/dictvar.i shared}
@@ -651,7 +650,7 @@ do:
       return NO-APPLY.
    end.
 
-   FIND FIRST _file where _file-name eq p_Name:screen-value NO-ERROR.
+   FIND FIRST _file where _file-name eq p_Name:screen-value.
    IF AVAIL _file THEN
    DO:
       IF trig_event = "DELETE" and _File._File-attributes[6] EQ TRUE THEN

@@ -122,22 +122,22 @@ DEFINE VARIABLE fiLabel AS CHARACTER FORMAT "X(256)":U INITIAL " Deploy Selected
      BGCOLOR 1 FGCOLOR 15  NO-UNDO.
 
 DEFINE VARIABLE toClient AS LOGICAL INITIAL no 
-     LABEL "Client machines" 
+     LABEL "Client Machines" 
      VIEW-AS TOGGLE-BOX
      SIZE 20.4 BY .81 TOOLTIP "Indicates objects should be deployed to client machines eg. UI objects" NO-UNDO.
 
 DEFINE VARIABLE toDesign AS LOGICAL INITIAL no 
-     LABEL "Development only" 
+     LABEL "Development Only" 
      VIEW-AS TOGGLE-BOX
      SIZE 31.2 BY .81 TOOLTIP "Indicates objects are only used for development" NO-UNDO.
 
 DEFINE VARIABLE toOverwrite AS LOGICAL INITIAL no 
-     LABEL "Overwrite existing setup" 
+     LABEL "Overwrite Existing Setup" 
      VIEW-AS TOGGLE-BOX
      SIZE 27.2 BY .81 TOOLTIP "YES will overwrite, NO will append - to existing object deployment setup" NO-UNDO.
 
 DEFINE VARIABLE toServer AS LOGICAL INITIAL no 
-     LABEL "Remote servers" 
+     LABEL "Remote Servers" 
      VIEW-AS TOGGLE-BOX
      SIZE 20.8 BY .81 TOOLTIP "Indicates objects should be deployed to remote servers eg. Appserver procedures" NO-UNDO.
 
@@ -445,7 +445,6 @@ DEFINE VARIABLE cStatus            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE hDeplType          AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hDesign            AS HANDLE     NO-UNDO.
 DEFINE VARIABLE iDeployCnt         AS INTEGER    NO-UNDO.
-DEFINE VARIABLE cObjectName        AS CHARACTER  NO-UNDO.
 
 DEFINE VARIABLE cDeploymentString       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cObjectDeploymentString AS CHARACTER  NO-UNDO.
@@ -458,10 +457,6 @@ ASSIGN cDeploymentString = (IF toServer:CHECKED = YES THEN "SRV,":U ELSE "":U)
        cDeploymentString = RIGHT-TRIM(cDeploymentString, ",":U)
        hBufferHandle     = ghBrowserHandle:QUERY:GET-BUFFER-HANDLE(1)
        hBrowser          = WIDGET-HANDLE(ENTRY(1,DYNAMIC-FUNCTION("linkHandles":U,"User1 *-Source":U))).
-
-IF VALID-HANDLE(hBufferHandle)
-AND hBufferHandle:AVAILABLE THEN
-    ASSIGN cObjectName = hBufferHandle:BUFFER-FIELD("object_filename":U):BUFFER-VALUE.
 
 {get dataSource hSDO hBrowser}.
 {get containerSource hContainerSource}.
@@ -521,21 +516,6 @@ END.
 
 ASSIGN cStatus = "":U.
 {set statusDefault cStatus hContainerSource}.
-
-/* Now refresh our query */
-IF VALID-HANDLE(hContainerSource) THEN
-    DYNAMIC-FUNCTION("lockContainingWindow":U IN hContainerSource, YES).
-
-DYNAMIC-FUNCTION("closeQuery":U IN hSDO) NO-ERROR.
-DYNAMIC-FUNCTION("openQuery":U IN hSDO) NO-ERROR.
-IF cObjectName <> "":U
-THEN DO:
-    {fnarg findRowWhere "'object_filename':U,cObjectName,'='" hSDO}.
-    ghBrowserHandle:SELECT-FOCUSED-ROW().
-END.
-
-IF VALID-HANDLE(hContainerSource) THEN
-    DYNAMIC-FUNCTION("lockContainingWindow":U IN hContainerSource, NO).
 
 END PROCEDURE.
 

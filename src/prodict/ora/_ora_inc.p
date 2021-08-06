@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008 by Progress Software Corporation. All rights    *
+* Copyright (C) 2020 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -17,6 +17,7 @@
              06/11/07 fernando  Unicode support   
              08/30/07 fernando  More Unicode support stuff
              01/22/08 fernando  Unicode support for ORACLE
+             11/20/20 vmaganti  Increase Oracle Object length to 32 OCTA-29898
 */   
 
 { prodict/user/uservar.i NEW }
@@ -327,8 +328,8 @@ ASSIGN user_env[1]  = df-file
        user_env[23] = "30"
        user_env[24] = "15"
        user_env[25] = "y"
-       user_env[28] = "30"
-       user_env[29] = "26"
+       user_env[28] = "36"
+       user_env[29] = "36"
        user_env[31] = "-- ** "
        user_env[32] = ?
        user_env[34] = ora_tspace

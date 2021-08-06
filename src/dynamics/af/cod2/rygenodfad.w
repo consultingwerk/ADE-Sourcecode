@@ -92,7 +92,7 @@ DEFINE INPUT-OUTPUT PARAMETER plDeleteSdoOnGeneration   AS LOGICAL              
 
 /* Standard List Definitions                                            */
 &Scoped-Define ENABLED-OBJECTS coModule toAlwaysDelete Btn_OK Btn_Cancel ~
-Btn_Help RECT-12 RECT-13 
+Btn_Help 
 &Scoped-Define DISPLAYED-OBJECTS coModule toAlwaysDelete 
 
 /* Custom List Definitions                                              */
@@ -156,31 +156,20 @@ DEFINE VARIABLE coModule AS CHARACTER FORMAT "X(256)":U
      DROP-DOWN-LIST
      SIZE 36.2 BY 1 TOOLTIP "Product module associated with Datafields" NO-UNDO.
 
-DEFINE RECTANGLE RECT-12
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 74.2 BY 2.67.
-
-DEFINE RECTANGLE RECT-13
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 74.2 BY 1.71.
-
 DEFINE VARIABLE toAlwaysDelete AS LOGICAL INITIAL no 
      LABEL "Always delete DataField instances before generation?" 
      VIEW-AS TOGGLE-BOX
-     SIZE 59.8 BY .81 TOOLTIP "Check to always delete the existing object before generation" NO-UNDO.
+     SIZE 59.8 BY .81 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME diDialog
-     coModule AT ROW 1.48 COL 11.6 COLON-ALIGNED
-     toAlwaysDelete AT ROW 2.52 COL 14
-     Btn_OK AT ROW 4.05 COL 2.6
-     Btn_Cancel AT ROW 4.05 COL 18.2
-     Btn_Help AT ROW 4.05 COL 60
-     RECT-12 AT ROW 1 COL 1.8
-     RECT-13 AT ROW 3.76 COL 1.8
-     SPACE(0.00) SKIP(0.04)
+     coModule AT ROW 1.48 COL 11.2 COLON-ALIGNED
+     toAlwaysDelete AT ROW 2.52 COL 13.6
+     Btn_OK AT ROW 4.14 COL 29.4
+     Btn_Cancel AT ROW 4.14 COL 45.2
+     Btn_Help AT ROW 4.14 COL 60.6
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "DataField Settings".
@@ -331,7 +320,7 @@ PROCEDURE enable_UI :
 ------------------------------------------------------------------------------*/
   DISPLAY coModule toAlwaysDelete 
       WITH FRAME diDialog.
-  ENABLE coModule toAlwaysDelete Btn_OK Btn_Cancel Btn_Help RECT-12 RECT-13 
+  ENABLE coModule toAlwaysDelete Btn_OK Btn_Cancel Btn_Help 
       WITH FRAME diDialog.
   VIEW FRAME diDialog.
   {&OPEN-BROWSERS-IN-QUERY-diDialog}

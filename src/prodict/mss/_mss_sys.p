@@ -1,8 +1,7 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
-*                                                                    *
 *********************************************************************/
 
 ./*-----------------------------------------------------------------------
@@ -29,7 +28,7 @@ Output Parameter:
                 q       list of allowed/supported functions/features
                 
 History:
-      04/20/06    fernando    Added NOTTCACHE define - 20050930-006  
+    04/20/06    fernando    Added NOTTCACHE define - 20050930-006                  
 -----------------------------------------------------------------------*/
 
 

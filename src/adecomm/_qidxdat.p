@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2021 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,6 +28,7 @@ Modified on 05/31/95 gfs Allow display of hidden tables (not meta-schema).
             04/17/98 DLM Added check for _field-recid > 0 for default index.
             07/23/98 DLM Added DBVERSION and _Owner check
             01/18/00 DLM Added NO-LOCK where missed.
+            03/12/21 tmasood  Show correct status of index
 ----------------------------------------------------------------------------*/
 { prodict/fhidden.i }
 
@@ -85,6 +86,11 @@ FOR EACH _File NO-LOCK WHERE _File._Db-recid = p_DbId AND
 
    FOR EACH _Index OF _File NO-LOCK BREAK BY _Index._Index-name:
       FIND LAST _Index-field OF _Index NO-LOCK NO-ERROR.
+      FIND FIRST _StorageObject WHERE _StorageObject._DB-recid = _File._DB-recid
+                                  AND _StorageObject._Object-type = 2
+                                  AND _StorageObject._Object-number = _Index._Idx-num
+                                  AND _StorageObject._partitionid = 0
+                                  NO-LOCK NO-ERROR.
       flags = 
                ( (IF NOT _File._File-Attributes[3]
                THEN "" ELSE IF _Index._index-attributes[1] AND _File._File-Attributes[3] THEN "l" ELSE "g")
@@ -92,7 +98,7 @@ FOR EACH _File NO-LOCK WHERE _File._Db-recid = p_DbId AND
                THEN "p" ELSE "")
            + (IF _Unique   
                THEN "u" ELSE "")
-           + (IF NOT _Active
+           + (IF NOT _Active OR (AVAILABLE _StorageObject AND (get-bits(_StorageObject._Object-State,1,1) = 1))
                THEN "i" ELSE "") 
            + (IF _Index._Wordidx = 1
                THEN "w" ELSE "") 

@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2020 by Progress Software Corporation. All rights    *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,7 +16,7 @@ Author: Kumar Mayur
 
 Date Created: 06/20/2011 
 
-History:
+History: 10/19/20 vmaganti Native Sequence as default one
 
 
 ----------------------------------------------------------------------------*/
@@ -70,8 +70,8 @@ DEFINE RECTANGLE RECT-2
 
 DEFINE RECTANGLE RECT-4
      EDGE-PIXELS 1 GRAPHIC-EDGE  NO-FILL 
-     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 2.4.     
-     &ELSE SIZE 75 BY 4 . &ENDIF.
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  SIZE 75 BY 2.8.     
+     &ELSE SIZE 75 BY 4.8 . &ENDIF.
 
 &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN
 DEFINE RECTANGLE RECT-3
@@ -90,6 +90,9 @@ DEFINE VARIABLE text3      AS CHARACTER
                            FORMAT "x(8)" NO-UNDO.    
 DEFINE VARIABLE text4      AS CHARACTER 
                            INITIAL "For Field Widths Use:"
+                           FORMAT "x(22)" NO-UNDO.
+DEFINE VARIABLE text5      AS CHARACTER 
+                           INITIAL "Apply Sequence as:"
                            FORMAT "x(22)" NO-UNDO.
 DEFINE VARIABLE s_res         AS LOGICAL                  NO-UNDO.
 
@@ -120,11 +123,16 @@ DEFINE FRAME DEFAULT-FRAME
      SPACE(10)
      mapMSSDatetime view-as toggle-box LABEL "Map to MSS 'Datetime' Type"   AT  ROW 8.6 COL 2
      shadowcol view-as toggle-box label "Create Shadow Column" AT ROW 8.6 COL 38 SKIP({&VM_WID})
+     text5 VIEW-AS TEXT NO-LABEL AT ROW 9.9 COL 2
+     selected_seq VIEW-AS RADIO-SET RADIO-BUTTONS
+         "Native Sequence", 1,
+         "Revised Sequence Generator", 2
+         VERTICAL AT  ROW 10.8 COL 2 NO-LABEL 
 
-     newseq view-as toggle-box LABEL  "Use Revised Sequence Generator"   AT  ROW 10 COL 2 SKIP({&VM_WID})
-     SPACE(2) nativeseq view-as toggle-box LABEL  "Try Native Sequence ?"   AT 2 
-     /*cachesize  VIEW-AS FILL-IN SIZE 10 BY 1 LABEL "Cache Size" AT ROW 9.9 COL 35 SKIP({&VM_WID})*/
-     cachesize  VIEW-AS FILL-IN SIZE 9 BY 1 LABEL "Cache size (0=server, ?=no-cache) ":t33 AT ROW 10.8 COL 31 SKIP({&VM_WID}) 
+     cachesize  VIEW-AS FILL-IN SIZE 9 BY 1 LABEL "Cache size (0=server, ?=no-cache) ":t33 AT ROW 10.7 COL 25 SKIP({&VM_WID}) 
+     /*nativeseq view-as toggle-box LABEL  "Use Native Sequence Generator"   AT  ROW 10 COL 2
+     cachesize  VIEW-AS FILL-IN SIZE 9 BY 1 LABEL "Cache size (0=server, ?=no-cache) ":t33 AT ROW 10 COL 41 SKIP({&VM_WID}) 
+     SPACE(2) newseq view-as toggle-box LABEL  "Use Reserved Sequence Generator"   AT ROW 10.8 COL 2 SKIP({&VM_WID})*/
      SPACE(2)         
      SKIP (0.5) unicodeTypes view-as toggle-box LABEL "Use Unicode Types"  AT ROW 12.8 COL 2
      lUniExpand view-as toggle-box LABEL "Expand Width(utf-8)" AT 36 SKIP({&VM_WID})
@@ -162,12 +170,12 @@ DEFINE FRAME DEFAULT-FRAME
      &ENDIF
      
     RECT-1 AT ROW 2.7 COL 1 
-     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-2 AT ROW 12.5 COL 1   
+     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-2 AT ROW 12.7 COL 1   
      &ELSE RECT-2 AT ROW 12.1 COL 1 &ENDIF
 
     &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-3 AT ROW 19 COL 2 &ENDIF
 
-      &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-4 AT ROW 9.8 COL 1   
+      &IF "{&WINDOW-SYSTEM}" <> "TTY"  &THEN  RECT-4 AT ROW 9.7 COL 1   
      &ELSE RECT-4 AT ROW 8.9 COL 1 &ENDIF
  
     WITH 1 DOWN KEEP-TAB-ORDER OVERLAY 
@@ -195,21 +203,27 @@ DO:
    IF (ForRowidUniq OR ForRow) THEN ASSIGN pcompatible = TRUE. 
    Assign dflt = (dflt:SCREEN-VALUE = "yes").
    Assign mapMSSDatetime = (mapMSSDatetime:SCREEN-VALUE = "yes" ).
-   Assign newseq = (newseq:SCREEN-VALUE = "yes" ).
    ASSIGN choiceDefault = choiceDefault:screen-value.
    ASSIGN choiceUniquness = choiceUniquness:screen-value.
    ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").
    ASSIGN lUniExpand = (lUniExpand:SCREEN-VALUE ="yes").
    ASSIGN iFmtOption = INTEGER(iFmtOption:SCREEN-VALUE).
+   ASSIGN selected_seq = INTEGER(selected_seq:SCREEN-VALUE).
    ASSIGN lExpand = (lExpand:SCREEN-VALUE = "yes" ).
-   Assign nativeseq = (nativeseq:SCREEN-VALUE = "yes" ).
    ASSIGN cachesize = (cachesize:SCREEN-VALUE).
    IF iFmtOption = 1 THEN
       ASSIGN lFormat = ?
              iFmtOption = 1.
    ELSE 
       ASSIGN lFormat = (NOT lExpand)
-             iFmtOption = 2.
+    iFmtOption = 2.
+
+    IF selected_seq = 1 THEN
+        ASSIGN nativeseq = TRUE
+                newseq = FALSE.
+    ELSE
+        ASSIGN nativeseq = FALSE
+                newseq = TRUE.
 
    IF unicodeTypes:SCREEN-VALUE ="yes" THEN
        ASSIGN long-length = 4000
@@ -253,6 +267,18 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME DEFAULT-FRAME DO:
   ELSE ASSIGN lExpand:SENSITIVE = FALSE
               lExpand:CHECKED   = FALSE
               lFormat           = TRUE. 
+END.
+
+ASSIGN cachesize:READ-ONLY = NO.
+
+ON VALUE-CHANGED OF selected_seq IN FRAME DEFAULT-FRAME DO:
+  IF SELF:SCREEN-VALUE = "2" THEN
+    ASSIGN nativeseq           = FALSE
+           newseq              = TRUE
+           cachesize:READ-ONLY = YES.
+  ELSE ASSIGN nativeseq           = TRUE
+              newseq              = FALSE 
+              cachesize:READ-ONLY = NO.
 END.
 
 IF shdcol = YES
@@ -383,15 +409,6 @@ ON VALUE-CHANGED OF selBestRowidIdx IN FRAME DEFAULT-FRAME DO:
  END.
 END.
 
-ASSIGN cachesize:READ-ONLY = YES.
-
-ON VALUE-CHANGED OF nativeseq IN FRAME DEFAULT-FRAME DO:
-    IF nativeseq:screen-value = "NO" THEN
-         ASSIGN cachesize:READ-ONLY = YES.
-    ELSE
-         ASSIGN cachesize:READ-ONLY = NO.
-END.
-
 /*
 ON VALUE-CHANGED OF newseq IN FRAME DEFAULT-FRAME DO:
     IF newseq:screen-value = "NO" THEN
@@ -405,7 +422,7 @@ END.
 
 IF NOT batch_mode THEN
   DO: 
-   DISPLAY text1 text2 text3 text4 WITH FRAME DEFAULT-FRAME.
+   DISPLAY text1 text2 text3 text4 text5 WITH FRAME DEFAULT-FRAME.
    UPDATE
         migConstraint
         tryPimaryForRowid
@@ -419,17 +436,16 @@ IF NOT batch_mode THEN
               
         mapMSSDatetime
         shadowcol WHEN shdcol = YES  
-        newseq
         unicodeTypes
         lUniExpand WHEN unicodeTypes = TRUE
+        selected_seq
         iFmtOption 
         lExpand WHEN iFmtOption = 2  
          
         choiceUniquness
         dflt
         choiceDefault WHEN dflt = TRUE
-        nativeseq /* WHEN newseq = TRUE */
-        cachesize /* WHEN nativeseq = TRUE */
+        cachesize 
         butt-ok butt-cancel
         &IF "{&WINDOW-SYSTEM}" <> "TTY" &THEN
             butt-help
@@ -453,6 +469,7 @@ IF NOT batch_mode THEN
         ASSIGN shadowcol = (shadowcol:SCREEN-VALUE = "yes").
         ASSIGN lUniExpand = (lUniExpand:SCREEN-VALUE ="yes").
         ASSIGN iFmtOption = INTEGER(iFmtOption:SCREEN-VALUE).
+        ASSIGN selected_seq = INTEGER(selected_seq:SCREEN-VALUE).
         	
         IF iFmtOption = 1 THEN
             ASSIGN lFormat = ?
@@ -460,6 +477,14 @@ IF NOT batch_mode THEN
         ELSE 
             ASSIGN lFormat = (NOT lExpand)
                    iFmtOption = 2.
+
+        	
+        IF selected_seq = 1 THEN
+            ASSIGN nativeseq = TRUE
+                   newseq = FALSE.
+        ELSE 
+            ASSIGN nativeseq = FALSE
+                   newseq = TRUE.
 
         IF unicodeTypes:SCREEN-VALUE ="yes" THEN
             ASSIGN long-length = 4000

@@ -1,9 +1,9 @@
-/***********************************************************************
-* Copyright (C) 2008,2010 by Progress Software Corporation. All rights *
-* reserved. Prior versions of this work may contain portions           *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/****************************************************************************
+* Copyright (C) 2008,2010,2020 by Progress Software Corporation. All rights *
+* reserved. Prior versions of this work may contain portions                *
+* contributed by participants of Possenet.                                  *
+*                                                                           *
+*****************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ Date Created: 02/05/92
                                 enable/disable needed fields depending on the type.
               06/26/08 fernando Removed encryption area from list
               02/22/08 fernando Adjust display data type length for Dsrv schemas
+              10/29/20 Kberlia Added Parameter in _pro_area_list.p to support default area.
 ----------------------------------------------------------------------------*/
 
 
@@ -69,14 +70,14 @@ define variable AreaList      as character no-undo.
 /* Reminder: Here's what's in user_env:
 
       user_env[11] - the long form of the gateway type (string), i.e., the
-      	       	     type description.
+                                  type description.
       user_env[12] - list of gateway types (strings)
       user_env[13] - list of _Fld-stlen values for each data type (this is
-      	       	     the storage length)
+                                  the storage length)
       user_env[14] - list of gateway type codes (_Fld-stdtype).
       user_env[15] - list of progress types that map to gateway types
       user_env[16] - the gateway type family - to indicate what data types
-      	       	     can be modified to what other data types.
+                                  can be modified to what other data types.
       user_env[17] - the default-format per foreign data-type.
 */
 
@@ -100,8 +101,8 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
 
    if IsPro THEN DO:
       assign
-      	 types = "CHARACTER,DATE,DECIMAL,INTEGER,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
-      	 num = 11.
+               types = "CHARACTER,DATE,DECIMAL,INTEGER,LOGICAL,DATETIME,DATETIME-TZ,BLOB,CLOB,RAW,RECID"
+               num = 11.
       IF NOT is-pre-101b-db THEN
           /* not a pre-10.1B db, include int64 */
           ASSIGN types = REPLACE(types, "INTEGER","INTEGER,INT64")
@@ -109,15 +110,15 @@ DEFINE VARIABLE s_res AS LOGICAL NO-UNDO.
    END.
    else do:
       /* Compose a string to pass to list-items function where each entry
-      	 is a data type that looks like "xxxx (yyyy)" where
-      	 xxxx is the gateway type and yyyy is the progress type
-      	 that it maps to.
+               is a data type that looks like "xxxx (yyyy)" where
+               xxxx is the gateway type and yyyy is the progress type
+               that it maps to.
       */
       types = "".
       do num = 1 to NUM-ENTRIES(user_env[11]) - 1:
-      	 types = types + (if num = 1 then "" else ",") +
-      	       	 STRING(ENTRY(num, user_env[11]), "x({&FOREIGN_DTYPE_DISPLAY})") + 
-      	       	 "(" + ENTRY(num, user_env[15]) + ")".
+               types = types + (if num = 1 then "" else ",") +
+                              STRING(ENTRY(num, user_env[11]), "x({&FOREIGN_DTYPE_DISPLAY})") + 
+                              "(" + ENTRY(num, user_env[15]) + ")".
       end.
       num = num - 1.  /* undo terminating loop iteration */
    end.
@@ -205,7 +206,7 @@ PROCEDURE setlob:
              s_btn_Fld_Validation:SENSITIVE  IN FRAME newfld  = FALSE
              s_btn_Fld_Triggers:SENSITIVE  IN FRAME newfld  = FALSE
              s_btn_Fld_StringAttrs:SENSITIVE  IN FRAME newfld  = FALSE
-             b_Field._Label:SENSITIVE  IN FRAME newfld  = FALSE  	    
+             b_Field._Label:SENSITIVE  IN FRAME newfld  = FALSE              
              b_Field._Col-label:SENSITIVE  IN FRAME newfld  = FALSE   
              b_Field._Initial:SENSITIVE  IN FRAME newfld  = FALSE
              b_Field._Help:SENSITIVE  IN FRAME newfld  = FALSE 
@@ -265,14 +266,14 @@ PROCEDURE setlob:
                /* all the other ones */
                b_Field._Format:HIDDEN  IN FRAME newfld  = FALSE
                s_btn_Fld_Format:HIDDEN  IN FRAME newfld  = FALSE
-               b_Field._Label:HIDDEN  IN FRAME newfld  = FALSE  	    
+               b_Field._Label:HIDDEN  IN FRAME newfld  = FALSE              
                b_Field._Col-label:HIDDEN  IN FRAME newfld  = FALSE   
                s_btn_Fld_ViewAs:SENSITIVE  IN FRAME newfld  = FALSE
                s_btn_Fld_ViewAs:SENSITIVE  IN FRAME newfld  = TRUE
                s_btn_Fld_Validation:SENSITIVE  IN FRAME newfld  = TRUE
                s_btn_Fld_Triggers:SENSITIVE  IN FRAME newfld  = TRUE
                s_btn_Fld_StringAttrs:SENSITIVE  IN FRAME newfld  = TRUE
-               b_Field._Label:SENSITIVE  IN FRAME newfld  = TRUE  	    
+               b_Field._Label:SENSITIVE  IN FRAME newfld  = TRUE              
                b_Field._Col-label:SENSITIVE  IN FRAME newfld  = TRUE   
                b_Field._Initial:SENSITIVE  IN FRAME newfld  = TRUE
                b_Field._Help:SENSITIVE  IN FRAME newfld  = TRUE 
@@ -300,10 +301,10 @@ on choose of s_btn_OK in frame newfld
 
 
 /*----- HIT of ADD BUTTON or GO -----*/
-on GO of frame newfld	/* or Create because it's auto-go */
+on GO of frame newfld        /* or Create because it's auto-go */
 do:
    Define var no_name  as logical NO-UNDO.
-   Define var obj      as char 	  NO-UNDO.
+   Define var obj      as char           NO-UNDO.
    Define var ins_name as char    NO-UNDO.
    Define var ix       as integer NO-UNDO.
 
@@ -351,8 +352,8 @@ do:
       run adecomm/_setcurs.p ("WAIT").
 
       /* NOTE: the data type variables s_Fld_Protype/Gatetype etc. have
-      	 been set from the trigger on change of data type.  b_Field._stdtype
-      	 has also been set.
+               been set from the trigger on change of data type.  b_Field._stdtype
+               has also been set.
       */
 
       IF s_Fld_Protype = "INT64" THEN DO:
@@ -364,21 +365,21 @@ do:
          END.
       END.
       assign
-	 b_Field._File-recid = Record_Id
-	 b_Field._Data-Type = s_Fld_Protype /*WHEN s_Fld_Protype <> "CLOB"*/
+         b_Field._File-recid = Record_Id
+         b_Field._Data-Type = s_Fld_Protype /*WHEN s_Fld_Protype <> "CLOB"*/
      b_Field._For-type = s_Fld_Gatetype
      input frame newfld b_Field._Format
-	 input frame newfld b_Field._Field-Name
-	 input frame newfld b_Field._Initial WHEN NOT islob 
-	 input frame newfld b_Field._Label   WHEN NOT islob
-	 input frame newfld b_Field._Col-label WHEN NOT islob
-	 input frame newfld b_Field._Mandatory WHEN NOT islob
-	 input frame newfld b_Field._Decimals WHEN NOT islob
-	 input frame newfld b_Field._Fld-case WHEN s_Fld_Protype <> "BLOB"
-	 input frame newfld b_Field._Extent WHEN NOT islob
-	 input frame newfld b_Field._Order
-	 input frame newfld b_Field._Help WHEN NOT islob
-	 input frame newfld b_Field._Desc.
+         input frame newfld b_Field._Field-Name
+         input frame newfld b_Field._Initial WHEN NOT islob 
+         input frame newfld b_Field._Label   WHEN NOT islob
+         input frame newfld b_Field._Col-label WHEN NOT islob
+         input frame newfld b_Field._Mandatory WHEN NOT islob
+         input frame newfld b_Field._Decimals WHEN NOT islob
+         input frame newfld b_Field._Fld-case WHEN s_Fld_Protype <> "BLOB"
+         input frame newfld b_Field._Extent WHEN NOT islob
+         input frame newfld b_Field._Order
+         input frame newfld b_Field._Help WHEN NOT islob
+         input frame newfld b_Field._Desc.
 
      /* for clob/blobs, we have some additional fields to populate */
      IF islob THEN DO:
@@ -434,18 +435,18 @@ do:
       END.
 
       /* For certain gateways we store the character length in the _Decimals
-	 field to support certain SQL operations.
+         field to support certain SQL operations.
       */
       if (s_Fld_TypeCode = {&DTYPE_CHARACTER} AND 
-	  INDEX(s_Fld_Capab, {&CAPAB_CHAR_LEN_IN_DEC}) <> 0) then
-	 b_Field._Decimals = b_Field._Fld-stlen.
+          INDEX(s_Fld_Capab, {&CAPAB_CHAR_LEN_IN_DEC}) <> 0) then
+         b_Field._Decimals = b_Field._Fld-stlen.
 
       Last_Order = b_Field._Order.
 
       /* Add entry to appropriate list in the correct order */
       if s_CurrObj = {&OBJ_FLD} then
-      	 run adedict/FLD/_ptinlst.p (INPUT b_Field._Field-Name,
-      	       	     	      	     INPUT b_Field._Order).     
+               run adedict/FLD/_ptinlst.p (INPUT b_Field._Field-Name,
+                                                             INPUT b_Field._Order).     
 
       {adedict/setdirty.i &Dirty = "true"}
       display "Field Created" @ s_Status with frame newfld.
@@ -559,8 +560,8 @@ do:
        end.
        else 
           assign
-          	 b_Field._Extent:sensitive in frame newfld = false
-          	 b_Field._Extent:screen-value in frame newfld = "0".
+                   b_Field._Extent:sensitive in frame newfld = false
+                   b_Field._Extent:screen-value in frame newfld = "0".
    end.
 end.
 
@@ -573,7 +574,7 @@ do:
                 dictdb._File._For-Owner = ? AND dictdb._File._For-Name = "NONAME") THEN
         do:
             message "You may not copy fields for this database type."
-      	         view-as ALERT-BOX ERROR buttons OK.
+                       view-as ALERT-BOX ERROR buttons OK.
             return NO-APPLY.
         end.  
    /* Flag that copy was hit.  The add wait-for will break and we'll
@@ -599,8 +600,8 @@ do:
         if no_name then return NO-APPLY.
     
         run adecomm/_viewas.p (INPUT s_Fld_ReadOnly, INPUT s_Fld_Typecode,
-          	       	     	  INPUT s_Fld_ProType, 
-          	       	     	  INPUT-OUTPUT b_Field._View-as, OUTPUT mod).
+                                                INPUT s_Fld_ProType, 
+                                                INPUT-OUTPUT b_Field._View-as, OUTPUT mod).
     end. 
 end.
 
@@ -614,14 +615,14 @@ DO:
       IF CAN-FIND(FIRST dictdb._Field WHERE
                         dictdb._Field._File-recid = s_TblRecId AND
                         dictdb._Field._Order =
-			INT(b_Field._Order:SCREEN-VALUE IN FRAME newfld) AND
-			dictdb._Field._Order <> b_Field._Order) THEN 
+                        INT(b_Field._Order:SCREEN-VALUE IN FRAME newfld) AND
+                        dictdb._Field._Order <> b_Field._Order) THEN 
       DO:
-	 MESSAGE "Order number " +
-	 TRIM(b_Field._Order:SCREEN-VALUE IN FRAME newfld) "already exists." 
-	 VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-	 /* set order number back to its current value */
-	 b_Field._Order:SCREEN-VALUE IN FRAME newfld = STRING(b_Field._Order).
+         MESSAGE "Order number " +
+         TRIM(b_Field._Order:SCREEN-VALUE IN FRAME newfld) "already exists." 
+         VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+         /* set order number back to its current value */
+         b_Field._Order:SCREEN-VALUE IN FRAME newfld = STRING(b_Field._Order).
         RETURN NO-APPLY.
       END.
 END.
@@ -755,10 +756,10 @@ end.
 /* Fill data type combo box based on the gateway */
 run SetDataTypes.
 {adecomm/cbdrop.i &Frame  = "frame newfld"
-      	       	  &CBFill = "s_Fld_DType"
-      	       	  &CBList = "s_lst_Fld_DType"
-      	       	  &CBBtn  = "s_btn_Fld_DType"
-     	       	  &CBInit = """"}
+                               &CBFill = "s_Fld_DType"
+                               &CBList = "s_lst_Fld_DType"
+                               &CBBtn  = "s_btn_Fld_DType"
+                              &CBInit = """"}
  
 /* FILL THE SELECTION LIST OF AREAS FOR BLOB / CLOB FIELDS */
 
@@ -777,7 +778,7 @@ IF dictdb._File._For-type <> ?
 OR (dictdb._File._file-Attributes[1] and dictdb._File._file-Attributes[2] = false) or (dictdb._File._file-Attributes[3]) THEN
   ASSIGN s_lob_Area = "".
 ELSE DO with frame newfld:   
-   run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld , output AreaList).
+   run prodict/pro/_pro_area_list(recid(dictdb._File),{&INVALID_AREAS},s_lst_lob_area:DELIMITER in frame newfld ,"Lob", output AreaList).
    assign
        s_lst_lob_area:list-items in frame newfld = AreaList
        /* NOTE: entry will realize fldprop unless in frame is used (in spite of do with frame)*/
@@ -864,14 +865,14 @@ enable b_Field._Field-Name
        s_btn_Fld_DType
        b_Field._Format      
        s_btn_Fld_Format     
-       b_Field._Label  	    
+       b_Field._Label              
        b_Field._Col-label   
        b_Field._Initial
-       b_Field._Order 	    when s_CurrObj = {&OBJ_FLD} 
+       b_Field._Order             when s_CurrObj = {&OBJ_FLD} 
        b_Field._Desc
        b_Field._Help
        b_Field._Mandatory   when INDEX(s_Fld_Capab, {&CAPAB_CHANGE_MANDATORY}) 
-      	       	     	      	       > 0 
+                                                               > 0 
        b_Field._Fld-case    WHEN NOT islob /* this may be disabled later */
        s_Fld_Array
        s_btn_Fld_Triggers
@@ -894,13 +895,13 @@ END.
 */
 assign
    s_Res = s_lst_Fld_DType:move-after-tab-item
-      	       (s_btn_Fld_DType:handle in frame newfld) in frame newfld
+                     (s_btn_Fld_DType:handle in frame newfld) in frame newfld
    s_Res = b_Field._Decimals:move-before-tab-item
-      	       (b_Field._Desc:handle in frame newfld) in frame newfld
+                     (b_Field._Desc:handle in frame newfld) in frame newfld
    s_Res = b_Field._Fld-case:move-before-tab-item
-      	       (s_Fld_Array:handle in frame newfld) in frame newfld
+                     (s_Fld_Array:handle in frame newfld) in frame newfld
    s_Res = b_Field._Extent:move-after-tab-item
-      	       (s_Fld_Array:handle in frame newfld) in frame newfld
+                     (s_Fld_Array:handle in frame newfld) in frame newfld
    s_Res = s_lob_area:MOVE-AFTER-TAB-ITEM
                (s_btn_Fld_DType:HANDLE IN FRAME newfld) IN FRAME newfld
    s_Res = s_btn_lob_area:MOVE-AFTER-TAB-ITEM
@@ -934,16 +935,16 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
    if Copy_Hit then
    do:
       /* This will copy fields and end the sub-transaction so that "Done" 
-      	 will not undo it. */
+               will not undo it. */
       Copy_Hit = false.  /* reset flag */
       
       run adedict/FLD/_fldcopy.p (INPUT-OUTPUT Last_Order,
-      	       	     	      	 OUTPUT copytbl, OUTPUT copyfld,
-      	       	     	      	 OUTPUT copied).
+                                                         OUTPUT copytbl, OUTPUT copyfld,
+                                                         OUTPUT copied).
       if copied then 
       do:
-      	 display "Copy Completed" @ s_Status with frame newfld.
-      	 added = yes.
+               display "Copy Completed" @ s_Status with frame newfld.
+               added = yes.
       end.
    
    end.
@@ -952,65 +953,65 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       /* default a unique order # */
       if Last_Order = ? then
       do:
-	      find LAST dictdb._Field USE-INDEX _Field-Position 
-	           where dictdb._Field._File-recid = Record_Id NO-ERROR.
-	      Last_Order = (if AVAILABLE dictdb._Field then dictdb._Field._Order + 10 else 10).
+              find LAST dictdb._Field USE-INDEX _Field-Position 
+                   where dictdb._Field._File-recid = Record_Id NO-ERROR.
+              Last_Order = (if AVAILABLE dictdb._Field then dictdb._Field._Order + 10 else 10).
       end.
       else
-	      Last_Order = Last_Order + 10.
+              Last_Order = Last_Order + 10.
 
       if copytbl = "" then
       do:
-      	  /* This is a brand new field */
+                /* This is a brand new field */
 
-	      b_Field._Order = Last_Order.
+              b_Field._Order = Last_Order.
     
-    	 /* Set defaults based on the current data type (either the first
-    	    in the list or whatever was chosen last time).
-    	 */
-    	 run SetDefaults.
+             /* Set defaults based on the current data type (either the first
+                in the list or whatever was chosen last time).
+             */
+             run SetDefaults.
         
-    	 /* Reset some other default values */
-    	 assign
-    	    s_Fld_Array = false
-    	    b_Field._Extent:screen-value in frame newfld  = "0"
-    	    b_Field._Extent:sensitive in frame newfld = no
-    	    b_Field._Fld-case:screen-value in frame newfld = "no".
+             /* Reset some other default values */
+             assign
+                s_Fld_Array = false
+                b_Field._Extent:screen-value in frame newfld  = "0"
+                b_Field._Extent:sensitive in frame newfld = no
+                b_Field._Fld-case:screen-value in frame newfld = "no".
     
          /* defauts for lob fields */
          ASSIGN  s_lob_size = "100M"
                  s_lob_size:SCREEN-VALUE IN FRAME newfld = s_lob_size
                  s_lob_wdth = 104857600.
     
-          	 /* Display any remaining attributes */
-    	 display "" @ b_Field._Field-Name /* blank instead of ? */
-          	       	 s_Optional
-    		 b_Field._Label     WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-    		 b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-    		 b_Field._Mandatory
-    		 b_Field._Help
-    		 b_Field._Desc 
-    		 b_Field._Order
-    		 s_Fld_Array
-    		 with frame newfld.       
+                   /* Display any remaining attributes */
+             display "" @ b_Field._Field-Name /* blank instead of ? */
+                                  s_Optional
+                     b_Field._Label     WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+                     b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+                     b_Field._Mandatory
+                     b_Field._Help
+                     b_Field._Desc 
+                     b_Field._Order
+                     s_Fld_Array
+                     with frame newfld.       
       end. /* copytbl = "" */
       else do:  
-      	 /* Set the field values based on a field chosen as a template
-      	    in the Copy dialog box.
-      	 */
-      	 find dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
-      	       	     	   dictdb._File._File-name = copytbl AND
+               /* Set the field values based on a field chosen as a template
+                  in the Copy dialog box.
+               */
+               find dictdb._File where dictdb._File._Db-recid = s_DbRecId AND
+                                             dictdb._File._File-name = copytbl AND
                          ( dictdb._File._Owner = "PUB"  OR dictdb._File._Owner = "FOREIGN").
-      	 find dictdb._Field where dictdb._Field._File-recid = recid(dictdb._File) 
-      	                    and   dictdb._Field._Field-name = copyfld.
+               find dictdb._Field where dictdb._Field._File-recid = recid(dictdb._File) 
+                                  and   dictdb._Field._Field-name = copyfld.
           assign
-      	    b_Field._Field-name = dictdb._Field._Field-name
-      	    b_Field._Data-type  = dictdb._Field._Data-type
-      	    b_Field._Format     = dictdb._Field._Format
-      	    b_Field._Initial    = dictdb._Field._Initial
-      	    b_Field._Order    	= Last_Order.
-      	    
-      	 {prodict/dump/copy_fld.i &copyarea=false &from=dictdb._Field &to=b_Field &all=false}
+                  b_Field._Field-name = dictdb._Field._Field-name
+                  b_Field._Data-type  = dictdb._Field._Data-type
+                  b_Field._Format     = dictdb._Field._Format
+                  b_Field._Initial    = dictdb._Field._Initial
+                  b_Field._Order            = Last_Order.
+                  
+               {prodict/dump/copy_fld.i &copyarea=false &from=dictdb._Field &to=b_Field &all=false}
 
          IF (b_field._Data-type = "BLOB" OR b_Field._Data-type = "CLOB") then
          DO:
@@ -1064,48 +1065,48 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
                   b_Field._Collation = dictdb._Field._Collation.
          END.
 
-      	 assign
-      	    s_Fld_DType = b_Field._Data-Type
-      	    s_Fld_Array = (if b_Field._Extent > 0 then yes else no)
-      	    s_Fld_Protype = b_Field._Data-type
-	        s_Fld_Gatetype = b_Field._For-type
-	        s_Fld_Typecode = dictdb._Field._dtype.        
+               assign
+                  s_Fld_DType = b_Field._Data-Type
+                  s_Fld_Array = (if b_Field._Extent > 0 then yes else no)
+                  s_Fld_Protype = b_Field._Data-type
+                s_Fld_Gatetype = b_Field._For-type
+                s_Fld_Typecode = dictdb._Field._dtype.        
 
-      	 /* Make sensitive/label adjustments to fld-case and _Decimals based
-      	    on data type chosen. */
-      	 run adedict/FLD/_dtcust.p 
-      	       (INPUT b_Field._Fld-case:HANDLE in frame newfld,
-      	       	INPUT b_Field._Decimals:HANDLE in frame newfld).
+               /* Make sensitive/label adjustments to fld-case and _Decimals based
+                  on data type chosen. */
+               run adedict/FLD/_dtcust.p 
+                     (INPUT b_Field._Fld-case:HANDLE in frame newfld,
+                             INPUT b_Field._Decimals:HANDLE in frame newfld).
 
-      	 display
-    	    b_Field._Field-name
+               display
+                b_Field._Field-name
             s_Fld_DType
             s_Optional
-    	    b_Field._Format  WHEN NOT islob
-    	    s_lob_area       WHEN islob  
-    	    s_btn_lob_Area   WHEN islob  
-    	    b_Field._Label   WHEN s_Fld_Typecode <> {&DTYPE_CLOB}  
-    	    b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
-    	    b_Field._Initial   
+                b_Field._Format  WHEN NOT islob
+                s_lob_area       WHEN islob  
+                s_btn_lob_Area   WHEN islob  
+                b_Field._Label   WHEN s_Fld_Typecode <> {&DTYPE_CLOB}  
+                b_Field._Col-label WHEN s_Fld_Typecode <> {&DTYPE_CLOB}
+                b_Field._Initial   
     
-    	    b_Field._Order     
-    	    b_Field._Fld-case 	 when s_Fld_Typecode = {&DTYPE_CHARACTER}
-    	    b_Field._Decimals  	 when s_Fld_Typecode = {&DTYPE_DECIMAL}
-    	    s_lob_size             WHEN islob
-    	    b_Field._Mandatory 
+                b_Field._Order     
+                b_Field._Fld-case          when s_Fld_Typecode = {&DTYPE_CHARACTER}
+                b_Field._Decimals           when s_Fld_Typecode = {&DTYPE_DECIMAL}
+                s_lob_size             WHEN islob
+                b_Field._Mandatory 
             s_Fld_Array
-    	    b_Field._Extent      when b_Field._Extent > 0
-    	    b_Field._Desc      
-    	    b_Field._Help      
-      	    with frame newfld.
+                b_Field._Extent      when b_Field._Extent > 0
+                b_Field._Desc      
+                b_Field._Help      
+                  with frame newfld.
 
-      	 /* Reset the drop down value for data types */
-      	 s_lst_Fld_DType:screen-value in frame newfld = CAPS(s_Fld_DType).
+               /* Reset the drop down value for data types */
+               s_lst_Fld_DType:screen-value in frame newfld = CAPS(s_Fld_DType).
 
-      	 /* Reset these for next loop iteration. */
-      	 assign
-      	    copytbl = ""
-      	    copyfld = "".
+               /* Reset these for next loop iteration. */
+               assign
+                  copytbl = ""
+                  copyfld = "".
  
 
          /* make sure we enable/disable the proper fields */
@@ -1114,16 +1115,16 @@ repeat ON ERROR UNDO,LEAVE ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       end.
       
       wait-for choose of s_btn_OK in frame newfld,
-      	       	     	 s_btn_Add in frame newfld,
-      	       	     	 s_btn_Fld_Copy in frame newfld OR
-      	       GO of frame newfld
-      	       FOCUS b_Field._Field-Name in frame newfld.
+                                           s_btn_Add in frame newfld,
+                                           s_btn_Fld_Copy in frame newfld OR
+                     GO of frame newfld
+                     FOCUS b_Field._Field-Name in frame newfld.
       /* Undo the create of b_Field so that when we repeat we don't end up
-	 with a bogus field with all unknown values. */
+         with a bogus field with all unknown values. */
       if Copy_Hit then
       do:
-	       undo add_subtran, next add_subtran.
-	  end.     
+               undo add_subtran, next add_subtran.
+          end.     
    end.
 end.
 hide frame newfld. 

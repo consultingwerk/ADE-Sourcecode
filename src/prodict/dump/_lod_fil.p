@@ -18,9 +18,7 @@
       BUG# 99-02-09-002, as it is causing problem while loading delta.df for online tirgger 
       operation. Timestamp will be updated by ABL client code for this operation. For more
       details about the issue please refer https://progresssoftware.atlassian.net/browse/OCTA-16013
-
-                           
-   
+        
  */
 
 { prodict/dictvar.i }

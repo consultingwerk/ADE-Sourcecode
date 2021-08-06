@@ -1,9 +1,9 @@
-/***********************************************************************
-* Copyright (C) 2005-2006 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2006,2021 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _rdqury.p
@@ -26,6 +26,7 @@ Author: D. Ross Hunter
 
 Date Created:  1992
 Date Modified: 
+       05/31/21 tmasood Report error when field name is changed
        08/08/00 jep    Assign _P recid to newly created _TRG records.
        06/21/99 SLK    IMPORT _BC._FORMAT-ATTR _BC._HELP-ATTR _BC._LABEL-ATTR
        06/10/99 tsm    Added auto-resize and column-read-only attributes
@@ -515,7 +516,10 @@ REPEAT:
                     RUN adeuib/_winsave(_h_win, FALSE).
                     RETURN.
                   END.  /* If not properly connected */
-                  ELSE RUN adeuib/_loadbc.p (INPUT RECID(_BC)).
+                  ELSE DO:
+                    RUN adeuib/_loadbc.p (INPUT RECID(_BC)).
+                    IF RETURN-VALUE = "_Abort" THEN LEAVE PROCESS-QUERY-BLK.
+                  END.  
                 END. /* NE CALC */
                
                 ELSE IF _BC._DBNAME eq "_<CALC>" THEN DO:

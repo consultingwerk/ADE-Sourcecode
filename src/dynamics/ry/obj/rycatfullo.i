@@ -1,5 +1,4 @@
   FIELD attribute_label LIKE ryc_attribute.attribute_label VALIDATE ~
-  FIELD ObjectTypes AS CHARACTER FORMAT "x(200)"~
   FIELD attribute_group_obj LIKE ryc_attribute.attribute_group_obj VALIDATE ~
   FIELD attribute_group_name LIKE ryc_attribute_group.attribute_group_name VALIDATE ~
   FIELD data_type LIKE ryc_attribute.data_type VALIDATE ~

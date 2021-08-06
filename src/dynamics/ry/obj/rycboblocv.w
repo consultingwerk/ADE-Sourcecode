@@ -67,7 +67,6 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {src/adm2/globals.i}
 
-DEFINE VARIABLE gcColumnWidths      AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcCurrentSort       AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcBaseQuery         AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE gcTitle             AS CHARACTER  NO-UNDO.
@@ -95,16 +94,15 @@ DEFINE VARIABLE ghQuery             AS HANDLE     NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS raPage toVisibleObjects toNonVisibleObjects ~
-fiInstanceName fiObjectTypeCode buGotoObject buClear fiFilter fiName fiType 
+&Scoped-Define ENABLED-OBJECTS buClear raPage toVisibleObjects ~
+toNonVisibleObjects fiInstanceName fiObjectTypeCode buGotoObject fiFilter ~
+fiWhichPage fiInclude fiName fiType rctLocator 
 &Scoped-Define DISPLAYED-OBJECTS raPage fiPage toVisibleObjects ~
 toNonVisibleObjects fiInstanceName fiObjectTypeCode fiObjectLocator ~
 fiFilter fiWhichPage fiInclude fiName fiType 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
-&Scoped-define List-1 buTransfer 
-&Scoped-define List-2 buTransfer 
 
 /* _UIB-PREPROCESSOR-BLOCK-END */
 &ANALYZE-RESUME
@@ -144,13 +142,7 @@ DEFINE BUTTON buDown
 
 DEFINE BUTTON buGotoObject  NO-FOCUS FLAT-BUTTON
      LABEL "Select the object..." 
-     SIZE 54.8 BY 1.14 TOOLTIP "Select the specified object instance"
-     BGCOLOR 8 .
-
-DEFINE BUTTON buTransfer 
-     IMAGE-UP FILE "ry/img/aftoexcel.gif":U NO-FOCUS FLAT-BUTTON
-     LABEL "Move Up" 
-     SIZE 4.8 BY 1.14 TOOLTIP "Export"
+     SIZE 60.4 BY 1 TOOLTIP "Select the specified object instance"
      BGCOLOR 8 .
 
 DEFINE BUTTON buUp 
@@ -172,13 +164,13 @@ DEFINE VARIABLE fiInstanceName AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 25.2 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiName AS CHARACTER FORMAT "X(256)":U INITIAL " Instance name BEGINS ..." 
+DEFINE VARIABLE fiName AS CHARACTER FORMAT "X(256)":U INITIAL " Instance Name BEGINS ..." 
       VIEW-AS TEXT 
      SIZE 25.8 BY .62 NO-UNDO.
 
-DEFINE VARIABLE fiObjectLocator AS CHARACTER FORMAT "X(256)":U INITIAL " Object locator" 
+DEFINE VARIABLE fiObjectLocator AS CHARACTER FORMAT "X(256)":U INITIAL " Object Locator" 
       VIEW-AS TEXT 
-     SIZE 14.8 BY .62 NO-UNDO.
+     SIZE 15.8 BY .62 NO-UNDO.
 
 DEFINE VARIABLE fiObjectTypeCode AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
@@ -188,7 +180,7 @@ DEFINE VARIABLE fiPage AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0
      VIEW-AS FILL-IN 
      SIZE 4.2 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiType AS CHARACTER FORMAT "X(256)":U INITIAL " Object type BEGINS ..." 
+DEFINE VARIABLE fiType AS CHARACTER FORMAT "X(256)":U INITIAL " Object Type BEGINS ..." 
       VIEW-AS TEXT 
      SIZE 23.4 BY .62 NO-UNDO.
 
@@ -210,7 +202,7 @@ DEFINE RECTANGLE rctInclude
 
 DEFINE RECTANGLE rctLocator
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 64.4 BY 13.29.
+     SIZE 64.4 BY 12.62.
 
 DEFINE RECTANGLE rctName
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -219,14 +211,6 @@ DEFINE RECTANGLE rctName
 DEFINE RECTANGLE rctPage
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
      SIZE 28.4 BY 3.29.
-
-DEFINE RECTANGLE rctSeperator1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE .4 BY 1.14.
-
-DEFINE RECTANGLE rctToolbar
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 62.4 BY 1.33.
 
 DEFINE RECTANGLE rctType
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -246,16 +230,15 @@ DEFINE VARIABLE toVisibleObjects AS LOGICAL INITIAL yes
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     buTransfer AT ROW 13 COL 3
+     buClear AT ROW 2.76 COL 86.2
      raPage AT ROW 3.91 COL 68.6 NO-LABEL
      fiPage AT ROW 5.48 COL 78.8 COLON-ALIGNED NO-LABEL
      toVisibleObjects AT ROW 7.52 COL 68.6
      toNonVisibleObjects AT ROW 8.38 COL 68.6
+     buDown AT ROW 5.95 COL 85
      fiInstanceName AT ROW 10.29 COL 66.6 COLON-ALIGNED NO-LABEL
      fiObjectTypeCode AT ROW 12.43 COL 66.6 COLON-ALIGNED NO-LABEL
-     buGotoObject AT ROW 13 COL 9
-     buClear AT ROW 2.76 COL 86.2
-     buDown AT ROW 5.95 COL 85
+     buGotoObject AT ROW 13.33 COL 3
      buUp AT ROW 5.43 COL 85
      fiObjectLocator AT ROW 1.05 COL 2.2 NO-LABEL
      fiFilter AT ROW 1.81 COL 65 COLON-ALIGNED NO-LABEL
@@ -263,13 +246,11 @@ DEFINE FRAME frMain
      fiInclude AT ROW 6.91 COL 68 NO-LABEL
      fiName AT ROW 9.57 COL 68 NO-LABEL
      fiType AT ROW 11.71 COL 68 NO-LABEL
-     rctSeperator1 AT ROW 13 COL 8
-     rctLocator AT ROW 1.33 COL 1
+     rctName AT ROW 9.86 COL 67
      rctType AT ROW 12 COL 67
      rctPage AT ROW 3.52 COL 67
-     rctName AT ROW 9.86 COL 67
      rctInclude AT ROW 7.19 COL 67
-     rctToolbar AT ROW 12.91 COL 2.2
+     rctLocator AT ROW 1.33 COL 1
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -331,12 +312,10 @@ ASSIGN
 
 /* SETTINGS FOR BUTTON buDown IN FRAME frMain
    NO-ENABLE                                                            */
-/* SETTINGS FOR BUTTON buTransfer IN FRAME frMain
-   NO-ENABLE 1 2                                                        */
 /* SETTINGS FOR BUTTON buUp IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fiInclude IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   ALIGN-L                                                              */
 /* SETTINGS FOR FILL-IN fiName IN FRAME frMain
    ALIGN-L                                                              */
 /* SETTINGS FOR FILL-IN fiObjectLocator IN FRAME frMain
@@ -350,18 +329,12 @@ ASSIGN
 /* SETTINGS FOR FILL-IN fiType IN FRAME frMain
    ALIGN-L                                                              */
 /* SETTINGS FOR FILL-IN fiWhichPage IN FRAME frMain
-   NO-ENABLE ALIGN-L                                                    */
+   ALIGN-L                                                              */
 /* SETTINGS FOR RECTANGLE rctInclude IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctLocator IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR RECTANGLE rctName IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR RECTANGLE rctPage IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctSeperator1 IN FRAME frMain
-   NO-ENABLE                                                            */
-/* SETTINGS FOR RECTANGLE rctToolbar IN FRAME frMain
    NO-ENABLE                                                            */
 /* SETTINGS FOR RECTANGLE rctType IN FRAME frMain
    NO-ENABLE                                                            */
@@ -432,18 +405,23 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buGotoObject sObject
 ON CHOOSE OF buGotoObject IN FRAME frMain /* Select the object... */
 DO:
-  RUN chooseObject.
-END.
+  DEFINE VARIABLE cObjectLocation AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE hPublishFrom    AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hWindow         AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hOwner          AS HANDLE     NO-UNDO.
+  
+  ASSIGN
+      hPublishFrom = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghContainerSource, "PublishFrom":U))
+      hOwner       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghContainerSource, "Owner":U)).
 
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
+  PUBLISH "objectLocated":U FROM hPublishFrom (INPUT ghttObjectInstance:BUFFER-FIELD("d_object_instance_obj":U):BUFFER-VALUE).
 
+  {get WindowFrameHandle hWindow hOwner}.
 
-&Scoped-define SELF-NAME buTransfer
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL buTransfer sObject
-ON CHOOSE OF buTransfer IN FRAME frMain /* Move Up */
-DO:
-  RUN transferToExcel.
+  RUN hideObject IN ghContainerSource.
+
+  hWindow:PARENT:MOVE-TO-TOP().
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -507,7 +485,11 @@ DO:
       raPage.
   
   IF raPage:SCREEN-VALUE = "P":U THEN
+  DO:
+    fiPage:SENSITIVE = TRUE.
+
     DYNAMIC-FUNCTION("evaluateUpDown":U).
+  END.
   ELSE
     ASSIGN
         fiPage:SENSITIVE = FALSE
@@ -561,59 +543,6 @@ END.
 
 /* **********************  Internal Procedures  *********************** */
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE chooseObject sObject 
-PROCEDURE chooseObject :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cObjectLocation AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE hPublishFrom    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hWindow         AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hOwner          AS HANDLE     NO-UNDO.
-
-  /* When the preference is set to hide sub-tools instead of closing, this block
-     is iterated again and again and again because of and error-status which is
-     raised to prevent super procedures from being killed the return-value is alse
-     set to "ERROR". So if the return value is "ERROR" exit the block and don't
-     publish objectLocated again */
-  IF RETURN-VALUE = "ERROR":U THEN
-    RETURN "":U.
-
-  ASSIGN
-      hPublishFrom = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghContainerSource, "PublishFrom":U))
-      hOwner       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghContainerSource, "Owner":U)).
-
-  PUBLISH "objectLocated":U FROM hPublishFrom (INPUT ghttObjectInstance:BUFFER-FIELD("d_object_instance_obj":U):BUFFER-VALUE).
-
-  {get WindowFrameHandle hWindow hOwner}.
-
-  RUN destroyObject IN ghContainerSource.
-
-  hWindow:PARENT:MOVE-TO-TOP() NO-ERROR.
-
-  RETURN "":U.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE clearFilters sObject 
-PROCEDURE clearFilters :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  APPLY "CHOOSE":U TO buClear IN FRAME {&FRAME-NAME}.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE createBrowse sObject 
 PROCEDURE createBrowse :
 /*------------------------------------------------------------------------------
@@ -621,11 +550,8 @@ PROCEDURE createBrowse :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cEntry            AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iFieldLoop        AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE httObjectInstance AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE httObjectType     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hColumn           AS HANDLE     NO-UNDO EXTENT 7.
+  DEFINE VARIABLE httObjectInstance       AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE httObjectType           AS HANDLE     NO-UNDO.
 
   IF NOT VALID-HANDLE(ghttObjectInstance) OR
      NOT VALID-HANDLE(ghttObjectType)     THEN
@@ -640,8 +566,8 @@ PROCEDURE createBrowse :
   DO WITH FRAME {&FRAME-NAME}:
     gcBaseQuery    = "FOR EACH ttObjectInstance":U
                    + "   WHERE ttObjectInstance.c_action                  <> 'D'":U
-                   + "     AND ttObjectInstance.d_object_instance_obj     <> 0":U
-                   + "     AND ttObjectInstance.d_customization_result_obj = &1":U
+                   + "     AND ttObjectInstance.d_object_instance_obj     <> 0.00":U
+                   + "     AND ttObjectInstance.d_customization_result_obj = DECIMAL('0.00')":U
                    + "     AND ttObjectInstance.l_visible_object           = ttObjectInstance.l_visible_object":U
                    + "     AND ttObjectInstance.c_instance_name       BEGINS ttObjectInstance.c_instance_name":U
                    + "     AND ttObjectInstance.i_page                     = ttObjectInstance.i_page,":U
@@ -665,42 +591,109 @@ PROCEDURE createBrowse :
         ON "VALUE-CHANGED":U          PERSISTENT RUN trgValueChanged  IN THIS-PROCEDURE.
         ON "START-SEARCH":U           PERSISTENT RUN trgStartSearch   IN THIS-PROCEDURE.
         ON "ROW-DISPLAY":U            PERSISTENT RUN trgRowDisplay    IN THIS-PROCEDURE.
+    
     END TRIGGERS.
     
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("i_page":U)).
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("i_row":U)).
+    ghColumn = ghBrowse:ADD-CALC-COLUMN("CHAR":U, "X":U, "":U, "C  ":U).
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("c_instance_name":U)).
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectType:BUFFER-FIELD("c_object_type_code":U)).
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("l_visible_object":U)).
+    ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("c_instance_description":U)).
+
     ASSIGN
-        hColumn[1] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("i_page":U))
-        hColumn[2] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("i_row":U))
-        hColumn[3] = ghBrowse:ADD-CALC-COLUMN("CHAR":U, "X":U, "":U, "C":U)
-        hColumn[4] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("c_instance_name":U))
-        hColumn[5] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectType:BUFFER-FIELD("c_object_type_code":U))
-        hColumn[6] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("l_visible_object":U))
-        hColumn[7] = ghBrowse:ADD-LIKE-COLUMN(ghttObjectInstance:BUFFER-FIELD("c_instance_description":U))
-        
-        ghColumn           = hColumn[3]
-        hColumn[3]:NAME    = "i_column":U
         ghBrowse:SENSITIVE = TRUE
         ghBrowse:VISIBLE   = YES
+        gcCurrentSort      = " BY ttObjectInstance.c_instance_name":U
         
         toNonVisibleObjects:CHECKED   = TRUE
         toVisibleObjects:CHECKED      = TRUE
         fiPage:SCREEN-VALUE           = "0":U
-        fiObjectLocator:SCREEN-VALUE = " Object locator":U
+        fiObjectLocator:SCREEN-VALUE = " Object Locator":U
         fiWhichPage:SCREEN-VALUE     = " Objects on page ...":U
         fiInclude:SCREEN-VALUE       = " Show":U
         fiFilter:SCREEN-VALUE        = "  Filter":U
-        fiName:SCREEN-VALUE          = " Instance name BEGINS ...":U
-        fiType:SCREEN-VALUE          = " Object type BEGINS ...":U.
-
-    DO iFieldLoop = 1 TO ghBrowse:NUM-COLUMNS:
-      cEntry = ENTRY(iFieldLoop, gcColumnWidths, "^":U).
-  
-      IF INTEGER(cEntry) <> 0 THEN
-        hColumn[iFieldLoop]:WIDTH-PIXELS = INTEGER(cEntry).
-    END.
+        fiName:SCREEN-VALUE          = " Instance Name BEGINS ...":U
+        fiType:SCREEN-VALUE          = " Object Type BEGINS ...":U .
   END.
 
   RETURN.
 
+/*
+  DEFINE VARIABLE cQueryPrepare     AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cColumnName       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE iFieldLoop        AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE hSObjectInstance  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hTObjectInstance  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hColumn           AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hBuffer           AS HANDLE     NO-UNDO.
+  
+  SESSION:SET-WAIT-STATE("GENERAL":U).
+
+  ghMainBuffer = TEMP-TABLE ttSmartLink:DEFAULT-BUFFER-HANDLE.
+  
+  ASSIGN
+      hSObjectInstance = BUFFER ttSourceObjectInstance:HANDLE
+      hTObjectInstance = BUFFER ttTargetObjectInstance:HANDLE.
+  
+  CREATE QUERY ghQuery.
+  
+  ghQuery:SET-BUFFERS(ghMainBuffer,
+                      hSObjectInstance,
+                      hTObjectInstance).
+  
+  CREATE BROWSE ghBrowse
+  ASSIGN FRAME                  = FRAME {&FRAME-NAME}:HANDLE
+         NAME                   = "LinkBrowse"
+         SEPARATORS             = TRUE
+         ROW-MARKERS            = FALSE
+         EXPANDABLE             = TRUE
+         COLUMN-RESIZABLE       = TRUE
+         ALLOW-COLUMN-SEARCHING = TRUE
+         QUERY                  = ghQuery
+         REFRESHABLE            = YES
+  TRIGGERS:            
+      ON "START-SEARCH":U   PERSISTENT RUN trgStartSearch  IN THIS-PROCEDURE.
+      ON "VALUE-CHANGED":U  PERSISTENT RUN trgValueChanged IN THIS-PROCEDURE.
+  END TRIGGERS.
+  
+  hColumn = ghBrowse:ADD-LIKE-COLUMN(hSObjectInstance:BUFFER-FIELD("c_instance_name":U)).
+  hColumn:LABEL = "Source".
+  
+  ghBrowse:ADD-LIKE-COLUMN(hSObjectInstance:BUFFER-FIELD("i_page":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hSObjectInstance:BUFFER-FIELD("i_row":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hSObjectInstance:BUFFER-FIELD("i_column":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hSObjectInstance:BUFFER-FIELD("c_lcr":U)).
+  ghBrowse:ADD-LIKE-COLUMN(    ghMainBuffer:BUFFER-FIELD("c_link_name":U)).
+  
+  hColumn = ghBrowse:ADD-LIKE-COLUMN(hTObjectInstance:BUFFER-FIELD("c_instance_name":U)).
+  hColumn:LABEL = "Target".
+  
+  ghBrowse:ADD-LIKE-COLUMN(hTObjectInstance:BUFFER-FIELD("i_page":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hTObjectInstance:BUFFER-FIELD("i_row":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hTObjectInstance:BUFFER-FIELD("i_column":U)).
+  ghBrowse:ADD-LIKE-COLUMN(hTObjectInstance:BUFFER-FIELD("c_lcr":U)).
+  
+  /* And show the browse to the user */
+  ASSIGN
+      ghBrowse:SENSITIVE = TRUE
+      ghBrowse:VISIBLE   = YES
+      gcBaseQueryAll     = "FOR EACH ttSmartLink":U
+                         + "   WHERE ttSmartLink.c_action <> 'D'":U
+                         + "     AND ttSmartLink.c_link_name = ttSmartLink.c_link_name,":U
+                         + "   FIRST ttSourceObjectInstance":U
+                         + "   WHERE ttSourceObjectInstance.d_object_instance_obj = ttSmartLink.d_source_object_instance_obj":U
+                         + "     AND ttSourceObjectInstance.c_instance_name       = ttSourceObjectInstance.c_instance_name,":U
+                         + "   FIRST ttTargetObjectInstance":U
+                         + "   WHERE ttTargetObjectInstance.d_object_instance_obj = ttSmartLink.d_target_object_instance_obj":U
+                         + "     AND ttTargetObjectInstance.c_instance_name       = ttTargetObjectInstance.c_instance_name":U
+      gcCurrentSort      = " BY ttSmartLink.c_link_name ":U.
+
+  SESSION:SET-WAIT-STATE("":U).
+*/
+  RETURN.  
+  
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -715,26 +708,6 @@ PROCEDURE destroyObject :
 ------------------------------------------------------------------------------*/
 
   /* Code placed here will execute PRIOR to standard behavior. */
-  DEFINE VARIABLE cPreferences  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iColumn       AS INTEGER    NO-UNDO.
-
-  cPreferences = "DefaultSort":U  + "|":U + gcCurrentSort + "|":U
-               + "ColumnWidths":U + "|":U.
-
-  DO iColumn = 1 TO ghBrowse:NUM-COLUMNS:
-    cPreferences = cPreferences + STRING(ghBrowse:GET-BROWSE-COLUMN(iColumn):WIDTH-PIXELS) + "^":U.
-  END.
-
-  cPreferences = TRIM(cPreferences, "^":U).
-
-  IF VALID-HANDLE(gshProfileManager) THEN
-    RUN setProfileData IN gshProfileManager (INPUT "Window":U,        /* Profile type code      */
-                                             INPUT "CBuilder":U,      /* Profile code           */
-                                             INPUT "ObjLPreferences", /* Profile data key       */
-                                             INPUT ?,                 /* Rowid of profile data  */
-                                             INPUT cPreferences,      /* Profile data value     */
-                                             INPUT NO,                /* Delete flag            */
-                                             INPUT "PER":U).          /* Save flag (permanent)  */
 
   RUN SUPER.
 
@@ -773,40 +746,6 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE getProfileData sObject 
-PROCEDURE getProfileData :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE VARIABLE cPrefs  AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE iEntry  AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE rRowId  AS ROWID      NO-UNDO.
-
-  ASSIGN
-      gcColumnWidths = "0^0^0^0^0^0^0":U
-      gcCurrentSort  = " BY ttObjectInstance.c_instance_name":U.
-  
-  IF VALID-HANDLE(gshProfileManager) THEN
-    RUN getProfileData IN gshProfileManager (INPUT "Window":U,          /* Profile type code     */
-                                             INPUT "CBuilder":U,        /* Profile code          */
-                                             INPUT "ObjLPreferences":U, /* Profile data key      */
-                                             INPUT "NO":U,              /* Get next record flag  */
-                                             INPUT-OUTPUT rRowid,       /* Rowid of profile data */
-                                             OUTPUT cPrefs).            /* Found profile data.   */
-
-  /* --- Preference lookup --------------------- */ /* --- Preference value assignment --------------------------------- */
-  iEntry = LOOKUP("ColumnWidths":U, cPrefs, "|":U). IF iEntry <> 0 THEN gcColumnWidths  = ENTRY(iEntry + 1, cPrefs, "|":U).
-  iEntry = LOOKUP("DefaultSort":U,  cPrefs, "|":U). IF iEntry <> 0 THEN gcCurrentSort   = ENTRY(iEntry + 1, cPrefs, "|":U).
-
-  RETURN.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE initializeObject sObject 
 PROCEDURE initializeObject :
 /*------------------------------------------------------------------------------
@@ -817,12 +756,10 @@ PROCEDURE initializeObject :
 
   /* Code placed here will execute PRIOR to standard behavior. */
   DEFINE VARIABLE hWindow AS HANDLE     NO-UNDO.
-
-  RUN SUPER.
-
+  
   {get ContainerSource ghContainerSource}.
   {get ContainerSource ghParentContainer ghContainerSource}.
-
+  
   {get WindowFrameHandle hWindow ghContainerSource}.
 
   ASSIGN
@@ -833,18 +770,15 @@ PROCEDURE initializeObject :
       ghttObjectInstance = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectInstance":U))
       ghttObjectType     = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectType":U)).
 
-  SUBSCRIBE PROCEDURE THIS-PROCEDURE TO "refreshData":U IN ghParentContainer.
-  SUBSCRIBE TO "clearFilters":U IN ghParentContainer.
-
-  RUN getProfileData.
-  RUN createBrowse.
-
-  hWindow = DYNAMIC-FUNCTION("getContainerToolbarSource":U IN ghContainerSource).
-  SUBSCRIBE TO "toolbar":U IN hWindow.
+  SUBSCRIBE TO "refreshData":U IN ghParentContainer.
+  
+  RUN SUPER.
 
   /* Code placed here will execute AFTER standard behavior.    */
+  RUN createBrowse.
   RUN resizeObject (INPUT FRAME {&FRAME-NAME}:HEIGHT-CHARS, INPUT FRAME {&FRAME-NAME}:WIDTH-CHARS).
-  RUN refreshData  (INPUT "NewData":U, INPUT 0.00).
+
+  RUN refreshData (INPUT "NewData":U, INPUT 0.00).
 
 END PROCEDURE.
 
@@ -861,13 +795,10 @@ PROCEDURE refreshData :
   DEFINE INPUT PARAMETER pcAction     AS CHARACTER  NO-UNDO.
   DEFINE INPUT PARAMETER pdObjNumber  AS DECIMAL    NO-UNDO.
 
-  DEFINE VARIABLE httSmartObject    AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE httObjectType     AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hToolbar          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE hWindow           AS HANDLE     NO-UNDO.
-  
-  {get ContainerToolbarSource hToolbar ghContainerSource}.
-  
+  DEFINE VARIABLE httSmartObject  AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE httObjectType   AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE hWindow         AS HANDLE     NO-UNDO.
+
   DO WITH FRAME {&FRAME-NAME}:
     IF pcAction            = "PageChange":U AND 
        raPage:SCREEN-VALUE = "C":U          THEN
@@ -877,9 +808,7 @@ PROCEDURE refreshData :
       IF ghQuery:NUM-RESULTS > 0 THEN
         ghBrowse:REFRESH().
       ELSE
-        ASSIGN
-            buGotoObject:SENSITIVE = FALSE
-            buTransfer:SENSITIVE   = FALSE.
+        buGotoObject:SENSITIVE = FALSE.
     END.
 
     IF pcAction = "NewData":U THEN
@@ -891,10 +820,10 @@ PROCEDURE refreshData :
           httObjectType  = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttObjectType":U))
           hWindow        = hWindow:PARENT.
 
-      httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0":U) NO-ERROR.
+      httSmartObject:FIND-FIRST("WHERE d_smartobject_obj <> 0.00":U) NO-ERROR.
       
       IF httSmartObject:AVAILABLE THEN
-        httObjectType:FIND-FIRST("WHERE d_object_type_obj = ":U + QUOTER(httSmartObject:BUFFER-FIELD("d_object_type_obj":U):BUFFER-VALUE)) NO-ERROR.
+        httObjectType:FIND-FIRST("WHERE d_object_type_obj = DECIMAL('":U + STRING(httSmartObject:BUFFER-FIELD("d_object_type_obj":U):BUFFER-VALUE) + "')":U) NO-ERROR.
 
       IF httObjectType:AVAILABLE THEN
         hWindow:TITLE = gcTitle
@@ -904,18 +833,6 @@ PROCEDURE refreshData :
         hWindow:TITLE = gcTitle.
       
       DYNAMIC-FUNCTION("reopenBrowseQuery":U, "":U).
-    END.
-
-    IF ghQuery:NUM-RESULTS = 0 OR
-       ghQuery:NUM-RESULTS = ? THEN
-    DO:
-      {set   DisabledActions 'export':U hToolbar}.
-      {fnarg disableActions  'export':U hToolbar}.
-    END.
-    ELSE
-    DO:
-      {set   DisabledActions '':U     hToolbar}.
-      {fnarg enableActions 'export':U hToolbar}.
     END.
   END.
   
@@ -988,22 +905,16 @@ PROCEDURE resizeViewerObjects :
   IF VALID-HANDLE(ghBrowse) THEN
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
-        rctLocator:HEIGHT-CHARS   = pdHeight - 0.45
-        rctLocator:WIDTH-CHARS    = pdWidth /*- rctPage:WIDTH-CHARS*/
-        ghBrowse:ROW              = rctLocator:ROW + 0.50
-        ghBrowse:COLUMN           = 3.00
-        ghBrowse:HEIGHT-CHARS     = rctLocator:HEIGHT-CHARS - buGotoObject:HEIGHT-CHARS - 1.20
-        ghBrowse:WIDTH-CHARS      = rctLocator:WIDTH-CHARS  - rctPage:WIDTH-CHARS       - 6.00
-        rctToolbar:COLUMN         = ghBrowse:COLUMN
-        rctToolbar:WIDTH-CHARS    = ghBrowse:WIDTH-CHARS
-        rctToolbar:Y              = ghBrowse:Y + ghBrowse:HEIGHT-PIXELS + 5
-        buTransfer:X              = rctToolbar:X + 7
-        buTransfer:Y              = rctToolbar:Y + 2
+        rctLocator:HEIGHT-CHARS  = pdHeight - 0.45
+        rctLocator:WIDTH-CHARS   = pdWidth /*- rctPage:WIDTH-CHARS*/
+        ghBrowse:ROW             = rctLocator:ROW + 0.50
+        ghBrowse:COLUMN          = 3.00
+        ghBrowse:HEIGHT-CHARS    = rctLocator:HEIGHT-CHARS - buGotoObject:HEIGHT-CHARS - 1.20
+        ghBrowse:WIDTH-CHARS     = rctLocator:WIDTH-CHARS  - rctPage:WIDTH-CHARS       - 6.00
+        buGotoObject:COLUMN      = ghBrowse:COLUMN + 2.50
+        buGotoObject:ROW         = ghBrowse:HEIGHT-CHARS + ghBrowse:ROW + 0.45
+        buGotoObject:WIDTH-CHARS = ghBrowse:WIDTH-CHARS - 6.00
 
-        buGotoObject:X            = buTransfer:X + buTransfer:WIDTH-PIXELS + 2
-        buGotoObject:Y            = rctToolbar:Y + 2
-        buGotoObject:WIDTH-PIXELS = rctToolbar:WIDTH-PIXELS - (buTransfer:WIDTH-PIXELS + buTransfer:X) + 6
-        
         dDifference = ghBrowse:WIDTH-CHARS
                     + ghBrowse:COLUMN + 2.00
                     - rctPage:COLUMN
@@ -1026,9 +937,6 @@ PROCEDURE resizeViewerObjects :
         fiType:COLUMN              = fiType:COLUMN              + dDifference
         buDown:COLUMN              = buDown:COLUMN              + dDifference
         buUp:COLUMN                = buUp:COLUMN                + dDifference
-        rctSeperator1:Y            = rctToolbar:Y   + 2
-        rctSeperator1:X            = buGotoObject:X - 2
-
         .
         buClear:MOVE-TO-TOP().
   END.
@@ -1081,7 +989,7 @@ PROCEDURE setupObjectLocator :
         toAllPages
         cListItemPairs = "":U
         cScreenValue   = coObjectLocator:SCREEN-VALUE
-        iCurrentPage   = DYNAMIC-FUNCTION("getPageSequence":U IN ghContainerSource, ?).
+        iCurrentPage   = DYNAMIC-FUNCTION("getCurrentPage":U IN ghContainerSource) - 1.
 
     hQuery:QUERY-PREPARE("FOR EACH ttObjectInstance":U
                          + " WHERE ttObjectInstance.c_action                 <> 'D'":U
@@ -1145,41 +1053,6 @@ PROCEDURE setupObjectLocator :
 
   RETURN.
 */
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE toolbar sObject 
-PROCEDURE toolbar :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcAction AS CHARACTER  NO-UNDO.
-
-  IF pcAction = "Export":U THEN
-    RUN transferToExcel.
-
-  RETURN.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE transferToExcel sObject 
-PROCEDURE transferToExcel :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  RUN transferToExcel IN ghParentContainer (INPUT ghBrowse, INPUT ghContainerSource).
-
-  RETURN.
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1286,16 +1159,10 @@ PROCEDURE trgValueChanged :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-  DO WITH FRAME {&FRAME-NAME}:
-    IF ghQuery:NUM-RESULTS > 0 THEN
-      ASSIGN
-          buGotoObject:SENSITIVE = TRUE
-          buTransfer:SENSITIVE   = TRUE.
-    ELSE
-      ASSIGN
-          buGotoObject:SENSITIVE = FALSE
-          buTransfer:SENSITIVE   = FALSE.
-  END.
+  IF ghQuery:NUM-RESULTS > 0 THEN
+    buGotoObject:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+  ELSE
+    buGotoObject:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
 
 END PROCEDURE.
 
@@ -1371,14 +1238,14 @@ FUNCTION reopenBrowseQuery RETURNS LOGICAL
 
         dCustomizationResultObj = DECIMAL(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "CustomizationResultObj":U))
         httObjectInstance       = WIDGET-HANDLE(DYNAMIC-FUNCTION("getUserProperty":U IN ghParentContainer, "ttSmartObject":U))
-        iCurrentPage            = DYNAMIC-FUNCTION("getPageSequence":U IN ghParentContainer, ?)
-        cBaseQuery              = SUBSTITUTE(gcBaseQuery, QUOTER(dCustomizationResultObj)).
+        iCurrentPage            = DYNAMIC-FUNCTION("getCurrentPage":U IN ghParentContainer) - 1
+        cBaseQuery              = gcBaseQuery.
 
     IF raPage:SCREEN-VALUE = "C":U THEN /* Current Page */
       cBaseQuery = REPLACE(cBaseQuery, "= ttObjectInstance.i_page":U, "= ":U + STRING(iCurrentPage)).
     
     IF raPage:SCREEN-VALUE = "P":U THEN /* Current Page */
-      cBaseQuery = REPLACE(cBaseQuery, "= ttObjectInstance.i_page":U, "= ":U + STRING(DYNAMIC-FUNCTION("getPageSequence":U IN ghParentContainer, INTEGER(fiPage:SCREEN-VALUE)))).
+      cBaseQuery = REPLACE(cBaseQuery, "= ttObjectInstance.i_page":U, "= ":U + STRING(fiPage:SCREEN-VALUE)).
 
     IF toNonVisibleObjects:CHECKED = TRUE  AND
        toVisibleObjects:CHECKED    = FALSE THEN

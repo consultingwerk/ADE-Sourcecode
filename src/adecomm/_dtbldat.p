@@ -1,9 +1,9 @@
-/**********************************************************************
-* Copyright (C) 2000,2006,2013 by Progress Software Corporation. All  *
-* rights reserved.  Prior versions of this work may contain portions  *
-* contributed by participants of Possenet.                            *
-*                                                                     *
-**********************************************************************/
+/************************************************************************
+* Copyright (C) 2000,2006,2013,2021 by Progress Software Corporation.   *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _dtbldat.p
@@ -31,6 +31,7 @@ Modified on 5/31/95 by GFS Allow display of hidden tables (not meta-schema).
                           Added display of File Valexp and Valmsg.
             01/31/03 DLM  Added support for Blobs              
             06/15/06 fernando   Adding support for long dump names
+            03/12/21 tmasood    Show correct status of index
 ----------------------------------------------------------------------------*/
 { prodict/fhidden.i }
 
@@ -650,6 +651,11 @@ FOR EACH bFile NO-LOCK
    /* Index info */
    FOR EACH dictdb._Index OF bFile NO-LOCK BREAK BY dictdb._Index._Index-name:
       FIND LAST dictdb._Index-field OF dictdb._Index NO-LOCK NO-ERROR.
+      FIND FIRST dictdb._StorageObject WHERE dictdb._StorageObject._Db-recid = bFile._Db-recid
+                                         AND dictdb._StorageObject._Object-type = 2
+                                         AND dictdb._StorageObject._Object-number = dictdb._Index._Idx-num
+                                         AND dictdb._StorageObject._partitionid = 0
+                                         NO-LOCK NO-ERROR.
       flags = 
            ( (IF NOT bFile._File-Attributes[3]
                THEN "" ELSE IF dictdb._Index._index-attributes[1] AND bFile._File-Attributes[3] THEN "l" ELSE "g")
@@ -657,7 +663,7 @@ FOR EACH bFile NO-LOCK
               THEN "p" ELSE "")
            + (IF dictdb._Index._Unique   
                THEN "u" ELSE "")
-           + (IF NOT dictdb._Index._Active
+           + (IF NOT dictdb._Index._Active OR (AVAILABLE _StorageObject AND (get-bits(_StorageObject._Object-State,1,1) = 1))
                THEN "i" ELSE "") 
            + (IF dictdb._Index._Wordidx = 1
                THEN "w" ELSE "") 

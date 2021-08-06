@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006 by Progress Software Corporation. All rights *
+* Copyright (C) 2000,2006,2020 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions          *
 * contributed by participants of Possenet.                             *
 *                                                                      *
@@ -45,6 +45,8 @@ History:  07/14/98 DLM Added _Owner to _File Finds
           04/12/00 DLM Added support for long path names
 
           08/03/2006 fernando   Check permission on DICTDB2 - 20060621-015
+          11/10/2020 Kberlia    Added support for selecting sections option while dumping delta df
+          12/31/2020 tmasood    Fix the issue with dump of new format   
 
 */
 
@@ -122,9 +124,9 @@ FORM
 
 /* LANGUAGE DEPENDENCIES END */ /*------------------------------------------*/
 
-DEFINE VARIABLE answer 	     AS LOGICAL   NO-UNDO.
-DEFINE VARIABLE c      	     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i      	     AS INTEGER   NO-UNDO.
+DEFINE VARIABLE answer              AS LOGICAL   NO-UNDO.
+DEFINE VARIABLE c                   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE i                   AS INTEGER   NO-UNDO.
 DEFINE VARIABLE canned       AS LOGICAL   NO-UNDO INIT TRUE.
 DEFINE VARIABLE hBuffer      AS HANDLE    NO-UNDO.
 DEFINE VARIABLE bufList      AS CHARACTER NO-UNDO EXTENT 4
@@ -140,14 +142,17 @@ DEFINE VARIABLE dictdb2-id   AS RECID     INITIAL ?  NO-UNDO.
 DEFINE VARIABLE errcode      AS INTEGER   INITIAL ?  NO-UNDO.
 /* For DataServer use */
 
+DEFINE VARIABLE tg-dump   AS LOGICAL    NO-UNDO INITIAL FALSE.
+
 {prodict/misc/filesbtn.i}
 
 FORM                                                SKIP({&TFM_WID})
   user_env[2] {&STDPH_FILL} FORMAT "x({&PATH_WIDG})" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
          LABEL "Output File"
   btn_File                                          SKIP ({&VM_WIDG})
-  user_env[5] {&STDPH_FILL} FORMAT "x(80)" COLON 13 VIEW-AS FILL-IN SIZE 40 BY 1
-	 LABEL "Code Page"
+  user_env[5] {&STDPH_FILL} FORMAT "x(80)" AT 2 VIEW-AS FILL-IN SIZE 40 BY 1
+         LABEL "Code Page" SKIP({&VM_WIDG})
+  tg-dump LABEL "Dump definitions in sections for phased load" view-as toggle-box at 2       
   {prodict/user/userbtns.i}
   WITH FRAME dump1 
   SIDE-LABELS ATTR-SPACE CENTERED 
@@ -164,8 +169,8 @@ FORM                                                SKIP({&TFM_WID})
 on HELP of frame dump1
    or CHOOSE of btn_Help in frame dump1
    RUN "adecomm/_adehelp.p" (INPUT "admn", INPUT "CONTEXT", 
-      	       	     	     INPUT {&Dump_Incremental_Definitions_Dlg_Box},
-      	       	     	     INPUT ?).
+                             INPUT {&Dump_Incremental_Definitions_Dlg_Box},
+                             INPUT ?).
 &ENDIF
 
 
@@ -181,6 +186,7 @@ DO:
       RETURN NO-APPLY.
     END.
   END.
+  ASSIGN user_env[43] = IF tg-dump:SCREEN-VALUE <> "" THEN tg-dump:SCREEN-VALUE ELSE "No". /* Contains the value to show new online sections dump */
 END.
 
 ON WINDOW-CLOSE OF FRAME dump1
@@ -283,10 +289,10 @@ END.
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
   DISPLAY new_lang[9]  new_lang[10] new_lang[11] new_lang[12]
-      	  new_lang[13] new_lang[14] new_lang[15] new_lang[16]
-      	  new_lang[17] new_lang[18] new_lang[19] new_lang[20]
-      	  new_lang[21] new_lang[22] 
-      	  WITH FRAME help1.
+                new_lang[13] new_lang[14] new_lang[15] new_lang[16]
+                new_lang[17] new_lang[18] new_lang[19] new_lang[20]
+                new_lang[21] new_lang[22] 
+                WITH FRAME help1.
   RUN "prodict/user/_usrpick.p".
   HIDE FRAME help1.
 &ELSE
@@ -470,9 +476,9 @@ PAUSE 0.
 
 DO ON ERROR UNDO,RETRY ON ENDKEY UNDO,LEAVE:
   answer = TRUE.
-  UPDATE user_env[2] btn_File user_env[5]
-      	 btn_OK btn_Cancel {&HLP_BTN_NAME}
-      	 WITH FRAME dump1.
+  UPDATE user_env[2] btn_File user_env[5] tg-dump
+               btn_OK btn_Cancel {&HLP_BTN_NAME}
+               WITH FRAME dump1.
 
   { prodict/dictnext.i c }
   canned = FALSE.

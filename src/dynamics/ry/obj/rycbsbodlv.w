@@ -172,7 +172,7 @@ DEFINE BUTTON buLookupDirectory
      BGCOLOR 8 .
 
 DEFINE VARIABLE coDataLogicObjectType AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Object type" 
+     LABEL "Object Type" 
      VIEW-AS COMBO-BOX SORT INNER-LINES 5
      LIST-ITEMS "Item 1" 
      DROP-DOWN-LIST
@@ -183,17 +183,17 @@ DEFINE VARIABLE fiDataLogicProcedure AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 59.6 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiLabel AS CHARACTER FORMAT "X(256)":U INITIAL " Data Logic Procedure details" 
+DEFINE VARIABLE fiLabel AS CHARACTER FORMAT "X(256)":U INITIAL " Data Logic Procedure Details" 
       VIEW-AS TEXT 
      SIZE 29.4 BY .62 NO-UNDO.
 
 DEFINE VARIABLE fiLPRelativePath AS CHARACTER FORMAT "X(35)":U 
-     LABEL "Relative path" 
+     LABEL "Relative Path" 
      VIEW-AS FILL-IN 
      SIZE 59.6 BY 1 TOOLTIP "The path to the root directory where the Logic procedure is to be stored" NO-UNDO.
 
 DEFINE VARIABLE fiLPSuffix AS CHARACTER FORMAT "X(35)":U 
-     LABEL "Name suffix" 
+     LABEL "Name Suffix" 
      VIEW-AS FILL-IN 
      SIZE 59.6 BY 1 TOOLTIP "This suffix is used with the table entity to create the Logic Procedure name" NO-UNDO.
 
@@ -203,7 +203,7 @@ DEFINE VARIABLE fiLPTemplateName AS CHARACTER FORMAT "X(35)":U
      SIZE 59.6 BY 1 TOOLTIP "The name of a data logic procedure to be used as a template." NO-UNDO.
 
 DEFINE VARIABLE fiRootFolder AS CHARACTER FORMAT "X(70)":U 
-     LABEL "Root folder" 
+     LABEL "Root Folder" 
      VIEW-AS FILL-IN 
      SIZE 54.8 BY 1 TOOLTIP "The root directory for any static objects to be created on the server." NO-UNDO.
 
@@ -217,12 +217,12 @@ DEFINE VARIABLE toCreateMissing AS LOGICAL INITIAL yes
      SIZE 53.6 BY .81 TOOLTIP "Create any folder relative to the root directory?" NO-UNDO.
 
 DEFINE VARIABLE toInRepository AS LOGICAL INITIAL no 
-     LABEL "Exists in repository" 
+     LABEL "Exists in Repository" 
      VIEW-AS TOGGLE-BOX
      SIZE 30 BY .81 TOOLTIP "Indicates if the procedure is registered in the Repository" NO-UNDO.
 
 DEFINE VARIABLE toOnDisk AS LOGICAL INITIAL no 
-     LABEL "Exists on disk" 
+     LABEL "Exists on Disk" 
      VIEW-AS TOGGLE-BOX
      SIZE 28.8 BY .81 TOOLTIP "Indicates if the procedure exists on disk" NO-UNDO.
 
@@ -253,7 +253,6 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartDataViewer
-   Compile into: 
    Data Source: "ry/obj/ryemptysdo.w"
    Allow: Basic,DB-Fields,Smart
    Container Links: Data-Target,Update-Source,TableIO-Target,GroupAssign-Source,GroupAssign-Target
@@ -404,7 +403,7 @@ END.
 
 &Scoped-define SELF-NAME fiLPRelativePath
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiLPRelativePath vTableWin
-ON VALUE-CHANGED OF fiLPRelativePath IN FRAME frMain /* Relative path */
+ON VALUE-CHANGED OF fiLPRelativePath IN FRAME frMain /* Relative Path */
 DO:
   {fn evaluateButton}.
 END.
@@ -415,7 +414,7 @@ END.
 
 &Scoped-define SELF-NAME fiLPSuffix
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiLPSuffix vTableWin
-ON VALUE-CHANGED OF fiLPSuffix IN FRAME frMain /* Name suffix */
+ON VALUE-CHANGED OF fiLPSuffix IN FRAME frMain /* Name Suffix */
 DO:
   {fn evaluateButton}.
 END.
@@ -426,7 +425,7 @@ END.
 
 &Scoped-define SELF-NAME fiRootFolder
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fiRootFolder vTableWin
-ON LEAVE OF fiRootFolder IN FRAME frMain /* Root folder */
+ON LEAVE OF fiRootFolder IN FRAME frMain /* Root Folder */
 DO:
     DEFINE VARIABLE cFileType           AS CHARACTER                    NO-UNDO.
 
@@ -476,8 +475,8 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_description,gsc_product_module.relative_pathKeyFieldgsc_product_module.product_module_codeFieldLabelProduct moduleFieldTooltipSelect the preferred Product Module for Data Logic ProceduresKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product_module
-                     WHERE [&FilterSet=|&EntityList=GSCPM] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 ( &2 )|&3ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamefiCharDisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_product_module.product_module_code,gsc_product_module.product_module_description,gsc_product_module.relative_pathKeyFieldgsc_product_module.product_module_codeFieldLabelProduct ModuleFieldTooltipSelect the preferred Product Module for Data Logic ProceduresKeyFormatX(35)KeyDatatypecharacterDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH gsc_product_module
+                     WHERE [EXCLUDE_REPOSITORY_PRODUCT_MODULES] NO-LOCK BY gsc_product_module.product_module_code INDEXED-REPOSITIONQueryTablesgsc_product_moduleSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 ( &2 )|&3ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamefiCharDisplayFieldyesEnableFieldyesLocalFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hProductModule ).
        RUN repositionObject IN hProductModule ( 5.19 , 19.40 ) NO-ERROR.
        RUN resizeObject IN hProductModule ( 1.00 , 59.60 ) NO-ERROR.
@@ -569,16 +568,16 @@ PROCEDURE generateProcedure :
   /* This procedure can only be called once the SBO has been saved */
 
   RUN startDataObject IN gshRepositoryManager (INPUT gcObjectFilename, OUTPUT hSBO).
-  
+
   RUN getSDOInformation (INPUT  hSBO,
                          OUTPUT cTableList,
                          OUTPUT cIncludeFileList).
 
   cDataInstanceNames = {fn getDataObjectNames hSBO}.
- 
- 
-  RUN destroyObject IN hSBO.
   
+
+  RUN destroyObject IN hSBO.
+
   DO WITH FRAME {&FRAME-NAME}:
     ASSIGN
         cProductModule          = {fn getDataValue hProductModule}
@@ -604,27 +603,21 @@ PROCEDURE generateProcedure :
                                                      INPUT cDataLogicRelativePath,          /* pcDataLogicRelativePath  */
                                                      INPUT cRootFolder,                     /* pcRootFolder             */
                                                      INPUT cIncludeFileList,                /* pcIncludeFileList        */
-                                                     INPUT lCreateMissingFolder) NO-ERROR.  /* plCreateMissingFolder    */
+                                                     INPUT lCreateMissingFolder).           /* plCreateMissingFolder    */
 
-  IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN DO:
-    IF NOT RETURN-VALUE BEGINS "Compiling of DataLogic":U THEN /* A compile error */
-      ASSIGN
+  IF ERROR-STATUS:ERROR OR RETURN-VALUE <> "":U THEN
+    ASSIGN
         cMessageType = "ERR":U
         cMessage     = "The DataLogicProcedure could not be generated successfully. ":U
                      + (IF RETURN-VALUE <> "":U THEN CHR(10) + CHR(10) + RETURN-VALUE
                                                 ELSE (IF ERROR-STATUS:GET-MESSAGE(1) <> "":U THEN CHR(10) + CHR(10) + ERROR-STATUS:GET-MESSAGE(1)
                                                                                              ELSE "":U)).
-    ELSE /* A compile error ... still create the DLP even though it didn't compile */
-      ASSIGN
-        cMessageType = "ERR":U
-        cMessage     = "The DataLogicProcedure was generated successfully.":U + CHR(10) + 
-                       "However, it did not compile." + CHR(10) + CHR(10) + RETURN-VALUE.
-  END.  /* If there was an error */
   ELSE
     ASSIGN
         cMessageType = "INF":U
         cMessage     = "The DataLogicProcedure was generated successfully.":U + CHR(10) + CHR(10)
                      + "*** NOTE: Remember to save your container to set the link between the container and the DataLogicProcedure.":U.
+
   RUN showMessages IN gshSessionManager (INPUT  cMessage,                                 /* message to display */
                                          INPUT  cMessageType,                             /* error type         */
                                          INPUT  "&OK":U,                                  /* button list        */
@@ -819,8 +812,6 @@ PROCEDURE initializeObject :
   ghDesignManager = {fnarg getManagerHandle 'RepositoryDesignManager':U}.
 
   SUBSCRIBE TO "comboValueChanged":U IN THIS-PROCEDURE.
-  SUBSCRIBE TO "refreshData":U       IN ghContainerSource.
-  SUBSCRIBE TO "refreshData":U       IN ghParentContainer.
 
   RUN SUPER.
 
@@ -842,57 +833,9 @@ PROCEDURE initializeObject :
     APPLY "VALUE-CHANGED":U TO hCombo.
 
     {fn getSBODetails}.
-  END.
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE refreshData vTableWin 
-PROCEDURE refreshData :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  DEFINE INPUT PARAMETER pcAction       AS CHARACTER  NO-UNDO.
-  DEFINE INPUT PARAMETER pdObjectNumber AS DECIMAL    NO-UNDO.
-
-  IF pcAction = "NewData":U THEN
-  DO WITH FRAME {&FRAME-NAME}:
-    {fn getSBODetails}.
-
-    IF gdSmartObjectObj < 0.00 THEN
-    DO:
-      fiDataLogicProcedure:SCREEN-VALUE = "":U.
-
-      RUN disableField IN hProductModule.
-
-      DISABLE
-          fiRootFolder
-          buLookupDirectory
-          toCreateMissing
-          coDataLogicObjectType
-          fiLPRelativePath
-          fiLPSuffix
-          fiLPTemplateName
-          buGenerate.
-    END.
-    ELSE
-    DO:
-      RUN enableField IN hProductModule.
-
-      ENABLE
-          fiRootFolder
-          buLookupDirectory
-          toCreateMissing
-          coDataLogicObjectType
-          fiLPRelativePath
-          fiLPSuffix
-          fiLPTemplateName
-          buGenerate.
-    END.
+    
+    
+    
   END.
 
 END PROCEDURE.

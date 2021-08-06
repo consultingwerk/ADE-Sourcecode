@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2008-2014 by Progress Software Corporation. All      *
+* Copyright (C) 2008-2014,2020 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -28,24 +28,25 @@ BIG NOTE: Make sure ANY widget reference is qualified with IN or WITH FRAME idxn
           but some wait-for will fail if widgets have no frame reference)  
              
 History:
-	gfs	11/04/94	Fixed problem with sensitive on Asc/Desc
-	DLM     03/26/98    Added area support
-	DLM     04/20/98    Default _index now has an _index-field associated
-	                    with it.  Added code to delete fields when the first
-	                    index is added.
-	DLM     06/08/98    Changed s_btn_Idx_Area and s_Lst_Idx_Area as being
-	                    hidden when adding an index to a dataserver.
-	                    98-05-20-038 
-	DLM     07/14/98    Added _Owner to _file finds
+        gfs        11/04/94        Fixed problem with sensitive on Asc/Desc
+        DLM     03/26/98    Added area support
+        DLM     04/20/98    Default _index now has an _index-field associated
+                            with it.  Added code to delete fields when the first
+                            index is added.
+        DLM     06/08/98    Changed s_btn_Idx_Area and s_Lst_Idx_Area as being
+                            hidden when adding an index to a dataserver.
+                            98-05-20-038 
+        DLM     07/14/98    Added _Owner to _file finds
     Mario B 12/28/98    Add s_In_Schema_Area enabling one time notification.
     DLM     05/15/00    Removed warning message if only Schema Area in DB
     DLM     01/30/03    Changed which procedure is called for builiding field
                         list so that a data type can be excluded from the list
                         This needed to be done for LOB support
-    KSM	02/26/05    Added warning message for adding "Active" index while 
+    KSM        02/26/05    Added warning message for adding "Active" index while 
                         on-line
     fernando 10/03/07   Handle comma on the area name - OE00135682
-    fernando 06/26/08 Removed encryption area from list   
+    fernando 06/26/08 Removed encryption area from list 
+    Kberlia  10/29/20 Added Argument in _pro_area_list.p to support default area. 
 ----------------------------------------------------------------------------*/
 
 
@@ -62,7 +63,7 @@ History:
 /* General processing variables */
 Define var num_flds   as integer NO-UNDO. /* # of index flds chosen */
 Define var max_flds   as integer NO-UNDO. 
-Define var capab      as char   	NO-UNDO.
+Define var capab      as char           NO-UNDO.
 Define var all_cnt    as integer NO-UNDO.
 Define var added      as logical NO-UNDO INIT no.
 Define var numindexes as integer NO-UNDO.
@@ -83,7 +84,7 @@ Define buffer x_File for dictdb._File.
       p_lst_Add  - Handle of selection list to add the name to.
       p_lst_Rmv  - Handle of selection list to remove name from.
       p_To_Index - True, if the field is being added to the index or
-      	       	   false if field is being removed from the index.
+                                false if field is being removed from the index.
 ------------------------------------------------------------------*/
 
 
@@ -100,7 +101,7 @@ procedure FillArea:
     define variable cEmpty    as character no-undo. 
     if plShow then 
     do:
-       run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame newidx, output cAreaList).
+       run prodict/pro/_pro_area_list(recid(x_File),{&INVALID_AREAS},s_Idx_Area:DELIMITER in frame newidx,"Index", output cAreaList).
        assign
           s_Idx_Area:list-items in frame newidx = cAreaList
           s_Idx_Area:screen-value in frame newidx = s_Idx_Area:entry(1) in frame newidx 
@@ -125,7 +126,7 @@ Define INPUT parameter p_lst_Rmv  as widget-handle NO-UNDO.
 Define INPUT parameter p_To_Index as logical       NO-UNDO.
 
 Define var fldname as char    NO-UNDO.
-Define var cnt 	   as integer NO-UNDO.
+Define var cnt            as integer NO-UNDO.
 Define var pos     as integer NO-UNDO.
 Define var nxtname as char    NO-UNDO.
 Define var ix      as integer NO-UNDO.  /* loop index */
@@ -139,12 +140,12 @@ Define var ix      as integer NO-UNDO.  /* loop index */
    if p_To_Index then
    do:
       /* Add ascending/descending marker.  For Word indexes, this 
-      	 isn't relevant 
+               isn't relevant 
       */
       fldname = (if input frame newidx s_Idx_Word 
-      	       	   then STRING("A", "x(3)")
-      	       	   else STRING(input frame newidx s_IdxFld_AscDesc, "x(3)"))
-      	        + fldname.
+                                then STRING("A", "x(3)")
+                                else STRING(input frame newidx s_IdxFld_AscDesc, "x(3)"))
+                      + fldname.
       
       /* Index field order is in the order they are added. */
       s_Res = p_lst_Add:ADD-LAST(fldname). 
@@ -154,21 +155,21 @@ Define var ix      as integer NO-UNDO.  /* loop index */
       fldname = SUBSTR(fldname, 4, 32).
 
       /* Insert field back in it's proper place.  Determine the position
-      	 this field took in original field list.  Look from this point
-      	 down in original list until we find an entry that is still in
-      	 the left hand field list.  This is the entry we want to insert
-      	 above.
+               this field took in original field list.  Look from this point
+               down in original list until we find an entry that is still in
+               the left hand field list.  This is the entry we want to insert
+               above.
       */
       pos = LOOKUP(fldname, s_lst_IdxFldChoice:private-data in frame newidx).
       do ix = pos + 1 to all_cnt:
-      	 nxtname = ENTRY(ix, s_lst_IdxFldChoice:private-data in frame newidx).
-      	 if p_lst_Add:LOOKUP(nxtname) <> 0
-      	    then leave.
+               nxtname = ENTRY(ix, s_lst_IdxFldChoice:private-data in frame newidx).
+               if p_lst_Add:LOOKUP(nxtname) <> 0
+                  then leave.
       end.      
       if ix > all_cnt then
-      	 s_Res = p_lst_Add:ADD-LAST(fldname). 
+               s_Res = p_lst_Add:ADD-LAST(fldname). 
       else
-      	 s_Res = p_lst_Add:INSERT(fldname, nxtname).
+               s_Res = p_lst_Add:INSERT(fldname, nxtname).
    end.
 
    /* Select the fldname value, making sure it's in view. */
@@ -182,7 +183,7 @@ end.
 
    Input Parameters:
       p_Incr - Amount to add to the list position to get the new
-      	       position (either 1 or - 1).
+                     position (either 1 or - 1).
       p_Down - True if moving down, False if moving up.
 
 ------------------------------------------------------------------*/
@@ -192,8 +193,8 @@ Define INPUT parameter p_Incr as integer       NO-UNDO.
 Define INPUT parameter p_Down as logical       NO-UNDO.
 
 Define var lst_flds as widget-handle NO-UNDO.
-Define var pos      as integer 	     NO-UNDO.
-Define var fldname  as char   	     NO-UNDO.
+Define var pos      as integer              NO-UNDO.
+Define var fldname  as char                NO-UNDO.
 
    lst_flds = s_lst_IdxFlds:HANDLE in frame newidx. /* for convenience */
 
@@ -203,7 +204,7 @@ Define var fldname  as char   	     NO-UNDO.
    /* Get the position of the item to insert in front of.  If moving down
       this will be +1 - actually, we want to insert in front of the one 2
       slots down but that will be only one slot down once this one is 
-      removed.  If moving up, this will be -1.	
+      removed.  If moving up, this will be -1.        
    */
    pos = lst_flds:LOOKUP(fldname) + p_Incr.
 
@@ -242,11 +243,11 @@ Define var val as char NO-UNDO.
    s_btn_IdxFldDwn:sensitive in frame newidx = 
       (if num_flds > 1 AND 
        val <> s_lst_IdxFlds:ENTRY(num_flds) in frame newidx then
-       yes else no).	 
+       yes else no).         
    s_btn_IdxFldUp:sensitive in frame newidx = 
       (if num_flds > 1 AND 
        val <> s_lst_IdxFlds:ENTRY(1) in frame newidx then
-       yes else no).	 
+       yes else no).         
 end.
 
 
@@ -257,8 +258,8 @@ PROCEDURE Add_Field:
    Define var val as char NO-UNDO.
 
    run Transfer_Name (INPUT s_lst_IdxFlds:HANDLE in frame newidx,
-      	       	      INPUT s_lst_IdxFldChoice:HANDLE in frame newidx,
-      	       	      INPUT true).
+                                   INPUT s_lst_IdxFldChoice:HANDLE in frame newidx,
+                                   INPUT true).
 
    num_flds = num_flds + 1.
 
@@ -287,16 +288,16 @@ end.
 ---------------------------------------------------------------------*/
 PROCEDURE Remove_Field:
    run Transfer_Name (INPUT s_lst_IdxFldChoice:HANDLE in frame newidx,
-      	       	      INPUT s_lst_IdxFlds:HANDLE in frame newidx,
-      	       	      INPUT false).
+                                   INPUT s_lst_IdxFlds:HANDLE in frame newidx,
+                                   INPUT false).
 
    num_flds = num_flds - 1.
 
    if num_flds = 0 then
       assign
-      	 s_lst_IdxFlds:sensitive in frame newidx = no
-      	 s_IdxFld_AscDesc:sensitive in frame newidx = no
-      	 s_btn_IdxFldRmv:sensitive in frame newidx = no.
+               s_lst_IdxFlds:sensitive in frame newidx = no
+               s_IdxFld_AscDesc:sensitive in frame newidx = no
+               s_btn_IdxFldRmv:sensitive in frame newidx = no.
 
    /* Move up and down buttons may need enabling/disabling */
    run Adjust_Move_Btns.
@@ -369,14 +370,14 @@ on choose of s_btn_OK in frame newidx
 
 
 /*----- HIT of ADD (Index) BUTTON or GO -----*/
-on GO of frame newidx	/* or Create - because it's auto-go */
+on GO of frame newidx        /* or Create - because it's auto-go */
 /* The GO trigger should never change s_ok_hit to true since it is also fired on Create.*/ 
 do:
-   Define var fnum   	as integer NO-UNDO.
-   Define var flds   	as char    NO-UNDO.
-   Define var name   	as char    NO-UNDO.
-   Define var id     	as recid   NO-UNDO.
-   Define var primary 	as logical NO-UNDO.
+   Define var fnum           as integer NO-UNDO.
+   Define var flds           as char    NO-UNDO.
+   Define var name           as char    NO-UNDO.
+   Define var id             as recid   NO-UNDO.
+   Define var primary         as logical NO-UNDO.
    Define var defname   as char    NO-UNDO.
    Define var wordidx   as logical NO-UNDO.
    Define var answer    as logical NO-UNDO.
@@ -393,10 +394,10 @@ do:
      INPUT FRAME newidx b_Index._Active THEN DO:
      MESSAGE "The Data Dictionary has detected that you are attempting to" SKIP
              "add an ACTIVE index while ON-LINE.  If some other user is"   SKIP
-		 "locking the table you are attempting to update, when you"    SKIP
+                 "locking the table you are attempting to update, when you"    SKIP
              "commit, your changes may be lost."                           SKIP(1)
              "Do you wish to continue?"
-	   VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL 
+           VIEW-AS ALERT-BOX WARNING BUTTONS YES-NO-CANCEL 
                            TITLE "ON-LINE Index Add" UPDATE lOk.
      IF (lOk = FALSE) THEN RETURN NO-APPLY.
      ELSE IF (lOk = ?) THEN APPLY "WINDOW-CLOSE" TO FRAME newidx.
@@ -413,8 +414,8 @@ do:
    if num_flds = 0 then
    do:
       message "You must specify at least one field" SKIP
-      	      "for the index."
-      	 view-as ALERT-BOX ERROR  buttons OK.    
+                    "for the index."
+               view-as ALERT-BOX ERROR  buttons OK.    
       s_OK_Hit = no.
       return NO-APPLY.
    end.
@@ -433,17 +434,17 @@ do:
    do:
       if num_flds > 1 then
       do:
-	 message "An index that is word-indexed" SKIP
-		 "can only have one field component" SKIP
-		 "(though that may be an array field)."
-      	    view-as ALERT-BOX ERROR  buttons OK.    
-      	 s_OK_Hit = no.
-	 return NO-APPLY.
+         message "An index that is word-indexed" SKIP
+                 "can only have one field component" SKIP
+                 "(though that may be an array field)."
+                  view-as ALERT-BOX ERROR  buttons OK.    
+               s_OK_Hit = no.
+         return NO-APPLY.
       end.
 
       /* Since we don't allow primary, unique or abbreviated to be on
-      	 when Word indexed is chosen, or vice versa, we don't need to 
-      	 check that.
+               when Word indexed is chosen, or vice versa, we don't need to 
+               check that.
       */
 
       name = SUBSTR(flds, 4, 32).  /* We know now there's only 1 fld */
@@ -451,11 +452,11 @@ do:
       find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
       if dictdb._Field._Data-Type <> "Character" then
       do:
-	      message "You can only specify word-indexed when" SKIP
-		          "the index contains a character field."
-      	         view-as ALERT-BOX ERROR  buttons OK.    
-      	  s_OK_Hit = no.
-	      return NO-APPLY.
+              message "You can only specify word-indexed when" SKIP
+                          "the index contains a character field."
+                       view-as ALERT-BOX ERROR  buttons OK.    
+                s_OK_Hit = no.
+              return NO-APPLY.
       end.       
       assign frame newidx s_Idx_Local.
       if s_Idx_Local then
@@ -468,84 +469,84 @@ do:
    end.
    else do: /* Word index was not specified */
       do fnum = 1 to num_flds:
-    	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
-    	 find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
-    	 if dictdb._Field._Extent > 0 then
-    	 do:
-          	    message "Only a word index can contain an array field."
-    	       view-as ALERT-BOX ERROR  buttons OK.    
-          	    s_OK_Hit = no.
-    	    return NO-APPLY.
-    	 end.
+             name = SUBSTR(ENTRY(fnum, flds), 4, 32).
+             find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
+             if dictdb._Field._Extent > 0 then
+             do:
+                      message "Only a word index can contain an array field."
+                   view-as ALERT-BOX ERROR  buttons OK.    
+                      s_OK_Hit = no.
+                return NO-APPLY.
+             end.
       end.
 
       if input frame newidx s_Idx_Abbrev = yes then
       do:
-      	 /* Get last field specified for the index */
-      	 assign
-      	    name = s_lst_IdxFlds:ENTRY(num_flds) in frame newidx
+               /* Get last field specified for the index */
+               assign
+                  name = s_lst_IdxFlds:ENTRY(num_flds) in frame newidx
             name = SUBSTR(name, 4, 32).
          find dictdb._Field of x_file where dictdb._Field._Field-Name = name.
-      	 if dictdb._Field._Data-Type <> "Character" then
-      	 do:
-	    message "Abbreviate is an index option that lets you" SKIP
-      	       	    "conveniently search for a partial match based" SKIP
-      	       	    "on the first few characters of a field (like" SKIP
-      	       	    "using BEGINS) in the FIND ...USING statement." SKIP(1)
-      	       	    "This option is only available on indexes that" SKIP
-      	       	    "have a character field as their last index" SKIP
-      	       	    "component."
-      	       view-as ALERT-BOX ERROR  buttons OK.    
-      	    s_OK_Hit = no.
-	    return NO-APPLY.
-      	 end.     
+               if dictdb._Field._Data-Type <> "Character" then
+               do:
+            message "Abbreviate is an index option that lets you" SKIP
+                                 "conveniently search for a partial match based" SKIP
+                                 "on the first few characters of a field (like" SKIP
+                                 "using BEGINS) in the FIND ...USING statement." SKIP(1)
+                                 "This option is only available on indexes that" SKIP
+                                 "have a character field as their last index" SKIP
+                                 "component."
+                     view-as ALERT-BOX ERROR  buttons OK.    
+                  s_OK_Hit = no.
+            return NO-APPLY.
+               end.     
       end.
                       
       if input frame newidx b_Index._Unique = yes AND
-      	 input frame newidx b_Index._Active = yes then
+               input frame newidx b_Index._Active = yes then
       do:   
-      	 /* Before putting up this horrible message, check to see if
-      	    there's data in the table.  If there's no data the user 
-      	    shouldn't need to worry.  _isdata.i won't compile unless 
-      	    table is committed and in that case, we know there's no data
-      	    either.  There's no way to suppress compile errors from showing
-      	    up on the screen (e.g., NO-ERROR won't do it) so do output to 
-      	    file to redirect them so the user won't see anything.
-      	 */
-      	 run adecomm/_tmpfile.p (INPUT "", INPUT ".dct", OUTPUT tmpfile).
-      	 output to VALUE(tmpfile).
-      	 do ON STOP UNDO, LEAVE:
-      	    run adedict/_isdata.i (OUTPUT is_data) VALUE(s_CurrTbl).
-      	 end.
-      	 output close.
-      	 os-delete VALUE(tmpfile).
-      	 if compiler:error then
-      	    is_data = false.  /* table isn't committed yet */
-      	 if is_data then
-      	 do:
-      	    answer = yes.   /* set's yes as default button */
-      	    message 
-      	       "If {&PRO_DISPLAY_NAME} finds duplicate values while creating" SKIP
-      	       "this new unique index, it will UNDO the entire" SKIP
-      	       "transaction, causing you to lose any schema changes" SKIP
-      	       "made within the same transaction." SKIP(1)
-      	       "Recommendations:" SKIP(1)
-      	       "If you are sure there are no duplicate values OR" SKIP
-      	       "if you did not make any other schema changes within" SKIP
-      	       "this transaction, then select OK to add this new" SKIP
-      	       "unique index." SKIP(1)
-      	       "Otherwise, select Cancel.  You can then close the" SKIP
-      	       "dialog, commit the transaction (Edit/Commit from the menu)" SKIP
-      	       "and then add the index." SKIP(1)
-      	       "Another alternative is to change the index to inactive," SKIP
-      	       "and activate it later by running ~"proutil -C idxbuild ~"."
-      	       view-as ALERT-BOX WARNING buttons OK-CANCEL update answer.
-      	    if answer = false then
-      	    do:
-      	       s_OK_Hit = no.
-      	       return NO-APPLY.
-      	    end.
-      	 end.
+               /* Before putting up this horrible message, check to see if
+                  there's data in the table.  If there's no data the user 
+                  shouldn't need to worry.  _isdata.i won't compile unless 
+                  table is committed and in that case, we know there's no data
+                  either.  There's no way to suppress compile errors from showing
+                  up on the screen (e.g., NO-ERROR won't do it) so do output to 
+                  file to redirect them so the user won't see anything.
+               */
+               run adecomm/_tmpfile.p (INPUT "", INPUT ".dct", OUTPUT tmpfile).
+               output to VALUE(tmpfile).
+               do ON STOP UNDO, LEAVE:
+                  run adedict/_isdata.i (OUTPUT is_data) VALUE(s_CurrTbl).
+               end.
+               output close.
+               os-delete VALUE(tmpfile).
+               if compiler:error then
+                  is_data = false.  /* table isn't committed yet */
+               if is_data then
+               do:
+                  answer = yes.   /* set's yes as default button */
+                  message 
+                     "If {&PRO_DISPLAY_NAME} finds duplicate values while creating" SKIP
+                     "this new unique index, it will UNDO the entire" SKIP
+                     "transaction, causing you to lose any schema changes" SKIP
+                     "made within the same transaction." SKIP(1)
+                     "Recommendations:" SKIP(1)
+                     "If you are sure there are no duplicate values OR" SKIP
+                     "if you did not make any other schema changes within" SKIP
+                     "this transaction, then select OK to add this new" SKIP
+                     "unique index." SKIP(1)
+                     "Otherwise, select Cancel.  You can then close the" SKIP
+                     "dialog, commit the transaction (Edit/Commit from the menu)" SKIP
+                     "and then add the index." SKIP(1)
+                     "Another alternative is to change the index to inactive," SKIP
+                     "and activate it later by running ~"proutil -C idxbuild ~"."
+                     view-as ALERT-BOX WARNING buttons OK-CANCEL update answer.
+                  if answer = false then
+                  do:
+                     s_OK_Hit = no.
+                     return NO-APPLY.
+                  end.
+               end.
       end.
       if s_idx_Area:screen-value IN FRAME newidx  = "" then
       do:
@@ -560,13 +561,13 @@ do:
    do ON ERROR UNDO, LEAVE  ON STOP UNDO, LEAVE:
       run adecomm/_setcurs.p ("WAIT").
       assign
-	      b_Index._File-recid = s_TblRecId
-	      input frame newidx b_Index._Index-name
-	      input frame newidx b_Index._Unique
-	      input frame newidx b_Index._Active	      
-	      input frame newidx s_Idx_Local
-	      input frame newidx b_Index._Desc.
-	  
+              b_Index._File-recid = s_TblRecId
+              input frame newidx b_Index._Index-name
+              input frame newidx b_Index._Unique
+              input frame newidx b_Index._Active              
+              input frame newidx s_Idx_Local
+              input frame newidx b_Index._Desc.
+          
       if (x_File._file-Attributes[1] and x_File._file-Attributes[2] = false) 
       OR (x_File._file-Attributes[3] and s_Idx_Local) then
           ASSIGN b_Index._ianum = 0.
@@ -587,93 +588,93 @@ do:
 
       b_Index._Wordidx = (if wordidx then 1 else ?).
       if x_File._file-Attributes[3] then do:
-	      if s_Idx_Local then
+              if s_Idx_Local then
               b_Index._index-attributes[1] = true.
       end.
       if INDEX(capab, {&CAPAB_GATE_IDXNUM}) > 0 then
       do:
-      	 /* Call gateway specific routine to get index number */
-      	 assign xnum_proc = "prodict/gate/_gatxnum.p".
-      	 run VALUE(xnum_proc) 
-      	    (INPUT  s_TblRecId, 
-      	     OUTPUT b_Index._Idx-num).
+               /* Call gateway specific routine to get index number */
+               assign xnum_proc = "prodict/gate/_gatxnum.p".
+               run VALUE(xnum_proc) 
+                  (INPUT  s_TblRecId, 
+                   OUTPUT b_Index._Idx-num).
       end.
 
       /* Create a record for each index field. */
       do fnum = 1 to num_flds:
-      	 name = SUBSTR(ENTRY(fnum, flds), 4, 32).
-      	 find dictdb._Field of x_File where dictdb._Field._Field-Name = name.
+               name = SUBSTR(ENTRY(fnum, flds), 4, 32).
+               find dictdb._Field of x_File where dictdb._Field._Field-Name = name.
 
-	     create dictdb._Index-Field.
-      	 assign
-      	    dictdb._Index-Field._Index-recid = RECID(b_Index)
-      	    dictdb._Index-Field._Field-recid = RECID(dictdb._Field)
-      	    dictdb._Index-Field._Index-seq   = fnum
-      	    dictdb._Index-Field._Abbreviate  = 
-      	       (if fnum = num_flds then input frame newidx s_Idx_Abbrev else no)
-      	    dictdb._Index-Field._Ascending =
-      	       (if SUBSTR(ENTRY(fnum, flds), 1, 1) = "A" then yes else no).
+             create dictdb._Index-Field.
+               assign
+                  dictdb._Index-Field._Index-recid = RECID(b_Index)
+                  dictdb._Index-Field._Field-recid = RECID(dictdb._Field)
+                  dictdb._Index-Field._Index-seq   = fnum
+                  dictdb._Index-Field._Abbreviate  = 
+                     (if fnum = num_flds then input frame newidx s_Idx_Abbrev else no)
+                  dictdb._Index-Field._Ascending =
+                     (if SUBSTR(ENTRY(fnum, flds), 1, 1) = "A" then yes else no).
       end.
 
       /* We've got a confusing situation here.  Some facts.
-      	 1. If the table that this index belongs to has not been committed
-      	    to the database then the default index will not have been
-      	    created yet. x_File.dft-pk (which indicates if there's a
-      	    default index) will be false.
-      	 2. x_File._Prime-Index will be ? if the table hasn't been committed
-      	    and the user hasn't already created a primary index.  It could
-      	    also be ? for some gateways. I don't know what the exact
-      	    circumstances of this are but it means there's no primary index.
-      	 3. If the table has been committed, there will only be a default
-      	    index if no other non-word-index has been created.  If there
-      	    is a default, _dft-pk will be true.
-      	 4. If we are currently creating a non-word index, we want to
-      	    make it primary if there isn't another primary index already
-      	    (besides the default).
-      	 
-      	 So: Set primary to yes if we want to make this index the new
-      	 primary index.
+               1. If the table that this index belongs to has not been committed
+                  to the database then the default index will not have been
+                  created yet. x_File.dft-pk (which indicates if there's a
+                  default index) will be false.
+               2. x_File._Prime-Index will be ? if the table hasn't been committed
+                  and the user hasn't already created a primary index.  It could
+                  also be ? for some gateways. I don't know what the exact
+                  circumstances of this are but it means there's no primary index.
+               3. If the table has been committed, there will only be a default
+                  index if no other non-word-index has been created.  If there
+                  is a default, _dft-pk will be true.
+               4. If we are currently creating a non-word index, we want to
+                  make it primary if there isn't another primary index already
+                  (besides the default).
+               
+               So: Set primary to yes if we want to make this index the new
+               primary index.
       */
       if x_File._Prime-Index = ? AND NOT wordidx then
-      	 primary = yes.
+               primary = yes.
       else if x_File._dft-pk AND NOT wordidx then
       do:
-      	 /* Delete the default index */
-      	 assign
-      	    id = x_File._Prime-Index  /* recid of default index */
-      	    primary = yes
-      	    x_File._dft-pk = false.
+               /* Delete the default index */
+               assign
+                  id = x_File._Prime-Index  /* recid of default index */
+                  primary = yes
+                  x_File._dft-pk = false.
 
-      	 find dictdb._Index where RECID(_Index) = id.
-      	 defname = dictdb._Index._Index-Name.
-      	 FOR EACH dictdb._Index-field WHERE dictdb._Index-field._Index-recid = RECID(dictdb._Index).
-      	   DELETE dictdb._Index-field.
-      	 end.  
-      	 delete dictdb._Index.
-      	 
-      	 /* Remove the default index from the list in the browse window.  
-      	    (we don't care about output parm - just use fnum variable) */
-      	 run adecomm/_delitem.p (INPUT s_lst_Idxs:HANDLE in frame browse,
-      	       	     	        INPUT defname, OUTPUT fnum). 
+               find dictdb._Index where RECID(_Index) = id.
+               defname = dictdb._Index._Index-Name.
+               FOR EACH dictdb._Index-field WHERE dictdb._Index-field._Index-recid = RECID(dictdb._Index).
+                 DELETE dictdb._Index-field.
+               end.  
+               delete dictdb._Index.
+               
+               /* Remove the default index from the list in the browse window.  
+                  (we don't care about output parm - just use fnum variable) */
+               run adecomm/_delitem.p (INPUT s_lst_Idxs:HANDLE in frame browse,
+                                                  INPUT defname, OUTPUT fnum). 
       end.
       else
-      	 primary = no.
+               primary = no.
       
       /* If there is no primary index, or the the user explicitly wants
-      	 this index to be the primary one, set the primary index flag 
-      	 in the _File record. 
+               this index to be the primary one, set the primary index flag 
+               in the _File record. 
       */
       if (primary OR input frame newidx s_Idx_Primary = yes) then
       do:
-	      x_File._Prime-Index = RECID(b_Index).
-      	  s_Status = " - Made this the primary index".
+              x_File._Prime-Index = RECID(b_Index).
+                s_Status = " - Made this the primary index".
       end.
       else 
-      	 s_Status = "".
+               s_Status = "".
          
       /* Add entry to indexes list in alphabetical order */
       find FIRST dictdb._Index where dictdb._Index._File-recid = s_TblRecId AND
-      	     	      	      dictdb._Index._Index-Name > b_Index._Index-Name 
+                                               dictdb._Index._Index-Name > b_Index._Index-Name 
          NO-ERROR.
 
       ins_name = (if AVAILABLE dictdb._Index then dictdb._Index._Index-name else "").
@@ -761,7 +762,7 @@ do:
    /* Reflect ascending/descending value for this entry in radio set. */
    if NOT input frame newidx s_Idx_Word then
       s_IdxFld_AscDesc:screen-value in frame newidx = 
-      	 substr(SELF:screen-value, 1, 1).
+               substr(SELF:screen-value, 1, 1).
 
    /* Move up and down buttons may need enabling/disabling */
    run Adjust_Move_Btns.
@@ -771,42 +772,42 @@ end.
 /*----- VALUE-CHANGED of WORD INDEX TOGGLE -----*/
 on value-changed of s_Idx_Word in frame newidx
 do:
-   Define var ix     	as integer NO-UNDO.
-   Define var sel    	as char    NO-UNDO.
-   Define var olditem 	as char    NO-UNDO.
-   Define var newitem 	as char    NO-UNDO.
+   Define var ix             as integer NO-UNDO.
+   Define var sel            as char    NO-UNDO.
+   Define var olditem         as char    NO-UNDO.
+   Define var newitem         as char    NO-UNDO.
 
    if SELF:screen-value = "yes" then 
    do:
       /* If user turns word indexing on, turn off primary, unique and
-      	 abbreviated and disable ascending/descending. 
+               abbreviated and disable ascending/descending. 
       */
       assign
-	 s_Idx_Primary:screen-value in frame newidx = "no"
-	 b_Index._Unique:screen-value in frame newidx = "no"
-	 s_Idx_Abbrev:screen-value in frame newidx = "no"
-      	 s_IdxFld_AscDesc:screen-value in frame newidx = "A"
-      	 s_IdxFld_AscDesc:sensitive in frame newidx = no.
+         s_Idx_Primary:screen-value in frame newidx = "no"
+         b_Index._Unique:screen-value in frame newidx = "no"
+         s_Idx_Abbrev:screen-value in frame newidx = "no"
+               s_IdxFld_AscDesc:screen-value in frame newidx = "A"
+               s_IdxFld_AscDesc:sensitive in frame newidx = no.
 
       /* Also set all the Asc/Desc flags to "A" */
       sel = s_lst_IdxFlds:screen-value in frame newidx.
       do ix = 1 to s_lst_IdxFlds:num-items:
-      	 olditem = s_lst_IdxFlds:entry(ix) in frame newidx.
-      	 if SUBSTR(olditem, 1, 1) = "D" then
-      	 do:
-      	    assign
-      	       newitem = olditem
-      	       SUBSTR(newitem, 1, 1) = "A"
-      	       s_Res = s_lst_IdxFlds:replace(newitem, olditem) in frame newidx.
-      	    if olditem = sel then
-      	       s_lst_IdxFlds:screen-value in frame newidx = newitem.
-      	 end.
+               olditem = s_lst_IdxFlds:entry(ix) in frame newidx.
+               if SUBSTR(olditem, 1, 1) = "D" then
+               do:
+                  assign
+                     newitem = olditem
+                     SUBSTR(newitem, 1, 1) = "A"
+                     s_Res = s_lst_IdxFlds:replace(newitem, olditem) in frame newidx.
+                  if olditem = sel then
+                     s_lst_IdxFlds:screen-value in frame newidx = newitem.
+               end.
       end.
    end.
    else
       /* Enable Asc/Desc if there are any fields in the list */
       if s_lst_IdxFlds:num-items > 0 then 
-      	 s_IdxFld_AscDesc:sensitive in frame newidx = yes.
+               s_IdxFld_AscDesc:sensitive in frame newidx = yes.
 end.
 
 
@@ -890,8 +891,8 @@ find x_File where RECID(x_file) = s_TblRecId.
 if x_File._Db-lang >= {&TBLTYP_SQL} then
 do:
    message "This is a {&PRO_DISPLAY_NAME}/SQL table." SKIP
-      	   "You must use the CREATE INDEX statement."
-	   view-as ALERT-BOX ERROR buttons OK.
+                 "You must use the CREATE INDEX statement."
+           view-as ALERT-BOX ERROR buttons OK.
    return.
 end.
 
@@ -899,7 +900,7 @@ find FIRST dictdb._Field of x_File NO-ERROR.
 if NOT AVAILABLE dictdb._Field then
 do:
    message "You must first create fields for this" SKIP
-      	   "table before you can create an index."
+                 "table before you can create an index."
       view-as ALERT-BOX ERROR  buttons OK.
    return.
 end.
@@ -990,7 +991,7 @@ do:
     run FillArea(false).
     /* default local to true if partitioned */  
     if x_File._file-Attributes[3] then do:
-	    s_Idx_Local = true.
+            s_Idx_Local = true.
     end.
     lNoArea = true.
 end.
@@ -1018,17 +1019,17 @@ end.
 */
 assign
 /*   s_Res = s_lst_Idx_Area:move-after-tab-item
-      	       (s_btn_Idx_Area:handle in frame newidx) in frame newidx*/
+                     (s_btn_Idx_Area:handle in frame newidx) in frame newidx*/
    s_Res = s_btn_IdxFldRmv:move-after-tab-item 
-      	       (s_btn_IdxFldAdd:handle in frame newidx) in frame newidx
+                     (s_btn_IdxFldAdd:handle in frame newidx) in frame newidx
    s_Res = s_btn_IdxFldDwn:move-after-tab-item 
-      	       (s_btn_IdxFldRmv:handle in frame newidx) in frame newidx
+                     (s_btn_IdxFldRmv:handle in frame newidx) in frame newidx
    s_Res = s_btn_IdxFldUp:move-after-tab-item 
-      	       (s_btn_IdxFldDwn:handle in frame newidx) in frame newidx
+                     (s_btn_IdxFldDwn:handle in frame newidx) in frame newidx
    s_Res = s_lst_IdxFlds:move-after-tab-item 
-      	       (s_btn_IdxFldUp:handle in frame newidx) in frame newidx
+                     (s_btn_IdxFldUp:handle in frame newidx) in frame newidx
    s_Res = s_IdxFld_AscDesc:move-after-tab-item 
-      	       (s_lst_IdxFlds:handle in frame newidx) in frame newidx
+                     (s_lst_IdxFlds:handle in frame newidx) in frame newidx
    .
 
 /* Each add will be a subtransaction */
@@ -1071,9 +1072,9 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
 
    assign
       /* Keep a comma separated list of the original contents of this list.
-      	 Keep it in private data since if we put it in a regular variable
-      	 we run out of variable space when the database is very big.  
-      	 Private data is in different data space.
+               Keep it in private data since if we put it in a regular variable
+               we run out of variable space when the database is very big.  
+               Private data is in different data space.
       */
       s_lst_IdxFldChoice:private-data in frame newidx = 
       s_lst_IdxFldChoice:LIST-ITEMS in frame newidx
@@ -1088,16 +1089,16 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
       s_btn_IdxFldUp:sensitive in frame newidx = false.
    
    display "" @ b_Index._Index-Name /* blank instead of ? */          
-	       s_Idx_Local
-      	   s_Idx_Primary
-       	   b_Index._Active
-       	   b_Index._Unique
-       	   s_Idx_Word
-      	   s_Idx_Abbrev
-      	   s_lst_IdxFldChoice
-      	   s_lst_IdxFlds
-      	   s_IdxFld_AscDesc
-       	   b_Index._Desc
+               s_Idx_Local
+                 s_Idx_Primary
+                  b_Index._Active
+                  b_Index._Unique
+                  s_Idx_Word
+                 s_Idx_Abbrev
+                 s_lst_IdxFldChoice
+                 s_lst_IdxFlds
+                 s_IdxFld_AscDesc
+                  b_Index._Desc
        with frame newidx.
 
    /* Set selection to first item in list of fields */
@@ -1105,9 +1106,9 @@ repeat ON ERROR UNDO,LEAVE  ON ENDKEY UNDO,LEAVE  ON STOP UNDO, LEAVE:
    s_lst_IdxFldChoice:entry(1) in frame newidx.
 
    wait-for choose of s_btn_OK in frame newidx,
-      	              s_btn_Add in frame newidx OR
-      	    GO of frame newidx
-      	    FOCUS b_Index._Index-Name in frame newidx.
+                            s_btn_Add in frame newidx OR
+                  GO of frame newidx
+                  FOCUS b_Index._Index-Name in frame newidx.
 end.
 
 /* Reset private data to free memory - it could be big */

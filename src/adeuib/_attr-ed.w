@@ -98,7 +98,7 @@ DEFINE VARIABLE xdMaxWidth      AS DEC  NO-UNDO INIT 85.
 DEFINE VARIABLE xdMinHeight     AS DEC  NO-UNDO INIT 3.
 /* MiunWidth, show some data in last col */
 DEFINE VARIABLE xdMinWidth      AS DEC  NO-UNDO INIT 28.
-
+ 
 /** deal with multi-threading - Eclipse may call methods in this during startup */ 
 define variable isStarted as logical no-undo. 
 
@@ -755,13 +755,13 @@ DO ON ERROR   UNDO MAIN-BLOCK, LEAVE MAIN-BLOCK
     DEFINE VARIABLE iViewHwnd    AS INTEGER    NO-UNDO.
   
     DELETE OBJECT properties_window NO-ERROR.   
-    ASSIGN cViewId  = "com.openedge.pdt.oestudio.appbuilderpropertiesview"
-           cSecondaryId = getProjectName() .
-
+    
+    run get_appbuilder_properties_viewids in _h_uib (output cViewId, output cSecondaryId).
+    
     /* Show view */
     showView(cViewId, cSecondaryId, {&VIEW_ACTIVATE}).
 /*    setViewTitle(cViewId, cSecondaryId, cViewTitle).*/
-
+    
     RUN getViewHwnd IN hOEIDEService (cViewId, cSecondaryId, OUTPUT iViewHwnd) NO-ERROR.
     
     CREATE WINDOW properties_window ASSIGN
@@ -1828,6 +1828,23 @@ END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE get_ide_view_hwnd properties_window
+procedure get_ide_view_hwnd:
+/*------------------------------------------------------------------------------
+ Purpose:
+ Notes:
+------------------------------------------------------------------------------*/
+   define output parameter pViewHwnd as integer no-undo.
+   pViewHwnd = properties_window:IDE-PARENT-HWND.   
+
+end procedure.
+    
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE metamorph properties_window 
 PROCEDURE metamorph :

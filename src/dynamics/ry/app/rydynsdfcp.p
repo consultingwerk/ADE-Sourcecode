@@ -246,14 +246,9 @@ PROCEDURE validateClassData :
     DEFINE VARIABLE cFieldFormat                AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE cFieldDataType              AS CHARACTER            NO-UNDO.
     DEFINE VARIABLE lLocalField                 AS LOGICAL              NO-UNDO.
-    DEFINE VARIABLE dContainerInstanceId        AS DECIMAL              NO-UNDO.
+    DEFINE VARIABLE dContainerInstanceId        AS INTEGER              NO-UNDO.
 
     DEFINE BUFFER rycso_SDO         FOR ryc_smartObject.
-
-    /** TEMPORARY FIX ** TEMPORARY FIX ** TEMPORARY FIX ** TEMPORARY FIX ** 
-     *  For performance reasons, only perform these checks in a DynaWeb environment.
-     *  ----------------------------------------------------------------------- **/
-    IF SESSION:CLIENT-TYPE NE "WEBSPEED":U THEN RETURN.
 
     /* We do nothing for Master SDFs as yet. */
     IF pdInstanceId EQ 0 THEN

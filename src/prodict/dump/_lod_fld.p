@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2005-2011,2019 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/*************************************************************************
+* Copyright (C) 2005-2011,2019 by Progress Software Corporation.         *
+* All rights reserved.  Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                               *
+*                                                                        *
+**************************************************************************/
 /*
     History:
 
@@ -75,7 +75,7 @@ DO ON ERROR UNDO, LEAVE: /* OE00158774 */
 ASSIGN gotError = YES.
 
 FIND FIRST wfld.
- 
+
 IF imod <> "a" THEN
   FIND _Field OF _File
     WHERE _Field._Field-name = wfld._Field-name. /* proven to exist */

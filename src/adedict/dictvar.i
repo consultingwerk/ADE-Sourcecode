@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2008-2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006,2008-2011,2020 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,6 +27,7 @@ History:
        09/21/06 fernando  menu report - gray it if no db connected
        06/26/08 fernando  Adding INVALID_AREAS pre-processor
        04/07/09 fernando  Increasing NUM_GRAY_ITEMS for enc reports
+       10/29/20 tmasood   Added default area support for db properties
 ----------------------------------------------------------------------------*/
 {adecomm/adestds.i}  
 
@@ -298,3 +299,8 @@ DEFINE {1} VARIABLE is-pre-101b-db   AS LOGICAL               NO-UNDO.
 
 /* to indicate if large sequence support is on or not */
 DEFINE {1} VAR s_Large_Seq AS LOGICAL NO-UNDO INIT ?.
+
+/* to store default are value */
+DEFINE {1} VAR s_Db_Table_Area     AS CHARACTER NO-UNDO.
+DEFINE {1} VAR s_Db_Index_Area     AS CHARACTER NO-UNDO.
+DEFINE {1} VAR s_Db_LOB_Area       AS CHARACTER NO-UNDO.

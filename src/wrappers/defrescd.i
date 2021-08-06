@@ -1,5 +1,21 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v9r12
 &ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "CreateWizard" Include _INLINE
+/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
+/* New Program Wizard
+Destroy on next read */
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Include _INLINE
+/* Actions: ? af/cod/aftemwizcw.w ? ? ? */
+/* Program Definition Comment Block Wizard
+Welcome to the Program Definition Comment Block Wizard. Press Next to proceed.
+af/cod/aftemwizpw.w
+*/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Include 
 /*---------------------------------------------------------------------------------
   File: defrescd.i 

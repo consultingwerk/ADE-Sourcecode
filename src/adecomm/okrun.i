@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000 by Progress Software Corporation. All rights    *
+* Copyright (C) 2000-2021 by Progress Software Corporation. All rights *
 * reserved. Prior versions of this work may contain portions         *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -33,10 +33,14 @@
 &ENDIF
 
 /* Increase the compile defined frame width by 1 PPU. */
-{&FRAME}:WIDTH-CHARS = {&FRAME}:WIDTH-CHARS + {&HFM_WID}. 
-eff_frame_width = {&FRAME}:WIDTH-CHARS - 
-                  {&FRAME}:BORDER-LEFT-CHARS - 
-                  {&FRAME}:BORDER-RIGHT-CHARS.
+{&FRAME}:WIDTH-CHARS = {&FRAME}:WIDTH-CHARS + {&HFM_WID}.
+/* In batch-mode, frame's left & right border chars comes as unknown so assign width chars only */
+eff_frame_width = {&FRAME}:WIDTH-CHARS.
+
+IF {&FRAME}:BORDER-LEFT-CHARS NE ? THEN 
+  eff_frame_width = {&FRAME}:WIDTH-CHARS - 
+                    {&FRAME}:BORDER-LEFT-CHARS - 
+                    {&FRAME}:BORDER-RIGHT-CHARS.
 
 /* adjust the size of the box */
 &IF {&OKBOX} &THEN

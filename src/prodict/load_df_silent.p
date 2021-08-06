@@ -1,9 +1,9 @@
-/*********************************************************************
-* Copyright (C) 2007-2010 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions        *
-* contributed by participants of Possenet.                           *
-*                                                                    *
-*********************************************************************/
+/************************************************************************
+* Copyright (C) 2007-2010,2021 by Progress Software Corporation.        * 
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 
 /*----------------------------------------------------------------------------
 
@@ -29,6 +29,10 @@ input parameters:
                   - ForceCommit  - commit even with errors
                   - ForceIndexDeactivate - create new indexes inactive
                   - ForceSharedSchema - ignore Multi-tenant properties
+                  - PreDeployLoad  - load predeploy section
+                  - TriggerLoad    - load trigger section
+                  - PostDeployLoad - load postdeploy section
+                  - OfflineLoad    - load predeploy section
                   
 output Parameters:    
      pcWarnings - displayable warnings.
@@ -61,6 +65,14 @@ if lookup("ForceIndexDeactivate",pcOptions) > 0 then
     dictOptions:ForceIndexDeactivate = true.
 if lookup("ForceSharedSchema",pcOptions) > 0 then
     dictOptions:ForceSharedSchema = true.
+if lookup("PreDeployLoad",pcOptions) > 0 then
+    dictOptions:PreDeployLoad = "yes".
+if lookup("TriggerLoad",pcOptions) > 0 then
+    dictOptions:TriggerLoad = "yes".
+if lookup("PostDeployLoad",pcOptions) > 0 then
+    dictOptions:PostDeployLoad = "yes".
+if lookup("OfflineLoad",pcOptions) > 0 then
+    dictOptions:OfflineLoad = "yes".
  
 run prodict/dump/_load_df.p(dictOptions). 
 

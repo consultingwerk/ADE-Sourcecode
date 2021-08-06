@@ -13,7 +13,7 @@ af/cod/aftemwizpw.w
 /*---------------------------------------------------------------------------------
   File: rydefrescd.i
 
-  Description:  Wrapper for Default Result Codes (Include File)
+  Description:  Default Result Codes Include
 
   Purpose:      This include contains preprocessors which define the default result code as
                 well as the 'none' result code.
@@ -33,8 +33,10 @@ af/cod/aftemwizpw.w
 
 /* object identifying preprocessor */
 &glob   AstraInclude    yes
-/* Wrapper file for custom code prepprocessor definitions */
-{defrescd.i}
+
+&GLOBAL-DEFINE DEFAULT-RESULT-CODE DEFAULT-RESULT-CODE
+&GLOBAL-DEFINE NO-RESULT-CODE NO-RESULT-CODE
+&GLOBAL-DEFINE ALL-RESULT-CODE ALL-RESULT-CODE
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -68,8 +70,8 @@ af/cod/aftemwizpw.w
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Include ASSIGN
-         HEIGHT             = 10.1
-         WIDTH              = 40.4.
+         HEIGHT             = 2
+         WIDTH              = 40.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME

@@ -207,6 +207,10 @@ IF NUM-ENTRIES(user_env[25]) >= 2 AND (UPPER(ENTRY(2,user_env[25])) EQ "Y" ) THE
      PUT STREAM s_rank_rep UNFORMATTED "[X] Use revised sequence Generator" .
 ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Use revised sequence Generator" .
 
+IF NUM-ENTRIES(user_env[25]) >= 4 AND (UPPER(ENTRY(4,user_env[25])) EQ "Y" ) THEN 
+     PUT STREAM s_rank_rep UNFORMATTED "    [X] Use native sequence" .
+ELSE PUT STREAM s_rank_rep UNFORMATTED "    [ ] Use native sequence" .
+
 PUT STREAM s_rank_rep UNFORMATTED myline. 
 IF user_env[11]  = "nvarchar" THEN PUT STREAM s_rank_rep UNFORMATTED "[X] Use Unicode Types".
 ELSE PUT STREAM s_rank_rep UNFORMATTED "[ ] Use Unicode Types".

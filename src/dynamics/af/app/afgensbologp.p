@@ -161,7 +161,6 @@ FUNCTION addDataLogicTemplate RETURNS LOGICAL
 
   DEFINE VARIABLE cClientProxyName            AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cFullyPathedProcedure       AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cCreateFolder               AS CHARACTER  NO-UNDO.
 
   EMPTY TEMP-TABLE ttTemplate.
   EMPTY TEMP-TABLE ttDLProc.
@@ -172,22 +171,15 @@ FUNCTION addDataLogicTemplate RETURNS LOGICAL
   THEN 
     ASSIGN cFullyPathedProcedure = pcLogicProcedureFile.
   ELSE
-    ASSIGN cFullyPathedProcedure = pcRootFolder + pcLogicProcedureFile
-           cFullyPathedProcedure = REPLACE(cFullyPathedProcedure,"~\","/").
+    ASSIGN cFullyPathedProcedure = pcRootFolder + pcLogicProcedureFile.
 
-  IF NUM-ENTRIES(cFullyPathedProcedure,"/":U) > 1 THEN  
-       ASSIGN cCreateFolder = SUBSTRING(cFullyPathedProcedure,1,R-INDEX(cFullyPathedProcedure,"/") - 1) .
-    ELSE   
-     ASSIGN cCreateFolder =  pcRootFolder.
-
-  ASSIGN FILE-INFO:FILE-NAME = cCreateFolder.
-  
+  ASSIGN FILE-INFO:FILE-NAME = pcRootFolder.
 
   IF FILE-INFO:FULL-PATHNAME EQ ? THEN 
   DO:
     IF plCreateMissingFolder THEN 
     DO:
-      IF NOT DYNAMIC-FUNCTION("createFolder":U IN gshGenManager, INPUT cCreateFolder) THEN
+      IF NOT DYNAMIC-FUNCTION("createFolder":U IN gshGenManager, INPUT pcRootFolder) THEN
         RETURN ERROR {aferrortxt.i 'AF' '19' '?' '?' "''" "'unable to create folder: ' + pcRootFolder"}.
     END.    /* create the folder */
     ELSE

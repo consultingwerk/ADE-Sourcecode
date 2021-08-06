@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006,2014 by Progress Software Corporation. All      *
+* Copyright (C) 2006,2014,2020 by Progress Software Corporation. All *
 * rights reserved.  Prior versions of this work may contain portions *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -13,6 +13,7 @@
   
   D. McMann 02/21/03 Replaced GATEWAYS with DATASERVERS and remved PROGRESS
   fernando  06/06/06 Large sequence and large index support.
+  Kberlia   10/30/20 Added default area support to show the db objects information in session info dialogue box.
 */
 
 { prodict/dictvar.i }
@@ -22,24 +23,24 @@ DEFINE INPUT PARAMETER p_DbId AS RECID NO-UNDO.  /* not used here */
 
 DEFINE VARIABLE codepage  AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE collname  AS CHARACTER          NO-UNDO.
-DEFINE VARIABLE conn      AS LOGICAL     	NO-UNDO.
-DEFINE VARIABLE drest     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE dtype     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE dvers     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE fcomma	  AS CHARACTER          NO-UNDO.
-DEFINE VARIABLE fpoint	  AS CHARACTER          NO-UNDO.
-DEFINE VARIABLE i	  AS INTEGER            NO-UNDO.
-DEFINE VARIABLE j	  AS INTEGER            NO-UNDO.
-DEFINE VARIABLE lname     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE mdy	  AS CHARACTER          NO-UNDO.
+DEFINE VARIABLE conn      AS LOGICAL             NO-UNDO.
+DEFINE VARIABLE drest     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE dtype     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE dvers     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE fcomma          AS CHARACTER          NO-UNDO.
+DEFINE VARIABLE fpoint          AS CHARACTER          NO-UNDO.
+DEFINE VARIABLE i          AS INTEGER            NO-UNDO.
+DEFINE VARIABLE j          AS INTEGER            NO-UNDO.
+DEFINE VARIABLE lname     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE mdy          AS CHARACTER          NO-UNDO.
 DEFINE VARIABLE num       AS INTEGER            NO-UNDO.
-DEFINE VARIABLE pname     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE prpath	  AS CHARACTER EXTENT 20 NO-UNDO.
-DEFINE VARIABLE scharset  AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE sname     AS CHARACTER   	NO-UNDO.
-DEFINE VARIABLE sstream   AS CHARACTER   	NO-UNDO.
+DEFINE VARIABLE pname     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE prpath          AS CHARACTER EXTENT 20 NO-UNDO.
+DEFINE VARIABLE scharset  AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE sname     AS CHARACTER           NO-UNDO.
+DEFINE VARIABLE sstream   AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE tmpfile   AS CHARACTER          NO-UNDO.
-DEFINE VARIABLE uid       AS CHARACTER   	NO-UNDO.
+DEFINE VARIABLE uid       AS CHARACTER           NO-UNDO.
 DEFINE VARIABLE yy        AS INTEGER        NO-UNDO.
 DEFINE VARIABLE idx       AS INTEGER        NO-UNDO.
 DEFINE VARIABLE Large_Sequence AS CHARACTER NO-UNDO.
@@ -52,6 +53,9 @@ DEFINE VARIABLE l_keys         AS LOGICAL   /*UNDO*/.
 DEFINE VARIABLE IsPartitioned  AS LOGICAL /*UNDO*/.
 DEFINE VARIABLE IsMultitenant  AS LOGICAL /*UNDO*/.
 DEFINE VARIABLE IsCDCEnabled   AS LOGICAL /*UNDO*/.
+DEFINE VARIABLE is_Tbldfltarea AS CHARACTER NO-UNDO.
+DEFINE VARIABLE is_Idxdfltarea AS CHARACTER NO-UNDO.
+DEFINE VARIABLE is_Lobdfltarea AS CHARACTER NO-UNDO.
 
 DEFINE SHARED STREAM rpt.
 
@@ -87,6 +91,9 @@ FORM
    is_Multitenant FORMAT "x(20)"  LABEL "Multi-tenancy" COLON 20 SKIP
    is_Partitioned FORMAT "x(20)"  LABEL "Table Partitioning" COLON 20 SKIP
    is_CDCEnabled  FORMAT "x(20)"  LABEL "Change Data Capture" COLON 20 SKIP
+   is_Tbldfltarea FORMAT "x(40)"  LABEL "Default area (table)" COLON 21 SKIP 
+   is_Idxdfltarea FORMAT "x(40)"  LABEL "Default area (index)" COLON 21 SKIP
+   is_Lobdfltarea FORMAT "x(40)"  LABEL "Default area (lob)"   COLON 21 SKIP
    WITH FRAME dbs-2 SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
    TITLE " Currently Selected Database ".
 
@@ -97,6 +104,30 @@ ASSIGN
   prpath   = PROPATH
   sstream  = SESSION:STREAM.
 
+FIND FIRST dictdb._Db SHARE-LOCK NO-ERROR.
+IF AVAILABLE dictdb._Db THEN 
+DO:
+   IF _Db._Db-misc1[1] <> ? THEN
+   DO:
+      FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._Db._Db-misc1[1] NO-LOCK NO-ERROR.
+      IF AVAILABLE dictdb._Area THEN
+         ASSIGN is_Tbldfltarea = dictdb._Area._Area-name.
+   END.
+   IF _Db._Db-misc1[2] <> ? THEN
+   DO:
+      FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._Db._Db-misc1[2] NO-LOCK NO-ERROR.
+      IF AVAILABLE dictdb._Area THEN
+         ASSIGN is_Idxdfltarea = dictdb._Area._Area-name.
+   END.
+   IF _Db._Db-misc1[3] <> ? THEN
+   DO:
+      FIND dictdb._Area WHERE dictdb._Area._Area-number = dictdb._Db._Db-misc1[3] NO-LOCK NO-ERROR.
+      IF AVAILABLE dictdb._Area THEN
+         ASSIGN is_Lobdfltarea = dictdb._Area._Area-name.
+   END.
+END.
+RELEASE dictdb._Db.  
+   
 { prodict/dictsplt.i &src=PROPATH &dst=prpath &num=20 &len=60 &chr="," }
 
 RUN "prodict/_dctyear.p" (OUTPUT mdy,OUTPUT yy).
@@ -117,11 +148,11 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
 
   DISPLAY STREAM rpt
     NUM-DBS      @ num
-    IF NUM-DBS > 0 THEN yes ELSE no @ conn
+    IF NUM-DBS > 0 THEN YES ELSE NO @ conn
     PDBNAME(1)   @ pname
     LDBNAME(1)   @ lname
     SDBNAME(1)   @ sname
-    DBTYPE(1)	 @ dtype
+    DBTYPE(1)         @ dtype
     DBVERSION(1) @ dvers
     DBREST(1)    @ drest
     uid  
@@ -157,8 +188,8 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
     */
     IF user_dbtype NE "PROGRESS" OR (l_seq = ? AND l_keys = ?) THEN
     DISPLAY STREAM rpt
-      NUM-DBS    	     @ num
-      yes		     @ conn
+      NUM-DBS                 @ num
+      YES                     @ conn
       PDBNAME(user_dbname)   @ pname
       LDBNAME(user_dbname)   @ lname
       SDBNAME(user_dbname)   @ sname
@@ -171,8 +202,8 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
       WITH FRAME dbs.
     ELSE
       DISPLAY STREAM rpt
-            NUM-DBS    	     @ num
-            yes		     @ conn
+            NUM-DBS                 @ num
+            YES                     @ conn
             PDBNAME(user_dbname)   @ pname
             LDBNAME(user_dbname)   @ lname
             SDBNAME(user_dbname)   @ sname
@@ -182,13 +213,13 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
             uid
             codepage
             collname
-	    (IF isMultitenant = ? THEN "n/a" ELSE 
+            (IF isMultitenant = ? THEN "n/a" ELSE 
                     IF isMultitenant THEN "enabled" 
                         ELSE "not enabled") @ is_Multitenant
-	    (IF isPartitioned = ? THEN "n/a" ELSE 
+            (IF isPartitioned = ? THEN "n/a" ELSE 
                     IF isPartitioned THEN "enabled" 
                         ELSE "not enabled") @ is_Partitioned 
-	    (IF isCDCEnabled = ? THEN "n/a" ELSE 
+            (IF isCDCEnabled = ? THEN "n/a" ELSE 
                     IF isCDCEnabled THEN "enabled" 
                         ELSE "not enabled") @ is_CDCEnabled 
             (IF l_seq = ? THEN "n/a" ELSE 
@@ -197,6 +228,12 @@ IF user_dbname = ? OR user_dbname = "" THEN DO:
             (IF l_keys = ? THEN "n/a" ELSE 
                     IF l_keys THEN "enabled" 
                         ELSE "not enabled") @ Large_Keys
+            (IF is_Tbldfltarea = "" THEN "undefined" ELSE
+            is_Tbldfltarea) @ is_Tbldfltarea
+            (IF is_Idxdfltarea = "" THEN "undefined" ELSE
+            is_Idxdfltarea) @ is_Idxdfltarea
+            (IF is_Lobdfltarea = "" THEN "undefined" ELSE
+            is_Lobdfltarea) @ is_Lobdfltarea
             WITH FRAME dbs-2.
     END.
         
@@ -217,25 +254,25 @@ DISPLAY STREAM rpt
   scharset FORMAT "x(20)" LABEL "Session charset"         COLON 22 SKIP(1)
   "PROPATH =" NO-ATTR-SPACE                             AT 2  
               prpath[1] FORMAT "x(60)" NO-LABEL         AT 12 SKIP
-      	      prpath[2] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[3] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[4] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[5] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[6] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-              prpath[7] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[8] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-              prpath[9] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[10] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+                    prpath[2] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[3] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[4] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[5] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[6] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+              prpath[7] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[8] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+              prpath[9] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[10] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
               prpath[11] FORMAT "x(60)" NO-LABEL        AT 12 SKIP
-      	      prpath[12] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[13] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[14] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[15] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[16] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-              prpath[17] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[18] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-              prpath[19] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
-      	      prpath[20] FORMAT "x(60)" NO-LABEL       	AT 12 SKIP
+                    prpath[12] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[13] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[14] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[15] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[16] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+              prpath[17] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[18] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+              prpath[19] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
+                    prpath[20] FORMAT "x(60)" NO-LABEL               AT 12 SKIP
   WITH FRAME env SIDE-LABELS ATTR-SPACE CENTERED USE-TEXT STREAM-IO
   TITLE " Environment/Startup Parameters ".
 

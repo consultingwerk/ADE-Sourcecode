@@ -5,24 +5,50 @@ Folder.prototype.iTab=null;     // Active Tab
 Folder.prototype.fimg='../img/ws_tgreyf';   // Image prefix
 Folder.prototype.bimg='../img/ws_tgreyb';   // Image prefix
 Folder.prototype.coll=[];       // Image prefix
+Folder.prototype.enabled;       // Enabled TAB
+Folder.prototype.elem;          // DOM reference
 Folder.prototype.uimg=null;     // Underneath image
-Folder.prototype.enabled;       // Enabled pages list
 
-function Folder(){app.folder=this;}
+Folder.prototype.fRun=function(iNew){
+  with(this){
+    var TD=elem.firstChild.rows[0].cells;	
+    if (iNew==iTab) return false;
+    if (enabled[iNew-1]=='no') return setTab(TD[iTab*3-2],'disable');
+    if (iTab!=null) setTab(TD[iTab*3-2],'back');
+    iTab=iNew;
+    setTab(TD[iTab*3-2],'front');
+  }
+  return true;
+}
 
+Folder.prototype.setTab=function(TD,cl){
+  TD.className=cl;
+  var img=(cl=='front'?this.fimg:this.bimg);
+  TD.previousSibling.firstChild.src=img+'l.gif';
+  TD.nextSibling.firstChild.src=img+'r.gif';
+}	
+
+Folder.prototype.tabclick=function(e){
+  if (e.nodeName!='TD') e=e.parentNode;
+  if (e.nodeName!='TD') return;
+  var num=Math.floor(e.cellIndex/3)+1;
+//  this.fRun(num)
+  if (this.fRun(num)) action('wbo.'+num + '.changepage');
+}
+
+function Folder(){}
 
 Folder.prototype.init=function(e){
   with(this){
     this.elem=e;
-    app.pagecontroller=this;
     // Find image settings from stylesheet
     var ss=app.document.styleSheets;
     if(document.all){
       for(var j=0;j<ss.length;j++){
         var s=ss[j].rules;
         for(var i=0;i<s.length;i++){
-         	if(/td\.front/i.test(s[i].selectorText) &&  /url\((.*)\.gif/.test(s[i].style.backgroundImage)) fimg=RegExp.$1; 
-         	if(/td\.back/i.test(s[i].selectorText) &&  /url\((.*)\.gif/.test(s[i].style.backgroundImage)) bimg=RegExp.$1; 
+         	if(/#folder td\.front/.test(s[i].selectorText) &&  /url\((.*)\.gif/.test(s[i].style.backgroundImage)) fimg=RegExp.$1; 
+         	if(/#folder td\.back/.test(s[i].selectorText) &&  /url\((.*)\.gif/.test(s[i].style.backgroundImage)) fimg=RegExp.$1; 
         }	
       }
     } else {
@@ -34,50 +60,32 @@ Folder.prototype.init=function(e){
         }	
       }
     }		
-    this.enabled=e.getAttribute('enabled').split('|');
+    enabled=e.getAttribute('enabled').split('|');
     var c='<table class="folder" cellspacing="0" cellpadding="0"><tr>';
     var a = elem.getAttribute('tabs').split('|');
     for(var i=0;i<a.length;i++){
-      c+='<td></td>';
+      c+='<td><img src=""></td>';
       c+='<td class=front>&nbsp;'+a[i]+'&nbsp;</td>';
-      c+='<td></td>';
+      c+='<td><img src=""></td>';
     }
     elem.innerHTML=c+'</tr></table><img class="under" src="'+fimg+'u.gif">';
     this.uimg=elem.lastChild;
 
+
+
     var TD=elem.firstChild.rows[0].cells;
-    for(var i=0;i<a.length;i++) setTab(i+1,enabled[i]=='no'?'disable':'back');
-    app.page=app.document.body.getAttribute('startpage');
-    if(!app.page) app.page=1;
-    fRun(app.page);
+    for(var i=a.length;i>0;i--) if(fRun(i)) app.page=i;
+    var page=app.document.body.getAttribute('startpage');
+    if(page && fRun(page)) app.page=page;
     elem.firstChild.onclick=function(e){app.folder.tabclick(main.fixEvent(e?e:window.app.event).target);}
+
   }  
 }
 
-
-Folder.prototype.fRun=function(iNew){
-  with(this){
-    if (iNew==iTab) return false;
-    if (iTab) setTab(iTab,'back');
-    iTab=iNew;
-    setTab(iTab,'front');
+function custom(c){
+	with(this){
+//	  alert('[ryfolder.js] custom\n'+c);
+    if(!this.app[c]) return true;
+    return this.app[c]();
   }
-  return true;
 }
-
-Folder.prototype.setTab=function(tab,cl){
-  var TD=this.elem.firstChild.rows[0].cells;	
-  tab=tab*3-3;
-  var img=(cl=='front'?this.fimg:this.bimg);
-  TD[tab].innerHTML='<img src="'+img+'l.gif">';
-  TD[tab+1].className=cl;
-  TD[tab+2].innerHTML='<img src="'+img+'r.gif">';
-}	
-
-Folder.prototype.tabclick=function(e){
-  if (e.nodeName!='TD') e=e.parentNode;
-  if (e.nodeName!='TD') return;
-  var num=Math.floor(e.cellIndex/3)+1;
-  if (this.enabled[num-1]!='no' && this.fRun(num)) action('wbo.'+num + '.changepage');
-}
-

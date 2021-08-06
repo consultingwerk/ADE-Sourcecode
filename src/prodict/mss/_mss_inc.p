@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2006-2020 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -21,6 +21,7 @@
       sdash   05/07/13 Added Logical DB validation in a Schema Holder.
                        Added logging mechanism.
 	vprasad	08/20/2018 ODIA-1951 -  ODBC Driver 17 for SQL Server certification				   
+   vmaganti 11/11/20   Added Native sequence support
 */   
 
 { prodict/user/uservar.i NEW }
@@ -56,6 +57,9 @@ DEFINE VARIABLE wdth          AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE ablfmt        AS LOGICAL                NO-UNDO.
 DEFINE VARIABLE cmptble       AS CHARACTER              NO-UNDO.
 DEFINE VARIABLE crtdflt       AS CHARACTER              NO-UNDO.
+DEFINE VARIABLE text5      	  AS CHARACTER 
+							  INITIAL "Apply Sequence as:"
+							  FORMAT "x(22)" NO-UNDO.
 
 batch_mode = SESSION:BATCH-MODE.
 
@@ -63,32 +67,36 @@ output_file= "deltsql.log".
 OUTPUT STREAM logfile TO VALUE(output_file) NO-ECHO NO-MAP UNBUFFERED.
 logfile_open = true. 
 
-FORM
-  " "   SKIP 
+DEFINE FRAME read-df
     df-file {&STDPH_FILL} FORMAT "x({&PATH_WIDG})"  VIEW-AS FILL-IN SIZE 40 BY 1
-         LABEL "Delta DF File" colon  15
+         LABEL "Delta DF File" AT ROW 1 COL 4 
   btn_File SKIP SKIP({&VM_WIDG})
   osh_dbname   FORMAT "x(256)"  view-as fill-in size 32 by 1 
-    LABEL "Schema Holder Database" colon 35 SKIP({&VM_WID}) 
+    LABEL "Schema Holder Database" AT ROW 2.4 COL 12 SKIP({&VM_WID}) 
   mss_conparms FORMAT "x(256)" view-as fill-in size 32 by 1 
-    LABEL "Connect Parameters for Schema" colon 35 SKIP({&VM_WID})
+    LABEL "Connect Parameters for Schema" AT ROW 3.5 COL 6 SKIP({&VM_WID})
   mss_dbname   FORMAT "x(32)"  view-as fill-in size 32 by 1 
-    LABEL "Logical Name for MSS Database" colon 35 SKIP({&VM_WID})   
+    LABEL "Logical Name for MSS Database" AT ROW 4.6 COL 5.5 SKIP({&VM_WID})   
   mss_username    FORMAT "x(32)"  VIEW-AS FILL-IN SIZE 32 BY 1
-    LABEL "MSS Object Owner Name" COLON 35 SKIP({&VM_WID})    
-  long-length LABEL " Maximum Varchar Length"  COLON 35 SKIP({&VM_WIDG})
-  SPACE(3) pcompatible view-as toggle-box LABEL "Create RECID Field"  
-  SPACE(10) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" SKIP({&VM_WID})
-  SPACE (3) dflt VIEW-AS TOGGLE-BOX LABEL "Include Default" 
+    LABEL "MSS Object Owner Name" AT ROW 5.7 COL 12 SKIP({&VM_WID})    
+  long-length LABEL " Maximum Varchar Length"  AT ROW 6.8 COL 12 SKIP({&VM_WIDG})
+  pcompatible view-as toggle-box LABEL "Create RECID Field"  AT ROW 8.5 COL 4
+  SPACE(10) shadowcol VIEW-AS TOGGLE-BOX LABEL "Create Shadow Columns" AT ROW 8.5 COL 37.5 SKIP({&VM_WID})
+  SPACE (3) dflt VIEW-AS TOGGLE-BOX LABEL "Include Default"  AT ROW 9.5 COL 4
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(13) &ELSE SPACE (14) &ENDIF
-  create_df view-as toggle-box LABEL "Create Schema Holder Delta DF" SKIP({&VM_WID})
-  SPACE(3) unicodeTypes view-as toggle-box LABEL "Use Unicode Types " 
+  create_df view-as toggle-box LABEL "Create Schema Holder Delta DF" AT ROW 9.5 COL 37.5 SKIP({&VM_WID})
+  SPACE(3) unicodeTypes view-as toggle-box LABEL "Use Unicode Types " AT ROW 10.5 COL 4
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(10) &ELSE SPACE (9) &ENDIF
-  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand Width (utf-8)" SKIP({&VM_WID})
-  SPACE (3) mapMSSDatetime VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type"
+  lUniExpand VIEW-AS TOGGLE-BOX LABEL "Expand Width (utf-8)" AT ROW 10.5 COL 37.5 SKIP({&VM_WID})
+  SPACE (3) mapMSSDatetime VIEW-AS TOGGLE-BOX LABEL "Map to MSS 'Datetime' Type" AT ROW 11.5 COL 4 SKIP({&VM_WID})
   &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN SPACE(2) &ELSE SPACE (1) &ENDIF
-  newseq   view-as toggle-box label "Use Revised Sequence Generator"
-  SKIP({&VM_WID}) SPACE(2) cFormat VIEW-AS TEXT NO-LABEL  
+  text5 VIEW-AS TEXT NO-LABEL AT ROW 12.8 COL 4
+  selected_seq VIEW-AS RADIO-SET RADIO-BUTTONS "Native Sequence", 1,
+											   "Revised Sequence Generator", 2
+											   VERTICAL AT  ROW 13.6 COL 7 NO-LABEL 
+  //newseq   view-as toggle-box label "Use Revised Sequence Generator"
+  cachesize  VIEW-AS FILL-IN SIZE 9 BY 1 LABEL "Cache size (0=server, ?=no-cache) ":t33 AT ROW 13.6 COL 35 SKIP({&VM_WID}) 
+  SKIP({&VM_WID}) SPACE(2) cFormat VIEW-AS TEXT NO-LABEL AT ROW 15.6 COL 3  
   iFmtOption VIEW-AS RADIO-SET RADIO-BUTTONS "Width", 1,
                                              "ABL Format", 2
                                  HORIZONTAL NO-LABEL 
@@ -239,7 +247,22 @@ ON VALUE-CHANGED OF iFmtOption IN FRAME read-df DO:
   ELSE
     ASSIGN lFormat:CHECKED   = TRUE
            lFormat:SENSITIVE = TRUE.
-END. 
+END.
+
+
+ASSIGN cachesize:READ-ONLY = NO.
+
+ON VALUE-CHANGED OF selected_seq IN FRAME read-df DO:
+  IF SELF:SCREEN-VALUE = "1" THEN
+    ASSIGN newseq   = FALSE
+           nativeseq = TRUE
+		   cachesize:READ-ONLY = NO.
+  ELSE
+    ASSIGN newseq   = TRUE
+           nativeseq = FALSE
+		   cachesize:READ-ONLY = YES.
+END.
+
 
 ON LEAVE OF long-length IN FRAME read-df DO:
   IF (unicodeTypes:SCREEN-VALUE = "no") AND INTEGER(long-length:SCREEN-VALUE) > 8000 THEN DO:  
@@ -342,7 +365,7 @@ ELSE ASSIGN dflt = FALSE.
 
 ASSIGN long-length = 8000.
 
-DISPLAY cFormat lFormat mapMSSDatetime cRecid WITH FRAME read-df.
+DISPLAY cFormat lFormat mapMSSDatetime cRecid text5 WITH FRAME read-df.
 
 UPDATE df-file 
        btn_file
@@ -358,7 +381,8 @@ UPDATE df-file
        unicodeTypes WHEN hasUniSupport 
        lUniExpand WHEN unicodeTypes
        mapMSSDatetime WHEN has2008Support
-       newseq
+	   cachesize
+	   selected_seq
        iFmtOption
        lFormat WHEN iFmtOption = 2
        iRecidOption WHEN hasCompColSupport
@@ -386,6 +410,14 @@ IF (iFmtOption= 1) then
 ELSE
   ASSIGN wdth = FALSE
         ablfmt = TRUE.
+		
+IF (selected_seq = 1) then
+  ASSIGN nativeseq = TRUE
+      newseq = FALSE.
+ELSE
+  ASSIGN nativeseq = FALSE
+        newseq = TRUE.
+		
 
    PUT STREAM logfile UNFORMATTED
        " " skip
@@ -404,6 +436,7 @@ ELSE
        "Expand Width (utf-8):                   " lUniExpand SKIP
        "Map to MSS 'Datetime' Type:             " mapMSSDatetime SKIP
        "Use Revised Sequence Generator:         " newseq SKIP
+	   "Use Native Sequence:         			" nativeseq SKIP
        "For Field width use                     "  skip
        "                         Width:         " wdth SKIP
        "                    ABL Format:         " ablfmt SKIP
@@ -436,8 +469,14 @@ ASSIGN user_env[1]  = df-file
        user_env[23] = "30"
        user_env[24] = "15"
        /* first y is for sequence support.
-          second entry is for new sequence generator */
-       user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n")
+          second entry is for new sequence generator 
+		  Third entry is for MSSDatetime
+		  Fourth entry is for native sequence and
+		  Fifth entry is for cahce-size*/
+        user_env[25] = "y" + (IF newseq THEN ",y" ELSE ",n") + 
+                       (IF mapMSSDatetime THEN ',n' ELSE ',y') + 
+		               (IF nativeseq THEN ",y" ELSE ",n" ) +
+		               (IF cachesize <> ? THEN "," + string(cachesize) ELSE " ")
        user_env[28] = "128"
        user_env[29] = "128"            
        user_env[30] = "y"

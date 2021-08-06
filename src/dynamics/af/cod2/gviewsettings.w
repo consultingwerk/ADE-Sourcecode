@@ -33,13 +33,9 @@ CREATE WIDGET-POOL.
 /* ***************************  Definitions  ************************** */
 
 /* Parameters Definitions ---                                           */
-DEFINE INPUT-OUTPUT PARAMETER cvmaxnumflds          AS INTEGER          NO-UNDO. 
-DEFINE INPUT-OUTPUT PARAMETER cvnamesuffix          AS CHARACTER        NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER cvmaxfldspercolumn    AS INTEGER          NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER cSDOFields            AS LOGICAL          NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER plDeleteOnGeneration  AS LOGICAL          NO-UNDO. 
-DEFINE INPUT        PARAMETER pcAllModules          AS CHARACTER        NO-UNDO.
-DEFINE INPUT-OUTPUT PARAMETER pcViewerModule        AS CHARACTER        NO-UNDO.
+DEFINE INPUT-OUTPUT PARAM cvmaxnumflds AS INTEGER NO-UNDO. 
+DEFINE INPUT-OUTPUT PARAM cvnamesuffix AS CHAR NO-UNDO.
+DEFINE INPUT-OUTPUT PARAM cvmaxfldspercolumn AS INTEGER NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 
@@ -62,11 +58,10 @@ DEFINE INPUT-OUTPUT PARAMETER pcViewerModule        AS CHARACTER        NO-UNDO.
 &Scoped-define FRAME-NAME gDialog
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS coModule toSDOFields fivmaxnumflds ~
-fivnamesuffix fivmaxfldspercolumn toAlwaysDelete Btn_OK Btn_Cancel Btn_Help ~
-RECT-12 RECT-13 
-&Scoped-Define DISPLAYED-OBJECTS coModule toSDOFields fivmaxnumflds ~
-fivnamesuffix fivmaxfldspercolumn toAlwaysDelete 
+&Scoped-Define ENABLED-OBJECTS fivmaxnumflds fivnamesuffix ~
+fivmaxfldspercolumn Btn_OK Btn_Cancel Btn_Help 
+&Scoped-Define DISPLAYED-OBJECTS fivmaxnumflds fivnamesuffix ~
+fivmaxfldspercolumn 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -76,27 +71,6 @@ fivnamesuffix fivmaxfldspercolumn toAlwaysDelete
 
 
 /* ************************  Function Prototypes ********************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD GetDeleteOnGeneration gDialog 
-FUNCTION GetDeleteOnGeneration RETURNS LOGICAL
-    ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getSDOFields gDialog 
-FUNCTION getSDOFields RETURNS LOGICAL
-  ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getViewerModule gDialog 
-FUNCTION getViewerModule RETURNS CHARACTER
-    ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getvmaxfldspercolumn gDialog 
 FUNCTION getvmaxfldspercolumn RETURNS INTEGER
@@ -115,27 +89,6 @@ FUNCTION getvmaxnumflds RETURNS INTEGER
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD getvnamesuffix gDialog 
 FUNCTION getvnamesuffix RETURNS CHARACTER
   ( /* parameter-definitions */ )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD SetDeleteOnGeneration gDialog 
-FUNCTION SetDeleteOnGeneration RETURNS LOGICAL
-    ( INPUT plAlwaysDelete      AS LOGICAL )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setSDOFields gDialog 
-FUNCTION setSDOFields RETURNS LOGICAL
-  ( INPUT newval AS LOGICAL  )  FORWARD.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION-FORWARD setViewerModule gDialog 
-FUNCTION setViewerModule RETURNS LOGICAL
-    ( INPUT plViewerModule  AS CHARACTER)  FORWARD.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -179,63 +132,34 @@ DEFINE BUTTON Btn_OK AUTO-GO
      LABEL "OK" 
      SIZE 15 BY 1.14.
 
-DEFINE VARIABLE coModule AS CHARACTER FORMAT "X(256)":U 
-     LABEL "M&odule" 
-     VIEW-AS COMBO-BOX SORT INNER-LINES 5
-     DROP-DOWN-LIST
-     SIZE 36.2 BY 1 TOOLTIP "Product module associated with Viewers" NO-UNDO.
-
 DEFINE VARIABLE fivmaxfldspercolumn AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
      LABEL "Max  Fields Per Column" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 TOOLTIP "Maximum number of fields to be created per column" NO-UNDO.
+     SIZE 14 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fivmaxnumflds AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
      LABEL "Max Number Of Fields" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 TOOLTIP "Maximum number of fields to be placed on the viewer" NO-UNDO.
+     SIZE 14 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fivnamesuffix AS CHARACTER FORMAT "X(10)":U 
      LABEL "Name Suffix" 
      VIEW-AS FILL-IN 
-     SIZE 14 BY 1 TOOLTIP "A suffix for the selected table's dump name when creating a Dynamic Viewer" NO-UNDO.
-
-DEFINE RECTANGLE RECT-12
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 72.8 BY 6.1.
-
-DEFINE RECTANGLE RECT-13
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 72.8 BY 1.71.
-
-DEFINE VARIABLE toAlwaysDelete AS LOGICAL INITIAL no 
-     LABEL "Delete instances before generation?" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 42 BY .81 TOOLTIP "Check to always delete the existing object before generation" NO-UNDO.
-
-DEFINE VARIABLE toSDOFields AS LOGICAL INITIAL no 
-     LABEL "Use SDO Fields" 
-     VIEW-AS TOGGLE-BOX
-     SIZE 20.4 BY .81 TOOLTIP "Use SDO fields on viewer, otherwise fieldlist from entity mnemonic is used" NO-UNDO.
+     SIZE 14 BY 1 NO-UNDO.
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME gDialog
-     coModule AT ROW 1.19 COL 29 COLON-ALIGNED
-     toSDOFields AT ROW 2.24 COL 31
-     fivmaxnumflds AT ROW 3 COL 29 COLON-ALIGNED HELP
+     fivmaxnumflds AT ROW 3.86 COL 29 COLON-ALIGNED HELP
           "Max number of fields to include from SDO"
-     fivnamesuffix AT ROW 4.05 COL 29 COLON-ALIGNED
-     fivmaxfldspercolumn AT ROW 5.1 COL 29 COLON-ALIGNED HELP
+     fivnamesuffix AT ROW 5.1 COL 29 COLON-ALIGNED
+     fivmaxfldspercolumn AT ROW 6.24 COL 29 COLON-ALIGNED HELP
           "Max number of fields to include from SDO"
-     toAlwaysDelete AT ROW 6.14 COL 31
-     Btn_OK AT ROW 7.67 COL 2.2
-     Btn_Cancel AT ROW 7.67 COL 17.8
-     Btn_Help AT ROW 7.67 COL 58.6
-     RECT-12 AT ROW 1 COL 1.4
-     RECT-13 AT ROW 7.29 COL 1.4
-     SPACE(0.00) SKIP(0.18)
+     Btn_OK AT ROW 10.52 COL 3
+     Btn_Cancel AT ROW 10.52 COL 27
+     Btn_Help AT ROW 10.52 COL 49
+     SPACE(1.13) SKIP(0.62)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Viewer Settings"
@@ -320,34 +244,30 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_OK gDialog
 ON CHOOSE OF Btn_OK IN FRAME gDialog /* OK */
 DO:
-    IF fivnamesuffix:SCREEN-VALUE = "" THEN
-    DO:
-        MESSAGE "Please enter a name suffix.".
-        APPLY "ENTRY" TO fivnamesuffix.
-        RETURN NO-APPLY.
-    END. /*IF fivnamesuffix:SCREEN-VALUE = "" THEN DO*/
 
-    IF fivmaxnumflds:INPUT-VALUE <= 0 THEN
-    DO:
-        MESSAGE "Please enter a max number of fields.".
-        APPLY "ENTRY" TO fivmaxnumflds.
-        RETURN NO-APPLY.
-    END. /* IF INTEGER(fivmaxnumflds:SCREEN-VALUE) <= 0 THEN DO*/
-    
-    IF fivmaxfldspercolumn:INPUT-VALUE <= 0 THEN
-    DO:
-        MESSAGE "Please enter a max fields per column.".
-        APPLY "ENTRY" TO fivmaxfldspercolumn.
-        RETURN NO-APPLY.
-    END. /*IF INTEGER(fivmaxfldspercolumn:SCREEN-VALUE) <= 0 THEN DO*/
-
-    ASSIGN cvmaxnumflds         = DYNAMIC-FUNCTION('getvmaxnumflds':U)
-           cvnamesuffix         = DYNAMIC-FUNCTION('getvnamesuffix':U)
-           cvmaxfldspercolumn   = DYNAMIC-FUNCTION('getvmaxfldspercolumn':U)
-           cSDOFields           = DYNAMIC-FUNCTION('getSDOFields':U)
-           plDeleteOnGeneration = DYNAMIC-FUNCTION("GetDeleteOnGeneration":U)
-           pcViewerModule       = DYNAMIC-FUNCTION("getViewerModule":U)
-           .
+ IF fivnamesuffix:SCREEN-VALUE = "" THEN DO:
+     MESSAGE "Please enter a name suffix.".
+     APPLY "ENTRY" TO fivnamesuffix.
+     RETURN NO-APPLY.
+ END. /*IF fivnamesuffix:SCREEN-VALUE = "" THEN DO*/
+ IF INTEGER(fivmaxnumflds:SCREEN-VALUE) <= 0 THEN DO:
+     MESSAGE "Please enter a max number of fields.".
+     APPLY "ENTRY" TO fivmaxnumflds.
+     RETURN NO-APPLY.
+ END. /* IF INTEGER(fivmaxnumflds:SCREEN-VALUE) <= 0 THEN DO*/
+ IF INTEGER(fivmaxfldspercolumn:SCREEN-VALUE) <= 0 THEN DO:
+     MESSAGE "Please enter a max fields per column.".
+     APPLY "ENTRY" TO fivmaxfldspercolumn.
+     RETURN NO-APPLY.
+ END. /*IF INTEGER(fivmaxfldspercolumn:SCREEN-VALUE) <= 0 THEN DO*/
+ IF INTEGER(fivmaxfldspercolumn:SCREEN-VALUE) > 16 THEN DO:
+     MESSAGE "Max fields per column must be less than or equal to 16.".
+     APPLY "ENTRY" TO fivmaxfldspercolumn.
+     RETURN NO-APPLY.
+ END. /*IF INTEGER(fivmaxfldspercolumn:SCREEN-VALUE) > 16 THEN DO:*/
+ cvmaxnumflds = DYNAMIC-FUNCTION('getvmaxnumflds':U).
+ cvnamesuffix = DYNAMIC-FUNCTION('getvnamesuffix':U).
+ cvmaxfldspercolumn = DYNAMIC-FUNCTION('getvmaxfldspercolumn':U).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -410,11 +330,10 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY coModule toSDOFields fivmaxnumflds fivnamesuffix fivmaxfldspercolumn 
-          toAlwaysDelete 
+  DISPLAY fivmaxnumflds fivnamesuffix fivmaxfldspercolumn 
       WITH FRAME gDialog.
-  ENABLE coModule toSDOFields fivmaxnumflds fivnamesuffix fivmaxfldspercolumn 
-         toAlwaysDelete Btn_OK Btn_Cancel Btn_Help RECT-12 RECT-13 
+  ENABLE fivmaxnumflds fivnamesuffix fivmaxfldspercolumn Btn_OK Btn_Cancel 
+         Btn_Help 
       WITH FRAME gDialog.
   VIEW FRAME gDialog.
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
@@ -430,70 +349,22 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
-    RUN SUPER.
+DEF VAR OK AS LOGICAL NO-UNDO.
+  /* Code placed here will execute PRIOR to standard behavior. */
+ RUN SUPER.
+ OK = DYNAMIC-FUNCTION('setvmaxnumflds':U,cvmaxnumflds ).     
+ OK = DYNAMIC-FUNCTION('setvnamesuffix':U,cvnamesuffix ).
+ OK = DYNAMIC-FUNCTION('setvmaxfldspercolumn':U,cvmaxfldspercolumn).    
 
-    ASSIGN coModule:LIST-ITEMS IN FRAME {&FRAME-NAME} = pcAllModules.
 
-    DYNAMIC-FUNCTION('setvmaxnumflds':U,cvmaxnumflds ).
-    DYNAMIC-FUNCTION('setvnamesuffix':U,cvnamesuffix ).
-    DYNAMIC-FUNCTION('setvmaxfldspercolumn':U,cvmaxfldspercolumn).
-    DYNAMIC-FUNCTION('setSDOFields':U,cSDOFields).
-    DYNAMIC-FUNCTION("setDeleteOnGeneration":U, INPUT plDeleteOnGeneration).
-    DYNAMIC-FUNCTION("setViewerModule":U, INPUT pcViewerModule).
+  /* Code placed here will execute AFTER standard behavior.    */
 
-    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 /* ************************  Function Implementations ***************** */
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION GetDeleteOnGeneration gDialog 
-FUNCTION GetDeleteOnGeneration RETURNS LOGICAL
-    ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    ASSIGN FRAME {&FRAME-NAME} toAlwaysDelete.
-    RETURN toAlwaysDelete.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getSDOFields gDialog 
-FUNCTION getSDOFields RETURNS LOGICAL
-  ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-DO WITH FRAME {&FRAME-NAME}:
-  ASSIGN toSDOFields.
-  RETURN toSDOFields.  
-END.
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getViewerModule gDialog 
-FUNCTION getViewerModule RETURNS CHARACTER
-    ( /* parameter-definitions */ ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    ASSIGN FRAME {&FRAME-NAME} coMOdule.
-
-    RETURN coModule.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION getvmaxfldspercolumn gDialog 
 FUNCTION getvmaxfldspercolumn RETURNS INTEGER
@@ -541,57 +412,6 @@ FUNCTION getvnamesuffix RETURNS CHARACTER
       ASSIGN fivnamesuffix.
       RETURN fivnamesuffix.  
   END.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION SetDeleteOnGeneration gDialog 
-FUNCTION SetDeleteOnGeneration RETURNS LOGICAL
-    ( INPUT plAlwaysDelete      AS LOGICAL ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    ASSIGN toAlwaysDelete:CHECKED IN FRAME {&FRAME-NAME} = plDeleteOnGeneration.
-
-    RETURN TRUE.
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setSDOFields gDialog 
-FUNCTION setSDOFields RETURNS LOGICAL
-  ( INPUT newval AS LOGICAL  ) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-
-  DO WITH FRAME {&FRAME-NAME}:  
-   toSDOFields:CHECKED = newval.
-   RETURN TRUE.  
- END. /*do with frame*/
-
-END FUNCTION.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _FUNCTION setViewerModule gDialog 
-FUNCTION setViewerModule RETURNS LOGICAL
-    ( INPUT plViewerModule  AS CHARACTER) :
-/*------------------------------------------------------------------------------
-  Purpose:  
-    Notes:  
-------------------------------------------------------------------------------*/
-    ASSIGN coModule:SCREEN-VALUE IN FRAME {&FRAME-NAME} = plViewerModule
-           NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN
-        ASSIGN coModule:SCREEN-VALUE IN FRAME {&FRAME-NAME} = coModule:ENTRY(1).
-
-    RETURN TRUE.
 END FUNCTION.
 
 /* _UIB-CODE-BLOCK-END */

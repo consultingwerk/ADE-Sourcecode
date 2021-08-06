@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005,2007-2011 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007-2011,2021 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -27,7 +27,8 @@
              fernando 08/28/08 Commented out references to lExpandClob - not supported yet.
              kmayur   06/21/11 screen split for constraint migration
              sbehera  02/03/14 Support for oracle 12 version and changed default version to 11
-			 vprasad  25/Apr/19 Allow ORACLE version 18 and removed 10 in message, made default version to 12
+			       vprasad  25/Apr/19 Allow ORACLE version 18 and removed 10 in message, made default version to 12
+             sseela   05/28/21 Removed Oracle 11, allowing ORACLE version 19 and updated the message
 */            
 
 
@@ -78,8 +79,9 @@ FORM
                INPUT ora_version = 10 OR 
                INPUT ora_version = 11 OR
                INPUT ora_version = 12 OR
-	       INPUT ora_version = 18 ,
-               "Oracle Version must be 11,12 or 18") 
+               INPUT ora_version = 18 OR
+               INPUT ora_version = 19 ,
+               "Oracle Version must be 12,18 or 19")
       view-as fill-in size 23 by 1
     LABEL "What version of ORACLE" colon 38 SKIP ({&VM_WID})  
   ora_username FORMAT "x(32)"  view-as fill-in size 32 by 1 

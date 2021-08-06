@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2005 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005-2021 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,6 +23,7 @@ Author: D. Ross Hunter
 
 Date Created:  1995
 Updated:	1/98 SLK Added new param to _fldinfo.p
+05/31/21 tmasood   Report error when field name is changed
 
 ---------------------------------------------------------------------------- */
 {adeuib/uniwidg.i}             /* UIB Temp-Tables                            */
@@ -47,6 +48,7 @@ DEF VAR tmp-tb      AS CHAR                NO-UNDO.
 DEF VAR valexp      AS CHAR                NO-UNDO.
 DEF VAR valmsg      AS CHAR                NO-UNDO.
 DEF VAR valmsg-sa   AS CHAR                NO-UNDO.
+DEF VAR t_log       AS LOG                 NO-UNDO.
 
 FIND _BC WHERE RECID(_BC) = _BC-rec.
 FIND _P WHERE _P._WINDOW-HANDLE = _h_win.
@@ -91,6 +93,18 @@ END.
 
 /* Remove extent (if any from _BC._NAME) */
 tmp-name = ENTRY(1,_BC._NAME,"[":U).
+
+/* Get the current database field */
+FIND DICTDB._db WHERE DICTDB._db._db-name =
+  (IF tmp-db = ldbname("DICTDB":U) THEN ? ELSE tmp-db)        NO-LOCK.
+FIND DICTDB._file OF DICTDB._db WHERE LOOKUP(DICTDB._FILE._OWNER,"PUB,_FOREIGN":U) > 0 AND
+                                      DICTDB._file._file-name = tmp-tb NO-LOCK NO-ERROR.
+FIND _field OF DICTDB._file WHERE _field._field-name = tmp-name NO-LOCK NO-ERROR.
+IF NOT AVAILABLE _field THEN DO:
+  RUN adecomm/_s-alert.p (INPUT-OUTPUT t_log,"error":u,"ok":u,
+      SUBSTITUTE("Field &1 was not found in table &2. Aborting opening of file.", tmp-name, tmp-tb)).
+    RETURN "_Abort".
+END.
     
 /* Get the default label, format and help of the field */
 RUN adeuib/_fldinfo.p (INPUT tmp-db,

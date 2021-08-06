@@ -129,15 +129,12 @@ DEFINE VARIABLE hSmartLink AS HANDLE NO-UNDO.
 
 DEFINE FRAME frMain
      RowObject.link_source AT ROW 3.19 COL 29
-          LABEL "Link source"
           VIEW-AS TOGGLE-BOX
           SIZE 16.4 BY .81
      RowObject.link_target AT ROW 4.05 COL 29
-          LABEL "Link target"
           VIEW-AS TOGGLE-BOX
           SIZE 15.8 BY .81
      RowObject.deactivated_link_on_hide AT ROW 4.91 COL 29
-          LABEL "Deactivated link on hide"
           VIEW-AS TOGGLE-BOX
           SIZE 29.6 BY .81
      SPACE(20.40) SKIP(0.00)
@@ -208,12 +205,6 @@ ASSIGN
        FRAME frMain:SCROLLABLE       = FALSE
        FRAME frMain:HIDDEN           = TRUE.
 
-/* SETTINGS FOR TOGGLE-BOX RowObject.deactivated_link_on_hide IN FRAME frMain
-   EXP-LABEL                                                            */
-/* SETTINGS FOR TOGGLE-BOX RowObject.link_source IN FRAME frMain
-   EXP-LABEL                                                            */
-/* SETTINGS FOR TOGGLE-BOX RowObject.link_target IN FRAME frMain
-   EXP-LABEL                                                            */
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
 
@@ -264,7 +255,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dynlookup.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelObject typeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(35)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(35)|X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListNO-LOCK INDEXED-REPOSITIONQueryBuilderOrderListgsc_object_type.object_type_code^yesQueryBuilderTableOptionListNO-LOCKQueryBuilderTuneOptionsQueryBuilderWhereClausesPopupOnAmbiguousyesPopupOnUniqueAmbiguousnoPopupOnNotAvailnoBlankOnNotAvailnoFieldNameobject_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldgsc_object_type.object_type_codeKeyFieldgsc_object_type.object_type_objFieldLabelObject TypeFieldTooltipPress F4 for LookupKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(15)DisplayDatatypecharacterBaseQueryStringFOR EACH gsc_object_type NO-LOCK BY gsc_object_type.object_type_code INDEXED-REPOSITIONQueryTablesgsc_object_typeBrowseFieldsgsc_object_type.object_type_code,gsc_object_type.object_type_descriptionBrowseFieldDataTypescharacter,characterBrowseFieldFormatsX(15),X(35)RowsToBatch200BrowseTitleObject Type LookupViewerLinkedFieldsLinkedFieldDataTypesLinkedFieldFormatsViewerLinkedWidgetsColumnLabelsColumnFormatSDFFileNameSDFTemplateLookupImageadeicon/select.bmpParentFieldParentFilterQueryMaintenanceObjectMaintenanceSDOCustomSuperProcFieldNameobject_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hObjectType ).
        RUN repositionObject IN hObjectType ( 1.00 , 29.00 ) NO-ERROR.
        RUN resizeObject IN hObjectType ( 1.00 , 50.00 ) NO-ERROR.
@@ -272,7 +263,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyncombo.w':U ,
              INPUT  FRAME frMain:HANDLE ,
-             INPUT  'DisplayedFieldryc_smartlink_type.link_name,ryc_smartlink_type.user_defined_linkKeyFieldryc_smartlink_type.smartlink_type_objFieldLabelSmartlink typeFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(28)DisplayDatatypecharacterBaseQueryStringFOR EACH ryc_smartlink_type NO-LOCK BY ryc_smartlink_type.link_nameQueryTablesryc_smartlink_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)ComboDelimiterListItemPairsInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcPhysicalTableNamesTempTablesQueryBuilderJoinCodeQueryBuilderOptionListQueryBuilderOrderListQueryBuilderTableOptionListQueryBuilderTuneOptionsQueryBuilderWhereClausesFieldNamesmartlink_type_objDisplayFieldyesEnableFieldyesLocalFieldnoHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DisplayedFieldryc_smartlink_type.link_name,ryc_smartlink_type.user_defined_linkKeyFieldryc_smartlink_type.smartlink_type_objFieldLabelSmartlink TypeFieldTooltipSelect option from listKeyFormat->>>>>>>>>>>>>>>>>9.999999999KeyDatatypedecimalDisplayFormatX(256)DisplayDatatypeCHARACTERBaseQueryStringFOR EACH ryc_smartlink_type NO-LOCK BY ryc_smartlink_type.link_nameQueryTablesryc_smartlink_typeSDFFileNameSDFTemplateParentFieldParentFilterQueryDescSubstitute&1 (&2)CurrentKeyValueComboDelimiterListItemPairsCurrentDescValueInnerLines5ComboFlagFlagValueBuildSequence1SecurednoCustomSuperProcFieldNamesmartlink_type_objDisplayFieldyesEnableFieldyesHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT hSmartLink ).
        RUN repositionObject IN hSmartLink ( 2.05 , 29.00 ) NO-ERROR.
        RUN resizeObject IN hSmartLink ( 1.05 , 45.20 ) NO-ERROR.
@@ -322,13 +313,7 @@ PROCEDURE enableFields :
   RUN SUPER.
 
   /* Code placed here will execute AFTER standard behavior.    */
-  DEFINE VARIABLE hDataSource AS HANDLE     NO-UNDO.
-  
-  {get DataSource hDataSource}.
-  {get DataSource hDataSource hDataSource}.
-  
-  IF VALID-HANDLE(hDataSource) THEN
-    RUN disableField IN hObjectType.
+  RUN disableField IN hObjectType.
 
 END PROCEDURE.
 

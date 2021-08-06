@@ -1,5 +1,5 @@
 /**********************************************************************
-* Copyright (C) 2000-2011,2013,2016 by Progress Software Corporation. *
+* Copyright (C) 2000-2011,2013,2016,2020 by Progress Software Corporation. *
 * All rights reserved.  Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                            *
 *                                                                     *
@@ -26,7 +26,7 @@
              fernando  06/26/08 Filter out schema tables for encryption
              hdaniels  06/27/10 Multi-tenant support
              rkamboj   10/11/11 Fixed tab issue for area field during update for non-MT database.
-             
+             tmasood   10/23/20 Added table default area support 
 */
 
 &IF "{&WINDOW-SYSTEM}" = "TTY" &THEN
@@ -79,6 +79,7 @@ DEFINE VARIABLE odbtyp          AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearea        AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE filearealog     AS CHARACTER             NO-UNDO.
 DEFINE VARIABLE CDCenabled      AS LOGICAL   INITIAL NO  NO-UNDO.
+DEFINE VARIABLE cSkipArea       AS CHARACTER INITIAL ""  NO-UNDO.
 
 DEFINE VARIABLE arealist                   AS CHARACTER INITIAL ?   NO-UNDO.
 DEFINE VARIABLE areaname                   AS CHARACTER             NO-UNDO.
@@ -193,7 +194,6 @@ ASSIGN
 /* 20051228-008 - use other delimiter in case area name has comma */
 areaname:DELIMITER IN FRAME frame-d = CHR(1).
 
-
 IF NOT adding THEN  DO:
   IF DICTDB._File._For-type <> ? THEN
     ASSIGN arealist = "N/A"
@@ -228,6 +228,7 @@ IF NOT adding THEN  DO:
                           or  dictdb._Area._Area-clustersize = 64
                           or  dictdb._Area._Area-clustersize = 512    
                   areaname:LIST-ITEMS IN FRAME frame-d = arealist.
+
         end.   
         else /* file-area-number seems to only be used when adding? 
                (refactored from if not DICTDB._File._file-attributes[3] ) */
@@ -241,13 +242,24 @@ IF NOT adding THEN  DO:
     CREATE wfit.
     { prodict/dump/copy_fit.i &from=DICTDB._File-trig &to=wfit }
   END.
+
 END.
-ELSE DO: 
+ELSE DO:
+  
+  FIND DICTDB._Db NO-ERROR.
+  IF AVAIL DICTDB._Db AND DICTDB._Db._Db-misc1[1] <> 0 THEN DO:
+    FIND DICTDB._Area WHERE DICTDB._Area._Area-num = DICTDB._Db._Db-misc1[1] NO-LOCK NO-ERROR.
+    IF AVAIL DICTDB._Area THEN
+      assign arealist  = DICTDB._Area._Area-name
+             cSkipArea = DICTDB._Area._Area-name.
+  END.
+  
   FOR EACH DICTDB._Area WHERE DICTDB._Area._Area-num > 6
                           AND DICTDB._Area._Area-type = 6
                           AND NOT CAN-DO ({&INVALID_AREAS}, DICTDB._Area._Area-name)
+                          AND DICTDB._Area._Area-name <> cSkipArea
                           NO-LOCK. 
-
+    
     IF arealist = ? THEN
       ASSIGN arealist = DICTDB._Area._Area-name
              filearea = DICTDB._Area._Area-name.
@@ -257,15 +269,18 @@ ELSE DO:
 
   END.
   
-  FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6 NO-LOCK.
+  FIND DICTDB._Area WHERE DICTDB._Area._Area-num = 6
+                      AND DICTDB._Area._Area-name <> cSkipArea NO-LOCK.
   IF arealist = ? THEN 
     ASSIGN arealist = DICTDB._Area._Area-name
            filearea = DICTDB._Area._Area-name
            s_In_Schema_Area = TRUE.
   ELSE
     ASSIGN arealist = arealist + CHR(1) + DICTDB._Area._Area-name.
-
+  
   ASSIGN areaname:LIST-ITEMS IN FRAME frame-d = arealist.
+
+  RELEASE DICTDB._Db. 
          
 END.
           

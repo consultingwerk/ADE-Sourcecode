@@ -8,11 +8,9 @@
 
 BODY      {background:url(../img/bg.gif);font-color:#000000;font-family:MS Sans Serif;font-size:8;margin:0;}
 
-/** Toolbar with round images **/
-#toolbar TD            {margin:0;padding:2px 0px 0px 7px;border:0;width:24px;height:25px;
-                        background-image:url(../img/ws_round.gif);}
-#toolbar TD.over       {background-image:url(../img/ws_round2.gif);}
-
+TD.toolbar      {background-color:lightblue;}
+IMG.tool        {border-color:lightblue;}
+IMG.tool.over   {background-color:white;border-left:1px #EEEEEE solid;border-top:1px #EEEEEE solid;border-right:1px gray solid;border-bottom:1px gray solid;}
 
 /* menu looks */
 #menubar TABLE.root     {background-color:lightblue;}

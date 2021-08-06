@@ -1,5 +1,5 @@
 /***********************************************************************
-* Copyright (C) 2000,2006,2008,2011,2019 by Progress Software          *
+* Copyright (C) 2000,2006,2008,2011,2019,2020 by Progress Software     *
 * Corporation. All rights reserved.  Prior versions of this work may   *
 * contain portions contributed by participants of Possenet.            *
 *                                                                      *
@@ -13,6 +13,7 @@ history:
    fernando   08/21/06 Fixing load of collation into pre-10.1A db (20060413-001)
    fernando   04/30/08 Adding ttFldOrder temp-table
    kmayur     06/21/11 Added wcon table for constraint dump OE00195067
+   tmasood    10/30/20 Added default area support for loading df
 -----------------------------------------------------------------------------*/
 
 DEFINE {1} SHARED VARIABLE iarg AS CHARACTER NO-UNDO. /* usually = ilin[2] */
@@ -66,6 +67,10 @@ DEFINE {1} SHARED VARIABLE kindexcache AS CHARACTER NO-UNDO.
 
 /* frozencache - list of files to be marked frozen */
 DEFINE {1} SHARED VARIABLE frozencache AS CHARACTER NO-UNDO.
+
+DEFINE {1} SHARED VARIABLE iDefaultTableArea AS INTEGER INITIAL ? NO-UNDO.
+DEFINE {1} SHARED VARIABLE iDefaultIndexArea AS INTEGER INITIAL ? NO-UNDO.
+DEFINE {1} SHARED VARIABLE iDefaultLOBArea   AS INTEGER INITIAL ? NO-UNDO.
 
 /* logical used to check the validity of the area-number in a .df file */
 

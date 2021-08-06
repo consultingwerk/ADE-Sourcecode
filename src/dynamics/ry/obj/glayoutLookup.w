@@ -36,7 +36,6 @@ CREATE WIDGET-POOL.
 DEFINE OUTPUT PARAMETER cName AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER cDesc AS CHARACTER NO-UNDO.
 DEFINE OUTPUT PARAMETER cMod AS CHARACTER NO-UNDO.
-DEFINE OUTPUT PARAMETER cObjType AS CHARACTER  NO-UNDO.
 
 /* Local Variable Definitions ---                                       */
 
@@ -111,7 +110,6 @@ DEFINE FRAME gDialog
    Type: SmartDialog
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
 
@@ -182,7 +180,7 @@ END.
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL Btn_OK gDialog
 ON CHOOSE OF Btn_OK IN FRAME gDialog /* OK */
 DO:
-  RUN getLayoutName IN h_blayoutlookup(OUTPUT cname, OUTPUT cdesc, OUTPUT cmod, OUTPUT cObjType).
+  RUN getLayoutName IN h_blayoutlookup(OUTPUT cname, OUTPUT cdesc, OUTPUT cmod).
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -223,8 +221,8 @@ PROCEDURE adm-create-objects :
              INPUT  FRAME gDialog:HANDLE ,
              INPUT  'AppServiceASUsePromptASInfoForeignFieldsRowsToBatch200CheckCurrentChangedyesRebuildOnReposnoServerOperatingModeNONEDestroyStatelessnoDisconnectAppServernoObjectNamery/obj/dlayoutlookupUpdateFromSourceno':U ,
              OUTPUT h_dlayoutlookup ).
-       RUN repositionObject IN h_dlayoutlookup ( 7.76 , 99.80 ) NO-ERROR.
-       /* Size in AB:  ( 0.86 , 14.00 ) */
+       RUN repositionObject IN h_dlayoutlookup ( 7.67 , 103.00 ) NO-ERROR.
+       /* Size in AB:  ( 0.86 , 10.80 ) */
 
        RUN constructObject (
              INPUT  'ry/obj/blayoutlookup.w':U ,
@@ -282,20 +280,6 @@ PROCEDURE enable_UI :
       WITH FRAME gDialog.
   VIEW FRAME gDialog.
   {&OPEN-BROWSERS-IN-QUERY-gDialog}
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE RecordSelected gDialog 
-PROCEDURE RecordSelected :
-/*------------------------------------------------------------------------------
-  Purpose:     This procedure is run from the browser when the user dbl-clicks
-               on a record.
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-  APPLY "CHOOSE":U TO Btn_OK IN FRAME {&FRAME-NAME}.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

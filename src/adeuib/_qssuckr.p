@@ -1,9 +1,9 @@
-/***********************************************************************
-* Copyright (C) 2005-2007 by Progress Software Corporation. All rights *
-* reserved.  Prior versions of this work may contain portions          *
-* contributed by participants of Possenet.                             *
-*                                                                      *
-***********************************************************************/
+/************************************************************************
+* Copyright (C) 2005-2007,2021 by Progress Software Corporation.        *
+* All rights reserved. Prior versions of this work may contain portions *
+* contributed by participants of Possenet.                              *
+*                                                                       *
+*************************************************************************/
 /*----------------------------------------------------------------------------
 
 File: _qssuckr.p
@@ -69,6 +69,7 @@ History:
                      SYSTEMS LIMITED to make sure delimiters are properly 
                      written and read to static objects for RADIO-SETS, 
                      SELECTION-LISTS and COMBO-BOXes.  (IZ 8044)
+    tmasood 03/01/21 Added check for 32000 character limit
 ---------------------------------------------------------------------------- */
 
 {adecomm/oeideservice.i}
@@ -1469,6 +1470,10 @@ PROCEDURE analyze-suspend-reader :
                           THEN _mru_broker_url ELSE _BrokerURL).
 
           RUN adeuib/_cdsuckr.p (import_mode, cBrokerURL).
+          IF RETURN-VALUE = "_ABORT":U THEN DO:
+            ASSIGN AbortImport = TRUE. /* Close everything qssucker does */
+            RETURN "_ABORT".
+          END.
         END.
       END.
 

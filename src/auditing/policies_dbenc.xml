@@ -33,6 +33,12 @@
         <_Audit-delete-level>12</_Audit-delete-level>
         <_Audit-identifying-field>0</_Audit-identifying-field>
       </audit-field>
+      <audit-field Name="_Dbpol-res1">
+        <_Audit-create-level>12</_Audit-create-level>
+        <_Audit-update-level>13</_Audit-update-level>
+        <_Audit-delete-level>12</_Audit-delete-level>
+        <_Audit-identifying-field>3</_Audit-identifying-field>
+      </audit-field>
       <audit-field Name="_Dbpol-uuid">
         <_Audit-create-level>12</_Audit-create-level>
         <_Audit-update-level>13</_Audit-update-level>
@@ -82,6 +88,12 @@
         <_Audit-update-level>13</_Audit-update-level>
         <_Audit-delete-level>12</_Audit-delete-level>
         <_Audit-identifying-field>0</_Audit-identifying-field>
+      </audit-field>
+      <audit-field Name="_Objpol-res1">
+        <_Audit-create-level>12</_Audit-create-level>
+        <_Audit-update-level>13</_Audit-update-level>
+        <_Audit-delete-level>12</_Audit-delete-level>
+        <_Audit-identifying-field>4</_Audit-identifying-field>
       </audit-field>
       <audit-field Name="_Objpol-version">
         <_Audit-create-level>12</_Audit-create-level>
@@ -320,6 +332,30 @@
       <_Event-level>1</_Event-level>
       <_Event-criteria></_Event-criteria>
     </audit-event>
+    <audit-event Event-id="11603">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11604">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11605">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11606">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11607">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
+    <audit-event Event-id="11608">
+      <_Event-level>2</_Event-level>
+      <_Event-criteria></_Event-criteria>
+    </audit-event>
   </Policy>
 </Policies>
-<!-- SealID=8gLLYj0i/LjeEeei0hEzFQ;WOzr+stYuKcLkEnBg/3d7w== -->
+<!-- SealID=3SrqJxieVKt6FKHhULhJdA;5ffvDvYp9E67PI/9hfYhgQ== -->

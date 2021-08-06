@@ -70,7 +70,10 @@ FOR EACH _File
     NEXT.
   END.
 
-  IF CAN-DO(_Can-read,"")   THEN _Can-read   = "!," + _Can-read.
+  /* IF CAN-DO(_Can-read,"")   THEN _Can-read   = "!," + _Can-read. */
+  IF NOT _File-Name BEGINS "_sec" THEN DO:
+      IF CAN-DO(_Can-read,"")   THEN _Can-read   = "!," + _Can-read.
+  END. 
   IF CAN-DO(_Can-write,"")  THEN _Can-write  = "!," + _Can-write.
   IF CAN-DO(_Can-create,"") THEN _Can-create = "!," + _Can-create.
   IF CAN-DO(_Can-delete,"") THEN _Can-delete = "!," + _Can-delete.

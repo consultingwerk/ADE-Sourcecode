@@ -12,7 +12,7 @@
   FIELD instance_attribute_obj LIKE gsm_menu_item.instance_attribute_obj VALIDATE ~
   FIELD item_category_obj LIKE gsm_menu_item.item_category_obj VALIDATE ~
   FIELD item_control_style LIKE gsm_menu_item.item_control_style VALIDATE  LABEL "Style"~
-  FIELD item_control_type LIKE gsm_menu_item.item_control_type VALIDATE  FORMAT "X(12)" LABEL "Item Type*"~
+  FIELD item_control_type LIKE gsm_menu_item.item_control_type VALIDATE  LABEL "Item Type*"~
   FIELD item_link LIKE gsm_menu_item.item_link VALIDATE ~
   FIELD item_menu_drop LIKE gsm_menu_item.item_menu_drop VALIDATE  LABEL "Menu Drop Function"~
   FIELD item_select_action LIKE gsm_menu_item.item_select_action VALIDATE ~
@@ -33,9 +33,6 @@
   FIELD system_owned LIKE gsm_menu_item.system_owned VALIDATE ~
   FIELD toggle_menu_item LIKE gsm_menu_item.toggle_menu_item VALIDATE ~
   FIELD tooltip_text LIKE gsm_menu_item.tooltip_text VALIDATE  LABEL "Tooltip"~
-  FIELD under_development LIKE gsm_menu_item.under_development VALIDATE  LABEL "Under Devel."~
+  FIELD under_development LIKE gsm_menu_item.under_development VALIDATE ~
   FIELD image_alternate_rule LIKE gsm_menu_item.image_alternate_rule VALIDATE  LABEL "Alternate Image rule"~
-  FIELD item_narration LIKE gsm_menu_item.item_narration VALIDATE ~
-  FIELD source_language_obj LIKE gsm_menu_item.source_language_obj VALIDATE ~
-  FIELD language_code LIKE gsc_language.language_code VALIDATE ~
-  FIELD language_name LIKE gsc_language.language_name VALIDATE 
+  FIELD item_narration LIKE gsm_menu_item.item_narration VALIDATE 

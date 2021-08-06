@@ -71,7 +71,7 @@ DEFINE VARIABLE ghCacheObjectQuery  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghCacheObjectBrowse AS HANDLE     NO-UNDO.
 DEFINE VARIABLE ghObjectBuffer      AS HANDLE     NO-UNDO.
 
-{ry/app/ryobjretri.i}
+{ry\app\ryobjretri.i}
 
 DEFINE VARIABLE ghStoreBrowse  AS HANDLE     NO-UNDO.
 DEFINE VARIABLE gdLastEtime    AS DECIMAL    NO-UNDO.
@@ -92,20 +92,21 @@ DEFINE VARIABLE gcSearchString AS CHARACTER  NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiInheritsFromClasses raFilter coContainer ~
-buRefresh fiLogicalObjectName fiObjectPathedFilename fiSDOPathedFilename ~
-fiResultCode fiRunAttribute fiClassName fiClassTableName fiClassBuffer ~
-fiUserObj fiObjectInstanceName fiObjectInstanceDescription fiDBAware ~
+&Scoped-Define ENABLED-OBJECTS raFilter coContainer buRefresh ~
+fiLogicalObjectName fiObjectPathedFilename fiSDOPathedFilename fiResultCode ~
+fiRunAttribute fiClassName fiClassTableName fiClassBuffer ~
+fiInheritsFromClasses fiUserObj fiLanguageObj fiObjectInstanceName ~
+fiObjectInstanceDescription fiDBAware fiLayoutPosition fiPageNumber ~
+fiInstanceOrder fiInstanceIsAContainer fiContainerObjectName ~
+fiDestroyCustomSuper fiCustomSuperProcedure fiRecordIdentifier ~
+fiContainerRecordIdentifier fiLabel 
+&Scoped-Define DISPLAYED-OBJECTS raFilter coContainer fiLogicalObjectName ~
+fiObjectPathedFilename fiSDOPathedFilename fiResultCode fiRunAttribute ~
+fiClassName fiClassTableName fiClassBuffer fiInheritsFromClasses fiUserObj ~
+fiLanguageObj fiObjectInstanceName fiObjectInstanceDescription fiDBAware ~
 fiLayoutPosition fiPageNumber fiInstanceOrder fiInstanceIsAContainer ~
 fiContainerObjectName fiDestroyCustomSuper fiCustomSuperProcedure ~
-fiRecordIdentifier fiContainerRecordIdentifier fiLabel fiLanguageObj 
-&Scoped-Define DISPLAYED-OBJECTS fiInheritsFromClasses raFilter coContainer ~
-fiLogicalObjectName fiObjectPathedFilename fiSDOPathedFilename fiResultCode ~
-fiRunAttribute fiClassName fiClassTableName fiClassBuffer fiUserObj ~
-fiObjectInstanceName fiObjectInstanceDescription fiDBAware fiLayoutPosition ~
-fiPageNumber fiInstanceOrder fiInstanceIsAContainer fiContainerObjectName ~
-fiDestroyCustomSuper fiCustomSuperProcedure fiRecordIdentifier ~
-fiContainerRecordIdentifier fiLabel fiLanguageObj 
+fiRecordIdentifier fiContainerRecordIdentifier fiLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -140,12 +141,15 @@ DEFINE BUTTON buRefresh
      SIZE 15 BY 1.14 TOOLTIP "Refresh the cache view, to include any recently launched objects."
      BGCOLOR 8 .
 
-DEFINE VARIABLE coContainer AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>9.999999999":U INITIAL 0 
+DEFINE VARIABLE coContainer AS CHARACTER FORMAT "X(256)":U 
      LABEL "Container" 
-     VIEW-AS COMBO-BOX SORT INNER-LINES 5
-     LIST-ITEM-PAIRS "Item1",0
+     VIEW-AS COMBO-BOX INNER-LINES 5
      DROP-DOWN-LIST
      SIZE 76.4 BY 1 NO-UNDO.
+
+DEFINE VARIABLE fiInheritsFromClasses AS CHARACTER 
+     VIEW-AS EDITOR SCROLLBAR-VERTICAL LARGE
+     SIZE 35 BY 3.5 NO-UNDO.
 
 DEFINE VARIABLE fiClassBuffer AS CHARACTER FORMAT "X(256)":U 
      LABEL "Class Buffer" 
@@ -167,10 +171,10 @@ DEFINE VARIABLE fiContainerObjectName AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 35 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiContainerRecordIdentifier AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>9.999999999-":U INITIAL 0 
-     LABEL "Container Identifier" 
+DEFINE VARIABLE fiContainerRecordIdentifier AS DECIMAL FORMAT ">>,>>>,>>>,>>9.999999-":U INITIAL 0 
+     LABEL "Container Record Identifier" 
      VIEW-AS FILL-IN 
-     SIZE 60 BY 1 NO-UNDO.
+     SIZE 25 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiCustomSuperProcedure AS CHARACTER FORMAT "X(256)":U 
      LABEL "Super Procedure" 
@@ -187,7 +191,7 @@ DEFINE VARIABLE fiLabel AS CHARACTER FORMAT "X(256)":U INITIAL "Inherits From Cl
      SIZE 20.8 BY .62 NO-UNDO.
 
 DEFINE VARIABLE fiLanguageObj AS DECIMAL FORMAT ">>,>>>,>>>,>>9.999999-":U INITIAL 0 
-     LABEL "Language" 
+     LABEL "Language Obj" 
      VIEW-AS FILL-IN 
      SIZE 25 BY 1 NO-UNDO.
 
@@ -221,10 +225,10 @@ DEFINE VARIABLE fiPageNumber AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 35 BY 1 NO-UNDO.
 
-DEFINE VARIABLE fiRecordIdentifier AS DECIMAL FORMAT ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>9.999999999-":U INITIAL 0 
+DEFINE VARIABLE fiRecordIdentifier AS DECIMAL FORMAT ">>,>>>,>>>,>>9.999999-":U INITIAL 0 
      LABEL "Record Identifier" 
      VIEW-AS FILL-IN 
-     SIZE 60 BY 1 NO-UNDO.
+     SIZE 25 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiResultCode AS CHARACTER FORMAT "X(256)":U 
      LABEL "Result Code" 
@@ -242,7 +246,7 @@ DEFINE VARIABLE fiSDOPathedFilename AS CHARACTER FORMAT "X(256)":U
      SIZE 35 BY 1 NO-UNDO.
 
 DEFINE VARIABLE fiUserObj AS DECIMAL FORMAT ">>,>>>,>>>,>>9.999999-":U INITIAL 0 
-     LABEL "User" 
+     LABEL "User Obj" 
      VIEW-AS FILL-IN 
      SIZE 25 BY 1 NO-UNDO.
 
@@ -250,14 +254,8 @@ DEFINE VARIABLE raFilter AS CHARACTER
      VIEW-AS RADIO-SET HORIZONTAL
      RADIO-BUTTONS 
           "Containers and Object Instances", "container",
-"Object Master Instances", "master",
-"Entire cache (unfiltered)", "All"
-     SIZE 100.4 BY .76 NO-UNDO.
-
-DEFINE VARIABLE fiInheritsFromClasses AS CHARACTER 
-     VIEW-AS SELECTION-LIST SINGLE SCROLLBAR-VERTICAL 
-     SIZE 25 BY 3.52
-     FONT 3 NO-UNDO.
+"Object Master Instances", "master"
+     SIZE 68.4 BY .76 NO-UNDO.
 
 DEFINE VARIABLE fiDBAware AS LOGICAL INITIAL no 
      LABEL "DB Aware" 
@@ -278,8 +276,7 @@ DEFINE VARIABLE fiInstanceIsAContainer AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiInheritsFromClasses AT ROW 19.76 COL 25.8 NO-LABEL
-     raFilter AT ROW 1 COL 16.6 NO-LABEL
+     raFilter AT ROW 1 COL 25.6 NO-LABEL
      coContainer AT ROW 1.81 COL 23.8 COLON-ALIGNED
      buRefresh AT ROW 1.81 COL 103
      fiLogicalObjectName AT ROW 11.1 COL 23.8 COLON-ALIGNED
@@ -290,7 +287,9 @@ DEFINE FRAME frMain
      fiClassName AT ROW 16.62 COL 23.8 COLON-ALIGNED
      fiClassTableName AT ROW 17.62 COL 23.8 COLON-ALIGNED
      fiClassBuffer AT ROW 18.62 COL 23.8 COLON-ALIGNED
-     fiUserObj AT ROW 21.67 COL 93 COLON-ALIGNED
+     fiInheritsFromClasses AT ROW 19.62 COL 25.8 NO-LABEL
+     fiUserObj AT ROW 23.62 COL 23.8 COLON-ALIGNED
+     fiLanguageObj AT ROW 24.62 COL 23.8 COLON-ALIGNED
      fiObjectInstanceName AT ROW 11.1 COL 93 COLON-ALIGNED
      fiObjectInstanceDescription AT ROW 12.1 COL 93 COLON-ALIGNED
      fiDBAware AT ROW 13.1 COL 95
@@ -301,10 +300,9 @@ DEFINE FRAME frMain
      fiContainerObjectName AT ROW 18.62 COL 93 COLON-ALIGNED
      fiDestroyCustomSuper AT ROW 19.81 COL 95
      fiCustomSuperProcedure AT ROW 20.62 COL 93 COLON-ALIGNED
-     fiRecordIdentifier AT ROW 24.14 COL 23.4 COLON-ALIGNED
-     fiContainerRecordIdentifier AT ROW 25.14 COL 23.4 COLON-ALIGNED
+     fiRecordIdentifier AT ROW 23.62 COL 93 COLON-ALIGNED
+     fiContainerRecordIdentifier AT ROW 24.62 COL 93 COLON-ALIGNED
      fiLabel AT ROW 20.67 COL 2.8 COLON-ALIGNED NO-LABEL
-     fiLanguageObj AT ROW 22.71 COL 93 COLON-ALIGNED
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -336,7 +334,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 25.57
+         HEIGHT             = 24.67
          WIDTH              = 129.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -362,13 +360,10 @@ END.
    NOT-VISIBLE Size-to-Fit Custom                                       */
 ASSIGN 
        FRAME frMain:SCROLLABLE       = FALSE
-       FRAME frMain:HIDDEN           = TRUE
-       FRAME frMain:PRIVATE-DATA     = 
-                "ShowPopups=NO".
+       FRAME frMain:HIDDEN           = TRUE.
 
 ASSIGN 
-       fiRecordIdentifier:PRIVATE-DATA IN FRAME frMain     = 
-                "ShowPopup=no".
+       fiInheritsFromClasses:RETURN-INSERTED IN FRAME frMain  = TRUE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -399,9 +394,9 @@ DO:
 
   RUN buildData.
 
-  IF coContainer:NUM-ITEMS GT 0 THEN
-  DO:
-      ASSIGN coContainer:SCREEN-VALUE = cSelectedContainer NO-ERROR.
+  IF LOOKUP(cSelectedContainer, coContainer:LIST-ITEMS, CHR(3)) <> 0 
+  THEN DO:
+      ASSIGN coContainer:SCREEN-VALUE = cSelectedContainer.
       APPLY "value-changed":U TO coContainer.
   END.
 END.
@@ -544,13 +539,12 @@ PROCEDURE buildData :
 ------------------------------------------------------------------------------*/
 DEFINE VARIABLE hField        AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hField2       AS HANDLE     NO-UNDO.
-DEFINE VARIABLE hField3       AS HANDLE     NO-UNDO.
 DEFINE VARIABLE hObjectBuffer AS HANDLE     NO-UNDO.
+DEFINE VARIABLE cListItems    AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE cWhere        AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE cListItemPairs  AS CHARACTER    NO-UNDO.
 
-DO WITH FRAME {&FRAME-NAME}:
 /* Make sure anything left over from a previous call has been cleaned up */
+
 ghCacheObjectQuery:QUERY-CLOSE() NO-ERROR.
 DELETE OBJECT ghCacheObjectQuery NO-ERROR.
 DELETE OBJECT ghCacheObjectBrowse NO-ERROR.
@@ -558,91 +552,56 @@ DELETE OBJECT ghObjectBuffer NO-ERROR.
 
 ASSIGN ghCacheObjectQuery  = ?
        ghCacheObjectBrowse = ?
-       ghObjectBuffer      = ?.
+       ghObjectBuffer      = ?
+       cListItems          = "":U
+       coContainer:LIST-ITEMS IN FRAME {&FRAME-NAME} = "":U.
 
 /* Get the buffer, build the query, build the combo */
 
 IF raFilter:SCREEN-VALUE = ? THEN ASSIGN raFilter:SCREEN-VALUE = "container":U.
 
 IF raFilter:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "container":U
-THEN DO WITH FRAME {&FRAME-NAME}:
+THEN DO:
     ASSIGN hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT 0).
     CREATE BUFFER ghObjectBuffer FOR TABLE hObjectBuffer.
     
-    ASSIGN cWhere = " WHERE " + ghObjectBuffer:NAME + ".tInstanceIsAContainer = YES ":U.
+    ASSIGN cWhere = " WHERE " + ghObjectBuffer:NAME + ".tInstanceIsaContainer = YES ":U.    
 
     CREATE QUERY ghCacheObjectQuery.
     ghCacheObjectQuery:SET-BUFFERS(ghObjectBuffer).
-    ghCacheObjectQuery:QUERY-PREPARE("FOR EACH ":U + ghObjectBuffer:NAME + cWhere).
+    ghCacheObjectQuery:QUERY-PREPARE("FOR EACH ":U + ghObjectBuffer:NAME + cWhere + " BY ":U + ghObjectBuffer:NAME + ".tContainerObjectName").
     ghCacheObjectQuery:QUERY-OPEN().
     
-    ASSIGN hField  = ghObjectBuffer:BUFFER-FIELD("tContainerObjectName":U)
-           hField2 = ghObjectBuffer:BUFFER-FIELD("tClassName":U)
-           hField3 = ghObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U).
+    ASSIGN hField     = ghObjectBuffer:BUFFER-FIELD("tContainerObjectName":U)
+           hField2    = ghObjectBuffer:BUFFER-FIELD("tClassName":U).
     
     ghCacheObjectQuery:GET-FIRST().
-
-    ASSIGN coContainer:DELIMITER = CHR(3).
-
+    
     DO WHILE ghObjectBuffer:AVAILABLE WITH FRAME {&FRAME-NAME}:
-        IF INDEX(cListItemPairs, hField:BUFFER-VALUE) EQ 0 THEN
-            ASSIGN cListItemPairs = cListItemPairs
-                                  + hField:BUFFER-VALUE + "  (":U + hField2:BUFFER-VALUE + ")":U
-                                  + coContainer:DELIMITER
-                                  + STRING(hField3:BUFFER-VALUE)
-                                  + coContainer:DELIMITER.
+        IF LOOKUP(hField:BUFFER-VALUE + "  (" + hField2:BUFFER-VALUE + ")", cListItems, CHR(3)) = 0 THEN
+            ASSIGN cListItems = cListItems + CHR(3) + hField:BUFFER-VALUE + "  (" + hField2:BUFFER-VALUE + ")".
+    
         ghCacheObjectQuery:GET-NEXT().
-    END. 
+    END.
+    ASSIGN coContainer:DELIMITER  = CHR(3)
+           cListItems             = SUBSTRING(cListItems, 2)
+           coContainer:LIST-ITEMS = cListItems NO-ERROR.
+    
     ghCacheObjectQuery:QUERY-CLOSE().
-
     DELETE OBJECT ghCacheObjectQuery NO-ERROR.
     ASSIGN ghCacheObjectQuery = ?.
-
-    IF NUM-ENTRIES(cListItemPairs, coContainer:DELIMITER) EQ 0 THEN
-        ASSIGN coContainer:LIST-ITEM-PAIRS = "Not Applicable":U + CHR(3) + STRING(0)
-               coContainer:SCREEN-VALUE    = coContainer:ENTRY(1) 
-               coContainer:SENSITIVE       = FALSE NO-ERROR.
-    ELSE
-    DO:
-        ASSIGN cListItemPairs = RIGHT-TRIM(cListItemPairs, coContainer:DELIMITER)
-               coContainer:LIST-ITEM-PAIRS = cListItemPairs.
     
-        ASSIGN coContainer:SCREEN-VALUE = coContainer:ENTRY(1)
-               coContainer:SENSITIVE    = YES 
-               NO-ERROR.
-    END.
+    ASSIGN coContainer:SCREEN-VALUE = coContainer:ENTRY(1)
+           coContainer:SENSITIVE    = YES NO-ERROR.
 END.
 ELSE
-    ASSIGN coContainer:LIST-ITEM-PAIRS = "Not Applicable":U + CHR(3) + STRING(0)
-           coContainer:SCREEN-VALUE    = coContainer:ENTRY(1) 
-           coContainer:SENSITIVE       = FALSE NO-ERROR.
+    ASSIGN coContainer:LIST-ITEMS   = "Not Applicable":U
+           coContainer:SCREEN-VALUE = coContainer:ENTRY(1) 
+           coContainer:SENSITIVE    = FALSE NO-ERROR.
 
 APPLY "VALUE-CHANGED":U TO coContainer.
-END.    /* with frame ... */
+
 END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE changeFolderPage sObject 
-PROCEDURE changeFolderPage :
-/*------------------------------------------------------------------------------
-  Purpose:     
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-    DEFINE VARIABLE iCurrentPage            AS INTEGER                  NO-UNDO.
-    DEFINE VARIABLE iObjectPage             AS INTEGER                  NO-UNDO.
-
-    {get CurrentPage iCurrentPage ghContainer}.
-    {get ObjectPage iObjectPage}.
-
-    IF iCurrentPage NE iObjectPage THEN
-        RUN valueChanged IN TARGET-PROCEDURE.
-
-    ASSIGN ERROR-STATUS:ERROR = NO.
-    RETURN.
-END PROCEDURE.  /* changeFolderPage */
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -727,21 +686,14 @@ ASSIGN ghCacheObjectQuery  = ?
 ASSIGN hObjectBuffer = DYNAMIC-FUNCTION("getCacheObjectBuffer":U IN gshRepositoryManager, INPUT 0).
 CREATE BUFFER ghObjectBuffer FOR TABLE hObjectBuffer.
 
-CASE raFilter:SCREEN-VALUE IN FRAME {&FRAME-NAME}:
-    WHEN "Master":U THEN
-        ASSIGN cWhere = " WHERE " + ghObjectBuffer:NAME + ".tObjectInstanceObj = 0 ":U.
-    WHEN "Container":U THEN
-        ASSIGN cWhere = " WHERE ":U + ghObjectBuffer:NAME + '.tContainerRecordIdentifier = ':U + QUOTER(coContainer:SCREEN-VALUE)
-                      + " OR ":U + ghObjectBuffer:NAME + '.tRecordIdentifier = ':U + QUOTER(coContainer:SCREEN-VALUE).
-    OTHERWISE ASSIGN cWhere = "":U.
-END CASE.   /* filter value */
+IF raFilter:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "master":U THEN
+    ASSIGN cWhere = " WHERE " + ghObjectBuffer:NAME + ".tLogicalObjectName = " + ghObjectBuffer:NAME + ".tContainerObjectName ".
+ELSE
+    ASSIGN cWhere = " WHERE ":U + ghObjectBuffer:NAME + '.tContainerObjectName = "' + ENTRY(1,coContainer:SCREEN-VALUE IN FRAME {&FRAME-NAME}," ":U) + '" ':U.
 
 CREATE QUERY ghCacheObjectQuery.
 ghCacheObjectQuery:SET-BUFFERS(ghObjectBuffer).
-ghCacheObjectQuery:QUERY-PREPARE("FOR EACH ":U + ghObjectBuffer:NAME + cWhere
-                                 + " BY ":U + ghObjectBuffer:NAME + ".tContainerObjectName":U
-                                 + " BY ":U + ghObjectBuffer:NAME + ".tInstanceOrder":U
-                                 + " BY ":U + ghObjectBuffer:NAME + ".tLogicalObjectName":U   ).
+ghCacheObjectQuery:QUERY-PREPARE("FOR EACH ":U + ghObjectBuffer:NAME + cWhere + " BY ":U + ghObjectBuffer:NAME + ".tContainerObjectName" + " BY ":U + ghObjectBuffer:NAME + ".tLogicalObjectName").
 
 CREATE BROWSE ghCacheObjectBrowse
     ASSIGN FRAME        = FRAME {&FRAME-NAME}:HANDLE
@@ -749,12 +701,12 @@ CREATE BROWSE ghCacheObjectBrowse
            ROW          = IF raFilter:SCREEN-VALUE = "container":U THEN 3.1 ELSE 1.8
            WIDTH        = FRAME {&FRAME-NAME}:WIDTH - 1
            HEIGHT       = IF raFilter:SCREEN-VALUE = "container":U THEN 7.62 ELSE 8.92
-           TOOLTIP      = "Current objects cached"
+           TOOLTIP      = "Current Dynamics objects cached"
            MULTIPLE     = FALSE
            SEPARATORS   = TRUE
            QUERY        = ghCacheObjectQuery
            ROW-MARKERS  = FALSE
-           PRIVATE-DATA = ghCacheObjectQuery:PREPARE-STRING
+           PRIVATE-DATA = "FOR EACH ":U + ghObjectBuffer:NAME + cWhere + " BY ":U + ghObjectBuffer:NAME + ".tContainerObjectName" + " BY ":U + ghObjectBuffer:NAME + ".tLogicalObjectName"
     TRIGGERS:
         ON ANY-PRINTABLE PERSISTENT RUN anyPrintableInBrowse IN THIS-PROCEDURE (INPUT ghCacheObjectBrowse).
         ON START-SEARCH  PERSISTENT RUN startSearch          IN THIS-PROCEDURE (INPUT ghCacheObjectBrowse).
@@ -771,6 +723,7 @@ ghCacheObjectBrowse:ADD-LIKE-COLUMN(ghObjectBuffer:BUFFER-FIELD("tRunAttribute":
 ghCacheObjectBrowse:ADD-LIKE-COLUMN(ghObjectBuffer:BUFFER-FIELD("tUserObj":U)).
 ghCacheObjectBrowse:ADD-LIKE-COLUMN(ghObjectBuffer:BUFFER-FIELD("tLanguageObj":U)).
 ghCacheObjectBrowse:ADD-LIKE-COLUMN(ghObjectBuffer:BUFFER-FIELD("tObjectInstanceName":U)).
+ghCacheObjectBrowse:ADD-LIKE-COLUMN(ghObjectBuffer:BUFFER-FIELD("tRecordIdentifier":U)).
 
 ghCacheObjectQuery:QUERY-OPEN().
 
@@ -808,7 +761,6 @@ PROCEDURE initializeObject :
 
   {get ContainerSource ghContainer}.
   SUBSCRIBE TO "newCacheObject" IN ghContainer.
-  SUBSCRIBE TO "changeFolderPage":U IN ghContainer.
   
   APPLY "VALUE-CHANGED":U TO raFilter IN FRAME {&FRAME-NAME}.
 
@@ -849,16 +801,12 @@ DO WHILE VALID-HANDLE(hField):
     IF hField:TYPE = "FILL-IN":U 
     OR hField:TYPE = "TOGGLE-BOX":U
     OR hField:TYPE = "EDITOR":U
-    OR hField:TYPE = "SELECTION-LIST":U
     THEN DO:
         IF hField:NAME = "fiClassBuffer":U THEN
             ASSIGN hBufferField               = ghObjectBuffer:BUFFER-FIELD("tClassBufferHandle":U):BUFFER-VALUE
                    fiClassBuffer:SCREEN-VALUE = (IF VALID-HANDLE(hBufferField)
                                                  THEN hBufferField:NAME
                                                  ELSE "<Invalid Buffer Handle>") NO-ERROR.
-        ELSE
-        IF hField:TYPE EQ "SELECTION-LIST":U THEN
-            ASSIGN hField:LIST-ITEMS = STRING(ghObjectBuffer:BUFFER-FIELD("t":U + SUBSTRING(hField:NAME, 3)):BUFFER-VALUE) NO-ERROR.
         ELSE
             ASSIGN hField:SCREEN-VALUE = STRING(ghObjectBuffer:BUFFER-FIELD("t":U + SUBSTRING(hField:NAME, 3)):BUFFER-VALUE) NO-ERROR.
     END.

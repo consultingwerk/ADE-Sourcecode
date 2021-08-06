@@ -35,16 +35,7 @@ af/cod/aftemwizpw.w
 
   Update Notes: Created from Template rysttsimpv.w
 
-  (v:010001)    Task:          18   UserRef:    
-                Date:   02/15/2003  Author:     Thomas Hansen
-
-  Update Notes: Issue 8579:
-                Extended reference to RTB include files to be :
-                scm/rtb/inc/ryrtbproch.i
-                
-                Removed dependency on RTB variables.
-
---------------------------------------------------------------------------------*/
+---------------------------------------------------------------------------------*/
 /*                   This .W file was created with the Progress UIB.             */
 /*-------------------------------------------------------------------------------*/
 
@@ -76,7 +67,14 @@ DEFINE VARIABLE lv_this_object_name AS CHARACTER INITIAL "{&object-name}":U NO-U
 
 {src/adm2/globals.i}
 
+/* SCM (RTB) Variables */
+/* Define required RTB global shared variables - used for RTB integration hooks (if installed) */
+DEFINE NEW GLOBAL SHARED VARIABLE grtb-wsroot           AS CHARACTER    NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE grtb-task-num         AS INTEGER      NO-UNDO.
+DEFINE NEW GLOBAL SHARED VARIABLE grtb-wspace-id        AS CHARACTER    NO-UNDO.
+
 DEFINE VARIABLE ghContainerSource           AS HANDLE                   NO-UNDO.
+DEFINE VARIABLE ghScmTool                   AS HANDLE                   NO-UNDO.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -93,10 +91,10 @@ DEFINE VARIABLE ghContainerSource           AS HANDLE                   NO-UNDO.
 &Scoped-define FRAME-NAME frMain
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS fiWorkSpace fiTaskNumber fiWorkSpaceRoot ~
-fiLogicGroup fiLogicSubtype ToLogicOverwrite fiDLProcLabel RECT-8 
-&Scoped-Define DISPLAYED-OBJECTS fiWorkSpace fiTaskNumber fiWorkSpaceRoot ~
-fiLogicGroup fiLogicSubtype ToLogicOverwrite fiDLProcLabel 
+&Scoped-Define ENABLED-OBJECTS fiWorkSpace fiTaskNumber fiLogicGroup ~
+fiLogicSubtype ToLogicOverwrite fiDLProcLabel RECT-8 
+&Scoped-Define DISPLAYED-OBJECTS fiWorkSpace fiTaskNumber fiLogicGroup ~
+fiLogicSubtype ToLogicOverwrite fiDLProcLabel 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -110,41 +108,36 @@ fiLogicGroup fiLogicSubtype ToLogicOverwrite fiDLProcLabel
 
 
 /* Definitions of the field level widgets                               */
-DEFINE VARIABLE fiDLProcLabel AS CHARACTER FORMAT "X(100)":U INITIAL "DataLogic procedure" 
+DEFINE VARIABLE fiDLProcLabel AS CHARACTER FORMAT "X(100)":U INITIAL "DataLogic Procedure" 
       VIEW-AS TEXT 
      SIZE 34.4 BY .62 NO-UNDO.
 
 DEFINE VARIABLE fiLogicGroup AS CHARACTER FORMAT "X(256)":U 
      LABEL "Group" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1 TOOLTIP "Specify SDO Logic Procedure Group (usually same as subtype)" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO Logic Procedure Group (usually same as subtype)" NO-UNDO.
 
 DEFINE VARIABLE fiLogicSubtype AS CHARACTER FORMAT "X(256)":U 
      LABEL "Subtype" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1 TOOLTIP "Specify SDO Logic Procedure subtype, e.g. DLProc" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Specify SDO Logic Procedure subtype, e.g. DLProc" NO-UNDO.
 
 DEFINE VARIABLE fiTaskNumber AS INTEGER FORMAT ">>>>>>>>9":U INITIAL 0 
      LABEL "Task" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1 TOOLTIP "Current selected task number in SCM" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Current selected task number in SCM" NO-UNDO.
 
 DEFINE VARIABLE fiWorkSpace AS CHARACTER FORMAT "X(256)":U 
      LABEL "Workspace" 
      VIEW-AS FILL-IN 
-     SIZE 25 BY 1 TOOLTIP "Name of current SCM workspace selected" NO-UNDO.
-
-DEFINE VARIABLE fiWorkSpaceRoot AS CHARACTER FORMAT "X(256)":U 
-     LABEL "Workspace root" 
-     VIEW-AS FILL-IN 
-     SIZE 40 BY 1 TOOLTIP "Root directory for current SCM workspace selected" NO-UNDO.
+     SIZE 20.8 BY 1 TOOLTIP "Name of current SCM workspace selected" NO-UNDO.
 
 DEFINE RECTANGLE RECT-8
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
-     SIZE 58.8 BY 3.81.
+     SIZE 42 BY 3.81.
 
 DEFINE VARIABLE ToLogicOverwrite AS LOGICAL INITIAL no 
-     LABEL "Overwite logic in task" 
+     LABEL "Overwite Logic in task" 
      VIEW-AS TOGGLE-BOX
      SIZE 27.6 BY .81 TOOLTIP "If SDO Logic is found checked-out in the selected task, it will be overwritten" NO-UNDO.
 
@@ -152,14 +145,13 @@ DEFINE VARIABLE ToLogicOverwrite AS LOGICAL INITIAL no
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME frMain
-     fiWorkSpace AT ROW 1.05 COL 21.4 COLON-ALIGNED
-     fiTaskNumber AT ROW 2.14 COL 21.2 COLON-ALIGNED
-     fiWorkSpaceRoot AT ROW 3.24 COL 21 COLON-ALIGNED
-     fiLogicGroup AT ROW 5.29 COL 21 COLON-ALIGNED
-     fiLogicSubtype AT ROW 6.33 COL 21 COLON-ALIGNED
-     ToLogicOverwrite AT ROW 7.38 COL 23
-     fiDLProcLabel AT ROW 4.43 COL 5.4 COLON-ALIGNED NO-LABEL
-     RECT-8 AT ROW 4.62 COL 5
+     fiWorkSpace AT ROW 1.1 COL 21 COLON-ALIGNED
+     fiTaskNumber AT ROW 2.1 COL 21.2 COLON-ALIGNED
+     fiLogicGroup AT ROW 4.52 COL 21 COLON-ALIGNED
+     fiLogicSubtype AT ROW 5.57 COL 21 COLON-ALIGNED
+     ToLogicOverwrite AT ROW 6.62 COL 23
+     fiDLProcLabel AT ROW 3.67 COL 11 COLON-ALIGNED NO-LABEL
+     RECT-8 AT ROW 3.86 COL 11
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1 SCROLLABLE .
@@ -170,7 +162,6 @@ DEFINE FRAME frMain
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: SmartObject
-   Compile into: af/obj2
    Allow: Basic
    Frames: 1
    Add Fields to: Neither
@@ -192,8 +183,8 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW sObject ASSIGN
-         HEIGHT             = 10
-         WIDTH              = 84.
+         HEIGHT             = 6.67
+         WIDTH              = 52.
 /* END WINDOW DEFINITION */
                                                                         */
 &ANALYZE-RESUME
@@ -222,11 +213,11 @@ ASSIGN
 
 ASSIGN 
        fiLogicGroup:PRIVATE-DATA IN FRAME frMain     = 
-                "DLP-GROUP".
+                "GROUP".
 
 ASSIGN 
        fiLogicSubtype:PRIVATE-DATA IN FRAME frMain     = 
-                "DLP-SUBTYPE".
+                "SUBTYPE".
 
 ASSIGN 
        fiTaskNumber:READ-ONLY IN FRAME frMain        = TRUE
@@ -239,13 +230,8 @@ ASSIGN
                 "WORKSPACE".
 
 ASSIGN 
-       fiWorkSpaceRoot:READ-ONLY IN FRAME frMain        = TRUE
-       fiWorkSpaceRoot:PRIVATE-DATA IN FRAME frMain     = 
-                "WORKSPACEROOT".
-
-ASSIGN 
        ToLogicOverwrite:PRIVATE-DATA IN FRAME frMain     = 
-                "DLP-OVERWRITE-IN-TASK".
+                "OVERWRITE-IN-TASK".
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -304,14 +290,11 @@ PROCEDURE getSCMFrame :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+    DEFINE OUTPUT PARAMETER phFrame             AS HANDLE               NO-UNDO.
 
-  DEFINE OUTPUT PARAMETER phFrame             AS HANDLE               NO-UNDO.
+    ASSIGN phFrame = FRAME {&FRAME-NAME}:HANDLE.
 
-  ASSIGN
-    phFrame = FRAME {&FRAME-NAME}:HANDLE.
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -324,26 +307,21 @@ PROCEDURE initializeObject :
   Parameters:  
   Notes:       
 ------------------------------------------------------------------------------*/
+    RUN SUPER.
 
-  RUN SUPER.
+    DO WITH FRAME {&FRAME-NAME}:
+        ASSIGN fiDlProcLabel:SCREEN-VALUE  = " DataLogic Procedure "
+               fiDlProcLabel:WIDTH-CHARS   = FONT-TABLE:GET-TEXT-WIDTH-CHARS(fiDlProcLabel:SCREEN-VALUE, fiDlProcLabel:FONT) + 0.5
+               fiWorkspace:SCREEN-VALUE    = grtb-wsroot
+               fiTaskNumber:SCREEN-VALUE   = STRING(grtb-task-num)
+               fiLogicGroup:SCREEN-VALUE   = "DLProc":U
+               fiLogicSubtype:SCREEN-VALUE = "DLProc":U
+               .        
+    END.    /* with frame ... */
 
-  DO WITH FRAME {&FRAME-NAME}:
-  
-    ASSIGN
-      fiDlProcLabel:SCREEN-VALUE    = " DataLogic Procedure "
-      fiDlProcLabel:WIDTH-CHARS     = FONT-TABLE:GET-TEXT-WIDTH-CHARS(fiDlProcLabel:SCREEN-VALUE, fiDlProcLabel:FONT) + 0.5
-      fiWorkspace:SCREEN-VALUE      = DYNAMIC-FUNCTION('getSessionParam' IN THIS-PROCEDURE, "_scm_current_workspace":U)
-      fiTaskNumber:SCREEN-VALUE     = DYNAMIC-FUNCTION('getSessionParam' IN THIS-PROCEDURE, "_scm_current_task_number":U)
-      fiWorkspaceRoot:SCREEN-VALUE  = DYNAMIC-FUNCTION('getComponentRootDirectory' IN THIS-PROCEDURE, "SCM":U) 
-      fiLogicGroup:SCREEN-VALUE     = "DLProc":U
-      fiLogicSubtype:SCREEN-VALUE   = "DLProc":U
-      .
-  END.    /* with frame ... */
+    SUBSCRIBE TO "getSCMFrame":U IN ghContainerSource.
 
-  SUBSCRIBE TO "getSCMFrame":U IN ghContainerSource.
-
-  RETURN.
-
+    RETURN.
 END PROCEDURE.  /* initializeObject */
 
 /* _UIB-CODE-BLOCK-END */

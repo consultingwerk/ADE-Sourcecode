@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006 by Progress Software Corporation. All rights    *
+* Copyright (C) 2005,2007 by Progress Software Corporation. All rights    *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -16,7 +16,7 @@ History
                           to FIND _File.
     D. McMann 08/24/98    Added check for user_env = "ALL". 98-08-21-014
     D. McMann 06/10/02    Added check for new SESSION attribute schema change.
-    fernando  03/13/06    Storing table names in temp-table - bug 20050930-006.
+    fernando  02/02/06    Storing table names in temp-table - bug 20050930-006.   
 **************************************************************/
 
 { prodict/dictvar.i }
@@ -67,9 +67,9 @@ IF user_env[9] = "pre" THEN _pre: DO:
   ASSIGN
     cache_dirty   = FALSE
     cache_file#   = 1
-    l_cache_tt    = FALSE /* 20050930-006 */
     cache_file    = ""
-    cache_file[1] = "ALL".
+    cache_file[1] = "ALL"
+    l_cache_tt    = FALSE. /* 20050930-006 */
 
   /* 20050930-006 - get rid of the caching information */
   EMPTY TEMP-TABLE tt_cache_file NO-ERROR.
@@ -91,8 +91,8 @@ IF user_env[9] = "pre" THEN _pre: DO:
       skipped = TRUE.
       NEXT.
     END.
-
-    ASSIGN cache_file# = cache_file# + 1.
+    ASSIGN
+      cache_file# = cache_file# + 1.
 
     /* 20050930-006 */
     IF NOT l_cache_tt THEN DO:
@@ -128,7 +128,6 @@ IF user_env[9] = "pre" THEN _pre: DO:
         ASSIGN tt_cache_file.nPos = cache_file#
                tt_cache_file.cName = _File._File-name.
     END.
-
   END.
   IF cache_file# = 1 THEN cache_file# = 0.
   IF skipped THEN DO:

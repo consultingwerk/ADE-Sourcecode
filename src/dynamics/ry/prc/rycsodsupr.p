@@ -180,7 +180,7 @@ ASSIGN ghBrowseHandle:MULTIPLE = YES.
 RUN SUPER.
 
 {get containerSource hToolbar}.
-{get containertoolbarSource hToolbar hToolbar}.
+{get toolbarSource hToolbar hToolbar}.
 SUBSCRIBE TO "fetchFirst" IN hToolbar.
 SUBSCRIBE TO "fetchLast" IN hToolbar.
 

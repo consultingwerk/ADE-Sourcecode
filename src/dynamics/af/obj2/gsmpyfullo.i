@@ -5,5 +5,5 @@
   FIELD service_type_code LIKE gsc_service_type.service_type_code VALIDATE ~
   FIELD connection_parameters LIKE gsm_physical_service.connection_parameters VALIDATE ~
   FIELD maintenance_object_obj LIKE gsc_service_type.maintenance_object_obj VALIDATE ~
-  FIELD object_path LIKE ryc_smartobject.object_path VALIDATE ~
-  FIELD object_filename LIKE ryc_smartobject.object_filename VALIDATE 
+  FIELD object_path LIKE gsc_object.object_path VALIDATE ~
+  FIELD object_filename LIKE gsc_object.object_filename VALIDATE 

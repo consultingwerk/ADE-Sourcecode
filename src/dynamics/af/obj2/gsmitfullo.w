@@ -63,7 +63,6 @@ DEFINE VARIABLE miLastUpper   AS INTEGER    NO-UNDO.
 &GLOBAL-DEFINE DB-REQUIRED-START   &IF {&DB-REQUIRED} &THEN
 &GLOBAL-DEFINE DB-REQUIRED-END     &ENDIF
 
-
 &Scoped-define QUERY-NAME Query-Main
 
 /* Internal Tables (found by Frame, Query & Browse Queries)             */
@@ -77,22 +76,16 @@ child_menu_structure_obj menu_item_obj menu_item_sequence ~
 menu_structure_obj 
 &Scoped-Define DATA-FIELDS  child_menu_structure_obj menu_item_obj menu_item_sequence~
  menu_structure_item_obj menu_structure_obj item_control_type~
- item_toolbar_label menu_item_label menu_item_description~
- menu_item_reference
+ item_toolbar_label menu_item_label
 &Scoped-define DATA-FIELDS-IN-gsm_menu_structure_item ~
 child_menu_structure_obj menu_item_obj menu_item_sequence ~
 menu_structure_item_obj menu_structure_obj 
 &Scoped-define DATA-FIELDS-IN-gsm_menu_item item_control_type ~
-item_toolbar_label menu_item_label menu_item_description ~
-menu_item_reference 
+item_toolbar_label menu_item_label 
 &Scoped-Define MANDATORY-FIELDS  menu_item_obj menu_item_sequence menu_structure_obj
 &Scoped-Define APPLICATION-SERVICE 
 &Scoped-Define ASSIGN-LIST 
 &Scoped-Define DATA-FIELD-DEFS "af/obj2/gsmitfullo.i"
-&Scoped-define QUERY-STRING-Query-Main FOR EACH gsm_menu_structure_item NO-LOCK, ~
-      FIRST gsm_menu_item WHERE gsm_menu_item.menu_item_obj = gsm_menu_structure_item.menu_item_obj NO-LOCK ~
-    BY gsm_menu_structure_item.menu_structure_obj ~
-       BY gsm_menu_structure_item.menu_item_sequence INDEXED-REPOSITION
 {&DB-REQUIRED-START}
 &Scoped-define OPEN-QUERY-Query-Main OPEN QUERY Query-Main FOR EACH gsm_menu_structure_item NO-LOCK, ~
       FIRST gsm_menu_item WHERE gsm_menu_item.menu_item_obj = gsm_menu_structure_item.menu_item_obj NO-LOCK ~
@@ -155,7 +148,7 @@ END.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW dTables ASSIGN
-         HEIGHT             = 1.48
+         HEIGHT             = 1.62
          WIDTH              = 64.4.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -191,25 +184,21 @@ END.
      _OrdList          = "icfdb.gsm_menu_structure_item.menu_structure_obj|yes,icfdb.gsm_menu_structure_item.menu_item_sequence|yes"
      _JoinCode[2]      = "icfdb.gsm_menu_item.menu_item_obj = icfdb.gsm_menu_structure_item.menu_item_obj"
      _FldNameList[1]   > icfdb.gsm_menu_structure_item.child_menu_structure_obj
-"child_menu_structure_obj" "child_menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 33.6 yes
+"child_menu_structure_obj" "child_menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? no 29.4 yes
      _FldNameList[2]   > icfdb.gsm_menu_structure_item.menu_item_obj
-"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"menu_item_obj" "menu_item_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 29.4 yes
      _FldNameList[3]   > icfdb.gsm_menu_structure_item.menu_item_sequence
 "menu_item_sequence" "menu_item_sequence" ? ? "integer" ? ? ? ? ? ? yes ? yes 14 yes
      _FldNameList[4]   > icfdb.gsm_menu_structure_item.menu_structure_item_obj
-"menu_structure_item_obj" "menu_structure_item_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 33.6 yes
+"menu_structure_item_obj" "menu_structure_item_obj" ? ? "decimal" ? ? ? ? ? ? no ? no 29.4 yes
      _FldNameList[5]   > icfdb.gsm_menu_structure_item.menu_structure_obj
-"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 33.6 yes
+"menu_structure_obj" "menu_structure_obj" ? ? "decimal" ? ? ? ? ? ? yes ? yes 29.4 yes
      _FldNameList[6]   > icfdb.gsm_menu_item.item_control_type
 "item_control_type" "item_control_type" ? ? "character" ? ? ? ? ? ? no ? no 11.2 yes
      _FldNameList[7]   > icfdb.gsm_menu_item.item_toolbar_label
 "item_toolbar_label" "item_toolbar_label" ? ? "character" ? ? ? ? ? ? no ? no 28 yes
      _FldNameList[8]   > icfdb.gsm_menu_item.menu_item_label
 "menu_item_label" "menu_item_label" ? ? "character" ? ? ? ? ? ? no ? no 28 yes
-     _FldNameList[9]   > icfdb.gsm_menu_item.menu_item_description
-"menu_item_description" "menu_item_description" ? ? "character" ? ? ? ? ? ? no ? no 35 yes
-     _FldNameList[10]   > icfdb.gsm_menu_item.menu_item_reference
-"menu_item_reference" "menu_item_reference" ? ? "character" ? ? ? ? ? ? no ? no 20.6 yes
      _Design-Parent    is WINDOW dTables @ ( 1.14 , 2.6 )
 */  /* QUERY Query-Main */
 &ANALYZE-RESUME
@@ -249,8 +238,7 @@ DEFINE VARIABLE iIncrement   AS INTEGER    NO-UNDO.
 DEFINE VARIABLE lInsertAfter AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE lFound       AS LOGICAL    NO-UNDO.
 
-ASSIGN iIncrement = {&UPPER_LIMIT}
-       miInsertAfter = 0.
+ASSIGN iIncrement = {&UPPER_LIMIT}.
 
 FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
   /* If the sequence or the band has not been changed (i.e.only the item or subband changed, 
@@ -278,7 +266,6 @@ FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
           AND  ROWID(BUFgsm_menu_structure_item) <> TO-ROWID(ENTRY(1,RowObjUpd.RowIDent)) EXCLUSIVE-LOCK
            BY BUFgsm_menu_structure_item.menu_item_sequence :
     
-
     IF NOT lFound THEN DO:
       IF lInsertAfter AND BUFgsm_menu_structure_item.menu_item_sequence > RowObjUpd.menu_item_sequence THEN 
         ASSIGN lFound          = TRUE
@@ -291,12 +278,11 @@ FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
     ASSIGN iIncrement                                    = iIncrement + 1
            BUFgsm_menu_structure_item.menu_item_sequence = iIncrement
            miLastUpper                                   = iIncrement.
-    
   END. /* End for each Buffer */
+
     
 
 END.
-RETURN "".
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -433,13 +419,6 @@ FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
       WHERE BUFgsm_menu_structure_item.menu_structure_obj = RowObjUpd.menu_structure_obj
         AND  BUFgsm_menu_structure_item.menu_item_sequence > {&UPPER_LIMIT} EXCLUSIVE-LOCK
          BY BUFgsm_menu_structure_item.menu_item_sequence :
-
-    /* Remove any fields that have the menu_item ObjectID set to null */
-    IF BUFgsm_menu_structure_item.menu_item_obj = 0 THEN
-    DO:
-      DELETE  BUFgsm_menu_structure_item.
-      NEXT.
-    END.
     
     ASSIGN iIncrement = iIncrement + 1 .
 
@@ -449,35 +428,17 @@ FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
              iIncrement   = iIncrement + 1 .
              
 
-
     IF BUFgsm_menu_structure_item.menu_item_sequence = miLastUpper + 1 THEN
-       ASSIGN 
-         BUFgsm_menu_structure_item.menu_item_sequence = (IF iNewSequence = 0
-                                                         THEN iIncrement
-                                                         ELSE iNewSequence)
-         rowObjUpd.menu_item_sequence                  =  BUFgsm_menu_structure_item.menu_item_sequence.
+       BUFgsm_menu_structure_item.menu_item_sequence = IF iNewSequence = 0
+                                                       THEN iIncrement
+                                                       ELSE iNewSequence.
     ELSE
       BUFgsm_menu_structure_item.menu_item_sequence = iIncrement.
- 
+
   END.
-
-END. /* END FOR EACVH RowObjUpd */
-
-/* Resequence items */
-FOR EACH rowObjUpd WHERE rowObjUpd.RowMod = "D":
-  FOR EACH BUFgsm_menu_structure_item 
-      WHERE BUFgsm_menu_structure_item.menu_structure_obj = RowObjUpd.menu_structure_obj
-        AND  BUFgsm_menu_structure_item.menu_item_sequence > RowObjUpd.menu_item_sequence EXCLUSIVE-LOCK
-         BY BUFgsm_menu_structure_item.menu_item_sequence :
   
-    ASSIGN BUFgsm_menu_structure_item.menu_item_sequence = BUFgsm_menu_structure_item.menu_item_sequence - 1.
 
-  END.
 END.
-
-ERROR-STATUS:ERROR = NO.
-RETURN "".
-
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -558,23 +519,7 @@ FOR EACH rowObjUpd WHERE CAN-DO("A,C,U":U, rowObjUpd.RowMod):
     END.
   END.
 
-  /* Ensure that menuBars cannot have separators */
- IF RowObjUpd.Menu_item_obj > 0   THEN
-  DO:
-    FIND FIRST gsm_menu_item 
-         WHERE gsm_menu_item.menu_item_obj =  RowObjUpd.Menu_item_obj NO-LOCK NO-ERROR.
-    IF AVAILABLE gsm_menu_item AND gsm_menu_item.ITEM_control_type = "Separator":U  THEN
-    DO:
-      FIND FIRST gsm_menu_structure
-           WHERE gsm_menu_structure.MENU_structure_obj = RowObjUpd.MENU_structure_obj NO-LOCK NO-ERROR.
-      IF AVAILABLE gsm_menu_structure AND gsm_menu_structure.menu_structure_type = "MenuBar":U THEN
-      DO:
-        cMessageList = "You can not add a separator to a band of type 'MenuBar' ".
-        ERROR-STATUS:ERROR = NO.
-        RETURN cMessageList.
-      END.
-    END.
-  END.
+
 
   IF rowObjUpd.child_menu_structure_obj > 0 THEN
   DO:

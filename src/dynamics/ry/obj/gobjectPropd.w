@@ -116,7 +116,7 @@ DEFINE VARIABLE h_gscobvietv AS HANDLE NO-UNDO.
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME diDialog
-     SPACE(102.64) SKIP(20.18)
+     SPACE(102.62) SKIP(20.16)
     WITH VIEW-AS DIALOG-BOX KEEP-TAB-ORDER 
          SIDE-LABELS NO-UNDERLINE THREE-D  SCROLLABLE 
          TITLE "Object Properties".
@@ -129,7 +129,7 @@ DEFINE FRAME diDialog
    Type: SmartDialog
    Allow: Basic,Browse,DB-Fields,Query,Smart
    Container Links: Data-Target,Data-Source,Page-Target,Update-Source,Update-Target
-   Design Page: 1
+   Design Page: 2
    Other Settings: COMPILE
  */
 &ANALYZE-RESUME _END-PROCEDURE-SETTINGS
@@ -217,7 +217,7 @@ PROCEDURE adm-create-objects :
        RUN constructObject (
              INPUT  'adm2/dyntoolbar.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'FlatButtonsyesMenunoShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksNavigation-source,Tableio-sourceToolbarBandsToolbarParentMenuToolbarAutoSizenoToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameDynToolbarAutoResizeDisabledActionsHiddenActionsUpdate,Txtok,Txtcancel,Txthelp,FilterHiddenToolbarBandsTransaction,Tableio,FolderfunctionHiddenMenuBandsMenuMergeOrder0EdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoDisabledActionsNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'FlatButtonsyesMenunoShowBorderyesToolbaryesActionGroupsTableio,NavigationSubModulesTableIOTypeSaveSupportedLinksNavigation-source,Tableio-sourceToolbarBandsToolbarParentMenuToolbarAutoSizenoToolbarDrawDirectionHorizontalToolbarInitialStateLogicalObjectNameDynToolbarAutoResizeDisabledActionsHiddenActionsUpdateHiddenToolbarBandsTransaction,TableioHiddenMenuBandsMenuMergeOrder0EdgePixels2PanelTypeToolbarDeactivateTargetOnHidenoDisabledActionsNavigationTargetNameHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_dyntoolbar ).
        RUN repositionObject IN h_dyntoolbar ( 1.00 , 1.00 ) NO-ERROR.
        RUN resizeObject IN h_dyntoolbar ( 1.24 , 102.00 ) NO-ERROR.
@@ -233,39 +233,29 @@ PROCEDURE adm-create-objects :
        /* Links to SmartFolder h_folder. */
        RUN addLink ( h_folder , 'Page':U , THIS-PROCEDURE ).
 
-       /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             h_dyntoolbar , 'AFTER':U ).
     END. /* Page 0 */
+
     WHEN 1 THEN DO:
        RUN constructObject (
              INPUT  'af/obj2/gscobvietv.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'EnabledObjFldsToDisable(All)DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNamegscobvietv.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNamegscobvietv.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gscobvietv ).
        RUN repositionObject IN h_gscobvietv ( 4.81 , 3.80 ) NO-ERROR.
-       /* Size in AB:  ( 15.05 , 97.40 ) */
+       /* Size in AB:  ( 15.10 , 97.40 ) */
 
-       /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             h_dyntoolbar , 'AFTER':U ).
-       RUN adjustTabOrder ( h_gscobvietv ,
-             h_folder , 'AFTER':U ).
     END. /* Page 1 */
+
     WHEN 2 THEN DO:
        RUN constructObject (
              INPUT  'af/obj2/gscobvi2tv.w':U ,
              INPUT  FRAME diDialog:HANDLE ,
-             INPUT  'EnabledObjFldsToDisable(None)DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNamegscobvi2tv.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
+             INPUT  'DataSourceNamesUpdateTargetNamesLogicalObjectNameLogicalObjectNamePhysicalObjectNamegscobvi2tv.wDynamicObjectnoRunAttributeHideOnInitnoDisableOnInitnoObjectLayout':U ,
              OUTPUT h_gscobvi2tv ).
        RUN repositionObject IN h_gscobvi2tv ( 4.81 , 6.00 ) NO-ERROR.
-       /* Size in AB:  ( 14.57 , 77.00 ) */
+       /* Size in AB:  ( 15.62 , 77.20 ) */
 
        /* Adjust the tab order of the smart objects. */
-       RUN adjustTabOrder ( h_folder ,
-             h_dyntoolbar , 'AFTER':U ).
-       RUN adjustTabOrder ( h_gscobvi2tv ,
-             h_folder , 'AFTER':U ).
     END. /* Page 2 */
 
   END CASE.
@@ -400,7 +390,6 @@ DEFINE VARIABLE hWidget         AS HANDLE     NO-UNDO.
  ASSIGN FRAME {&FRAME-NAME}:TITLE =  FRAME {&FRAME-NAME}:TITLE + " (" + pcObject + ")".
  
  SUBSCRIBE TO 'dataAvailable':U IN phSDO.
- 
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */

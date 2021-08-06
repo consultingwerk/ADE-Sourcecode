@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2006-2007,2011 by Progress Software Corporation.     *
+* Copyright (C) 2020 by Progress Software Corporation.     *
 * All rights reserved.  Prior versions of this work may contain      *
 * portions contributed by participants of Possenet.                  *
 *                                                                    *
@@ -27,6 +27,7 @@
              06/11/07 fernando   Unicode support
              02/12/09 fernando   Fix output for batch log file
              06/21/11 kmayur  user env set for constraint migration
+             11/20/20 vmaganti  Extending Oracle Object length to 32 OCTA-29898
 */    
 
 &SCOPED-DEFINE UNICODE-MSG-1 "You have chosen to use Unicode data types but the DataServer schema codepage is not 'utf-8'"
@@ -206,8 +207,8 @@ ASSIGN user_env[1]  = "ALL"
        user_env[24] = "15"
        user_env[25] = "y"
        user_env[26] = ora_username
-       user_env[28] = "30"
-       user_env[29] = "26"
+       user_env[28] = "36"
+       user_env[29] = "36"
        user_env[31] = "-- ** "
        user_env[34] = ora_tspace
        user_env[35] = ora_ispace.

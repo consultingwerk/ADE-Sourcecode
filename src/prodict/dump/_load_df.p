@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2007-2010 by Progress Software Corporation. All rights *
+* Copyright (C) 2007-2010,2021 by Progress Software Corporation. All rights *
 * reserved.  Prior versions of this work may contain portions        *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -49,6 +49,7 @@ History (from when this was in prodict/load_df):
     fernando    04/13/09    Changes for alternate buffer pool
     fernando    03/05/10    Fix code that checks rollback error
     hdaniels    03/26/10    Added CATCH in transaction and showLoadError
+    tmasood     01/15/21    Changes to load delta df by sections
 ----------------------------------------------------------------------------*/
 /*h-*/
 
@@ -119,6 +120,10 @@ end.
 ASSIGN
   user_env[2]  = dictLoadOptions:FileName
   user_env[15] = if dictLoadOptions:ForceCommit THEN "yes" else ""
+  user_env[39] = IF dictLoadOptions:PreDeployLoad = "yes" THEN "yes" ELSE "no"
+  user_env[40] = IF dictLoadOptions:TriggerLoad = "yes" THEN "yes" ELSE "no"
+  user_env[41] = IF dictLoadOptions:PostDeployLoad = "yes" THEN "yes" ELSE "no"
+  user_env[42] = IF dictLoadOptions:OfflineLoad = "yes" THEN "yes" ELSE "no"
   user_dbname = LDBNAME("DICTDB")
   user_dbtype = DBTYPE("DICTDB")
   drec_db     = RECID(_Db)  

@@ -6,6 +6,7 @@
   FIELD object_filename LIKE ryc_smartobject.object_filename VALIDATE ~
   FIELD object_instance_obj LIKE ryc_ui_event.object_instance_obj VALIDATE ~
   FIELD event_name LIKE ryc_ui_event.event_name VALIDATE ~
+  FIELD inheritted_value LIKE ryc_ui_event.inheritted_value VALIDATE ~
   FIELD constant_value LIKE ryc_ui_event.constant_value VALIDATE ~
   FIELD action_type LIKE ryc_ui_event.action_type VALIDATE ~
   FIELD action_target LIKE ryc_ui_event.action_target VALIDATE ~

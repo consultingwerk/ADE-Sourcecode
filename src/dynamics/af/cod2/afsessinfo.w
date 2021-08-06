@@ -123,7 +123,7 @@ DEFINE BROWSE brTT
   
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
-    WITH NO-ROW-MARKERS SEPARATORS SIZE 95 BY 15 FIT-LAST-COLUMN.
+    WITH NO-ROW-MARKERS SEPARATORS SIZE 95 BY 15 EXPANDABLE.
 
 
 /* ************************  Frame Definitions  *********************** */
@@ -411,11 +411,13 @@ PROCEDURE fillBrowse :
     END.
 
     hBrowse:SENSITIVE   = YES.
-/*    hBrowse:RESIZABLE   = YES. */
+    hBrowse:SELECTABLE  = YES.
+    hBrowse:RESIZABLE   = YES.
     hBrowse:COLUMN-RESIZABLE = YES.
 
     brTT:SENSITIVE  = YES.
-/*    brTT:RESIZABLE  = YES. */
+    brTT:SELECTABLE = YES.
+    brTT:RESIZABLE  = YES.
     brTT:COLUMN-RESIZABLE = YES.
 
   END.
@@ -453,7 +455,7 @@ PROCEDURE getHandles :
     RUN obtainConnectionTables IN THIS-PROCEDURE (OUTPUT hHandle3, OUTPUT hHandle4).
   END.
 
-  addHandle(hHandle1, "!cValue,*").
+  addHandle(hHandle1, "*").
   addHandle(hHandle2, "cManagerName,cFileName,cSuperOf,cHandleName").
   addHandle(hHandle3, "cServiceType,cSTProcName").
   addHandle(hHandle4, "*").

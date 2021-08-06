@@ -15,10 +15,4 @@
   FIELD foreign_fields LIKE gsm_node.foreign_fields VALIDATE ~
   FIELD image_file_name LIKE gsm_node.image_file_name VALIDATE ~
   FIELD selected_image_file_name LIKE gsm_node.selected_image_file_name VALIDATE ~
-  FIELD cMenuStructureCode AS CHARACTER FORMAT "x(35)" LABEL "Menu Structure"~
-  FIELD child_field LIKE gsm_node.child_field~
-  FIELD cSDODataSource AS CHARACTER FORMAT "x(35)" LABEL "Data Source"~
-  FIELD data_type LIKE gsm_node.data_type~
-  FIELD parent_field LIKE gsm_node.parent_field~
-  FIELD parent_node_filter LIKE gsm_node.parent_node_filter~
-  FIELD structured_node LIKE gsm_node.structured_node
+  FIELD parent_node_code AS CHARACTER FORMAT "x(10)" LABEL "Parent Node"

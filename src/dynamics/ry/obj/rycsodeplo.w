@@ -14,6 +14,15 @@ DEFINE VARIABLE h_Astra                    AS HANDLE          NO-UNDO.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Logic Procedure Wizard" dTables _INLINE
+/* Actions: ? af/cod/aftemwizcw.w ? ? af/cod/aftemwizls.p */
+/* Program Definition Comment Block Wizard
+Welcome to the Logic Procedure Block Wizard. Press Next to proceed.
+adm2/support/_wizlog.w
+*/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" dTables _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -368,7 +377,11 @@ PROCEDURE initializeObject :
   ASSIGN cDataFieldChildren = DYNAMIC-FUNCTION("getClassChildrenFromDB":U IN gshRepositoryManager, INPUT "dataField":U)
          cWhere             = "LOOKUP(gsc_object_type.object_type_code,'" + cDataFieldChildren + "') = 0".
 
-  RUN updateAddQueryWhere IN TARGET-PROCEDURE (INPUT cWhere, INPUT "object_type_code":U). 
+  DYNAMIC-FUNCTION("addQueryWhere":U IN TARGET-PROCEDURE,
+                   cWhere,
+                   "gsc_object_type",
+                   "AND").
+  {set manualAddQueryWhere cWhere}.
   DYNAMIC-FUNCTION("openQuery":U IN TARGET-PROCEDURE).
 
 END PROCEDURE.

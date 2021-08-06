@@ -17,6 +17,13 @@ af/cod/aftemwizpw.w
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "CreateWizard" Procedure _INLINE
+/* Actions: af/cod/aftemwizcw.w ? ? ? af/sup/afwizdeltp.p */
+/* New Program Wizard
+Destroy on next read */
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _XFTR "Definition Comments Wizard" Procedure _INLINE
 /* Actions: ? af/cod/aftemwizcw.w ? ? ? */
 /* Program Definition Comment Block Wizard
@@ -125,10 +132,9 @@ DEFINE BUFFER ryc_smartobject FOR ryc_smartobject.
 
 FOR EACH ttFileListing:
   
-  IF (CAN-FIND(FIRST ryc_smartobject     WHERE ryc_smartobject.object_filename     = ttFileListing.cSmartObject)          OR
-      CAN-FIND(FIRST ryc_smartobject     WHERE ryc_smartobject.object_filename     = ttFileListing.cSmartObject + ".p":U) OR
-      CAN-FIND(FIRST ryc_smartobject     WHERE ryc_smartobject.object_filename     = ttFileListing.cSmartObject + ".w":U) OR
-      CAN-FIND(FIRST gsc_entity_mnemonic WHERE gsc_entity_mnemonic.entity_mnemonic = ttFileListing.cSmartObject)) THEN
+  IF (CAN-FIND(FIRST ryc_smartobject NO-LOCK WHERE ryc_smartobject.object_filename = ttFileListing.cSmartObject)           OR
+      CAN-FIND(FIRST ryc_smartobject NO-LOCK WHERE ryc_smartobject.object_filename = ttFileListing.cSmartObject + ".p":U)  OR
+      CAN-FIND(FIRST ryc_smartobject NO-LOCK WHERE ryc_smartobject.object_filename = ttFileListing.cSmartObject + ".w":U)) THEN
     DELETE ttFileListing.
 END.
 

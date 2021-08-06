@@ -1,5 +1,5 @@
 /*********************************************************************
-* Copyright (C) 2000,2011 by Progress Software Corporation. All      *
+* Copyright (C) 2000,2011,2020 by Progress Software Corporation. All *
 * rights reserved. Prior versions of this work may contain portions  *
 * contributed by participants of Possenet.                           *
 *                                                                    *
@@ -23,9 +23,10 @@ Usage:
        DUMP_INC_DFFILE=/tmp/delta.df
        DUMP_INC_CODEPAGE=iso8859-2
        DUMP_INC_INDEXMODE=active
+       DUMP_INC_DUMPSECTION=No
        DUMP_INC_RENAMEFILE=/tmp/master.rf
        DUMP_INC_DEBUG=2
-       export DUMP_INC_DFFILE DUMP_INC_CODEPAGE DUMP_INC_INDEXMODE \
+       export DUMP_INC_DFFILE DUMP_INC_CODEPAGE DUMP_INC_INDEXMODE DUMP_INC_DUMPSECTION \
               DUMP_INC_RENAMEFILE DUMP_INC_DEBUG
 
        $DLC/bin/_progres -b -db master \
@@ -53,6 +54,8 @@ Environment Variables:
     DUMP_INC_CODEPAGE        : output codepage
     DUMP_INC_INDEXMODE       : index-mode for newly created indexes
                                allowed values are: "active", "inactive"
+    DUMP_INC_DUMPSECTION     : whether dump the sections which 
+                               support online schema change feature
     DUMP_INC_RENAMEFILE      : name of the file with rename definitions
     DUMP_INC_DEBUG           : debug-level: 0 = debug off (only errors
                                                 and important warnings)
@@ -63,6 +66,7 @@ History
     Gary C    01/06/21  This FILE created, author of the original idea
     vap       02/01/29  patched accordingly to changed specs
     moloney   13/06/12  Extended to schema holder comparisons
+    tmasood   11/11/20  Include four new sections to support online schema change feature.
 
 Code-page - support:
     code-page = ?,""          : default conversion (SESSION:STREAM)
@@ -124,6 +128,7 @@ DEFINE VARIABLE df-file-name AS CHARACTER NO-UNDO.
 DEFINE VARIABLE code-page    AS CHARACTER NO-UNDO.
 DEFINE VARIABLE index-mode   AS CHARACTER NO-UNDO.
 DEFINE VARIABLE debug-mode   AS INTEGER   INITIAL 0 NO-UNDO.
+DEFINE VARIABLE dump-section AS CHARACTER NO-UNDO.
 
 DEFINE VARIABLE foo          AS CHARACTER NO-UNDO.
 DEFINE VARIABLE setincrdmpSilent        AS LOGICAL   NO-UNDO INIT NO.
@@ -321,6 +326,12 @@ ELSE DO:
     PUT STREAM err-log UNFORMATTED SUBSTITUTE(new_lang[04], index-mode, "index mode":U) SKIP.
 END.  /* index-mode EQ "":U */
 
+/* dump-section checking */
+IF dump-section NE "":U THEN
+  ASSIGN user_env[43] = dump-section.  
+ELSE
+  ASSIGN user_env[43] = "No".
+
 /* user_env[19] will be changed BY _dmpincr.p */
 ASSIGN user_env[19] = rename-file + ",":U + index-mode + ",":U + 
                       STRING(debug-mode) + ",":U + STRING(setincrdmpSilent)
@@ -331,6 +342,7 @@ IF debug-mode GT 1 THEN DO:
   PUT STREAM err-log UNFORMATTED "DUMP_INC_DFFILE     = ":U df-file-name SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_CODEPAGE   = ":U code-page SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_INDEXMODE  = ":U index-mode SKIP.
+  PUT STREAM err-log UNFORMATTED "DUMP_INC_DUMPSECTION =":U dump-section SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_RENAMEFILE = ":U rename-file SKIP.
   PUT STREAM err-log UNFORMATTED "DUMP_INC_DEBUG      = ":U debug-mode SKIP.
   IF user-dbtype1 <> "PROGRESS" THEN DO: 
@@ -417,6 +429,7 @@ ELSE DO:
          df-file-name = getEnvironment("{&VAR_PREFIX}_DFFILE":U)
          code-page    = getEnvironment("{&VAR_PREFIX}_CODEPAGE":U)
          index-mode   = getEnvironment("{&VAR_PREFIX}_INDEXMODE":U)
+         dump-section = getEnvironment("{&VAR_PREFIX}_DUMPSECTION":U)
          ds_shname1   = getEnvironment("SHDBNAME1":U)
          ds_shname2   = getEnvironment("SHDBNAME2":U)
          ds_mssname1  = getEnvironment("MSSDBNAME1":U)

@@ -1,5 +1,5 @@
 /*************************************************************/
-/* Copyright (c) 2010 by progress Software Corporation       */
+/* Copyright (c) 2010,2021 by progress Software Corporation  */
 /*                                                           */
 /* all rights reserved.  no part of this program or document */
 /* may be  reproduced in  any form  or by  any means without */
@@ -58,7 +58,13 @@ interface OpenEdge.DataAdmin.Binding.IDataDefinitionOptions:
     define public property ForceSharedSchema as logical no-undo get. set.   
 
     /** force commit even if error encountered  */
-    define public property ForceCommit        as logical no-undo get. set.      
+    define public property ForceCommit        as logical no-undo get. set.
+
+    /** online schema change sections  */
+    define public property PreDeployLoad        as char no-undo get. set.
+    define public property TriggerLoad          as char no-undo get. set.
+    define public property PostDeployLoad       as char no-undo get. set.
+    define public property OfflineLoad          as char no-undo get. set.      
     
     /** contains load errors if any  */
     define public property ErrorLog as character no-undo 

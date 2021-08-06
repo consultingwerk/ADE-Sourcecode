@@ -191,6 +191,7 @@ PROCEDURE assignFieldHandles :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
   ASSIGN
     hlkObjectSource            = getFieldHandle("fcObjectSource":U)
     hlkObjectTarget            = getFieldHandle("fcObjectTarget":U)
@@ -203,7 +204,8 @@ PROCEDURE assignFieldHandles :
     htoObjectDeleteSource      = getFieldHandle("toObjectDeleteSource":U)
     hraInstanceAttribute       = getFieldHandle("raInstanceAttribute":U)
     hbuReplace                 = getFieldHandle("buReplace":U)
-    .    
+    .
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -227,9 +229,9 @@ PROCEDURE initializeObject :
 
   gcAllFieldNames   = DYNAMIC-FUNCTION("getAllFieldNames":U   IN TARGET-PROCEDURE).
   gcAllFieldHandles = DYNAMIC-FUNCTION("getAllFieldHandles":U IN TARGET-PROCEDURE).
-  
+
   RUN assignFieldHandles IN TARGET-PROCEDURE.
-  
+
 /*
   RUN displayFields IN TARGET-PROCEDURE (?).
 */
@@ -268,10 +270,9 @@ PROCEDURE trgbuReplace :
 ------------------------------------------------------------------------------*/
 
   DEFINE VARIABLE hDesignManager          AS HANDLE     NO-UNDO.
-  DEFINE VARIABLE cMessageTitle           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageError           AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE cMessageTitle           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cMessageButton          AS CHARACTER  NO-UNDO.
-  DEFINE VARIABLE cReturnValue            AS CHARACTER  NO-UNDO.
 
   DEFINE VARIABLE cObjectSource           AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE cObjectTarget           AS CHARACTER  NO-UNDO.
@@ -427,37 +428,29 @@ PROCEDURE trgbuReplace :
   IF ERROR-STATUS:ERROR
   OR RETURN-VALUE <> "":U
   THEN DO:
+    ASSIGN
+      cMessageTitle = cMessageTitle + " * ERROR * ":U.
     IF RETURN-VALUE <> "":U
-    THEN ASSIGN cReturnValue = RETURN-VALUE.
-    ELSE ASSIGN cReturnValue = ERROR-STATUS:GET-MESSAGE(1).
+    THEN ASSIGN cMessageError = RETURN-VALUE.
+    ELSE ASSIGN cMessageError = ERROR-STATUS:GET-MESSAGE(1).
   END.
+  ELSE DO:
 
-  IF iReplacementCount = ?
-  THEN
-    ASSIGN
-      iReplacementCount = 0.
-
-  ASSIGN
-    cMessageError = "* Object Instance Replacement Completed "
-                  + (IF cReturnValue <> "":U THEN "With Errors" ELSE "Successfully")
-                  .
-
-  IF iReplacementCount = 0
-  THEN
-    ASSIGN
-      cMessageError = cMessageError
-                    + (IF cMessageError <> "":U THEN CHR(10) ELSE "":U)
-                    + "    ( NO object instances were replaced )"
-                    .
-  ELSE
-    ASSIGN
-      cMessageError = cMessageError
-                    + (IF cMessageError <> "":U THEN CHR(10) ELSE "":U)
-                    + "    ( Replaced "
-                    + STRING(iReplacementCount,">>9")
-                    + (IF iReplacementCount = 1 THEN " Instance " ELSE " Instances ")
-                    + ")"
-                    .
+    IF iReplacementCount = 0
+    OR iReplacementCount = ?
+    THEN
+      ASSIGN
+        cMessageError = cMessageError + "* No object instances were replaced *".
+    ELSE
+      ASSIGN
+        cMessageError = cMessageError + "* Object Instance Replacement Completed Successfully *"
+                      + CHR(10)
+                      + "    ( Replaced "
+                      + STRING(iReplacementCount,">>9")
+                      + (IF iReplacementCount = 1 THEN " Instance" ELSE " Instances")
+                      + " )"
+                      .
+  END.
 
   RUN showMessages IN gshSessionManager (INPUT cMessageError,
                                          INPUT "MES":U,
@@ -468,21 +461,6 @@ PROCEDURE trgbuReplace :
                                          INPUT NO,
                                          INPUT THIS-PROCEDURE,
                                          OUTPUT cMessageButton).
-
-  IF cReturnValue <> "":U
-  THEN DO:
-    ASSIGN
-      cMessageTitle = cMessageTitle + " * ERROR * ":U.
-    RUN showMessages IN gshSessionManager (INPUT cReturnValue,
-                                           INPUT "MES":U,
-                                           INPUT "&OK":U,
-                                           INPUT "&OK":U,
-                                           INPUT "&OK":U,
-                                           INPUT cMessageTitle,
-                                           INPUT NO,
-                                           INPUT THIS-PROCEDURE,
-                                           OUTPUT cMessageButton).
-  END.
 
 END PROCEDURE.
 

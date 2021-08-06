@@ -34,24 +34,22 @@ af/cod/aftemwizpw.w
 
 /* ttObject is used for storing existing object information. The information is stored
    per window instance   */
-DEFINE TEMP-TABLE ttObjectDPS NO-UNDO
+DEFINE TEMP-TABLE ttObject NO-UNDO
   FIELD objectID           AS INTEGER /* Unique identifier */
   FIELD callingProc        AS HANDLE  /* Handle of calling procedure */
   FIELD containerName      LIKE ryc_smartObject.object_fileName
   FIELD containerLabel     AS CHAR
   FIELD objectName         LIKE ryc_smartObject.Object_filename
+  FIELD objectObj          LIKE ryc_smartObject.smartobject_obj
   FIELD objectLabel        AS CHARACTER
   FIELD objectClassCode    LIKE gsc_object_type.object_type_code
+  FIELD objectClassObj     LIKE gsc_object_type.object_type_obj
   FIELD groupList          AS CHARACTER
   FIELD classList          AS CHARACTER
   FIELD objectLevel        AS CHARACTER
-  FIELD isDeleted          AS LOGICAL
-  FIELD resultcodes        AS CHARACTER /* Comma Delimited list of supported customization result codes */
    INDEX pkMain   IS PRIMARY UNIQUE ObjectID
    INDEX akObject IS UNIQUE callingProc  containerName  objectName
-   INDEX ieClass      objectClassCode
-   INDEX idxLabel     objectLabel
-   INDEX idxIsDeleted  IsDeleted.
+   INDEX ieClass objectClassCode .
 
 /* The ttAttribute table will cache all attributes and their default values 
    for object classes  i.e.  DynFillIn, DynComboBox, DynEditor, etc.. and it will 
@@ -77,13 +75,12 @@ DEFINE TEMP-TABLE ttAttribute NO-UNDO
   FIELD RowOverride    AS LOGICAL
   FIELD constantLevel  AS CHARACTER
     INDEX pkMain IS PRIMARY objectID resultCode attrLabel
-    INDEX idxResult    resultCode
-    INDEX idxattr      attrLabel
-    INDEX idxClass     objectClass
-    INDEX idxProc      callingProc
-    INDEX idxCont      containerName
-    INDEX idxObjName   objectName.
-   
+    INDEX idxResult   resultCode
+    INDEX idxattr     attrLabel
+    INDEX idxClass    objectClass
+    INDEX idxProc     callingProc
+    INDEX idxCont     containerName
+    INDEX idxObjName  objectName.
 
  /* The ttSelectedAttribute table is used for the browse query. It is refreshed
     as each object is selected.  */
@@ -132,13 +129,12 @@ DEFINE TEMP-TABLE ttEvent NO-UNDO
   FIELD RowModified      AS LOGICAL
   FIELD RowOverride      AS LOGICAL
     INDEX pkMain IS PRIMARY objectID resultCode eventName
-    INDEX idxResult    resultCode
-    INDEX idxEvent     eventName
-    INDEX idxClass     objectClass
-    INDEX idxProc      callingProc
-    INDEX idxCont      containerName
-    INDEX idxObjName   objectName.
-  
+    INDEX idxResult  resultCode
+    INDEX idxEvent   eventName
+    INDEX idxClass   objectClass
+    INDEX idxProc    callingProc
+    INDEX idxCont    containerName
+    INDEX idxObjName objectName.
 
 DEFINE TEMP-TABLE ttSelectedEvent NO-UNDO RCODE-INFORMATION
   FIELD Override         AS CHARACTER
