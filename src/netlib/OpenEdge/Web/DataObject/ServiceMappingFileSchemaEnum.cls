@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2017-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2017-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ServiceMappingFileSchemaEnum
@@ -30,6 +30,7 @@ enum OpenEdge.Web.DataObject.ServiceMappingFileSchemaEnum:
         extent
         fields
         file
+        foreignKeyHidden
         function
         headers
         indexes

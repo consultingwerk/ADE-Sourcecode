@@ -16,7 +16,7 @@ using OpenEdge.Core.System.NotFoundError.
 using OpenEdge.Core.System.ApplicationError.
 using Progress.Lang.Error.
 
-class OpenEdge.Core.System.NotFoundError inherits ApplicationError: 
+class OpenEdge.Core.System.NotFoundError inherits ApplicationError serializable: 
     constructor static NotFoundError():
         ApplicationError:AddError(
             get-class(NotFoundError),

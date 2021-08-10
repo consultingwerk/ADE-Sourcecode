@@ -27,7 +27,7 @@ using Progress.Lang.Object.
 using OpenEdge.Core.DataTypeHelper.
 
 class OpenEdge.Core.Collections.Stack abstract serializable:
-    define public static variable DefaultStackDepth as integer no-undo.
+    define public static property DefaultStackDepth as integer no-undo get. set.
     
     /** NOTE/ the expand/shrink behaviour could be handled with an enumeration,
         but as of 10.2B performance is better when using logical variables.

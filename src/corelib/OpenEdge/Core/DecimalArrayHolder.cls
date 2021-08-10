@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DecimalArrayHolder
@@ -10,19 +10,33 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
     Created     : 2016-08-01
     Notes       : 
   ----------------------------------------------------------------------*/
-
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDecimalArrayHolder.
+using OpenEdge.Core.Assert.
 
 class OpenEdge.Core.DecimalArrayHolder implements IDecimalArrayHolder: 
+    /* The value being held */
+    define public property Value as decimal extent no-undo get. set. 
 
-	define public property Value as decimal extent no-undo get. set. 
-		
-	constructor public DecimalArrayHolder (  ):
-		super ().
-	end constructor.
+    /* Constructor.
+      
+       @param integer The size of the array. Must be >0 */
+    constructor public DecimalArrayHolder(input pSize as integer):
+        super ().
+        
+        Assert:IsPositive(pSize, 'Array size').
+        assign extent(this-object:Value) = pSize.
+    end constructor.
     
+    /* Default Constructor */
+    constructor public DecimalArrayHolder (  ):
+        super ().
+    end constructor.
+    
+    /* Constructor
+       
+       @param decimal[] The Value array */
     constructor public DecimalArrayHolder(input piValue as decimal extent):
         this-object().
         assign this-object:Value = piValue.

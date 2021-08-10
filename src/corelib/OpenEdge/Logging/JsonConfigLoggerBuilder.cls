@@ -48,6 +48,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         
         This is the registry of LogFilterBuilders and not the registry of
         log writers. */
+    {&_proparse_ prolint-nowarn(varusage)}
     define static private property FilterBuilders as BuilderRegistry no-undo
         get():
             if not valid-object(JsonConfigLoggerBuilder:FilterBuilders) then
@@ -58,6 +59,7 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         private set.
     
     // Registry for holding this factory's logger filters
+    {&_proparse_ prolint-nowarn(varusage)}
     define static private property Filters as BuilderRegistry no-undo
         get():
             if not valid-object(JsonConfigLoggerBuilder:Filters) then
@@ -120,7 +122,6 @@ class OpenEdge.Logging.JsonConfigLoggerBuilder inherits LoggerBuilder:
         define variable propertyName as character no-undo.
         define variable oConfig as JsonObject no-undo.
         define variable oData as JsonObject no-undo.
-        define variable oType as JsonObject no-undo.
         define variable oFilters as JsonArray no-undo.
         define variable resolvedType as class Progress.Lang.Class no-undo.
         

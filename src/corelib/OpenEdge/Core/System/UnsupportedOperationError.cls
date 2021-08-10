@@ -17,7 +17,7 @@ using OpenEdge.Core.System.ErrorSeverityEnum.
 using OpenEdge.Core.System.UnsupportedOperationError.
 using Progress.Lang.Error.
 
-class OpenEdge.Core.System.UnsupportedOperationError inherits ApplicationError: 
+class OpenEdge.Core.System.UnsupportedOperationError inherits ApplicationError serializable: 
     constructor static UnsupportedOperationError():
         ApplicationError:AddError(
             get-class(UnsupportedOperationError),

@@ -35,8 +35,12 @@ class OpenEdge.Core.Assertion.AssertArray:
         do loop = 1 to srcSize:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
+
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -56,7 +60,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -76,7 +83,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -96,7 +106,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
 
@@ -116,7 +129,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -136,7 +152,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -156,7 +175,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
 
@@ -176,7 +198,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -196,7 +221,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     
@@ -216,7 +244,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
 
@@ -236,7 +267,8 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
     end method.
-
+    
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method public static void Equals(input pSource as recid extent, 
                                      input pTarget as recid extent):
         define variable srcSize as integer no-undo.
@@ -253,7 +285,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
 
@@ -273,7 +308,10 @@ class OpenEdge.Core.Assertion.AssertArray:
             Assert:Equals(pSource[loop], pTarget[loop]). 
         end.
         catch e as Progress.Lang.Error:
-            undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
+            if type-of(e, AssertionFailedError) then
+                undo, throw e.
+            else 
+                undo, throw new AssertionFailedError(substitute('Array value differ for index &1', loop), 0).
         end catch.
     end method.
     

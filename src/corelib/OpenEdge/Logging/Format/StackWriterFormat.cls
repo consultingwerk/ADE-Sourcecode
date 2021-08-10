@@ -23,7 +23,6 @@ class OpenEdge.Logging.Format.StackWriterFormat implements ILoggerFilter:
     method public void ExecuteFilter( input poEvent as LogEvent):
         define variable stackCnt as integer no-undo.
         define variable stackSize as integer no-undo.
-        define variable delim as character no-undo.
         
         assign stackSize = extent(poEvent:CallStack).
         if stackSize ne ? then

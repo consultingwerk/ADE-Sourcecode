@@ -13,7 +13,34 @@
           "description": "Attributes for the dataset",
           "properties": {
             "serializeHidden": {"type": "boolean"},
-            "serializeName": {"type": "string"}
+            "serializeName": {"type": "string"},
+            "relations": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "parentTable": {"type": "string"},
+                        "childTable": {"type": "string"},
+                        "fields": {
+                            "type":"array",
+                            "items":{
+                            "type": "object",
+                            "properties": {
+                                "parentField": {"type": "string"},
+                                "childField": {"type": "string"}
+                            },
+                            "required": ["parentField", "childField"]
+                        },
+                        "name": {"type": "string"},
+                        "nested": {"type": "boolean"},
+                        "active": {"type": "boolean"},
+                        "recursive": {"type": "boolean"},
+                        "reposition": {"type": "boolean"},
+                        "foreignKeyHidden": {"type": "boolean"}
+                    },
+                    "required": ["parentTable", "childTable", "fields"]
+                }
+            }
           }
         },
         "items": {"$ref": "#/definitions/tempTable"}

@@ -321,8 +321,6 @@ class OpenEdge.Logging.LoggerBuilder inherits ConfigBuilder:
        @return LoggerBuilder This builder object  */
     method public LoggerBuilder AddFilter(input pFilter as ILoggerFilter):
         define variable filterList as IList no-undo.
-        define variable loop as integer no-undo.
-        define variable progName as character no-undo.
         
         Assert:NotNull(pFilter, 'Log Filter').
         

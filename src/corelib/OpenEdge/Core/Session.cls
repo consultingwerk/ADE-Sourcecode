@@ -50,9 +50,6 @@ class OpenEdge.Core.Session:
     method static public Array GetAllRunningProcs (input pcName as character):
         define variable oProcedures as Array no-undo.        
         define variable hTemp as handle no-undo.
-        define variable cProcs as character no-undo.
-        define variable iMax as integer no-undo.
-        define variable iLoop as integer no-undo.
         
         assign oProcedures            = new Array()
                oProcedures:AutoExpand = true 

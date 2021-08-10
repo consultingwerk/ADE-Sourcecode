@@ -16,7 +16,7 @@ using OpenEdge.Core.System.ArgumentError.
 using OpenEdge.Core.System.ApplicationError.
 using Progress.Lang.Error.
 
-class OpenEdge.Core.System.ArgumentError inherits ApplicationError: 
+class OpenEdge.Core.System.ArgumentError inherits ApplicationError serializable: 
 
     constructor static ArgumentError ():
         ApplicationError:AddError(

@@ -826,7 +826,8 @@ class OpenEdge.Net.URI serializable:
         
         assign val = QueryMap:Get(input pcName).
         
-        return string(val). 
+        // when calling AddQuery() we always encode the value, so decode it now
+        return URI:Decode(string(val)).
     end method.
     
     /** Gets the complete set of query names and values.
@@ -1120,34 +1121,34 @@ class OpenEdge.Net.URI serializable:
         return URI:EncodeQuery(this-object).
     end method.
     
-    /* Encodes a URI's Path string per URI Path encoding rules. 
+    /* Encodes a URI's Query string per URI query encoding rules. 
        
-       This is a separate method since we store the Path whole and
-       so you cannot simply call EncodePath(uri:Path) since that 
-       will encode the path delimiters that you need unencoded.
-       
-       @param URI A URI whose path to encode
-       @return character An encoded path string */
+       @param URI A URI whose query string to encode
+       @return character An encoded query string */
     method static public character EncodeQuery(input poURI as URI):
         define variable encodedQuery as character no-undo.
         define variable qryString    as character no-undo.
-        define variable qryNames     as character extent no-undo.
-        define variable numQry       as integer   no-undo.
-        define variable cnt          as integer   no-undo.
-        define variable qryDelim     as character no-undo.
+        define variable qryDelim     as character no-undo.  
+        define variable iter as IIterator no-undo.
+        define variable me as MapEntry no-undo.
         
         Assert:NotNull(poURI, 'URI').
         
-        // encode the queries
+        // encode the query strings
+        // we use the map values directly, since they're already encoded, and GetQueryValue()
+        // decodes any stored values
         assign qryDelim = '?':u
-               numQry   = poURI:GetQueryNames(output qryNames)
+               iter     = cast(poURI:QueryMap:EntrySet, IIterable):Iterator()
                .
-        do cnt = 1 to numQry:
-            assign qryString = poURI:GetQueryValue(qryNames[cnt]).
-            if qryString eq ? then
-                assign qryString = qryNames[cnt].
+        do while iter:HasNext():
+            assign me = cast(iter:Next(), MapEntry).
+            
+            if not valid-object(me:Value)
+            or string(me:Value) eq ?
+            then
+                assign qryString = string(me:Key).
             else
-                assign qryString = qryNames[cnt] + '=':u + qryString.
+                assign qryString = string(me:Key) + '=':u + string(me:Value).
             
             assign encodedQuery = encodedQuery + qryDelim + URI:EncodeQuery(qryString)
                    qryDelim     = '&':u

@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : DataRequestValueWriter
@@ -35,17 +35,18 @@ Copyright (c) 2019 by Progress Software Corporation and/or one of its subsidiari
                     ]
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
-
+    
 using Ccs.Common.Support.ICharacterHolder.
 using Ccs.Common.Support.ILongcharHolder.
+using OpenEdge.Core.Json.JsonSerializer.
 using OpenEdge.Core.KeyValuePair.
+using OpenEdge.Core.StringConstant.
 using OpenEdge.Web.DataObject.Writer.JsonObjectValueWriter.
 using OpenEdge.Web.DataObject.Writer.ObjectValueWriter.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonObject.
 using Progress.Json.ObjectModel.ObjectModelParser.
 using Progress.Lang.ParameterList.
-using OpenEdge.Core.StringConstant.
 
 class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValueWriter:
     // Because we don't want to introduce a hard dependency to the OpenEdge.BusinessLogic namespace into the OpenEdge.Net,
@@ -53,7 +54,8 @@ class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValue
     // THIS SHOULD BE REFACTORED
     define static private property FilterParserBuilderType as Progress.Lang.Class no-undo get. set.
     define static private property FilterParserType as Progress.Lang.Class no-undo get. set.
-    define private variable mTargetTypeName as character no-undo initial 'Ccs.BusinessLogic.IGetDataRequest':u.
+    define static private property DataRequestType as Progress.Lang.Class no-undo get. set.
+    define static private property DataRequestImplType as Progress.Lang.Class no-undo get. set.
     
     /* The writer to convert strings etc into JSON */
     define private variable mJsonValueWriter as JsonObjectValueWriter no-undo.
@@ -64,22 +66,19 @@ class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValue
     constructor static DataRequestValueWriter():
         assign FilterParserBuilderType = Progress.Lang.Class:GetClass('OpenEdge.BusinessLogic.Filter.FilterParserBuilder':u)
                FilterParserType        = Progress.Lang.Class:GetClass('OpenEdge.BusinessLogic.Filter.FilterParser':u)
+               DataRequestType         = Progress.Lang.Class:GetClass('Ccs.BusinessLogic.IGetDataRequest':u)
+               DataRequestImplType     = Progress.Lang.Class:GetClass('OpenEdge.BusinessLogic.GetDataRequest':u)
                no-error.
         assign error-status:error = false.
     end constructor.
     
     /* Default constructor */
     constructor public DataRequestValueWriter():
-        define variable argType as Progress.Lang.Class no-undo.
-        
-        //super(get-class(IGetDataRequest)).
         super().
         
-        assign argType = Progress.Lang.Class:GetClass(mTargetTypeName)
-               no-error. 
         // if this fails we will still have Progress.Lang.Object as the ArgumentType
-        if valid-object(argType) then
-            assign this-object:ArgumentType = argType.
+        if valid-object(DataRequestType) then
+            assign this-object:ArgumentType = DataRequestType.
         
         assign mJsonParser        = new ObjectModelParser()
                mJsonValueWriter   = new JsonObjectValueWriter()
@@ -89,17 +88,16 @@ class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValue
     
     method override public void Open():
         super:Open().
-        
-        assign mJsonValueWriter:Value = new JsonObject().
+        mJsonValueWriter:Open().
     end method.
     
     method override public void Close():
         super:Close().
-        
-        assign mJsonValueWriter:Value = ?.
+        mJsonValueWriter:Close().
     end method.
     
     method override public void Flush():
+        mJsonValueWriter:Flush().
         // process the the whole input JSON as one thing
         assign this-object:Value = ParseFilter(cast(mJsonValueWriter:Value, JsonObject)).
     end method.
@@ -147,30 +145,67 @@ class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValue
             otherwise
                 mJsonValueWriter:Write(pData).
         end case.
-    end method.
+    end method. 
     
     method override public void Write(input pData as longchar):
+        assign pData = left-trim(pData).
+        
         if    pData begins StringConstant:CURLY_OPEN
            or pData begins '[':u
         then
             this-object:Write(mJsonParser:Parse(pData)).
+        else
+        if pData begins 'where ':u 
+        then
+        do:
+            mJsonValueWriter:Write(new KeyValuePair('mappingType':u, 'ABL')).
+            mJsonValueWriter:Write(new KeyValuePair('WHERE':u, pData)).
+        end.
+        else
+        if pData begins 'by ':u then
+        do:
+            mJsonValueWriter:Write(new KeyValuePair('mappingType':u, 'ABL')).
+            mJsonValueWriter:Write(new KeyValuePair('BY':u, pData)).
+        end.
         else
             mJsonValueWriter:Write(pData).
     end method.
     
     method override public void Write(input pData as character):
+        assign pData = left-trim(pData).
+        
         if    pData begins StringConstant:CURLY_OPEN
            or pData begins '[':u
         then
             this-object:Write(mJsonParser:Parse(pData)).
         else
+        if pData begins 'where ':u then
+        do:
+            mJsonValueWriter:Write(new KeyValuePair('mappingType':u, 'ABL')).
+            mJsonValueWriter:Write(new KeyValuePair('WHERE':u, pData)).
+        end.
+        else
+        if pData begins 'by ':u then
+        do:
+            mJsonValueWriter:Write(new KeyValuePair('mappingType':u, 'ABL')).
+            mJsonValueWriter:Write(new KeyValuePair('BY':u, pData)).
+        end.
+        else
             mJsonValueWriter:Write(pData).
     end method.
     
     /* Parses JSON to produce a IGetDataRequest object.
-        
-       This is a reflection-based method that we want to replace at some point with the 
-       strongly-typed one below 
+       
+       - If a filter parser/builder is found for the input JSON, then those factory methods
+       return an implementation of IGetDataRequest. If a valid object is returned, return  that
+       object as-is.
+       
+       If a valid object does not exist, then
+       - Use the OpenEdge.Core.Json.JsonSerializer to convert to an object. Default to an instance of 
+         OpenEdge.BusinessLogic.GetDataRequest
+       
+       This is a reflection-based method that is used because we do not want cross-dependencies in our builds between
+       netlib and businesscomponents (OpenEdge.BusinessLogic.pl).
        
        @param JsonObject Filter data encoded as JSON
        @return Progress.Lang.Object A filter based on the JSON input */
@@ -180,36 +215,29 @@ class OpenEdge.Web.DataObject.Writer.DataRequestValueWriter inherits ObjectValue
         define variable dataRequest as Progress.Lang.Object no-undo.
         define variable paramList as Progress.Lang.ParameterList no-undo.
         
-        if    not valid-object(FilterParserBuilderType) 
+        if    not valid-object(FilterParserBuilderType)
            or not valid-object(FilterParserType)
         then
             return dataRequest.
         
         assign paramList = new ParameterList(1).
         paramList:SetParameter(1, 'class Progress.Json.ObjectModel.JsonObject':u, 'input':u, pValue).
+        // custom parser/builder
+        assign parserBuilder = FilterParserBuilderType:Invoke('Build':u, paramList).
+        if valid-object(parserBuilder) then
+            assign parser = FilterParserBuilderType:GetPropertyValue(parserBuilder, 'Parser':u).
+        if valid-object(parser) then
+            assign dataRequest = FilterParserType:Invoke(parser, 'Parse':u, paramList).
+        if valid-object(dataRequest) then
+            return dataRequest.
         
-        assign parserBuilder = FilterParserBuilderType:Invoke('Build':u, paramList)
-               parser        = FilterParserBuilderType:GetPropertyValue(parserBuilder, 'Parser':u)
-               dataRequest   = FilterParserType:Invoke(parser, 'Parse':u, paramList)
-               .
+        // general parser
+        assign dataRequest = dynamic-cast(JsonSerializer:ToAblObject(pValue,
+                                                                     DataRequestType,
+                                                                     DataRequestImplType),
+                                          DataRequestType:TypeName).
+        
         return dataRequest.
     end method.
-    
-    /* Parses JSON to produce a IGetDataRequest object 
-       
-       This is a strongly-typed method.
-       
-       @param JsonObject Filter data encoded as JSON
-       @return IGetDataRequest A filter based on the JSON input 
-    method protected IGetDataRequest ParseFilter(input pValue as JsonObject):
-        define variable filterParser as FilterParser no-undo.
-        define variable dataRequest as IGetDataRequest no-undo.
-        
-        assign filterParser = FilterParserBuilder:Build(pValue):Parser.
-        if valid-object(filterParser) then
-            assign dataRequest = filterParser:Parse(pValue).
-        
-        return dataRequest.
-    end method.     */
     
 end class.

@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2014-2017, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
-    Purpose     : Public HttpClient. All client code should be written against this class. 
-    Syntax      : 
-    Description : 
+    Purpose     : Public HttpClient. All client code should be written against this class.
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Fri Feb 14 10:44:00 EST 2014
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -31,8 +31,6 @@ using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
 using OpenEdge.Net.HTTP.ResponseBuilder.
-using OpenEdge.Net.HTTP.Filter.Writer.AuthenticationRequestWriterBuilder.
-
 
 class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, ISupportLogging:
     /** (mandatory) A free-text name for this http client. Used for the USER-AGENT
@@ -50,7 +48,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
     define public property Logger as ILogWriter no-undo
         get():
             if not valid-object(this-object:Logger) then
-                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(HttpClient)). 
+                assign this-object:Logger = LoggerBuilder:GetLogger(get-class(HttpClient)).
                 
             return this-object:Logger.
         end get.
@@ -75,7 +73,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
         @param character The (semantic: major.minor.patch) version of this Http Client
         @param IHttpClientLibrary The library performing the actual work */
     constructor public HttpClient(input pcClientName    as character,
-                                  input pcClientVersion as character,                                  
+                                  input pcClientVersion as character,
                                   input poLibrary as IHttpClientLibrary):
         Assert:NotNullOrEmpty(pcClientName, 'Client name').
         Assert:NotNullOrEmpty(pcClientVersion, 'Client version').
@@ -91,14 +89,14 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
 
     destructor HttpClient():
         Destroy().
-    end destructor. 
+    end destructor.
     
     /** Executes an HTTP request.
     
-        If this code changes, the code in HttpClientDecorator should 
-        too, to preserve the 'wrapper' nature of this method. 
+        If this code changes, the code in HttpClientDecorator should
+        too, to preserve the 'wrapper' nature of this method.
         
-        @param  HttpRequest Request parameters (URL, method, etc)  
+        @param  HttpRequest Request parameters (URL, method, etc)
         @return HttpResponse Includes status and payload */
     method public IHttpResponse Execute(input poRequest as IHttpRequest):
         define variable oResponse as IHttpResponse no-undo.
@@ -112,7 +110,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
             
     /** Executes an HTTP request.
         
-        @param IHttpRequest Request parameters (URL, method, etc)  
+        @param IHttpRequest Request parameters (URL, method, etc)
         @param IHttpResponse Includes status and payload*/
     method public void Execute(input poRequest  as IHttpRequest,
                                input poResponse as IHttpResponse):
@@ -121,10 +119,11 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
         define variable oAuthRequest as IAuthenticatedRequest no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
-        Assert:NotNull(poResponse, 'Http response'). 
+        Assert:NotNull(poResponse, 'Http response').
         
         assign iNumRetries = 0.
         /* Use looping instead of recursion to avoid deeping the call stack */
+        REQ-LOOP:
         repeat:
             if this-object:Options:NumRetries gt 0 then
             do:
@@ -165,21 +164,32 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
             
             /* Check for redirects, auth and friends */
             if ProcessStatusAction(poRequest, poResponse) then
-                leave.
+                leave REQ-LOOP.
             
             if this-object:Options:NumRetries eq 0 then
             do:
                 Logger:Info(substitute('Client will not attempt retry of &1 &2 after response status code &3',
                                 poRequest:Method, poRequest:URI:ToString(), poResponse:StatusCode )).
-                leave.
+                leave REQ-LOOP.
             end.
             else
             if this-object:Options:NumRetries gt 0 then
             do:
                 if iNumRetries ge this-object:Options:NumRetries then
-                    leave.
+                    leave REQ-LOOP.
                 if this-object:Options:PauseBetweenRetry gt 0 then
                     pause this-object:Options:PauseBetweenRetry no-message.
+                
+                // Reset the response, for the next request, so that we don't have
+                // any cruft left in the response (eg a Content-Length header)
+                //
+                // Only do this if we are retrying; for other cases we want to return
+                // the existing response. Don't Destroy()/Initialize() because we need to
+                // keep the cookies for this whole 'logical request'
+                poResponse:ClearHeaders().
+                assign poResponse:Entity     = ?
+                       poResponse:StatusCode = 0
+                       .
             end.
             
             if rRequestHash[1] eq rRequestHash[2] then
@@ -198,10 +208,10 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
         define variable oStatusCodeWriter as IHttpMessageWriter no-undo.
         define variable cookies as Cookie extent no-undo.
         
-        assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).    
+        assign oStatusCodeWriter = StatusCodeWriterBuilder:Build(poRequest, poResponse).
         if valid-object(oStatusCodeWriter) then
         do:
-            // Copy any cookies from the response into the request. This is typically some 
+            // Copy any cookies from the response into the request. This is typically some
             // form of session cookie (JSESSIONID) or similar
             poResponse:GetCookies(output cookies).
             poRequest:SetCookies(cookies).
@@ -225,6 +235,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
     
     /* Initializer/Startup */
     method public void Initialize():
+        // no-op; method from interface
     end method.
     
     /* Destroy/Shutdown/Anti-Initializer */
@@ -237,11 +248,11 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
     
         @param HttpRequest The request to which to add the user-agent string */
     method protected void AddUserAgent(input poRequest as IHttpRequest):
-        /* Set the User-Agent string. Will look something like 
+        /* Set the User-Agent string. Will look something like
                 OpenEdge-HttpClient/0.2.0 (WIN32/64) OpenEdge/11.5.0.0.1108 */
         poRequest:SetHeader(
             HttpHeaderBuilder:Build('User-Agent':u)
-                    :Value(substitute('&1/&2 (&4/&5) OpenEdge/&3':u, 
+                    :Value(substitute('&1/&2 (&4/&5) OpenEdge/&3':u,
                                 this-object:ClientName,
                                 this-object:ClientVersion,
                                 proversion(1),

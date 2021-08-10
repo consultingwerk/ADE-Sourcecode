@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DateArrayHolder
@@ -14,15 +14,30 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDateArrayHolder.
+using OpenEdge.Core.Assert.
 
 class OpenEdge.Core.DateArrayHolder implements IDateArrayHolder: 
-
-	define public property Value as date extent no-undo get. set. 
-		
-	constructor public DateArrayHolder (  ):
-		super ().
-	end constructor.
+    /* The value being held */
+    define public property Value as date extent no-undo get. set. 
     
+    /* Constructor.
+      
+       @param integer The size of the array. Must be >0 */
+    constructor public DateArrayHolder(input pSize as integer):
+        super ().
+        
+        Assert:IsPositive(pSize, 'Array size').
+        assign extent(this-object:Value) = pSize.
+    end constructor.
+    
+    /* Default Constructor */
+    constructor public DateArrayHolder (  ):
+        super ().
+    end constructor.
+    
+    /* Constructor
+       
+       @param date[] The Value array */
     constructor public DateArrayHolder(input pValue as date extent):
         this-object().
         assign this-object:Value = pValue.

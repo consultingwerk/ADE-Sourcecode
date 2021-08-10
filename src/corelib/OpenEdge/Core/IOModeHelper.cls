@@ -29,7 +29,6 @@ class OpenEdge.Core.IOModeHelper abstract:
         @throws AssertionFailedError Thrown when an invalid enum is passed in */
     method static public character ToString(input pMode as IOModeEnum,
                                             input pParameterType as character):
-        define variable dashPos as integer no-undo.
         define variable mode as character no-undo.
         
         Assert:NotNull(pMode, 'IO Mode').

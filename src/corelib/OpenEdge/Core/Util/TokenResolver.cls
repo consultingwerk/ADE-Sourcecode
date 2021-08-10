@@ -229,7 +229,6 @@ class OpenEdge.Core.Util.TokenResolver:
         define variable entryLoop as integer no-undo.
         define variable singleEntry as character no-undo.
         define variable sensitiveChar as character no-undo case-sensitive.
-        define variable charAsc as integer no-undo.
         define variable delim as character no-undo.
         
         if pName eq ? then

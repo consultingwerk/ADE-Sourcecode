@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DateTimeArrayHolder
@@ -10,19 +10,33 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
     Created     : 2016-08-01
     Notes       : 
   ----------------------------------------------------------------------*/
-
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IDateTimeArrayHolder.
+using OpenEdge.Core.Assert.
 
 class OpenEdge.Core.DateTimeArrayHolder implements IDateTimeArrayHolder: 
-
-	define public property Value as datetime extent no-undo get. set. 
-		
-	constructor public DateTimeArrayHolder (  ):
-		super ().
-	end constructor.
+    /* The value being held */
+    define public property Value as datetime extent no-undo get. set. 
+        
+    /* Constructor.
+      
+       @param integer The size of the array. Must be >0 */
+    constructor public DateTimeArrayHolder(input pSize as integer):
+        super ().
+        
+        Assert:IsPositive(pSize, 'Array size').
+        assign extent(this-object:Value) = pSize.
+    end constructor.
     
+    /* Default Constructor */
+    constructor public DateTimeArrayHolder (  ):
+        super ().
+    end constructor.
+    
+    /* Constructor
+       
+       @param datetime[] The Value array */
     constructor public DateTimeArrayHolder(input pValue as datetime extent):
         this-object().
         assign this-object:Value = pValue.

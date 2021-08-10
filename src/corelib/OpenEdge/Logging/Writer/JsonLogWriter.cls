@@ -35,7 +35,7 @@ class OpenEdge.Logging.Writer.JsonLogWriter implements ILoggerFilter:
         
        @param LogEvent The event to capture. */
     method public void ExecuteFilter(input pEvent as LogEvent ):
-        define variable logData as JsonObject no-undo.
+        define variable localLogData as JsonObject no-undo.
         define variable ctx as Progress.Lang.Object no-undo.
         
         // because the LogData property is mutable, don't fail if someone's
@@ -43,36 +43,36 @@ class OpenEdge.Logging.Writer.JsonLogWriter implements ILoggerFilter:
         if not valid-object(this-object:LogData) then
             return.
         
-        assign logData = new JsonObject().
+        assign localLogData = new JsonObject().
         // append this log event to the array
-        this-object:LogData:Add(logData).
+        this-object:LogData:Add(localLogData).
         
         // don't write the LoggedBy user; we may want to anonymise that or otherwise
         // mask it.
-        logData:Add('loggedAt':u,   pEvent:TimeStamp).
-        logData:Add('level':u,      string(pEvent:LogLevel)).
-        logData:Add('msg':u,        pEvent:Message:Message).
+        localLogData:Add('loggedAt':u,   pEvent:TimeStamp).
+        localLogData:Add('level':u,      string(pEvent:LogLevel)).
+        localLogData:Add('msg':u,        pEvent:Message:Message).
         
-        logData:Add('hasError':u,   valid-object(pEvent:Error)).
+        localLogData:Add('hasError':u,   valid-object(pEvent:Error)).
         if valid-object(pEvent:Error) then
-            logData:Add('error':u, JsonConverter:ToObject(pEvent:Error)).
+        localLogData:Add('error':u, JsonConverter:ToObject(pEvent:Error)).
         
-        logData:Add('loggerName':u, pEvent:LoggerName).
-        logData:Add('msgStack':u,   new JsonArray(pEvent:CallStack)).
+        localLogData:Add('loggerName':u, pEvent:LoggerName).
+        localLogData:Add('msgStack':u,   new JsonArray(pEvent:CallStack)).
         
         // tokens
         assign ctx = pEvent:Message:GetContext('tokens':u).
         if   valid-object(ctx)
         and type-of(ctx, IList)
         then
-            logData:Add('ctx.tokens':u, JsonConverter:ToArray(cast(ctx, IList))).
+            localLogData:Add('ctx.tokens':u, JsonConverter:ToArray(cast(ctx, IList))).
         
         // args
         assign ctx = pEvent:Message:GetContext('args':u).
         if  valid-object(ctx)
         and type-of(ctx, ILongcharArrayHolder)
         then
-            logData:Add('ctx.args':u, JsonConverter:ToArray(cast(ctx, ILongcharArrayHolder))).
+            localLogData:Add('ctx.args':u, JsonConverter:ToArray(cast(ctx, ILongcharArrayHolder))).
     end method.
     
 end class.

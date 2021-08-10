@@ -1,13 +1,13 @@
 /* *************************************************************************************************************************
-Copyright (c) 2019-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2019-2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : JsonConverter
     Description : Helps to convert to and from JSON, for common/standard (Ccs.Common.Support.I*Holder,
-                  OpenEdge.Core.Collections.I*) types 
+                  OpenEdge.Core.Collections.I*) types
     Author(s)   : pjudge
     Created     : 2019-11-21
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -68,35 +68,38 @@ using Progress.Lang.AppError.
 using Progress.Lang.Object.
 using Progress.Lang.LockConflict.
 using Progress.Lang.SoapFaultError.
+using OpenEdge.Core.Json.JsonSerializer.
+using OpenEdge.Core.JsonDataTypeEnum.
 
 class OpenEdge.Core.Json.JsonConverter:
     /* Default constructor.
        
        This is private so that this class cannot be instantiated - it's intended to be used with static members only */
     constructor private JsonConverter():
+        //This is private so that this class cannot be instantiated - it's intended to be used with static members only
     end constructor.
     
     /* Converts an array of objects into into a JSONArray
        
        Invalid inputs, indeterminate arrays, all get a null value
        
-       @param IObjectArrayHolder The input array 
+       @param IObjectArrayHolder The input array
        @return JsonArray An array instance      */
     method static public JsonArray ToArray(input pArray as IObjectArrayHolder):
-        return ToArray(pArray:Value). 
+        return ToArray(pArray:Value).
     end method.
     
     /* Converts an array of objects into into a JSONArray
        Invalid inputs, indeterminate arrays, all get a null value
        
-       @param P.L.Object[] The input array 
+       @param P.L.Object[] The input array
        @return JsonArray An array instance      */
     method static public JsonArray ToArray(input pArray as Progress.Lang.Object extent):
         define variable ja as JsonArray no-undo.
         define variable cnt as integer no-undo.
         define variable loop as integer no-undo.
         
-        assign cnt = extent(pArray). 
+        assign cnt = extent(pArray).
         if cnt eq ? then
             return ja.
             
@@ -164,7 +167,7 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
             when type-of(pArray, IDateArrayHolder) then
             do:
-                assign daah = cast(pArray, IDateArrayHolder). 
+                assign daah = cast(pArray, IDateArrayHolder).
                 if not extent(daah:Value) eq ? then
                     return new JsonArray(daah:Value).
             end.
@@ -176,21 +179,21 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
             when type-of(pArray, IDateTimeTzArrayHolder) then
             do:
-                assign dtzah = cast(pArray, IDateTimeTzArrayHolder). 
+                assign dtzah = cast(pArray, IDateTimeTzArrayHolder).
                 if not extent(dtzah:Value) eq ? then
                     return new JsonArray(dtzah:Value).
             end.
             when type-of(pArray, IDecimalArrayHolder) then
             do:
-                assign deah = cast(pArray, IDecimalArrayHolder). 
+                assign deah = cast(pArray, IDecimalArrayHolder).
                 if not extent(deah:Value) eq ? then
                     return new JsonArray(deah:Value).
             end.
             when type-of(pArray, IHandleArrayHolder) then
             do:
                 assign hah = cast(pArray, IHandleArrayHolder)
-                       cnt = extent(hah:Value)  
-                       . 
+                       cnt = extent(hah:Value)
+                       .
                 if not cnt eq ? then
                 do:
                     assign ja = new JsonArray(cnt).
@@ -204,31 +207,31 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
             when type-of(pArray, IInt64ArrayHolder) then
             do:
-                assign i64ah = cast(pArray, IInt64ArrayHolder). 
+                assign i64ah = cast(pArray, IInt64ArrayHolder).
                 if not extent(i64ah:Value) eq ? then
                     return new JsonArray(i64ah:Value).
             end.
             when type-of(pArray, IIntegerArrayHolder) then
             do:
-                assign iah = cast(pArray, IIntegerArrayHolder). 
+                assign iah = cast(pArray, IIntegerArrayHolder).
                 if not extent(iah:Value) eq ? then
                     return new JsonArray(iah:Value).
             end.
             when type-of(pArray, ILogicalArrayHolder) then
             do:
-                assign lah = cast(pArray, ILogicalArrayHolder). 
+                assign lah = cast(pArray, ILogicalArrayHolder).
                 if not extent(lah:Value) eq ? then
                     return new JsonArray(lah:Value).
             end.
             when type-of(pArray, ILongcharArrayHolder) then
             do:
-                assign lcah = cast(pArray, ILongcharArrayHolder). 
+                assign lcah = cast(pArray, ILongcharArrayHolder).
                 if not extent(lcah:Value) eq ? then
                     return new JsonArray(lcah:Value).
             end.
             when type-of(pArray, IMemptrArrayHolder) then
             do:
-                assign mah = cast(pArray, IMemptrArrayHolder). 
+                assign mah = cast(pArray, IMemptrArrayHolder).
                 if not extent(mah:Value) eq ? then
                     // we don't need to clean up the MEMPTR because it appears that the JsonArray()
                     // constructor doesn't leak
@@ -236,7 +239,7 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
             when type-of(pArray, IRowidArrayHolder) then
             do:
-                assign rah = cast(pArray, IRowidArrayHolder). 
+                assign rah = cast(pArray, IRowidArrayHolder).
                 if not extent(rah:Value) eq ? then
                     return new JsonArray(rah:Value).
             end.
@@ -255,7 +258,7 @@ class OpenEdge.Core.Json.JsonConverter:
         define variable jsonData as JsonObject no-undo.
         
         if valid-object(pTuple) then
-            assign jsonData = ToObject(pTuple:Key, pTuple:Value). 
+            assign jsonData = ToObject(pTuple:Key, pTuple:Value).
         
         return jsonData.
     end method.
@@ -314,7 +317,7 @@ class OpenEdge.Core.Json.JsonConverter:
                 _role: soapFault:soap-fault-role
                 _misunderstoodHeader: soap-fault-misunderstood-header
                 _node: soapFault:soap-fault-node
-            }   
+            }
          _errors: [
             { _errorMsg: the error message
               _errorNum: the error number
@@ -323,7 +326,7 @@ class OpenEdge.Core.Json.JsonConverter:
          _sev: the severity of the error
          _type: the OOABL type of the error, if session:debug-alert
          _stack: the error call stack, if session:debug-alert
-         _innerError: one of the below. if both exist in the error, then stop is used 
+         _innerError: one of the below. if both exist in the error, then stop is used
             {<error-json>} if the object has a readable InnerError property of type P.L.Error, and a valid value, then call ToObject(error)
             {<stop-json>} if the object has a readable InnerStop property of type P.L.Stop, and a valid value, then call ToObject(stop)
        }
@@ -335,7 +338,6 @@ class OpenEdge.Core.Json.JsonConverter:
         define variable errData as JsonObject no-undo.
         define variable errList as JsonArray no-undo.
         define variable loop as integer no-undo.
-        define variable cRetVal as character no-undo.
         define variable cnt as integer no-undo.
         define variable errProp as Progress.Reflect.Property no-undo.
         define variable innerErr as Progress.Lang.Error no-undo.
@@ -352,7 +354,7 @@ class OpenEdge.Core.Json.JsonConverter:
                .
         if type-of(pError, AppError) then
             jsonData:Add('_retVal':u, cast(pError, AppError):ReturnValue).
-        else 
+        else
         if type-of(pError, SoapFaultError) then
         do:
             assign soapFault = cast(pError, SoapFaultError):SoapFault.
@@ -449,7 +451,7 @@ class OpenEdge.Core.Json.JsonConverter:
          _errors: [
             { _errorMsg: the stop type name
               _errorNum: null
-              _device:     ) 
+              _device:     )
               _tableName:  ) If the stop is a LockConflict
               _user:       )
             }
@@ -480,7 +482,7 @@ class OpenEdge.Core.Json.JsonConverter:
         errData:AddNull('_errorNum':u).
         if type-of(pStop, LockConflict) then
         do:
-            errData:Add('_device':u,    cast(pStop, LockConflict):Device). 
+            errData:Add('_device':u,    cast(pStop, LockConflict):Device).
             errData:Add('_tableName':u, cast(pStop, LockConflict):TableName).
             errData:Add('_user':u,      cast(pStop, LockConflict):User).
         end.
@@ -489,7 +491,7 @@ class OpenEdge.Core.Json.JsonConverter:
         if session:debug-alert then
         do:
             errData:Add('_type':u, pStop:GetClass():TypeName).
-            // A Stop's CallStack is always populated, regardless of the SESSION:ERROR-STACK-TRACE value 
+            // A Stop's CallStack is always populated, regardless of the SESSION:ERROR-STACK-TRACE value
             assign cnt     = num-entries(pStop:CallStack, StringConstant:LF)
                    errList = new JsonArray(cnt)
                    .
@@ -511,10 +513,11 @@ class OpenEdge.Core.Json.JsonConverter:
                                          input pValue as Progress.Lang.Object,
                                          input pJson as JsonArray ):
         define variable hdlVal as handle no-undo.
+/*
         define variable objectArray as Object extent no-undo.
         define variable cnt as integer no-undo.
         define variable loop as integer no-undo.
-        
+  */
         Assert:NotNull(pJson, 'Json array').
         Assert:NotNull(pIdx, 'Array index').
         
@@ -561,7 +564,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     pJson:SetNull(pIdx).
                 else
                     pJson:Set(pIdx,  hdlVal).
-            end.        // handles 
+            end.        // handles
             
             /* PRIMITIVE ARRAY */
             when type-of(pValue, IPrimitiveArrayHolder) then
@@ -588,17 +591,17 @@ class OpenEdge.Core.Json.JsonConverter:
        @param Progress.Lang.Object The key value - property name (required)
        @param Progress.Lang.Object A value to be written for the property. May be null.
        @param JsonObject A JSON object  */
-    //method static private void AddToObject(input pKey as Progress.Lang.Object,
     method static public void AddToObject(input pKey as Progress.Lang.Object,
                                           input pValue as Progress.Lang.Object,
                                           input pJson as JsonObject ):
         define variable methodName as character no-undo.
         define variable hdlVal as handle no-undo.
+/*
         define variable objectArray as Progress.Lang.Object extent no-undo.
         define variable cnt as integer no-undo.
         define variable maxCnt as integer no-undo.
         define variable keyValue as OpenEdge.Core.String no-undo.
-        
+ */
         Assert:NotNull(pJson, 'Json object').
         Assert:NotNull(pKey, 'Tuple key').
         
@@ -657,7 +660,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     pJson:AddNull(pKey:ToString()).
                 else
                     dynamic-invoke(pJson, methodName, pKey:ToString(), hdlVal).
-            end.        // handles 
+            end.        // handles
             
             /* PRIMITIVE ARRAY */
             when type-of(pValue, IPrimitiveArrayHolder) then
@@ -681,14 +684,17 @@ class OpenEdge.Core.Json.JsonConverter:
         end case.
     end method.
     
-    /* Merges (combines) two JSON objects.
+/* Merges (combines) two JSON objects.
        
        Properties are copied from the SOURCE into the TARGET.
+       Properties are copied from the SOURCE into the TARGET. Property types
+       must match, otherwise an error is thrown.
+       
        If the property exists in the target, it is overwritten by
        the source property if the pOverwriteExisting flag is TRUE.
        
        @param JsonObject The target JSON object. Must exist.
-       @param JsonObject The source JSON object. Can be null 
+       @param JsonObject The source JSON object. Can be null
        @param logical TRUE if properties from the SOURCE object should overwrite those in the TARGET */
     method public static void Merge(input pTarget as JsonObject,
                                     input pSource as JsonObject,
@@ -698,6 +704,7 @@ class OpenEdge.Core.Json.JsonConverter:
         define variable names as longchar extent no-undo.
         define variable propName as character no-undo.
         define variable methodName as character no-undo.
+        define variable srcType as integer no-undo.
         
         Assert:NotNull(pTarget, 'Target JSON object').
         
@@ -707,19 +714,24 @@ class OpenEdge.Core.Json.JsonConverter:
         assign names = pSource:GetNames()
                cnt   = extent(names)
                .
+        PROP-LOOP:
         do loop = 1 to cnt:
             assign propName   = string(names[loop])
                    methodName = 'Add':u
+                   srcType    = pSource:GetType(propName)
                    .
             if pTarget:Has(propName) then
             do:
+                Assert:Equals(JsonDataTypeEnum:GetEnum(srcType),
+                              JsonDataTypeEnum:GetEnum(pTarget:GetType(propName))).
+                
                 if pOverwriteExisting then
                     assign methodName = 'Set':u.
                 else
-                    next.
+                    next PROP-LOOP.
             end.
             
-            case pSource:GetType(propName):
+            case srcType:
                 when JsonDataType:NULL    then
                     dynamic-invoke(pTarget, methodName + 'Null':u, propName).
                 when JsonDataType:BOOLEAN then
@@ -730,7 +742,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonObject(propName)).
                 when JsonDataType:STRING  then
                     // The Add/Set methods have overloads that accept longchar, so we won't run into the AddNumber issue
-                    dynamic-invoke(pTarget, methodName, propName, pSource:GetJsonText(propName)).
+                    dynamic-invoke(pTarget, methodName, propName, pSource:GetLongchar(propName)).
                 when JsonDataType:NUMBER  then
                     // Because GetJsonText() returns a LONGCHAR, the reflection fails. It is extremely unlikely
                     // that a number would have >2GB's worth of digits, so just STRING() it.
@@ -738,16 +750,16 @@ class OpenEdge.Core.Json.JsonConverter:
             end case.
         end.
     end method.
-
+    
     /* This method converts a JSON property to an instance of an IPRimitiveHolder.
     
        If the inputs are invalid, an object represeting the unknown value is returned.
        If the property value cannot be converted, an object represeting the unknown value is returned.
-       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string 
+       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string
        JSON objects and arrayas are returned as Json text values (ie flattened)
        
-       @param JsonObject The object 
-       @param character The property name 
+       @param JsonObject The object
+       @param character The property name
        @return IPrimitiveHolder The representative value */
     method static public IPrimitiveHolder ToScalar(input pObject as JsonObject,
                                                    input pName as character):
@@ -779,12 +791,12 @@ class OpenEdge.Core.Json.JsonConverter:
             end.
             
             when JsonDataType:ARRAY  or
-            when JsonDataType:OBJECT then 
+            when JsonDataType:OBJECT then
                 return new String(pObject:GetJsonText(pName)).
             
             otherwise
             do:
-                /* This value could be a 
+                /* This value could be a
                    - string
                    - iso-date / time / -tz
                    - memptr / base64-encoded value */
@@ -803,7 +815,7 @@ class OpenEdge.Core.Json.JsonConverter:
                                                         integer(substring(strValue, 9, 2)),
                                                         integer(substring(strValue, 1, 4)),
                                                         0,
-                                                        0 ) 
+                                                        0 )
                                    no-error.
                             if not error-status:error then
                                 return new DateHolder(date(dtzVal)).
@@ -813,7 +825,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     // DATETIME YYYY-MM-DDTHH:MM:SS.SSS
                     //          12345678901234567890123
                     when 23 then
-                        if     index(strValue, '-':u, pos + 1) gt 0 
+                        if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
@@ -832,18 +844,18 @@ class OpenEdge.Core.Json.JsonConverter:
                         end.
                     // DATETIME-TZ YYYY-MM-DDTHH:MM:SS.SSS+HH:MM
                     when 29 then
-                        if     index(strValue, '-':u, pos + 1) gt 0 
+                        if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
                             assign dtzVal = TimeStamp:ToABLDateTimeTzFromISO(strValue)
-                                   no-error. 
+                                   no-error.
                             if not error-status:error then
                                 return new DateTimeTzHolder(dtzVal).
                             else
                                 assign error-status:error = no.
                         end.
-                end.
+                end case.
                 else
                 // base64-encoded
                 if substring(strValue, cnt - 2) eq '==':u then
@@ -869,11 +881,11 @@ class OpenEdge.Core.Json.JsonConverter:
     
        If the inputs are invalid, or the index is not in range, an object represeting the unknown value is returned.
        If the property value cannot be converted, an object represeting the unknown value is returned.
-       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string 
+       Thie methods will try to convert JSON Strings into date/time/tz or memptr values before returning a string
        JSON objects and arrayas are returned as Json text values (ie flattened)
        
-       @param JsonArray The object 
-       @param integer The element index  
+       @param JsonArray The object
+       @param integer The element index
        @return IPrimitiveHolder The representative value */
     method static public IPrimitiveHolder ToScalar(input pArray as JsonArray,
                                                    input pIdx as integer):
@@ -903,12 +915,12 @@ class OpenEdge.Core.Json.JsonConverter:
                     return new OpenEdge.Core.Integer(pArray:GetInt64(pIdx)).
             end.
             when JsonDataType:ARRAY or
-            when JsonDataType:OBJECT then 
+            when JsonDataType:OBJECT then
                 return new String(pArray:GetJsonText(pIdx)).
             
             otherwise
             do:
-                /* This value could be a 
+                /* This value could be a
                    - string
                    - iso-date
                    - memptr / base64-encoded value
@@ -929,7 +941,7 @@ class OpenEdge.Core.Json.JsonConverter:
                                                         integer(substring(strValue, 9, 2)),
                                                         integer(substring(strValue, 1, 4)),
                                                         0,
-                                                        0 ) 
+                                                        0 )
                                    no-error.
                             if not error-status:error then
                                 return new DateHolder(date(dtzVal)).
@@ -941,7 +953,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     //          12345678901234567890123
                     when 23 then
                     do:
-                        if     index(strValue, '-':u, pos + 1) gt 0 
+                        if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
@@ -962,7 +974,7 @@ class OpenEdge.Core.Json.JsonConverter:
                     // DATETIME-TZ YYYY-MM-DDTHH:MM:SS.SSS+HH:MM
                     when 29 then
                     do:
-                        if     index(strValue, '-':u, pos + 1) gt 0 
+                        if     index(strValue, '-':u, pos + 1) gt 0
                            and index(strValue, 'T':u, pos + 1) gt 0
                         then
                         do:
@@ -973,7 +985,7 @@ class OpenEdge.Core.Json.JsonConverter:
                                 assign error-status:error = no.
                         end.
                     end.
-                end.
+                end case.
                 else
                 // base64-encoded
                 if substring(strValue, cnt - 2) eq '==':u then
@@ -1023,23 +1035,26 @@ class OpenEdge.Core.Json.JsonConverter:
             assign cnt               = pArray:Length
                    extent(oah:Value) = cnt
                    .
+        ARRAY-LOOP:
         do loop = 1 to cnt:
             case pArray:GetType(loop):
                 when JsonDataType:NULL then
-                    next.
-                when JsonDataType:OBJECT then 
-                    assign oah:Value[loop] = pArray:GetJsonObject(loop).
+                    next ARRAY-LOOP.
+                when JsonDataType:OBJECT then
+                    assign oah:Value[loop] = JsonSerializer:ToAblObject(pArray:GetJsonObject(loop), pElementType, pElementType).
                 when JsonDataType:ARRAY then
-                    assign oah:Value[loop] = pArray:GetJsonArray(loop).
+                    assign oah:Value[loop] = ToObjectArray(pArray:GetJsonArray(loop)).
                 otherwise
                     assign oah:Value[loop] = ToScalar(pArray, loop).
             end case.
             
-            Assert:IsType(oah:Value[loop], pElementType).
+            // the deserialisation etc may fail
+            if valid-object(oah:Value[loop]) then
+                Assert:IsType(oah:Value[loop], pElementType).
         end.
         
         return oah.
-    end method. 
+    end method.
     
     /* Converts a JSON array to an instance of a PrimitiveArrayHolder
        
@@ -1057,11 +1072,12 @@ class OpenEdge.Core.Json.JsonConverter:
         if valid-object(pArray) then
             assign cnt = pArray:Length.
         
+        ITEM-LOOP:
         do loop = 1 to cnt:
             // ABL Arrays only have a single type, so we infer that from the first non-null value we find
             case pArray:GetType(loop):
                 // loop over nulls
-                when JsonDataType:NULL    then next. 
+                when JsonDataType:NULL    then next ITEM-LOOP.
                 when JsonDataType:BOOLEAN then return new LogicalArrayHolder(pArray:GetLogical(1, cnt)).
                 // just stringify non-scalar JSON
                 when JsonDataType:OBJECT  or
@@ -1075,13 +1091,13 @@ class OpenEdge.Core.Json.JsonConverter:
                     if type-of(ph, IDecimalHolder) then
                         return new DecimalArrayHolder(pArray:GetDecimal(1, cnt)).
                     
-                    if    type-of(ph, IInt64Holder) 
+                    if    type-of(ph, IInt64Holder)
                        or type-of(ph, IIntegerHolder)
                     then
                         return new IntegerArrayHolder(pArray:GetInt64(1, cnt)).
                 end.
                 // could be memptr, date/time/tz or string
-                when JsonDataType:STRING  then 
+                when JsonDataType:STRING  then
                 do:
                     assign ph = ToScalar(pArray, loop).
                     
@@ -1110,16 +1126,16 @@ class OpenEdge.Core.Json.JsonConverter:
         return lcah.
     end method.
 
-    /* This method converts a JSON array element to an instance of an P.L.Enum. 
+    /* This method converts a JSON array element to an instance of an P.L.Enum.
        
        The element value must be either a string or number.
-       If the inputs are invalid, or the index is not in range, or the value is of the wrong JSON type, 
+       If the inputs are invalid, or the index is not in range, or the value is of the wrong JSON type,
        an unknown value is returned.
        
-       If the ToObject() call fails, an error is raised. 
+       If the ToObject() call fails, an error is raised.
        
-       @param JsonArray The array 
-       @param integer   The element index  
+       @param JsonArray The array
+       @param integer   The element index
        @param P.L.Class The type of the enum
        @return Progress.Lang.Enum The enum */
     method static public Progress.Lang.Enum ToEnum(input pArray as JsonArray,
@@ -1131,7 +1147,7 @@ class OpenEdge.Core.Json.JsonConverter:
         then
             return ?.
         
-        // Make sure the array and index are good 
+        // Make sure the array and index are good
         if    not valid-object(pArray)
            or pIdx eq ?
            or pIdx le 0
@@ -1144,21 +1160,21 @@ class OpenEdge.Core.Json.JsonConverter:
                 return Progress.Lang.Enum:ToObject(pEnumType:TypeName, pArray:GetInt64(pIdx)).
             when JsonDataType:STRING then
                 return Progress.Lang.Enum:ToObject(pEnumType:TypeName, pArray:GetCharacter(pIdx)).
-        end.
+        end case.
         
         return ?.
     end method.
     
-    /* This method converts a JSON property to an instance of an P.L.Enum. 
+    /* This method converts a JSON property to an instance of an P.L.Enum.
        
        The property value must be either a string or number.
-       If the inputs are invalid, or the property does not exist, or is of the wrong JSON type, 
+       If the inputs are invalid, or the property does not exist, or is of the wrong JSON type,
        enum, an unknown value is returned.
        
        If the ToObject() call fails, an error is raised
        
-       @param JsonObject The object 
-       @param character The property name  
+       @param JsonObject The object
+       @param character The property name
        @param P.L.Class The type of the enum
        @return Progress.Lang.Enum The enum */
     method static public Progress.Lang.Enum ToEnum(input pObject as JsonObject,
@@ -1170,7 +1186,7 @@ class OpenEdge.Core.Json.JsonConverter:
         then
             return ?.
         
-        // Make sure the object and name are good 
+        // Make sure the object and name are good
         if    not valid-object(pObject)
            or pName eq ?
            or pName eq '':u
@@ -1180,12 +1196,11 @@ class OpenEdge.Core.Json.JsonConverter:
         if pObject:Has(pName) then
         case pObject:GetType(pName):
             when JsonDataType:NUMBER then
-                return Progress.Lang.Enum:ToObject(pEnumType:TypeName, pObject:GetInt64(pName)). 
+                return Progress.Lang.Enum:ToObject(pEnumType:TypeName, pObject:GetInt64(pName)).
             when JsonDataType:STRING then
                 return Progress.Lang.Enum:ToObject(pEnumType:TypeName, pObject:GetCharacter(pName)).
-        end.
+        end case.
         
         return ?.
     end method.
-    
 end class.

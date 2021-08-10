@@ -53,17 +53,17 @@ class OpenEdge.Core.Util.Token serializable:
        @param character A complete string token
        @return Token A token instance */
     method static public Token Parse(input pToken as character):
-        define variable chrPos as integer no-undo.
-        define variable grp as character no-undo.
-        define variable arg as character no-undo.
+        define variable chrPos      as integer no-undo.
+        define variable grp         as character no-undo.
+        define variable localArg    as character no-undo.
         
         assign chrPos = index(pToken, '.':u)
                grp    = substring(pToken, 1, chrPos - 1)
                .
         if chrPos gt 0 then
-            assign arg = substring(pToken, chrPos + 1).
+            assign localArg = substring(pToken, chrPos + 1).
         
-        return new Token(grp, arg).
+        return new Token(grp, localArg).
     end method.
     
     method override public character ToString():

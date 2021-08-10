@@ -120,7 +120,6 @@ class OpenEdge.Core.SemanticVersion serializable:
        @return SemanticVersion A SemanticVersion object */
     method static public SemanticVersion Parse(input pVersion as character):
         define variable chrPos as integer no-undo.
-        define variable dotPos as integer no-undo.
         define variable semVer as SemanticVersion no-undo.
         
         Assert:NotNull(pVersion, 'Version string').

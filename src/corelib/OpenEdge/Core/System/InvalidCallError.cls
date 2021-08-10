@@ -15,7 +15,7 @@ block-level on error undo, throw.
 using OpenEdge.Core.System.InvalidCallError.
 using OpenEdge.Core.System.ApplicationError.
 
-class OpenEdge.Core.System.InvalidCallError inherits ApplicationError:
+class OpenEdge.Core.System.InvalidCallError inherits ApplicationError serializable:
     
     constructor static InvalidCallError():
         ApplicationError:AddError(

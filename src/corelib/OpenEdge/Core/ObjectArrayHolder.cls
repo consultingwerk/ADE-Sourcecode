@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ObjectArrayHolder
@@ -12,11 +12,22 @@ Copyright (c) 2016, 2018 by Progress Software Corporation. All rights reserved.
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
+using OpenEdge.Core.Assert.
 using OpenEdge.Core.IObjectArrayHolder.
 
 class OpenEdge.Core.ObjectArrayHolder implements IObjectArrayHolder:
-    /* An array of obejcts to hold. */
+    /* An array of objects to hold. */
     define public property Value as Progress.Lang.Object extent no-undo get. set. 
+    
+    /* Constructor.
+      
+       @param integer The size of the array. Must be >0 */
+    constructor public ObjectArrayHolder(input pSize as integer):
+        super ().
+        
+        Assert:IsPositive(pSize, 'Array size').
+        assign extent(this-object:Value) = pSize.
+    end constructor.
     
     /* Default constructor */
     constructor public ObjectArrayHolder():

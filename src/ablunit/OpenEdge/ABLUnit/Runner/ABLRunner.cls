@@ -213,9 +213,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         DEFINE VARIABLE candidatePath AS CHARACTER NO-UNDO EXTENT 2.
         DEFINE VARIABLE candidateName AS CHARACTER NO-UNDO EXTENT 2.
         DEFINE VARIABLE matchedFiles  AS Array     NO-UNDO.
-        DEFINE VARIABLE iMax          AS INTEGER   NO-UNDO.
         DEFINE VARIABLE iLoop         AS INTEGER   NO-UNDO.
-        DEFINE VARIABLE iElem         AS INTEGER   NO-UNDO.
         DEFINE VARIABLE iMatchScore   AS INTEGER   NO-UNDO EXTENT.
         DEFINE VARIABLE iBestScore    AS INTEGER   NO-UNDO INITIAL 0.
 
@@ -465,7 +463,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
              * If an XREF file was not found, then follow the traditional means
              * of creating the file during compilation of the source code.
              */
-            xrefFile = SESSION:TEMP-DIR + testConfig:ResultsFileName + ".xref".
+            xrefFile = SESSION:TEMP-DIR + GUID + ".xref".
             COMPILE VALUE(testCase) XREF-XML VALUE(xrefFile).
         END. /* COMPILE */
         
@@ -781,6 +779,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
         DEFINE VARIABLE testSuiteCount  AS INTEGER              NO-UNDO INIT 0.
         DEFINE VARIABLE annotationName  AS CHARACTER            NO-UNDO.
         DEFINE VARIABLE ignoreTest      AS LOGICAL              NO-UNDO.
+        {&_proparse_ prolint-nowarn(varusage)}
         DEFINE VARIABLE testResult      AS TestTestResult       NO-UNDO.
         DEFINE VARIABLE typeInfo        AS TypeInfo             NO-UNDO.
         DEFINE VARIABLE isTestClass     AS LOGICAL              NO-UNDO INITIAL NO.
@@ -1070,6 +1069,7 @@ CLASS OpenEdge.ABLUnit.Runner.ABLRunner IMPLEMENTS ISupportLogging:
             // Check whether the suite proc is ignored
             IF ignoreTest THEN
             DO:
+                {&_proparse_ prolint-nowarn(varusage)}
                 DEFINE VARIABLE testResult AS TestTestResult NO-UNDO.
                 UpdateIgnoreDetails(testResult, testProcSuite, testProcedureName, testModel:Summary).
             END.

@@ -148,6 +148,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         bucket's size. 
         
         @param integer The new size (number of extents) for the array */
+    {&_proparse_ prolint-nowarn(varusage)}
     method public void ResizeArray(input piSize as integer):
         //this-object:Resize(piSize).    
     end method.
@@ -157,6 +158,7 @@ class OpenEdge.Core.ByteBucket implements ISupportInitialize:
         bucket's size in bytes. 
         
         @param integer The new size (number of records) for the internal structure */
+    {&_proparse_ prolint-nowarn(varusage)}    
     method public void Resize(input piSize as integer):        
     end method.
     

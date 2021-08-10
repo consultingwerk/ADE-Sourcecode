@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c)  2013, 2016, 2018 by Progress Software Corporation. All rights reserved.
+Copyright (c)  2013, 2016, 2018, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /** ------------------------------------------------------------------------
     File        : TimeStamp
@@ -232,7 +232,6 @@ class OpenEdge.Core.TimeStamp serializable :
             initial ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].
         
         define variable tUTCValue as datetime-tz no-undo.
-        define variable iSecondTime as integer no-undo.
         
         if timezone(ptValue) eq 0 then
             assign tUTCValue = ptValue.
@@ -286,5 +285,18 @@ class OpenEdge.Core.TimeStamp serializable :
     method public integer ToTime():
         return miTime.
     end method.
+    
+
+    /* Returns the time interval between unix epoch and this date
+            where unix epoch is an ABL date constructed as
+                datetime(1,1,1970,0,0,0,0)
+       
+       @return int64 The seconds since the unix epoch  */
+    method public int64 SecondsSinceUnixEpoch():
+        var datetime-tz epoch = datetime(1,1,1970,0,0,0,0).
+        var datetime-tz thisDate = ToDateTimeTz().
+        return interval(thisDate, epoch, "seconds") .
+    end method.
+    
     
 end class.

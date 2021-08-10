@@ -1,14 +1,14 @@
 /************************************************
-Copyright (c) 2014-2019 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2014-2019, 2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : ABLSocketLibrary
-    Purpose     : 
-    Syntax      : 
-    Description : 
+    Purpose     :
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Mon Jan 20 09:46:05 EST 2014
-    Notes       : 
+    Notes       :
 ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -17,8 +17,8 @@ using OpenEdge.Core.ByteBucket.
 using OpenEdge.Core.IAdaptable.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
-using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Logging.LoggerBuilder.
+using OpenEdge.Logging.LogLevelEnum.
 using OpenEdge.Net.HTTP.ClientOptions.
 using OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
@@ -30,7 +30,9 @@ using OpenEdge.Net.HTTP.IHttpClientLibrary.
 using OpenEdge.Net.HTTP.IHttpMessageWriter.
 using OpenEdge.Net.HTTP.IHttpRequest.
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.ISecureConnectionAuthenticatedRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
+using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 using OpenEdge.Net.HTTP.MethodEnum.
 using OpenEdge.Net.HTTP.RequestBuilder.
 using OpenEdge.Net.HTTP.ResponseBuilder.
@@ -40,11 +42,11 @@ using OpenEdge.Net.ServerConnection.ClientSocketConnectionParameters.
 using OpenEdge.Net.ServerConnection.SocketReadEventArgs.
 using OpenEdge.Net.URI.
 using OpenEdge.Net.UriSchemeEnum.
+using OpenEdge.Security.ICredentials.
 using Progress.Lang.AppError.
 using Progress.Lang.Error.
-using OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary.
 
-class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary 
+class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         implements IHttpClientLibrary, ISupportLogging:
     
     // A reference to the Logger in use by an implementer
@@ -66,6 +68,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     define private property miErrorNo_RequestReadTimeout    as integer initial 104 no-undo get.
     define private property miErrorNo_RequestReadTerminated as integer initial 105 no-undo get.
     define private property miErrorNo_BadRequest            as integer initial 106 no-undo get.
+    define private property miErrorNo_MissingTlsCredentials as integer initial 107 no-undo get.
     
     /** (mandatory) A free-text name for this library. Used for the USER-AGENT
         string. */
@@ -78,7 +81,10 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     /** Miscellanous options (like timeouts) for this client. May be used to set underlying timeouts */
     define public property Options as ClientOptions no-undo get. private set.
     
+    /** The physical socket used to connect to the server */
     define private variable moSocketLib as ClientSocket no-undo.
+    
+    /** Parameters for the connection */
     define private variable moSocketConnectionParam as ClientSocketConnectionParameters no-undo.
     
     /* stateful variables used by the callbacks */
@@ -98,9 +104,9 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                                         input poSocket as ClientSocket,
                                         input poSocketConnectionParams as ClientSocketConnectionParameters):
         this-object(pcLibraryName,
-                    pcLibraryVersion, 
-                    poSocket, 
-                    poSocketConnectionParams, 
+                    pcLibraryVersion,
+                    poSocket,
+                    poSocketConnectionParams,
                     new ClientOptions()).
     end constructor.
     
@@ -134,11 +140,11 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     destructor public ABLSocketLibrary():
         assign moSocketLib = ?
                moSocketConnectionParam = ?.
-    end destructor.    
+    end destructor.
     
     /** Event handler for dealing with read timeouts received from the ClientSocket
         
-        @param ClientSocket The socket object receiving the response 
+        @param ClientSocket The socket object receiving the response
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void ReadTimeoutHandler(input poSender as ClientSocket,
                                           input poEventArgs as SocketReadEventArgs):
@@ -149,7 +155,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     
     /** Event handler for dealing with ReadTerminated events received from the ClientSocket
         
-        @param ClientSocket The socket object receiving the response 
+        @param ClientSocket The socket object receiving the response
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void ReadTerminatedHandler(input poSender as ClientSocket,
                                              input poEventArgs as SocketReadEventArgs):
@@ -159,14 +165,14 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     
     /** Event handler for dealing with data received from the ClientSocket
         
-        @param ClientSocket The socket object receiving the response 
+        @param ClientSocket The socket object receiving the response
         @param SocketReadEventArgs Arguments pertaining to the data received */
     method public void DataReceivedHandler(input poSender as ClientSocket,
                                            input poEventArgs as SocketReadEventArgs):
         define variable cChunkFile as character no-undo.
         define variable writeBytes as int64 no-undo.
         
-        if Logger:LogLevel ge LogLevelEnum:DEBUG then 
+        if Logger:LogLevel ge LogLevelEnum:DEBUG then
         do:
             assign miChunkNumber = miChunkNumber + 1
                    // we don't want to write less than 0 or more than the total bytes in the Data member
@@ -183,7 +189,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                 
                 output to value(cChunkFile).
                 put unformatted
-                    '================================':u skip 
+                    '================================':u skip
                     'NEW CHUNK (':u poEventArgs:Data:Size ')':u skip
                     'BYTES READ (':u poEventArgs:BytesRead ')':u skip
                     '================================':u skip.
@@ -245,7 +251,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if (200 <= connectResponse:StatusCode and connectResponse:StatusCode < 300) then
         do on error undo, throw:
             // On success, we need to tell the socket connection to upgrade to TLS
-            moSocketLib:StartTls(baseRequest:URI:Host). 
+            moSocketLib:StartTls(baseRequest:URI:Host).
         
             catch sockErr as Progress.Lang.Error:
                 Logger:Error(substitute('Unable to create HTTP tunnel to &1', baseRequest:URI:ToString()),
@@ -267,8 +273,8 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
        
        @param ClientSocket The server/socket on which to make the request
        @param HttpRequest The request to execute
-       @param HttpResponse The response from the server for that request    */    
-    method protected void MakeSyncRequest(input pServer as ClientSocket, 
+       @param HttpResponse The response from the server for that request    */
+    method protected void MakeSyncRequest(input pServer as ClientSocket,
                                           input pRequest as IHttpRequest,
                                           input pResponse as IHttpResponse ):
         define variable oMessageBody as ByteBucket no-undo.
@@ -294,7 +300,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         if Logger:LogLevel ge LogLevelEnum:DEBUG then
         do:
             Logger:Debug(substitute('REQUEST: FILE= &1':u, session:temp-dir + 'request-raw.txt':u)).
-            copy-lob from oMessageBody:GetBytes():Value 
+            copy-lob from oMessageBody:GetBytes():Value
                      to   file session:temp-dir + 'request-raw.txt':u.
             
             Logger:Debug(substitute('RESPONSE: FILE= &1':u, session:temp-dir + 'response-data-received.txt':u)).
@@ -310,7 +316,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         do on stop undo, return error new AppError(substitute('Request write timeout for server &1 on port &2 ',
                                     moSocketConnectionParam:URI:Host,
                                     moSocketConnectionParam:URI:Port), miErrorNo_RequestWriteTimeout)
-           stop-after dTimeout: 
+           stop-after dTimeout:
             pServer:WriteData(oMessageBody:GetBytes()).
         end.
         
@@ -323,7 +329,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         moResponseWriter:Write(pRequest).
         
         /* the socket object works on callbacks. these will
-           populate the HttpResponse object 
+           populate the HttpResponse object
            
            Do NOT use the STOP-AFTER modifier; let the socket's wait-for deal
            with its own timeouts */
@@ -355,7 +361,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         moResponseWriter:Close().
         
         // HEAD requests have no bodies, so don't bother
-        if pRequest:Method ne MethodEnum:HEAD:ToString() then 
+        if pRequest:Method ne MethodEnum:HEAD:ToString() then
             ExtractEntity(pResponse, oMessageBody).
         
         finally:
@@ -367,17 +373,19 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         Timeouts:
         - the connect and write-data calls are controlled by STOP-AFTER
-        - the read-data calls (WaitForResponse) are handled by the socket 
+        - the read-data calls (WaitForResponse) are handled by the socket
         
         @param HttpRequest The request to execute
-        @param HttpResponse The response from the server for that request. */    
+        @param HttpResponse The response from the server for that request. */
     method public void Execute(input poRequest as IHttpRequest,
-                               input poResponse as IHttpResponse):        
+                               input poResponse as IHttpResponse):
         define variable dTimeout as decimal no-undo.
         define variable cUserAgent as character no-undo.
         define variable oProxyRequest as ISupportProxy no-undo.
         define variable startTime as datetime-tz no-undo.
         define variable proxyURI as URI no-undo.
+        define variable scar as ISecureConnectionAuthenticatedRequest no-undo.
+        define variable creds as ICredentials no-undo.
         
         Assert:NotNull(poRequest,  'Http request').
         Assert:NotNull(poResponse, 'Http response').
@@ -405,11 +413,51 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
             assign oProxyRequest = cast(poRequest, ISupportProxy).
         
         if     valid-object(oProxyRequest)
-           and valid-object(oProxyRequest:ProxyURI) 
+           and valid-object(oProxyRequest:ProxyURI)
         then
             assign moSocketConnectionParam:URI = oProxyRequest:ProxyURI.
         else
             assign moSocketConnectionParam:URI = poRequest:URI.
+        
+        // Check for client credentials
+        if type-of(poRequest, IAdaptable) then
+            assign scar = cast(cast(poRequest, IAdaptable):GetAdapter(get-class(ISecureConnectionAuthenticatedRequest)),
+                               ISecureConnectionAuthenticatedRequest).
+        else
+        if type-of(poRequest, ISecureConnectionAuthenticatedRequest) then
+            assign scar = cast(poRequest, ISecureConnectionAuthenticatedRequest).
+        
+        // If the request implements ISecureConnectionAuthenticatedRequest and no credentials are available,
+        // an AppError must be thrown.
+        if valid-object(scar) then
+        do:
+            assign creds = scar:GetCredentials(moSocketConnectionParam).
+            if not valid-object(creds) then
+                undo, throw new AppError(substitute('Credentials not provided for server &1 on port &2 ',
+                                                     moSocketConnectionParam:URI:Host,
+                                                     moSocketConnectionParam:URI:Port),
+                                         miErrorNo_MissingTlsCredentials).
+            
+            assign moSocketConnectionParam:ClientCredentials = creds.
+            
+            // Ensure that SSL sessions are *not* reused. 
+            // This works around https://progresssoftware.atlassian.net/browse/OCTA-34701
+            if moSocketConnectionParam:ReuseSession then
+            do:
+                Logger:Warn(substitute('ReuseSession is TRUE for the connection to &1:&2. Setting to FALSE For TLS client authentication to avoid accidental credential reuse', 
+                                        moSocketConnectionParam:URI:Host,
+                                        moSocketConnectionParam:URI:Port)).
+                
+                // Force the socket to never reuse SSL sessions because each connection must have its own creds
+                assign moSocketConnectionParam:ReuseSession = false.
+                
+                // If the socket exists, then there has been at least one connection
+                // made with it, and so the existing SSL session will be reused. Destroy 
+                // the server handle to make sure that we don't reuse that session.
+                if valid-object(moSocketLib:Server) then
+                    moSocketLib:DestroyServer().
+            end.
+        end.
         
         /* Steady! */
         assign startTime = now.
@@ -435,8 +483,8 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         do:
             CreateTunnel(oProxyRequest).
             
-            // Don't use the proxy URI to build the request for tunnels. The ProxyURI is used to 
-            // determine some stuff; from here on, we need to treat the request as 
+            // Don't use the proxy URI to build the request for tunnels. The ProxyURI is used to
+            // determine some stuff; from here on, we need to treat the request as
             if poRequest:URI:Scheme eq string(UriSchemeEnum:https) then
                 assign proxyURI               = oProxyRequest:ProxyURI
                        oProxyRequest:ProxyURI = ?
@@ -445,15 +493,19 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         
         MakeSyncRequest(moSocketLib, poRequest, poResponse).
         
-        // Reset the ProxyURI for tunnelled requests 
+        // Reset the ProxyURI for tunnelled requests
         if valid-object(proxyURI) then
             assign oProxyRequest:ProxyURI = proxyURI.
         
         finally:
-            // Only disconnect here because we want to keep the connect open for 
+            // Only disconnect here because we want to keep the connect open for
             // HTTPS tunnels
             if valid-object(moSocketLib) then
                 moSocketLib:Disconnect().
+            
+            // do not reuse the credentials - each request must provie its own
+            if valid-object(moSocketConnectionParam) then
+                assign moSocketConnectionParam:ClientCredentials = ?.
         end finally.
     end method.
     
@@ -484,7 +536,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
     end method.
 
     /** Constructs the Entity object for the response, based on the
-        ContentType 
+        ContentType
         
         @param IHttpResponse The response into which to add the entity representation of the body
         @param ByteBucket The message body in plain-text form */
@@ -493,7 +545,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
         define variable oEntityWriter as MessageWriter no-undo.
         define variable iBytesWritten as int64 no-undo.
         
-        case true:  
+        case true:
             /* populate the entity if there's content (signalled by content-type) */
             when poResponse:ContentType ne '':u then
             do:
@@ -506,7 +558,7 @@ class OpenEdge.Net.HTTP.Lib.ABLSockets.ABLSocketLibrary
                 oEntityWriter:Close().
                 
                 if iBytesWritten ne poResponse:ContentLength then
-                    Logger:Warn(substitute('EXTRACT ENTITY: WARNING: ContentLength = &1 ; bytes written = &2':u, poResponse:ContentLength, iBytesWritten)). 
+                    Logger:Warn(substitute('EXTRACT ENTITY: WARNING: ContentLength = &1 ; bytes written = &2':u, poResponse:ContentLength, iBytesWritten)).
                 
                 /* get the nicely-formatted/parsed body and add it to the response */
                 assign poResponse:Entity        = oEntityWriter:Entity

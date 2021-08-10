@@ -30,14 +30,17 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     /* Holds the class that does loads from JSON into the registry */
     define static public property Loader as ServiceRegistryLoader no-undo
         get():
-            // Use a CCS Service Manager if extant, and let it control this object's lifecycle
-            if valid-object(Ccs.Common.Application:ServiceManager) then
-                assign ServiceRegistry:Loader = cast(Ccs.Common.Application:ServiceManager
-                                                            :getService(get-class(ServiceRegistryLoader)),
-                                                       ServiceRegistryLoader).
-            
             if not valid-object(ServiceRegistry:Loader) then
-                assign ServiceRegistry:Loader= new ServiceRegistryLoader(ServiceRegistry:Registry).
+            do:
+                // Use a CCS Service Manager if extant, and let it control this object's lifecycle
+                if valid-object(Ccs.Common.Application:ServiceManager) then
+                    assign ServiceRegistry:Loader = cast(Ccs.Common.Application:ServiceManager
+                                                                :getService(get-class(ServiceRegistryLoader)),
+                                                           ServiceRegistryLoader).
+                
+                if not valid-object(ServiceRegistry:Loader) then
+                    assign ServiceRegistry:Loader= new ServiceRegistryLoader(ServiceRegistry:Registry).
+            end.
             
             return ServiceRegistry:Loader.
         end get.
@@ -46,14 +49,17 @@ class OpenEdge.Web.DataObject.ServiceRegistry abstract:
     // Holds the class that does the actual work/maintains the actual registry
     define static public property Registry as IServiceRegistry no-undo
         get():
-            // Use a CCS Service Manager if extant, and let it control this object's lifecycle
-            if valid-object(Ccs.Common.Application:ServiceManager) then
-                assign ServiceRegistry:Registry = cast(Ccs.Common.Application:ServiceManager
-                                                            :getService(get-class(IServiceRegistry)),
-                                                       IServiceRegistry).
-            
             if not valid-object(ServiceRegistry:Registry) then
-                assign ServiceRegistry:Registry = new ServiceRegistryImpl().
+            do:
+                // Use a CCS Service Manager if extant, and let it control this object's lifecycle
+                if valid-object(Ccs.Common.Application:ServiceManager) then
+                    assign ServiceRegistry:Registry = cast(Ccs.Common.Application:ServiceManager
+                                                                :getService(get-class(IServiceRegistry)),
+                                                           IServiceRegistry).
+                
+                if not valid-object(ServiceRegistry:Registry) then
+                    assign ServiceRegistry:Registry = new ServiceRegistryImpl().
+            end.
             
             return ServiceRegistry:Registry.
         end get.

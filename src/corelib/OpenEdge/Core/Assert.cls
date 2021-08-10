@@ -37,6 +37,7 @@ class OpenEdge.Core.Assert:
         end.        
     end method.
     
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method public static void Equals(input a as recid, input b as recid):
         define variable failMessage as character no-undo.
         if not a = b then
@@ -162,6 +163,7 @@ class OpenEdge.Core.Assert:
         AssertObject:NotEqual(a, b).
     end method.
 
+    {&_proparse_ prolint-nowarn(recidkeyword)}
     method public static void NotEqual(input a as recid, input b as recid):
         if a eq b then
             return error new AssertionFailedError(substitute('&1 and &2 are equal', a, b), 0).
@@ -359,7 +361,6 @@ class OpenEdge.Core.Assert:
     end method.
     
     method public static void NotNullOrEmpty(input pcArgument as character extent, pcName as character):
-        define variable cLongCharArg as longchar no-undo.
 
         if extent(pcArgument) eq ? then
             undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).
@@ -370,7 +371,6 @@ class OpenEdge.Core.Assert:
     end method.
 
     method public static void NotNull(input pcArgument as character extent, pcName as character):
-        define variable cLongCharArg as longchar no-undo.
         
         if extent(pcArgument) eq ? then
             undo, throw new AssertionFailedError(substitute('&1 cannot be null', pcName), 0).

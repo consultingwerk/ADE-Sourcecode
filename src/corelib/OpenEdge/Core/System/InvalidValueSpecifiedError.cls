@@ -16,7 +16,7 @@ using OpenEdge.Core.System.ApplicationError.
 using OpenEdge.Core.System.InvalidValueSpecifiedError.
 using Progress.Lang.Error.
 
-class OpenEdge.Core.System.InvalidValueSpecifiedError inherits ApplicationError: 
+class OpenEdge.Core.System.InvalidValueSpecifiedError inherits ApplicationError serializable: 
     
     constructor static InvalidValueSpecifiedError():
         ApplicationError:AddError(

@@ -303,7 +303,7 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         @param character The filter type name 
         @return Progress.Lang.Class The type of the filter writer. */
     method protected class Progress.Lang.Class GetFilterType(input filterTypeName as character):
-        define variable filterType as class Progress.Lang.Class no-undo.
+        define variable localFilterType as class Progress.Lang.Class no-undo.
         define variable filterRegistry as BuilderRegistry no-undo.
         
         Assert:NotNull(filterTypeName, 'Filter type name').
@@ -315,12 +315,12 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
         
         Assert:IsType(filterRegistry:ValueType, get-class(ILoggerFilter)).
         
-        assign filterType = filterRegistry:Get(filterTypeName).
+        assign localFilterType = filterRegistry:Get(filterTypeName).
         
-        if valid-object(filterType) then
-            Assert:IsType(filterType, get-class(ILoggerFilter)).
+        if valid-object(localFilterType) then
+            Assert:IsType(localFilterType, get-class(ILoggerFilter)).
         
-        return filterType.
+        return localFilterType.
     end method.
     
     /* Creates the instance.
@@ -328,15 +328,14 @@ class OpenEdge.Logging.Filter.LogFilterBuilder inherits ConfigBuilder:
        @return ILoggerFilter A filter instance  */
     method protected ILoggerFilter NewFilter():
         define variable logFilter as ILoggerFilter no-undo.
-        define variable filterType as class Progress.Lang.Class no-undo.
+        define variable localFilterType as class Progress.Lang.Class no-undo.
         define variable formatString as character no-undo.
-        define variable filterOptions as JsonObject no-undo.
         
-        assign filterType = GetFilterType(this-object:FilterType).
-        if not valid-object(filterType) then
+        assign localFilterType = GetFilterType(this-object:FilterType).
+        if not valid-object(localFilterType) then
             return logFilter.
         
-        logFilter = dynamic-new string(filterType:TypeName) ().
+        logFilter = dynamic-new string(localFilterType:TypeName) ().
         
         if type-of(logFilter, ISupportFormatting) then
         do:

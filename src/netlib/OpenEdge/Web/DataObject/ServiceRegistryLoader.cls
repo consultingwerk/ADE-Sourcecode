@@ -364,6 +364,10 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
         define variable hdlParent as handle no-undo.
         define variable hdlRelation as handle no-undo.
         define variable delim as character no-undo.
+        define variable isNested as logical no-undo.
+        define variable isReposition as logical no-undo.
+        define variable isActive as logical no-undo.
+        define variable isRecursive as logical no-undo.
         
         Assert:NotNull(pDataset, 'Dataset handle').
         Assert:NotNull(pRelations, 'Dataset relations').
@@ -433,19 +437,35 @@ class OpenEdge.Web.DataObject.ServiceRegistryLoader implements ISupportLogging:
                 next.
             end.
             
-            assign hdlRelation = pDataset:add-relation(hdlParent, hdlChild, fldPairs).
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:nested), JsonDataType:BOOLEAN) then
+                assign isNested = relData:GetLogical(string(ServiceMappingFileSchemaEnum:nested)).
+            else
+                assign isNested = ?.
+            
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:active), JsonDataType:BOOLEAN) then
+                assign isActive = relData:GetLogical(string(ServiceMappingFileSchemaEnum:active)).
+            else
+                assign isActive = ?. 
+            
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:reposition), JsonDataType:BOOLEAN) then
+                assign isReposition = relData:GetLogical(string(ServiceMappingFileSchemaEnum:reposition)).
+            else
+                assign isReposition = ?.
+            
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:recursive), JsonDataType:BOOLEAN) then
+                assign isRecursive = relData:GetLogical(string(ServiceMappingFileSchemaEnum:recursive)).
+            else
+                assign isRecursive = ?.
+            
+            assign hdlRelation = pDataset:add-relation(hdlParent, hdlChild, fldPairs,
+                                                       isReposition, isNested, isActive, isRecursive).
             
             // add optional values
             if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:name), JsonDataType:STRING) then
                 assign hdlRelation:name = relData:GetCharacter(string(ServiceMappingFileSchemaEnum:name)).
-            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:nested), JsonDataType:BOOLEAN) then
-                assign hdlRelation:nested = relData:GetLogical(string(ServiceMappingFileSchemaEnum:nested)).
-            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:active), JsonDataType:BOOLEAN) then
-                assign hdlRelation:active = relData:GetLogical(string(ServiceMappingFileSchemaEnum:active)).
-            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:recursive), JsonDataType:BOOLEAN) then
-                assign hdlRelation:recursive = relData:GetLogical(string(ServiceMappingFileSchemaEnum:recursive)).
-            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:reposition), JsonDataType:BOOLEAN) then
-                assign hdlRelation:reposition = relData:GetLogical(string(ServiceMappingFileSchemaEnum:reposition)).
+            
+            if JsonPropertyHelper:HasTypedProperty(relData, string(ServiceMappingFileSchemaEnum:foreignKeyHidden), JsonDataType:BOOLEAN) then
+                assign hdlRelation:foreign-key-hidden = relData:GetLogical(string(ServiceMappingFileSchemaEnum:foreignKeyHidden)).
             
             catch e as Progress.Lang.Error :
                 Logger:Warn(substitute('Unable to add data-relation for dataset &1', pDataset:name),

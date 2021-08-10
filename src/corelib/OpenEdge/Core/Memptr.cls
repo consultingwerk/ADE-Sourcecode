@@ -278,7 +278,6 @@ class OpenEdge.Core.Memptr implements IMemptrHolder:
         @param int64 The size of the memptr represented by the pointer value. */
     method public void PutBytes(input piPointerValue as int64,
                                 input piSize as int64):
-        define variable iLoop as integer no-undo.
         define variable mTemp as memptr no-undo.
         
         Assert:IsZeroOrPositive(piPointerValue, 'Pointer').

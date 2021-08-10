@@ -5,7 +5,7 @@ Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiari
     File        : FilterParserBuilder
     Purpose     : Contains a registry of objects used to parse JSON or other (typically)
                   string-based filters and create strongly-typed objects
-    Description : 
+    Description :
     Author(s)   : pjudge
     Created     : 2018-08-05
   ----------------------------------------------------------------------*/
@@ -32,7 +32,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
     define public property Parser as FilterParser no-undo
         get():
             return BuildParser().
-        end get. 
+        end get.
     
     /** Registry for mapping build types to their implementations */
     define static public property Registry as BuilderRegistry no-undo
@@ -55,7 +55,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
         Assert:NotNullOrEmpty(pPattern, 'Filter pattern').
         
         assign this-object:FilterPattern = pPattern.
-    end method.
+    end constructor.
     
     /* Returns a parser builder for a give filter pattern.
        
@@ -67,7 +67,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
         
         Assert:NotNull(pPattern, 'Filter data').
         
-        assign builderType = FilterParserBuilder:Registry:Get(get-class(FilterParserBuilder):TypeName).        
+        assign builderType = FilterParserBuilder:Registry:Get(get-class(FilterParserBuilder):TypeName).
         if valid-object(builderType) then
         do:
             Assert:IsType(builderType, get-class(FilterParserBuilder)).
@@ -84,7 +84,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
     end method.
     
     /* Builds a parser for a JSON filter. This array version loops through the
-       array and passes any OBJECT or STRING entries to the relevant Build() 
+       array and passes any OBJECT or STRING entries to the relevant Build()
        method.
        
        @param  JsonArray The entire filter
@@ -115,7 +115,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
     
     /* Builds a parser for a JSON filter
     
-       Specialised JSON filter parsers are used. To figure out which on to 
+       Specialised JSON filter parsers are used. To figure out which on to
        use
            1. Look for a string property called mappingType and use that property value
            2. Loop for a property in the JSON that matches one of the
@@ -150,7 +150,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
         if extent(propNames) eq ? then
             return builder.
         
-        // 2. Loop through the list of properties, by property name (not value) 
+        // 2. Loop through the list of properties, by property name (not value)
         do keyCnt = 1 to keyMax
         while not valid-object(builder):
             assign builder = FilterParserBuilder:Build(string(propNames[keyCnt])).
@@ -166,7 +166,7 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
        @return FilterParser A usable parser, if one exists. May return NULL */
     method protected FilterParser BuildParser():
         define variable parserType as class Progress.Lang.Class no-undo.
-        define variable parser as FilterParser no-undo.
+        define variable fp as FilterParser no-undo.
         define variable filterTable as character extent no-undo.
         
         assign parserType = FilterParserRegistry:Registry:Get(this-object:FilterPattern).
@@ -181,12 +181,12 @@ class OpenEdge.BusinessLogic.Filter.FilterParserBuilder inherits ConfigBuilder:
             assign extent(filterTable) = 1
                    filterTable[1]      = '':u
                    .
-        parser = dynamic-new string(parserType:TypeName) (filterTable).
+        fp = dynamic-new string(parserType:TypeName) (filterTable).
         
-        if type-of(parser, ISupportInitialize) then
-            cast(parser, ISupportInitialize):Initialize().
+        if type-of(fp, ISupportInitialize) then
+            cast(fp, ISupportInitialize):Initialize().
         
-        return parser.
+        return fp.
     end method.
     
     /* Sets the table for which this filter applies, if any

@@ -16,7 +16,7 @@ using OpenEdge.Core.System.InvocationError.
 using OpenEdge.Core.System.ApplicationError.
 using Progress.Lang.Error.
 
-class OpenEdge.Core.System.InvocationError inherits ApplicationError: 
+class OpenEdge.Core.System.InvocationError inherits ApplicationError serializable: 
     constructor static InvocationError():
         ApplicationError:AddError(
             get-class(InvocationError),

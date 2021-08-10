@@ -58,7 +58,15 @@ class OpenEdge.Web.DataObject.ServiceRegistryImpl implements ISupportLogging, IS
         .
     
     // A reference to the Logger in use by an implementer
-    define public property Logger as ILogWriter no-undo get. set.
+    define public property Logger as ILogWriter no-undo
+        get():
+            if not valid-object(this-object:Logger) then
+                assign // Note that it's NOT the ServiceRegistryImpl type
+                       this-object:Logger = LoggerBuilder:GetLogger(get-class(IServiceRegistry)).
+            
+            return this-object:Logger.
+        end get.
+        set.
     
     /* Default constructor */
     constructor public ServiceRegistryImpl():

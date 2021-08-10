@@ -12,7 +12,7 @@ Copyright (c) 2014, 2017 by Progress Software Corporation. All rights reserved.
  ----------------------------------------------------------------------*/
 BLOCK-LEVEL ON ERROR UNDO, THROW.
 
-CLASS OpenEdge.Core.AssertionFailedError INHERITS Progress.Lang.AppError: 
+CLASS OpenEdge.Core.AssertionFailedError INHERITS Progress.Lang.AppError serializable: 
     DEFINE VARIABLE exceptionMessage AS CHARACTER NO-UNDO.    
 		
     CONSTRUCTOR PUBLIC AssertionFailedError (INPUT failMessage AS CHARACTER):

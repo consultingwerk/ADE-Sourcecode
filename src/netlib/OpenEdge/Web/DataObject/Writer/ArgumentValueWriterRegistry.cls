@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016, 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2018-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : ArgumentValueWriterRegistry
@@ -64,6 +64,7 @@ using OpenEdge.Web.DataObject.Writer.ObjectArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.ObjectValueWriter.
 using OpenEdge.Web.DataObject.Writer.RowidArrayValueWriter.
 using OpenEdge.Web.DataObject.Writer.StringValueWriter.
+using OpenEdge.Web.DataObject.Writer.UpdateDataRequestValueWriter.
 using Progress.Json.ObjectModel.JsonArray.
 using Progress.Json.ObjectModel.JsonObject.
 
@@ -123,6 +124,7 @@ class OpenEdge.Web.DataObject.Writer.ArgumentValueWriterRegistry:
         
         // external-to-netlib writers or keys (Business Logic or other)
         poRegistry:Put('Ccs.BusinessLogic.IGetDataRequest':u,       get-class(DataRequestValueWriter)).
+        poRegistry:Put('Ccs.BusinessLogic.IUpdateDataRequest':u,    get-class(UpdateDataRequestValueWriter)).
     end method.
     
 end class. 

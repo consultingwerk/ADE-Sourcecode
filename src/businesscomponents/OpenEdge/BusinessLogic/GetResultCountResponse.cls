@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018, 2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
  /*------------------------------------------------------------------------
     File        : GetResultCountResponse
@@ -14,15 +14,24 @@ block-level on error undo, throw.
 
 using Ccs.BusinessLogic.IGetResultCountResponse.
 using Ccs.BusinessLogic.IGetTableResultCountResponse.
+using OpenEdge.BusinessLogic.GetTableResultCountResponse.
+using OpenEdge.BusinessLogic.IO.JsonPropertyNameEnum.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Json.IJsonSerializer.
+using OpenEdge.Core.Json.JsonConverter.
+using OpenEdge.Core.Json.JsonPropertyHelper.
+using OpenEdge.Core.Json.JsonSerializer.
+using Progress.Json.ObjectModel.JsonArray.
+using Progress.Json.ObjectModel.JsonConstruct.
+using Progress.Json.ObjectModel.JsonDataType.
+using Progress.Json.ObjectModel.JsonObject.
 
-class OpenEdge.BusinessLogic.GetResultCountResponse implements IGetResultCountResponse:
-    
+class OpenEdge.BusinessLogic.GetResultCountResponse implements IGetResultCountResponse, IJsonSerializer:
     /* Returns the result counts per requested table */
     define public property ResultCounts as IGetTableResultCountResponse extent no-undo get. set. 
     
     /* default constructor */
-    constructor public GetResultCountResponse (  ):
+    constructor public GetResultCountResponse ():
         super ().
     end constructor.
     
@@ -45,5 +54,50 @@ class OpenEdge.BusinessLogic.GetResultCountResponse implements IGetResultCountRe
         Assert:HasDeterminateExtent(pCounts, 'Result counts').
         assign this-object:ResultCounts = pCounts.
     end constructor.
+    
+    /* Deserializes this object from JSON.
+       
+       @param JsonConstruct This object represented as JSON */
+    method public void FromJson(input pJson as JsonConstruct):
+        define variable data as JsonObject no-undo.
+        define variable ja as JsonArray no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
+        
+        if not valid-object(pJson) 
+        or not type-of(pJson, JsonObject)
+        then
+            return.
+        
+        assign data = cast(pJson, JsonObject).
+        
+        // process the responses array
+        if JsonPropertyHelper:HasTypedProperty(data, string(JsonPropertyNameEnum:resultCounts), JsonDataType:ARRAY) then
+        do:
+            assign ja     = data:GetJsonArray(string(JsonPropertyNameEnum:resultCounts))
+                   cnt    = ja:Length
+                   // reset
+                   extent(ResultCounts) = ?
+                   extent(ResultCounts) = cnt
+                   .
+            ARRAY-LOOP:
+            do loop = 1 to cnt:
+                if ja:GetType(loop) eq JsonDataType:OBJECT then
+                    assign this-object:ResultCounts[loop] = cast(JsonSerializer:ToAblObject(ja:GetJsonObject(loop),
+                                                                                            get-class(IGetTableResultCountResponse),
+                                                                                            get-class(GetTableResultCountResponse)),
+                                                                 IGetTableResultCountResponse).
+            end.
+        end.
+    end method.
+    
+    method public JsonConstruct ToJsonConstruct():
+        define variable responseData as JsonObject no-undo.
+        
+        assign responseData = new JsonObject().
+        responseData:Add(string(JsonPropertyNameEnum:resultCounts), JsonConverter:ToArray(ResultCounts)).
+        
+        return responseData.
+    end method.
     
 end class.

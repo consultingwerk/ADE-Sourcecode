@@ -8,7 +8,7 @@ Copyright (c) 2019 by Progress Software Corporation. All rights reserved.
     Description : 
     Author(s)   : pjudge
     Created     : 2019-03-21
-    Notes       : * Classes implementing this interface SHOULD have a default
+    Notes       : * Classes implementing this interface MUST have a default
                     public constructor for deserialisation purposes, since the
                     expectation is that the entire object's state is taken from
                     the input argument to the deserialization method

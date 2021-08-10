@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : MemptrArrayHolder
@@ -14,15 +14,30 @@ Copyright (c) 2016 by Progress Software Corporation and/or one of its subsidiari
 block-level on error undo, throw.
 
 using Ccs.Common.Support.IMemptrArrayHolder.
+using OpenEdge.Core.Assert.
 
 class OpenEdge.Core.MemptrArrayHolder implements IMemptrArrayHolder: 
-
-	define public property Value as memptr extent no-undo get. set. 
-		
-	constructor public MemptrArrayHolder (  ):
-		super ().
-	end constructor.
+    /* The value being held */
+    define public property Value as memptr extent no-undo get. set. 
     
+    /* Constructor.
+      
+       @param integer The size of the array. Must be >0 */
+    constructor public MemptrArrayHolder(input pSize as integer):
+        super ().
+        
+        Assert:IsPositive(pSize, 'Array size').
+        assign extent(this-object:Value) = pSize.
+    end constructor.
+    
+    /* Default Constructor */
+    constructor public MemptrArrayHolder (  ):
+        super ().
+    end constructor.
+    
+    /* Constructor
+       
+       @param memptr[] The Value array */
     constructor public MemptrArrayHolder(input pValue as memptr extent):
         this-object().
         assign this-object:Value = pValue.

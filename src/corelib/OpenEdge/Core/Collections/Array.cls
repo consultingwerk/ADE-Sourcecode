@@ -36,7 +36,7 @@ class OpenEdge.Core.Collections.Array serializable
         index idx1 as primary unique ObjIndex.
     
     /* The default length (#extents) of the underlying array. Defaults to 10 */
-    define public static variable DefaultArraySize as integer no-undo.
+    define public static property DefaultArraySize as integer no-undo get. set.
     
     /* Keep incrementally growing array length as new elements are added.
        

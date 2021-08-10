@@ -1,12 +1,12 @@
 /************************************************
-Copyright (c) 2015, 2017 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015, 2017, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : DefaultRequestBuilder
     Purpose     : 
     Syntax      : 
     Description : 
-    Author(s)   : pjudge
+    Author(s)   : pjudge, dugrau
     Created     : Thu Jan 15 12:16:45 EST 2015
     Notes       : 
   ----------------------------------------------------------------------*/
@@ -20,22 +20,26 @@ using OpenEdge.Net.HTTP.Filter.Auth.IAuthFilterEventHandler.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.IAuthenticatedRequest.
 using OpenEdge.Net.HTTP.IHttpRequest.
+using OpenEdge.Net.HTTP.ISecureConnectionAuthenticatedRequest.
 using OpenEdge.Net.HTTP.ISupportProxy.
 using OpenEdge.Net.HTTP.RequestBuilder.
+using OpenEdge.Net.ServerConnection.ISocketConnectionCredentialsHandler.
 using OpenEdge.Net.URI.
+using OpenEdge.Security.ICredentials.
 using Progress.Lang.Object.
 
 class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
+
     define override public property Request as IHttpRequest no-undo
         get():
             return NewRequest().
         end get.
     
-	constructor public DefaultRequestBuilder (input pcMethod as character,
+    constructor public DefaultRequestBuilder (input pcMethod as character,
                                               input poURI as URI):
         super(pcMethod, poURI).
-	end constructor.
-	
+    end constructor.
+    
     method private IHttpRequest NewRequest():
         define variable oRequest as IHttpRequest no-undo.
         define variable oRequestType as Progress.Lang.Class no-undo.
@@ -123,7 +127,27 @@ class OpenEdge.Net.HTTP.DefaultRequestBuilder inherits RequestBuilder:
             cast(oRequest, IAuthenticatedRequest):AddAuthenticationCallback(
                     cast(oListener, IAuthFilterEventHandler)).                       
         end.
-        
+
+        /* client credentials */
+        if HasOption('clientCredentials':u) then do:
+            /* Utilize the decorator which supports secure connections (read: TLS), and set the client credentials as given */
+            assign oRequest = RequestBuilder:DecorateRequest(get-class(ISecureConnectionAuthenticatedRequest), oRequest).
+            assign cast(oRequest, ISecureConnectionAuthenticatedRequest):Credentials = cast(GetOptionObjectValue('clientCredentials':u), ICredentials).
+        end.
+        else if can-find(first ConfigOption no-lock
+                         where ConfigOption.ParentBuilder eq integer(this-object)
+                           and ConfigOption.ConfigName begins 'clientCredentialsCallback':u) then do:
+            /* client credentials callback(s) */
+            assign oRequest = RequestBuilder:DecorateRequest(get-class(ISecureConnectionAuthenticatedRequest), oRequest).
+
+            /* Add each callback to the request. */
+            for each ConfigOption where
+                     ConfigOption.ParentBuilder eq integer(this-object) and
+                     ConfigOption.ConfigName begins 'clientCredentialsCallback':u:
+                cast(oRequest, ISecureConnectionAuthenticatedRequest):AddCallback(cast(ConfigOption.ObjectValue, ISocketConnectionCredentialsHandler)).
+            end.
+        end.
+
         return oRequest.
     end method.
     

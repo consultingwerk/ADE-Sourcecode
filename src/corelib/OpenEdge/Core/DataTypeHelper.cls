@@ -89,6 +89,7 @@ class OpenEdge.Core.DataTypeHelper:
             when DataTypeEnum:Integer    then assign cXmlSchemaType = 'int':u.
             when DataTypeEnum:Logical    then assign cXmlSchemaType = 'boolean':u.
             when DataTypeEnum:Raw        then assign cXmlSchemaType = 'base64Binary':u.
+            {&_proparse_ prolint-nowarn(recidkeyword)}
             when DataTypeEnum:Recid      then assign cXmlSchemaType = 'long':u.
             when DataTypeEnum:Rowid      then assign cXmlSchemaType = 'base64Binary':u.
             when DataTypeEnum:Handle     then assign cXmlSchemaType = 'long':u.

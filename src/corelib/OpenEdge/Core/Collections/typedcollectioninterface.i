@@ -94,7 +94,8 @@ interface {&FullType} inherits {&ParentCollectionType}:
     /* Returns the elements in this collection as an ABL array.
        
        @return {&CollectionType}[]  An ABL array of the objects in this collection */
-    method public class {&ValueType} extent To{&ValueType}Array ():
+    method public class {&ValueType} extent To{&ValueType}Array ().
+
     
 &if defined(NoEndInterface) eq 0 &then     
 end interface. 

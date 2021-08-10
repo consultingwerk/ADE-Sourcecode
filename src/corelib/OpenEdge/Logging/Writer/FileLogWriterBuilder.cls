@@ -69,9 +69,7 @@ class OpenEdge.Logging.Writer.FileLogWriterBuilder inherits LogFilterBuilder:
         define variable filterType as class Progress.Lang.Class no-undo.
         define variable fileStream as FileOutputStream no-undo.
         define variable appendToFile as logical no-undo.
-        define variable logLevel as LogLevelEnum no-undo.
         define variable logfileName as character no-undo.
-        define variable filterOptions as JsonObject no-undo.
         define variable chrLoop as integer no-undo.
         define variable chrMax as integer no-undo.
         define variable chrStart as integer no-undo.

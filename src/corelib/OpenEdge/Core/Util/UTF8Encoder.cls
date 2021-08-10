@@ -1,15 +1,15 @@
 /************************************************
-Copyright (c) 2020 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2020-2021 by Progress Software Corporation. All rights reserved.
+*************************************************/
 /*------------------------------------------------------------------------
     File        : UTF8Encoder
     Purpose     : Encodes UTF-8 strings, characters and values to and from Unicode codepoints
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : 2020-03-02
     Notes       : * Ranges and algorithms taken from https://en.wikipedia.org/wiki/UTF-8#Description and
-                    https://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8  
+                    https://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
                     
                   * Escape sequences default to U+ if none are specified
                   * Escape sequences may contain a single substitution parameter, "&1", which
@@ -25,8 +25,8 @@ class OpenEdge.Core.Util.UTF8Encoder:
        the escape sequence/mask given.
        
        @param  longchar  The string to encode.
-       @param  character The escape sequence, by default U+ but for JSON may need to be \u . 
-                         May include &1 for more complex sequences (like Swift's \u{&1} )  
+       @param  character The escape sequence, by default U+ but for JSON may need to be \u .
+                         May include &1 for more complex sequences (like Swift's \u{&1} )
        @return longchar The encoded string */
     method static public longchar Encode(input pString as longchar,
                                          input pEscapeSeq as character):
@@ -36,9 +36,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         define variable memData as memptr no-undo.
         define variable utf8Codepoint as integer no-undo.
         define variable unicodeCodePt as integer no-undo.
-        define variable numBytes as integer no-undo.
         define variable rawCodepoint as raw no-undo.
-        define variable byte as integer no-undo.
         define variable encString as longchar no-undo.
         
         if    length(pString) eq 0
@@ -46,10 +44,10 @@ class OpenEdge.Core.Util.UTF8Encoder:
         then
             return pString.
         
-        if    pEscapeSeq eq ? 
-           or pEscapeSeq eq '':u 
+        if    pEscapeSeq eq ?
+           or pEscapeSeq eq '':u
         then
-            assign pEscapeSeq = 'U+':u. 
+            assign pEscapeSeq = 'U+':u.
         
         if index(pEscapeSeq, '&1':u) eq 0 then
             assign pEscapeSeq = pEscapeSeq + '&1':u.
@@ -105,8 +103,8 @@ class OpenEdge.Core.Util.UTF8Encoder:
         - then the length of the hex value is determined using the mask.
         
         @param longchar The encoded string
-        @param character The escape sequence, by default U+ but for JSON may need to be \u . 
-                         May include &1 for more complex sequences (like Swift's \u{&1} )  
+        @param character The escape sequence, by default U+ but for JSON may need to be \u .
+                         May include &1 for more complex sequences (like Swift's \u{&1} )
         @return longchar A decoded UTF-8 string  */
     method static public longchar Decode(input pString as longchar,
                                          input pEscapeSeq as character):
@@ -119,6 +117,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         define variable escLen as integer no-undo.
         define variable escCloseLen as integer no-undo.
         define variable escCloseChr as character no-undo.
+        define variable substrLen as integer no-undo.
         
         fix-codepage(decodedString) = 'utf-8':u.
         
@@ -130,7 +129,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         else
             assign escCloseChr = substring(pEscapeSeq, pos + 2)
                    escCloseLen = length(escCloseChr)
-                   pEscapeSeq  = substring(pEscapeSeq, 1, pos - 1) 
+                   pEscapeSeq  = substring(pEscapeSeq, 1, pos - 1)
                    .
         
         assign startAt = 1
@@ -146,9 +145,13 @@ class OpenEdge.Core.Util.UTF8Encoder:
             
             assign hexChar       = substring(pString, pos + escLen, hexLen)
                    utf8          = UnicodeToUtf8(hexChar)
-                   decodedString = decodedString 
-                                 + substring(pString, startAt, (pos - startAt))
-                                 + chr(utf8, 'utf-8':u, 'utf-8':u)
+                   substrLen     = pos - startAt
+                   .
+            // workaround for OCTA-36340
+            if substrLen gt 0 then
+                assign decodedString = decodedString + substring(pString, startAt, substrLen).
+            
+            assign decodedString = decodedString + chr(utf8, 'utf-8':u, 'utf-8':u)
                    startAt       = pos + escLen + hexLen + escCloseLen
                    pos           = index(pString, pEscapeSeq, startAt)
                    .
@@ -164,11 +167,11 @@ class OpenEdge.Core.Util.UTF8Encoder:
        for the UnicodeToUtf8(int64) method.
        
        @param character The Unicode codepoint as a HEX value
-       @return int64 The UTF-8 value. Will be ZERO/0 if the codepoint is unknown or negative. */ 
+       @return int64 The UTF-8 value. Will be ZERO/0 if the codepoint is unknown or negative. */
     method static public int64 UnicodeToUtf8(input pHexValue as character):
         define variable unicode as int64 no-undo.
         
-        // use a distinct DO block so that we only treat bad values as 0 
+        // use a distinct DO block so that we only treat bad values as 0
         do on error undo, throw:
             assign unicode = MathUtil:HexToInt(pHexValue).
             catch e as Progress.Lang.Error :
@@ -181,15 +184,13 @@ class OpenEdge.Core.Util.UTF8Encoder:
     
     /* Converts a Unicode codepoint into a UTF8 value
        
-       For example the unicode codepoint 8364 (which is U+20AC) is returned as 
-       decimal 14844588 which can then be turned into a character with 
+       For example the unicode codepoint 8364 (which is U+20AC) is returned as
+       decimal 14844588 which can then be turned into a character with
        CHR(<val>, 'utf-8':u, 'utf-8':u)
        
-       @param int64 The Unicode codepoint 
-       @return int64 The UTF-8 value. Will be ZERO/0 if the codepoint is unknown or negative. */ 
+       @param int64 The Unicode codepoint
+       @return int64 The UTF-8 value. Will be ZERO/0 if the codepoint is unknown or negative. */
     method static public int64 UnicodeToUtf8(input pUnicode as int64):
-        define variable loop as integer no-undo.
-        define variable numBytes as integer no-undo.
         define variable utf8 as int64 no-undo.
         
         if pUnicode lt 0 then
@@ -218,7 +219,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         end.
         else
         if pUnicode le 0xffff then
-        do: 
+        do:
             // #bitswritten = 16
             // first 6 bits in 1-6
             put-bits(utf8, 1, 6) = get-bits(pUnicode, 1, 6).
@@ -239,7 +240,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         end.
         else
         if pUnicode le 0x10ffff then
-        do: 
+        do:
             // #bitswritten = 21
             // first 6 bits in 1-6
             put-bits(utf8, 1, 6) = get-bits(pUnicode, 1, 6).
@@ -268,9 +269,9 @@ class OpenEdge.Core.Util.UTF8Encoder:
         return utf8.
     end method.
     
-    /* Converts a UTF8 character into a unicode codepoint.  
+    /* Converts a UTF8 character into a unicode codepoint.
        
-       @param  character The UTF-8 character string. Only the first character of the input value is used. 
+       @param  character The UTF-8 character string. Only the first character of the input value is used.
        @return integer The Unicode codepoint. Will be ZERO/0 if the codepoint is null. */
     method static public integer Utf8ToUnicode(input pUtf8 as character):
         define variable utf8 as int64 no-undo.
@@ -286,7 +287,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         return Utf8ToUnicode(utf8).
     end method.
     
-    /* Converts a UTF8 values into a unicode codepoint 
+    /* Converts a UTF8 values into a unicode codepoint
        
        @param  int64   The UTF-8 value (from the ASC() function or elsewhere)
        @return integer The Unicode codepoint. Will be ZERO/0 if the codepoint is null. */
@@ -314,7 +315,7 @@ class OpenEdge.Core.Util.UTF8Encoder:
         do loop = 8 to 5 by -1:
             assign byte = get-byte(memData, loop).
             if byte eq 0
-            // From https://en.wikipedia.org/wiki/UTF-8, "FE and FF were never defined for any purpose in UTF-8". 
+            // From https://en.wikipedia.org/wiki/UTF-8, "FE and FF were never defined for any purpose in UTF-8".
             or byte eq 0xFE
             or byte eq 0xFF
             then

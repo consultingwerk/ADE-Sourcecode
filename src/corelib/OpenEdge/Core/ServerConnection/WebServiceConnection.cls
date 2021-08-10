@@ -112,7 +112,6 @@ class OpenEdge.Core.ServerConnection.WebServiceConnection use-widget-pool
         from the Connect/Disconnect pair of methods so that one server can 
         be connected and disconnected multiple time. */
     method public void DestroyServer():
-        define variable hServer as handle no-undo.
         
         if this-object:Connected then
             this-object:Disconnect().

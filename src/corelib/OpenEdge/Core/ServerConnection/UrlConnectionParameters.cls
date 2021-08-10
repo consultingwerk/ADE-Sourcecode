@@ -59,12 +59,10 @@ class OpenEdge.Core.ServerConnection.UrlConnectionParameters inherits Connection
         define variable cUrl as character no-undo.
         define variable cPath as character no-undo initial 'index.html'.
         define variable cQuery as character no-undo.
-        define variable cOptions as character no-undo.
         define variable oOptionsArray as JsonArray no-undo.
         define variable oSingleOption as JsonObject no-undo.
         define variable iLoop as integer no-undo.
         define variable iMax as integer no-undo.
-        define variable cNames as character extent no-undo.
         define variable cDelimiter as character no-undo.
         
         if this-object:ResolvedOptions eq ? then

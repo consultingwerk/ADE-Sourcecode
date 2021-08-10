@@ -1,15 +1,16 @@
 /************************************************
-Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
-*************************************************/ 
+Copyright (c) 2016, 2021 by Progress Software Corporation. All rights reserved.
+
+*************************************************/
 /*------------------------------------------------------------------------
     File        : JfpFilterParser
     Purpose     : Parse for JSON data in the JSON Filter Pattern
-    Syntax      : 
-    Description : 
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Wed Dec 07 14:11:10 EST 2016
     Notes       : * https://documentation.progress.com/output/ua/OpenEdge_latest/index.html#page/dvwsv/updating-business-entities-for-access-by-telerik.html
-                  * ablFilter — Contains the text of an ABL WHERE string (not including the WHERE keyword itself) on which to filter the 
+                  * ablFilter â€” Contains the text of an ABL WHERE string (not including the WHERE keyword itself) on which to filter the
                                  OpenEdge BusinessEntity query that returns the result set, as in the following examples:
                         *"ablFilter" : "(State = 'MA') OR (State = 'GA')"
                         *"ablFilter" : "Name BEGINS 'A'"
@@ -26,16 +27,17 @@ Copyright (c)  2016 by Progress Software Corporation. All rights reserved.
 block-level on error undo, throw.
 
 using Ccs.BusinessLogic.IGetDataTableRequest.
+using Ccs.BusinessLogic.SortOrderEnum.
 using OpenEdge.BusinessLogic.Filter.AblFilterParser.
 using OpenEdge.BusinessLogic.GetDataTableRequest.
 using OpenEdge.BusinessLogic.QueryDefinition.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
 
-class OpenEdge.BusinessLogic.Filter.JfpFilterParser inherits AblFilterParser: 
+class OpenEdge.BusinessLogic.Filter.JfpFilterParser inherits AblFilterParser:
     
     /* Default constructor */
-    constructor public JfpFilterParser(): 
+    constructor public JfpFilterParser():
         super().
     end constructor.
     
@@ -64,8 +66,18 @@ class OpenEdge.BusinessLogic.Filter.JfpFilterParser inherits AblFilterParser:
                                                                      input pData as JsonObject):
         define variable tableRequest as GetDataTableRequest no-undo.
         define variable qryDef as QueryDefinition no-undo.
+        define variable qryStr as character no-undo.
+        define variable loop as integer no-undo.
+        define variable cnt as integer no-undo.
         
-        assign tableRequest = new GetDataTableRequest(pTable).    // we don't know the table name here
+        // If the table name isn't passed in, try to get from the filter
+        if pTable eq '':u
+        and pData:Has('tableRef':u)
+        and pData:GetType('tableRef':u) eq JsonDataType:STRING
+        then
+            assign pTable = pData:GetCharacter('tableRef':u).
+        
+        assign tableRequest = new GetDataTableRequest(pTable).
         
         if not valid-object(pData) then
             return tableRequest.
@@ -76,12 +88,34 @@ class OpenEdge.BusinessLogic.Filter.JfpFilterParser inherits AblFilterParser:
         if     pData:Has('orderBy':u)
            and pData:GetType('orderBy':u) eq JsonDataType:STRING
         then
-            assign qryDef:QuerySort = ParseSortString(pData:GetCharacter('orderBy':u)).
+            // this is a CSV list; the method expects an ABL expression
+            assign qryDef:QuerySort = ParseSortString('by ':u + replace(pData:GetCharacter('orderBy':u), ',':u, ', by ':u)).
         
         if     pData:Has('ablFilter':u)
            and pData:GetType('ablFilter':u) eq JsonDataType:STRING
         then
-            assign qryDef:QuerySelection = ParseWhereString(pData:GetCharacter('ablFilter':u)).
+        do:
+            assign qryStr                = pData:GetCharacter('ablFilter':u)
+                   qryDef:QuerySelection = ParseWhereString(qryStr)
+                   .
+            if not valid-object(qryDef:QuerySelection) then
+            do:
+                assign tableRequest:QueryDefinition = ?
+                       tableRequest:QueryString     = qryStr
+                       cnt                          = extent(qryDef:QuerySort)
+                       .
+                // add the BY clauses from the QueryDefinition
+                do loop = 1 to cnt:
+                    assign tableRequest:QueryString = tableRequest:QueryString
+                                                    + ' by ':u
+                                                    + qryDef:QuerySort[loop]:FieldName.
+                    if valid-object(qryDef:QuerySort[loop]:SortOrder)
+                    and qryDef:QuerySort[loop]:SortOrder eq SortOrderEnum:Descending
+                    then
+                        assign tableRequest:QueryString = tableRequest:QueryString + ' descending ':u.
+                end.
+            end.
+        end.
         
         if     pData:Has('id':u)
            and pData:GetType('id':u) eq JsonDataType:STRING

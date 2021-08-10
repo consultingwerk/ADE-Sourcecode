@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2018-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2018-2020 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : QueryDefinition
@@ -15,10 +15,19 @@ block-level on error undo, throw.
 using Ccs.BusinessLogic.IQueryDefinition.
 using Ccs.BusinessLogic.IQueryEntry.
 using Ccs.BusinessLogic.IQuerySortEntry.
+using OpenEdge.BusinessLogic.IO.JsonPropertyNameEnum.
+using OpenEdge.BusinessLogic.IO.QueryEntryDeserializer.
 using OpenEdge.Core.Assert.
+using OpenEdge.Core.Json.IJsonSerializer.
+using OpenEdge.Core.Json.JsonConverter.
+using OpenEdge.Core.Json.JsonPropertyHelper.
+using OpenEdge.Core.Json.JsonSerializer.
+using Progress.Json.ObjectModel.JsonConstruct.
+using Progress.Json.ObjectModel.JsonDataType.
+using Progress.Json.ObjectModel.JsonObject.
 
-class OpenEdge.BusinessLogic.QueryDefinition implements IQueryDefinition:
-
+class OpenEdge.BusinessLogic.QueryDefinition implements IQueryDefinition, IJsonSerializer:
+    
     /* Returns the list of query predicates or query groups for this query definition */
     define public property QuerySelection as IQueryEntry no-undo get. set. 
     
@@ -39,7 +48,7 @@ class OpenEdge.BusinessLogic.QueryDefinition implements IQueryDefinition:
         Assert:NotNull(pEntry, 'Query entry').
         assign this-object:QuerySelection = pEntry.
     end constructor.
-
+    
     /* Constructor.
        
        @param IQueryEntry The query selection phrase
@@ -48,7 +57,6 @@ class OpenEdge.BusinessLogic.QueryDefinition implements IQueryDefinition:
                                        input pSort as IQuerySortEntry extent):
         this-object(pEntry).
         
-        Assert:HasDeterminateExtent(pSort, 'Query sort entries').
         assign this-object:QuerySort = pSort.
     end constructor.
     
@@ -65,11 +73,47 @@ class OpenEdge.BusinessLogic.QueryDefinition implements IQueryDefinition:
             else
                 assign qrySort = qrySort + '?':u.
         end.
-        assign qrySort = qrySort + ']':u.
+        if not cnt eq ? then
+            assign qrySort = qrySort + ']':u.
         
         return substitute('selection: &1; sort: &2',
                 (if valid-object(this-object:QuerySelection) then this-object:QuerySelection:ToString() else ?),
                 qrySort ).
     end method.
     
+    /* SERIALIZATION METHOD:returns a JsonConstruct (JsonDataType:OBJECT or JsonDataType:ARRAY) representation 
+       of this object.
+       
+       @return JsonConstruct A JSON representation of this object. May be unknown (JsonDataType:NULL). */
+    method public JsonConstruct ToJsonConstruct():
+        define variable data as JsonObject no-undo.
+        
+        assign data = new JsonObject().
+        
+        JsonConverter:AddToObject(JsonPropertyNameEnum:filter, this-object:QuerySelection, data).
+        data:Add(string(JsonPropertyNameEnum:sort), JsonConverter:ToArray(this-object:QuerySort)).
+        
+        return data.
+    end method.
+    
+    /* DESERIALIZATION METHOD: populates this object with data from the JSON representation.
+       
+       @param JsonConstruct A JSON representation of this object. May be unknown (JsonDataType:NULL). */
+    method public void FromJson(input pJson as JsonConstruct):
+        define variable data as JsonObject no-undo.
+        
+        if    not valid-object(pJson)
+           or not type-of(pJson, JsonObject) 
+        then
+            return.
+        
+        assign data = cast(pJson, JsonObject).
+        
+        if JsonPropertyHelper:HasTypedProperty(data, string(JsonPropertyNameEnum:filter), JsonDataType:OBJECT) then
+            assign this-object:QuerySelection = QueryEntryDeserializer:QueryEntryFromJson(data:GetJsonObject(string(JsonPropertyNameEnum:filter))).
+        
+        if JsonPropertyHelper:HasTypedProperty(data, string(JsonPropertyNameEnum:sort), JsonDataType:ARRAY) then
+            assign this-object:QuerySort = cast(JsonSerializer:Deserialize(data:GetJsonArray(string(JsonPropertyNameEnum:sort))),
+                                                IQuerySortEntry).
+    end method.
 end class.

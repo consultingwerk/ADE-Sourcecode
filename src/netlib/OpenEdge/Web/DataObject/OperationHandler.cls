@@ -1,5 +1,5 @@
 /* *************************************************************************************************************************
-Copyright (c) 2016-2019 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+Copyright (c) 2016-2019, 2021 by Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
 ************************************************************************************************************************** */
 /*------------------------------------------------------------------------
     File        : OperationHandler
@@ -33,7 +33,6 @@ using OpenEdge.Core.Assert.
 using OpenEdge.Core.Collections.IList.
 using OpenEdge.Core.Collections.IMap.
 using OpenEdge.Core.DataTypeEnum.
-using OpenEdge.Core.DataTypeHelper.
 using OpenEdge.Core.DateArrayHolder.
 using OpenEdge.Core.DateHolder.
 using OpenEdge.Core.DateTimeAddIntervalEnum.
@@ -59,13 +58,13 @@ using OpenEdge.Core.WidgetHandle.
 using OpenEdge.Logging.ILogWriter.
 using OpenEdge.Logging.ISupportLogging.
 using OpenEdge.Logging.LogLevelEnum.
-using OpenEdge.Logging.Logger.
 using OpenEdge.Logging.LoggerBuilder.
 using OpenEdge.Net.HTTP.Filter.Payload.MessageWriter.
 using OpenEdge.Net.HTTP.Filter.Writer.EntityWriterBuilder.
 using OpenEdge.Net.HTTP.HttpHeader.
 using OpenEdge.Net.HTTP.HttpHeaderBuilder.
 using OpenEdge.Net.HTTP.IHttpResponse.
+using OpenEdge.Net.HTTP.StatusCodeEnum.
 using OpenEdge.Net.MessagePart.
 using OpenEdge.Net.MimeTypeHelper.
 using OpenEdge.Net.MultipartEntity.
@@ -81,6 +80,7 @@ using OpenEdge.Web.DataObject.Writer.ArgumentValueWriterBuilder.
 using OpenEdge.Web.DataObject.Writer.ResponseElementWriter.
 using OpenEdge.Web.DataObject.Writer.ResponseElementWriterBuilder.
 using OpenEdge.Web.IWebRequest.
+using OpenEdge.Web.SendExceptionError.
 using Progress.Json.ObjectModel.JsonConstruct.
 using Progress.Json.ObjectModel.JsonDataType.
 using Progress.Json.ObjectModel.JsonObject.
@@ -865,22 +865,68 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
        
        @param Progress.Lang.Class The argument type 
        @param Progress.Lang.Object The returned argument (will be type-of() the arg type but not necessarily EQ)
-       @param character The property name to read
+       @param character The property name to read. This can be a property name ("prop"), or if the property is an object, 
+                        one or more properties of it or its children, using dots to separate the names. For example,
+                        "prop.prop1.prop2". If a child property cannot be read (not public, does not exist) then the entire
+                        parent value is returned. 
+                        
+                        If the property is an array, then an index can be used, eg "prop[3]", on any of
+                        the properties. If the index is out of bounds or the array is indeterminate, then the entire property
+                        value is returned.
        @return Progress.Lang.Object The object value of the property */
     method protected Progress.Lang.Object ReadArgumentProperty(input pArgType as class Progress.Lang.Class,
                                                                input pArgValue as class Progress.Lang.Object,
                                                                input pPropertyName as character    ):
         define variable elemValue  as Progress.Lang.Object no-undo.
         define variable argProperty as Property no-undo.
+        define variable elemIdx as integer no-undo.
+        define variable pos as integer extent 2 no-undo.
+        define variable dotPos as integer no-undo.
+        define variable subProps as character no-undo.
+        define variable origArray as Object extent no-undo.
+        define variable cnt as integer no-undo.
+        define variable loop as integer no-undo.
+        define variable propType as Progress.Lang.Class no-undo.
         
         if not valid-object(pArgValue)
            or String:IsNullOrEmpty(pPropertyName)
         then
             return pArgValue.
         
+        // if there are nested properties extract this one, and keep the rest
+        assign pos[1] = index(pPropertyName, '.':u).
+        if pos[1] gt 0 then
+            assign subProps      = substring(pPropertyName, pos[1] + 1)
+                   pPropertyName = substring(pPropertyName, 1, pos[1] - 1)
+                   pos[1]        = 0
+                   .
+        
+        // check if there's a property extent specified
+        assign pos[1] = index(pPropertyName, '[':u)
+               pos[2] = index(pPropertyName, ']':u)
+               .
+        if pos[1] gt 0
+        or pos[2] gt 0
+        then
+        do:
+            if pos[1] eq pos[2] then
+                assign elemIdx = 0.
+            else
+                assign elemIdx = integer(substring(pPropertyName, pos[1] + 1, pos[2] - pos[1] - 1))
+                       no-error.
+            if elemIdx eq 0 then
+            do:
+                Logger:Warn(substitute('Unable to read field &1 of argument type &2. Using entire entire argument value instead.',
+                                    pPropertyName, 
+                                    pArgType:TypeName )).
+                return pArgValue.
+            end.
+            assign pPropertyName = substring(pPropertyName, 1, pos[1] - 1).
+        end.
+        
         // the property must at least be public and instance
         // the GetProperty() call returns ? and does NOT error (hooray)
-        assign argProperty = pArgType:GetProperty(pPropertyName). // Implicit Flags:Public OR Flags:Instance
+        assign argProperty = pArgValue:GetClass():GetProperty(pPropertyName). // Implicit Flags:Public OR Flags:Instance
         if not valid-object(argProperty)
             or not argProperty:CanRead
             or not argProperty:GetterAccessMode eq AccessMode:Public
@@ -899,11 +945,19 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if argProperty:Extent eq 0 then
                     assign elemValue = new String(argProperty:Get(pArgValue)).
                 else
+                if elemIdx gt 0 then
+                    assign elemValue = new String(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
+                else
                     assign elemValue = new LongcharArrayHolder(argProperty:Get(pArgValue)).
-            
+                
             when DataType:Date then
                 if argProperty:Extent eq 0 then
                     assign elemValue = new DateHolder(argProperty:Get(pArgValue)).
+                else
+                if elemIdx gt 0 then
+                    assign elemValue = new DateHolder(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
                 else
                     assign elemValue = new DateArrayHolder(argProperty:Get(pArgValue)).
             
@@ -911,11 +965,19 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if argProperty:Extent eq 0 then
                     assign elemValue = new DateTimeHolder(argProperty:Get(pArgValue)).
                 else
+                if elemIdx gt 0 then
+                    assign elemValue = new DateTimeHolder(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
+                else
                     assign elemValue = new DateTimeArrayHolder(argProperty:Get(pArgValue)).
             
             when DataType:DateTimeTZ then
                 if argProperty:Extent eq 0 then
                     assign elemValue = new DateTimeTzHolder(argProperty:Get(pArgValue)).
+                else
+                if elemIdx gt 0 then
+                    assign elemValue = new DateTimeTzHolder(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
                 else
                     assign elemValue = new DateTimeTzArrayHolder(argProperty:Get(pArgValue)).
             
@@ -923,11 +985,19 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if argProperty:Extent eq 0 then
                     assign elemValue = new Decimal(argProperty:Get(pArgValue)).
                 else
+                if elemIdx gt 0 then
+                    assign elemValue = new Decimal(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
+                else
                     assign elemValue = new DecimalArrayHolder(argProperty:Get(pArgValue)).
             
             when DataType:Handle then
                 if argProperty:Extent eq 0 then
                     assign elemValue = new WidgetHandle(argProperty:Get(pArgValue)).
+                else
+                if elemIdx gt 0 then
+                    assign elemValue = new WidgetHandle(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
                 else
                     assign elemValue = new HandleArrayHolder(argProperty:Get(pArgValue)).
             
@@ -935,6 +1005,10 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
             when DataType:Integer then
                 if argProperty:Extent eq 0 then
                     assign elemValue = new Integer(argProperty:Get(pArgValue)).
+                else
+                if elemIdx gt 0 then
+                    assign elemValue = new Integer(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
                 else
                     assign elemValue = new IntegerArrayHolder(argProperty:Get(pArgValue)).
             
@@ -949,17 +1023,29 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 if argProperty:Extent eq 0 then
                     assign elemValue = new Memptr(argProperty:Get(pArgValue)).
                 else
+                if elemIdx gt 0 then
+                    assign elemValue = new Memptr(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
+                else
                     assign elemValue = new MemptrArrayHolder(argProperty:Get(pArgValue)).
             
             when DataType:Rowid then
                 if argProperty:Extent eq 0 then
                     assign elemValue = new String(string(argProperty:Get(pArgValue))).
                 else
+                if elemIdx gt 0 then
+                    assign elemValue = new String(argProperty:Get(pArgValue, elemIdx))
+                           no-error.
+                else
                     assign elemValue = new RowidArrayHolder(argProperty:Get(pArgValue)).
             
             when DataType:Object then
                 if argProperty:Extent eq 0 then
                     assign elemValue = argProperty:Get(pArgValue).
+                else
+                if elemIdx gt 0 then
+                    assign elemValue = argProperty:Get(pArgValue, elemIdx)
+                           no-error.
                 else
                     assign elemValue = new ObjectArrayHolder(argProperty:Get(pArgValue)).
             
@@ -971,6 +1057,49 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
                 assign elemValue = pArgValue.
             end.
         end case.
+        
+        // if the elemIdx is > the size of the array, return an unknown value. The NO-ERRORs above ensure that
+        // we don't fail, and also an invalid object. We don't want the ERROR-STATUS:ERROR attribute set though.
+        if  elemIdx gt 0
+        and not valid-object(elemValue)
+        then
+            assign error-status:error = no.
+        
+        // If the property was an object type, and there are sub-properties specified, get them recursively
+        // Make sure that the current value is of the appropriate type
+        if not subProps eq '':u
+        and argProperty:DataType eq DataType:Object
+        and valid-object(elemValue)
+        then
+        do:
+            assign propType = Progress.Lang.Class:GetClass(argProperty:DataTypeName).
+            if elemValue:GetClass():IsA(propType) then
+                assign elemValue = ReadArgumentProperty(propType,
+                                                        elemValue,
+                                                        subProps).
+            else
+            // if we are returning a sub-property, and the current value is a complete array,
+            // return the property for all the elements that have are valid and have that property
+            if type-of(elemValue, IObjectArrayHolder) then
+            do:
+                assign origArray = cast(elemValue, IObjectArrayHolder):Value
+                       cnt       = extent(origArray)
+                       .
+                do loop = 1 to cnt:
+                    if  valid-object(origArray[loop])
+                    and origArray[loop]:GetClass():IsA(propType)
+                    then
+                        assign origArray[loop] = ReadArgumentProperty(propType,
+                                                                      origArray[loop],
+                                                                      subProps).
+                end.
+                // we have to create a new array holder due to the fact that an array is not
+                // itself an object, but rather a collection of items, and so changing an item
+                // in the array (origArray) does not change the value in the original holder 
+                // (elemValue)
+                assign elemValue = new ObjectArrayHolder(origArray).
+            end.
+        end.
         
         return elemValue.
     end method.
@@ -1155,6 +1284,15 @@ class OpenEdge.Web.DataObject.OperationHandler implements IOperationHandler, ISu
         valueWriter:Close().
         
         assign poArg:ArgumentValue = valueWriter:Value.
+        
+        catch parseErr as Progress.Lang.Error:
+            Logger:Trace(substitute('GetInputValue(): Unable to extract value for argument &2 &1 from element &3',
+                            (if valid-object(poArg) then poArg:Parameter:ABLName else '':u), 
+                            (if valid-object(poArg) then poArg:Parameter:ABLType else '':u),
+                            string(msgElem)),   // string() here to force the ToString() method to be called
+                         parseErr).
+            undo, throw new SendExceptionError(StatusCodeEnum:BadRequest, parseErr).
+        end catch.
         finally:
             Logger:Trace(substitute('GetInputValue() for argument &2 &1 - time(ms)=&3',
                             (if valid-object(poArg) then poArg:Parameter:ABLName else '':u), 
