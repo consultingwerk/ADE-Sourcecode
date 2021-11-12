@@ -1,15 +1,15 @@
 /************************************************
-Copyright (c) 2015-2020 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2015-2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : ClientSocketResponseWriter
     Purpose     : Writes HTTP data received from socket into a response and
-                  a message body object (byte bucket) 
-    Syntax      : 
-    Description : 
+                  a message body object (byte bucket)
+    Syntax      :
+    Description :
     Author(s)   : pjudge
     Created     : Mon Jan 26 09:57:31 EST 2015
-    Notes       : 
+    Notes       :
   ----------------------------------------------------------------------*/
 block-level on error undo, throw.
 
@@ -53,7 +53,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
     /* helper variable for the request, to avoid constant casting */
     define protected property Request as IHttpRequest no-undo get. private set.
     
-    /** (mandatory) The message that's being written */  
+    /** (mandatory) The message that's being written */
     define public property Message as IHttpMessage no-undo
         get():
             return Response.
@@ -68,7 +68,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                this-object:MessageBody = poMessageBody
                moChunk                 = ByteBucket:Instance()
                .
-    end method.
+    end constructor.
     
     /**  Closes the output. See Open() */
     method public void Close():
@@ -91,10 +91,10 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         this-object:MessageBody:Clear().
     end method.
     
-    /** Write data to the output location 
+    /** Write data to the output location
         
         @param Object Data to write */
-    method public void Write(input poData as Object):  
+    method public void Write(input poData as Object):
         Assert:NotNull(poData).
         
         case true:
@@ -102,14 +102,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 this-object:Write(cast(poData, SocketReadEventArgs)).
             when poData:GetClass():IsA(get-class(IHttpRequest)) then
                 this-object:Write(cast(poData, IHttpRequest)).
-            otherwise
-                /*no op*/ .
         end case.
-    end.
+    end method.
     
     /* Specialised writer method for requests
         
-       @param IHttpRequest A request to write */    
+       @param IHttpRequest A request to write */
     method protected void Write(input poRequest as IHttpRequest):
         Assert:NotNull(poRequest, 'Http request').
         
@@ -156,7 +154,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                     HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
                     Status-Code    = 3*DIGIT
                     Reason-Phrase  = *<TEXT, excluding CR, LF>
-            */        
+            */
             do iLoop = iStartByte to iBytesRead while not mlStatusLineRead:
                 assign iByte     = poSocketArgs:Data:GetByte(iLoop)
                        iNumBytes = iNumBytes + 1.
@@ -164,12 +162,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
                 
-                /* if we're at the end of our chunk of data, or we have hit 
+                /* if we're at the end of our chunk of data, or we have hit
                    the carriage return */
-                if (miPrevByte eq CR and iByte eq LF ) or 
+                if (miPrevByte eq CR and iByte eq LF ) or
                    iLoop eq iBytesRead then
                     assign mlStatusLineRead = true
-                           mcCurrentLine    = mcCurrentLine 
+                           mcCurrentLine    = mcCurrentLine
                                             + string(poSocketArgs:Data:GetString(iStartByte, iNumBytes, session:cpinternal))
                            iNumBytes = 0.
                 assign miPrevByte = iByte.
@@ -202,11 +200,11 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 if iByte eq CR or iByte eq LF then
                     assign iNumBytes = iNumBytes - 1.
                 
-                // if the first bytes in this packet are CR and/or LF, the NumBytes will be 0 
+                // if the first bytes in this packet are CR and/or LF, the NumBytes will be 0
                 if iNumBytes gt 0 then
                 do:
                     // We're at a LF byte
-                    if miPrevByte eq CR 
+                    if miPrevByte eq CR
                     and iByte eq LF
                     then
                         assign mcCurrentLine = mcCurrentLine
@@ -216,9 +214,9 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                     else
                     // If we're at the end of the loop, and this isn't a CR or LF, then get the
                     // number of bytes, but without the leading CRLF
-                    if iLoop eq iBytesRead 
+                    if iLoop eq iBytesRead
                     then
-                        assign mcCurrentLine = mcCurrentLine 
+                        assign mcCurrentLine = mcCurrentLine
                                              + poSocketArgs:Data:GetString(iLoop - iNumBytes + 1, iNumBytes, session:cpinternal)
                                              .
                     
@@ -236,7 +234,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                     end.
                 end.
                 
-                /* if this is the 2nd CRLF then we have finished all the headers 
+                /* if this is the 2nd CRLF then we have finished all the headers
                 
                    NOTE: usually we check for line ending by having CR+LF. Here we
                    check for LF then CR since that means the first byte following a
@@ -272,10 +270,12 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 assign poSocketArgs:ReadComplete = true.
             // If there's otherwise no entity/message body, then we can consider ourselves done.
             else if Response:ContentLength eq 0
-                           // If there's a Content-Length header with a value of 0/zero, then we're done here. 
-                    and (   Response:HasHeader('Content-Length':u) 
+                           // If there's a Content-Length header with a value of 0/zero, then we're done here.
+                    and (   Response:HasHeader('Content-Length':u)
                             // if there's no discernable content on this response
-                         or Response:ContentType   eq '':u ) 
+                         or Response:ContentType   eq '':u )
+                    // .. but if this is chunked we have a mechanism to process the response body so use that instead
+                    and not Response:TransferEncoding eq string(TransferEncodingEnum:Chunked)
             then
                 assign poSocketArgs:ReadComplete = true.
             else
@@ -284,7 +284,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                 when string(TransferEncodingEnum:Chunked) then
                 do:
                     /** From http://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1, the
-                        HTTP Server returns chunked data in the following format: 
+                        HTTP Server returns chunked data in the following format:
                            Chunked-Body   = *chunk
                                             last-chunk
                                             trailer
@@ -300,15 +300,15 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                         assign iByte     = poSocketArgs:Data:GetByte(iLoop)
                                iNumBytes = iNumBytes + 1.
                         
-                        /* if we're at the end of our incoming chunk of data, or we have hit 
+                        /* if we're at the end of our incoming chunk of data, or we have hit
                            the carriage return, cache the data until we actually have
                            hit the line end */
                            
-                           /* we only care about line endings for the case where we 
+                           /* we only care about line endings for the case where we
                               need to figure out the chunk size (ie miChunkSize eq 0).
                               
-                              for other data we keep on collecting until we know we 
-                              have it all (miChunkBytesRemaining eq 0). for the latter 
+                              for other data we keep on collecting until we know we
+                              have it all (miChunkBytesRemaining eq 0). for the latter
                               cases, we need to treat CR and LF as data, not terminators */
                                                       
                         /* we have all the data or are at the beginning */
@@ -322,7 +322,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
                             /* gather data */
                             if ((miPrevByte eq CR and iByte eq LF) or
                                  /* end of input data */
-                                 iLoop eq iBytesRead) and 
+                                 iLoop eq iBytesRead) and
                                iNumBytes gt 0 then
                             do:
                                 /* If the few chars are CR or LF then discard those characters. */
@@ -436,7 +436,7 @@ class OpenEdge.Net.HTTP.Filter.Payload.ClientSocketResponseWriter
         /* no-op */
     end method.
     
-    /** Write data to the output location 
+    /** Write data to the output location
     
         @param memptr Data to write */
     method public void Write(input pmData as memptr):
