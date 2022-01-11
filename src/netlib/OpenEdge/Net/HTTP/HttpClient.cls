@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2014-2017, 2019 by Progress Software Corporation. All rights reserved.
+Copyright (c) 2014-2017, 2019, 2021 by Progress Software Corporation. All rights reserved.
 *************************************************/
 /*------------------------------------------------------------------------
     File        : HttpClient
@@ -125,6 +125,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
         
         assign iNumRetries = 0.
         /* Use looping instead of recursion to avoid deeping the call stack */
+        REQ-LOOP:
         repeat:
             if this-object:Options:NumRetries gt 0 then
             do:
@@ -165,21 +166,32 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
             
             /* Check for redirects, auth and friends */
             if ProcessStatusAction(poRequest, poResponse) then
-                leave.
+                leave REQ-LOOP.
             
             if this-object:Options:NumRetries eq 0 then
             do:
                 Logger:Info(substitute('Client will not attempt retry of &1 &2 after response status code &3',
                                 poRequest:Method, poRequest:URI:ToString(), poResponse:StatusCode )).
-                leave.
+                leave REQ-LOOP.
             end.
             else
             if this-object:Options:NumRetries gt 0 then
             do:
                 if iNumRetries ge this-object:Options:NumRetries then
-                    leave.
+                    leave REQ-LOOP.
                 if this-object:Options:PauseBetweenRetry gt 0 then
                     pause this-object:Options:PauseBetweenRetry no-message.
+                
+                // reset the response, for the next request, so that we don't have
+                // any cruft left in the response (eg a Content-Length header)
+                //
+                // Only do this if we are retrying; for other cases we want to return
+                // the existing response. Don't Destroy()/Initialize() because we need to
+                // keep the cookies for this whole 'logical request'
+                poResponse:ClearHeaders().
+                assign poResponse:Entity     = ?
+                       poResponse:StatusCode = 0
+                       .
             end.
             
             if rRequestHash[1] eq rRequestHash[2] then
@@ -225,6 +237,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
               if oWriterType = ? then 
                  return true.
             end.
+            
             return false.
         end.
         
@@ -234,6 +247,7 @@ class OpenEdge.Net.HTTP.HttpClient implements IHttpClient, ISupportInitialize, I
     
     /* Initializer/Startup */
     method public void Initialize():
+        // no-op; method from interface
     end method.
     
     /* Destroy/Shutdown/Anti-Initializer */
